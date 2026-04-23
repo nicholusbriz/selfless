@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import RippleButton from '@/components/RippleButton';
+import { isAdminEmail } from '@/config/admin';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function RegisterPage() {
@@ -64,12 +64,22 @@ export default function RegisterPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage('Account created successfully! Redirecting to your dashboard...');
-        setMessageType('success');
-        setTimeout(() => {
-          // Pass user data via URL parameters instead of localStorage
-          router.push(`/form?userId=${data.user.id}&email=${encodeURIComponent(data.user.email)}`);
-        }, 1500);
+        // Check if user is admin and redirect accordingly
+        const isAdmin = isAdminEmail(data.user.email);
+
+        if (isAdmin) {
+          setMessage('Admin account created! Redirecting to admin dashboard...');
+          setMessageType('success');
+          setTimeout(() => {
+            router.push(`/admin?userId=${data.user.id}&email=${encodeURIComponent(data.user.email)}`);
+          }, 1500);
+        } else {
+          setMessage('Account created successfully! Redirecting to your dashboard...');
+          setMessageType('success');
+          setTimeout(() => {
+            router.push(`/form?userId=${data.user.id}&email=${encodeURIComponent(data.user.email)}`);
+          }, 1500);
+        }
       } else {
         setMessage(data.message || 'Registration failed');
         setMessageType('error');

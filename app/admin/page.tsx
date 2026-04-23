@@ -5,6 +5,7 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 import ExcelExporter from '@/components/ExcelExporter';
 import { useRouter } from 'next/navigation';
 import { User, CleaningDay, Weeks } from '@/types';
+import { isAdminEmail } from '@/config/admin';
 
 interface DBUser {
   id: string;
@@ -24,21 +25,52 @@ export default function Admin() {
   const [usersLoading, setUsersLoading] = useState(false);
   const router = useRouter();
 
-  // Check if user is admin (email-based authentication)
+  // Check if user is admin (URL-based authentication)
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (!userData) {
+    // Get user data from URL parameters (passed from login)
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('userId');
+    const email = urlParams.get('email');
+
+    if (!userId || !email) {
+      // No auth params, redirect to home
       router.push('/');
       return;
     }
 
-    const user = JSON.parse(userData);
     // Admin check - only authorized emails can access admin dashboard
-    const adminEmails = ['atbriz256@gmail.com', 'kiwanukatonny@gmail.com']; // Add more admin emails here
-    if (!adminEmails.includes(user.email)) {
+    if (!isAdminEmail(email)) {
       router.push('/form');
       return;
     }
+
+    // Verify user exists in database (optional but recommended)
+    const verifyUser = async () => {
+      try {
+        const response = await fetch('/api/user-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId }),
+        });
+
+        if (!response.ok) {
+          router.push('/');
+          return;
+        }
+
+        const data = await response.json();
+        if (!data.success || !data.user) {
+          router.push('/');
+          return;
+        }
+      } catch (error) {
+        router.push('/');
+      }
+    };
+
+    verifyUser();
   }, [router]);
 
   // Fetch cleaning days data (initial load)

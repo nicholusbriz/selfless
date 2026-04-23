@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import RippleButton from '@/components/RippleButton';
+import { isAdminEmail } from '@/config/admin';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function LoginPage() {
@@ -58,12 +59,22 @@ export default function LoginPage() {
 
       const data = await response.json();
 
-      setMessage('Access granted! Redirecting to your dashboard...');
-      setMessageType('success');
-      setTimeout(() => {
-        // Pass user data via URL parameters instead of localStorage
-        router.push(`/form?userId=${data.user.id}&email=${encodeURIComponent(data.user.email)}`);
-      }, 1500);
+      // Check if user is admin and redirect accordingly
+      const isAdmin = isAdminEmail(data.user.email);
+
+      if (isAdmin) {
+        setMessage('Admin access granted! Redirecting to admin dashboard...');
+        setMessageType('success');
+        setTimeout(() => {
+          router.push(`/admin?userId=${data.user.id}&email=${encodeURIComponent(data.user.email)}`);
+        }, 1500);
+      } else {
+        setMessage('Access granted! Redirecting to your dashboard...');
+        setMessageType('success');
+        setTimeout(() => {
+          router.push(`/form?userId=${data.user.id}&email=${encodeURIComponent(data.user.email)}`);
+        }, 1500);
+      }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Network error. Please try again.';
       setMessage(errorMessage);
