@@ -29,31 +29,24 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('🔵 Register button clicked!');
-    console.log('🔵 Form data:', formData);
 
     // Validation
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
-      console.log('🔴 Validation failed: Missing fields');
       setMessage('Please fill in all fields');
       setMessageType('error');
       return;
     }
 
-
     if (formData.password.length < 6) {
-      console.log('🔴 Validation failed: Password too short');
       setMessage('Password must be at least 6 characters long');
       setMessageType('error');
       return;
     }
 
-    console.log('🟢 Validation passed, starting API call...');
     setIsLoading(true);
     setMessage('');
 
     try {
-      console.log('Submitting registration:', formData);
 
       const response = await fetch('/api/register', {
         method: 'POST',
@@ -68,31 +61,23 @@ export default function RegisterPage() {
         }),
       });
 
-      console.log('🟡 Response status:', response.status);
       const data = await response.json();
-      console.log('🟡 Response data:', data);
 
       if (response.ok) {
-        console.log('✅ Registration successful!');
-        console.log('✅ User data:', data.user);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setMessage('Registration successful! Redirecting to your dashboard...');
+        setMessage('Account created successfully! Redirecting to your dashboard...');
         setMessageType('success');
         setTimeout(() => {
-          console.log('🔄 Redirecting to /form...');
-          router.push('/form');
+          // Pass user data via URL parameters instead of localStorage
+          router.push(`/form?userId=${data.user.id}&email=${encodeURIComponent(data.user.email)}`);
         }, 1500);
       } else {
-        console.log('❌ Registration failed:', data.message);
         setMessage(data.message || 'Registration failed');
         setMessageType('error');
       }
     } catch (error) {
-      console.log('💥 Network error:', error);
       setMessage('Network error. Please try again.');
       setMessageType('error');
     } finally {
-      console.log('🏁 Finished registration attempt');
       setIsLoading(false);
     }
   };
