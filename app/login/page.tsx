@@ -63,11 +63,11 @@ export default function LoginPage() {
 
       const data = await response.json();
 
-      localStorage.setItem('user', JSON.stringify(data.user));
       setMessage('Access granted! Redirecting to your dashboard...');
       setMessageType('success');
       setTimeout(() => {
-        router.push('/form');
+        // Pass user data via URL parameters instead of localStorage
+        router.push(`/form?userId=${data.user.id}&email=${encodeURIComponent(data.user.email)}`);
       }, 1500);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Network error. Please try again.';
@@ -121,8 +121,8 @@ export default function LoginPage() {
 
             {message && (
               <div className={`p-3 rounded-lg text-sm ${messageType === 'success'
-                  ? 'bg-green-500/20 border border-green-500/50 text-green-300'
-                  : 'bg-red-500/20 border border-red-500/50 text-red-300'
+                ? 'bg-green-500/20 border border-green-500/50 text-green-300'
+                : 'bg-red-500/20 border border-red-500/50 text-red-300'
                 }`}>
                 {message}
               </div>

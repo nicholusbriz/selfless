@@ -17,56 +17,55 @@ export default function FormPage() {
   const router = useRouter();
 
 
-  // Check authentication and registration status on page load
+  // Check if user has valid authentication from URL params
   useEffect(() => {
-    const userData = localStorage.getItem('user');
+    const checkUserAccess = async () => {
+      // Get user data from URL params (passed from login)
+      const urlParams = new URLSearchParams(window.location.search);
+      const userId = urlParams.get('userId');
+      const email = urlParams.get('email');
 
-    if (!userData) {
-      router.push('/');
-      return;
-    }
+      if (!userId || !email) {
+        // No auth params, redirect to home
+        router.push('/');
+        return;
+      }
 
-    const parsedUser = JSON.parse(userData);
-    console.log('User data loaded:', parsedUser);
-
-    // Check user's registration status
-    const checkUserStatus = async () => {
-      setUser(parsedUser);
       try {
+        // Verify user exists in database
         const response = await fetch('/api/user-status', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId: parsedUser.id }),
+          body: JSON.stringify({ userId }),
         });
+
+        if (!response.ok) {
+          // User not found, redirect to home
+          router.push('/');
+          return;
+        }
 
         const data = await response.json();
 
-        if (data.success) {
+        if (data.success && data.user) {
+          setUser(data.user);
           setIsRegistered(data.isRegistered);
           setUserRegistrations(data.registrations || []);
-          setUser(data.user);
         } else {
-          // User not found (likely deleted by admin)
-          if (response.status === 404) {
-            setMessage('Your account has been removed. Please log in again.');
-            setMessageType('error');
-            // Clear invalid session and redirect
-            localStorage.removeItem('user');
-            setTimeout(() => {
-              router.push('/');
-            }, 2000);
-          }
+          // User not found, redirect to home
+          router.push('/');
         }
       } catch (error) {
-        console.error('Error checking user status:', error);
+        console.error('Error checking user access:', error);
+        router.push('/');
       } finally {
         setCheckingStatus(false);
       }
     };
 
-    checkUserStatus();
+    checkUserAccess();
   }, [router]);
 
   // Fetch cleaning days and set selected day for registered users
@@ -108,8 +107,7 @@ export default function FormPage() {
     if (!user || !user.id) {
       setMessage('User session expired. Please log in again.');
       setMessageType('error');
-      // Clear invalid session and redirect
-      localStorage.removeItem('user');
+      // Redirect to home
       setTimeout(() => {
         router.push('/');
       }, 2000);
@@ -194,8 +192,7 @@ export default function FormPage() {
         if (response.status === 404 && data.message?.includes('User not found')) {
           setMessage('Your session has expired. Please log in again.');
           setMessageType('error');
-          // Clear invalid session and redirect
-          localStorage.removeItem('user');
+          // Redirect to home
           setTimeout(() => {
             router.push('/');
           }, 2000);
@@ -597,7 +594,6 @@ export default function FormPage() {
         <div className="text-center mt-8">
           <button
             onClick={() => {
-              localStorage.removeItem('user');
               router.push('/');
             }}
             className="bg-white/20 backdrop-blur-sm text-white py-3 px-6 rounded-full font-medium hover:bg-white/30 transition-all duration-300 transform hover:scale-105 border border-white/30"
