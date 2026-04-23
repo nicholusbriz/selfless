@@ -12,6 +12,7 @@ interface BeforeInstallPromptEvent extends Event {
 export default function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstall, setShowInstall] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -35,13 +36,36 @@ export default function PWAInstallPrompt() {
 
     if (outcome === 'accepted') {
       setShowInstall(false);
+      setShowSuccess(true);
+      // Hide success message after 5 seconds
+      setTimeout(() => setShowSuccess(false), 5000);
     }
 
     setDeferredPrompt(null);
   };
 
-  if (!showInstall) return null;
+  if (!showInstall && !showSuccess) return null;
 
+  // Success message when app is installed
+  if (showSuccess) {
+    return (
+      <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-bounce-in">
+        <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 rounded-xl p-4 shadow-2xl border border-white/30 backdrop-blur-lg max-w-md">
+          <div className="flex items-center justify-center gap-3">
+            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+              <span className="text-2xl">✅</span>
+            </div>
+            <div className="text-center">
+              <p className="text-white font-bold text-lg">Successfully Installed!</p>
+              <p className="text-green-100 text-sm">Freedom City Tech Center is now on your desktop</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Install prompt
   return (
     <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-slide-down">
       <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-xl p-4 shadow-2xl border border-white/30 backdrop-blur-lg max-w-md">
