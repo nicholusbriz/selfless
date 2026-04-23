@@ -11,7 +11,8 @@ export default function RegisterPage() {
     firstName: '',
     lastName: '',
     email: '',
-    password: ''
+    password: '',
+    phoneNumber: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -32,7 +33,7 @@ export default function RegisterPage() {
 
     // Validation
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
-      setMessage('Please fill in all fields');
+      setMessage('Please fill in all required fields');
       setMessageType('error');
       return;
     }
@@ -57,7 +58,8 @@ export default function RegisterPage() {
           firstName: formData.firstName,
           lastName: formData.lastName,
           email: formData.email,
-          password: formData.password
+          password: formData.password,
+          phoneNumber: formData.phoneNumber
         }),
       });
 
@@ -84,7 +86,7 @@ export default function RegisterPage() {
         setMessage(data.message || 'Registration failed');
         setMessageType('error');
       }
-    } catch (error) {
+    } catch {
       setMessage('Network error. Please try again.');
       setMessageType('error');
     } finally {
@@ -105,39 +107,36 @@ export default function RegisterPage() {
         <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 rounded-full mb-4 shadow-lg shadow-purple-500/50">
-              <span className="text-4xl text-white font-bold">SF</span>
+              <span className="text-4xl text-white font-bold">FT</span>
             </div>
             <h1 className="text-5xl font-bold bg-gradient-to-r from-violet-300 via-purple-300 to-indigo-300 bg-clip-text text-transparent mb-3">
               Create Account
             </h1>
             <p className="text-cyan-300 text-xl mb-4 font-medium">
-              Selfless CE Freedom City
+              Freedom Tech Center
             </p>
 
             {/* Organization Info */}
             <div className="bg-gradient-to-r from-blue-600/30 to-purple-600/30 backdrop-blur-sm rounded-2xl p-4 mb-4 border border-blue-400/30">
               <div className="flex items-center justify-center mb-2">
-                <span className="text-2xl mr-2">🌍</span>
-                <span className="text-white font-semibold text-sm">BeSelfless (U) Initiative</span>
+                <span className="text-2xl mr-2">💻</span>
+                <span className="text-white font-semibold text-sm">Freedom Tech Center</span>
               </div>
-              <p className="text-gray-200 text-xs mb-2">
-                📍 Freedom City Mall, Entebbe Road, Kampala, Uganda
-              </p>
-              <p className="text-cyan-300 text-xs italic">
-                &quot;Nurturing Resilient Minds&quot; 💻🚀
+              <p className="text-gray-200 text-xs italic">
+                &quot;Empowering Through Technology&quot;
               </p>
             </div>
             <div className="bg-blue-600/20 backdrop-blur-sm rounded-lg p-4 mb-4 border border-blue-400/30">
               <h3 className="text-white font-semibold mb-2">📝 Create Your Account:</h3>
               <ul className="text-gray-200 text-sm space-y-1">
-                <li>• Use your BYU student email or personal account email</li>
-                <li>• Enter your real first and last name (no nicknames)</li>
+                <li>• Enter your real first and last name</li>
+                <li>• Provide a valid email address</li>
+                <li>• Add your phone number (optional)</li>
                 <li>• Create a strong password (min. 6 characters)</li>
                 <li>• One account per email address</li>
-                <li>• Your information helps us track cleaning assignments</li>
               </ul>
               <p className="text-cyan-300 text-xs mt-2">
-                All fields are required. Your account will be created immediately.
+                All fields except phone number are required.
               </p>
             </div>
           </div>
@@ -204,6 +203,21 @@ export default function RegisterPage() {
             </div>
 
             <div>
+              <label htmlFor="phoneNumber" className="block text-sm font-medium text-violet-200 mb-2">
+                📱 Phone Number (Optional)
+              </label>
+              <input
+                type="tel"
+                id="phoneNumber"
+                name="phoneNumber"
+                value={formData.phoneNumber}
+                onChange={handleChange}
+                className="w-full px-4 py-4 bg-white/10 backdrop-blur-sm border border-violet-400/30 rounded-2xl focus:ring-4 focus:ring-violet-400/50 focus:border-violet-300 outline-none transition-all duration-300 text-white placeholder-violet-300/70 hover:bg-white/15"
+                placeholder="+256 123 456 789"
+              />
+            </div>
+
+            <div>
               <label htmlFor="password" className="block text-sm font-medium text-violet-200 mb-2">
                 🔐 Password (Min. 6 Characters)
               </label>
@@ -257,10 +271,10 @@ export default function RegisterPage() {
               </p>
               <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-sm rounded-xl p-3 border border-blue-400/30">
                 <p className="text-violet-200 text-xs font-medium mb-1">
-                  💻 BeSelfless (U) Initiative
+                  💻 Freedom Tech Center
                 </p>
                 <p className="text-violet-300 text-xs">
-                  Empowering youth through technology education in Uganda 🇺🇬
+                  Empowering through technology education 🚀
                 </p>
               </div>
             </div>

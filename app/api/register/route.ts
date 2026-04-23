@@ -6,7 +6,7 @@ import bcrypt from 'bcryptjs';
 export async function POST(request: Request) {
   try {
     await connectDB();
-    const { firstName, lastName, email, password } = await request.json();
+    const { firstName, lastName, email, password, phoneNumber } = await request.json();
 
     // Validation
     if (!firstName || !lastName || !email || !password) {
@@ -31,7 +31,8 @@ export async function POST(request: Request) {
       firstName,
       lastName,
       email: email.toLowerCase(),
-      password: hashedPassword
+      password: hashedPassword,
+      phoneNumber: phoneNumber || undefined
     });
 
     await newUser.save();

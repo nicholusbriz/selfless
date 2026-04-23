@@ -151,7 +151,7 @@ export default function LoginPage() {
 
           <div className="mt-8 text-center space-y-3">
             <div className="text-cyan-300 text-sm">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <RippleButton
                 onClick={() => router.push('/register')}
                 className="text-violet-300 hover:text-white font-medium underline transition-colors duration-300"

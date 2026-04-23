@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import RippleButton from '@/components/RippleButton';
-import LoadingSpinner from '@/components/LoadingSpinner';
 import { isAdminEmail } from '@/config/admin';
 import { User, CleaningDay, Weeks, UserRegistration } from '@/types';
 
@@ -60,7 +58,7 @@ export default function FormPage() {
           // User not found, redirect to home
           router.push('/');
         }
-      } catch (error) {
+      } catch {
         router.push('/');
       } finally {
         setCheckingStatus(false);
@@ -94,7 +92,7 @@ export default function FormPage() {
             }
           }
         }
-      } catch (error) {
+      } catch {
         // Error fetching cleaning days - will show in UI
       }
     };
@@ -202,7 +200,7 @@ export default function FormPage() {
           setMessageType('error');
         }
       }
-    } catch (error) {
+    } catch {
       setMessage('Network error. Please try again.');
       setMessageType('error');
     } finally {
@@ -244,7 +242,7 @@ export default function FormPage() {
                     if (data.success) {
                       setWeeks(data.weeks);
                     }
-                  } catch (error) {
+                  } catch {
                     // Error refreshing data - will show in UI
                   }
                 };

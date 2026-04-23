@@ -12,6 +12,7 @@ interface DBUser {
   firstName: string;
   lastName: string;
   email: string;
+  phoneNumber: string;
   createdAt: string;
 }
 
@@ -23,6 +24,9 @@ export default function Admin() {
   const [copyFeedback, setCopyFeedback] = useState<string>('');
   const [users, setUsers] = useState<DBUser[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
+  const [editingPhone, setEditingPhone] = useState<string | null>(null);
+  const [phoneInput, setPhoneInput] = useState('');
+  const [phoneUpdateLoading, setPhoneUpdateLoading] = useState(false);
   const router = useRouter();
 
   // Check if user is admin (URL-based authentication)
@@ -65,7 +69,7 @@ export default function Admin() {
           router.push('/');
           return;
         }
-      } catch (error) {
+      } catch {
         router.push('/');
       }
     };
@@ -248,18 +252,73 @@ export default function Admin() {
     }
   };
 
+  // Start editing phone number
+  const startEditingPhone = (userId: string, currentPhone: string) => {
+    setEditingPhone(userId);
+    setPhoneInput(currentPhone);
+  };
+
+  // Cancel editing phone number
+  const cancelEditingPhone = () => {
+    setEditingPhone(null);
+    setPhoneInput('');
+  };
+
+  // Save phone number
+  const savePhoneNumber = async (userId: string) => {
+    setPhoneUpdateLoading(true);
+    try {
+      const response = await fetch('/api/update-phone', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          phoneNumber: phoneInput.trim()
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Update user in local state
+        setUsers(users.map(user =>
+          user.id === userId
+            ? { ...user, phoneNumber: data.user.phoneNumber }
+            : user
+        ));
+
+        setCopyFeedback('Phone number updated successfully!');
+        setEditingPhone(null);
+        setPhoneInput('');
+      } else {
+        setCopyFeedback(data.message || 'Failed to update phone number');
+      }
+    } catch {
+      setCopyFeedback('Network error occurred');
+    } finally {
+      setPhoneUpdateLoading(false);
+      setTimeout(() => setCopyFeedback(''), 3000);
+    }
+  };
+
   // Prepare data for Excel export
   const prepareExcelData = () => {
-    const registeredStudents: { 'Date': string; 'Full Name': string }[] = [];
+    const registeredStudents: { 'Date': string; 'Full Name': string; 'Email': string; 'Phone Number': string }[] = [];
 
     // Collect all registered users from all weeks and days
     Object.values(weeks).forEach((week) => {
       week.forEach((day: CleaningDay) => {
         if (day.registeredUsers && day.registeredUsers.length > 0) {
           day.registeredUsers.forEach((user: User) => {
+            // Find the complete user data from the users array to get phone number
+            const completeUser = users.find(u => u.id === user.id);
             registeredStudents.push({
               'Date': day.formattedDate,
-              'Full Name': user.fullName || `${user.firstName} ${user.lastName}`
+              'Full Name': user.fullName || `${user.firstName} ${user.lastName}`,
+              'Email': user.email,
+              'Phone Number': completeUser?.phoneNumber || ''
             });
           });
         }
@@ -457,6 +516,48 @@ export default function Admin() {
                             ({user.email})
                           </span>
                         </div>
+                        {editingPhone === user.id ? (
+                          <div className="flex items-center gap-2 mb-1">
+                            <input
+                              type="tel"
+                              value={phoneInput}
+                              onChange={(e) => setPhoneInput(e.target.value)}
+                              className="flex-1 px-2 py-1 bg-white/10 border border-green-400/30 rounded text-white text-sm placeholder-green-300/70"
+                              placeholder="+256 123 456 789"
+                            />
+                            <button
+                              onClick={() => savePhoneNumber(user.id)}
+                              disabled={phoneUpdateLoading}
+                              className="bg-green-600 hover:bg-green-700 disabled:bg-green-800 text-white px-2 py-1 rounded text-xs transition-all"
+                            >
+                              {phoneUpdateLoading ? '...' : '✓'}
+                            </button>
+                            <button
+                              onClick={cancelEditingPhone}
+                              className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1 rounded text-xs transition-all"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 mb-1">
+                            {user.phoneNumber ? (
+                              <div className="text-green-400 text-sm">
+                                📱 {user.phoneNumber}
+                              </div>
+                            ) : (
+                              <div className="text-gray-500 text-sm italic">
+                                No phone number
+                              </div>
+                            )}
+                            <button
+                              onClick={() => startEditingPhone(user.id, user.phoneNumber)}
+                              className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs transition-all"
+                            >
+                              Edit
+                            </button>
+                          </div>
+                        )}
                         <div className="text-gray-400 text-xs">
                           Created: {new Date(user.createdAt).toLocaleDateString()}
                         </div>
@@ -508,7 +609,7 @@ export default function Admin() {
                     className="text-sm"
                   >
                     <span className="text-lg">📊</span>
-                    Download CSV (Name + Date Only)
+                    Download CSV (All Details)
                   </ExcelExporter>
                 </div>
               </div>
@@ -516,9 +617,10 @@ export default function Admin() {
 
             {/* Table Header */}
             <div className="hidden sm:grid grid-cols-12 gap-2 mb-6 pb-4 border-b border-cyan-400/30">
-              <div className="col-span-3 text-cyan-300 font-bold text-sm uppercase tracking-wider">DATE</div>
-              <div className="col-span-4 text-cyan-300 font-bold text-sm uppercase tracking-wider">FULL NAME</div>
-              <div className="col-span-5 text-cyan-300 font-bold text-sm uppercase tracking-wider">EMAIL</div>
+              <div className="col-span-2 text-cyan-300 font-bold text-sm uppercase tracking-wider">DATE</div>
+              <div className="col-span-3 text-cyan-300 font-bold text-sm uppercase tracking-wider">FULL NAME</div>
+              <div className="col-span-4 text-cyan-300 font-bold text-sm uppercase tracking-wider">EMAIL</div>
+              <div className="col-span-3 text-cyan-300 font-bold text-sm uppercase tracking-wider">PHONE</div>
             </div>
 
             {/* Mobile Table Headers */}
@@ -526,6 +628,7 @@ export default function Admin() {
               <div className="text-cyan-300 font-bold text-sm uppercase tracking-wider">DATE</div>
               <div className="text-cyan-300 font-bold text-sm uppercase tracking-wider">FULL NAME</div>
               <div className="text-cyan-300 font-bold text-sm uppercase tracking-wider">EMAIL</div>
+              <div className="text-cyan-300 font-bold text-sm uppercase tracking-wider">PHONE</div>
             </div>
 
             {/* Table Data */}
@@ -563,22 +666,29 @@ export default function Admin() {
                       className="hidden sm:grid grid-cols-12 gap-2 py-3 px-3 hover:bg-gradient-to-r hover:from-purple-600/20 hover:to-cyan-600/20 rounded-xl cursor-pointer transition-all duration-300 hover:scale-[1.02] border border-transparent hover:border-cyan-400/30"
                       onClick={() => {
                         // Copy to clipboard when clicked
-                        const rowData = `${registration.day.formattedDate}\t${registration.user.firstName} ${registration.user.lastName}\t${registration.user.email}`;
+                        const completeUser = users.find(u => u.id === registration.user.id);
+                        const rowData = `${registration.day.formattedDate}\t${registration.user.firstName} ${registration.user.lastName}\t${registration.user.email}\t${completeUser?.phoneNumber || ''}`;
                         navigator.clipboard.writeText(rowData);
                         setCopyFeedback('Row copied to clipboard!');
                         setTimeout(() => setCopyFeedback(''), 2000);
                       }}
                     >
-                      <div className="col-span-3 text-white text-sm font-mono truncate">
+                      <div className="col-span-2 text-white text-sm font-mono truncate">
                         <span className="bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
                           {registration.day.formattedDate}
                         </span>
                       </div>
-                      <div className="col-span-4 text-white text-sm truncate font-medium">
+                      <div className="col-span-3 text-white text-sm truncate font-medium">
                         {registration.user.firstName} {registration.user.lastName}
                       </div>
-                      <div className="col-span-5 text-cyan-300 text-sm font-mono text-wrap break-word">
+                      <div className="col-span-4 text-cyan-300 text-sm font-mono text-wrap break-word">
                         {registration.user.email}
+                      </div>
+                      <div className="col-span-3 text-green-400 text-sm">
+                        {(() => {
+                          const completeUser = users.find(u => u.id === registration.user.id);
+                          return completeUser?.phoneNumber || <span className="text-gray-500">No phone</span>;
+                        })()}
                       </div>
                     </div>
 
@@ -587,7 +697,8 @@ export default function Admin() {
                       className="sm:hidden p-3 hover:bg-white/10 rounded cursor-pointer transition-all border border-white/10"
                       onClick={() => {
                         // Copy to clipboard when clicked
-                        const rowData = `${registration.day.formattedDate}\t${registration.user.firstName} ${registration.user.lastName}\t${registration.user.email}`;
+                        const completeUser = users.find(u => u.id === registration.user.id);
+                        const rowData = `${registration.day.formattedDate}\t${registration.user.firstName} ${registration.user.lastName}\t${registration.user.email}\t${completeUser?.phoneNumber || ''}`;
                         navigator.clipboard.writeText(rowData);
                         setCopyFeedback('Row copied to clipboard!');
                         setTimeout(() => setCopyFeedback(''), 2000);
@@ -605,6 +716,15 @@ export default function Admin() {
                         <div className="flex justify-start items-start">
                           <span className="text-cyan-300 text-xs font-semibold mr-2">EMAIL:</span>
                           <span className="text-cyan-300 text-sm font-mono break-all flex-1">{registration.user.email}</span>
+                        </div>
+                        <div className="flex justify-between items-start">
+                          <span className="text-cyan-300 text-xs font-semibold">PHONE:</span>
+                          <span className="text-green-400 text-sm text-right">
+                            {(() => {
+                              const completeUser = users.find(u => u.id === registration.user.id);
+                              return completeUser?.phoneNumber || <span className="text-gray-500">No phone</span>;
+                            })()}
+                          </span>
                         </div>
                       </div>
                     </div>
