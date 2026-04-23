@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import RippleButton from '@/components/RippleButton';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import { isAdminEmail } from '@/config/admin';
 import { User, CleaningDay, Weeks, UserRegistration } from '@/types';
 
 export default function FormPage() {
@@ -589,14 +592,28 @@ export default function FormPage() {
         </div>
 
         <div className="text-center mt-8">
-          <button
-            onClick={() => {
-              router.push('/');
-            }}
-            className="bg-white/20 backdrop-blur-sm text-white py-3 px-6 rounded-full font-medium hover:bg-white/30 transition-all duration-300 transform hover:scale-105 border border-white/30"
-          >
-            Sign Out
-          </button>
+          <div className="flex justify-center gap-4">
+            {user && isAdminEmail(user.email) && (
+              <button
+                onClick={() => {
+                  // Get current URL params to pass to admin page
+                  const urlParams = new URLSearchParams(window.location.search);
+                  router.push(`/admin?${urlParams.toString()}`);
+                }}
+                className="bg-purple-600/20 backdrop-blur-sm text-purple-300 py-3 px-6 rounded-full font-medium hover:bg-purple-600/30 transition-all duration-300 transform hover:scale-105 border border-purple-400/30"
+              >
+                ⚙️ Admin Panel
+              </button>
+            )}
+            <button
+              onClick={() => {
+                router.push('/');
+              }}
+              className="bg-white/20 backdrop-blur-sm text-white py-3 px-6 rounded-full font-medium hover:bg-white/30 transition-all duration-300 transform hover:scale-105 border border-white/30"
+            >
+              🚪 Sign Out
+            </button>
+          </div>
         </div>
       </div>
 

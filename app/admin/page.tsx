@@ -702,17 +702,28 @@ export default function Admin() {
             </div>
           </div>
 
-          {/* Logout */}
-          <div className="text-center mt-8">
-            <button
-              onClick={() => {
-                localStorage.removeItem('user');
-                router.push('/');
-              }}
-              className="bg-red-600/20 hover:bg-red-600/30 text-red-400 py-3 px-6 rounded-full font-medium border border-red-500/50 transition-all"
-            >
-              Sign Out
-            </button>
+          {/* Navigation */}
+          <div className="text-center mt-8 space-y-4">
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => {
+                  // Get current URL params to pass to form page
+                  const urlParams = new URLSearchParams(window.location.search);
+                  router.push(`/form?${urlParams.toString()}`);
+                }}
+                className="bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 py-3 px-6 rounded-full font-medium border border-cyan-500/50 transition-all"
+              >
+                📋 Go to Form
+              </button>
+              <button
+                onClick={() => {
+                  router.push('/');
+                }}
+                className="bg-red-600/20 hover:bg-red-600/30 text-red-400 py-3 px-6 rounded-full font-medium border border-red-500/50 transition-all"
+              >
+                🚪 Sign Out
+              </button>
+            </div>
           </div>
         </div>
       </div>
