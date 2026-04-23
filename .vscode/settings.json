@@ -1,0 +1,17 @@
+{
+  "css.validate": false,
+  "less.validate": false,
+  "scss.validate": false,
+  "typescript.preferences.includePackageJsonAutoImports": "off",
+  "css.lint.unknownAtRules": "ignore",
+  "css.lint.validProperties": [
+    "ignore"
+  ],
+  "stylelint.enable": false,
+  "css.lint.rules": {
+    "at-rule-no-unknown": false
+  },
+  "files.associations": {
+    "*.css": "tailwindcss"
+  }
+}

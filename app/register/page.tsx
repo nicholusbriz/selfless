@@ -2,17 +2,22 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import RippleButton from '@/components/RippleButton';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
-export default function Page() {
+export default function RegisterPage() {
   const [formData, setFormData] = useState({
-    email: ''
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: ''
   });
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
+  const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -24,46 +29,70 @@ export default function Page() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.email) {
-      setMessage('Please enter your email address');
+    console.log('🔵 Register button clicked!');
+    console.log('🔵 Form data:', formData);
+
+    // Validation
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
+      console.log('🔴 Validation failed: Missing fields');
+      setMessage('Please fill in all fields');
       setMessageType('error');
       return;
     }
 
+
+    if (formData.password.length < 6) {
+      console.log('🔴 Validation failed: Password too short');
+      setMessage('Password must be at least 6 characters long');
+      setMessageType('error');
+      return;
+    }
+
+    console.log('🟢 Validation passed, starting API call...');
     setIsLoading(true);
     setMessage('');
-    setMessageType('');
 
     try {
-      const response = await fetch('/api/login', {
+      console.log('Submitting registration:', formData);
+
+      const response = await fetch('/api/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: formData.email
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-      }
-
+      console.log('🟡 Response status:', response.status);
       const data = await response.json();
+      console.log('🟡 Response data:', data);
 
-      localStorage.setItem('user', JSON.stringify(data.user));
-      setMessage('Access granted! Redirecting to your dashboard...');
-      setMessageType('success');
-      setTimeout(() => {
-        router.push('/form');
-      }, 1500);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Network error. Please try again.';
-      console.error('Login error:', error);
-      setMessage(errorMessage);
+      if (response.ok) {
+        console.log('✅ Registration successful!');
+        console.log('✅ User data:', data.user);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        setMessage('Registration successful! Redirecting to your dashboard...');
+        setMessageType('success');
+        setTimeout(() => {
+          console.log('🔄 Redirecting to /form...');
+          router.push('/form');
+        }, 1500);
+      } else {
+        console.log('❌ Registration failed:', data.message);
+        setMessage(data.message || 'Registration failed');
+        setMessageType('error');
+      }
+    } catch (error) {
+      console.log('💥 Network error:', error);
+      setMessage('Network error. Please try again.');
       setMessageType('error');
     } finally {
+      console.log('🏁 Finished registration attempt');
       setIsLoading(false);
     }
   };
@@ -84,10 +113,10 @@ export default function Page() {
               <span className="text-4xl text-white font-bold">SF</span>
             </div>
             <h1 className="text-5xl font-bold bg-gradient-to-r from-violet-300 via-purple-300 to-indigo-300 bg-clip-text text-transparent mb-3">
-              Selfless CE Freedom City
+              Create Account
             </h1>
             <p className="text-cyan-300 text-xl mb-4 font-medium">
-              Tech Center Cleaning Registration
+              Selfless CE Freedom City
             </p>
 
             {/* Organization Info */}
@@ -104,15 +133,16 @@ export default function Page() {
               </p>
             </div>
             <div className="bg-blue-600/20 backdrop-blur-sm rounded-lg p-4 mb-4 border border-blue-400/30">
-              <h3 className="text-white font-semibold mb-2">📋 Account Requirements:</h3>
+              <h3 className="text-white font-semibold mb-2">📝 Create Your Account:</h3>
               <ul className="text-gray-200 text-sm space-y-1">
                 <li>• Use your BYU student email or personal account email</li>
-                <li>• Provide your real first and last name</li>
-                <li>• Create a secure password for your account</li>
-                <li>• One registration per email address</li>
+                <li>• Enter your real first and last name (no nicknames)</li>
+                <li>• Create a strong password (min. 6 characters)</li>
+                <li>• One account per email address</li>
+                <li>• Your information helps us track cleaning assignments</li>
               </ul>
               <p className="text-cyan-300 text-xs mt-2">
-                New to the system? Click &quot;Register Account&quot; below to create your account first.
+                All fields are required. Your account will be created immediately.
               </p>
             </div>
           </div>
@@ -131,8 +161,40 @@ export default function Page() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
+              <label htmlFor="firstName" className="block text-sm font-medium text-violet-200 mb-2">
+                👤 First Name (Real Name Required)
+              </label>
+              <input
+                type="text"
+                id="firstName"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-4 bg-white/10 backdrop-blur-sm border border-violet-400/30 rounded-2xl focus:ring-4 focus:ring-violet-400/50 focus:border-violet-300 outline-none transition-all duration-300 text-white placeholder-violet-300/70 hover:bg-white/15"
+                placeholder="Enter your real first name"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="lastName" className="block text-sm font-medium text-violet-200 mb-2">
+                👤 Last Name (Real Name Required)
+              </label>
+              <input
+                type="text"
+                id="lastName"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-4 bg-white/10 backdrop-blur-sm border border-violet-400/30 rounded-2xl focus:ring-4 focus:ring-violet-400/50 focus:border-violet-300 outline-none transition-all duration-300 text-white placeholder-violet-300/70 hover:bg-white/15"
+                placeholder="Enter your real last name"
+              />
+            </div>
+
+            <div>
               <label htmlFor="email" className="block text-sm font-medium text-violet-200 mb-2">
-                📧 Email Address
+                📧 Email Address (BYU or Personal Email)
               </label>
               <input
                 type="email"
@@ -146,17 +208,42 @@ export default function Page() {
               />
             </div>
 
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-violet-200 mb-2">
+                🔐 Password (Min. 6 Characters)
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-4 bg-white/10 backdrop-blur-sm border border-violet-400/30 rounded-2xl focus:ring-4 focus:ring-violet-400/50 focus:border-violet-300 outline-none transition-all duration-300 text-white placeholder-violet-300/70 hover:bg-white/15 pr-12"
+                  placeholder="Create a strong password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-violet-300 hover:text-violet-200 transition-colors text-xl"
+                >
+                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                </button>
+              </div>
+            </div>
+
             <RippleButton
               type="submit"
               disabled={isLoading}
               className="w-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-2xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-purple-500/50 hover:shadow-purple-500/70"
             >
               {isLoading ? (
-                <LoadingSpinner size="md" text="Accessing System..." className="text-white" />
+                <LoadingSpinner size="md" text="Creating Account..." className="text-white" />
               ) : (
                 <span className="flex items-center justify-center">
                   <span className="mr-2">🚀</span>
-                  Access System
+                  Create Account
                 </span>
               )}
             </RippleButton>
@@ -165,13 +252,13 @@ export default function Page() {
           <div className="mt-8 pt-6 border-t border-violet-400/20">
             <div className="text-center">
               <p className="text-violet-200 text-sm mb-4">
-                Don&apos;t have an account?{' '}
-                <a
-                  href="/register"
+                Already have an account?{' '}
+                <Link
+                  href="/"
                   className="bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent font-bold hover:from-violet-300 hover:to-purple-300 transition-all duration-300 transform hover:scale-105"
                 >
-                  🎯 Register Account
-                </a>
+                  🔑 Sign In Here
+                </Link>
               </p>
               <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-sm rounded-xl p-3 border border-blue-400/30">
                 <p className="text-violet-200 text-xs font-medium mb-1">
@@ -180,7 +267,6 @@ export default function Page() {
                 <p className="text-violet-300 text-xs">
                   Empowering youth through technology education in Uganda 🇺🇬
                 </p>
-                <p className="text-violet-200 text-xs mt-2">Software Developer | Zana, Kampala, Uganda</p>
               </div>
             </div>
           </div>
