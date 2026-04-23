@@ -35,6 +35,8 @@ export default function Page() {
     setMessageType('');
 
     try {
+      console.log('🔐 Attempting login for:', formData.email);
+
       const response = await fetch('/api/login', {
         method: 'POST',
         headers: {
@@ -45,8 +47,11 @@ export default function Page() {
         }),
       });
 
+      console.log('📡 Login response status:', response.status);
+
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('❌ Login failed:', errorData);
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 

@@ -2,8 +2,12 @@ import mongoose from 'mongoose';
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
+console.log('Environment check - MONGODB_URI exists:', !!MONGODB_URI);
+console.log('Environment check - NODE_ENV:', process.env.NODE_ENV);
+
 if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
+  console.error('❌ MONGODB_URI is missing in production');
+  throw new Error('Please define the MONGODB_URI environment variable');
 }
 
 interface CachedConnection {
