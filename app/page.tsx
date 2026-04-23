@@ -67,6 +67,9 @@ export default function Page() {
           <p className="text-gray-400 text-xs">
             Need help? Contact our admin team
           </p>
+          <p className="text-gray-500 text-xs mt-1">
+            Last updated: {new Date().toLocaleDateString()}
+          </p>
         </div>
       </div>
     </div>
