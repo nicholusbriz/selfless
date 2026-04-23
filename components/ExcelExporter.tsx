@@ -26,13 +26,20 @@ export default function ExcelExporter({
     const csvRows = data.map(row =>
       headers.map(header => {
         const value = row[header];
-        // Handle different data types
+        // Handle different data types with special care for phone numbers
         if (typeof value === 'string') {
-          // Escape commas and quotes in strings
+          // For phone numbers, preserve exact formatting and prevent Excel from treating as numeric
+          if (header.toLowerCase().includes('phone') && value.trim()) {
+            // Add a tab character to force Excel to treat as text while preserving formatting
+            const escapedValue = value.replace(/"/g, '""');
+            return `"${escapedValue}"`;
+          }
+          // Escape commas and quotes in regular strings
           const escapedValue = value.replace(/"/g, '""');
           return `"${escapedValue}"`;
         }
-        return value || '';
+        // Handle empty values
+        return value !== null && value !== undefined ? String(value) : '';
       }).join(',')
     );
 

@@ -314,18 +314,34 @@ export default function Admin() {
           day.registeredUsers.forEach((user: User) => {
             // Find the complete user data from the users array to get phone number
             const completeUser = users.find(u => u.id === user.id);
+
+            // Get the exact phone number as registered, preserve formatting completely
+            let phoneNumber = completeUser?.phoneNumber || '';
+
+            // Ensure phone number is exactly as entered - no automatic formatting
+            if (phoneNumber && phoneNumber.trim()) {
+              phoneNumber = phoneNumber.trim();
+            } else {
+              phoneNumber = 'No phone number provided';
+            }
+
             registeredStudents.push({
               'Date': day.formattedDate,
               'Full Name': user.fullName || `${user.firstName} ${user.lastName}`,
               'Email': user.email,
-              'Phone Number': completeUser?.phoneNumber || ''
+              'Phone Number': phoneNumber
             });
           });
         }
       });
     });
 
-    return registeredStudents;
+    // Sort by date for better organization
+    return registeredStudents.sort((a, b) => {
+      const dateA = new Date(a.Date).getTime();
+      const dateB = new Date(b.Date).getTime();
+      return dateB - dateA; // Most recent first
+    });
   };
 
   // Load users on component mount
@@ -377,7 +393,7 @@ export default function Admin() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 flex items-center justify-center relative overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 flex items-center justify-center relative">
         {/* Animated background elements */}
         <div className="absolute inset-0 bg-gradient-to-r from-purple-900/20 via-transparent to-cyan-900/20 animate-pulse"></div>
         <div className="absolute top-0 left-0 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl animate-float"></div>
@@ -392,68 +408,87 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 relative">
+      {/* Animated background elements for admin */}
+      <div className="absolute inset-0">
+        <div className="absolute top-10 left-10 w-64 h-64 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-float"></div>
+        <div className="absolute bottom-10 right-10 w-80 h-80 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-float animation-delay-2000"></div>
+        <div className="absolute top-1/3 right-1/4 w-72 h-72 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-float animation-delay-4000"></div>
+      </div>
 
       <div className="relative z-10 min-h-screen backdrop-blur-sm bg-black/30">
         <div className="container mx-auto px-4 py-8">
-          {/* Header */}
-          <div className="text-center mb-8 animate-fade-in">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full mb-4 animate-bounce shadow-lg shadow-purple-500/50">
-              <span className="text-3xl text-white font-bold">SF</span>
+          {/* Enhanced Header */}
+          <div className="text-center mb-8 animate-fade-in-down">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full mb-4 animate-bounce-in shadow-glow-lg p-2">
+              <img
+                src="/freedom.png"
+                alt="Freedom City Tech Center Logo"
+                className="w-full h-full object-contain animate-glow"
+              />
             </div>
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-400 via-cyan-400 to-purple-400 bg-clip-text text-transparent mb-3 animate-shimmer">
+            <h1 className="text-5xl font-bold text-gradient-primary mb-3 animate-shimmer text-shadow-lg">
               Selfless CE Admin Dashboard
             </h1>
-            <p className="text-cyan-300 text-xl font-medium mb-2 drop-shadow-lg">
+            <p className="text-cyan-300 text-xl font-medium mb-2 drop-shadow-lg animate-slide-in-left">
               Freedom City Tech Center
             </p>
-            <p className="text-gray-300 text-lg mb-6">
+            <p className="text-gray-300 text-lg mb-6 animate-slide-in-right">
               Manage cleaning duty registrations
             </p>
-            <div className="flex items-center justify-center gap-4 text-white/80 text-sm">
-              <span className="bg-black/40 px-3 py-1 rounded-full border border-purple-500/30">
-                Last updated: {lastUpdated?.toLocaleTimeString()}
-              </span>
+            <div className="flex items-center justify-center gap-4 text-white/80 text-sm animate-fade-in-up">
+              <div className="glass-morphism px-4 py-2 rounded-full border border-purple-500/30 hover-lift">
+                <span className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                  Last updated: {lastUpdated?.toLocaleTimeString()}
+                </span>
+              </div>
               <button
                 onClick={fetchCleaningDays}
-                className="bg-gradient-to-r from-purple-600/30 to-cyan-600/30 hover:from-purple-600/50 hover:to-cyan-600/50 px-4 py-2 rounded-full border border-cyan-400/50 transition-all duration-300 hover:scale-105 shadow-lg shadow-cyan-500/25"
+                className="glass-morphism hover:glass-card px-6 py-2 rounded-full border border-cyan-400/50 transition-all duration-300 hover:scale-105 shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 animate-float"
               >
-                Refresh Data
+                <span className="flex items-center gap-2">
+                  <span className="animate-spin-slow">🔄</span>
+                  Refresh Data
+                </span>
               </button>
             </div>
           </div>
 
-          {/* Stats Overview */}
-          <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 ${statsLoading ? 'opacity-75' : ''}`}>
+          {/* Enhanced Stats Overview */}
+          <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 ${statsLoading ? 'opacity-75' : ''} animate-fade-in-up animation-delay-200`}>
             {statsLoading && (
               <div className="col-span-full text-center mb-4">
-                <span className="text-cyan-400 text-sm animate-pulse">🔄 Updating statistics...</span>
+                <div className="glass-morphism inline-flex items-center px-4 py-2 rounded-full">
+                  <span className="text-cyan-400 text-sm animate-pulse mr-2">🔄</span>
+                  <span className="text-cyan-300 text-sm">Updating statistics...</span>
+                </div>
               </div>
             )}
-            <div className={`backdrop-blur-lg bg-gradient-to-br from-purple-600/20 to-cyan-600/20 rounded-3xl p-6 border-2 border-purple-400/30 shadow-xl shadow-purple-500/20 hover:scale-105 transition-all duration-300 ${statsLoading ? 'animate-pulse' : ''}`}>
+            <div className={`glass-card rounded-3xl p-6 border border-purple-400/30 shadow-glow hover-lift ${statsLoading ? 'animate-pulse' : 'animate-scale-in'} animation-delay-300`}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-cyan-300">Total Days</h3>
-                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full flex items-center justify-center">
+                <h3 className="text-xl font-bold text-gradient-primary">Total Days</h3>
+                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full flex items-center justify-center animate-float">
                   <span className="text-white text-lg">📅</span>
                 </div>
               </div>
-              <p className="text-4xl font-bold bg-gradient-to-r from-purple-300 to-cyan-300 bg-clip-text text-transparent">
+              <p className="text-4xl font-bold text-gradient-primary animate-shimmer">
                 {Object.values(weeks).reduce((total, week) => total + week.length, 0)}
               </p>
-              <p className="text-cyan-400/70 text-sm mt-2">Cleaning days available</p>
+              <p className="text-bright text-sm mt-2">Cleaning days available</p>
             </div>
-            <div className={`backdrop-blur-lg bg-gradient-to-br from-cyan-600/20 to-blue-600/20 rounded-3xl p-6 border-2 border-cyan-400/30 shadow-xl shadow-cyan-500/20 hover:scale-105 transition-all duration-300 ${statsLoading ? 'animate-pulse' : ''}`}>
+            <div className={`glass-card rounded-3xl p-6 border border-cyan-400/30 shadow-glow hover-lift ${statsLoading ? 'animate-pulse' : 'animate-scale-in'} animation-delay-500`}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-cyan-300">Total Registered</h3>
-                <div className="w-12 h-12 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center">
+                <h3 className="text-xl font-bold text-gradient-primary">Total Registered</h3>
+                <div className="w-12 h-12 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center animate-float animation-delay-2000">
                   <span className="text-white text-lg">👥</span>
                 </div>
               </div>
-              <p className="text-4xl font-bold bg-gradient-to-r from-cyan-300 to-blue-300 bg-clip-text text-transparent">
+              <p className="text-4xl font-bold text-gradient-primary animate-shimmer">
                 {Object.values(weeks).reduce((total: number, week: CleaningDay[]) =>
                   total + week.reduce((weekTotal: number, day: CleaningDay) => weekTotal + day.registeredCount, 0), 0
                 )}
               </p>
-              <p className="text-cyan-400/70 text-sm mt-2">Users registered</p>
+              <p className="text-bright text-sm mt-2">Users registered</p>
             </div>
             <div className={`backdrop-blur-lg bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-3xl p-6 border-2 border-blue-400/30 shadow-xl shadow-blue-500/20 hover:scale-105 transition-all duration-300 ${statsLoading ? 'animate-pulse' : ''}`}>
               <div className="flex items-center justify-between mb-4">
@@ -467,7 +502,7 @@ export default function Admin() {
                   total + week.reduce((weekTotal: number, day: CleaningDay) => weekTotal + (day.maxSlots - day.registeredCount), 0), 0
                 )}
               </p>
-              <p className="text-cyan-400/70 text-sm mt-2">Spots remaining</p>
+              <p className="text-bright text-sm mt-2">Spots remaining</p>
             </div>
           </div>
 

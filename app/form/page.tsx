@@ -222,7 +222,15 @@ export default function FormPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black">
       <div className="container mx-auto px-4 py-8">
-        <div className="text-center mb-8">
+        <div className="text-center mb-8 animate-fade-in-down">
+          {/* Logo */}
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full mb-4 animate-bounce-in shadow-glow-lg p-2">
+            <img
+              src="/freedom.png"
+              alt="Freedom City Tech Center Logo"
+              className="w-full h-full object-contain animate-glow"
+            />
+          </div>
           <div className="flex justify-center gap-4 mb-4">
             <button
               onClick={() => {
@@ -240,40 +248,43 @@ export default function FormPage() {
                 };
                 fetchCleaningDays();
               }}
-              className="bg-cyan-600/20 backdrop-blur-sm text-cyan-300 py-2 px-4 rounded-full font-medium hover:bg-cyan-600/30 transition-all duration-300 transform hover:scale-105 border border-cyan-500/50 text-sm"
+              className="glass-morphism hover:glass-card text-cyan-300 py-2 px-4 rounded-full font-medium transition-all duration-300 transform hover:scale-105 border border-cyan-500/50 text-sm hover:shadow-glow animate-float"
             >
-              🔄 Refresh Data
+              <span className="flex items-center gap-2">
+                <span className="animate-spin-slow">🔄</span>
+                Refresh Data
+              </span>
             </button>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">
+          <h1 className="text-4xl font-bold text-gradient-primary mb-2 animate-slide-in-right text-shadow-lg">
             Welcome, {user.fullName || `${user.firstName} ${user.lastName}`}!
           </h1>
-          <p className="text-cyan-300 text-lg mb-2">
+          <p className="text-cyan-300 text-lg mb-2 animate-slide-in-left drop-shadow-lg">
             Freedom City Tech Center
           </p>
-          <p className="text-gray-300">
+          <p className="text-gray-300 animate-slide-in-up">
             Choose your preferred cleaning day
           </p>
         </div>
 
-        <div className="max-w-4xl mx-auto mb-8">
-          <div className={`bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 shadow-xl ${isRegistered
+        <div className="max-w-4xl mx-auto mb-8 animate-fade-in-up animation-delay-300">
+          <div className={`glass-card rounded-3xl p-8 border shadow-glow-lg hover-lift ${isRegistered
             ? 'border-green-500/30'
             : 'border-white/20'
             }`}>
             <div className="text-center">
-              <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full mb-4 ${isRegistered ? 'bg-green-500' : 'bg-orange-500'
-                }`}>
-                <span className="text-3xl text-white">
+              <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full mb-4 animate-bounce-in ${isRegistered ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-gradient-to-r from-orange-500 to-amber-500'
+                } shadow-lg`}>
+                <span className="text-3xl text-white animate-pulse-slow">
                   {isRegistered ? '✓' : '+'}
                 </span>
               </div>
-              <h2 className={`text-3xl font-bold mb-2 ${isRegistered ? 'text-green-400' : 'text-orange-400'
-                }`}>
+              <h2 className={`text-3xl font-bold mb-2 animate-slide-in-up ${isRegistered ? 'text-gradient-primary' : 'text-gradient-primary'
+                } text-shadow-lg`}>
                 {isRegistered ? 'Already Registered!' : 'Choose Your Cleaning Day'}
               </h2>
               {!isRegistered && (
-                <p className="text-gray-300 text-lg mb-4">
+                <p className="text-gray-300 text-lg mb-4 animate-fade-in-up animation-delay-200">
                   You haven&apos;t registered for any cleaning day yet. Please select your preferred day below.
                 </p>
               )}
@@ -329,12 +340,12 @@ export default function FormPage() {
         </div>
 
         {message && (
-          <div className={`max-w-4xl mx-auto mb-8`}>
-            <div className={`rounded-lg p-4 text-center ${messageType === 'success'
-              ? 'bg-green-600/20 border border-green-400/30'
-              : 'bg-red-600/20 border border-red-400/30'
+          <div className={`max-w-4xl mx-auto mb-8 animate-fade-in-up`}>
+            <div className={`glass-morphism rounded-2xl p-6 text-center border shadow-glow ${messageType === 'success'
+              ? 'border-green-400/30'
+              : 'border-red-400/30'
               }`}>
-              <p className={`text-lg font-medium ${messageType === 'success' ? 'text-green-400' : 'text-red-400'
+              <p className={`text-lg font-medium animate-slide-in-down ${messageType === 'success' ? 'text-green-400' : 'text-red-400'
                 }`}>
                 {message}
               </p>
@@ -342,28 +353,28 @@ export default function FormPage() {
           </div>
         )}
 
-        <div className="max-w-6xl mx-auto">
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 shadow-xl">
-            <h2 className="text-3xl font-bold text-white mb-8 text-center">
+        <div className="max-w-6xl mx-auto animate-fade-in-up animation-delay-500">
+          <div className="glass-card rounded-3xl p-8 border border-white/20 shadow-glow-lg hover-lift">
+            <h2 className="text-3xl font-bold text-gradient-primary mb-8 text-center animate-bounce-in text-shadow-lg">
               Choose Your Cleaning Day
             </h2>
 
-            <div className="mb-8">
-              <h3 className="text-2xl font-bold text-white mb-6 text-center">
+            <div className="mb-8 animate-fade-in-up animation-delay-600">
+              <h3 className="text-2xl font-bold text-gradient-primary mb-6 text-center animate-slide-in-left text-shadow-lg">
                 Week 1 (May 4-8, 2026)
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {weeks[1]?.filter((day: CleaningDay) => ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].includes(day.dayName)).map((day: CleaningDay) => (
+                {weeks[1]?.filter((day: CleaningDay) => ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].includes(day.dayName)).map((day: CleaningDay, index: number) => (
                   <div
                     key={day.id}
                     onClick={() => !day.isFull && setSelectedDay(day)}
-                    className={`bg-black/50 rounded-2xl p-6 border-2 transition-all duration-300 transform hover:scale-105 cursor-pointer ${selectedDay?.id === day.id
-                      ? 'bg-black/70 border-cyan-400 shadow-lg shadow-cyan-500/25'
+                    className={`glass-card rounded-2xl p-6 border-2 transition-all duration-300 transform hover:scale-105 cursor-pointer animate-scale-in ${selectedDay?.id === day.id
+                      ? 'bg-gradient-to-br from-cyan-600/20 to-blue-600/20 border-cyan-400 shadow-glow-lg'
                       : day.isFull
-                        ? 'bg-black/40 border-gray-400/50 opacity-50 cursor-not-allowed'
-                        : 'bg-black/50 border-white/20 hover:bg-black/60 hover:border-cyan-400/30'
+                        ? 'bg-gray-800/30 border-gray-400/50 opacity-50 cursor-not-allowed'
+                        : 'bg-black/50 border-white/20 hover:bg-gradient-to-br hover:from-purple-600/20 hover:to-cyan-600/20 hover:border-cyan-400/30 hover:shadow-glow'
                       }`}
-                  >
+                    style={{ animationDelay: `${index * 100}ms` }}>
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center space-x-3">
                         <input
@@ -552,13 +563,13 @@ export default function FormPage() {
               </div>
             </div>
 
-            <div className="text-center">
+            <div className="text-center animate-fade-in-up animation-delay-800">
               <button
                 onClick={handleSubmit}
                 disabled={isLoading || !selectedDay || isRegistered}
-                className={`py-4 px-8 rounded-full font-bold text-xl transition-all duration-300 transform hover:scale-105 shadow-lg ${isRegistered
+                className={`py-4 px-8 rounded-full font-bold text-xl transition-all duration-300 transform hover:scale-105 shadow-lg animate-bounce-in ${isRegistered
                   ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-purple-600 to-cyan-600 text-white hover:from-purple-700 hover:to-cyan-700 focus:ring-4 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-purple-500/25'
+                  : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 hover:shadow-xl'
                   }`}
               >
                 {isLoading ? (
@@ -573,7 +584,7 @@ export default function FormPage() {
                 )}
               </button>
               {isRegistered && (
-                <p className="text-yellow-400 text-sm mt-3">
+                <p className="text-yellow-400 text-sm mt-3 animate-slide-in-up glass-morphism rounded-lg p-3 border border-yellow-400/30">
                   You have already registered to work on {userRegistrations[0]?.dayName}, {userRegistrations[0]?.formattedDate}. Each student can only register for one day.
                 </p>
               )}
@@ -581,7 +592,7 @@ export default function FormPage() {
           </div>
         </div>
 
-        <div className="text-center mt-8">
+        <div className="text-center mt-8 animate-fade-in animation-delay-1000">
           <div className="flex justify-center gap-4">
             {user && isAdminEmail(user.email) && (
               <button
@@ -590,7 +601,7 @@ export default function FormPage() {
                   const urlParams = new URLSearchParams(window.location.search);
                   router.push(`/admin?${urlParams.toString()}`);
                 }}
-                className="bg-purple-600/20 backdrop-blur-sm text-purple-300 py-3 px-6 rounded-full font-medium hover:bg-purple-600/30 transition-all duration-300 transform hover:scale-105 border border-purple-400/30"
+                className="glass-morphism hover:glass-card text-purple-300 py-3 px-6 rounded-full font-medium transition-all duration-300 transform hover:scale-105 border border-purple-400/30 hover:shadow-glow"
               >
                 ⚙️ Admin Panel
               </button>
@@ -599,7 +610,7 @@ export default function FormPage() {
               onClick={() => {
                 router.push('/');
               }}
-              className="bg-white/20 backdrop-blur-sm text-white py-3 px-6 rounded-full font-medium hover:bg-white/30 transition-all duration-300 transform hover:scale-105 border border-white/30"
+              className="glass-morphism hover:glass-card text-white py-3 px-6 rounded-full font-medium transition-all duration-300 transform hover:scale-105 border border-white/30 hover:shadow-glow"
             >
               🚪 Sign Out
             </button>
