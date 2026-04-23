@@ -419,12 +419,6 @@ export default function Admin() {
               >
                 Refresh Data
               </button>
-              <button
-                onClick={() => router.push('/form')}
-                className="bg-gradient-to-r from-blue-600/30 to-purple-600/30 hover:from-blue-600/50 hover:to-purple-600/50 px-4 py-2 rounded-full border border-purple-400/50 transition-all duration-300 hover:scale-105 shadow-lg shadow-purple-500/25"
-              >
-                Go to Form
-              </button>
             </div>
           </div>
 
@@ -546,8 +540,8 @@ export default function Admin() {
                                 📱 {user.phoneNumber}
                               </div>
                             ) : (
-                              <div className="text-gray-500 text-sm italic">
-                                No phone number
+                              <div className="text-orange-400 text-sm italic">
+                                no phone number
                               </div>
                             )}
                             <button
@@ -667,7 +661,9 @@ export default function Admin() {
                       onClick={() => {
                         // Copy to clipboard when clicked
                         const completeUser = users.find(u => u.id === registration.user.id);
-                        const rowData = `${registration.day.formattedDate}\t${registration.user.firstName} ${registration.user.lastName}\t${registration.user.email}\t${completeUser?.phoneNumber || ''}`;
+                        const phone = completeUser?.phoneNumber;
+                        const phoneText = phone && phone !== 'Not provided' ? phone : 'no phone number';
+                        const rowData = `${registration.day.formattedDate}\t${registration.user.firstName} ${registration.user.lastName}\t${registration.user.email}\t${phoneText}`;
                         navigator.clipboard.writeText(rowData);
                         setCopyFeedback('Row copied to clipboard!');
                         setTimeout(() => setCopyFeedback(''), 2000);
@@ -687,7 +683,8 @@ export default function Admin() {
                       <div className="col-span-3 text-green-400 text-sm">
                         {(() => {
                           const completeUser = users.find(u => u.id === registration.user.id);
-                          return completeUser?.phoneNumber || <span className="text-gray-500">No phone</span>;
+                          const phone = completeUser?.phoneNumber;
+                          return phone && phone !== 'Not provided' ? phone : <span className="text-orange-400 text-sm">no phone number</span>;
                         })()}
                       </div>
                     </div>
@@ -698,7 +695,9 @@ export default function Admin() {
                       onClick={() => {
                         // Copy to clipboard when clicked
                         const completeUser = users.find(u => u.id === registration.user.id);
-                        const rowData = `${registration.day.formattedDate}\t${registration.user.firstName} ${registration.user.lastName}\t${registration.user.email}\t${completeUser?.phoneNumber || ''}`;
+                        const phone = completeUser?.phoneNumber;
+                        const phoneText = phone && phone !== 'Not provided' ? phone : 'no phone number';
+                        const rowData = `${registration.day.formattedDate}\t${registration.user.firstName} ${registration.user.lastName}\t${registration.user.email}\t${phoneText}`;
                         navigator.clipboard.writeText(rowData);
                         setCopyFeedback('Row copied to clipboard!');
                         setTimeout(() => setCopyFeedback(''), 2000);
@@ -722,7 +721,8 @@ export default function Admin() {
                           <span className="text-green-400 text-sm text-right">
                             {(() => {
                               const completeUser = users.find(u => u.id === registration.user.id);
-                              return completeUser?.phoneNumber || <span className="text-gray-500">No phone</span>;
+                              const phone = completeUser?.phoneNumber;
+                              return phone && phone !== 'Not provided' ? phone : <span className="text-orange-400 text-sm">no phone number</span>;
                             })()}
                           </span>
                         </div>

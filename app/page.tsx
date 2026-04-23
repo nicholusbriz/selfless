@@ -19,16 +19,13 @@ export default function Page() {
         <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 rounded-full mb-4 shadow-lg shadow-purple-500/50">
-              <span className="text-4xl text-white font-bold">SF</span>
+              <span className="text-4xl text-white font-bold">FT</span>
             </div>
             <h1 className="text-5xl font-bold bg-gradient-to-r from-violet-300 via-purple-300 to-indigo-300 bg-clip-text text-transparent mb-3">
-              Selfless CE Freedom City
+              Freedom City Tech Center
             </h1>
-            <p className="text-cyan-300 text-xl mb-6 font-medium">
-              Tech Center Cleaning Registration
-            </p>
-            <p className="text-gray-300 text-sm italic mb-8">
-              &quot;Nurturing Resilient Minds&quot; 💻🚀
+            <p className="text-cyan-300 text-xl mb-8 font-medium">
+              Cleaning Registration System
             </p>
           </div>
 

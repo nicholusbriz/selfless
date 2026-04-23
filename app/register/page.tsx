@@ -115,30 +115,6 @@ export default function RegisterPage() {
             <p className="text-cyan-300 text-xl mb-4 font-medium">
               Freedom Tech Center
             </p>
-
-            {/* Organization Info */}
-            <div className="bg-gradient-to-r from-blue-600/30 to-purple-600/30 backdrop-blur-sm rounded-2xl p-4 mb-4 border border-blue-400/30">
-              <div className="flex items-center justify-center mb-2">
-                <span className="text-2xl mr-2">💻</span>
-                <span className="text-white font-semibold text-sm">Freedom Tech Center</span>
-              </div>
-              <p className="text-gray-200 text-xs italic">
-                &quot;Empowering Through Technology&quot;
-              </p>
-            </div>
-            <div className="bg-blue-600/20 backdrop-blur-sm rounded-lg p-4 mb-4 border border-blue-400/30">
-              <h3 className="text-white font-semibold mb-2">📝 Create Your Account:</h3>
-              <ul className="text-gray-200 text-sm space-y-1">
-                <li>• Enter your real first and last name</li>
-                <li>• Provide a valid email address</li>
-                <li>• Add your phone number (optional)</li>
-                <li>• Create a strong password (min. 6 characters)</li>
-                <li>• One account per email address</li>
-              </ul>
-              <p className="text-cyan-300 text-xs mt-2">
-                All fields except phone number are required.
-              </p>
-            </div>
           </div>
 
           {message && (

@@ -102,7 +102,10 @@ export default function LoginPage() {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-violet-300 via-purple-300 to-indigo-300 bg-clip-text text-transparent mb-3">
               Welcome Back
             </h1>
-            <p className="text-cyan-300 text-lg">
+            <p className="text-cyan-300 text-lg mb-2">
+              Freedom Tech Center
+            </p>
+            <p className="text-gray-300 text-sm">
               Enter your email to access the system
             </p>
           </div>

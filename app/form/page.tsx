@@ -224,14 +224,6 @@ export default function FormPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <div className="flex justify-center gap-4 mb-4">
-            {user?.email && ['atbriz256@gmail.com', 'kiwanukatonny@gmail.com'].includes(user.email) && (
-              <button
-                onClick={() => router.push('/admin')}
-                className="bg-purple-600/20 backdrop-blur-sm text-purple-300 py-2 px-4 rounded-full font-medium hover:bg-purple-600/30 transition-all duration-300 transform hover:scale-105 border border-purple-500/50 text-sm"
-              >
-                Admin Dashboard
-              </button>
-            )}
             <button
               onClick={() => {
                 // Refresh cleaning days data
@@ -257,10 +249,10 @@ export default function FormPage() {
             Welcome, {user.fullName || `${user.firstName} ${user.lastName}`}!
           </h1>
           <p className="text-cyan-300 text-lg mb-2">
-            Selfless CE Freedom City Tech Center
+            Freedom City Tech Center
           </p>
           <p className="text-gray-300">
-            {isRegistered ? "You&apos;re all set for cleaning duty!" : "Choose your preferred cleaning day"}
+            Choose your preferred cleaning day
           </p>
         </div>
 
