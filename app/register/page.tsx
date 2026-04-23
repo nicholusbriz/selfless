@@ -32,8 +32,16 @@ export default function RegisterPage() {
     e.preventDefault();
 
     // Validation
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
-      setMessage('Please fill in all required fields');
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password || !formData.phoneNumber) {
+      setMessage('Please fill in all required fields including phone number');
+      setMessageType('error');
+      return;
+    }
+
+    // Basic phone number validation
+    const phoneRegex = /^[\d\s\-\+\(\)]+$/;
+    if (!phoneRegex.test(formData.phoneNumber.trim())) {
+      setMessage('Please enter a valid phone number');
       setMessageType('error');
       return;
     }
@@ -200,8 +208,9 @@ export default function RegisterPage() {
                 name="phoneNumber"
                 value={formData.phoneNumber}
                 onChange={handleChange}
+                required
                 className="w-full px-4 py-4 bg-white/10 backdrop-blur-sm border border-violet-400/30 rounded-2xl focus:ring-4 focus:ring-violet-400/50 focus:border-violet-300 outline-none transition-all duration-300 text-white placeholder-violet-300/70 hover:bg-white/15"
-                placeholder="+256 123 456 789"
+                placeholder="+256 123 456 789 *"
               />
             </div>
 

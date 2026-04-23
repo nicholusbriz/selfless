@@ -3,6 +3,23 @@ import connectDB from '@/models/database';
 import User from '@/models/User';
 import Registration from '@/models/Registration';
 
+export async function GET() {
+  try {
+    await connectDB();
+
+    // For GET requests, we need to get user from session or token
+    // For now, we'll return a response that requires proper authentication
+    return NextResponse.json({
+      success: false,
+      message: 'Authentication required for user status'
+    }, { status: 401 });
+
+  } catch (error) {
+    console.error('User status GET error:', error);
+    return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
+  }
+}
+
 export async function POST(request: Request) {
   try {
     await connectDB();
@@ -32,6 +49,7 @@ export async function POST(request: Request) {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
+        phoneNumber: user.phoneNumber || '',
         fullName: `${user.firstName} ${user.lastName}`
       },
       isRegistered,

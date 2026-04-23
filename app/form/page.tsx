@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAdminEmail } from '@/config/admin';
 import { User, CleaningDay, Weeks, UserRegistration } from '@/types';
+import PhoneNumberPrompt from '@/components/PhoneNumberPrompt';
 
 export default function FormPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -632,6 +633,7 @@ export default function FormPage() {
           Software Developer | Zana, Kampala, Uganda
         </p>
       </div>
+      <PhoneNumberPrompt />
     </div>
   );
 }
