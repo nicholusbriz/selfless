@@ -13,6 +13,7 @@ export default function Page() {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
+  const [isOnline, setIsOnline] = useState(true);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -37,6 +38,12 @@ export default function Page() {
     try {
       console.log('🔐 Attempting login for:', formData.email);
 
+      // Check if we're online first
+      const healthCheck = await fetch('/api/ping');
+      if (!healthCheck.ok) {
+        throw new Error('Server is currently unavailable. Please try again later.');
+      }
+
       const response = await fetch('/api/login', {
         method: 'POST',
         headers: {
@@ -52,7 +59,13 @@ export default function Page() {
       if (!response.ok) {
         const errorData = await response.json();
         console.error('❌ Login failed:', errorData);
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+
+        // Handle specific database errors gracefully
+        if (errorData.message?.includes('database') || errorData.message?.includes('MongoDB')) {
+          throw new Error('Database connection issue. Please try again in a few minutes.');
+        }
+
+        throw new Error(errorData.message || `Login failed with status: ${response.status}`);
       }
 
       const data = await response.json();
@@ -66,6 +79,12 @@ export default function Page() {
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Network error. Please try again.';
       console.error('Login error:', error);
+
+      // Set offline status if it's a network/database error
+      if (errorMessage.includes('unavailable') || errorMessage.includes('database') || errorMessage.includes('Network')) {
+        setIsOnline(false);
+      }
+
       setMessage(errorMessage);
       setMessageType('error');
     } finally {
@@ -83,6 +102,15 @@ export default function Page() {
       </div>
 
       <div className="w-full max-w-md relative z-10">
+        {/* Status Indicator */}
+        {!isOnline && (
+          <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
+            <p className="text-red-300 text-sm text-center">
+              ⚠️ System temporarily unavailable - Please try again later
+            </p>
+          </div>
+        )}
+
         <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 rounded-full mb-4 shadow-lg shadow-purple-500/50">

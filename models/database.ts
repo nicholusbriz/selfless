@@ -6,7 +6,6 @@ console.log('Environment check - MONGODB_URI exists:', !!MONGODB_URI);
 console.log('Environment check - NODE_ENV:', process.env.NODE_ENV);
 
 if (!MONGODB_URI) {
-  console.error('❌ MONGODB_URI is missing in production');
   throw new Error('Please define the MONGODB_URI environment variable');
 }
 
