@@ -35,8 +35,6 @@ export default function LoginPage() {
     setMessageType('');
 
     try {
-      console.log('🔐 Attempting login for:', formData.email);
-
       const response = await fetch('/api/login', {
         method: 'POST',
         headers: {
@@ -47,11 +45,8 @@ export default function LoginPage() {
         }),
       });
 
-      console.log('📡 Login response status:', response.status);
-
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('❌ Login failed:', errorData);
 
         // Handle specific database errors gracefully
         if (errorData.message?.includes('database') || errorData.message?.includes('MongoDB')) {
@@ -71,7 +66,6 @@ export default function LoginPage() {
       }, 1500);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Network error. Please try again.';
-      console.error('Login error:', error);
       setMessage(errorMessage);
       setMessageType('error');
     } finally {

@@ -8,13 +8,11 @@ export async function GET() {
     await connectDB();
 
     // Fetch all registrations from database with populated user data
-    console.log('Fetching registrations from database...');
     const registrations = await Registration.find({}).populate({
       path: 'userId',
       select: 'firstName lastName email fullName',
       match: null // Ensure we get all registrations even if user is deleted
     }).sort({ createdAt: 1 });
-    console.log(`Found ${registrations.length} registrations from database`);
 
     // Create cleaning days structure for May 2026
     const cleaningDays = [];
@@ -59,7 +57,6 @@ export async function GET() {
       const validRegisteredUsers = dayRegistrations
         .filter(reg => reg.userId && typeof reg.userId === 'object' && reg.userId.firstName)
         .map(reg => {
-          console.log(`Fetching user data from database for: ${reg.userId.firstName} ${reg.userId.lastName}`);
           return {
             id: reg.userId._id?.toString() || reg.userId.id,
             firstName: reg.userId.firstName,
@@ -71,13 +68,12 @@ export async function GET() {
           };
         });
 
-      // Log any registrations that couldn't be populated (user was deleted)
+      // Clean up registrations that couldn't be populated (user was deleted)
       const invalidRegistrations = dayRegistrations.filter(reg =>
         !(reg.userId && typeof reg.userId === 'object' && reg.userId.firstName)
       );
       if (invalidRegistrations.length > 0) {
-        console.log(`Found ${invalidRegistrations.length} registrations with deleted users, cleaning up...`);
-        // Optionally clean up these invalid registrations
+        // Clean up these invalid registrations
         await Registration.deleteMany({
           _id: { $in: invalidRegistrations.map(reg => reg._id) }
         });

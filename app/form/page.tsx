@@ -58,7 +58,6 @@ export default function FormPage() {
           router.push('/');
         }
       } catch (error) {
-        console.error('Error checking user access:', error);
         router.push('/');
       } finally {
         setCheckingStatus(false);
@@ -93,7 +92,7 @@ export default function FormPage() {
           }
         }
       } catch (error) {
-        console.error('Error fetching cleaning days:', error);
+        // Error fetching cleaning days - will show in UI
       }
     };
 
@@ -141,7 +140,6 @@ export default function FormPage() {
         return;
       }
 
-      console.log('Submitting with user data:', { userId: user.id, user });
       const response = await fetch('/api/form-submit', {
         method: 'POST',
         headers: {
@@ -202,7 +200,6 @@ export default function FormPage() {
         }
       }
     } catch (error) {
-      console.error('Registration error:', error);
       setMessage('Network error. Please try again.');
       setMessageType('error');
     } finally {
@@ -245,7 +242,7 @@ export default function FormPage() {
                       setWeeks(data.weeks);
                     }
                   } catch (error) {
-                    console.error('Error refreshing data:', error);
+                    // Error refreshing data - will show in UI
                   }
                 };
                 fetchCleaningDays();
