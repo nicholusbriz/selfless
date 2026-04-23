@@ -204,7 +204,7 @@ export default function RegisterPage() {
 
             <div>
               <label htmlFor="phoneNumber" className="block text-sm font-medium text-violet-200 mb-2">
-                📱 Phone Number (Optional)
+                📱 Phone Number
               </label>
               <input
                 type="tel"
