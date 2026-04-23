@@ -36,7 +36,7 @@ export default function LoginPage() {
 
     try {
       console.log('🔐 Attempting login for:', formData.email);
-      
+
       const response = await fetch('/api/login', {
         method: 'POST',
         headers: {
@@ -52,12 +52,12 @@ export default function LoginPage() {
       if (!response.ok) {
         const errorData = await response.json();
         console.error('❌ Login failed:', errorData);
-        
+
         // Handle specific database errors gracefully
         if (errorData.message?.includes('database') || errorData.message?.includes('MongoDB')) {
           throw new Error('Database connection issue. Please try again in a few minutes.');
         }
-        
+
         throw new Error(errorData.message || `Login failed with status: ${response.status}`);
       }
 
@@ -120,11 +120,10 @@ export default function LoginPage() {
             </div>
 
             {message && (
-              <div className={`p-3 rounded-lg text-sm ${
-                messageType === 'success' 
-                  ? 'bg-green-500/20 border border-green-500/50 text-green-300' 
+              <div className={`p-3 rounded-lg text-sm ${messageType === 'success'
+                  ? 'bg-green-500/20 border border-green-500/50 text-green-300'
                   : 'bg-red-500/20 border border-red-500/50 text-red-300'
-              }`}>
+                }`}>
                 {message}
               </div>
             )}
@@ -145,7 +144,17 @@ export default function LoginPage() {
             </RippleButton>
           </form>
 
-          <div className="mt-8 text-center">
+          <div className="mt-8 text-center space-y-3">
+            <div className="text-cyan-300 text-sm">
+              Don't have an account?{' '}
+              <RippleButton
+                onClick={() => router.push('/register')}
+                className="text-violet-300 hover:text-white font-medium underline transition-colors duration-300"
+              >
+                Register here
+              </RippleButton>
+            </div>
+
             <RippleButton
               onClick={() => router.push('/')}
               className="text-cyan-300 hover:text-white font-medium text-sm transition-colors duration-300"

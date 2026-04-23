@@ -253,12 +253,12 @@ export default function RegisterPage() {
             <div className="text-center">
               <p className="text-violet-200 text-sm mb-4">
                 Already have an account?{' '}
-                <Link
-                  href="/"
-                  className="bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent font-bold hover:from-violet-300 hover:to-purple-300 transition-all duration-300 transform hover:scale-105"
+                <RippleButton
+                  onClick={() => router.push('/login')}
+                  className="text-cyan-300 hover:text-white font-bold underline transition-all duration-300 transform hover:scale-105"
                 >
-                  🔑 Sign In Here
-                </Link>
+                  🔑 Login here
+                </RippleButton>
               </p>
               <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-sm rounded-xl p-3 border border-blue-400/30">
                 <p className="text-violet-200 text-xs font-medium mb-1">
