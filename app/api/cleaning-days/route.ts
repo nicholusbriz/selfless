@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/models/database';
 import Registration from '@/models/Registration';
+import User from '@/models/User';
 
 export async function GET() {
   try {
