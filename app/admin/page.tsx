@@ -29,6 +29,7 @@ export default function Admin() {
   const [phoneUpdateLoading, setPhoneUpdateLoading] = useState(false);
   const [courseRegistrations, setCourseRegistrations] = useState<any[]>([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
+  const [clearingCourse, setClearingCourse] = useState<string | null>(null);
   const router = useRouter();
 
   // Check if user is admin (URL-based authentication)
@@ -317,6 +318,51 @@ export default function Admin() {
     } finally {
       setPhoneUpdateLoading(false);
       setTimeout(() => setCopyFeedback(''), 3000);
+    }
+  };
+
+  // Clear user's course registrations
+  const clearUserCourses = async (userId: string, userName: string) => {
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      `Clear Course Registrations\n\nAre you sure you want to clear all course registrations for ${userName}?\n\nThis will:\n• Delete all their registered courses and credits\n• Allow them to register courses again\n• Keep their account and cleaning day registrations\n• Update the course credits overview\n\nThis action can be reversed by the user re-registering their courses.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setClearingCourse(userId);
+    try {
+      const response = await fetch(`/api/courses/clear`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Remove the user's course registration from the local state
+        setCourseRegistrations(courseRegistrations.filter(reg => reg.userId !== userId));
+
+        // Update statistics to refresh the total students counter
+        updateStatistics();
+
+        setCopyFeedback(`Course registrations cleared for ${userName}. They can now register again.`);
+
+        // Clear feedback after 3 seconds
+        setTimeout(() => setCopyFeedback(''), 3000);
+      } else {
+        setCopyFeedback(data.message || 'Failed to clear courses');
+      }
+    } catch (error) {
+      console.error('Clear courses error:', error);
+      setCopyFeedback('Network error occurred');
+    } finally {
+      setClearingCourse(null);
     }
   };
 
@@ -916,7 +962,7 @@ export default function Admin() {
                   <span className="text-3xl text-gray-400">📚</span>
                 </div>
                 <p className="text-gray-400 text-lg mb-2">No course registrations found</p>
-                <p className="text-gray-500 text-sm">Students haven't registered their course credits yet</p>
+                <p className="text-gray-500 text-sm">Students haven&apos;t registered their course credits yet</p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -924,7 +970,7 @@ export default function Admin() {
                 <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mb-8">
                   <div className="bg-gradient-to-r from-blue-600/20 to-cyan-600/20 rounded-xl p-6 border border-blue-400/30">
                     <p className="text-blue-300 text-sm font-medium">Total Students Who Have Registered for Their Credits</p>
-                    <p className="text-white text-2xl font-bold">{courseRegistrations.filter(reg => reg.courses && reg.courses.length > 0).length}</p>
+                    <p className="text-white text-2xl font-bold">{courseRegistrations.filter(reg => reg.courses && reg.courses.length > 0 && reg.user).length}</p>
                   </div>
                 </div>
 
@@ -966,10 +1012,11 @@ export default function Admin() {
                           <th className="text-left py-3 px-4 font-medium text-cyan-300">Courses</th>
                           <th className="text-center py-3 px-4 font-medium text-cyan-300">Credits</th>
                           <th className="text-center py-3 px-4 font-medium text-cyan-300">Religion Course</th>
+                          <th className="text-center py-3 px-4 font-medium text-cyan-300">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {courseRegistrations.filter(reg => reg.courses && reg.courses.length > 0).map((registration, index) => (
+                        {courseRegistrations.filter(reg => reg.courses && reg.courses.length > 0 && reg.user).map((registration) => (
                           <tr
                             key={registration.id}
                             className="border-b border-white/10 hover:bg-white/5 transition-colors cursor-pointer"
@@ -978,16 +1025,17 @@ export default function Admin() {
                                 `${course.name} (${course.credits} credits)`
                               ).join('\n');
 
-                              const rowData = `${registration.user.firstName} ${registration.user.lastName}\t${coursesList}\t${registration.totalCredits}\t${registration.takesReligion ? 'YES' : 'NO'}`;
+                              const userName = registration.user ? `${registration.user.firstName} ${registration.user.lastName}` : 'Unknown User';
+                              const rowData = `${userName}\t${coursesList}\t${registration.totalCredits}\t${registration.takesReligion ? 'YES' : 'NO'}`;
 
                               navigator.clipboard.writeText(rowData);
-                              setCopyFeedback(`Row copied: ${registration.user.firstName} ${registration.user.lastName}`);
+                              setCopyFeedback(`Row copied: ${userName}`);
                               setTimeout(() => setCopyFeedback(''), 2000);
                             }}
                           >
                             <td className="py-3 px-4">
                               <div className="font-medium text-white">
-                                {registration.user.firstName} {registration.user.lastName}
+                                {registration.user ? `${registration.user.firstName} ${registration.user.lastName}` : 'Unknown User'}
                               </div>
                             </td>
                             <td className="py-3 px-4">
@@ -1007,6 +1055,28 @@ export default function Admin() {
                                 {registration.takesReligion ? 'YES' : 'NO'}
                               </span>
                             </td>
+                            <td className="py-3 px-4 text-center">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Prevent row click
+                                  const userName = registration.user ? `${registration.user.firstName} ${registration.user.lastName}` : 'Unknown User';
+                                  clearUserCourses(registration.userId, userName);
+                                }}
+                                disabled={clearingCourse === registration.userId}
+                                className="bg-red-600/20 hover:bg-red-600/30 text-red-300 py-1 px-3 rounded-full border border-red-500/50 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {clearingCourse === registration.userId ? (
+                                  <span className="flex items-center">
+                                    <div className="animate-spin rounded-full h-3 w-3 border border-red-300 border-t-transparent mr-2"></div>
+                                    Clearing...
+                                  </span>
+                                ) : (
+                                  <span className="flex items-center">
+                                    🗑️ Clear
+                                  </span>
+                                )}
+                              </button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1015,13 +1085,13 @@ export default function Admin() {
 
                   {/* Mobile Card View */}
                   <div className="lg:hidden space-y-4">
-                    {courseRegistrations.filter(reg => reg.courses && reg.courses.length > 0).map((registration, index) => (
+                    {courseRegistrations.filter(reg => reg.courses && reg.courses.length > 0 && reg.user).map((registration) => (
                       <div key={registration.id} className="bg-white/10 rounded-lg p-4 border border-white/20">
                         <div className="mb-3">
                           <h4 className="text-white font-bold text-lg">
-                            {registration.user.firstName} {registration.user.lastName}
+                            {registration.user ? `${registration.user.firstName} ${registration.user.lastName}` : 'Unknown User'}
                           </h4>
-                          <p className="text-cyan-300 text-sm">{registration.user.email}</p>
+                          <p className="text-cyan-300 text-sm">{registration.user?.email || 'No email'}</p>
                         </div>
 
                         <div className="space-y-2 mb-3">
@@ -1049,6 +1119,28 @@ export default function Admin() {
 
                         <div className="text-gray-400 text-xs mt-2">
                           Registered: {registration.registrationDate ? new Date(registration.registrationDate).toLocaleDateString() : 'Unknown date'}
+                        </div>
+
+                        <div className="mt-4 pt-3 border-t border-white/20">
+                          <button
+                            onClick={() => {
+                              const userName = registration.user ? `${registration.user.firstName} ${registration.user.lastName}` : 'Unknown User';
+                              clearUserCourses(registration.userId, userName);
+                            }}
+                            disabled={clearingCourse === registration.userId}
+                            className="w-full bg-red-600/20 hover:bg-red-600/30 text-red-300 py-2 px-4 rounded-full border border-red-500/50 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {clearingCourse === registration.userId ? (
+                              <span className="flex items-center justify-center">
+                                <div className="animate-spin rounded-full h-3 w-3 border border-red-300 border-t-transparent mr-2"></div>
+                                Clearing Courses...
+                              </span>
+                            ) : (
+                              <span className="flex items-center justify-center">
+                                🗑️ Clear Course Registrations
+                              </span>
+                            )}
+                          </button>
                         </div>
                       </div>
                     ))}

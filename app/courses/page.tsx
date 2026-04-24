@@ -478,20 +478,6 @@ export default function CoursesPage() {
                     )}
                   </button>
                 </div>
-
-                {/* Additional Course Button */}
-                <div className="text-center mt-4">
-                  <button
-                    type="button"
-                    onClick={addCourse}
-                    className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 hover:from-green-700 hover:via-emerald-700 hover:to-teal-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-green-500/25"
-                  >
-                    <span className="flex items-center gap-2">
-                      <span>➕</span>
-                      Save and Add Course Unit
-                    </span>
-                  </button>
-                </div>
               </form>
             </div>
           </div>
