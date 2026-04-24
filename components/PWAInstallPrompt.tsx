@@ -44,6 +44,12 @@ export default function PWAInstallPrompt() {
     setDeferredPrompt(null);
   };
 
+  const handleDismiss = () => {
+    setShowInstall(false);
+    setDeferredPrompt(null);
+    // Clear the prompt completely
+  };
+
   if (!showInstall && !showSuccess) return null;
 
   // Success message when app is installed
@@ -79,12 +85,21 @@ export default function PWAInstallPrompt() {
               <p className="text-blue-100 text-xs">Add to your home screen for quick access</p>
             </div>
           </div>
-          <button
-            onClick={handleInstallClick}
-            className="bg-white text-blue-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-50 transition-all duration-300 transform hover:scale-105 shadow-lg"
-          >
-            Install App
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleInstallClick}
+              className="bg-white text-blue-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-50 transition-all duration-300 transform hover:scale-105 shadow-lg"
+            >
+              Install App
+            </button>
+            <button
+              onClick={handleDismiss}
+              className="bg-white/20 hover:bg-white/30 text-white p-2 rounded-lg transition-all duration-300 transform hover:scale-105"
+              title="Dismiss"
+            >
+              <span className="text-lg">✕</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
