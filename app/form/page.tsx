@@ -175,7 +175,7 @@ export default function FormPage() {
         const statusResponse = await fetch('/api/user-status', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: user?.id }),
+          body: JSON.stringify({ userId: user?.id, email: user?.email }),
         });
         const statusData = await statusResponse.json();
         if (statusData.success) {
@@ -183,11 +183,7 @@ export default function FormPage() {
           setUserRegistrations(statusData.registrations);
         }
 
-        // Redirect to dashboard after successful registration
-        setTimeout(() => {
-          const urlParams = new URLSearchParams(window.location.search);
-          router.push(`/dashboard?${urlParams.toString()}`);
-        }, 2500);
+        // User stays on form page to manually navigate when ready
       } else {
         // Handle specific error cases
         if (response.status === 404 && data.message?.includes('User not found')) {
@@ -276,15 +272,9 @@ export default function FormPage() {
               : 'border-white/20'
               }`}>
               <div className="text-center">
-                <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full mb-4 animate-bounce-in ${isRegistered ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-gradient-to-r from-orange-500 to-amber-500'
-                  } shadow-lg`}>
-                  <span className="text-3xl text-white animate-pulse-slow">
-                    {isRegistered ? '✓' : '+'}
-                  </span>
-                </div>
                 <h2 className={`text-3xl font-bold mb-2 animate-slide-in-up ${isRegistered ? 'text-gradient-primary' : 'text-gradient-primary'
                   } text-shadow-lg`}>
-                  {isRegistered ? 'Already Registered!' : 'Choose Your Cleaning Day'}
+                  {isRegistered ? 'Registration Complete!' : 'Choose Your Cleaning Day'}
                 </h2>
                 {!isRegistered && (
                   <p className="text-gray-300 text-lg mb-4 animate-fade-in-up animation-delay-200">

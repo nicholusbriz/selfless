@@ -366,6 +366,19 @@ export default function Admin() {
     }
   };
 
+  // Prepare course credits data for CSV export
+  const prepareCourseCreditsCSV = () => {
+    const studentsWithCourses = courseRegistrations.filter(reg => reg.courses && reg.courses.length > 0 && reg.user);
+
+    return studentsWithCourses.map(reg => ({
+      'Student Name': `${reg.user?.firstName || ''} ${reg.user?.lastName || ''}`.trim(),
+      'Email': reg.user?.email || '',
+      'Courses': reg.courses.map((course: any) => `${course?.name || 'Unknown'} (${course?.credits || 0} credits)`).join(', '),
+      'Total Credits': (reg.totalCredits || 0).toString(),
+      'Religion Course': reg.takesReligion ? 'YES' : 'NO'
+    }));
+  };
+
   // Prepare data for Excel export
   const prepareExcelData = () => {
     const registeredStudents: { 'Date': string; 'Full Name': string; 'Email': string; 'Phone Number': string }[] = [];
@@ -968,29 +981,39 @@ export default function Admin() {
                 <div className="bg-black/30 rounded-2xl p-6 border border-white/20">
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="text-xl font-bold text-cyan-300">Student Course Credits (Stipend Planning Format)</h3>
-                    <button
-                      onClick={() => {
-                        // Prepare Excel-friendly data
-                        const studentsWithCourses = courseRegistrations.filter(reg => reg.courses && reg.courses.length > 0);
-                        const excelData = studentsWithCourses.map(reg => {
-                          const coursesList = reg.courses.map((course: any) =>
-                            `${course.name} (${course.credits} credits)`
-                          ).join('\n');
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => {
+                          // Prepare Excel-friendly data
+                          const studentsWithCourses = courseRegistrations.filter(reg => reg.courses && reg.courses.length > 0);
+                          const excelData = studentsWithCourses.map(reg => {
+                            const coursesList = reg.courses.map((course: any) =>
+                              `${course.name} (${course.credits} credits)`
+                            ).join('\n');
 
-                          return `${reg.user.firstName} ${reg.user.lastName}\t${coursesList}\t${reg.totalCredits}\t${reg.takesReligion ? 'YES' : 'NO'}\n`;
-                        }).join('');
+                            return `${reg.user.firstName} ${reg.user.lastName}\t${coursesList}\t${reg.totalCredits}\t${reg.takesReligion ? 'YES' : 'NO'}\n`;
+                          }).join('');
 
-                        const header = 'Student Name\tCourses\tCredits\tReligion Course\n';
-                        const fullData = header + excelData;
+                          const header = 'Student Name\tCourses\tCredits\tReligion Course\n';
+                          const fullData = header + excelData;
 
-                        navigator.clipboard.writeText(fullData);
-                        setCopyFeedback('Course credits data copied to clipboard! Ready for stipend planning.');
-                        setTimeout(() => setCopyFeedback(''), 3000);
-                      }}
-                      className="bg-green-600/20 hover:bg-green-600/30 text-green-300 py-2 px-4 rounded-full border border-green-500/50 transition-all text-sm"
-                    >
-                      📋 Copy All Credits (for Stipend Planning)
-                    </button>
+                          navigator.clipboard.writeText(fullData);
+                          setCopyFeedback('Course credits data copied to clipboard! Ready for stipend planning.');
+                          setTimeout(() => setCopyFeedback(''), 3000);
+                        }}
+                        className="bg-green-600/20 hover:bg-green-600/30 text-green-300 py-2 px-4 rounded-full border border-green-500/50 transition-all text-sm"
+                      >
+                        📋 Copy All Credits (for Stipend Planning)
+                      </button>
+                      <ExcelExporter
+                        data={prepareCourseCreditsCSV()}
+                        filename="course-credits.csv"
+                        className="text-sm"
+                      >
+                        <span className="text-lg">📊</span>
+                        Download CSV (Course Credits)
+                      </ExcelExporter>
+                    </div>
                   </div>
 
                   {/* Desktop Table View */}
