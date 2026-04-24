@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import RippleButton from '@/components/RippleButton';
 import { isAdminEmail } from '@/config/admin';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
@@ -103,9 +102,9 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center p-4 relative">
+    <div className="h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center p-4 relative overflow-hidden">
 
-      <div className="w-full max-w-md relative z-10 animate-fade-in-up">
+      <div className="w-full max-w-md relative z-10 animate-fade-in-up overflow-y-auto max-h-full">
         <div className="glass-card rounded-3xl p-8 border border-white/20 shadow-glow-lg hover-lift">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 rounded-full mb-4 shadow-lg shadow-purple-500/50 p-2">
@@ -225,41 +224,47 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <RippleButton
+            <button
               type="submit"
               disabled={isLoading}
               className="w-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-2xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-purple-500/50 hover:shadow-purple-500/70"
             >
               {isLoading ? (
-                <LoadingSpinner size="md" text="Creating Account..." className="text-white" />
+                <span className="flex items-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"></div>
+                  Creating Account...
+                </span>
               ) : (
                 <span className="flex items-center justify-center">
                   <span className="mr-2">🚀</span>
                   Create Account
                 </span>
               )}
-            </RippleButton>
+            </button>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-violet-400/20">
-            <div className="text-center">
-              <p className="text-violet-200 text-sm mb-4">
-                Already have an account?{' '}
-                <RippleButton
-                  onClick={() => router.push('/login')}
-                  className="text-cyan-300 hover:text-white font-bold underline transition-all duration-300 transform hover:scale-105"
-                >
-                  🔑 Login here
-                </RippleButton>
+          <div className="mt-8 text-center space-y-4">
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => router.push('/login')}
+                className="bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 py-3 px-6 rounded-full font-medium border border-cyan-500/50 transition-all"
+              >
+                🔑 Login here
+              </button>
+              <button
+                onClick={() => router.push('/')}
+                className="bg-red-600/20 hover:bg-red-600/30 text-red-400 py-3 px-6 rounded-full font-medium border border-red-500/50 transition-all"
+              >
+                ← Back to Home
+              </button>
+            </div>
+            <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-sm rounded-xl p-3 border border-blue-400/30">
+              <p className="text-violet-200 text-xs font-medium mb-1">
+                💻 Freedom Tech Center
               </p>
-              <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-sm rounded-xl p-3 border border-blue-400/30">
-                <p className="text-violet-200 text-xs font-medium mb-1">
-                  💻 Freedom Tech Center
-                </p>
-                <p className="text-violet-300 text-xs">
-                  Empowering through technology education 🚀
-                </p>
-              </div>
+              <p className="text-violet-300 text-xs">
+                Empowering through technology education 🚀
+              </p>
             </div>
           </div>
         </div>

@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAdminEmail } from '@/config/admin';
 import { User, CleaningDay, Weeks, UserRegistration } from '@/types';
-import RippleButton from '@/components/RippleButton';
 import PhoneNumberPrompt from '@/components/PhoneNumberPrompt';
 
 export default function DashboardPage() {
@@ -126,9 +125,9 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center">
+    <div className="h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center overflow-hidden">
 
-      <div className="w-full max-w-md relative z-10 animate-fade-in-up">
+      <div className="w-full max-w-md relative z-10 animate-fade-in-up overflow-y-auto max-h-full">
         <div className="glass-card rounded-3xl p-8 border border-white/20 shadow-glow-lg hover-lift">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 rounded-full mb-4 shadow-lg shadow-purple-500/50 p-2 animate-bounce-in">
@@ -146,59 +145,56 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="space-y-4 animate-fade-in-up">
-            <RippleButton
+          <div className="space-y-4 animate-fade-in-up mb-8">
+            <button
               onClick={() => {
                 const urlParams = new URLSearchParams(window.location.search);
                 router.push(`/form?${urlParams.toString()}`);
               }}
-              className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 text-white font-semibold py-4 px-6 rounded-lg hover:from-purple-700 hover:via-pink-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
+              className="w-full bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 py-4 px-6 rounded-lg font-medium border border-blue-500/50 transition-all"
             >
               <span className="flex items-center justify-center">
                 <span className="mr-2">📝</span>
                 Register for a Cleaning Day
               </span>
-            </RippleButton>
+            </button>
 
-            <RippleButton
+            <button
               onClick={() => {
                 const urlParams = new URLSearchParams(window.location.search);
                 router.push(`/courses?${urlParams.toString()}`);
               }}
-              className="w-full bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 text-white font-semibold py-4 px-6 rounded-lg hover:from-blue-700 hover:via-cyan-700 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-blue-500/25"
+              className="w-full bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 py-4 px-6 rounded-lg font-medium border border-cyan-500/50 transition-all"
             >
               <span className="flex items-center justify-center">
                 <span className="mr-2">📚</span>
                 Send Number of Credits
               </span>
-            </RippleButton>
+            </button>
+          </div>
 
-            {user && isAdminEmail(user.email) && (
-              <RippleButton
+          <div className="text-center mt-auto space-y-4">
+            <div className="flex justify-center gap-4">
+              {user && isAdminEmail(user.email) && (
+                <button
+                  onClick={() => {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    router.push(`/admin?${urlParams.toString()}`);
+                  }}
+                  className="bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 py-3 px-6 rounded-full font-medium border border-purple-500/50 transition-all"
+                >
+                  ⚙️ Admin Panel
+                </button>
+              )}
+              <button
                 onClick={() => {
-                  const urlParams = new URLSearchParams(window.location.search);
-                  router.push(`/admin?${urlParams.toString()}`);
+                  router.push('/');
                 }}
-                className="w-full bg-gradient-to-r from-orange-600 via-red-600 to-yellow-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-orange-700 hover:via-red-700 hover:to-yellow-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-orange-500/25"
+                className="bg-red-600/20 hover:bg-red-600/30 text-red-400 py-3 px-6 rounded-full font-medium border border-red-500/50 transition-all"
               >
-                <span className="flex items-center justify-center">
-                  <span className="mr-2">⚙️</span>
-                  Admin Panel
-                </span>
-              </RippleButton>
-            )}
-
-            <RippleButton
-              onClick={() => {
-                router.push('/');
-              }}
-              className="w-full bg-gradient-to-r from-gray-600 via-gray-700 to-gray-800 text-white font-semibold py-3 px-6 rounded-lg hover:from-gray-700 hover:via-gray-800 hover:to-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-gray-500/25"
-            >
-              <span className="flex items-center justify-center">
-                <span className="mr-2">🚪</span>
-                Sign Out
-              </span>
-            </RippleButton>
+                🚪 Sign Out
+              </button>
+            </div>
           </div>
         </div>
       </div>

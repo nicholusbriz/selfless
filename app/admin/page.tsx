@@ -471,10 +471,10 @@ export default function Admin() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 relative overflow-y-auto">
+    <div className="h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 relative overflow-hidden">
 
-      <div className="relative z-10 backdrop-blur-sm bg-black/30">
-        <div className="container mx-auto px-4 py-8">
+      <div className="relative z-10 backdrop-blur-sm bg-black/30 h-full flex flex-col">
+        <div className="container mx-auto px-4 py-8 overflow-y-auto flex-1">
           {/* Enhanced Header */}
           <div className="text-center mb-8 animate-fade-in-down">
             <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full mb-4 animate-bounce-in shadow-glow-lg p-2">
