@@ -42,7 +42,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: false,
-      message: error.message || 'Failed to retrieve course registrations'
+      message: error instanceof Error ? error.message : 'Failed to retrieve course registrations'
     }, { status: 500 });
   }
 }
