@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import RippleButton from '@/components/RippleButton';
 import { isAdminEmail } from '@/config/admin';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
@@ -85,9 +84,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center p-4 relative">
+    <div className="h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center p-4 relative overflow-hidden">
 
-      <div className="w-full max-w-md relative z-10 animate-fade-in-up">
+      <div className="w-full max-w-md relative z-10 animate-fade-in-up overflow-y-auto max-h-full">
         <div className="glass-card rounded-3xl p-8 border border-white/20 shadow-glow-lg hover-lift">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 rounded-full mb-4 shadow-lg shadow-purple-500/50 p-2">
@@ -134,39 +133,37 @@ export default function LoginPage() {
               </div>
             )}
 
-            <RippleButton
+            <button
               type="submit"
               disabled={isLoading}
               className="w-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
-                <span className="flex items-center justify-center">
-                  <LoadingSpinner />
-                  <span className="ml-2">Accessing...</span>
+                <span className="flex items-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"></div>
+                  Signing in...
                 </span>
               ) : (
                 '🚀 Access System'
               )}
-            </RippleButton>
+            </button>
           </form>
 
-          <div className="mt-8 text-center space-y-3">
-            <div className="text-cyan-300 text-sm">
-              Don&apos;t have an account?{' '}
-              <RippleButton
+          <div className="mt-8 text-center space-y-4">
+            <div className="flex justify-center gap-4">
+              <button
                 onClick={() => router.push('/register')}
-                className="text-violet-300 hover:text-white font-medium underline transition-colors duration-300"
+                className="bg-violet-600/20 hover:bg-violet-600/30 text-violet-400 py-3 px-6 rounded-full font-medium border border-violet-500/50 transition-all"
               >
                 Register here
-              </RippleButton>
+              </button>
+              <button
+                onClick={() => router.push('/')}
+                className="bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 py-3 px-6 rounded-full font-medium border border-cyan-500/50 transition-all"
+              >
+                ← Back to Home
+              </button>
             </div>
-
-            <RippleButton
-              onClick={() => router.push('/')}
-              className="text-cyan-300 hover:text-white font-medium text-sm transition-colors duration-300"
-            >
-              ← Back to Home
-            </RippleButton>
           </div>
         </div>
       </div>

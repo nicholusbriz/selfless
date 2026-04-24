@@ -1,16 +1,15 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import RippleButton from '@/components/RippleButton';
 import PWAInstallPrompt from '@/components/PWAInstallPrompt';
 
 export default function Page() {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center p-4 relative">
+    <div className="h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center p-4 relative overflow-hidden">
 
-      <div className="w-full max-w-md relative z-10 animate-fade-in-up">
+      <div className="w-full max-w-md relative z-10 animate-fade-in-up overflow-y-auto max-h-full">
         <div className="glass-card rounded-3xl p-8 border border-white/20 shadow-glow-lg hover-lift">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 rounded-full mb-4 shadow-lg shadow-purple-500/50 p-2 animate-bounce-in">
@@ -29,7 +28,7 @@ export default function Page() {
           </div>
 
           <div className="space-y-4 animate-fade-in-up">
-            <RippleButton
+            <button
               onClick={() => router.push('/register')}
               className="btn-primary w-full bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white font-semibold py-4 px-6 rounded-lg hover:from-green-700 hover:via-emerald-700 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-green-500/25"
             >
@@ -37,13 +36,13 @@ export default function Page() {
                 <span className="mr-2">📝</span>
                 Create Account
               </span>
-            </RippleButton>
+            </button>
 
             <div className="text-center animate-fade-in">
               <span className="text-gray-400 text-sm bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm">or</span>
             </div>
 
-            <RippleButton
+            <button
               onClick={() => router.push('/login')}
               className="btn-secondary w-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white font-semibold py-4 px-6 rounded-lg hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
             >
@@ -51,7 +50,7 @@ export default function Page() {
                 <span className="mr-2">🔐</span>
                 Login to System
               </span>
-            </RippleButton>
+            </button>
           </div>
 
           <div className="mt-8 text-center animate-fade-in-up animation-delay-300">
