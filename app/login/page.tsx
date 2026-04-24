@@ -72,7 +72,7 @@ export default function LoginPage() {
         setMessage('Access granted! Redirecting to your dashboard...');
         setMessageType('success');
         setTimeout(() => {
-          router.push(`/form?userId=${data.user.id}&email=${encodeURIComponent(data.user.email)}`);
+          router.push(`/dashboard?userId=${data.user.id}&email=${encodeURIComponent(data.user.email)}`);
         }, 1500);
       }
     } catch (error: unknown) {
