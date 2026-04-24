@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { isAdminEmail } from '@/config/admin';
 import { User, CleaningDay, Weeks, UserRegistration } from '@/types';
 import RippleButton from '@/components/RippleButton';
+import PhoneNumberPrompt from '@/components/PhoneNumberPrompt';
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -126,21 +127,6 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center">
-      {/* Enhanced animated background elements */}
-      <div className="absolute inset-0">
-        <div className="absolute top-20 left-20 w-96 h-96 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float"></div>
-        <div className="absolute top-40 right-20 w-80 h-80 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float animation-delay-2000"></div>
-        <div className="absolute -bottom-8 left-40 w-72 h-72 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float animation-delay-4000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-violet-500 to-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse-slow"></div>
-      </div>
-
-      {/* Grid pattern overlay */}
-      <div
-        className="absolute inset-0 opacity-30"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='grid' width='60' height='60' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 60 0 L 0 0 0 60' fill='none' stroke='rgba(255,255,255,0.03)' stroke-width='1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23grid)' /%3E%3C/svg%3E")`
-        }}
-      />
 
       <div className="w-full max-w-md relative z-10 animate-fade-in-up">
         <div className="glass-card rounded-3xl p-8 border border-white/20 shadow-glow-lg hover-lift">
@@ -216,6 +202,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+      <PhoneNumberPrompt />
     </div>
   );
 }

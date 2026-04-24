@@ -462,10 +462,6 @@ export default function Admin() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 flex items-center justify-center relative">
-        {/* Animated background elements */}
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-900/20 via-transparent to-cyan-900/20 animate-pulse"></div>
-        <div className="absolute top-0 left-0 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl animate-float"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-cyan-600/10 rounded-full blur-3xl animate-float-delayed"></div>
 
         <div className="text-center relative z-10">
           <LoadingSpinner size="lg" text="Loading admin dashboard..." className="text-white" />
@@ -476,12 +472,6 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 relative overflow-y-auto">
-      {/* Animated background elements for admin */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-10 left-10 w-64 h-64 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-float"></div>
-        <div className="absolute bottom-10 right-10 w-80 h-80 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-float animation-delay-2000"></div>
-        <div className="absolute top-1/3 right-1/4 w-72 h-72 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-float animation-delay-4000"></div>
-      </div>
 
       <div className="relative z-10 backdrop-blur-sm bg-black/30">
         <div className="container mx-auto px-4 py-8">
