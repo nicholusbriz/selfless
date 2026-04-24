@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAdminEmail } from '@/config/admin';
 import { User, CleaningDay, Weeks, UserRegistration } from '@/types';
-import PhoneNumberPrompt from '@/components/PhoneNumberPrompt';
 
 export default function FormPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -40,7 +39,7 @@ export default function FormPage() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId }),
+          body: JSON.stringify({ userId, email }),
         });
 
         if (!response.ok) {
@@ -55,6 +54,13 @@ export default function FormPage() {
           setUser(data.user);
           setIsRegistered(data.isRegistered);
           setUserRegistrations(data.registrations || []);
+
+          // If user is already registered, redirect to dashboard
+          if (data.isRegistered) {
+            const urlParams = new URLSearchParams(window.location.search);
+            router.push(`/dashboard?${urlParams.toString()}`);
+            return;
+          }
         } else {
           // User not found, redirect to home
           router.push('/');
@@ -165,18 +171,11 @@ export default function FormPage() {
           year: 'numeric'
         }) : '';
 
-        setMessage(`${userName}, you have successfully registered for ${dayName}, ${formattedDate}! Thank you for signing up.`);
+        setMessage(`${userName}, you have successfully registered for ${dayName}, ${formattedDate}! Redirecting to your dashboard...`);
         setMessageType('success');
         setSelectedDay(null);
 
-        // Immediately refresh the cleaning days to show the new registration
-        const daysResponse = await fetch('/api/cleaning-days');
-        const daysData = await daysResponse.json();
-        if (daysData.success) {
-          setWeeks(daysData.weeks);
-        }
-
-        // Refresh user status
+        // Refresh user status before redirect
         const statusResponse = await fetch('/api/user-status', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -187,6 +186,12 @@ export default function FormPage() {
           setIsRegistered(statusData.isRegistered);
           setUserRegistrations(statusData.registrations);
         }
+
+        // Redirect to dashboard after successful registration
+        setTimeout(() => {
+          const urlParams = new URLSearchParams(window.location.search);
+          router.push(`/dashboard?${urlParams.toString()}`);
+        }, 2500);
       } else {
         // Handle specific error cases
         if (response.status === 404 && data.message?.includes('User not found')) {
@@ -609,6 +614,15 @@ export default function FormPage() {
             )}
             <button
               onClick={() => {
+                const urlParams = new URLSearchParams(window.location.search);
+                router.push(`/dashboard?${urlParams.toString()}`);
+              }}
+              className="glass-morphism hover:glass-card text-cyan-300 py-3 px-6 rounded-full font-medium transition-all duration-300 transform hover:scale-105 border border-cyan-400/30 hover:shadow-glow"
+            >
+              🏠 Go back to Dashboard
+            </button>
+            <button
+              onClick={() => {
                 router.push('/');
               }}
               className="glass-morphism hover:glass-card text-white py-3 px-6 rounded-full font-medium transition-all duration-300 transform hover:scale-105 border border-white/30 hover:shadow-glow"
@@ -633,7 +647,6 @@ export default function FormPage() {
           Software Developer | Zana, Kampala, Uganda
         </p>
       </div>
-      <PhoneNumberPrompt />
     </div>
   );
 }

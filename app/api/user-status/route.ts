@@ -23,12 +23,21 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     await connectDB();
-    const { userId } = await request.json();
+    const { userId, email } = await request.json();
 
-    // Find user by ID
+    if (!userId || !email) {
+      return NextResponse.json({ success: false, message: 'Missing required parameters' }, { status: 400 });
+    }
+
+    // Find user by ID and verify email matches
     const user = await User.findById(userId);
     if (!user) {
       return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
+    }
+
+    // Verify email matches to prevent unauthorized access
+    if (user.email !== email) {
+      return NextResponse.json({ success: false, message: 'Unauthorized access' }, { status: 403 });
     }
 
     // Check if user has any registration and get cleaning days data for formatted date
