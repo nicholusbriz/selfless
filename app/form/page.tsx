@@ -55,12 +55,8 @@ export default function FormPage() {
           setIsRegistered(data.isRegistered);
           setUserRegistrations(data.registrations || []);
 
-          // If user is already registered, redirect to dashboard
-          if (data.isRegistered) {
-            const urlParams = new URLSearchParams(window.location.search);
-            router.push(`/dashboard?${urlParams.toString()}`);
-            return;
-          }
+          // If user is already registered, show their registration status
+          // (don't redirect - let them see they've already registered)
         } else {
           // User not found, redirect to home
           router.push('/');
@@ -591,9 +587,30 @@ export default function FormPage() {
                   )}
                 </button>
                 {isRegistered && (
-                  <p className="text-yellow-400 text-sm mt-3 animate-slide-in-up glass-morphism rounded-lg p-3 border border-yellow-400/30">
-                    You have already registered to work on {userRegistrations[0]?.dayName}, {userRegistrations[0]?.formattedDate}. Each student can only register for one day.
-                  </p>
+                  <div className="mt-6 animate-slide-in-up">
+                    <div className="bg-gradient-to-r from-green-600/20 to-emerald-600/20 backdrop-blur-sm rounded-2xl p-6 border border-green-400/30 shadow-lg shadow-green-500/20">
+                      <div className="text-center">
+                        <div className="text-6xl mb-4">✅</div>
+                        <h3 className="text-2xl font-bold text-green-400 mb-3">
+                          Registration Complete!
+                        </h3>
+                        <p className="text-white text-lg mb-4">
+                          You have successfully registered for cleaning duty
+                        </p>
+                        <div className="bg-black/30 rounded-xl p-4 border border-white/20">
+                          <p className="text-cyan-300 font-semibold text-lg">
+                            📅 {userRegistrations[0]?.dayName}
+                          </p>
+                          <p className="text-white text-sm">
+                            {userRegistrations[0]?.formattedDate}
+                          </p>
+                        </div>
+                        <p className="text-yellow-300 text-sm mt-4 bg-yellow-600/20 rounded-lg p-3 border border-yellow-400/30">
+                          ⚠️ Each student can only register for one cleaning day. Your registration is confirmed!
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
