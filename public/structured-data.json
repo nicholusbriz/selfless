@@ -3,7 +3,7 @@
   "@type": "WebApplication",
   "name": "Freedom City Tech Center",
   "description": "Professional cleaning and course registration system for Freedom City Tech Center. Developed by Atbriz Nicholus Software Developer in Kampala, Uganda.",
-  "url": "https://selfless-oev0or5tk-nicholusbrizs-projects.vercel.app",
+  "url": "https://selfless-henna.vercel.app",
   "applicationCategory": "EducationApplication",
   "operatingSystem": "Web",
   "offers": {
@@ -46,10 +46,10 @@
   "mainEntity": {
     "@type": "WebSite",
     "name": "Freedom City Tech Center",
-    "url": "https://selfless-oev0or5tk-nicholusbrizs-projects.vercel.app",
+    "url": "https://selfless-henna.vercel.app",
     "potentialAction": {
       "@type": "SearchAction",
-      "target": "https://selfless-oev0or5tk-nicholusbrizs-projects.vercel.app/search?q={search_term_string}",
+      "target": "https://selfless-henna.vercel.app/search?q={search_term_string}",
       "query-input": "required name=search_term_string"
     }
   }

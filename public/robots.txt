@@ -9,7 +9,7 @@ Allow: /
 Crawl-delay: 1
 
 # Sitemap location
-Sitemap: https://selfless-oev0or5tk-nicholusbrizs-projects.vercel.app/sitemap.xml
+Sitemap: https://selfless-henna.vercel.app/sitemap.xml
 
 # Allow all search engines to index
 User-agent: Googlebot
