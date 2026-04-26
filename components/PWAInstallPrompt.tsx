@@ -13,8 +13,29 @@ export default function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstall, setShowInstall] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [isInStandaloneMode, setIsInStandaloneMode] = useState(false);
 
   useEffect(() => {
+    // Detect iOS device
+    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isStandalone = 'standalone' in window.navigator && (window.navigator as any).standalone;
+
+    setIsIOS(isIOSDevice);
+    setIsInStandaloneMode(isStandalone);
+
+    // Show install prompt for iOS users after a delay
+    if (isIOSDevice && !isStandalone) {
+      const timer = setTimeout(() => {
+        // Check if user hasn't dismissed before
+        const hasDismissed = localStorage.getItem('pwa-ios-dismissed');
+        if (!hasDismissed) {
+          setShowInstall(true);
+        }
+      }, 3000); // Show after 3 seconds
+      return () => clearTimeout(timer);
+    }
+
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -47,7 +68,10 @@ export default function PWAInstallPrompt() {
   const handleDismiss = () => {
     setShowInstall(false);
     setDeferredPrompt(null);
-    // Clear the prompt completely
+    // Remember iOS dismissal
+    if (isIOS) {
+      localStorage.setItem('pwa-ios-dismissed', 'true');
+    }
   };
 
   if (!showInstall && !showSuccess) return null;
@@ -82,16 +106,20 @@ export default function PWAInstallPrompt() {
             </div>
             <div>
               <p className="text-white font-semibold text-sm">Install Freedom City Tech Center</p>
-              <p className="text-blue-100 text-xs">Add to your home screen for quick access</p>
+              <p className="text-blue-100 text-xs">
+                {isIOS ? "Tap Share then 'Add to Home Screen'" : "Add to your home screen for quick access"}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleInstallClick}
-              className="bg-white text-blue-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-50 transition-all duration-300 transform hover:scale-105 shadow-lg"
-            >
-              Install App
-            </button>
+            {!isIOS && deferredPrompt && (
+              <button
+                onClick={handleInstallClick}
+                className="bg-white text-blue-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-50 transition-all duration-300 transform hover:scale-105 shadow-lg"
+              >
+                Install App
+              </button>
+            )}
             <button
               onClick={handleDismiss}
               className="bg-white/20 hover:bg-white/30 text-white p-2 rounded-lg transition-all duration-300 transform hover:scale-105"
@@ -101,6 +129,14 @@ export default function PWAInstallPrompt() {
             </button>
           </div>
         </div>
+        {isIOS && (
+          <div className="mt-3 pt-3 border-t border-white/20">
+            <div className="flex items-center gap-2 text-blue-100 text-xs">
+              <span>👆</span>
+              <span>Tap the Share button in Safari, then "Add to Home Screen"</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
