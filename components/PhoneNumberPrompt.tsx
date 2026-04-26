@@ -116,7 +116,7 @@ export default function PhoneNumberPrompt() {
         setMessage(data.message || 'Failed to update phone number');
         setMessageType('error');
       }
-    } catch (error) {
+    } catch {
       setMessage('An error occurred. Please try again.');
       setMessageType('error');
     } finally {

@@ -7,74 +7,98 @@ export default function Page() {
   const router = useRouter();
 
   return (
-    <div className="h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center p-4 relative overflow-hidden">
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-700 to-indigo-800 flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-blue-600/20 via-transparent to-purple-700/20"></div>
 
-      <div className="w-full max-w-md relative z-10 animate-fade-in-up overflow-y-auto max-h-full">
-        <div className="glass-card rounded-3xl p-8 border border-white/20 shadow-glow-lg hover-lift">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 rounded-full mb-4 shadow-lg shadow-purple-500/50 p-2 animate-bounce-in">
-              <img
-                src="/freedom.png"
-                alt="Freedom City Tech Center Logo"
-                className="w-full h-full object-contain animate-glow"
-              />
-            </div>
-            <h1 className="text-5xl font-bold text-gradient-primary mb-3 animate-slide-in-right text-shadow-lg">
-              Freedom City Tech Center
-            </h1>
-            <p className="text-cyan-300 text-xl mb-8 font-medium animate-slide-in-left">
-              Cleaning Registration System
-            </p>
-          </div>
+        {/* Floating animated elements */}
+        <div className="absolute top-10 left-10 w-32 h-32 bg-blue-400/20 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute top-20 right-20 w-40 h-40 bg-purple-400/20 rounded-full blur-3xl animate-float animation-delay-2000"></div>
+        <div className="absolute bottom-10 left-1/3 w-36 h-36 bg-indigo-400/20 rounded-full blur-3xl animate-float animation-delay-1000"></div>
+        <div className="absolute bottom-20 right-1/4 w-28 h-28 bg-pink-400/20 rounded-full blur-3xl animate-float animation-delay-3000"></div>
 
-          <div className="space-y-4 animate-fade-in-up">
-            <button
-              onClick={() => router.push('/register')}
-              className="btn-primary w-full bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white font-semibold py-4 px-6 rounded-lg hover:from-green-700 hover:via-emerald-700 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-green-500/25"
-            >
-              <span className="flex items-center justify-center">
-                <span className="mr-2">📝</span>
-                Create Account
-              </span>
-            </button>
+        <div className="w-full max-w-4xl relative z-10">
+          <div className="bg-white/10 backdrop-blur-2xl rounded-3xl p-12 border-2 border-white/30 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:scale-[1.02]">
+            <div className="text-center mb-12">
+              {/* Enhanced Logo */}
+              <div className="inline-flex items-center justify-center w-32 h-32 bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-600 rounded-full mb-8 shadow-2xl shadow-purple-500/40 p-3 animate-bounce-in">
+                <img
+                  src="/freedom.png"
+                  alt="Freedom City Tech Center Logo"
+                  className="w-full h-full object-contain animate-glow"
+                />
+              </div>
 
-            <div className="text-center animate-fade-in">
-              <span className="text-gray-400 text-sm bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm">or</span>
-            </div>
+              {/* Enhanced Title */}
+              <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent mb-6 animate-slide-in-right drop-shadow-2xl">
+                Freedom City Tech Center
+              </h1>
 
-            <button
-              onClick={() => router.push('/login')}
-              className="btn-secondary w-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white font-semibold py-4 px-6 rounded-lg hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
-            >
-              <span className="flex items-center justify-center">
-                <span className="mr-2">🔐</span>
-                Login to System
-              </span>
-            </button>
-          </div>
-
-          <div className="mt-8 text-center animate-fade-in-up animation-delay-300">
-            <div className="glass-morphism rounded-lg p-6 border border-white/10 hover-lift">
-              <h3 className="text-cyan-300 font-semibold mb-3 text-gradient-primary">Welcome to Selfless CE!</h3>
-              <p className="text-gray-300 text-sm leading-relaxed mb-4">
-                Join our community of volunteers at the Freedom City Tech Center.
-                Help us maintain a clean and inspiring learning environment.
+              {/* Enhanced Subtitle */}
+              <p className="text-2xl md:text-3xl font-medium text-white/90 mb-4 animate-slide-in-left drop-shadow-lg">
+                Tech Centre Tracking System
               </p>
-              <div className="flex items-center justify-center space-x-2 text-cyan-400">
-                <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
-                <span className="text-xs">Be part of something amazing</span>
+
+              {/* Tagline */}
+              <div className="inline-flex items-center justify-center bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur-sm px-6 py-3 rounded-full border border-white/30">
+                <span className="text-white font-semibold text-lg">🌟️ Naturing Resilient minds</span>
+              </div>
+            </div>
+
+            {/* Enhanced Buttons */}
+            <div className="space-y-6 animate-fade-in-up">
+              <button
+                onClick={() => router.push('/register')}
+                className="w-full bg-gradient-to-r from-emerald-500 via-green-600 to-teal-600 text-white font-bold py-6 px-8 rounded-2xl hover:from-emerald-600 hover:via-green-700 hover:to-teal-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/50 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-500 transform hover:scale-105 shadow-2xl hover:shadow-emerald-500/40"
+              >
+                <span className="flex items-center justify-center text-xl">
+                  <span className="mr-3 text-2xl">🚀</span>
+                  <span>Create Account</span>
+                </span>
+                <div className="text-emerald-100 text-sm mt-2">Start your journey with us</div>
+              </button>
+
+              <div className="text-center animate-fade-in animation-delay-200">
+                <span className="text-white/70 text-lg bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
+                  OR
+                </span>
+              </div>
+
+              <button
+                onClick={() => router.push('/login')}
+                className="w-full bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white font-bold py-6 px-8 rounded-2xl hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-4 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-500 transform hover:scale-105 shadow-2xl hover:shadow-blue-500/40"
+              >
+                <span className="flex items-center justify-center text-xl">
+                  <span className="mr-3 text-2xl">🔐</span>
+                  <span>Sign In</span>
+                </span>
+                <div className="text-blue-100 text-sm mt-2">Access your dashboard</div>
+              </button>
+            </div>
+
+            {/* Enhanced Footer */}
+            <div className="text-center mt-12 animate-fade-in-up animation-delay-400">
+              <div className="flex items-center justify-center space-x-8 text-white/60">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                  <span className="text-sm">Secure</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse animation-delay-200"></div>
+                  <span className="text-sm">Fast</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse animation-delay-400"></div>
+                  <span className="text-sm">Professional</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-
-        <div className="mt-6 text-center">
-          <p className="text-gray-400 text-xs">
-            Need help? Contact our admin team
-          </p>
-        </div>
       </div>
       <PWAInstallPrompt />
-    </div >
+    </>
   );
 }

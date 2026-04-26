@@ -2,8 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { isAdminEmail } from '@/config/admin';
-import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -58,22 +56,12 @@ export default function LoginPage() {
 
       const data = await response.json();
 
-      // Check if user is admin and redirect accordingly
-      const isAdmin = isAdminEmail(data.user.email);
-
-      if (isAdmin) {
-        setMessage('Admin access granted! Redirecting to admin dashboard...');
-        setMessageType('success');
-        setTimeout(() => {
-          router.push(`/admin?userId=${data.user.id}&email=${encodeURIComponent(data.user.email)}`);
-        }, 1500);
-      } else {
-        setMessage('Access granted! Redirecting to your dashboard...');
-        setMessageType('success');
-        setTimeout(() => {
-          router.push(`/dashboard?userId=${data.user.id}&email=${encodeURIComponent(data.user.email)}`);
-        }, 1500);
-      }
+      // All users redirect to dashboard after login
+      setMessage('Access granted! Redirecting to your dashboard...');
+      setMessageType('success');
+      setTimeout(() => {
+        router.push(`/dashboard?userId=${data.user.id}&email=${encodeURIComponent(data.user.email)}`);
+      }, 1500);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Network error. Please try again.';
       setMessage(errorMessage);
@@ -84,85 +72,131 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-700 to-indigo-800 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
+      <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-blue-600/20 via-transparent to-purple-700/20"></div>
 
-      <div className="w-full max-w-md relative z-10 animate-fade-in-up overflow-y-auto max-h-full">
-        <div className="glass-card rounded-3xl p-8 border border-white/20 shadow-glow-lg hover-lift">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 rounded-full mb-4 shadow-lg shadow-purple-500/50 p-2">
+      {/* Floating animated elements */}
+      <div className="absolute top-10 left-10 w-32 h-32 bg-blue-400/20 rounded-full blur-3xl animate-float"></div>
+      <div className="absolute top-20 right-20 w-40 h-40 bg-purple-400/20 rounded-full blur-3xl animate-float animation-delay-2000"></div>
+      <div className="absolute bottom-10 left-1/3 w-36 h-36 bg-indigo-400/20 rounded-full blur-3xl animate-float animation-delay-1000"></div>
+
+      <div className="w-full max-w-md relative z-10">
+        <div className="bg-white/10 backdrop-blur-2xl rounded-3xl p-10 border-2 border-white/30 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:scale-[1.02]">
+          <div className="text-center mb-10">
+            {/* Enhanced Logo */}
+            <div className="inline-flex items-center justify-center w-28 h-28 bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-600 rounded-full mb-6 shadow-2xl shadow-purple-500/40 p-3 animate-bounce-in">
               <img
                 src="/freedom.png"
                 alt="Freedom City Tech Center Logo"
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain animate-glow"
               />
             </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-violet-300 via-purple-300 to-indigo-300 bg-clip-text text-transparent mb-3">
+
+            {/* Enhanced Title */}
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent mb-4 animate-slide-in-right drop-shadow-2xl">
               Welcome Back
             </h1>
-            <p className="text-cyan-300 text-lg mb-2">
-              Freedom Tech Center
+
+            {/* Enhanced Subtitle */}
+            <p className="text-2xl font-medium text-white/90 mb-2 animate-slide-in-left drop-shadow-lg">
+              Freedom City Tech Center
             </p>
-            <p className="text-gray-300 text-sm">
-              Enter your email to access the system
-            </p>
+
+            {/* Enhanced Description */}
+            <div className="inline-flex items-center justify-center bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur-sm px-4 py-2 rounded-full border border-white/30">
+              <span className="text-white text-sm font-medium">🔐 Secure Access Portal</span>
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-8">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-violet-200 mb-2">
+              <label htmlFor="email" className="block text-lg font-semibold text-white/90 mb-3 animate-slide-in-left">
                 📧 Email Address
               </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
-                placeholder="Enter your authorized email"
-                required
-              />
+              <div className="relative">
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="w-full px-6 py-4 bg-white/20 backdrop-blur-sm border-2 border-white/30 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:ring-4 focus:ring-blue-500/50 focus:border-blue-400 transition-all duration-300 text-lg font-medium"
+                  placeholder="Enter your authorized email"
+                  required
+                />
+                <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white/60">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              </div>
             </div>
 
             {message && (
-              <div className={`p-3 rounded-lg text-sm ${messageType === 'success'
-                ? 'bg-green-500/20 border border-green-500/50 text-green-300'
-                : 'bg-red-500/20 border border-red-500/50 text-red-300'
+              <div className={`p-4 rounded-2xl text-center animate-fade-in-up ${messageType === 'success'
+                ? 'bg-gradient-to-r from-emerald-500/20 to-green-500/20 border-2 border-emerald-400/50 text-emerald-100'
+                : 'bg-gradient-to-r from-red-500/20 to-rose-500/20 border-2 border-red-400/50 text-red-100'
                 }`}>
-                {message}
+                <div className="flex items-center justify-center gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${messageType === 'success' ? 'bg-emerald-400' : 'bg-red-400'}`}>
+                    <span className="text-white text-lg">{messageType === 'success' ? '✓' : '!'}</span>
+                  </div>
+                  <p className="font-medium">{message}</p>
+                </div>
               </div>
             )}
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white font-bold py-5 px-8 rounded-2xl hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-4 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-500 transform hover:scale-105 shadow-2xl hover:shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
             >
               {isLoading ? (
-                <span className="flex items-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"></div>
-                  Signing in...
+                <span className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-3 border-white border-t-transparent mr-3"></div>
+                  <span>Signing in...</span>
                 </span>
               ) : (
-                '🚀 Access System'
+                <span className="flex items-center justify-center">
+                  <span className="mr-2">🚀</span>
+                  <span>Access System</span>
+                </span>
               )}
             </button>
           </form>
 
-          <div className="mt-8 text-center space-y-4">
+          <div className="mt-10 space-y-6">
             <div className="flex justify-center gap-4">
               <button
                 onClick={() => router.push('/register')}
-                className="bg-violet-600/20 hover:bg-violet-600/30 text-violet-400 py-3 px-6 rounded-full font-medium border border-violet-500/50 transition-all"
+                className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 hover:from-emerald-500/30 hover:to-green-500/30 text-emerald-300 py-3 px-6 rounded-full font-medium border border-emerald-400/50 transition-all duration-300 transform hover:scale-105"
               >
-                Register here
+                <span className="flex items-center">
+                  <span className="mr-2">📝</span>
+                  Register here
+                </span>
               </button>
               <button
                 onClick={() => router.push('/')}
-                className="bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 py-3 px-6 rounded-full font-medium border border-cyan-500/50 transition-all"
+                className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 hover:from-cyan-500/30 hover:to-blue-500/30 text-cyan-300 py-3 px-6 rounded-full font-medium border border-cyan-400/50 transition-all duration-300 transform hover:scale-105"
               >
-                ← Back to Home
+                <span className="flex items-center">
+                  <span className="mr-2">🏠</span>
+                  Back to Home
+                </span>
               </button>
+            </div>
+
+            {/* Security Badge */}
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur-sm px-4 py-2 rounded-full border border-white/30">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="text-white text-sm font-medium">Secure Connection</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>

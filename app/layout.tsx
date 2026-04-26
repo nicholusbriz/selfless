@@ -33,8 +33,8 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Freedom City Tech Center",
-    title: "Freedom City Tech Center - Cleaning Registration System",
-    description: "Professional cleaning registration system for Freedom City Tech Center",
+    title: "Freedom City Tech Center - Tracking System",
+    description: "Freedom City website App -Created by Atbriz Nicholus Software Developer at Byu ldaho",
     images: [
       {
         url: "/freedom.png",

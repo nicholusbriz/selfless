@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { isAdminEmail } from '@/config/admin';
 import { User } from '@/types';
 
 interface Course {
@@ -17,6 +16,16 @@ interface RegisteredCourse {
   credits: number;
 }
 
+interface CourseRegistration {
+  id: string;
+  userId: string;
+  user: User;
+  courses: { id: string; name: string; credits: number }[];
+  totalCredits: number;
+  takesReligion: boolean;
+  submittedAt: string;
+}
+
 export default function CoursesPage() {
   const [user, setUser] = useState<User | null>(null);
   const [checkingStatus, setCheckingStatus] = useState(true);
@@ -29,6 +38,8 @@ export default function CoursesPage() {
   const [hasRegisteredCourses, setHasRegisteredCourses] = useState(false);
   const [registeredCourses, setRegisteredCourses] = useState<RegisteredCourse[]>([]);
   const [checkingRegistration, setCheckingRegistration] = useState(true);
+  const [courseRegistrations, setCourseRegistrations] = useState<CourseRegistration[]>([]);
+  const [courseRegistrationsLoading, setCourseRegistrationsLoading] = useState(true);
   const router = useRouter();
 
   // Check if user has valid authentication from URL params
@@ -85,7 +96,6 @@ export default function CoursesPage() {
       if (!user) return;
 
       try {
-        const urlParams = new URLSearchParams(window.location.search);
         const response = await fetch(`/api/courses?userId=${user.id}&email=${encodeURIComponent(user.email)}`);
 
         if (!response.ok) {
@@ -110,17 +120,66 @@ export default function CoursesPage() {
     }
   }, [user]);
 
+  // Fetch all course registrations for the Student Course Credits section
+  useEffect(() => {
+    const fetchCourseRegistrations = async () => {
+      if (!user) {
+        setCourseRegistrationsLoading(false);
+        return;
+      }
+
+      try {
+        // Fetch from the correct endpoint for all course registrations
+        const response = await fetch('/api/all-course-registrations');
+        const data = await response.json();
+
+        if (data.success) {
+          setCourseRegistrations(data.registrations || []);
+        }
+      } catch (error) {
+        console.error('Error fetching course registrations:', error);
+      } finally {
+        setCourseRegistrationsLoading(false);
+      }
+    };
+
+    fetchCourseRegistrations();
+  }, [user]);
+
+  // Refresh course registrations function
+  const refreshCourseRegistrations = async () => {
+    if (!user) return;
+
+    try {
+      const response = await fetch('/api/all-course-registrations');
+      const data = await response.json();
+
+      if (data.success) {
+        setCourseRegistrations(data.registrations || []);
+      }
+    } catch (error) {
+      console.error('Error refreshing course registrations:', error);
+    }
+  };
+
   const addCourse = () => {
-    // Validate current course has name and credits
+    // Validate input
     if (!currentCourse.name.trim() || !currentCourse.credits.trim()) {
-      setMessage('Please fill in course name and credits before adding');
+      setMessage('Please fill in both course name and credits');
       setMessageType('error');
       return;
     }
 
-    // Create a new course with unique ID
-    const newCourse = {
-      id: crypto.randomUUID(),
+    // Check for duplicate course names
+    if (courses.some(course => course.name.toLowerCase().trim() === currentCourse.name.toLowerCase().trim())) {
+      setMessage('A course with this name already exists');
+      setMessageType('error');
+      return;
+    }
+
+    // Create new course object with unique ID
+    const newCourse: Course = {
+      id: crypto.randomUUID(), // Generate unique ID for the key
       name: currentCourse.name.trim(),
       credits: currentCourse.credits.trim()
     };
@@ -130,6 +189,8 @@ export default function CoursesPage() {
 
     // Clear the input fields
     setCurrentCourse({ id: '', name: '', credits: '' });
+    setMessage('');
+    setMessageType('');
   };
 
   const removeCourse = (id: string) => {
@@ -184,7 +245,6 @@ export default function CoursesPage() {
     setMessage('');
 
     try {
-      const urlParams = new URLSearchParams(window.location.search);
       const response = await fetch('/api/courses', {
         method: 'POST',
         headers: {
@@ -210,7 +270,7 @@ export default function CoursesPage() {
 
       if (data.success) {
         // Convert to registered format for display
-        const newRegisteredCourses: RegisteredCourse[] = data.data.courses.map((course: any) => ({
+        const newRegisteredCourses: RegisteredCourse[] = data.data.courses.map((course: { id?: string; name: string; credits: number | string }) => ({
           id: course.id || crypto.randomUUID(),
           name: course.name,
           credits: course.credits
@@ -220,12 +280,16 @@ export default function CoursesPage() {
         setHasRegisteredCourses(true);
         setMessage(data.message || `Successfully registered ${courses.length} course(s) with ${calculateTotalCredits()} total credits!`);
         setMessageType('success');
+
+        // Refresh the course registrations list to show the new registration immediately
+        await refreshCourseRegistrations();
       } else {
         setMessage(data.message || 'Failed to register courses');
         setMessageType('error');
       }
-    } catch (error: any) {
-      setMessage(error.message || 'Network error. Please try again.');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Network error. Please try again.';
+      setMessage(errorMessage);
       setMessageType('error');
     } finally {
       setIsLoading(false);
@@ -234,10 +298,11 @@ export default function CoursesPage() {
 
   if (!user || checkingStatus || checkingRegistration) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-white border-t-transparent mx-auto mb-6"></div>
-          <p className="text-white text-xl font-medium animate-pulse">
+      <div className="h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center overflow-hidden">
+        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20"></div>
+        <div className="text-center relative z-10">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-emerald-400 border-t-white mx-auto mb-6"></div>
+          <p className="text-emerald-200 text-xl font-medium animate-pulse">
             {checkingStatus ? 'Authenticating...' : 'Checking your courses...'}
           </p>
         </div>
@@ -246,23 +311,23 @@ export default function CoursesPage() {
   }
 
   return (
-    <div className="h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 overflow-hidden">
-
+    <div className="h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
+      <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20"></div>
       <div className="relative z-10 container mx-auto px-4 py-8 h-full flex flex-col">
         <div className="overflow-y-auto flex-1">
           {/* Header */}
           <div className="text-center mb-8 animate-fade-in-down">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 rounded-full mb-4 shadow-lg shadow-purple-500/50 p-2 animate-bounce-in">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500 rounded-full mb-4 shadow-lg shadow-emerald-500/50 p-2 animate-bounce-in">
               <img
                 src="/freedom.png"
                 alt="Freedom City Tech Center Logo"
                 className="w-full h-full object-contain animate-glow"
               />
             </div>
-            <h1 className="text-4xl font-bold text-gradient-primary mb-2 animate-slide-in-right text-shadow-lg">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent mb-2 animate-slide-in-right">
               Course Registration
             </h1>
-            <p className="text-cyan-300 text-lg mb-2 animate-slide-in-left drop-shadow-lg">
+            <p className="text-emerald-200 text-lg mb-2 animate-slide-in-left">
               Freedom City Tech Center
             </p>
             <p className="text-gray-300 animate-slide-in-up">
@@ -279,17 +344,17 @@ export default function CoursesPage() {
                     <span className="text-3xl text-white">✅</span>
                   </div>
                   <h2 className="text-3xl font-bold text-gradient-primary mb-3 animate-slide-in-up text-shadow-lg">
-                    Your Registered Courses
+                    Your Submitted Courses
                   </h2>
                   <p className="text-green-300 text-lg mb-4">
-                    You are currently enrolled in these courses
+                    You have submitted these Courses and Credits
                   </p>
                 </div>
 
                 <div className="bg-black/30 rounded-2xl p-6 border border-white/20">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                    {registeredCourses.map((course) => (
-                      <div key={course.id} className="bg-gradient-to-r from-green-600/20 to-emerald-600/20 rounded-lg p-4 border border-green-400/30">
+                    {registeredCourses.map((course, index) => (
+                      <div key={course.id || `registered-${index}`} className="bg-gradient-to-r from-green-600/20 to-emerald-600/20 rounded-lg p-4 border border-green-400/30">
                         <div className="mb-2">
                           <h4 className="text-white font-semibold">{course.name}</h4>
                         </div>
@@ -303,17 +368,17 @@ export default function CoursesPage() {
 
                   <div className="bg-gradient-to-r from-blue-600/20 to-cyan-600/20 rounded-xl p-6 border border-blue-400/30">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                      <div>
+                      <div key="registered-total-courses">
                         <p className="text-blue-300 text-sm font-medium">Total Courses</p>
                         <p className="text-white text-2xl font-bold">{registeredCourses.length}</p>
                       </div>
-                      <div>
+                      <div key="registered-total-credits">
                         <p className="text-cyan-300 text-sm font-medium">Total Credits</p>
                         <p className="text-white text-2xl font-bold">
                           {registeredCourses.reduce((total, course) => total + course.credits, 0)}
                         </p>
                       </div>
-                      <div>
+                      <div key="registered-status">
                         <p className="text-purple-300 text-sm font-medium">Status</p>
                         <p className="text-green-400 text-2xl font-bold">✓ Registered</p>
                       </div>
@@ -333,7 +398,7 @@ export default function CoursesPage() {
                     <span className="text-3xl text-white">📚</span>
                   </div>
                   <h2 className="text-3xl font-bold text-gradient-primary mb-3 animate-slide-in-up text-shadow-lg">
-                    Register Your Courses & Credits
+                    Register Your Courses & Credits you doing this Semester
                   </h2>
                   <p className="text-gray-300 text-lg mb-4">
                     Enter all course unit names you are taking this semester, then register for all units at once
@@ -347,7 +412,7 @@ export default function CoursesPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <input
                         type="text"
-                        placeholder="Enter course unit name (e.g., Math to the Real World)"
+                        placeholder="Enter course unit name (e.g., Math for the Real World)"
                         value={currentCourse.name}
                         onChange={(e) => updateCourse('name', e.target.value)}
                         className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -376,7 +441,7 @@ export default function CoursesPage() {
                       <h3 className="text-xl font-bold text-cyan-300 mb-4">Your Courses ({courses.length})</h3>
                       <div className="space-y-4">
                         {courses.map((course, index) => (
-                          <div key={course.id} className="bg-white/10 rounded-lg p-4 border border-white/20">
+                          <div key={course.id || `course-${index}`} className="bg-white/10 rounded-lg p-4 border border-white/20">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
                                 <div className="flex-shrink-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
@@ -420,15 +485,15 @@ export default function CoursesPage() {
                   {/* Credits Summary */}
                   <div className="bg-gradient-to-r from-blue-600/20 to-cyan-600/20 rounded-2xl p-6 border border-blue-400/30">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                      <div>
+                      <div key="total-courses">
                         <p className="text-blue-300 text-sm font-medium">Total Courses</p>
                         <p className="text-white text-2xl font-bold">{courses.length}</p>
                       </div>
-                      <div>
+                      <div key="total-credits">
                         <p className="text-cyan-300 text-sm font-medium">Total Credits</p>
                         <p className="text-white text-2xl font-bold">{calculateTotalCredits()}</p>
                       </div>
-                      <div>
+                      <div key="religion-course">
                         <p className="text-purple-300 text-sm font-medium">Religion Course</p>
                         <p className="text-white text-2xl font-bold">{takesReligion ? '✓ Yes' : '✗ No'}</p>
                       </div>
@@ -469,38 +534,97 @@ export default function CoursesPage() {
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="text-center mt-auto space-y-4">
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={() => {
-                  const urlParams = new URLSearchParams(window.location.search);
-                  router.push(`/dashboard?${urlParams.toString()}`);
-                }}
-                className="bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 py-3 px-6 rounded-full font-medium border border-cyan-500/50 transition-all"
-              >
-                🏠 Back to Dashboard
-              </button>
-              {user && isAdminEmail(user.email) && (
-                <button
-                  onClick={() => {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    router.push(`/admin?${urlParams.toString()}`);
-                  }}
-                  className="bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 py-3 px-6 rounded-full font-medium border border-purple-500/50 transition-all"
-                >
-                  ⚙️ Admin Panel
-                </button>
-              )}
-              <button
-                onClick={() => {
-                  router.push('/');
-                }}
-                className="bg-red-600/20 hover:bg-red-600/30 text-red-400 py-3 px-6 rounded-full font-medium border border-red-500/50 transition-all"
-              >
-                🚪 Sign Out
-              </button>
+          {/* Student Course Credits Section - Visible to All Users */}
+          {user && (
+            <div className="mt-12 animate-fade-in-up animation-delay-600">
+              <div className="bg-black/30 rounded-2xl p-8 border border-white/20">
+                <div className="mb-8">
+                  <h3 className="text-2xl font-bold text-cyan-300 mb-4">Student Course and Credits</h3>
+                  <p className="text-gray-300 text-sm">
+                    All students who have registered for courses and their credit totals
+                  </p>
+                </div>
+
+                {courseRegistrationsLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-cyan-400 border-t-transparent mx-auto mb-4"></div>
+                    <p className="text-cyan-300">Loading course registrations...</p>
+                  </div>
+                ) : courseRegistrations.filter(reg => reg.courses && reg.courses.length > 0).length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-600/20 rounded-full mb-4">
+                      <span className="text-2xl">📚</span>
+                    </div>
+                    <p className="text-gray-400">No students have registered for courses yet</p>
+                  </div>
+                ) : (
+                  <div className="w-full">
+                    <table className="w-full text-white text-sm sm:text-base">
+                      <thead>
+                        <tr className="border-b border-white/20">
+                          <th className="text-left py-2 px-2 sm:py-3 sm:px-4 font-medium text-cyan-300 text-xs sm:text-sm">Student Name</th>
+                          <th className="text-left py-2 px-2 sm:py-3 sm:px-4 font-medium text-cyan-300 text-xs sm:text-sm">Courses</th>
+                          <th className="text-center py-2 px-2 sm:py-3 sm:px-4 font-medium text-cyan-300 text-xs sm:text-sm">Credits</th>
+                          <th className="text-center py-2 px-2 sm:py-3 sm:px-4 font-medium text-cyan-300 text-xs sm:text-sm">Religion Course</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {courseRegistrations
+                          .filter(reg => reg.courses && reg.courses.length > 0 && reg.user)
+                          .sort((a, b) => {
+                            const nameA = `${a.user.firstName} ${a.user.lastName}`.toLowerCase();
+                            const nameB = `${b.user.firstName} ${b.user.lastName}`.toLowerCase();
+                            return nameA.localeCompare(nameB);
+                          })
+                          .map((registration) => (
+                            <tr
+                              key={registration.id}
+                              className="border-b border-white/10 hover:bg-white/5 transition-colors"
+                            >
+                              <td className="py-2 px-2 sm:py-3 sm:px-4">
+                                <div className="font-medium text-white text-sm sm:text-base">
+                                  {registration.user ? `${registration.user.firstName} ${registration.user.lastName}` : 'Unknown User'}
+                                </div>
+                              </td>
+                              <td className="py-2 px-2 sm:py-3 sm:px-4">
+                                <div className="text-white text-xs sm:text-sm">
+                                  {registration.courses.map((course: { name: string; credits: number | string }, courseIndex: number) => (
+                                    <div key={courseIndex} className="mb-1">
+                                      {course.name} ({course.credits} credits)
+                                    </div>
+                                  ))}
+                                </div>
+                              </td>
+                              <td className="py-2 px-2 sm:py-3 sm:px-4 text-center">
+                                <span className="font-bold text-sm sm:text-lg text-green-400">{registration.totalCredits}</span>
+                              </td>
+                              <td className="py-2 px-2 sm:py-3 sm:px-4 text-center">
+                                <span className={`font-bold text-xs sm:text-sm ${registration.takesReligion ? 'text-green-400' : 'text-red-400'}`}>
+                                  {registration.takesReligion ? 'YES' : 'NO'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </div>
+          )}
+
+          {/* Action Buttons - Bottom of Page */}
+          <div className="text-center mt-8 space-y-4">
+            <button
+              onClick={() => {
+                const urlParams = new URLSearchParams(window.location.search);
+                router.push(`/dashboard?${urlParams.toString()}`);
+              }}
+              className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-bold py-4 px-8 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-emerald-500/25 flex items-center justify-center gap-3"
+            >
+              <span className="text-xl">🏠</span>
+              <span className="text-lg">Back to Dashboard</span>
+            </button>
           </div>
         </div>
       </div>
