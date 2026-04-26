@@ -405,16 +405,15 @@ export default function Admin() {
 
     return studentsWithCourses.map(reg => ({
       'Student Name': `${reg.user?.firstName || ''} ${reg.user?.lastName || ''}`.trim(),
-      'Email': reg.user?.email || '',
       'Courses': reg.courses.map((course: Course) => `${course?.name || 'Unknown'} (${course?.credits || 0} credits)`).join(', '),
       'Total Credits': (reg.totalCredits || 0).toString(),
-      'Religion Course': reg.takesReligion ? 'YES' : 'NO'
+      'Religion': reg.takesReligion ? 'YES' : 'NO'
     }));
   };
 
   // Prepare data for Excel export
   const prepareExcelData = () => {
-    const registeredStudents: { 'Date': string; 'Full Name': string; 'Email': string; 'Phone Number': string }[] = [];
+    const registeredStudents: { 'Date': string; 'Full Name': string; 'Phone Number': string }[] = [];
 
     // Collect all registered users from all weeks and days
     Object.values(weeks).forEach((week) => {
@@ -437,7 +436,6 @@ export default function Admin() {
             registeredStudents.push({
               'Date': day.formattedDate || '',
               'Full Name': user.fullName || `${user.firstName} ${user.lastName}`,
-              'Email': user.email,
               'Phone Number': phoneNumber
             });
           });
@@ -446,11 +444,26 @@ export default function Admin() {
     });
 
     // Sort by date for better organization
-    return registeredStudents.sort((a, b) => {
+    const sortedStudents = registeredStudents.sort((a, b) => {
       const dateA = new Date(a.Date).getTime();
       const dateB = new Date(b.Date).getTime();
       return dateB - dateA; // Most recent first
     });
+
+    // Move 4th day to top, then sort the rest by date
+    if (sortedStudents.length > 3) {
+      const firstThree = sortedStudents.slice(0, 3);
+      const fourthDay = sortedStudents.slice(3, 4);
+      const rest = sortedStudents.slice(4).sort((a, b) => {
+        // Sort the rest by date (most recent first)
+        const dateA = new Date(a.Date).getTime();
+        const dateB = new Date(b.Date).getTime();
+        return dateB - dateA;
+      });
+      return [...fourthDay, ...firstThree, ...rest];
+    }
+
+    return sortedStudents;
   };
 
   // Users and course registrations will only be loaded when refresh buttons are clicked

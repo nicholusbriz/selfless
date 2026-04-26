@@ -9,6 +9,18 @@
     html {
         scroll-behavior: smooth;
         overflow-x: hidden;
+        /* iPhone-specific viewport settings */
+        height: 100%;
+        -webkit-text-size-adjust: 100%;
+    }
+
+    /* iPhone safe area support */
+    @supports (padding: max(0px)) {
+        body {
+            padding-left: max(0px, env(safe-area-inset-left));
+            padding-right: max(0px, env(safe-area-inset-right));
+            padding-bottom: max(0px, env(safe-area-inset-bottom));
+        }
     }
 
     body {
@@ -18,6 +30,12 @@
         /* Enable smooth scrolling with hardware acceleration */
         -webkit-overflow-scrolling: touch;
         scroll-behavior: smooth;
+        /* iPhone-specific optimizations */
+        -webkit-text-size-adjust: 100%;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
     }
 
     * {
