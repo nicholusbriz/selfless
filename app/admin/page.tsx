@@ -4,16 +4,60 @@ import { useState, useEffect, useCallback } from 'react';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ExcelExporter from '@/components/ExcelExporter';
 import { useRouter } from 'next/navigation';
-import { User, CleaningDay, Weeks } from '@/types';
+import { User, CleaningDay } from '@/types';
 import { isAdminEmail } from '@/config/admin';
+import Announcements from '@/components/Announcements';
 
 interface DBUser {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
-  phoneNumber: string;
-  createdAt: string;
+  phoneNumber?: string;
+  fullName?: string;
+  createdAt?: string | Date;
+}
+
+interface Course {
+  name: string;
+  credits: string | number;
+}
+
+interface CourseRegistration {
+  id?: string;
+  userId: string;
+  courses: Course[];
+  totalCredits: number;
+  takesReligion: boolean;
+  registrationDate: string;
+  lastUpdated?: string;
+  semester?: string;
+  academicYear?: string;
+  user?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+}
+
+interface WeekData {
+  _id?: string;
+  id?: string;
+  date: string;
+  dayName?: string;
+  week?: number;
+  maxSlots?: number;
+  capacity?: number;
+  registeredUsers: DBUser[];
+  registeredCount?: number;
+  isFull: boolean;
+  formattedDate?: string;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+}
+
+interface Weeks {
+  [key: string]: WeekData[];
 }
 
 export default function Admin() {
@@ -27,7 +71,7 @@ export default function Admin() {
   const [editingPhone, setEditingPhone] = useState<string | null>(null);
   const [phoneInput, setPhoneInput] = useState('');
   const [phoneUpdateLoading, setPhoneUpdateLoading] = useState(false);
-  const [courseRegistrations, setCourseRegistrations] = useState<any[]>([]);
+  const [courseRegistrations, setCourseRegistrations] = useState<CourseRegistration[]>([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
   const [clearingCourse, setClearingCourse] = useState<string | null>(null);
   const router = useRouter();
@@ -35,49 +79,51 @@ export default function Admin() {
   // Check if user is admin (URL-based authentication)
   useEffect(() => {
     // Get user data from URL parameters (passed from login)
-    const urlParams = new URLSearchParams(window.location.search);
-    const userId = urlParams.get('userId');
-    const email = urlParams.get('email');
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const userId = urlParams.get('userId');
+      const email = urlParams.get('email');
 
-    if (!userId || !email) {
-      // No auth params, redirect to home
-      router.push('/');
-      return;
-    }
-
-    // Admin check - only authorized emails can access admin dashboard
-    if (!isAdminEmail(email)) {
-      router.push('/form');
-      return;
-    }
-
-    // Verify user exists in database (optional but recommended)
-    const verifyUser = async () => {
-      try {
-        const response = await fetch('/api/user-status', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ userId, email }),
-        });
-
-        if (!response.ok) {
-          router.push('/');
-          return;
-        }
-
-        const data = await response.json();
-        if (!data.success || !data.user) {
-          router.push('/');
-          return;
-        }
-      } catch {
+      if (!userId || !email) {
+        // No auth params, redirect to home
         router.push('/');
+        return;
       }
-    };
 
-    verifyUser();
+      // Admin check - only authorized emails can access admin dashboard
+      if (!isAdminEmail(email)) {
+        router.push('/form');
+        return;
+      }
+
+      // Verify user exists in database (optional but recommended)
+      const verifyUser = async () => {
+        try {
+          const response = await fetch('/api/user-status', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userId, email }),
+          });
+
+          if (!response.ok) {
+            router.push('/');
+            return;
+          }
+
+          const data = await response.json();
+          if (!data.success || !data.user) {
+            router.push('/');
+            return;
+          }
+        } catch {
+          router.push('/');
+        }
+      };
+
+      verifyUser();
+    }
   }, [router]);
 
   // Fetch cleaning days data (initial load)
@@ -116,32 +162,14 @@ export default function Admin() {
     }
   };
 
+  // Load cleaning days data only when manually refreshed
   useEffect(() => {
-    const loadCleaningDays = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch('/api/cleaning-days');
-        const data = await response.json();
-
-        if (data.success) {
-          setWeeks(data.weeks);
-          setLastUpdated(new Date());
-        }
-      } catch (error) {
-        console.error('Error fetching cleaning days:', error);
-      } finally {
-        setIsLoading(false);
-      }
+    // Only load on initial mount, no auto-refresh
+    const loadData = async () => {
+      await fetchCleaningDays();
     };
-
-    loadCleaningDays();
-    // Auto-refresh every 5 minutes to stay in sync with form (less frequent)
-    const interval = setInterval(loadCleaningDays, 300000);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, []);
+    loadData();
+  }, [fetchCleaningDays]);
 
   // Fetch all users
   const fetchUsers = useCallback(async () => {
@@ -167,9 +195,14 @@ export default function Admin() {
       const data = await response.json();
       if (data.success) {
         setCourseRegistrations(data.registrations);
+        setLastUpdated(new Date()); // Update timestamp for immediate feedback
+        setCopyFeedback('Course registrations refreshed successfully!');
+        setTimeout(() => setCopyFeedback(''), 2000);
       }
     } catch (error) {
       console.error('Error fetching course registrations:', error);
+      setCopyFeedback('Failed to refresh course registrations');
+      setTimeout(() => setCopyFeedback(''), 3000);
     } finally {
       setCoursesLoading(false);
     }
@@ -373,7 +406,7 @@ export default function Admin() {
     return studentsWithCourses.map(reg => ({
       'Student Name': `${reg.user?.firstName || ''} ${reg.user?.lastName || ''}`.trim(),
       'Email': reg.user?.email || '',
-      'Courses': reg.courses.map((course: any) => `${course?.name || 'Unknown'} (${course?.credits || 0} credits)`).join(', '),
+      'Courses': reg.courses.map((course: Course) => `${course?.name || 'Unknown'} (${course?.credits || 0} credits)`).join(', '),
       'Total Credits': (reg.totalCredits || 0).toString(),
       'Religion Course': reg.takesReligion ? 'YES' : 'NO'
     }));
@@ -385,9 +418,9 @@ export default function Admin() {
 
     // Collect all registered users from all weeks and days
     Object.values(weeks).forEach((week) => {
-      week.forEach((day: CleaningDay) => {
+      week.forEach((day: WeekData) => {
         if (day.registeredUsers && day.registeredUsers.length > 0) {
-          day.registeredUsers.forEach((user: User) => {
+          day.registeredUsers.forEach((user: DBUser) => {
             // Find the complete user data from the users array to get phone number
             const completeUser = users.find(u => u.id === user.id);
 
@@ -402,7 +435,7 @@ export default function Admin() {
             }
 
             registeredStudents.push({
-              'Date': day.formattedDate,
+              'Date': day.formattedDate || '',
               'Full Name': user.fullName || `${user.firstName} ${user.lastName}`,
               'Email': user.email,
               'Phone Number': phoneNumber
@@ -420,31 +453,7 @@ export default function Admin() {
     });
   };
 
-  // Load users on component mount
-  useEffect(() => {
-    const loadUsers = async () => {
-      setUsersLoading(true);
-      try {
-        const response = await fetch('/api/users');
-        const data = await response.json();
-
-        if (data.success) {
-          setUsers(data.users);
-        }
-      } catch (error) {
-        console.error('Error fetching users:', error);
-      } finally {
-        setUsersLoading(false);
-      }
-    };
-
-    loadUsers();
-  }, []);
-
-  // Load course registrations on component mount
-  useEffect(() => {
-    fetchCourseRegistrations();
-  }, []);
+  // Users and course registrations will only be loaded when refresh buttons are clicked
 
   const getProgressColor = (count: number, max: number) => {
     const percentage = (count / max) * 100;
@@ -474,48 +483,48 @@ export default function Admin() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 flex items-center justify-center relative">
-
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center relative">
+        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20"></div>
         <div className="text-center relative z-10">
-          <LoadingSpinner size="lg" text="Loading admin dashboard..." className="text-white" />
+          <LoadingSpinner size="lg" text="Loading admin dashboard..." className="text-purple-200" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 relative overflow-hidden">
-
-      <div className="relative z-10 backdrop-blur-sm bg-black/30 h-full flex flex-col">
+    <div className="h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
+      <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20"></div>
+      <div className="relative z-10 backdrop-blur-sm bg-white/10 h-full flex flex-col">
         <div className="container mx-auto px-4 py-8 overflow-y-auto flex-1">
           {/* Enhanced Header */}
           <div className="text-center mb-8 animate-fade-in-down">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full mb-4 animate-bounce-in shadow-glow-lg p-2">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-500 rounded-full mb-4 animate-bounce-in shadow-lg shadow-purple-500/50 p-2">
               <img
                 src="/freedom.png"
                 alt="Freedom City Tech Center Logo"
                 className="w-full h-full object-contain animate-glow"
               />
             </div>
-            <h1 className="text-5xl font-bold text-gradient-primary mb-3 animate-shimmer text-shadow-lg">
-              Stipend Management Admin Dashboard
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-3 animate-shimmer">
+              FreedomCity Tech Center Admin Management Dashboard
             </h1>
-            <p className="text-cyan-300 text-xl font-medium mb-2 drop-shadow-lg animate-slide-in-left">
+            <p className="text-purple-200 text-xl font-medium mb-2 animate-slide-in-left">
               Freedom City Tech Center
             </p>
             <p className="text-gray-300 text-lg mb-6 animate-slide-in-right">
-              Manage student registrations for stipend planning
+              Manage student registrations from the forms
             </p>
             <div className="flex items-center justify-center gap-4 text-white/80 text-sm animate-fade-in-up">
               <div className="glass-morphism px-4 py-2 rounded-full border border-purple-500/30 hover-lift">
                 <span className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
                   Last updated: {lastUpdated?.toLocaleTimeString()}
                 </span>
               </div>
               <button
                 onClick={fetchCleaningDays}
-                className="glass-morphism hover:glass-card px-6 py-2 rounded-full border border-cyan-400/50 transition-all duration-300 hover:scale-105 shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 animate-float"
+                className="glass-morphism hover:glass-card px-6 py-2 rounded-full border border-purple-400/50 transition-all duration-300 hover:scale-105 shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 animate-float"
               >
                 <span className="flex items-center gap-2">
                   <span className="animate-spin-slow">🔄</span>
@@ -531,7 +540,7 @@ export default function Admin() {
               <div className="col-span-full text-center mb-4">
                 <div className="glass-morphism inline-flex items-center px-4 py-2 rounded-full">
                   <span className="text-cyan-400 text-sm animate-pulse mr-2">🔄</span>
-                  <span className="text-cyan-300 text-sm">Updating stipend statistics...</span>
+                  <span className="text-cyan-300 text-sm">Updating students statistics...</span>
                 </div>
               </div>
             )}
@@ -555,8 +564,8 @@ export default function Admin() {
                 </div>
               </div>
               <p className="text-4xl font-bold text-gradient-primary animate-shimmer">
-                {Object.values(weeks).reduce((total: number, week: CleaningDay[]) =>
-                  total + week.reduce((weekTotal: number, day: CleaningDay) => weekTotal + day.registeredCount, 0), 0
+                {Object.values(weeks).reduce((total: number, week: WeekData[]) =>
+                  total + week.reduce((weekTotal: number, day: WeekData) => weekTotal + (day.registeredUsers?.length || 0), 0), 0
                 )}
               </p>
               <p className="text-bright text-sm mt-2">Students assigned to duty days</p>
@@ -569,12 +578,22 @@ export default function Admin() {
                 </div>
               </div>
               <p className="text-4xl font-bold bg-gradient-to-r from-blue-300 to-purple-300 bg-clip-text text-transparent">
-                {Object.values(weeks).reduce((total: number, week: CleaningDay[]) =>
-                  total + week.reduce((weekTotal: number, day: CleaningDay) => weekTotal + (day.maxSlots - day.registeredCount), 0), 0
+                {Object.values(weeks).reduce((total: number, week: WeekData[]) =>
+                  total + week.reduce((weekTotal: number, day: WeekData) => weekTotal + ((day.maxSlots || 0) - (day.registeredUsers?.length || 0)), 0), 0
                 )}
               </p>
               <p className="text-bright text-sm mt-2">Open duty slots remaining</p>
             </div>
+          </div>
+
+          {/* Announcements Management Section */}
+          <div className="backdrop-blur-md rounded-3xl p-8 border-2 border-white/20 shadow-2xl mb-8">
+            <Announcements
+              isAdmin={true}
+              adminId={typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('userId') || '' : ''}
+              adminEmail={typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('email') || '' : ''}
+              adminName="Admin"
+            />
           </div>
 
           {/* Duty Day Management Section */}
@@ -651,7 +670,7 @@ export default function Admin() {
                               </div>
                             )}
                             <button
-                              onClick={() => startEditingPhone(user.id, user.phoneNumber)}
+                              onClick={() => startEditingPhone(user.id, user.phoneNumber || '')}
                               className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs transition-all"
                             >
                               Edit
@@ -659,7 +678,7 @@ export default function Admin() {
                           </div>
                         )}
                         <div className="text-gray-400 text-xs">
-                          Created: {new Date(user.createdAt).toLocaleDateString()}
+                          Created: {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown date'}
                         </div>
                       </div>
                       <div className="flex gap-2">
@@ -736,16 +755,16 @@ export default function Admin() {
               {(() => {
                 // Collect all registrations and sort by date
                 const allRegistrations: Array<{
-                  day: CleaningDay;
-                  user: User;
+                  day: WeekData;
+                  user: DBUser;
                   sortDate: Date;
                 }> = [];
 
                 Object.entries(weeks).forEach(([, days]) => {
-                  days.forEach((day: CleaningDay) => {
+                  days.forEach((day: WeekData) => {
                     // Safety check for registeredUsers
                     if (day.registeredUsers && Array.isArray(day.registeredUsers)) {
-                      day.registeredUsers.forEach((user: User) => {
+                      day.registeredUsers.forEach((user: DBUser) => {
                         allRegistrations.push({
                           day,
                           user,
@@ -839,8 +858,8 @@ export default function Admin() {
               })()}
 
               {/* Show empty state if no registrations */}
-              {Object.values(weeks).every((week: CleaningDay[]) =>
-                week.every((day: CleaningDay) => day.registeredUsers.length === 0)
+              {Object.values(weeks).every((week: WeekData[]) =>
+                week.every((day: WeekData) => !day.registeredUsers || day.registeredUsers.length === 0)
               ) && (
                   <div className="text-center py-8">
                     <p className="text-gray-400 text-lg">
@@ -854,8 +873,8 @@ export default function Admin() {
             </div>
 
             {/* Copy All Button */}
-            {Object.values(weeks).some((week: CleaningDay[]) =>
-              week.some((day: CleaningDay) => day.registeredUsers.length > 0)
+            {Object.values(weeks).some((week: WeekData[]) =>
+              week.some((day: WeekData) => day.registeredUsers && day.registeredUsers.length > 0)
             ) && (
                 <div className="mt-6 pt-6 border-t border-gray-600">
                   <button
@@ -863,14 +882,14 @@ export default function Admin() {
                       // Generate all data for copying in chronological order for stipend planning
                       let allData = 'DATE\tFULL NAME\tEMAIL\n';
                       const allRegistrations: Array<{
-                        day: CleaningDay;
-                        user: User;
+                        day: WeekData;
+                        user: DBUser;
                         sortDate: Date;
                       }> = [];
 
                       Object.entries(weeks).forEach(([, days]) => {
-                        days.forEach((day: CleaningDay) => {
-                          day.registeredUsers.forEach((user: User) => {
+                        days.forEach((day: WeekData) => {
+                          day.registeredUsers.forEach((user: DBUser) => {
                             allRegistrations.push({
                               day,
                               user,
@@ -884,7 +903,7 @@ export default function Admin() {
                       allRegistrations.sort((a, b) => a.sortDate.getTime() - b.sortDate.getTime());
 
                       // Add sorted data to output
-                      allRegistrations.forEach((registration: { day: CleaningDay, user: User, sortDate: Date }) => {
+                      allRegistrations.forEach((registration: { day: WeekData, user: DBUser, sortDate: Date }) => {
                         allData += `${registration.day.formattedDate}\t${registration.user.firstName} ${registration.user.lastName}\t${registration.user.email}\n`;
                       });
 
@@ -914,10 +933,10 @@ export default function Admin() {
                     {getWeekDates(parseInt(weekNum))}
                   </p>
                   <div className="space-y-2">
-                    {days.map((day: CleaningDay) => (
+                    {days.map((day: WeekData) => (
                       <div key={day.id} className="flex justify-between items-center">
                         <span className="text-white text-sm">{day.dayName}</span>
-                        <span className={`text-sm font-bold ${getProgressColor(day.registeredCount, day.maxSlots)}`}>
+                        <span className={`text-sm font-bold ${getProgressColor(day.registeredCount || 0, day.maxSlots || 0)}`}>
                           {day.registeredCount}/{day.maxSlots}
                         </span>
                       </div>
@@ -987,11 +1006,11 @@ export default function Admin() {
                           // Prepare Excel-friendly data
                           const studentsWithCourses = courseRegistrations.filter(reg => reg.courses && reg.courses.length > 0);
                           const excelData = studentsWithCourses.map(reg => {
-                            const coursesList = reg.courses.map((course: any) =>
+                            const coursesList = reg.courses.map((course: Course) =>
                               `${course.name} (${course.credits} credits)`
                             ).join('\n');
 
-                            return `${reg.user.firstName} ${reg.user.lastName}\t${coursesList}\t${reg.totalCredits}\t${reg.takesReligion ? 'YES' : 'NO'}\n`;
+                            return `${reg.user?.firstName || ''} ${reg.user?.lastName || ''}\t${coursesList}\t${reg.totalCredits}\t${reg.takesReligion ? 'YES' : 'NO'}\n`;
                           }).join('');
 
                           const header = 'Student Name\tCourses\tCredits\tReligion Course\n';
@@ -1031,10 +1050,10 @@ export default function Admin() {
                       <tbody>
                         {courseRegistrations.filter(reg => reg.courses && reg.courses.length > 0 && reg.user).map((registration) => (
                           <tr
-                            key={registration.id}
+                            key={registration.id || registration.userId}
                             className="border-b border-white/10 hover:bg-white/5 transition-colors cursor-pointer"
                             onClick={() => {
-                              const coursesList = registration.courses.map((course: any) =>
+                              const coursesList = registration.courses.map((course: Course) =>
                                 `${course.name} (${course.credits} credits)`
                               ).join('\n');
 
@@ -1053,7 +1072,7 @@ export default function Admin() {
                             </td>
                             <td className="py-3 px-4">
                               <div className="text-white text-sm">
-                                {registration.courses.map((course: any, courseIndex: number) => (
+                                {registration.courses.map((course: Course, courseIndex: number) => (
                                   <div key={courseIndex} className="mb-1">
                                     {course.name} ({course.credits} credits)
                                   </div>
@@ -1099,7 +1118,7 @@ export default function Admin() {
                   {/* Mobile Card View */}
                   <div className="lg:hidden space-y-4">
                     {courseRegistrations.filter(reg => reg.courses && reg.courses.length > 0 && reg.user).map((registration) => (
-                      <div key={registration.id} className="bg-white/10 rounded-lg p-4 border border-white/20">
+                      <div key={registration.id || registration.userId} className="bg-white/10 rounded-lg p-4 border border-white/20">
                         <div className="mb-3">
                           <h4 className="text-white font-bold text-lg">
                             {registration.user ? `${registration.user.firstName} ${registration.user.lastName}` : 'Unknown User'}
@@ -1109,7 +1128,7 @@ export default function Admin() {
 
                         <div className="space-y-2 mb-3">
                           <p className="text-gray-300 text-sm font-medium">Courses:</p>
-                          {registration.courses.map((course: any, courseIndex: number) => (
+                          {registration.courses.map((course: Course, courseIndex: number) => (
                             <div key={courseIndex} className="bg-black/30 rounded px-3 py-2 text-sm">
                               <span className="text-white">{course.name}</span>
                               <span className="text-cyan-400 ml-2">({course.credits}cr)</span>
@@ -1165,25 +1184,20 @@ export default function Admin() {
         </div>
 
         {/* Navigation */}
-        <div className="text-center mt-8 space-y-4">
-          <div className="flex justify-center gap-4">
+        <div className="text-center mt-auto space-y-4">
+          <div className="text-center">
             <button
               onClick={() => {
                 // Get current URL params to pass to dashboard page
-                const urlParams = new URLSearchParams(window.location.search);
-                router.push(`/dashboard?${urlParams.toString()}`);
+                if (typeof window !== 'undefined') {
+                  const urlParams = new URLSearchParams(window.location.search);
+                  router.push(`/dashboard?${urlParams.toString()}`);
+                }
               }}
-              className="bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 py-3 px-6 rounded-full font-medium border border-cyan-500/50 transition-all"
+              className="w-full bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-700 hover:via-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-8 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-cyan-500/25 flex items-center justify-center gap-3"
             >
-              🏠 Go to Dashboard
-            </button>
-            <button
-              onClick={() => {
-                router.push('/');
-              }}
-              className="bg-red-600/20 hover:bg-red-600/30 text-red-400 py-3 px-6 rounded-full font-medium border border-red-500/50 transition-all"
-            >
-              🚪 Sign Out
+              <span className="text-xl">🏠</span>
+              <span className="text-lg">Go to Dashboard</span>
             </button>
           </div>
         </div>
