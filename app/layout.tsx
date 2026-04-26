@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: 'https://selfless-oev0or5tk-nicholusbrizs-projects.vercel.app',
+  metadataBase: 'https://selfless-henna.vercel.app',
   title: {
     default: "Freedom City Tech Center - Professional Registration System",
     template: "%s | Freedom City Tech Center"
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     "Selfless ce organisation",
     "professional registration system"
   ] as string[],
-  authors: [{ name: "Atbriz Nicholus", url: "https://selfless-oev0or5tk-nicholusbrizs-projects.vercel.app" }],
+  authors: [{ name: "Atbriz Nicholus", url: "https://selfless-henna.vercel.app" }],
   creator: "Atbriz Nicholus Software Developer",
   publisher: "Freedom City Tech Center",
   icons: {
@@ -84,7 +84,7 @@ export const metadata: Metadata = {
     siteName: "Freedom City Tech Center",
     title: "Freedom City Tech Center - Professional Registration System",
     description: "Professional cleaning and course registration system developed by Atbriz Nicholus Software Developer in Kampala, Uganda. Streamline student registrations and management.",
-    url: "https://selfless-oev0or5tk-nicholusbrizs-projects.vercel.app",
+    url: "https://selfless-henna.vercel.app",
     locale: "en_US",
     images: [
       {
@@ -123,7 +123,7 @@ export const metadata: Metadata = {
     "developer": "Atbriz Nicholus",
     "developer-email": "atbriz256@gmail.com",
     "developer-location": "Kampala, Uganda",
-    "developer-website": "https://selfless-oev0or5tk-nicholusbrizs-projects.vercel.app",
+    "developer-website": "https://selfless-henna.vercel.app",
     "contact-email": "atbriz256@gmail.com",
     "organization": "Freedom City Tech Center",
     "category": "Education, Technology, Software Development"
