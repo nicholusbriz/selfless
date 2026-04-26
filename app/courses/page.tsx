@@ -558,14 +558,14 @@ export default function CoursesPage() {
                     <p className="text-gray-400">No students have registered for courses yet</p>
                   </div>
                 ) : (
-                  <div className="w-full">
-                    <table className="w-full text-white text-sm sm:text-base">
+                  <div className="w-full overflow-x-auto">
+                    <table className="w-full min-w-[600px] text-white text-sm sm:text-base">
                       <thead>
                         <tr className="border-b border-white/20">
-                          <th className="text-left py-2 px-2 sm:py-3 sm:px-4 font-medium text-cyan-300 text-xs sm:text-sm">Student Name</th>
-                          <th className="text-left py-2 px-2 sm:py-3 sm:px-4 font-medium text-cyan-300 text-xs sm:text-sm">Courses</th>
-                          <th className="text-center py-2 px-2 sm:py-3 sm:px-4 font-medium text-cyan-300 text-xs sm:text-sm">Credits</th>
-                          <th className="text-center py-2 px-2 sm:py-3 sm:px-4 font-medium text-cyan-300 text-xs sm:text-sm">Religion Course</th>
+                          <th className="text-left py-2 px-2 sm:py-3 sm:px-4 font-medium text-cyan-300 text-xs sm:text-sm whitespace-nowrap">Student Name</th>
+                          <th className="text-left py-2 px-2 sm:py-3 sm:px-4 font-medium text-cyan-300 text-xs sm:text-sm whitespace-nowrap">Courses</th>
+                          <th className="text-center py-2 px-2 sm:py-3 sm:px-4 font-medium text-cyan-300 text-xs sm:text-sm whitespace-nowrap">Credits</th>
+                          <th className="text-center py-2 px-2 sm:py-3 sm:px-4 font-medium text-cyan-300 text-xs sm:text-sm whitespace-nowrap">Religion Course</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -582,12 +582,12 @@ export default function CoursesPage() {
                               className="border-b border-white/10 hover:bg-white/5 transition-colors"
                             >
                               <td className="py-2 px-2 sm:py-3 sm:px-4">
-                                <div className="font-medium text-white text-sm sm:text-base">
+                                <div className="font-medium text-white text-sm sm:text-base max-w-[150px] break-words">
                                   {registration.user ? `${registration.user.firstName} ${registration.user.lastName}` : 'Unknown User'}
                                 </div>
                               </td>
                               <td className="py-2 px-2 sm:py-3 sm:px-4">
-                                <div className="text-white text-xs sm:text-sm">
+                                <div className="text-white text-xs sm:text-sm max-w-[200px] break-words">
                                   {registration.courses.map((course: { name: string; credits: number | string }, courseIndex: number) => (
                                     <div key={courseIndex} className="mb-1">
                                       {course.name} ({course.credits} credits)
