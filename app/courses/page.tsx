@@ -540,8 +540,11 @@ export default function CoursesPage() {
               <div className="bg-black/30 rounded-2xl p-8 border border-white/20">
                 <div className="mb-8">
                   <h3 className="text-2xl font-bold text-cyan-300 mb-4">Student Course and Credits</h3>
-                  <p className="text-gray-300 text-sm">
+                  <p className="text-gray-300 text-sm mb-2">
                     All students who have registered for courses and their credit totals
+                  </p>
+                  <p className="text-blue-300 text-sm font-medium animate-pulse block sm:hidden">
+                    💡 Scroll right to view total credits for each student →
                   </p>
                 </div>
 
