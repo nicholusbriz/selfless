@@ -438,18 +438,13 @@ export default function FormPage() {
                             </div>
                           </div>
                           <div className="space-y-2">
-                            {day.registeredUsers.slice(0, 3).map((user: User) => (
+                            {day.registeredUsers.map((user: User) => (
                               <div key={user.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                                 <p className="text-gray-800 text-sm font-medium">
                                   {user.firstName} {user.lastName}
                                 </p>
                               </div>
                             ))}
-                            {day.registeredUsers.length > 3 && (
-                              <div className="text-center text-xs text-gray-500 mt-2">
-                                +{day.registeredUsers.length - 3} more students
-                              </div>
-                            )}
                           </div>
                         </div>
                       )}
@@ -536,18 +531,13 @@ export default function FormPage() {
                             </div>
                           </div>
                           <div className="space-y-2">
-                            {day.registeredUsers.slice(0, 3).map((user: User) => (
+                            {day.registeredUsers.map((user: User) => (
                               <div key={user.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                                 <p className="text-gray-800 text-sm font-medium">
                                   {user.firstName} {user.lastName}
                                 </p>
                               </div>
                             ))}
-                            {day.registeredUsers.length > 3 && (
-                              <div className="text-center text-xs text-gray-500 mt-2">
-                                +{day.registeredUsers.length - 3} more students
-                              </div>
-                            )}
                           </div>
                         </div>
                       )}
@@ -634,18 +624,13 @@ export default function FormPage() {
                             </div>
                           </div>
                           <div className="space-y-2">
-                            {day.registeredUsers.slice(0, 3).map((user: User) => (
+                            {day.registeredUsers.map((user: User) => (
                               <div key={user.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                                 <p className="text-gray-800 text-sm font-medium">
                                   {user.firstName} {user.lastName}
                                 </p>
                               </div>
                             ))}
-                            {day.registeredUsers.length > 3 && (
-                              <div className="text-center text-xs text-gray-500 mt-2">
-                                +{day.registeredUsers.length - 3} more students
-                              </div>
-                            )}
                           </div>
                         </div>
                       )}
