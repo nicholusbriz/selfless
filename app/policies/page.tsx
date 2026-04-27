@@ -2,6 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useState } from 'react';
 
 function PoliciesPage() {
@@ -318,9 +319,11 @@ function PoliciesPage() {
               <div className="absolute inset-2 w-20 h-20 border-4 border-indigo-500/50 rounded-full animate-spin animation-reverse"></div>
               <div className="absolute inset-4 w-16 h-16 border-4 border-pink-500/70 rounded-full animate-spin animation-delay-1000"></div>
               <div className="relative w-12 h-12 bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-600 rounded-full shadow-2xl shadow-purple-500/50 flex items-center justify-center animate-bounce-in">
-                <img
+                <Image
                   src="/freedom.png"
                   alt="Freedom Logo"
+                  width={32}
+                  height={32}
                   className="w-8 h-8 object-contain animate-glow"
                 />
               </div>
@@ -350,7 +353,7 @@ function PoliciesPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full p-1.5">
-                <img src="/freedom.png" alt="Logo" className="w-full h-full object-contain" />
+                <Image src="/freedom.png" alt="Logo" width={20} height={20} className="w-full h-full object-contain" />
               </div>
               <h1 className="text-xl font-bold text-gray-900">SELFLESS CE Policies</h1>
             </div>

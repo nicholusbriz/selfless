@@ -3,25 +3,50 @@ import connectDB from '@/models/database';
 import User from '@/models/User';
 import Registration from '@/models/Registration';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await connectDB();
 
-    // Fetch all users from database
-    const users = await User.find({}).select('-password').sort({ createdAt: -1 });
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('id');
 
-    return NextResponse.json({
-      success: true,
-      users: users.map(user => ({
-        id: user._id.toString(),
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phoneNumber: user.phoneNumber || '',
-        fullName: `${user.firstName} ${user.lastName}`,
-        createdAt: user.createdAt
-      }))
-    });
+    if (userId) {
+      // Fetch single user by ID
+      const user = await User.findById(userId).select('-password');
+
+      if (!user) {
+        return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        users: [{
+          id: user._id.toString(),
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          phoneNumber: user.phoneNumber || '',
+          fullName: `${user.firstName} ${user.lastName}`,
+          createdAt: user.createdAt
+        }]
+      });
+    } else {
+      // Fetch all users from database
+      const users = await User.find({}).select('-password').sort({ createdAt: -1 });
+
+      return NextResponse.json({
+        success: true,
+        users: users.map(user => ({
+          id: user._id.toString(),
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          phoneNumber: user.phoneNumber || '',
+          fullName: `${user.firstName} ${user.lastName}`,
+          createdAt: user.createdAt
+        }))
+      });
+    }
 
   } catch (error) {
     console.error('Error fetching users:', error);

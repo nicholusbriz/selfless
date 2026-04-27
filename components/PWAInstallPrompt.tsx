@@ -14,15 +14,13 @@ export default function PWAInstallPrompt() {
   const [showInstall, setShowInstall] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
-  const [isInStandaloneMode, setIsInStandaloneMode] = useState(false);
 
   useEffect(() => {
     // Detect iOS device
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isStandalone = 'standalone' in window.navigator && (window.navigator as any).standalone;
+    const isStandalone = 'standalone' in window.navigator && !!(window.navigator as { standalone?: boolean }).standalone;
 
     setIsIOS(isIOSDevice);
-    setIsInStandaloneMode(isStandalone);
 
     // Show install prompt for iOS users after a delay
     if (isIOSDevice && !isStandalone) {
@@ -35,7 +33,9 @@ export default function PWAInstallPrompt() {
       }, 3000); // Show after 3 seconds
       return () => clearTimeout(timer);
     }
+  }, []);
 
+  useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -133,7 +133,7 @@ export default function PWAInstallPrompt() {
           <div className="mt-3 pt-3 border-t border-white/20">
             <div className="flex items-center gap-2 text-blue-100 text-xs">
               <span>👆</span>
-              <span>Tap the Share button in Safari, then "Add to Home Screen"</span>
+              <span>Tap the Share button in Safari, then &quot;Add to Home Screen&quot;</span>
             </div>
           </div>
         )}

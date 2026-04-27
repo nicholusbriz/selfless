@@ -11,24 +11,30 @@ export async function GET() {
     const registrations = await CourseRegistration.find({
       academicYear: currentYear
     })
-      .populate('userId', 'firstName lastName email')
+      .populate('userId', 'firstName lastName email phoneNumber')
       .sort({ registrationDate: -1 });
 
     // Format the response
     const formattedRegistrations = registrations
       .filter(registration => registration.userId) // Filter out registrations with null userId
-      .map(registration => ({
-        id: registration._id,
-        userId: registration.userId._id, // Add userId for clear functionality
-        user: registration.userId,
-        courses: registration.courses,
-        totalCredits: registration.totalCredits,
-        takesReligion: registration.takesReligion,
-        registrationDate: registration.registrationDate,
-        lastUpdated: registration.lastUpdated,
-        semester: registration.semester,
-        academicYear: registration.academicYear
-      }));
+      .map(registration => {
+        const regObj = registration.toObject();
+        return {
+          id: registration._id,
+          userId: registration.userId._id, // Add userId for clear functionality
+          user: registration.userId,
+          courses: registration.courses,
+          totalCredits: registration.totalCredits,
+          takesReligion: registration.takesReligion,
+          religion: registration.religion || regObj.religion, // Include any religion field if it exists
+          registrationDate: registration.registrationDate,
+          lastUpdated: registration.lastUpdated,
+          semester: registration.semester,
+          academicYear: registration.academicYear,
+          // Include all other fields to see what's available
+          ...regObj
+        };
+      });
 
     return NextResponse.json({
       success: true,

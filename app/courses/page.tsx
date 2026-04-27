@@ -543,9 +543,6 @@ export default function CoursesPage() {
                   <p className="text-gray-300 text-sm mb-2">
                     All students who have registered for courses and their credit totals
                   </p>
-                  <p className="text-blue-300 text-sm font-medium animate-pulse block sm:hidden">
-                    💡 Scroll right to view total credits for each student →
-                  </p>
                 </div>
 
                 {courseRegistrationsLoading ? (
@@ -561,56 +558,108 @@ export default function CoursesPage() {
                     <p className="text-gray-400">No students have registered for courses yet</p>
                   </div>
                 ) : (
-                  <div className="w-full overflow-x-auto">
-                    <table className="w-full min-w-[600px] text-white text-sm sm:text-base">
-                      <thead>
-                        <tr className="border-b border-white/20">
-                          <th className="text-left py-2 px-2 sm:py-3 sm:px-4 font-medium text-cyan-300 text-xs sm:text-sm whitespace-nowrap">Student Name</th>
-                          <th className="text-left py-2 px-2 sm:py-3 sm:px-4 font-medium text-cyan-300 text-xs sm:text-sm whitespace-nowrap">Courses</th>
-                          <th className="text-center py-2 px-2 sm:py-3 sm:px-4 font-medium text-cyan-300 text-xs sm:text-sm whitespace-nowrap">Credits</th>
-                          <th className="text-center py-2 px-2 sm:py-3 sm:px-4 font-medium text-cyan-300 text-xs sm:text-sm whitespace-nowrap">Religion Course</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {courseRegistrations
-                          .filter(reg => reg.courses && reg.courses.length > 0 && reg.user)
-                          .sort((a, b) => {
-                            const nameA = `${a.user.firstName} ${a.user.lastName}`.toLowerCase();
-                            const nameB = `${b.user.firstName} ${b.user.lastName}`.toLowerCase();
-                            return nameA.localeCompare(nameB);
-                          })
-                          .map((registration) => (
-                            <tr
-                              key={registration.id}
-                              className="border-b border-white/10 hover:bg-white/5 transition-colors"
-                            >
-                              <td className="py-2 px-2 sm:py-3 sm:px-4">
-                                <div className="font-medium text-white text-sm sm:text-base max-w-[150px] break-words">
-                                  {registration.user ? `${registration.user.firstName} ${registration.user.lastName}` : 'Unknown User'}
-                                </div>
-                              </td>
-                              <td className="py-2 px-2 sm:py-3 sm:px-4">
-                                <div className="text-white text-xs sm:text-sm max-w-[200px] break-words">
+                  <>
+                    {/* Desktop Table View */}
+                    <div className="hidden lg:block">
+                      <table className="w-full text-white text-sm">
+                        <thead>
+                          <tr className="border-b border-white/20">
+                            <th className="text-left py-3 px-4 font-medium text-cyan-300">Student Name</th>
+                            <th className="text-left py-3 px-4 font-medium text-cyan-300">Courses</th>
+                            <th className="text-center py-3 px-4 font-medium text-cyan-300">Credits</th>
+                            <th className="text-center py-3 px-4 font-medium text-cyan-300">Religion Course</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {courseRegistrations
+                            .filter(reg => reg.courses && reg.courses.length > 0 && reg.user)
+                            .sort((a, b) => {
+                              const nameA = `${a.user.firstName} ${a.user.lastName}`.toLowerCase();
+                              const nameB = `${b.user.firstName} ${b.user.lastName}`.toLowerCase();
+                              return nameA.localeCompare(nameB);
+                            })
+                            .map((registration) => (
+                              <tr
+                                key={registration.id}
+                                className="border-b border-white/10 hover:bg-white/5 transition-colors"
+                              >
+                                <td className="py-3 px-4">
+                                  <div className="font-medium text-white">
+                                    {registration.user ? `${registration.user.firstName} ${registration.user.lastName}` : 'Unknown User'}
+                                  </div>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <div className="text-white text-sm">
+                                    {registration.courses.map((course: { name: string; credits: number | string }, courseIndex: number) => (
+                                      <div key={courseIndex} className="mb-1">
+                                        {course.name} ({course.credits} credits)
+                                      </div>
+                                    ))}
+                                  </div>
+                                </td>
+                                <td className="py-3 px-4 text-center">
+                                  <span className="font-bold text-lg text-green-400">{registration.totalCredits}</span>
+                                </td>
+                                <td className="py-3 px-4 text-center">
+                                  <span className={`font-bold text-sm ${registration.takesReligion ? 'text-green-400' : 'text-red-400'}`}>
+                                    {registration.takesReligion ? 'YES' : 'NO'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Mobile Card View */}
+                    <div className="lg:hidden space-y-4">
+                      {courseRegistrations
+                        .filter(reg => reg.courses && reg.courses.length > 0 && reg.user)
+                        .sort((a, b) => {
+                          const nameA = `${a.user.firstName} ${a.user.lastName}`.toLowerCase();
+                          const nameB = `${b.user.firstName} ${b.user.lastName}`.toLowerCase();
+                          return nameA.localeCompare(nameB);
+                        })
+                        .map((registration) => (
+                          <div key={registration.id} className="bg-white/10 rounded-lg p-4 border border-white/20">
+                            <div className="mb-3">
+                              <h4 className="font-semibold text-white text-base mb-1">
+                                {registration.user ? `${registration.user.firstName} ${registration.user.lastName}` : 'Unknown User'}
+                              </h4>
+                            </div>
+
+                            <div className="space-y-2 text-sm">
+                              <div>
+                                <span className="text-cyan-300 font-medium">Courses:</span>
+                                <div className="text-white mt-1 space-y-1">
                                   {registration.courses.map((course: { name: string; credits: number | string }, courseIndex: number) => (
-                                    <div key={courseIndex} className="mb-1">
-                                      {course.name} ({course.credits} credits)
+                                    <div key={courseIndex} className="flex items-center gap-2">
+                                      <span className="text-gray-400">•</span>
+                                      <span>{course.name} ({course.credits} credits)</span>
                                     </div>
                                   ))}
                                 </div>
-                              </td>
-                              <td className="py-2 px-2 sm:py-3 sm:px-4 text-center">
-                                <span className="font-bold text-sm sm:text-lg text-green-400">{registration.totalCredits}</span>
-                              </td>
-                              <td className="py-2 px-2 sm:py-3 sm:px-4 text-center">
-                                <span className={`font-bold text-xs sm:text-sm ${registration.takesReligion ? 'text-green-400' : 'text-red-400'}`}>
-                                  {registration.takesReligion ? 'YES' : 'NO'}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                      </tbody>
-                    </table>
-                  </div>
+                              </div>
+
+                              <div className="flex justify-between items-center pt-2 border-t border-white/10">
+                                <div className="flex items-center gap-4">
+                                  <div>
+                                    <span className="text-cyan-300 text-xs">Credits:</span>
+                                    <span className="font-bold text-green-400 ml-1">{registration.totalCredits}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-cyan-300 text-xs">Religion:</span>
+                                    <span className={`font-bold ml-1 ${registration.takesReligion ? 'text-green-400' : 'text-red-400'}`}>
+                                      {registration.takesReligion ? 'YES' : 'NO'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </>
                 )}
               </div>
             </div>
