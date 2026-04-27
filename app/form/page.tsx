@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { User, CleaningDay, Weeks, UserRegistration } from '@/types';
 
 export default function FormPage() {
@@ -231,9 +232,11 @@ export default function FormPage() {
             {/* Header */}
             <div className="text-center mb-16">
               <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-600 rounded-full mb-8 shadow-2xl shadow-purple-500/30 p-3 animate-bounce-in">
-                <img
+                <Image
                   src="/freedom.png"
                   alt="Freedom City Tech Center Logo"
+                  width={96}
+                  height={96}
                   className="w-full h-full object-contain animate-glow"
                 />
               </div>

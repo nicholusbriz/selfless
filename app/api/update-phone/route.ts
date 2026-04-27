@@ -7,39 +7,38 @@ export async function PUT(request: Request) {
     await connectDB();
     const { userId, phoneNumber } = await request.json();
 
-    // Validation
     if (!userId) {
       return NextResponse.json({ success: false, message: 'User ID is required' }, { status: 400 });
     }
 
-    if (phoneNumber && !/^\+?[\d\s\-\(\)]+$/.test(phoneNumber)) {
-      return NextResponse.json({ success: false, message: 'Invalid phone number format' }, { status: 400 });
-    }
+    // Update user's phone number
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { phoneNumber: phoneNumber || '' },
+      { new: true, runValidators: true }
+    );
 
-    // Find and update user
-    const user = await User.findById(userId);
-    if (!user) {
+    if (!updatedUser) {
       return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
     }
-
-    // Update phone number (can be empty string to remove)
-    user.phoneNumber = phoneNumber || undefined;
-    await user.save();
 
     return NextResponse.json({
       success: true,
       message: 'Phone number updated successfully',
       user: {
-        id: user._id.toString(),
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phoneNumber: user.phoneNumber || ''
+        id: updatedUser._id.toString(),
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        email: updatedUser.email,
+        phoneNumber: updatedUser.phoneNumber || ''
       }
     });
 
   } catch (error) {
-    console.error('Update phone number error:', error);
-    return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
+    console.error('Update phone error:', error);
+    return NextResponse.json({ 
+      success: false, 
+      message: 'Failed to update phone number' 
+    }, { status: 500 });
   }
 }
