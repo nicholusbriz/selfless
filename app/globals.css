@@ -34,8 +34,12 @@
         -webkit-text-size-adjust: 100%;
         -webkit-tap-highlight-color: transparent;
         -webkit-touch-callout: none;
-        -webkit-user-select: none;
-        user-select: none;
+        /* Remove user-select: none to fix text rendering issues */
+        /* user-select: none; */
+        /* Better font rendering */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
     }
 
     * {

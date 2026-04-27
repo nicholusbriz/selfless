@@ -74,7 +74,7 @@ export default function Page() {
                   textShadow: '0 0 20px rgba(6, 182, 212, 0.8), 0 0 40px rgba(6, 182, 212, 0.4)',
                   letterSpacing: '0.15em'
                 }}>
-                  Tech Centre Tracking System
+                  Tech Center Tracking System
                 </p>
 
                 {/* Tagline */}
