@@ -75,26 +75,22 @@ export default function LoginPage() {
   return (
     <>
       <div className="min-h-screen relative overflow-hidden">
-        {/* Video Background - Same as Homepage */}
+        {/* Image Background */}
         <div className="absolute inset-0 w-full h-full">
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover transform scale-110"
+          <Image
+            src="/atbriz.jpg"
+            alt="Background"
+            fill
+            className="object-cover"
             style={{
-              filter: 'brightness(0.25) contrast(1.2) saturate(0.9) blur(1.5px)',
+              filter: 'brightness(0.3) contrast(1.1) saturate(0.8) blur(0.8px)',
               objectFit: 'cover',
               objectPosition: 'center',
             }}
-          >
-            <source src="/freedom.mp4" type="video/mp4" />
-            <source src="/freedom.webm" type="video/webm" />
-            <div className="w-full h-full bg-gradient-to-br from-blue-600 via-purple-700 to-indigo-800" />
-          </video>
+            priority
+          />
 
-          {/* Overlay gradient - Same as Homepage */}
+          {/* Overlay gradient */}
           <div className="absolute inset-0 bg-gradient-to-b from-blue-900/20 via-blue-800/10 to-purple-900/20"></div>
           <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5"></div>
         </div>
@@ -102,29 +98,28 @@ export default function LoginPage() {
         {/* Content */}
         <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
           {/* Floating animated elements - Same as Homepage */}
-          <div className="absolute top-10 left-10 w-32 h-32 bg-blue-400/20 rounded-full blur-3xl animate-float"></div>
-          <div className="absolute top-20 right-20 w-40 h-40 bg-purple-400/20 rounded-full blur-3xl animate-float animation-delay-2000"></div>
-          <div className="absolute bottom-10 left-1/3 w-36 h-36 bg-indigo-400/20 rounded-full blur-3xl animate-float animation-delay-1000"></div>
-          <div className="absolute bottom-20 right-1/4 w-28 h-28 bg-pink-400/20 rounded-full blur-3xl animate-float animation-delay-3000"></div>
+          <div className="absolute top-10 left-10 w-32 h-32 bg-blue-400/20 rounded-full blur-3xl"></div>
+          <div className="absolute top-20 right-20 w-40 h-40 bg-purple-400/20 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-10 left-1/3 w-36 h-36 bg-indigo-400/20 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-20 right-1/4 w-28 h-28 bg-pink-400/20 rounded-full blur-3xl"></div>
 
           <div className="w-full max-w-md relative z-10">
-            <div className="p-10">
-              <div className="text-center mb-10">
+            <div className="p-6">
+              <div className="text-center mb-6">
                 {/* Enhanced Logo - Same as Homepage */}
-                <div className="inline-flex items-center justify-center w-32 h-32 bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-700 rounded-full mb-8 shadow-2xl shadow-cyan-500/50 p-3 animate-bounce-in" style={{ boxShadow: '0 0 40px rgba(6, 182, 212, 0.5), 0 0 80px rgba(59, 130, 246, 0.3)' }}>
+                <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-700 rounded-full mb-4 shadow-2xl shadow-cyan-500/50 p-2" style={{ boxShadow: '0 0 40px rgba(6, 182, 212, 0.5), 0 0 80px rgba(59, 130, 246, 0.3)' }}>
                   <Image
                     src="/freedom.png"
                     alt="Freedom City Tech Center Logo"
                     width={128}
                     height={128}
-                    className="w-full h-full object-contain animate-glow"
+                    className="w-full h-full object-contain"
                     style={{ filter: 'drop-shadow(0 0 20px rgba(255, 255, 255, 0.8))' }}
                   />
                 </div>
 
                 {/* Enhanced Title - Same styling as homepage */}
-                <h1 className="text-5xl md:text-6xl font-black bg-gradient-to-r from-cyan-300 via-white to-purple-300 bg-clip-text text-transparent mb-6 animate-float" style={{
-                  animation: 'float 6s ease-in-out infinite, slideInRight 1s ease-out',
+                <h1 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-cyan-300 via-white to-purple-300 bg-clip-text text-transparent mb-3" style={{
                   textShadow: '0 0 30px rgba(255, 255, 255, 0.5), 0 0 60px rgba(6, 182, 212, 0.3)',
                   letterSpacing: '0.02em'
                 }}>
@@ -132,8 +127,7 @@ export default function LoginPage() {
                 </h1>
 
                 {/* Enhanced Subtitle - Same styling as homepage */}
-                <p className="text-xl md:text-2xl font-light text-cyan-200 mb-6 animate-float uppercase tracking-widest" style={{
-                  animation: 'float 8s ease-in-out infinite 2s, slideInLeft 1s ease-out 0.5s',
+                <p className="text-lg md:text-xl font-light text-cyan-200 mb-3 uppercase tracking-widest" style={{
                   textShadow: '0 0 20px rgba(6, 182, 212, 0.8), 0 0 40px rgba(6, 182, 212, 0.4)',
                   letterSpacing: '0.15em'
                 }}>
@@ -141,17 +135,16 @@ export default function LoginPage() {
                 </p>
 
                 {/* Enhanced Description - Same styling as homepage */}
-                <div className="inline-flex items-center justify-center bg-gradient-to-r from-cyan-500/30 via-blue-500/20 to-purple-500/30 backdrop-blur-md px-6 py-3 rounded-full border border-cyan-400/40 animate-float" style={{
-                  animation: 'float 10s ease-in-out infinite 1s, fadeInUp 1s ease-out 1s',
+                <div className="inline-flex items-center justify-center bg-gradient-to-r from-cyan-500/30 via-blue-500/20 to-purple-500/30 backdrop-blur-md px-6 py-3 rounded-full border border-cyan-400/40" style={{
                   boxShadow: '0 0 30px rgba(6, 182, 212, 0.3), inset 0 0 20px rgba(255, 255, 255, 0.1)'
                 }}>
                   <span className="text-cyan-100 font-bold text-sm tracking-wide" style={{ textShadow: '0 0 15px rgba(6, 182, 212, 0.8)' }}> Secure Access Portal</span>
                 </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-8">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label htmlFor="email" className="block text-lg font-semibold text-white/90 mb-3 animate-slide-in-left">
+                  <label htmlFor="email" className="block text-base font-semibold text-white/90 mb-2">
                     Email Address
                   </label>
                   <div className="relative">
@@ -161,12 +154,12 @@ export default function LoginPage() {
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
-                      className="w-full px-6 py-4 bg-white/20 backdrop-blur-sm border-2 border-white/30 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:ring-4 focus:ring-blue-500/50 focus:border-blue-400 transition-all duration-300 text-lg font-medium"
+                      className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border-2 border-white/30 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-4 focus:ring-blue-500/50 focus:border-blue-400 transition-all duration-300 text-base font-medium"
                       placeholder="Enter your authorized email"
                       required
                     />
-                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white/60">
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
                     </div>
@@ -174,7 +167,7 @@ export default function LoginPage() {
                 </div>
 
                 {message && (
-                  <div className={`p-4 rounded-2xl text-center animate-fade-in-up ${messageType === 'success'
+                  <div className={`p-4 rounded-xl text-center ${messageType === 'success'
                     ? 'bg-gradient-to-r from-emerald-500/20 to-green-500/20 border-2 border-emerald-400/50 text-emerald-100'
                     : 'bg-gradient-to-r from-red-500/20 to-rose-500/20 border-2 border-red-400/50 text-red-100'
                     }`}>
@@ -190,11 +183,11 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white font-bold py-5 px-8 rounded-2xl hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-4 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-500 transform hover:scale-105 shadow-2xl hover:shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+                  className="w-full bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white font-bold py-3 px-6 rounded-xl hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-4 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-500 transform hover:scale-105 shadow-2xl hover:shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed text-base"
                 >
                   {isLoading ? (
                     <span className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-3 border-white border-t-transparent mr-3"></div>
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-3"></div>
                       <span>Signing in...</span>
                     </span>
                   ) : (
@@ -206,7 +199,7 @@ export default function LoginPage() {
                 </button>
               </form>
 
-              <div className="mt-10 space-y-6">
+              <div className="mt-6 space-y-4">
                 <div className="flex justify-center gap-4">
                   <button
                     onClick={() => router.push('/register')}
@@ -214,7 +207,7 @@ export default function LoginPage() {
                   >
                     <span className="flex items-center">
                       <span className="mr-2">📝</span>
-                      Register here
+                      Register
                     </span>
                   </button>
                   <button
@@ -223,7 +216,7 @@ export default function LoginPage() {
                   >
                     <span className="flex items-center">
                       <span className="mr-2">🏠</span>
-                      Back to Home
+                      Home
                     </span>
                   </button>
                 </div>
@@ -232,7 +225,7 @@ export default function LoginPage() {
                 <div className="text-center">
                   <div className="inline-flex items-center justify-center bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur-sm px-4 py-2 rounded-full border border-white/30">
                     <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                       <span className="text-white text-sm font-medium">Secure Connection</span>
                     </div>
                   </div>
