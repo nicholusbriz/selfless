@@ -18,7 +18,9 @@ interface Announcement {
   id: string;
   title: string;
   content: string;
+  adminId: string;
   adminName: string;
+  adminEmail: string;
   createdAt: string;
   updatedAt: string;
   comments?: Comment[];
@@ -29,6 +31,11 @@ interface AnnouncementsProps {
   adminId?: string;
   adminEmail?: string;
   adminName?: string;
+  isTutor?: boolean;
+  tutorId?: string;
+  tutorEmail?: string;
+  tutorName?: string;
+  canPostAnnouncements?: boolean;
 }
 
 interface ReplyItemProps {
@@ -144,7 +151,17 @@ function ReplyItem({ reply, currentUser, announcementId, parentCommentId, onRepl
   );
 }
 
-export default function Announcements({ isAdmin = false, adminId = '', adminEmail = '', adminName = '' }: AnnouncementsProps) {
+export default function Announcements({
+  isAdmin = false,
+  adminId = '',
+  adminEmail = '',
+  adminName = '',
+  isTutor = false,
+  tutorId = '',
+  tutorEmail = '',
+  tutorName = '',
+  canPostAnnouncements = false
+}: AnnouncementsProps) {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [newAnnouncement, setNewAnnouncement] = useState({ title: '', content: '' });
@@ -178,35 +195,27 @@ export default function Announcements({ isAdmin = false, adminId = '', adminEmai
     fetchAnnouncements();
   }, []);
 
-  // Get current user from database
+  // Fetch current user info
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('userId');
+        // Get user info from JWT token
+        const response = await fetch('/api/user-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
-        if (!userId) {
-          console.log('No userId found in URL parameters');
-          return;
-        }
-
-        // Fetch user data from database
-        const response = await fetch(`/api/users?id=${userId}`);
-        const data = await response.json();
-
-        if (data.success && data.users) {
-          const user = data.users.find((u: { id: string; fullName: string; email: string }) => u.id === userId);
-          if (user) {
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.user) {
             setCurrentUser({
-              id: user.id,
-              name: user.fullName,
-              email: user.email
+              id: data.user.id,
+              name: data.user.fullName,
+              email: data.user.email
             });
-          } else {
-            console.error('User not found in database');
           }
-        } else {
-          console.error('Failed to fetch user from database:', data.message);
         }
       } catch (error) {
         console.error('Error fetching current user:', error);
@@ -259,8 +268,8 @@ export default function Announcements({ isAdmin = false, adminId = '', adminEmai
       } else {
         console.error('Failed to post comment:', data.message);
       }
-    } catch (error) {
-      console.error('Error posting comment:', error);
+    } catch {
+      console.error('Error posting comment');
     } finally {
       setIsPostingComment(null);
     }
@@ -296,14 +305,14 @@ export default function Announcements({ isAdmin = false, adminId = '', adminEmai
       } else {
         console.error('Failed to post reply:', data.message);
       }
-    } catch (error) {
-      console.error('Error posting reply:', error);
+    } catch {
+      console.error('Error posting reply');
     } finally {
       setIsPostingComment(null);
     }
   };
 
-  const handleDeleteComment = async (commentId: string, announcementId: string, isReply: boolean = false, parentCommentId?: string) => {
+  const handleDeleteComment = async (commentId: string) => {
     if (!confirm('Are you sure you want to delete this comment?')) return;
 
     try {
@@ -334,19 +343,20 @@ export default function Announcements({ isAdmin = false, adminId = '', adminEmai
   };
 
   // Create new announcement (admin only)
-  const handleCreateAnnouncement = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleCreateAnnouncement = async () => {
     if (!newAnnouncement.title.trim() || !newAnnouncement.content.trim()) {
-      setMessage('Please fill in both title and content');
+      setMessage('Please fill in all fields');
       setMessageType('error');
       return;
     }
 
     setIsCreating(true);
-    setMessage('');
-
     try {
+      // Use tutor info if available, otherwise admin info
+      const creatorId = isTutor && tutorId ? tutorId : adminId;
+      const creatorName = isTutor && tutorName ? tutorName : adminName;
+      const creatorEmail = isTutor && tutorEmail ? tutorEmail : adminEmail;
+
       const response = await fetch('/api/announcements', {
         method: 'POST',
         headers: {
@@ -355,26 +365,26 @@ export default function Announcements({ isAdmin = false, adminId = '', adminEmai
         body: JSON.stringify({
           title: newAnnouncement.title.trim(),
           content: newAnnouncement.content.trim(),
-          adminId,
-          adminName,
-          adminEmail,
+          adminId: creatorId,
+          adminName: creatorName,
+          adminEmail: creatorEmail,
         }),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        setAnnouncements([data.announcement, ...announcements]);
         setNewAnnouncement({ title: '', content: '' });
+        setShowCreateModal(false);
         setMessage('Announcement created successfully!');
         setMessageType('success');
-        setShowCreateModal(false);
         setTimeout(() => setMessage(''), 3000);
+        await refreshAnnouncements();
       } else {
         setMessage(data.message || 'Failed to create announcement');
         setMessageType('error');
       }
-    } catch {
+    } catch (error) {
       setMessage('Network error. Please try again.');
       setMessageType('error');
     } finally {
@@ -382,14 +392,22 @@ export default function Announcements({ isAdmin = false, adminId = '', adminEmai
     }
   };
 
-  // Delete announcement (admin only)
+  // Delete announcement (admin or own posts for tutors)
   const handleDeleteAnnouncement = async (announcementId: string) => {
     if (!confirm('Are you sure you want to delete this announcement?')) {
       return;
     }
 
     try {
-      const response = await fetch(`/api/announcements/delete?id=${announcementId}&adminId=${adminId}`, {
+      // Use current user's ID for deletion check
+      const currentUserId = currentUser?.id;
+      if (!currentUserId) {
+        setMessage('User not authenticated');
+        setMessageType('error');
+        return;
+      }
+
+      const response = await fetch(`/api/announcements/delete?id=${announcementId}&userId=${currentUserId}`, {
         method: 'DELETE',
       });
 
@@ -444,8 +462,8 @@ export default function Announcements({ isAdmin = false, adminId = '', adminEmai
           <p className="text-gray-600">Important updates and information from admin</p>
         </div>
 
-        {/* Admin Create Button */}
-        {isAdmin && (
+        {/* Admin/Tutor Create Button */}
+        {(isAdmin || (isTutor && canPostAnnouncements)) && (
           <div className="mb-6">
             <button
               onClick={() => setShowCreateModal(true)}
@@ -472,7 +490,7 @@ export default function Announcements({ isAdmin = false, adminId = '', adminEmai
           <div className="text-center py-8 text-gray-500">
             <div className="text-4xl mb-2">📭</div>
             <p>No announcements yet</p>
-            {isAdmin && <p className="text-sm">Create the first announcement above!</p>}
+            {(isAdmin || (isTutor && canPostAnnouncements)) && <p className="text-sm">Create the first announcement above!</p>}
           </div>
         ) : (
           <div className="space-y-4">
@@ -482,11 +500,11 @@ export default function Announcements({ isAdmin = false, adminId = '', adminEmai
                   <h3 className="text-lg font-semibold text-gray-900">{announcement.title}</h3>
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-500">{formatDate(announcement.createdAt)}</span>
-                    {isAdmin && (
+                    {(isAdmin || (isTutor && currentUser?.id === announcement.adminId)) && (
                       <button
                         onClick={() => handleDeleteAnnouncement(announcement.id)}
                         className="text-red-500 hover:text-red-700 transition-colors p-1"
-                        title="Delete announcement"
+                        title={isAdmin ? "Delete announcement (Admin)" : "Delete your announcement"}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -558,7 +576,7 @@ export default function Announcements({ isAdmin = false, adminId = '', adminEmai
                               </div>
                               {(currentUser?.id === comment.userId || isAdmin) && (
                                 <button
-                                  onClick={() => handleDeleteComment(comment.id, announcement.id)}
+                                  onClick={() => handleDeleteComment(comment.id)}
                                   className="text-red-500 hover:text-red-700 transition-colors p-1 rounded hover:bg-red-50"
                                   title={isAdmin ? "Delete comment (Admin)" : "Delete comment"}
                                 >

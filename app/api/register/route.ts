@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/models/database';
 import User from '@/models/User';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 export async function POST(request: Request) {
   try {
@@ -37,7 +40,18 @@ export async function POST(request: Request) {
 
     await newUser.save();
 
-    return NextResponse.json({
+    // Create JWT token (same as login)
+    const token = jwt.sign(
+      {
+        userId: newUser._id.toString(),
+        email: newUser.email
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' } // Token expires in 7 days
+    );
+
+    // Set HTTP-only cookie (same as login)
+    const response = NextResponse.json({
       success: true,
       user: {
         id: newUser._id.toString(),
@@ -47,6 +61,16 @@ export async function POST(request: Request) {
         fullName: `${newUser.firstName} ${newUser.lastName}`
       }
     });
+
+    response.cookies.set('auth-token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+      path: '/'
+    });
+
+    return response;
 
   } catch (error) {
     console.error('Registration error:', error);

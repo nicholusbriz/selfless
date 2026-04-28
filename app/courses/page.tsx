@@ -42,28 +42,16 @@ export default function CoursesPage() {
   const [courseRegistrationsLoading, setCourseRegistrationsLoading] = useState(true);
   const router = useRouter();
 
-  // Check if user has valid authentication from URL params
+  // Check if user has valid authentication from JWT token
   useEffect(() => {
     const checkUserAccess = async () => {
-      // Get user data from URL params (passed from login)
-      const urlParams = new URLSearchParams(window.location.search);
-      const userId = urlParams.get('userId');
-      const email = urlParams.get('email');
-
-      if (!userId || !email) {
-        // No auth params, redirect to home
-        router.push('/');
-        return;
-      }
-
       try {
-        // Verify user exists in database
+        // Verify user status via JWT token
         const response = await fetch('/api/user-status', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId, email }),
         });
 
         if (!response.ok) {

@@ -12,18 +12,34 @@ export default function AdminCoursesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get admin info from URL params
-    const urlParams = new URLSearchParams(window.location.search);
-    const adminId = urlParams.get('adminId') || '';
-    const adminEmail = urlParams.get('email') || '';
-    const adminName = urlParams.get('adminName') || 'Admin';
+    // Get admin info from JWT token
+    const getAdminInfo = async () => {
+      try {
+        const response = await fetch('/api/user-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
-    setAdminInfo({
-      adminId,
-      adminEmail,
-      adminName
-    });
-    setLoading(false);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.user) {
+            setAdminInfo({
+              adminId: data.user.id,
+              adminEmail: data.user.email,
+              adminName: data.user.fullName || `${data.user.firstName} ${data.user.lastName}`.trim() || 'Admin'
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error getting admin info:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getAdminInfo();
   }, []);
 
   if (loading) {

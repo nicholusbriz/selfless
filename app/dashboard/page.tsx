@@ -4,7 +4,32 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { isAdminEmail } from '@/config/admin';
-import { User } from '@/types';
+
+interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber?: string;
+  fullName?: string;
+  isAdmin: boolean;
+  isSuperAdmin: boolean;
+  adminPermissions?: {
+    canManageUsers: boolean;
+    canManageCourses: boolean;
+    canManageAnnouncements: boolean;
+    canManageTutors: boolean;
+    canManageAdmins: boolean;
+    canDeleteData: boolean;
+  };
+  adminRole?: 'super-admin' | 'admin';
+  isTutor: boolean;
+  tutorPermissions?: {
+    canViewAnnouncements: boolean;
+    canPostAnnouncements: boolean;
+    canManageUsers: boolean;
+  };
+}
 import AnnouncementNotifications from '@/components/AnnouncementNotifications';
 
 export default function DashboardPage() {
@@ -12,32 +37,20 @@ export default function DashboardPage() {
   const [checkingStatus, setCheckingStatus] = useState(true);
   const router = useRouter();
 
-  // Check if user has valid authentication from URL params
+  // Check if user has valid authentication from JWT token
   useEffect(() => {
     const checkUserAccess = async () => {
-      // Get user data from URL params (passed from login)
-      const urlParams = new URLSearchParams(window.location.search);
-      const userId = urlParams.get('userId');
-      const email = urlParams.get('email');
-
-      if (!userId || !email) {
-        // No auth params, redirect to home
-        router.push('/');
-        return;
-      }
-
       try {
-        // Verify user exists in database
+        // Verify user status via JWT token
         const response = await fetch('/api/user-status', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId, email }),
         });
 
         if (!response.ok) {
-          // User not found, redirect to home
+          // Invalid or missing token, redirect to home
           router.push('/');
           return;
         }
@@ -50,7 +63,8 @@ export default function DashboardPage() {
           // User not found, redirect to home
           router.push('/');
         }
-      } catch {
+      } catch (error) {
+        console.error(error);
         router.push('/');
       } finally {
         setCheckingStatus(false);
@@ -245,8 +259,7 @@ export default function DashboardPage() {
               <div className="space-y-3 mb-4">
                 <button
                   onClick={() => {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    router.push(`/form?${urlParams.toString()}`);
+                    router.push('/form');
                   }}
                   className="w-full bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 text-white font-bold py-4 px-6 rounded-xl hover:from-cyan-600 hover:via-blue-700 hover:to-purple-700 focus:outline-none focus:ring-4 focus:ring-cyan-500/50 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-500 transform hover:scale-105 uppercase tracking-wider"
                   style={{
@@ -262,8 +275,7 @@ export default function DashboardPage() {
 
                 <button
                   onClick={() => {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    router.push(`/courses?${urlParams.toString()}`);
+                    router.push('/courses');
                   }}
                   className="w-full bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white font-bold py-4 px-6 rounded-xl hover:from-purple-700 hover:via-indigo-700 hover:to-blue-700 focus:outline-none focus:ring-4 focus:ring-purple-500/50 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-500 transform hover:scale-105 uppercase tracking-wider"
                   style={{
@@ -279,8 +291,7 @@ export default function DashboardPage() {
 
                 <button
                   onClick={() => {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    router.push(`/policies?${urlParams.toString()}`);
+                    router.push('/policies');
                   }}
                   className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white py-3 px-4 rounded-lg font-medium border border-indigo-400/30 transition-all shadow-lg hover:shadow-indigo-500/25"
                 >
@@ -292,11 +303,10 @@ export default function DashboardPage() {
               </div>
 
               <div className="text-center mt-auto">
-                {user && isAdminEmail(user.email) && (
+                {user && user.isAdmin && (
                   <button
                     onClick={() => {
-                      const urlParams = new URLSearchParams(window.location.search);
-                      router.push(`/admin?${urlParams.toString()}`);
+                      router.push('/admin');
                     }}
                     className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-amber-500/25 flex items-center justify-center gap-3 mb-3"
                   >
@@ -304,9 +314,37 @@ export default function DashboardPage() {
                     <span className="text-lg">Admin Panel</span>
                   </button>
                 )}
+
+                {/* Show Announcements button for tutors */}
+                {user && user.isTutor && user.tutorPermissions?.canViewAnnouncements && (
+                  <button
+                    onClick={() => {
+                      router.push('/announcements');
+                    }}
+                    className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-emerald-500/25 flex items-center justify-center gap-3 mb-3"
+                  >
+                    <span className="text-xl">📢</span>
+                    <span className="text-lg">
+                      {user.tutorPermissions?.canPostAnnouncements ? 'Manage Announcements' : 'View Announcements'}
+                    </span>
+                  </button>
+                )}
                 <button
-                  onClick={() => {
-                    router.push('/');
+                  onClick={async () => {
+                    try {
+                      // Call signout API to clear the JWT token
+                      await fetch('/api/signout', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                      });
+                    } catch (error) {
+                      console.error('Error signing out:', error);
+                    } finally {
+                      // Always redirect to home after signout attempt
+                      router.push('/');
+                    }
                   }}
                   className="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-red-500/25 flex items-center justify-center gap-3"
                 >

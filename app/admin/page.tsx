@@ -69,16 +69,18 @@ const navigationItems = [
   { id: 'users', title: 'Users', icon: '👥' },
   { id: 'courses', title: 'Courses', icon: '📚' },
   { id: 'registered-days', title: 'Registered Days', icon: '📅' },
-  { id: 'announcements', title: 'Announcements', icon: '📢' }
+  { id: 'announcements', title: 'Announcements', icon: '📢' },
+  { id: 'tutors', title: 'Tutors', icon: '👨‍🏫' },
+  { id: 'admins', title: 'Admins', icon: '👑' }
 ];
 
 function Admin() {
   console.log('Admin component: Starting render');
 
-  const [currentUser, setCurrentUser] = useState<{ adminId: string; adminEmail: string; adminName: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ adminId: string; adminEmail: string; adminName: string; isSuperAdmin: boolean } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeSection, setActiveSection] = useState('overview');
-  const [showDashboard, setShowDashboard] = useState<'overview' | 'users' | 'courses' | 'registered-days' | 'announcements' | undefined>(undefined);
+  const [showDashboard, setShowDashboard] = useState<'overview' | 'users' | 'courses' | 'registered-days' | 'announcements' | 'tutors' | 'admins' | undefined>(undefined);
   const [weeks, setWeeks] = useState<{ [key: number]: WeekData[] }>({});
   const [users, setUsers] = useState<User[]>([]);
   const [courseRegistrations, setCourseRegistrations] = useState<CourseRegistration[]>([]);
@@ -104,10 +106,10 @@ function Admin() {
 
   const router = useRouter();
 
-  // Auto-navigate to management containers when users/courses/registered-days/announcements sections are selected
+  // Auto-navigate to management containers when users/courses/registered-days/announcements/tutors/admins sections are selected
   useEffect(() => {
-    if (activeSection === 'users' || activeSection === 'courses' || activeSection === 'registered-days' || activeSection === 'announcements') {
-      setShowDashboard(activeSection as 'users' | 'courses' | 'registered-days' | 'announcements');
+    if (activeSection === 'users' || activeSection === 'courses' || activeSection === 'registered-days' || activeSection === 'announcements' || activeSection === 'tutors' || activeSection === 'admins') {
+      setShowDashboard(activeSection as 'users' | 'courses' | 'registered-days' | 'announcements' | 'tutors' | 'admins');
     } else {
       setShowDashboard(undefined);
     }
@@ -194,52 +196,85 @@ function Admin() {
     refreshDashboardStats();
   }, [refreshDashboardStats]);
 
-  // Check if user is admin (URL-based authentication)
+  // Check if user is admin (JWT-based authentication)
   useEffect(() => {
-    console.log('Admin useEffect: Starting authentication check');
+    const checkAdminAuth = async () => {
+      console.log('Admin useEffect: Starting JWT authentication check');
 
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const userId = urlParams.get('userId');
-      const email = urlParams.get('email');
+      if (typeof window !== 'undefined') {
+        try {
+          // Verify user status via JWT token
+          const response = await fetch('/api/user-status', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
 
-      console.log('Admin Auth: URL params', { userId, email });
+          if (!response.ok) {
+            console.log('Admin Auth: Invalid token, redirecting to home');
+            router.push('/');
+            return;
+          }
 
-      if (!userId || !email) {
-        console.log('Admin Auth: No params, redirecting to home');
-        router.push('/');
-        return;
+          const data = await response.json();
+          console.log('Admin Auth: User data from JWT', data);
+
+          if (!data.success || !data.user) {
+            console.log('Admin Auth: No user data, redirecting to home');
+            router.push('/');
+            return;
+          }
+
+          // Admin check - user must be admin (either super admin or promoted admin)
+          if (!data.user.isAdmin) {
+            console.log('Admin Auth: Not admin, redirecting to dashboard');
+            router.push('/dashboard');
+            return;
+          }
+
+          console.log('Admin Auth: Authentication successful');
+        } catch (error) {
+          console.log('Admin Auth: Error, redirecting to home');
+          router.push('/');
+          return;
+        }
+
+        console.log('Admin Auth: User verified and set');
       }
+    };
 
-      // Admin check - only authorized emails can access admin dashboard
-      if (!isAdminEmail(email)) {
-        console.log('Admin Auth: Not admin email, redirecting to form');
-        router.push('/form');
-        return;
-      }
-
-      console.log('Admin Auth: User verified and set');
-    }
+    checkAdminAuth();
   }, [router]);
 
-  // Set current user after authentication
+  // Set current user after JWT authentication
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const userId = urlParams.get('userId');
-      const email = urlParams.get('email');
-
-      if (userId && email && isAdminEmail(email)) {
-        const firstName = urlParams.get('firstName') || '';
-        const lastName = urlParams.get('lastName') || '';
-
-        setCurrentUser({
-          adminId: userId,
-          adminEmail: email,
-          adminName: `${firstName} ${lastName}`.trim() || 'Admin'
+    const setAdminUser = async () => {
+      try {
+        const response = await fetch('/api/user-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
         });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.user && data.user.isAdmin) {
+            setCurrentUser({
+              adminId: data.user.id,
+              adminEmail: data.user.email,
+              adminName: data.user.fullName || `${data.user.firstName} ${data.user.lastName}`.trim() || 'Admin',
+              isSuperAdmin: data.user.isSuperAdmin || false
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error setting admin user:', error);
       }
-    }
+    };
+
+    setAdminUser();
   }, []);
 
   console.log('Admin Page: Render state', { isLoading, currentUser });
@@ -353,7 +388,9 @@ function Admin() {
                       activeSection === 'courses' ? 'Course Management' :
                         activeSection === 'registered-days' ? 'Registered Days' :
                           activeSection === 'announcements' ? 'Announcements Management' :
-                            'Dashboard'
+                            activeSection === 'tutors' ? 'Tutor Management' :
+                              activeSection === 'admins' ? 'Admin Management' :
+                                'Dashboard'
                     }
                   </h1>
                   <div className="h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full w-20"></div>
@@ -375,7 +412,9 @@ function Admin() {
                     showDashboard === 'courses' ? 'Course Management' :
                       showDashboard === 'registered-days' ? 'Registered Days' :
                         showDashboard === 'announcements' ? 'Announcements Management' :
-                          showDashboard === 'overview' ? 'Dashboard Overview' : 'Dashboard'}
+                          showDashboard === 'tutors' ? 'Tutor Management' :
+                            showDashboard === 'admins' ? 'Admin Management' :
+                              showDashboard === 'overview' ? 'Dashboard Overview' : 'Dashboard'}
                 </h2>
               </div>
               <div className="glass-morphism rounded-2xl border border-purple-500/30 p-6">
@@ -383,6 +422,7 @@ function Admin() {
                   adminId={currentUser.adminId}
                   adminEmail={currentUser.adminEmail}
                   adminName={currentUser.adminName}
+                  isSuperAdmin={currentUser.isSuperAdmin}
                   initialSection={showDashboard}
                   onStatsRefresh={refreshDashboardStats}
                 />
@@ -394,8 +434,7 @@ function Admin() {
           <div className="mb-8 text-center">
             <button
               onClick={() => {
-                const urlParams = new URLSearchParams(window.location.search);
-                router.push(`/dashboard?${urlParams.toString()}`);
+                router.push('/dashboard');
               }}
               className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-bold py-4 px-8 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-amber-500/25 flex items-center justify-center gap-3"
             >

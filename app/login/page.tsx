@@ -61,7 +61,7 @@ export default function LoginPage() {
       setMessage('Access granted! Redirecting to your dashboard...');
       setMessageType('success');
       setTimeout(() => {
-        router.push(`/dashboard?userId=${data.user.id}&email=${encodeURIComponent(data.user.email)}`);
+        router.push('/dashboard');
       }, 1500);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Network error. Please try again.';

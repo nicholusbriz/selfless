@@ -1,6 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/models/database';
 import { ObjectId } from 'mongodb';
+import User from '@/models/User';
+import Admin from '@/models/Admin';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+// Helper function to verify admin (super admin or promoted admin)
+async function verifyAdmin(userId: string) {
+  const user = await User.findById(userId);
+  if (!user) return null;
+
+  // Check if user is admin (either super admin or promoted admin)
+  const isSuperAdmin = user.email === 'atbriz256@gmail.com';
+  const promotedAdmin = await Admin.findOne({ userId: user._id.toString() });
+
+  if (!isSuperAdmin && !promotedAdmin) return null;
+
+  return { user, isSuperAdmin, promotedAdmin };
+}
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -25,7 +44,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Check if user owns the comment
+    // Check if user owns the comment or is admin
     const comment = await db.collection('comments').findOne({ _id: new ObjectId(commentId) });
 
     if (!comment) {
@@ -35,7 +54,11 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    if (comment.userId !== userId) {
+    // Check if user is admin
+    const adminData = await verifyAdmin(userId);
+
+    // Allow deletion if user owns the comment or is admin
+    if (comment.userId !== userId && !adminData) {
       return NextResponse.json(
         { success: false, message: 'You can only delete your own comments' },
         { status: 403 }

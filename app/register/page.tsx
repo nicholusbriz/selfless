@@ -76,7 +76,7 @@ export default function RegisterPage() {
         setMessage('Account created successfully! Redirecting to your dashboard...');
         setMessageType('success');
         setTimeout(() => {
-          router.push(`/dashboard?userId=${data.user.id}&email=${encodeURIComponent(data.user.email)}`);
+          router.push('/dashboard');
         }, 1500);
       } else {
         setMessage(data.message || 'Registration failed');
