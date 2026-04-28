@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/models/database';
 import User from '@/models/User';
 import Registration from '@/models/Registration';
+import Tutor from '@/models/Tutor';
+import Admin from '@/models/Admin';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 export async function GET() {
   try {
@@ -23,31 +28,60 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     await connectDB();
-    const { userId, email } = await request.json();
 
-    if (!userId || !email) {
-      return NextResponse.json({ success: false, message: 'Missing required parameters' }, { status: 400 });
+    // Get auth token from cookies
+    const cookieHeader = request.headers.get('cookie');
+    if (!cookieHeader) {
+      return NextResponse.json({ success: false, message: 'No authentication token found' }, { status: 401 });
     }
 
-    // Find user by ID and verify email matches
-    const user = await User.findById(userId);
+    // Extract auth-token from cookies
+    const cookies = cookieHeader.split(';').reduce((acc: { [key: string]: string }, cookie) => {
+      const [key, value] = cookie.trim().split('=');
+      acc[key] = value;
+      return acc;
+    }, {});
+
+    const token = cookies['auth-token'];
+    if (!token) {
+      return NextResponse.json({ success: false, message: 'Authentication token missing' }, { status: 401 });
+    }
+
+    // Verify JWT token
+    let decoded: any;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch {
+      return NextResponse.json({ success: false, message: 'Invalid authentication token' }, { status: 401 });
+    }
+
+    // Find user by ID from token
+    const user = await User.findById(decoded.userId);
     if (!user) {
       return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
     }
 
-    // Verify email matches to prevent unauthorized access
-    if (user.email !== email) {
-      return NextResponse.json({ success: false, message: 'Unauthorized access' }, { status: 403 });
+    // Verify email matches token
+    if (user.email !== decoded.email) {
+      return NextResponse.json({ success: false, message: 'Token mismatch' }, { status: 403 });
     }
 
-    // Check if user has any registration and get cleaning days data for formatted date
-    const registration = await Registration.findOne({ userId });
+    // Check if user has any registration
+    const registration = await Registration.findOne({ userId: decoded.userId });
     const isRegistered = !!registration;
+
+    // Check if user is a tutor
+    const tutor = await Tutor.findOne({ userId: decoded.userId });
+    const isTutor = !!tutor;
+
+    // Check if user is an admin (either super admin or promoted admin)
+    const isSuperAdmin = user.email === 'atbriz256@gmail.com';
+    const promotedAdmin = await Admin.findOne({ userId: decoded.userId });
+    const isAdmin = isSuperAdmin || !!promotedAdmin;
 
     // Get formatted date from registration data
     let formattedDate = '';
     if (isRegistered && registration.cleaningDayDate) {
-      // The registration already contains the formatted date
       formattedDate = registration.cleaningDayDate;
     }
 
@@ -59,7 +93,13 @@ export async function POST(request: Request) {
         lastName: user.lastName,
         email: user.email,
         phoneNumber: user.phoneNumber || '',
-        fullName: `${user.firstName} ${user.lastName}`
+        fullName: `${user.firstName} ${user.lastName}`,
+        isAdmin,
+        isSuperAdmin,
+        adminPermissions: promotedAdmin ? promotedAdmin.permissions : null,
+        adminRole: isSuperAdmin ? 'super-admin' : (promotedAdmin ? promotedAdmin.role : null),
+        isTutor,
+        tutorPermissions: isTutor ? tutor.permissions : null
       },
       isRegistered,
       registrations: isRegistered ? [{

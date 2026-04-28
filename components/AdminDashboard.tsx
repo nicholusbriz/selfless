@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import ExcelExporter from './ExcelExporter';
 import Announcements from './Announcements';
+import TutorManagement from './TutorManagement';
+import AdminManagement from './AdminManagement';
 
 interface User {
   id: string;
@@ -29,12 +31,13 @@ interface AdminDashboardProps {
   adminId: string;
   adminEmail: string;
   adminName: string;
-  initialSection?: 'overview' | 'users' | 'courses' | 'registered-days' | 'system' | 'communication' | 'security' | 'reporting' | 'announcements';
+  isSuperAdmin?: boolean;
+  initialSection?: 'overview' | 'users' | 'courses' | 'registered-days' | 'system' | 'communication' | 'security' | 'reporting' | 'announcements' | 'tutors' | 'admins';
   showOnlySection?: boolean;
   onStatsRefresh?: () => void; // Function to refresh dashboard statistics
 }
 
-export default function AdminDashboard({ adminId, adminEmail, adminName, initialSection = 'overview', showOnlySection = false, onStatsRefresh }: AdminDashboardProps) {
+export default function AdminDashboard({ adminId, adminEmail, adminName, isSuperAdmin = false, initialSection = 'overview', showOnlySection = false, onStatsRefresh }: AdminDashboardProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [courseSubmissions, setCourseSubmissions] = useState<CourseSubmission[]>([]);
   const [registeredDays, setRegisteredDays] = useState<Array<{
@@ -938,6 +941,41 @@ export default function AdminDashboard({ adminId, adminEmail, adminName, initial
                 adminId={adminId}
                 adminEmail={adminEmail}
                 adminName={adminName}
+              />
+            </div>
+          </div>
+        )}
+
+        {initialSection === 'tutors' && (
+          <div className="bg-white rounded-lg shadow-sm border">
+            <div className="p-6 border-b">
+              <h2 className="text-lg font-semibold text-gray-900">Tutor Management</h2>
+              <p className="text-sm text-gray-600 mt-1">Add and manage tutor permissions for announcements</p>
+            </div>
+
+            <div className="p-6">
+              <TutorManagement
+                adminId={adminId}
+                adminEmail={adminEmail}
+                adminName={adminName}
+              />
+            </div>
+          </div>
+        )}
+
+        {initialSection === 'admins' && (
+          <div className="bg-white rounded-lg shadow-sm border">
+            <div className="p-6 border-b">
+              <h2 className="text-lg font-semibold text-gray-900">Admin Management</h2>
+              <p className="text-sm text-gray-600 mt-1">Manage administrators (Cannot remove super admin)</p>
+            </div>
+
+            <div className="p-6">
+              <AdminManagement
+                adminId={adminId}
+                adminEmail={adminEmail}
+                adminName={adminName}
+                isSuperAdmin={isSuperAdmin}
               />
             </div>
           </div>

@@ -32,34 +32,47 @@ export default function CreditsPage() {
   const [courseRegistrations, setCourseRegistrations] = useState<CourseRegistration[]>([]);
   const router = useRouter();
 
-  // Check if user is admin (URL-based authentication)
+  // Check if user is admin (JWT-based authentication)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const userId = urlParams.get('userId');
-      const email = urlParams.get('email');
+    const checkAdminAuth = async () => {
+      if (typeof window !== 'undefined') {
+        try {
+          const response = await fetch('/api/user-status', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
 
-      if (!userId || !email) {
-        router.push('/');
-        return;
+          if (!response.ok) {
+            router.push('/');
+            return;
+          }
+
+          const data = await response.json();
+          if (!data.success || !data.user) {
+            router.push('/');
+            return;
+          }
+
+          // Admin check - only authorized emails can access admin dashboard
+          if (!isAdminEmail(data.user.email)) {
+            router.push('/dashboard');
+            return;
+          }
+
+          setCurrentUser({
+            adminId: data.user.id,
+            adminEmail: data.user.email,
+            adminName: data.user.fullName || `${data.user.firstName} ${data.user.lastName}`.trim() || 'Admin'
+          });
+        } catch (error) {
+          router.push('/');
+        }
       }
+    };
 
-      // Admin check - only authorized emails can access admin dashboard
-      if (!isAdminEmail(email)) {
-        router.push('/form');
-        return;
-      }
-
-      // Set current user for dashboard
-      const firstName = urlParams.get('firstName') || '';
-      const lastName = urlParams.get('lastName') || '';
-      
-      setCurrentUser({
-        adminId: userId,
-        adminEmail: email,
-        adminName: `${firstName} ${lastName}`.trim() || 'Admin'
-      });
-    }
+    checkAdminAuth();
   }, [router]);
 
   if (!currentUser) {

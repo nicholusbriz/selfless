@@ -14,25 +14,13 @@ function PoliciesPage() {
   // Check authentication
   useEffect(() => {
     const checkAuthentication = async () => {
-      // Get user data from URL parameters
-      const urlParams = new URLSearchParams(window.location.search);
-      const userId = urlParams.get('userId');
-      const email = urlParams.get('email');
-
-      if (!userId || !email) {
-        // No auth params, redirect to home
-        router.push('/');
-        return;
-      }
-
       try {
-        // Verify user exists in database
+        // Verify user status via JWT token
         const response = await fetch('/api/user-status', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId, email }),
         });
 
         if (!response.ok) {
@@ -426,9 +414,7 @@ function PoliciesPage() {
       <div className="text-center mt-8">
         <button
           onClick={() => {
-            // Preserve URL parameters when redirecting to dashboard
-            const urlParams = new URLSearchParams(window.location.search);
-            router.push(`/dashboard?${urlParams.toString()}`);
+            router.push('/dashboard');
           }}
           className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-blue-500/25 flex items-center justify-center gap-3"
         >
