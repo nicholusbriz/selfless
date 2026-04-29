@@ -4,6 +4,8 @@ import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useState } from 'react';
+import { checkUserAccess } from '@/lib/auth';
+import { BackgroundImage, DashboardButton, PageLoader } from '@/components/ui';
 
 function PoliciesPage() {
   const router = useRouter();
@@ -15,23 +17,9 @@ function PoliciesPage() {
   useEffect(() => {
     const checkAuthentication = async () => {
       try {
-        // Verify user status via JWT token
-        const response = await fetch('/api/user-status', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
+        const authResult = await checkUserAccess();
 
-        if (!response.ok) {
-          // User not found, redirect to home
-          router.push('/');
-          return;
-        }
-
-        const data = await response.json();
-
-        if (data.success && data.user) {
+        if (authResult.success && authResult.user) {
           setIsAuthenticated(true);
         } else {
           // User not found, redirect to home
@@ -250,20 +238,20 @@ function PoliciesPage() {
       return (
         <div className={isList ? "space-y-2" : "space-y-1"}>
           {content.map((item, index) => (
-            <div key={index} className="text-gray-700 leading-relaxed">
+            <div key={index} className="text-gray-100 leading-relaxed">
               {isList && item.startsWith('•') ? (
                 <div className="flex items-start space-x-2">
-                  <span className="text-blue-500 mt-1">•</span>
+                  <span className="text-blue-400 mt-1">•</span>
                   <span>{item.replace('•', '').trim()}</span>
                 </div>
               ) : item.startsWith('  •') ? (
                 <div className="flex items-start space-x-2 ml-4">
-                  <span className="text-blue-500 mt-1">•</span>
+                  <span className="text-blue-400 mt-1">•</span>
                   <span>{item.replace('  •', '').trim()}</span>
                 </div>
               ) : item.match(/^\d+\./) ? (
                 <div className="flex items-start space-x-2">
-                  <span className="text-blue-500 font-semibold">{item.split('.')[0]}.</span>
+                  <span className="text-blue-400 font-semibold">{item.split('.')[0]}.</span>
                   <span>{item.split('.').slice(1).join('.').trim()}</span>
                 </div>
               ) : (
@@ -275,7 +263,7 @@ function PoliciesPage() {
       );
     }
 
-    return <p className="text-gray-700 leading-relaxed">{content}</p>;
+    return <p className="text-gray-100 leading-relaxed">{content}</p>;
   };
 
   const renderSection = (sectionKey: string, section: { content?: string | string[]; subsections?: Record<string, { title: string; content?: string | string[]; list?: string }> }) => {
@@ -284,8 +272,8 @@ function PoliciesPage() {
         {section.content && renderContent(section.content)}
 
         {section.subsections && Object.entries(section.subsections).map(([subKey, subsection]: [string, { title: string; content?: string | string[]; list?: string }]) => (
-          <div key={subKey} className="bg-blue-50 rounded-lg p-6 border border-blue-200">
-            <h3 className="text-xl font-semibold text-blue-900 mb-4">{subsection.title}</h3>
+          <div key={subKey} className="bg-black/20 rounded-lg p-6 border border-white/20">
+            <h3 className="text-xl font-semibold text-white mb-4">{subsection.title}</h3>
             {subsection.content && renderContent(subsection.content, true)}
             {subsection.list && renderContent(subsection.list, true)}
             {subsection.content && typeof subsection.content === 'string' && renderContent(subsection.content)}
@@ -297,35 +285,7 @@ function PoliciesPage() {
 
   // Show loading while checking authentication
   if (checkingAuth) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20"></div>
-        <div className="text-center relative z-10">
-          <div className="mb-8">
-            <div className="relative inline-flex items-center justify-center">
-              <div className="absolute inset-0 w-24 h-24 border-4 border-purple-500/30 rounded-full animate-spin"></div>
-              <div className="absolute inset-2 w-20 h-20 border-4 border-indigo-500/50 rounded-full animate-spin animation-reverse"></div>
-              <div className="absolute inset-4 w-16 h-16 border-4 border-pink-500/70 rounded-full animate-spin animation-delay-1000"></div>
-              <div className="relative w-12 h-12 bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-600 rounded-full shadow-2xl shadow-purple-500/50 flex items-center justify-center animate-bounce-in">
-                <Image
-                  src="/freedom.png"
-                  alt="Freedom Logo"
-                  width={32}
-                  height={32}
-                  className="w-8 h-8 object-contain animate-glow"
-                />
-              </div>
-            </div>
-          </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-300 via-indigo-300 to-pink-300 bg-clip-text text-transparent animate-gradient-shift">
-            Verifying Access
-          </h1>
-          <p className="text-purple-200 text-lg font-medium mt-4">
-            Please wait while we verify your credentials...
-          </p>
-        </div>
-      </div>
-    );
+    return <PageLoader text="Verifying Access" color="purple" />;
   }
 
   // Only render content if authenticated
@@ -334,95 +294,103 @@ function PoliciesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 pb-20 md:pb-0">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full p-1.5">
-                <Image src="/freedom.png" alt="Logo" width={20} height={20} className="w-full h-full object-contain" />
-              </div>
-              <h1 className="text-xl font-bold text-gray-900">SELFLESS CE Policies</h1>
+    <BackgroundImage className="h-screen">
+      <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20"></div>
+      <div className="relative z-10 container mx-auto px-4 py-8 h-full flex flex-col">
+        <div className="overflow-y-auto flex-1">
+          {/* Enhanced Header */}
+          <div className="text-center mb-16 animate-fade-in-down">
+            <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-600 rounded-full mb-8 shadow-2xl shadow-purple-500/30 p-3 animate-bounce-in">
+              <Image
+                src="/freedom.png"
+                alt="Freedom City Tech Center Logo"
+                width={96}
+                height={96}
+                className="w-full h-full object-contain animate-glow"
+              />
+            </div>
+            <div className="max-w-4xl mx-auto">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold bg-gradient-to-r from-purple-100 via-indigo-100 to-pink-100 bg-clip-text text-transparent mb-6 animate-slide-in-right leading-relaxed drop-shadow-2xl">
+                SELFLESS CE Policies
+              </h1>
+            </div>
+            <div className="max-w-2xl mx-auto">
+              <p className="text-purple-100 text-lg sm:text-xl md:text-2xl lg:text-3xl font-medium mb-4 animate-slide-in-left drop-shadow-lg">
+                Freedom City Tech Center
+              </p>
+              <p className="text-gray-300 text-base sm:text-lg md:text-xl lg:text-2xl animate-slide-in-up drop-shadow-md">
+                Center policies and guidelines
+              </p>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Mobile Navigation */}
-      <div className="md:hidden bg-white border-b border-gray-200 sticky top-0 z-40">
-        <div className="grid grid-cols-3 gap-2">
-          {navigationItems.slice(0, 9).map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveSection(item.id)}
-              className={`px-2 py-2 rounded-lg text-xs font-medium transition-colors text-center ${activeSection === item.id
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-            >
-              <div className="text-lg mb-1">{item.icon}</div>
-              <div className="leading-tight">{item.title.split(' ')[0]}</div>
-            </button>
-          ))}
-        </div>
-      </div>
+          {/* Navigation and Content Container */}
+          <div className="flex flex-col lg:flex-row gap-8 animate-fade-in-up">
+            {/* Desktop Navigation */}
+            <div className="hidden lg:block w-80 flex-shrink-0">
+              <div className="bg-black/30 rounded-2xl p-8 border border-white/20 sticky top-8">
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-100 to-indigo-100 bg-clip-text text-transparent mb-6 text-center drop-shadow-lg">Policy Sections</h2>
+                <nav className="space-y-3">
+                  {navigationItems.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => setActiveSection(item.id)}
+                      className={`w-full text-left px-6 py-4 rounded-2xl transition-all duration-300 flex items-center space-x-4 transform hover:scale-105 ${activeSection === item.id
+                        ? 'bg-gradient-to-r from-purple-600/30 to-indigo-600/30 border-2 border-purple-400/50 shadow-xl shadow-purple-500/40 text-white'
+                        : 'bg-white/10 border-2 border-white/30 text-gray-200 hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-indigo-500/20 hover:border-purple-400/40'
+                        }`}
+                    >
+                      <span className="text-2xl">{item.icon}</span>
+                      <span className="font-semibold text-lg">{item.title}</span>
+                    </button>
+                  ))}
+                </nav>
+              </div>
+            </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Desktop Sidebar */}
-          <div className="hidden lg:block w-80 flex-shrink-0">
-            <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 sticky top-24">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Policy Sections</h2>
-              <nav className="space-y-2">
-                {navigationItems.map((item) => (
+            {/* Mobile Navigation */}
+            <div className="lg:hidden bg-black/30 rounded-2xl p-4 border border-white/20 sticky top-4 z-40">
+              <div className="grid grid-cols-3 gap-3">
+                {navigationItems.slice(0, 9).map((item) => (
                   <button
                     key={item.id}
                     onClick={() => setActiveSection(item.id)}
-                    className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center space-x-3 ${activeSection === item.id
-                      ? 'bg-blue-600 text-white'
-                      : 'hover:bg-gray-100 text-gray-700'
+                    className={`p-4 rounded-2xl transition-all duration-300 flex flex-col items-center space-y-2 transform hover:scale-105 ${activeSection === item.id
+                      ? 'bg-gradient-to-r from-purple-600/30 to-indigo-600/30 border-2 border-purple-400/50 shadow-xl shadow-purple-500/40 text-white'
+                      : 'bg-white/10 border-2 border-white/30 text-gray-200 hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-indigo-500/20 hover:border-purple-400/40'
                       }`}
                   >
-                    <span className="text-xl">{item.icon}</span>
-                    <span className="font-medium">{item.title}</span>
+                    <span className="text-2xl">{item.icon}</span>
+                    <span className="text-xs font-semibold text-center">{item.title.split(' ')[0]}</span>
                   </button>
                 ))}
-              </nav>
+              </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="flex-1">
+              <div className="bg-black/30 rounded-2xl p-8 lg:p-12 border border-white/20">
+                <div className="mb-8">
+                  <h1 className="text-3xl lg:text-4xl xl:text-5xl font-bold bg-gradient-to-r from-purple-100 to-indigo-100 bg-clip-text text-transparent mb-4 animate-slide-in-right drop-shadow-2xl">
+                    {policies[activeSection as keyof typeof policies].title}
+                  </h1>
+                  <div className="h-2 bg-gradient-to-r from-purple-500 via-indigo-500 to-pink-500 rounded-full w-32 animate-slide-in-left shadow-lg shadow-purple-500/50"></div>
+                </div>
+
+                <div className="prose prose-lg max-w-none">
+                  {renderSection(activeSection, policies[activeSection as keyof typeof policies])}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Main Content */}
-          <div className="flex-1">
-            <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 lg:p-8">
-              <div className="mb-6">
-                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-3">
-                  {policies[activeSection as keyof typeof policies].title}
-                </h1>
-                <div className="h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full w-20"></div>
-              </div>
-
-              <div className="prose prose-lg max-w-none">
-                {renderSection(activeSection, policies[activeSection as keyof typeof policies])}
-              </div>
-            </div>
+          {/* Go to Dashboard Button */}
+          <div className="mb-12 text-center animate-fade-in-up">
+            <DashboardButton text="Back to Dashboard" />
           </div>
         </div>
       </div>
-
-      {/* Go to Dashboard Button */}
-      <div className="text-center mt-8">
-        <button
-          onClick={() => {
-            router.push('/dashboard');
-          }}
-          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-blue-500/25 flex items-center justify-center gap-3"
-        >
-          <span className="text-xl">🏠</span>
-          <span className="text-lg">Back to Dashboard</span>
-        </button>
-      </div>
-    </div>
+    </BackgroundImage>
   );
 }
 

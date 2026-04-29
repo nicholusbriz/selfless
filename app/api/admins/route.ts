@@ -3,6 +3,7 @@ import connectDB from '@/models/database';
 import User from '@/models/User';
 import Admin from '@/models/Admin';
 import jwt from 'jsonwebtoken';
+import { isSuperAdminEmail } from '@/config/admin';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -25,8 +26,8 @@ async function verifyAdminToken(request: Request) {
     const user = await User.findById(decoded.userId);
     if (!user) return null;
 
-    // Check if user is admin (either hardcoded super admin or promoted admin)
-    const isSuperAdmin = user.email === 'atbriz256@gmail.com';
+    // Check if user is admin using admin.ts config
+    const isSuperAdmin = isSuperAdminEmail(user.email);
     const promotedAdmin = await Admin.findOne({ userId: user._id.toString() });
 
     if (!isSuperAdmin && !promotedAdmin) return null;
@@ -109,7 +110,7 @@ export async function POST(request: Request) {
     }
 
     // Don't allow promoting the super admin again
-    if (targetUser.email === 'atbriz256@gmail.com') {
+    if (isSuperAdminEmail(targetUser.email)) {
       return NextResponse.json({ success: false, message: 'This user is already a super admin' }, { status: 400 });
     }
 
@@ -180,8 +181,8 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, message: 'Admin not found' }, { status: 404 });
     }
 
-    // Prevent removing the hardcoded super admin
-    if (adminToRemove.email === 'atbriz256@gmail.com') {
+    // Prevent removing the super admin
+    if (isSuperAdminEmail(adminToRemove.email)) {
       return NextResponse.json({ success: false, message: 'Cannot remove the super admin' }, { status: 403 });
     }
 

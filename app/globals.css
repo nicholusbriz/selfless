@@ -85,6 +85,13 @@
         border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
+    .glass-card {
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
     .text-gradient-primary {
         background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
         -webkit-background-clip: text;
@@ -104,28 +111,39 @@
 
 @layer utilities {
     .animate-fade-in {
-        animation: fadeIn 0.5s ease-in-out;
+        animation: fade-in 0.5s ease-in-out;
     }
 
     .animate-slide-up {
-        animation: fadeInUp 0.6s ease-out;
+        animation: fade-in-up 0.6s ease-out;
     }
 
     .animate-slide-down {
-        animation: slideDown 0.6s ease-out;
+        animation: fade-in-down 0.6s ease-out;
+    }
+
+    .animate-slide-in-left {
+        animation: slide-in-left 0.5s ease-out;
+    }
+
+    .animate-slide-in-right {
+        animation: slide-in-right 0.5s ease-out;
     }
 
     .animate-bounce-in {
-        animation: bounceIn 0.5s ease-out;
+        animation: bounce-in 0.8s ease-out;
+    }
+
+    .animate-scale-in {
+        animation: scale-in 0.3s ease-out;
+    }
+
+    .animate-pulse-slow {
+        animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
 
     .animate-float {
-        animation: float 4s ease-in-out infinite;
-    }
-
-    .animate-float-delayed {
-        animation: float 4s ease-in-out infinite;
-        animation-delay: 2s;
+        animation: float 3s ease-in-out infinite;
     }
 
     .animate-glow {
@@ -133,15 +151,7 @@
     }
 
     .animate-shimmer {
-        animation: shimmer 2s ease-in-out infinite;
-    }
-
-    .animate-pulse {
-        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-
-    .animate-scale-in {
-        animation: scaleIn 0.5s ease-out;
+        animation: shimmer 2s linear infinite;
     }
 
     .animate-spin-slow {
@@ -160,7 +170,7 @@
 }
 
 /* Essential animations */
-@keyframes fadeIn {
+@keyframes fade-in {
     from {
         opacity: 0;
     }
@@ -170,7 +180,7 @@
     }
 }
 
-@keyframes fadeInUp {
+@keyframes fade-in-up {
     from {
         opacity: 0;
         transform: translateY(20px);
@@ -182,7 +192,7 @@
     }
 }
 
-@keyframes slideDown {
+@keyframes fade-in-down {
     from {
         opacity: 0;
         transform: translateY(-20px);
@@ -194,7 +204,31 @@
     }
 }
 
-@keyframes bounceIn {
+@keyframes slide-in-left {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slide-in-right {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes bounce-in {
     0% {
         opacity: 0;
         transform: scale(0.3);
@@ -212,6 +246,30 @@
     100% {
         opacity: 1;
         transform: scale(1);
+    }
+}
+
+@keyframes scale-in {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes pulse-slow {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
     }
 }
 
@@ -247,30 +305,6 @@
     }
 }
 
-@keyframes pulse {
-
-    0%,
-    100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.5;
-    }
-}
-
-@keyframes scaleIn {
-    from {
-        opacity: 0;
-        transform: scale(0.9);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
 @keyframes spin {
     from {
         transform: rotate(0deg);
@@ -278,17 +312,5 @@
 
     to {
         transform: rotate(360deg);
-    }
-}
-
-@keyframes slide-down {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
     }
 }

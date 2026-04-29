@@ -4,6 +4,7 @@ import { ObjectId } from 'mongodb';
 import User from '@/models/User';
 import Admin from '@/models/Admin';
 import jwt from 'jsonwebtoken';
+import { isSuperAdminEmail } from '@/config/admin';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -12,8 +13,8 @@ async function verifyAdmin(userId: string) {
   const user = await User.findById(userId);
   if (!user) return null;
 
-  // Check if user is admin (either super admin or promoted admin)
-  const isSuperAdmin = user.email === 'atbriz256@gmail.com';
+  // Check if user is admin using admin.ts config
+  const isSuperAdmin = isSuperAdminEmail(user.email);
   const promotedAdmin = await Admin.findOne({ userId: user._id.toString() });
 
   if (!isSuperAdmin && !promotedAdmin) return null;

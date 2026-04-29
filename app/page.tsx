@@ -3,35 +3,20 @@
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import PWAInstallPrompt from '@/components/PWAInstallPrompt';
+import { BackgroundImage } from '@/components/ui';
 
 export default function Page() {
   const router = useRouter();
 
   return (
     <>
-      <div className="min-h-screen relative overflow-hidden">
-        {/* Image Background */}
-        <div className="absolute inset-0 w-full h-full">
-          <Image
-            src="/atbriz.jpg"
-            alt="Background"
-            fill
-            className="object-cover"
-            style={{
-              filter: 'brightness(0.3) contrast(1.1) saturate(0.8) blur(0.8px)',
-              objectFit: 'cover',
-              objectPosition: 'center',
-            }}
-            priority
-          />
-
-          {/* Overlay gradient for better text readability */}
-          <div className="absolute inset-0 bg-gradient-to-b from-blue-900/20 via-blue-800/10 to-purple-900/20"></div>
-          <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5"></div>
-        </div>
+      <BackgroundImage className="min-h-screen relative overflow-hidden">
+        {/* Overlay gradient for better text readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-blue-900/20 via-blue-800/10 to-purple-900/20"></div>
+        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5"></div>
 
         {/* Content */}
-        <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
+        <div className="min-h-screen flex items-center justify-center p-4">
           {/* Floating animated elements */}
           <div className="absolute top-10 left-10 w-32 h-32 bg-blue-400/20 rounded-full blur-3xl animate-float"></div>
           <div className="absolute top-20 right-20 w-40 h-40 bg-purple-400/20 rounded-full blur-3xl animate-float animation-delay-2000"></div>
@@ -136,7 +121,7 @@ export default function Page() {
             </div>
           </div>
         </div>
-      </div>
+      </BackgroundImage>
       <PWAInstallPrompt />
     </>
   );

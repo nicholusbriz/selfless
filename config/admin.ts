@@ -1,27 +1,12 @@
-// Admin configuration - easily manage admin emails
-export const ADMIN_CONFIG = {
-  emails: [
-    'atbriz256@gmail.com',
-    'kiwanukatonny@gmail.com',
-    // Add more admin emails here
-  ],
-  
-  // Admin access levels (for future expansion)
-  roles: {
-    SUPER_ADMIN: ['atbriz256@gmail.com'],
-    ADMIN: ['kiwanukatonny@gmail.com'],
-  }
+// Admin configuration - only for super admin
+// Regular admins are managed through database (Admin collection)
+
+export const SUPER_ADMIN_EMAIL = 'atbriz256@gmail.com';
+
+export const isSuperAdminEmail = (email: string): boolean => {
+  return email === SUPER_ADMIN_EMAIL;
 };
 
-export const isAdminEmail = (email: string): boolean => {
-  return ADMIN_CONFIG.emails.includes(email);
-};
-
-export const getAdminRole = (email: string): string | null => {
-  for (const [role, emails] of Object.entries(ADMIN_CONFIG.roles)) {
-    if (emails.includes(email)) {
-      return role;
-    }
-  }
-  return null;
+export const getAdminRole = (email: string): 'SUPER_ADMIN' | null => {
+  return email === SUPER_ADMIN_EMAIL ? 'SUPER_ADMIN' : null;
 };
