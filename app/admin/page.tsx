@@ -3,23 +3,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { isAdminEmail } from '@/config/admin';
+import { checkUserAccess, User } from '@/lib/auth';
 import AdminDashboard from '@/components/AdminDashboard';
-import LoadingSpinner from '@/components/LoadingSpinner';
+import { PageLoader, BackgroundImage, DashboardButton } from '@/components/ui';
 
 // Types
 interface Course {
   id: string;
   name: string;
   credits: number;
-}
-
-interface User {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phoneNumber?: string;
 }
 
 interface CourseRegistration {
@@ -203,31 +195,17 @@ function Admin() {
 
       if (typeof window !== 'undefined') {
         try {
-          // Verify user status via JWT token
-          const response = await fetch('/api/user-status', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
+          const authResult = await checkUserAccess();
+          console.log('Admin Auth: User data from JWT', authResult);
 
-          if (!response.ok) {
-            console.log('Admin Auth: Invalid token, redirecting to home');
-            router.push('/');
-            return;
-          }
-
-          const data = await response.json();
-          console.log('Admin Auth: User data from JWT', data);
-
-          if (!data.success || !data.user) {
+          if (!authResult.success || !authResult.user) {
             console.log('Admin Auth: No user data, redirecting to home');
             router.push('/');
             return;
           }
 
           // Admin check - user must be admin (either super admin or promoted admin)
-          if (!data.user.isAdmin) {
+          if (!authResult.user.isAdmin) {
             console.log('Admin Auth: Not admin, redirecting to dashboard');
             router.push('/dashboard');
             return;
@@ -251,23 +229,15 @@ function Admin() {
   useEffect(() => {
     const setAdminUser = async () => {
       try {
-        const response = await fetch('/api/user-status', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
+        const authResult = await checkUserAccess();
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.user && data.user.isAdmin) {
-            setCurrentUser({
-              adminId: data.user.id,
-              adminEmail: data.user.email,
-              adminName: data.user.fullName || `${data.user.firstName} ${data.user.lastName}`.trim() || 'Admin',
-              isSuperAdmin: data.user.isSuperAdmin || false
-            });
-          }
+        if (authResult.success && authResult.user && authResult.user.isAdmin) {
+          setCurrentUser({
+            adminId: authResult.user.id,
+            adminEmail: authResult.user.email,
+            adminName: authResult.user.fullName || `${authResult.user.firstName} ${authResult.user.lastName}`.trim() || 'Admin',
+            isSuperAdmin: authResult.user.isSuperAdmin || false
+          });
         }
       } catch (error) {
         console.error('Error setting admin user:', error);
@@ -283,49 +253,49 @@ function Admin() {
   if (isLoading || !currentUser) {
     console.log('Admin Page: Showing loading', { isLoading, hasCurrentUser: !!currentUser });
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-xl">
-          {!currentUser ? "Authenticating..." : "Loading..."}
-        </div>
-      </div>
+      <PageLoader text={!currentUser ? "Authenticating..." : "Loading..."} color="purple" />
     );
   }
 
   return (
-    <div className="h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
+    <BackgroundImage className="h-screen">
       <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20"></div>
-      <div className="relative z-10 backdrop-blur-sm bg-white/10 h-full flex flex-col">
-        <div className="container mx-auto px-4 py-8 overflow-y-auto flex-1">
+      <div className="relative z-10 container mx-auto px-4 py-8 h-full flex flex-col">
+        <div className="overflow-y-auto flex-1">
           {/* Enhanced Header */}
-          <div className="text-center mb-8 animate-fade-in-down">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-500 rounded-full mb-4 animate-bounce-in shadow-lg shadow-purple-500/50 p-2">
+          <div className="text-center mb-16 animate-fade-in-down">
+            <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-600 rounded-full mb-8 shadow-2xl shadow-purple-500/30 p-3 animate-bounce-in">
               <Image
                 src="/freedom.png"
                 alt="Freedom City Tech Center Logo"
-                width={80}
-                height={80}
+                width={96}
+                height={96}
                 className="w-full h-full object-contain animate-glow"
               />
             </div>
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-3 animate-shimmer">
-              FreedomCity Tech Center Admin Management Dashboard
-            </h1>
-            <p className="text-purple-200 text-xl font-medium mb-2 animate-slide-in-left">
-              Freedom City Tech Center
-            </p>
-            <p className="text-gray-300 text-lg mb-6 animate-slide-in-right">
-              Manage student registrations from the forms
-            </p>
-            <div className="flex items-center justify-center gap-4 text-white/80 text-sm animate-fade-in-up">
-              <div className="glass-morphism px-4 py-2 rounded-full border border-purple-500/30 hover-lift">
+            <div className="max-w-4xl mx-auto">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold bg-gradient-to-r from-purple-100 via-indigo-100 to-pink-100 bg-clip-text text-transparent mb-6 animate-slide-in-right leading-relaxed drop-shadow-2xl">
+                FreedomCity Tech Center Admin Management Dashboard
+              </h1>
+            </div>
+            <div className="max-w-2xl mx-auto">
+              <p className="text-purple-100 text-lg sm:text-xl md:text-2xl lg:text-3xl font-medium mb-4 animate-slide-in-left drop-shadow-lg">
+                Freedom City Tech Center
+              </p>
+              <p className="text-gray-300 text-base sm:text-lg md:text-xl lg:text-2xl animate-slide-in-up drop-shadow-md">
+                Manage student registrations from the forms
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-4 text-white/80 text-sm animate-fade-in-up mt-8">
+              <div className="glass-morphism px-6 py-3 rounded-full border border-purple-500/30 hover-lift">
                 <span className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                  <div className="w-3 h-3 bg-purple-400 rounded-full animate-pulse"></div>
                   Last updated: {lastUpdated?.toLocaleTimeString()}
                 </span>
               </div>
               <button
-                onClick={() => {/* Refresh functionality */ }}
-                className="glass-morphism hover:glass-card px-6 py-2 rounded-full border border-purple-400/50 transition-all duration-300 hover:scale-105 shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 animate-float"
+                onClick={refreshDashboardStats}
+                className="glass-morphism hover:glass-card px-8 py-3 rounded-full border border-purple-400/50 transition-all duration-300 hover:scale-105 shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 animate-float"
               >
                 <span className="flex items-center gap-2">
                   <span className="animate-spin-slow">🔄</span>
@@ -335,24 +305,24 @@ function Admin() {
             </div>
           </div>
 
-          {/* Policies-Style Navigation */}
-          <div className="flex flex-col lg:flex-row gap-6 animate-fade-in-up">
+          {/* Navigation and Content Container */}
+          <div className="flex flex-col lg:flex-row gap-8 animate-fade-in-up">
             {/* Desktop Navigation */}
             <div className="hidden lg:block w-80 flex-shrink-0">
-              <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 sticky top-24">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Admin Sections</h2>
-                <nav className="space-y-2">
+              <div className="bg-black/30 rounded-2xl p-8 border border-white/20 sticky top-8">
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-100 to-indigo-100 bg-clip-text text-transparent mb-6 text-center drop-shadow-lg">Admin Sections</h2>
+                <nav className="space-y-3">
                   {navigationItems.map((item) => (
                     <button
                       key={item.id}
                       onClick={() => setActiveSection(item.id)}
-                      className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-200 flex items-center space-x-3 ${activeSection === item.id
-                        ? 'bg-blue-600 text-white shadow-lg'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      className={`w-full text-left px-6 py-4 rounded-2xl transition-all duration-300 flex items-center space-x-4 transform hover:scale-105 ${activeSection === item.id
+                        ? 'bg-gradient-to-r from-purple-600/30 to-indigo-600/30 border-2 border-purple-400/50 shadow-xl shadow-purple-500/40 text-white'
+                        : 'bg-white/10 border-2 border-white/30 text-gray-200 hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-indigo-500/20 hover:border-purple-400/40'
                         }`}
                     >
-                      <span className="text-lg">{item.icon}</span>
-                      <span className="font-medium">{item.title}</span>
+                      <span className="text-2xl">{item.icon}</span>
+                      <span className="font-semibold text-lg">{item.title}</span>
                     </button>
                   ))}
                 </nav>
@@ -360,19 +330,19 @@ function Admin() {
             </div>
 
             {/* Mobile Navigation */}
-            <div className="lg:hidden bg-white border-b border-gray-200 sticky top-0 z-40">
-              <div className="grid grid-cols-3 gap-2">
+            <div className="lg:hidden bg-black/30 rounded-2xl p-4 border border-white/20 sticky top-4 z-40">
+              <div className="grid grid-cols-3 gap-3">
                 {navigationItems.slice(0, 9).map((item) => (
                   <button
                     key={item.id}
                     onClick={() => setActiveSection(item.id)}
-                    className={`p-3 rounded-lg transition-all duration-200 flex flex-col items-center space-y-1 ${activeSection === item.id
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    className={`p-4 rounded-2xl transition-all duration-300 flex flex-col items-center space-y-2 transform hover:scale-105 ${activeSection === item.id
+                      ? 'bg-gradient-to-r from-purple-600/30 to-indigo-600/30 border-2 border-purple-400/50 shadow-xl shadow-purple-500/40 text-white'
+                      : 'bg-white/10 border-2 border-white/30 text-gray-200 hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-indigo-500/20 hover:border-purple-400/40'
                       }`}
                   >
-                    <span className="text-lg">{item.icon}</span>
-                    <span className="text-xs font-medium text-center">{item.title}</span>
+                    <span className="text-2xl">{item.icon}</span>
+                    <span className="text-xs font-semibold text-center">{item.title}</span>
                   </button>
                 ))}
               </div>
@@ -380,9 +350,9 @@ function Admin() {
 
             {/* Main Content */}
             <div className="flex-1">
-              <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 lg:p-8">
-                <div className="mb-6">
-                  <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-3">
+              <div className="bg-black/30 rounded-2xl p-8 lg:p-12 border border-white/20">
+                <div className="mb-8">
+                  <h1 className="text-3xl lg:text-4xl xl:text-5xl font-bold bg-gradient-to-r from-purple-100 to-indigo-100 bg-clip-text text-transparent mb-4 animate-slide-in-right drop-shadow-2xl">
                     {adminContent[activeSection as keyof typeof adminContent]?.title ||
                       activeSection === 'users' ? 'User Management' :
                       activeSection === 'courses' ? 'Course Management' :
@@ -393,7 +363,7 @@ function Admin() {
                                 'Dashboard'
                     }
                   </h1>
-                  <div className="h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full w-20"></div>
+                  <div className="h-2 bg-gradient-to-r from-purple-500 via-indigo-500 to-pink-500 rounded-full w-32 animate-slide-in-left shadow-lg shadow-purple-500/50"></div>
                 </div>
 
                 <div className="prose prose-lg max-w-none">
@@ -405,9 +375,9 @@ function Admin() {
 
           {/* Show AdminDashboard if a section is selected */}
           {showDashboard && currentUser && (
-            <div className="mb-8 animate-fade-in-up">
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold text-white text-center">
+            <div className="mb-12 animate-fade-in-up">
+              <div className="mb-8">
+                <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-purple-100 to-indigo-100 bg-clip-text text-transparent text-center mb-4 animate-slide-in-right drop-shadow-2xl">
                   {showDashboard === 'users' ? 'User Management' :
                     showDashboard === 'courses' ? 'Course Management' :
                       showDashboard === 'registered-days' ? 'Registered Days' :
@@ -416,8 +386,9 @@ function Admin() {
                             showDashboard === 'admins' ? 'Admin Management' :
                               showDashboard === 'overview' ? 'Dashboard Overview' : 'Dashboard'}
                 </h2>
+                <div className="h-2 bg-gradient-to-r from-purple-500 via-indigo-500 to-pink-500 rounded-full w-48 mx-auto animate-slide-in-left shadow-lg shadow-purple-500/50"></div>
               </div>
-              <div className="glass-morphism rounded-2xl border border-purple-500/30 p-6">
+              <div className="bg-black/30 rounded-2xl border border-white/20 p-8">
                 <AdminDashboard
                   adminId={currentUser.adminId}
                   adminEmail={currentUser.adminEmail}
@@ -431,20 +402,12 @@ function Admin() {
           )}
 
           {/* Go to Dashboard Button */}
-          <div className="mb-8 text-center">
-            <button
-              onClick={() => {
-                router.push('/dashboard');
-              }}
-              className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-bold py-4 px-8 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-amber-500/25 flex items-center justify-center gap-3"
-            >
-              <span className="text-xl">🏠</span>
-              <span className="text-lg">Go back to Dashboard</span>
-            </button>
+          <div className="mb-12 text-center animate-fade-in-up">
+            <DashboardButton text="Go back to Dashboard" />
           </div>
         </div>
       </div>
-    </div>
+    </BackgroundImage>
   );
 }
 
@@ -462,16 +425,16 @@ const renderAdminContent = (sectionKey: string, section: { title: string; descri
     ];
 
     return (
-      <div className="space-y-8">
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border border-blue-200">
-          <h3 className="text-xl font-semibold text-blue-900 mb-4">Dashboard Overview</h3>
-          <p className="text-gray-700 leading-relaxed">{section.description}</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+      <div className="space-y-12">
+        <div className="bg-black/30 rounded-2xl p-10 border border-white/20">
+          <h3 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-100 to-indigo-100 bg-clip-text text-transparent mb-6 animate-slide-in-right drop-shadow-2xl">Dashboard Overview</h3>
+          <p className="text-gray-100 text-lg sm:text-xl md:text-2xl leading-relaxed mb-8 animate-slide-in-left drop-shadow-lg">{section.description}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {dynamicStats.map((stat: { icon: string; value: string; label: string }, index: number) => (
-              <div key={index} className="text-center p-6 bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                <div className="text-3xl mb-2">{stat.icon}</div>
-                <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-                <div className="text-sm text-gray-600">{stat.label}</div>
+              <div key={index} className="bg-white/10 rounded-2xl p-8 border border-white/20 hover-lift transition-all duration-300 transform hover:scale-105 animate-fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
+                <div className="text-4xl sm:text-5xl mb-4 animate-bounce-in">{stat.icon}</div>
+                <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-purple-100 to-indigo-100 bg-clip-text text-transparent mb-2 animate-slide-in-right drop-shadow-lg">{stat.value}</div>
+                <div className="text-gray-200 text-sm sm:text-base md:text-lg font-medium animate-slide-in-up drop-shadow-sm">{stat.label}</div>
               </div>
             ))}
           </div>

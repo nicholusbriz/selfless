@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { User } from '@/types';
+import { checkUserAccess, User } from '@/lib/auth';
+import { BackgroundImage, PageLoader, DashboardButton } from '@/components/ui';
 
 interface Course {
   id: string;
@@ -44,38 +45,26 @@ export default function CoursesPage() {
 
   // Check if user has valid authentication from JWT token
   useEffect(() => {
-    const checkUserAccess = async () => {
+    const authenticateUser = async () => {
       try {
-        // Verify user status via JWT token
-        const response = await fetch('/api/user-status', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
+        const authResult = await checkUserAccess();
 
-        if (!response.ok) {
+        if (authResult.success && authResult.user) {
+          setUser(authResult.user);
+        } else {
           // User not found, redirect to home
           router.push('/');
           return;
         }
-
-        const data = await response.json();
-
-        if (data.success && data.user) {
-          setUser(data.user);
-        } else {
-          // User not found, redirect to home
-          router.push('/');
-        }
-      } catch {
+      } catch (authError) {
+        console.error('Authentication error:', authError);
         router.push('/');
       } finally {
         setCheckingStatus(false);
       }
     };
 
-    checkUserAccess();
+    authenticateUser();
   }, [router]);
 
   // Check if user has already registered courses
@@ -284,22 +273,14 @@ export default function CoursesPage() {
     }
   };
 
-  if (!user || checkingStatus || checkingRegistration) {
+  if (user === null || checkingStatus || checkingRegistration) {
     return (
-      <div className="h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20"></div>
-        <div className="text-center relative z-10">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-emerald-400 border-t-white mx-auto mb-6"></div>
-          <p className="text-emerald-200 text-xl font-medium animate-pulse">
-            {checkingStatus ? 'Authenticating...' : 'Checking your courses...'}
-          </p>
-        </div>
-      </div>
+      <PageLoader text="Loading your courses..." color="purple" />
     );
   }
 
   return (
-    <div className="h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
+    <BackgroundImage className="h-screen">
       <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20"></div>
       <div className="relative z-10 container mx-auto px-4 py-8 h-full flex flex-col">
         <div className="overflow-y-auto flex-1">
@@ -655,19 +636,10 @@ export default function CoursesPage() {
 
           {/* Action Buttons - Bottom of Page */}
           <div className="text-center mt-8 space-y-4">
-            <button
-              onClick={() => {
-                const urlParams = new URLSearchParams(window.location.search);
-                router.push(`/dashboard?${urlParams.toString()}`);
-              }}
-              className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-bold py-4 px-8 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-emerald-500/25 flex items-center justify-center gap-3"
-            >
-              <span className="text-xl">🏠</span>
-              <span className="text-lg">Back to Dashboard</span>
-            </button>
+            <DashboardButton text="Back to Dashboard" variant="secondary" />
           </div>
         </div>
       </div>
-    </div>
+    </BackgroundImage>
   );
-} 
+}

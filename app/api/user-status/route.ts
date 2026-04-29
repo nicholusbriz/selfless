@@ -5,6 +5,7 @@ import Registration from '@/models/Registration';
 import Tutor from '@/models/Tutor';
 import Admin from '@/models/Admin';
 import jwt from 'jsonwebtoken';
+import { isSuperAdminEmail } from '@/config/admin';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -74,8 +75,8 @@ export async function POST(request: Request) {
     const tutor = await Tutor.findOne({ userId: decoded.userId });
     const isTutor = !!tutor;
 
-    // Check if user is an admin (either super admin or promoted admin)
-    const isSuperAdmin = user.email === 'atbriz256@gmail.com';
+    // Check if user is an admin using admin.ts config
+    const isSuperAdmin = isSuperAdminEmail(user.email);
     const promotedAdmin = await Admin.findOne({ userId: decoded.userId });
     const isAdmin = isSuperAdmin || !!promotedAdmin;
 

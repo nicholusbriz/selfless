@@ -124,3 +124,43 @@ export async function GET() {
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    await connectDB();
+
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+    const dayId = searchParams.get('dayId');
+
+    if (!userId || !dayId) {
+      return NextResponse.json({ success: false, message: 'User ID and Day ID required' }, { status: 400 });
+    }
+
+    // Delete the registration for the specific user and day
+    const deletedRegistration = await Registration.findOneAndDelete({
+      userId: userId,
+      cleaningDayId: parseInt(dayId)
+    });
+
+    if (!deletedRegistration) {
+      return NextResponse.json({ success: false, message: 'Registration not found' }, { status: 404 });
+    }
+
+    console.log(`Removed user ${userId} from cleaning day ${dayId}`);
+
+    return NextResponse.json({
+      success: true,
+      message: 'User successfully removed from cleaning day',
+      deletedRegistration: {
+        id: deletedRegistration._id.toString(),
+        userId: deletedRegistration.userId,
+        dayId: deletedRegistration.cleaningDayId
+      }
+    });
+
+  } catch (error) {
+    console.error('Error removing user from cleaning day:', error);
+    return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
+  }
+}

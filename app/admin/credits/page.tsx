@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminDashboard from '@/components/AdminDashboard';
-import { isAdminEmail } from '@/config/admin';
+import { checkUserAccess } from '@/lib/auth';
 
 interface Course {
   name: string;
@@ -37,34 +37,23 @@ export default function CreditsPage() {
     const checkAdminAuth = async () => {
       if (typeof window !== 'undefined') {
         try {
-          const response = await fetch('/api/user-status', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
+          const authResult = await checkUserAccess();
 
-          if (!response.ok) {
-            router.push('/');
-            return;
-          }
-
-          const data = await response.json();
-          if (!data.success || !data.user) {
+          if (!authResult.success || !authResult.user) {
             router.push('/');
             return;
           }
 
           // Admin check - only authorized emails can access admin dashboard
-          if (!isAdminEmail(data.user.email)) {
+          if (!authResult.user.isSuperAdmin) {
             router.push('/dashboard');
             return;
           }
 
           setCurrentUser({
-            adminId: data.user.id,
-            adminEmail: data.user.email,
-            adminName: data.user.fullName || `${data.user.firstName} ${data.user.lastName}`.trim() || 'Admin'
+            adminId: authResult.user.id,
+            adminEmail: authResult.user.email,
+            adminName: authResult.user.fullName || `${authResult.user.firstName} ${authResult.user.lastName}`.trim() || 'Admin'
           });
         } catch (error) {
           router.push('/');

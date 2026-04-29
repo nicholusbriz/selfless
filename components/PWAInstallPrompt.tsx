@@ -16,11 +16,13 @@ export default function PWAInstallPrompt() {
   const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
-    // Detect iOS device
+    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    setIsIOS(isIOSDevice);
+  }, []);
+
+  useEffect(() => {
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
     const isStandalone = 'standalone' in window.navigator && !!(window.navigator as { standalone?: boolean }).standalone;
-
-    setIsIOS(isIOSDevice);
 
     // Show install prompt for iOS users after a delay
     if (isIOSDevice && !isStandalone) {

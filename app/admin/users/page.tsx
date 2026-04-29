@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import AdminDashboard from '@/components/AdminDashboard';
+import { checkUserAccess } from '@/lib/auth';
 
 export default function AdminUsersPage() {
   const [adminInfo, setAdminInfo] = useState({
@@ -15,22 +16,14 @@ export default function AdminUsersPage() {
     // Get admin info from JWT token
     const getAdminInfo = async () => {
       try {
-        const response = await fetch('/api/user-status', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
+        const authResult = await checkUserAccess();
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.user) {
-            setAdminInfo({
-              adminId: data.user.id,
-              adminEmail: data.user.email,
-              adminName: data.user.fullName || `${data.user.firstName} ${data.user.lastName}`.trim() || 'Admin'
-            });
-          }
+        if (authResult.success && authResult.user) {
+          setAdminInfo({
+            adminId: authResult.user.id,
+            adminEmail: authResult.user.email,
+            adminName: authResult.user.fullName || `${authResult.user.firstName} ${authResult.user.lastName}`.trim() || 'Admin'
+          });
         }
       } catch (error) {
         console.error('Error getting admin info:', error);
