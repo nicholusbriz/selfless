@@ -3,6 +3,9 @@ import connectDB from '@/models/database';
 import User from '@/models/User';
 import Registration from '@/models/Registration';
 
+// Cache configuration for PWA performance
+export const revalidate = 30; // Revalidate every 30 seconds
+
 export async function GET(request: Request) {
   try {
     await connectDB();

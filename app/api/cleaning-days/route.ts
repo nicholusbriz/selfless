@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/models/database';
 import Registration from '@/models/Registration';
 
+// Cache configuration for PWA performance
+export const revalidate = 60; // Revalidate every minute for cleaning days
+
 export async function GET() {
   try {
     await connectDB();

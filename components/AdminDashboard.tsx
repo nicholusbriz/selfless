@@ -6,27 +6,16 @@ import Announcements from './Announcements';
 import TutorManagement from './TutorManagement';
 import AdminManagement from './AdminManagement';
 import { isSuperAdminEmail } from '@/config/admin';
+import {
+  useUsers,
+  useCourseRegistrations,
+  useCleaningDays,
+  useRemoveUserFromDay,
+  useClearCourseSubmission,
+  useDeleteUser,
+  useRefetchControls
+} from '@/hooks/useApi';
 
-interface User {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phoneNumber?: string;
-  fullName?: string;
-  createdAt?: string | Date;
-}
-
-interface CourseSubmission {
-  id: string;
-  userId: string;
-  userName: string;
-  religion?: string;
-  courseName: string;
-  credits: number;
-  submittedAt: string;
-  status: 'pending' | 'approved' | 'rejected';
-}
 
 interface AdminDashboardProps {
   adminId: string;
@@ -39,272 +28,76 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({ adminId, adminEmail, adminName, isSuperAdmin = false, initialSection = 'overview', showOnlySection = false, onStatsRefresh }: AdminDashboardProps) {
-  const [users, setUsers] = useState<User[]>([]);
-  const [courseSubmissions, setCourseSubmissions] = useState<CourseSubmission[]>([]);
-  const [registeredDays, setRegisteredDays] = useState<Array<{
-    id: string;
-    firstName: string;
-    lastName: string;
-    fullName: string;
-    formattedDate: string;
-    dayId: string;
-    phoneNumber?: string;
-  }>>([]);
-  const [loading, setLoading] = useState(true);
+  // Search state for course submissions
+  const [courseSearchTerm, setCourseSearchTerm] = useState('');
 
-  // Fetch dashboard data
-  useEffect(() => {
-    const fetchDashboardData = async () => {
+  // React Query hooks for data fetching
+  const { data: users = [], isLoading: usersLoading, error: usersError } = useUsers();
+  const { data: courseSubmissions = [], isLoading: coursesLoading, error: coursesError } = useCourseRegistrations();
+  const { data: registeredDays = [], isLoading: daysLoading, error: daysError } = useCleaningDays();
+
+  // Filter course submissions based on search term
+  const filteredCourseSubmissions = courseSubmissions.filter(submission =>
+    submission.userName.toLowerCase().includes(courseSearchTerm.toLowerCase()) ||
+    submission.courseName.toLowerCase().includes(courseSearchTerm.toLowerCase())
+  );
+
+  // Mutation hooks
+  const removeUserFromDay = useRemoveUserFromDay();
+  const clearCourseSubmission = useClearCourseSubmission();
+  const deleteUser = useDeleteUser();
+
+  // Refetch controls
+  const { refetchUsers, refetchCourses, refetchDays, refetchAll } = useRefetchControls();
+
+  // Loading state
+  const loading = usersLoading || coursesLoading || daysLoading;
+
+  // React Query handles automatic refreshing, no manual refresh functions needed
+
+
+  // Mutation handlers using React Query
+  const handleRemoveUserFromDay = async (userId: string, dayId: string, userName: string, formattedDate: string) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to remove ${userName} from ${formattedDate}?\n\nThis will:\n• Remove them from this cleaning day registration\n• Remove them from the registered list\n• Keep their account active in the database\n• They can register again for any available day\n\nTheir account will remain for future registrations.`
+    );
+
+    if (confirmed) {
       try {
-        // Fetch real users from your existing API
-        const usersResponse = await fetch('/api/users');
-        const usersData = await usersResponse.json();
-
-        // Fetch real course submissions from your existing API
-        const coursesResponse = await fetch('/api/all-course-registrations');
-        const coursesData = await coursesResponse.json();
-
-        // Fetch registered days data
-        const cleaningResponse = await fetch('/api/cleaning-days');
-        const cleaningData = await cleaningResponse.json();
-
-        if (usersData.success) {
-          setUsers(usersData.users || []);
-        }
-
-        if (coursesData.success) {
-          // Transform course registrations to match expected format
-          const transformedSubmissions = coursesData.registrations.map((reg: {
-            id: string;
-            userId: string;
-            user?: { fullName?: string; firstName?: string; lastName?: string };
-            takesReligion?: boolean;
-            courses?: Array<{ name: string }>;
-            totalCredits?: number;
-            registrationDate?: string;
-            createdAt?: string;
-            status?: string;
-          }) => ({
-            id: reg.id,
-            userId: reg.userId,
-            userName: reg.user?.fullName || `${reg.user?.firstName || ''} ${reg.user?.lastName || ''}`.trim(),
-            religion: reg.takesReligion ? 'Yes' : 'No',
-            courseName: reg.courses?.map((c: { name: string }) => c.name).join(', ') || 'Unknown',
-            credits: reg.totalCredits || 0,
-            submittedAt: reg.registrationDate || reg.createdAt || new Date().toISOString(),
-            status: (reg.status || 'approved') as 'pending' | 'approved' | 'rejected'
-          }));
-          setCourseSubmissions(transformedSubmissions);
-        }
-
-        if (cleaningData.success && cleaningData.weeks) {
-          // Fetch users to get phone numbers from credentials
-          const usersResponse = await fetch('/api/users');
-          const usersData = await usersResponse.json();
-
-          // Check if usersData is an array, if not, try to extract it
-          const usersArray = Array.isArray(usersData) ? usersData : usersData?.users || [];
-
-          // Flatten all registered users from all weeks and days
-          const allRegisteredUsers: Array<{
-            id: string;
-            firstName: string;
-            lastName: string;
-            fullName: string;
-            formattedDate: string;
-            dayId: string;
-            phoneNumber?: string;
-          }> = [];
-          (Object.values(cleaningData.weeks) as Array<Array<{
-            id: string;
-            formattedDate: string;
-            registeredUsers?: Array<{
-              id: string;
-              firstName: string;
-              lastName: string;
-              fullName: string;
-            }>;
-          }>>).forEach((weekDays) => {
-            weekDays.forEach((day) => {
-              if (day.registeredUsers && day.registeredUsers.length > 0) {
-                day.registeredUsers.forEach((registeredUser) => {
-                  // Find the user's full credentials to get phone number
-                  const userCredentials = usersArray.find((user: User) => user.id === registeredUser.id);
-
-                  allRegisteredUsers.push({
-                    ...registeredUser,
-                    formattedDate: day.formattedDate,
-                    dayId: day.id,
-                    // Get phone number from user credentials, not from registered data
-                    phoneNumber: userCredentials?.phoneNumber || userCredentials?.phone || ''
-                  });
-                });
-              }
-            });
-          });
-          setRegisteredDays(allRegisteredUsers);
+        await removeUserFromDay.mutateAsync({ userId, dayId });
+        alert(`${userName} has been successfully removed from ${formattedDate}`);
+        // Refresh parent stats if callback provided
+        if (onStatsRefresh) {
+          onStatsRefresh();
         }
       } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-      } finally {
-        setLoading(false);
+        console.error('Error removing user from day:', error);
+        alert('Failed to remove user from day');
       }
-    };
-
-    fetchDashboardData();
-  }, []);
-
-  // Refresh function for individual data types
-  const refreshUsers = async () => {
-    try {
-      const usersResponse = await fetch('/api/users');
-      const usersData = await usersResponse.json();
-      if (usersData.success) {
-        setUsers(usersData.users || []);
-      }
-    } catch (error) {
-      console.error('Error refreshing users:', error);
     }
   };
 
-  const refreshCourses = async () => {
-    try {
-      const coursesResponse = await fetch('/api/all-course-registrations');
-      const coursesData = await coursesResponse.json();
-      if (coursesData.success) {
-        const transformedSubmissions = coursesData.registrations.map((reg: {
-          id: string;
-          userId: string;
-          user?: { fullName?: string; firstName?: string; lastName?: string };
-          takesReligion?: boolean;
-          courses?: Array<{ name: string }>;
-          totalCredits?: number;
-          registrationDate?: string;
-          createdAt?: string;
-          status?: string;
-        }) => ({
-          id: reg.id,
-          userId: reg.userId,
-          userName: reg.user?.fullName || `${reg.user?.firstName || ''} ${reg.user?.lastName || ''}`.trim(),
-          religion: reg.takesReligion ? 'Yes' : 'No',
-          courseName: reg.courses?.map((c: { name: string }) => c.name).join(', ') || 'Unknown',
-          credits: reg.totalCredits || 0,
-          submittedAt: reg.registrationDate || reg.createdAt || new Date().toISOString(),
-          status: (reg.status || 'approved') as 'pending' | 'approved' | 'rejected'
-        }));
-        setCourseSubmissions(transformedSubmissions);
-      }
-    } catch (error) {
-      console.error('Error refreshing courses:', error);
-    }
-  };
-
-  const refreshRegisteredDays = async () => {
-    try {
-      const cleaningResponse = await fetch('/api/cleaning-days');
-      const cleaningData = await cleaningResponse.json();
-
-      if (cleaningData.success && cleaningData.weeks) {
-        // Fetch users to get phone numbers from credentials
-        const usersResponse = await fetch('/api/users');
-        const usersData = await usersResponse.json();
-
-        // Check if usersData is an array, if not, try to extract it
-        const usersArray = Array.isArray(usersData) ? usersData : usersData?.users || [];
-
-        const allRegisteredUsers: Array<{
-          id: string;
-          firstName: string;
-          lastName: string;
-          fullName: string;
-          formattedDate: string;
-          dayId: string;
-          phoneNumber?: string;
-        }> = [];
-        (Object.values(cleaningData.weeks) as Array<Array<{
-          id: string;
-          formattedDate: string;
-          registeredUsers?: Array<{
-            id: string;
-            firstName: string;
-            lastName: string;
-            fullName: string;
-          }>;
-        }>>).forEach((weekDays) => {
-          weekDays.forEach((day) => {
-            if (day.registeredUsers && day.registeredUsers.length > 0) {
-              day.registeredUsers.forEach((registeredUser) => {
-                // Find the user's full credentials to get phone number
-                const userCredentials = usersArray.find((user: User) => user.id === registeredUser.id);
-
-                allRegisteredUsers.push({
-                  ...registeredUser,
-                  formattedDate: day.formattedDate,
-                  dayId: day.id,
-                  // Get phone number from user credentials, not from registered data
-                  phoneNumber: userCredentials?.phoneNumber || userCredentials?.phone || ''
-                });
-              });
-            }
-          });
-        });
-        setRegisteredDays(allRegisteredUsers);
-      }
-    } catch (error) {
-      console.error('Error refreshing registered days:', error);
-    }
-  };
-
-
-  // Remove user from specific cleaning day
-  const removeUserFromDay = async (userId: string, dayId: string, userName: string, formattedDate: string) => {
-    try {
-      const response = await fetch(`/api/cleaning-days?userId=${userId}&dayId=${dayId}`, { method: 'DELETE' });
-      const data = await response.json();
-
-      if (data.success) {
-        // Update the registered days list to remove the user
-        setRegisteredDays(registeredDays.filter(reg => !(reg.id === userId && reg.dayId === dayId)));
-        alert(`${userName} has been successfully removed from ${formattedDate}`);
-
-        // Refresh the registered days data to ensure consistency
-        await refreshRegisteredDays();
-      } else {
-        alert(data.message || 'Failed to remove user from day');
-      }
-    } catch (error) {
-      console.error('Remove user from day error:', error);
-      alert('Network error occurred while removing user from day');
-    }
-  };
-
-  // Clear course submissions
-  const clearCourseSubmissions = async (submissionId: string, userName: string, courseName: string) => {
+  const handleClearCourseSubmission = async (submissionId: string, userName: string, courseName: string) => {
     const confirmed = window.confirm(
       `Are you sure you want to clear ${userName}'s course submission for "${courseName}"?\n\nThis will:\n• Remove this course registration\n• Allow the user to register again\n• Keep their account active\n• Update their total credits\n\nThis action can be undone by re-registering for the course.`
     );
 
-    if (!confirmed) return;
-
-    try {
-      const response = await fetch(`/api/courses/clear?id=${submissionId}`, { method: 'DELETE' });
-      const data = await response.json();
-
-      if (data.success) {
-        // Update course submissions list to remove cleared submission
-        setCourseSubmissions(courseSubmissions.filter(sub => sub.id !== submissionId));
+    if (confirmed) {
+      try {
+        await clearCourseSubmission.mutateAsync(submissionId);
         alert(`${userName}'s course submission cleared successfully! They can register again.`);
-      } else {
-        alert(data.message || 'Failed to clear course submission');
+        // Refresh parent stats if callback provided
+        if (onStatsRefresh) {
+          onStatsRefresh();
+        }
+      } catch (error) {
+        console.error('Error clearing course submission:', error);
+        alert('Failed to clear course submission');
       }
-    } catch (error) {
-      console.error('Clear course submission error:', error);
-      alert('Network error occurred');
     }
   };
 
-  // Delete user permanently (from your existing admin page)
-  const deleteUserPermanently = async (userId: string, userName: string) => {
+  const handleDeleteUser = async (userId: string, userName: string) => {
     const confirmed = window.confirm(
       `⚠️ PERMANENT DELETION ⚠️\n\nAre you sure you want to permanently delete ${userName}?\n\nThis will:\n• Delete their account permanently\n• Remove email, password, and all user data\n• Delete all their cleaning day registrations\n• Update the cleaning day counts\n• They will need to register again to access the system\n\nThis action CANNOT be undone!`
     );
@@ -318,24 +111,15 @@ export default function AdminDashboard({ adminId, adminEmail, adminName, isSuper
     if (!doubleConfirmed) return;
 
     try {
-      const response = await fetch(`/api/users/permanent?id=${userId}`, { method: 'DELETE' });
-      const data = await response.json();
-
-      if (data.success) {
-        // Update user list to remove deleted user
-        setUsers(users.filter(user => user.id !== userId));
-        alert(`${userName} permanently deleted successfully!`);
-
-        // Refresh dashboard statistics to update remaining days
-        if (onStatsRefresh) {
-          onStatsRefresh();
-        }
-      } else {
-        alert(data.message || 'Failed to delete user');
+      await deleteUser.mutateAsync(userId);
+      alert(`${userName} permanently deleted successfully!`);
+      // Refresh parent stats if callback provided
+      if (onStatsRefresh) {
+        onStatsRefresh();
       }
     } catch (error) {
-      console.error('Delete user error:', error);
-      alert('Network error occurred');
+      console.error('Error deleting user:', error);
+      alert('Failed to delete user');
     }
   };
 
@@ -388,7 +172,7 @@ export default function AdminDashboard({ adminId, adminEmail, adminName, isSuper
               <div className="flex justify-between items-center mb-2">
                 <h2 className="text-lg font-semibold text-white">All Users ({users.length})</h2>
                 <button
-                  onClick={refreshUsers}
+                  onClick={refetchUsers}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                 >
                   <span className="animate-spin">🔄</span>
@@ -452,7 +236,7 @@ export default function AdminDashboard({ adminId, adminEmail, adminName, isSuper
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                         <button
-                          onClick={() => deleteUserPermanently(user.id, user.fullName || `${user.firstName} ${user.lastName}`)}
+                          onClick={() => handleDeleteUser(user.id, user.fullName || `${user.firstName} ${user.lastName}`)}
                           className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors"
                           title="Permanently delete user account"
                         >
@@ -504,7 +288,7 @@ export default function AdminDashboard({ adminId, adminEmail, adminName, isSuper
 
                     <div className="pt-2 border-t border-white/20">
                       <button
-                        onClick={() => deleteUserPermanently(user.id, user.fullName || `${user.firstName} ${user.lastName}`)}
+                        onClick={() => handleDeleteUser(user.id, user.fullName || `${user.firstName} ${user.lastName}`)}
                         className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded text-xs font-medium transition-colors"
                         title="Permanently delete user account"
                       >
@@ -544,7 +328,7 @@ export default function AdminDashboard({ adminId, adminEmail, adminName, isSuper
               <div className="flex justify-between items-center mb-2">
                 <h2 className="text-lg font-semibold text-white">Course Submissions ({courseSubmissions.length})</h2>
                 <button
-                  onClick={refreshCourses}
+                  onClick={refetchCourses}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                 >
                   <span className="animate-spin">🔄</span>
@@ -552,6 +336,35 @@ export default function AdminDashboard({ adminId, adminEmail, adminName, isSuper
                 </button>
               </div>
               <p className="text-xs text-gray-300">Last updated: {new Date().toLocaleTimeString()}</p>
+            </div>
+
+            {/* Search Bar */}
+            <div className="p-6 border-b border-white/20">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search by student name or course name..."
+                  value={courseSearchTerm}
+                  onChange={(e) => setCourseSearchTerm(e.target.value)}
+                  className="w-full px-4 py-3 pl-10 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                />
+                <div className="absolute left-3 top-3.5 text-gray-400">
+                  <span className="text-lg">🔍</span>
+                </div>
+                {courseSearchTerm && (
+                  <button
+                    onClick={() => setCourseSearchTerm('')}
+                    className="absolute right-3 top-2.5 px-3 py-1 bg-red-600/20 text-red-300 rounded-lg text-sm hover:bg-red-600/30 transition-colors duration-200"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              {courseSearchTerm && (
+                <div className="mt-2 text-sm text-gray-300">
+                  Found {filteredCourseSubmissions.length} of {courseSubmissions.length} results
+                </div>
+              )}
             </div>
 
             {/* Desktop Table View */}
@@ -577,7 +390,7 @@ export default function AdminDashboard({ adminId, adminEmail, adminName, isSuper
                   </tr>
                 </thead>
                 <tbody className="bg-black/10 divide-y divide-white/10">
-                  {courseSubmissions.map((submission) => (
+                  {filteredCourseSubmissions.map((submission) => (
                     <tr key={submission.id} className="hover:bg-white/10">
                       <td className="px-4 py-3 text-sm font-medium text-white truncate">
                         {submission.userName}
@@ -601,7 +414,7 @@ export default function AdminDashboard({ adminId, adminEmail, adminName, isSuper
                       </td>
                       <td className="px-4 py-3 text-center text-sm text-gray-300">
                         <button
-                          onClick={() => clearCourseSubmissions(submission.id, submission.userName, submission.courseName)}
+                          onClick={() => handleClearCourseSubmission(submission.id, submission.userName, submission.courseName)}
                           className="text-orange-400 hover:text-orange-300 text-xs font-medium"
                           title="Clear course submission (allow re-registration)"
                         >
@@ -617,7 +430,7 @@ export default function AdminDashboard({ adminId, adminEmail, adminName, isSuper
             {/* Mobile Card View - No Scrolling */}
             <div className="lg:hidden">
               <div className="grid grid-cols-1 gap-3 p-4 max-h-screen overflow-y-auto">
-                {courseSubmissions.map((submission) => (
+                {filteredCourseSubmissions.map((submission) => (
                   <div key={submission.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:bg-gray-100 transition-colors">
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex-1">
@@ -647,7 +460,7 @@ export default function AdminDashboard({ adminId, adminEmail, adminName, isSuper
 
                     <div className="pt-2 border-t border-gray-200">
                       <button
-                        onClick={() => clearCourseSubmissions(submission.id, submission.userName, submission.courseName)}
+                        onClick={() => handleClearCourseSubmission(submission.id, submission.userName, submission.courseName)}
                         className="w-full bg-orange-100 hover:bg-orange-200 text-orange-700 py-2 px-3 rounded text-xs font-medium transition-colors"
                         title="Clear course submission (allow re-registration)"
                       >
@@ -754,7 +567,7 @@ export default function AdminDashboard({ adminId, adminEmail, adminName, isSuper
               <div className="flex justify-between items-center mb-2">
                 <h2 className="text-lg font-semibold text-white">Registered Days ({registeredDays.length})</h2>
                 <button
-                  onClick={refreshRegisteredDays}
+                  onClick={refetchDays}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                 >
                   <span className="animate-spin">🔄</span>
@@ -803,7 +616,7 @@ export default function AdminDashboard({ adminId, adminEmail, adminName, isSuper
                             );
 
                             if (confirmed) {
-                              removeUserFromDay(
+                              handleRemoveUserFromDay(
                                 registration.id,
                                 registration.dayId,
                                 registration.fullName || `${registration.firstName} ${registration.lastName}`,
@@ -846,7 +659,7 @@ export default function AdminDashboard({ adminId, adminEmail, adminName, isSuper
                         );
 
                         if (confirmed) {
-                          removeUserFromDay(
+                          handleRemoveUserFromDay(
                             registration.id,
                             registration.dayId,
                             registration.fullName || `${registration.firstName} ${registration.lastName}`,

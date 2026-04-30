@@ -3,9 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { checkUserAccess, User } from '@/lib/auth';
+import { User } from '@/lib/auth';
 import AdminDashboard from '@/components/AdminDashboard';
 import { PageLoader, BackgroundImage, DashboardButton } from '@/components/ui';
+import { useUsers, useCourseRegistrations, useCleaningDays, useDashboardStats, useRefetchControls } from '@/hooks/useApi';
+import { useAuth } from '@/hooks/useAuth';
 
 // Types
 interface Course {
@@ -69,32 +71,28 @@ const navigationItems = [
 function Admin() {
   console.log('Admin component: Starting render');
 
+  // Authentication hook - handles JWT validation and user state
+  const { user, isLoading: authLoading } = useAuth('/dashboard');
+
   const [currentUser, setCurrentUser] = useState<{ adminId: string; adminEmail: string; adminName: string; isSuperAdmin: boolean } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeSection, setActiveSection] = useState('overview');
   const [showDashboard, setShowDashboard] = useState<'overview' | 'users' | 'courses' | 'registered-days' | 'announcements' | 'tutors' | 'admins' | undefined>(undefined);
-  const [weeks, setWeeks] = useState<{ [key: number]: WeekData[] }>({});
-  const [users, setUsers] = useState<User[]>([]);
-  const [courseRegistrations, setCourseRegistrations] = useState<CourseRegistration[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [copyFeedback, setCopyFeedback] = useState('');
-  const [usersLoading, setUsersLoading] = useState(false);
-  const [coursesLoading, setCoursesLoading] = useState(false);
-  const [statsLoading, setStatsLoading] = useState(false);
   const [editingPhone, setEditingPhone] = useState<string | null>(null);
   const [phoneInput, setPhoneInput] = useState('');
   const [phoneUpdateLoading, setPhoneUpdateLoading] = useState(false);
   const [clearingCourse, setClearingCourse] = useState<string | null>(null);
 
-  // Dashboard statistics
-  const [dashboardStats, setDashboardStats] = useState({
-    totalUsers: 0,
-    registeredForDays: 0,
-    remainingDays: 25, // 75 total - 50 capacity = 25 remaining
-    totalCapacity: 75,
-    usedCapacity: 50,
-    courseSubmissions: 0
-  });
+  // React Query hooks for data fetching
+  const { data: users = [], isLoading: usersLoading } = useUsers();
+  const { data: courseRegistrations = [], isLoading: coursesLoading } = useCourseRegistrations();
+  const { data: cleaningDays = [], isLoading: daysLoading } = useCleaningDays();
+  const { data: dashboardStats, isLoading: statsLoading } = useDashboardStats();
+
+  // Refetch controls
+  const { refetchAll } = useRefetchControls();
 
   const router = useRouter();
 
@@ -107,150 +105,36 @@ function Admin() {
     }
   }, [activeSection]);
 
-  // Refresh dashboard statistics function
-  const refreshDashboardStats = useCallback(async () => {
-    try {
-      // Fetch users
-      const usersResponse = await fetch('/api/users');
-      const usersData = await usersResponse.json();
+  // React Query handles dashboard statistics automatically
 
-      // Fetch cleaning days data
-      const cleaningResponse = await fetch('/api/cleaning-days');
-      const cleaningData = await cleaningResponse.json();
+  // Admin validation - check if authenticated user is admin
+  useEffect(() => {
+    if (user) {
+      console.log('Admin Auth: Checking user admin status', user);
 
-      // Fetch course registrations
-      const coursesResponse = await fetch('/api/all-course-registrations');
-      const coursesData = await coursesResponse.json();
-
-      let totalUsers = 0;
-      let registeredForDays = 0;
-      let remainingDays = 0;
-      let courseSubmissions = 0;
-
-      // Count total users
-      if (usersData.success) {
-        totalUsers = usersData.users?.length || 0;
+      // Admin check - user must be admin (either super admin or promoted admin)
+      if (!user.isAdmin) {
+        console.log('Admin Auth: Not admin, redirecting to dashboard');
+        router.push('/dashboard');
+        return;
       }
 
-      // Count users registered for days and calculate remaining days based on capacity
-      if (cleaningData.success && cleaningData.weeks) {
-        const allRegisteredUsers = new Set();
-        let totalRegistrations = 0;
+      // Set current admin user
+      setCurrentUser({
+        adminId: user.id,
+        adminEmail: user.email,
+        adminName: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        isSuperAdmin: user.isSuperAdmin || false
+      });
 
-        // cleaningData.weeks is an object where each key is a week number and value is an array of days
-        (Object.values(cleaningData.weeks) as WeekData[][]).forEach((weekDays: WeekData[]) => {
-          weekDays.forEach((day: WeekData) => {
-            if (day.registeredUsers && day.registeredUsers.length > 0) {
-              day.registeredUsers.forEach((user: { id: string }) => {
-                allRegisteredUsers.add(user.id);
-                totalRegistrations++;
-              });
-            }
-          });
-        });
-
-        registeredForDays = allRegisteredUsers.size;
-
-        // Calculate remaining days based on capacity (75 total - used registrations)
-        const totalCapacity = 75;
-        const usedCapacity = totalRegistrations;
-        remainingDays = totalCapacity - usedCapacity;
-
-        // Update the stats with correct capacity values
-        setDashboardStats(prev => ({
-          ...prev,
-          totalCapacity,
-          usedCapacity
-        }));
-      }
-
-      // Count course submissions
-      if (coursesData.success) {
-        courseSubmissions = coursesData.registrations?.length || 0;
-      }
-
-      setDashboardStats(prev => ({
-        ...prev,
-        totalUsers,
-        registeredForDays,
-        remainingDays,
-        courseSubmissions
-      }));
-
-      setLastUpdated(new Date());
-    } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
+      console.log('Admin Auth: Authentication successful');
     }
-  }, []);
-
-  // Fetch dashboard statistics on mount
-  useEffect(() => {
-    refreshDashboardStats();
-  }, [refreshDashboardStats]);
-
-  // Check if user is admin (JWT-based authentication)
-  useEffect(() => {
-    const checkAdminAuth = async () => {
-      console.log('Admin useEffect: Starting JWT authentication check');
-
-      if (typeof window !== 'undefined') {
-        try {
-          const authResult = await checkUserAccess();
-          console.log('Admin Auth: User data from JWT', authResult);
-
-          if (!authResult.success || !authResult.user) {
-            console.log('Admin Auth: No user data, redirecting to home');
-            router.push('/');
-            return;
-          }
-
-          // Admin check - user must be admin (either super admin or promoted admin)
-          if (!authResult.user.isAdmin) {
-            console.log('Admin Auth: Not admin, redirecting to dashboard');
-            router.push('/dashboard');
-            return;
-          }
-
-          console.log('Admin Auth: Authentication successful');
-        } catch (error) {
-          console.log('Admin Auth: Error, redirecting to home');
-          router.push('/');
-          return;
-        }
-
-        console.log('Admin Auth: User verified and set');
-      }
-    };
-
-    checkAdminAuth();
-  }, [router]);
-
-  // Set current user after JWT authentication
-  useEffect(() => {
-    const setAdminUser = async () => {
-      try {
-        const authResult = await checkUserAccess();
-
-        if (authResult.success && authResult.user && authResult.user.isAdmin) {
-          setCurrentUser({
-            adminId: authResult.user.id,
-            adminEmail: authResult.user.email,
-            adminName: authResult.user.fullName || `${authResult.user.firstName} ${authResult.user.lastName}`.trim() || 'Admin',
-            isSuperAdmin: authResult.user.isSuperAdmin || false
-          });
-        }
-      } catch (error) {
-        console.error('Error setting admin user:', error);
-      }
-    };
-
-    setAdminUser();
-  }, []);
+  }, [user, router]);
 
   console.log('Admin Page: Render state', { isLoading, currentUser });
 
   // Show loading if still loading or if no current user yet
-  if (isLoading || !currentUser) {
+  if (authLoading || !currentUser) {
     console.log('Admin Page: Showing loading', { isLoading, hasCurrentUser: !!currentUser });
     return (
       <PageLoader text={!currentUser ? "Authenticating..." : "Loading..."} color="purple" />
@@ -294,7 +178,7 @@ function Admin() {
                 </span>
               </div>
               <button
-                onClick={refreshDashboardStats}
+                onClick={refetchAll}
                 className="glass-morphism hover:glass-card px-8 py-3 rounded-full border border-purple-400/50 transition-all duration-300 hover:scale-105 shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 animate-float"
               >
                 <span className="flex items-center gap-2">
@@ -367,7 +251,14 @@ function Admin() {
                 </div>
 
                 <div className="prose prose-lg max-w-none">
-                  {renderAdminContent(activeSection, adminContent[activeSection as keyof typeof adminContent] || {}, setShowDashboard, dashboardStats)}
+                  {renderAdminContent(activeSection, adminContent[activeSection as keyof typeof adminContent] || {}, setShowDashboard, dashboardStats || {
+                    totalUsers: 0,
+                    registeredForDays: 0,
+                    remainingDays: 0,
+                    totalCapacity: 0,
+                    usedCapacity: 0,
+                    courseSubmissions: 0
+                  })}
                 </div>
               </div>
             </div>
@@ -395,7 +286,7 @@ function Admin() {
                   adminName={currentUser.adminName}
                   isSuperAdmin={currentUser.isSuperAdmin}
                   initialSection={showDashboard}
-                  onStatsRefresh={refreshDashboardStats}
+                  onStatsRefresh={refetchAll}
                 />
               </div>
             </div>
@@ -418,10 +309,10 @@ const renderAdminContent = (sectionKey: string, section: { title: string; descri
   if (sectionKey === 'overview') {
     // Create dynamic stats based on real data
     const dynamicStats = [
-      { icon: '👥', value: dashboardStats.totalUsers.toString(), label: 'Total Users Registered' },
-      { icon: '📅', value: dashboardStats.registeredForDays.toString(), label: 'Students Registered for Days' },
-      { icon: '📊', value: dashboardStats.remainingDays.toString(), label: 'Remaining Days Available' },
-      { icon: '📚', value: dashboardStats.courseSubmissions.toString(), label: 'Credits' }
+      { icon: '👥', value: (dashboardStats?.totalUsers || 0).toString(), label: 'Total Users Registered' },
+      { icon: '📅', value: (dashboardStats?.registeredForDays || 0).toString(), label: 'Students Registered for Days' },
+      { icon: '📊', value: (dashboardStats?.remainingDays || 0).toString(), label: 'Remaining Days Available' },
+      { icon: '📚', value: (dashboardStats?.courseSubmissions || 0).toString(), label: 'Credits' }
     ];
 
     return (

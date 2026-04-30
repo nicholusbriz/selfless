@@ -3,57 +3,23 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { checkUserAccess, User } from '@/lib/auth';
+import { User } from '@/lib/auth';
 import AnnouncementNotifications from '@/components/AnnouncementNotifications';
 import { BackgroundImage, PageLoader } from '@/components/ui';
+import { useCleaningDays } from '@/hooks/useApi';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [checkingStatus, setCheckingStatus] = useState(true);
+  // Authentication hook - handles JWT validation and user state
+  const { user, isLoading: authLoading } = useAuth('/');
   const router = useRouter();
 
-  // Check if user has valid authentication from JWT token
-  useEffect(() => {
-    const authenticateUser = async () => {
-      try {
-        const authResult = await checkUserAccess();
+  // Use React Query for cleaning days data
+  const { data: cleaningDays = [], isLoading: daysLoading } = useCleaningDays();
 
-        if (authResult.success && authResult.user) {
-          setUser(authResult.user);
-        } else {
-          // Invalid authentication, redirect to home
-          router.push('/');
-        }
-      } catch (error) {
-        console.error('Authentication error:', error);
-        router.push('/');
-      } finally {
-        setCheckingStatus(false);
-      }
-    };
+  // React Query handles cleaning days data fetching automatically
 
-    authenticateUser();
-  }, [router]);
-
-  // Fetch cleaning days
-  useEffect(() => {
-    const fetchCleaningDays = async () => {
-      try {
-        const response = await fetch('/api/cleaning-days');
-        const data = await response.json();
-
-        if (data.success) {
-          // Data fetched successfully
-        }
-      } catch {
-        // Error fetching cleaning days - will show in UI
-      }
-    };
-
-    fetchCleaningDays();
-  }, []);
-
-  if (!user || checkingStatus) {
+  if (!user || authLoading) {
     return (
       <PageLoader text="Loading Dashboard" color="purple" />
     );
