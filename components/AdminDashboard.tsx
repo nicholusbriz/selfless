@@ -13,7 +13,8 @@ import {
   useRemoveUserFromDay,
   useClearCourseSubmission,
   useDeleteUser,
-  useRefetchControls
+  useRefetchControls,
+  useDashboardStats
 } from '@/hooks/useApi';
 
 
@@ -35,6 +36,8 @@ export default function AdminDashboard({ adminId, adminEmail, adminName, isSuper
   const { data: users = [], isLoading: usersLoading, error: usersError } = useUsers();
   const { data: courseSubmissions = [], isLoading: coursesLoading, error: coursesError } = useCourseRegistrations();
   const { data: registeredDays = [], isLoading: daysLoading, error: daysError } = useCleaningDays();
+  const dashboardStats = useDashboardStats();
+  const statsLoading = usersLoading || coursesLoading || daysLoading;
 
   // Filter course submissions based on search term
   const filteredCourseSubmissions = courseSubmissions.filter(submission =>
@@ -71,7 +74,7 @@ export default function AdminDashboard({ adminId, adminEmail, adminName, isSuper
           onStatsRefresh();
         }
       } catch (error) {
-        console.error('Error removing user from day:', error);
+        
         alert('Failed to remove user from day');
       }
     }
@@ -91,7 +94,7 @@ export default function AdminDashboard({ adminId, adminEmail, adminName, isSuper
           onStatsRefresh();
         }
       } catch (error) {
-        console.error('Error clearing course submission:', error);
+        
         alert('Failed to clear course submission');
       }
     }
@@ -118,7 +121,7 @@ export default function AdminDashboard({ adminId, adminEmail, adminName, isSuper
         onStatsRefresh();
       }
     } catch (error) {
-      console.error('Error deleting user:', error);
+      
       alert('Failed to delete user');
     }
   };
@@ -163,6 +166,107 @@ export default function AdminDashboard({ adminId, adminEmail, adminName, isSuper
                       initialSection === 'announcements' ? 'Announcements Management' : 'Dashboard'}
         </h1>
       </div>
+
+      {/* Overview Section - Default Dashboard */}
+      {(!showOnlySection && initialSection === 'overview') && (
+        <>
+          {statsLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-400 border-t-transparent mx-auto mb-4"></div>
+              <p className="text-blue-300">Loading dashboard statistics...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {/* Total Users Card */}
+              <div className="bg-gradient-to-br from-blue-600/20 to-blue-800/20 rounded-2xl p-6 border border-blue-400/30 hover-lift">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xl">👥</span>
+                  </div>
+                  <div className="text-blue-300 text-sm font-medium">Total</div>
+                </div>
+                <h3 className="text-3xl font-bold text-white mb-2">{dashboardStats?.totalUsers || 0}</h3>
+                <p className="text-blue-200 text-sm">Registered Users</p>
+              </div>
+
+              {/* Cleaning Days Registration Card */}
+              <div className="bg-gradient-to-br from-green-600/20 to-green-800/20 rounded-2xl p-6 border border-green-400/30 hover-lift">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xl">🧹</span>
+                  </div>
+                  <div className="text-green-300 text-sm font-medium">Active</div>
+                </div>
+                <h3 className="text-3xl font-bold text-white mb-2">{dashboardStats?.registeredForDays || 0}</h3>
+                <p className="text-green-200 text-sm">Cleaning Day Registrations</p>
+              </div>
+
+              {/* Course Submissions Card */}
+              <div className="bg-gradient-to-br from-purple-600/20 to-purple-800/20 rounded-2xl p-6 border border-purple-400/30 hover-lift">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xl">📚</span>
+                  </div>
+                  <div className="text-purple-300 text-sm font-medium">Submitted</div>
+                </div>
+                <h3 className="text-3xl font-bold text-white mb-2">{dashboardStats?.courseSubmissions || 0}</h3>
+                <p className="text-purple-200 text-sm">Course Submissions</p>
+              </div>
+
+              {/* Capacity Usage Card */}
+              <div className="bg-gradient-to-br from-orange-600/20 to-orange-800/20 rounded-2xl p-6 border border-orange-400/30 hover-lift">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xl">📊</span>
+                  </div>
+                  <div className="text-orange-300 text-sm font-medium">Usage</div>
+                </div>
+                <h3 className="text-3xl font-bold text-white mb-2">
+                  {dashboardStats ? Math.round((dashboardStats.usedCapacity / dashboardStats.totalCapacity) * 100) : 0}%
+                </h3>
+                <p className="text-orange-200 text-sm">
+                  {dashboardStats?.usedCapacity || 0} / {dashboardStats?.totalCapacity || 75} Capacity Used
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Quick Actions Section */}
+          <div className="bg-black/30 rounded-2xl border border-white/20 p-6">
+            <h2 className="text-xl font-semibold text-white mb-6">Quick Actions</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <button
+                onClick={() => alert('Navigate to Users Management')}
+                className="bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                <span>👥</span>
+                Manage Users
+              </button>
+              <button
+                onClick={() => alert('Navigate to Course Submissions')}
+                className="bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                <span>📚</span>
+                View Courses
+              </button>
+              <button
+                onClick={() => alert('Navigate to Cleaning Days')}
+                className="bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                <span>🧹</span>
+                Cleaning Days
+              </button>
+              <button
+                onClick={() => alert('Navigate to System Settings')}
+                className="bg-gray-600 hover:bg-gray-700 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                <span>⚙️</span>
+                Settings
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Show only the requested section */}
       {initialSection === 'users' && (

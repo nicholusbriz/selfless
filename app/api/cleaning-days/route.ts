@@ -12,7 +12,7 @@ export async function GET() {
     // Fetch all registrations from database with populated user data
     const registrations = await Registration.find({}).populate({
       path: 'userId',
-      select: 'firstName lastName email fullName',
+      select: 'firstName lastName email',
       match: null // Ensure we get all registrations even if user is deleted
     }).sort({ createdAt: 1 });
 
@@ -64,7 +64,7 @@ export async function GET() {
             firstName: reg.userId.firstName,
             lastName: reg.userId.lastName,
             email: reg.userId.email,
-            fullName: reg.userId.fullName || `${reg.userId.firstName} ${reg.userId.lastName}`,
+            fullName: `${reg.userId.firstName} ${reg.userId.lastName}`,
             createdAt: reg.createdAt,
             updatedAt: reg.updatedAt
           };
@@ -123,7 +123,6 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error('Error fetching cleaning days:', error);
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }
@@ -150,8 +149,6 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, message: 'Registration not found' }, { status: 404 });
     }
 
-    console.log(`Removed user ${userId} from cleaning day ${dayId}`);
-
     return NextResponse.json({
       success: true,
       message: 'User successfully removed from cleaning day',
@@ -163,7 +160,6 @@ export async function DELETE(request: Request) {
     });
 
   } catch (error) {
-    console.error('Error removing user from cleaning day:', error);
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }

@@ -37,7 +37,7 @@ export default function AnnouncementsPage() {
 
         setUser(authResult.user);
       } catch (error) {
-        console.error(error);
+        
         router.push('/');
       } finally {
         setCheckingStatus(false);

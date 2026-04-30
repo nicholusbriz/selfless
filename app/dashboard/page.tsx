@@ -170,7 +170,7 @@ export default function DashboardPage() {
                       },
                     });
                   } catch (error) {
-                    console.error('Error signing out:', error);
+                    
                   } finally {
                     // Always redirect to home after signout attempt
                     router.push('/');

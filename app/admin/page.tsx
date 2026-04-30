@@ -8,6 +8,7 @@ import AdminDashboard from '@/components/AdminDashboard';
 import { PageLoader, BackgroundImage, DashboardButton } from '@/components/ui';
 import { useUsers, useCourseRegistrations, useCleaningDays, useDashboardStats, useRefetchControls } from '@/hooks/useApi';
 import { useAuth } from '@/hooks/useAuth';
+import { useAdminAuth } from '@/hooks/useAdminAuth';
 
 // Types
 interface Course {
@@ -69,10 +70,11 @@ const navigationItems = [
 ];
 
 function Admin() {
-  console.log('Admin component: Starting render');
-
   // Authentication hook - handles JWT validation and user state
   const { user, isLoading: authLoading } = useAuth('/dashboard');
+
+  // Admin authentication hook - checks both super admin and promoted admins
+  const { adminUser, isLoading: adminLoading, isAdmin, isSuperAdmin } = useAdminAuth(user);
 
   const [currentUser, setCurrentUser] = useState<{ adminId: string; adminEmail: string; adminName: string; isSuperAdmin: boolean } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -89,7 +91,8 @@ function Admin() {
   const { data: users = [], isLoading: usersLoading } = useUsers();
   const { data: courseRegistrations = [], isLoading: coursesLoading } = useCourseRegistrations();
   const { data: cleaningDays = [], isLoading: daysLoading } = useCleaningDays();
-  const { data: dashboardStats, isLoading: statsLoading } = useDashboardStats();
+  const dashboardStats = useDashboardStats();
+  const statsLoading = usersLoading || coursesLoading || daysLoading;
 
   // Refetch controls
   const { refetchAll } = useRefetchControls();
@@ -107,37 +110,30 @@ function Admin() {
 
   // React Query handles dashboard statistics automatically
 
-  // Admin validation - check if authenticated user is admin
+  // Admin validation - check if authenticated user is admin (super admin or promoted)
   useEffect(() => {
-    if (user) {
-      console.log('Admin Auth: Checking user admin status', user);
-
-      // Admin check - user must be admin (either super admin or promoted admin)
-      if (!user.isAdmin) {
-        console.log('Admin Auth: Not admin, redirecting to dashboard');
+    if (user && !adminLoading) {
+      if (!isAdmin) {
         router.push('/dashboard');
         return;
       }
 
-      // Set current admin user
-      setCurrentUser({
-        adminId: user.id,
-        adminEmail: user.email,
-        adminName: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-        isSuperAdmin: user.isSuperAdmin || false
-      });
-
-      console.log('Admin Auth: Authentication successful');
+      if (adminUser) {
+        // Set current admin user
+        setCurrentUser({
+          adminId: adminUser.id,
+          adminEmail: adminUser.email,
+          adminName: adminUser.fullName || `${adminUser.firstName || ''} ${adminUser.lastName || ''}`.trim(),
+          isSuperAdmin: isSuperAdmin
+        });
+      }
     }
-  }, [user, router]);
-
-  console.log('Admin Page: Render state', { isLoading, currentUser });
+  }, [user, adminUser, adminLoading, isAdmin, isSuperAdmin, router]);
 
   // Show loading if still loading or if no current user yet
-  if (authLoading || !currentUser) {
-    console.log('Admin Page: Showing loading', { isLoading, hasCurrentUser: !!currentUser });
+  if (authLoading || adminLoading || !currentUser) {
     return (
-      <PageLoader text={!currentUser ? "Authenticating..." : "Loading..."} color="purple" />
+      <PageLoader text={authLoading ? "Authenticating..." : adminLoading ? "Checking admin access..." : "Loading..."} color="purple" />
     );
   }
 

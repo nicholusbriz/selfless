@@ -52,7 +52,7 @@ export async function GET(request: Request) {
     }
 
   } catch (error) {
-    console.error('Error fetching users:', error);
+    
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }
@@ -76,8 +76,8 @@ export async function DELETE(request: Request) {
 
     // Delete all registrations associated with this user (but keep the user account)
     const deletedRegistrations = await Registration.deleteMany({ userId });
-    console.log(`Deleted ${deletedRegistrations.deletedCount} registrations for user ${user.email}`);
-    console.log(`User account ${user.email} preserved for future login access`);
+    
+    
 
     return NextResponse.json({
       success: true,
@@ -92,7 +92,7 @@ export async function DELETE(request: Request) {
     });
 
   } catch (error) {
-    console.error('Error deleting user:', error);
+    
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }

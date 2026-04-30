@@ -8,7 +8,7 @@ export async function POST(request: Request) {
     await connectDB();
     const { cleaningDayId, userId } = await request.json();
 
-    console.log('Form submission received:', { cleaningDayId, userId });
+    
 
     // Validation
     if (!cleaningDayId || !userId) {
@@ -16,9 +16,9 @@ export async function POST(request: Request) {
     }
 
     // Find user
-    console.log('Looking for user with ID:', userId);
+    
     const user = await User.findById(userId);
-    console.log('User found:', user);
+    
     if (!user) {
       return NextResponse.json({
         success: false,
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
-    console.error('Form submission error:', error);
+    
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }

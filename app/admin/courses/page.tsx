@@ -26,7 +26,7 @@ export default function AdminCoursesPage() {
           });
         }
       } catch (error) {
-        console.error('Error getting admin info:', error);
+        
       } finally {
         setLoading(false);
       }

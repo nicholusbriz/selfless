@@ -101,7 +101,7 @@ export async function POST(request: Request) {
     }
 
   } catch (error: unknown) {
-    console.error('Course registration error:', error);
+    
     const errorMessage = error instanceof Error ? error.message : 'Failed to save course registration';
 
     return NextResponse.json({
@@ -166,7 +166,7 @@ export async function GET(request: Request) {
     });
 
   } catch (error: unknown) {
-    console.error('Get courses error:', error);
+    
     const errorMessage = error instanceof Error ? error.message : 'Failed to retrieve course registration';
 
     return NextResponse.json({

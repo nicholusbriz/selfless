@@ -97,7 +97,7 @@ export async function DELETE(request: NextRequest) {
       message: 'Announcement deleted successfully'
     });
   } catch (error) {
-    console.error('Error deleting announcement:', error);
+    
     return NextResponse.json(
       { success: false, message: 'Failed to delete announcement' },
       { status: 500 }

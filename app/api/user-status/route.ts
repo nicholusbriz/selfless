@@ -21,7 +21,7 @@ export async function GET() {
     }, { status: 401 });
 
   } catch (error) {
-    console.error('User status GET error:', error);
+    
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }
@@ -110,7 +110,7 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
-    console.error('User status error:', error);
+    
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }

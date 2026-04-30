@@ -69,7 +69,7 @@ export default function CoursesPage() {
           setRegisteredCourses(data.data.courses);
         }
       } catch (error) {
-        console.error('Error checking registered courses:', error);
+        
       } finally {
         setCheckingRegistration(false);
       }
@@ -184,7 +184,7 @@ export default function CoursesPage() {
                       setRegisteredCourses(data.data.courses);
                     }
                   } catch (error) {
-                    console.error('Error checking registered courses:', error);
+                    
                   }
                 };
                 checkRegisteredCourses();
