@@ -20,15 +20,15 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
     }
     
-    console.log(`Starting permanent deletion for user: ${user.email}`);
+    
     
     // First, delete all registrations associated with this user
     const deletedRegistrations = await Registration.deleteMany({ userId });
-    console.log(`Deleted ${deletedRegistrations.deletedCount} registrations for user ${user.email}`);
+    
     
     // Then permanently delete the user from database
     const deletedUser = await User.findByIdAndDelete(userId);
-    console.log(`Permanently deleted user account: ${deletedUser.email}`);
+    
     
     return NextResponse.json({
       success: true,
@@ -43,7 +43,7 @@ export async function DELETE(request: Request) {
     });
 
   } catch (error) {
-    console.error('Error permanently deleting user:', error);
+    
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }

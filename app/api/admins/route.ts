@@ -73,7 +73,7 @@ export async function GET(request: Request) {
     });
 
   } catch (error) {
-    console.error('Error fetching admins:', error);
+    
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }
@@ -151,7 +151,7 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
-    console.error('Error adding admin:', error);
+    
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }
@@ -199,7 +199,7 @@ export async function DELETE(request: Request) {
     });
 
   } catch (error) {
-    console.error('Error removing admin:', error);
+    
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }

@@ -92,7 +92,7 @@ export async function GET() {
       announcements: announcementsWithComments
     });
   } catch (error) {
-    console.error('Error fetching announcements:', error);
+    
     return NextResponse.json(
       { success: false, message: 'Failed to fetch announcements' },
       { status: 500 }
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Error creating announcement:', error);
+    
     return NextResponse.json(
       { success: false, message: 'Failed to create announcement' },
       { status: 500 }

@@ -273,7 +273,7 @@ export default function AnnouncementNotifications({ isAdmin = false, adminId = '
           setAnnouncements(data.announcements);
         }
       } catch (error) {
-        console.error('Error fetching announcements:', error);
+        
       } finally {
         setIsLoading(false);
       }
@@ -290,7 +290,7 @@ export default function AnnouncementNotifications({ isAdmin = false, adminId = '
         const userId = urlParams.get('userId');
 
         if (!userId) {
-          console.log('No userId found in URL parameters');
+          
           return;
         }
 
@@ -307,13 +307,13 @@ export default function AnnouncementNotifications({ isAdmin = false, adminId = '
               email: user.email
             });
           } else {
-            console.error('User not found in database');
+            
           }
         } else {
-          console.error('Failed to fetch user from database:', data.message);
+          
         }
       } catch (error) {
-        console.error('Error fetching current user:', error);
+        
       }
     };
 
@@ -349,7 +349,7 @@ export default function AnnouncementNotifications({ isAdmin = false, adminId = '
         setAnnouncements(announcements.filter(a => a.id !== announcementId));
       }
     } catch (error) {
-      console.error('Error deleting announcement:', error);
+      
       // Still remove from local state even if API fails
       setAnnouncements(announcements.filter(a => a.id !== announcementId));
     } finally {
@@ -386,10 +386,10 @@ export default function AnnouncementNotifications({ isAdmin = false, adminId = '
         // Refresh the announcements to get the latest data from database
         await refreshAnnouncements();
       } else {
-        console.error('Failed to post comment:', data.message);
+        
       }
     } catch (error) {
-      console.error('Error posting comment:', error);
+      
     } finally {
       setIsPostingComment(null);
     }
@@ -425,10 +425,10 @@ export default function AnnouncementNotifications({ isAdmin = false, adminId = '
         // Refresh the announcements to get the latest data from database
         await refreshAnnouncements();
       } else {
-        console.error('Failed to post reply:', data.message);
+        
       }
     } catch (error) {
-      console.error('Error posting reply:', error);
+      
     } finally {
       setIsPostingComment(null);
     }
@@ -448,10 +448,10 @@ export default function AnnouncementNotifications({ isAdmin = false, adminId = '
         // Refresh announcements to get the latest data from database
         await refreshAnnouncements();
       } else {
-        console.error('Failed to delete comment:', data.message);
+        
       }
     } catch (error) {
-      console.error('Error deleting comment:', error);
+      
     }
   };
 
@@ -474,7 +474,7 @@ export default function AnnouncementNotifications({ isAdmin = false, adminId = '
         setAnnouncements(data.announcements);
       }
     } catch (error) {
-      console.error('Error refreshing announcements:', error);
+      
     }
   };
 
@@ -513,7 +513,7 @@ export default function AnnouncementNotifications({ isAdmin = false, adminId = '
         alert(data.message || 'Failed to create announcement');
       }
     } catch (error) {
-      console.error('Error creating announcement:', error);
+      
       alert('Network error occurred');
     } finally {
       setIsCreating(false);

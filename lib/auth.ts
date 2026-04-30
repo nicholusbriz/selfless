@@ -55,7 +55,7 @@ export const checkUserAccess = async (): Promise<AuthResponse> => {
 
     return data;
   } catch (error) {
-    console.error('Authentication check error:', error);
+    
     return {
       success: false,
       message: 'Network error during authentication'
@@ -148,7 +148,7 @@ export const verifyApiAuth = async (request: Request) => {
       isAdmin: data.user.isAdmin
     };
   } catch (error) {
-    console.error('API auth verification error:', error);
+    
     return { user: null, isSuperAdmin: false, isAdmin: false };
   }
 };

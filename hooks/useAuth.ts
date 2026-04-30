@@ -42,7 +42,7 @@ export const useAuth = (redirectTo = '/') => {
         router.push(redirectTo);
       }
     } catch (authError) {
-      console.error('Authentication error:', authError);
+      
       setState({
         user: null,
         isLoading: false,

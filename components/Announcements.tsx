@@ -186,7 +186,7 @@ export default function Announcements({
           setAnnouncements(data.announcements);
         }
       } catch (error) {
-        console.error('Error fetching announcements:', error);
+        
       } finally {
         setIsLoading(false);
       }
@@ -218,7 +218,7 @@ export default function Announcements({
           }
         }
       } catch (error) {
-        console.error('Error fetching current user:', error);
+        
       }
     };
 
@@ -235,7 +235,7 @@ export default function Announcements({
         setAnnouncements(data.announcements);
       }
     } catch (error) {
-      console.error('Error refreshing announcements:', error);
+      
     }
   };
 
@@ -266,10 +266,10 @@ export default function Announcements({
         setNewComments(prev => ({ ...prev, [announcementId]: '' }));
         await refreshAnnouncements();
       } else {
-        console.error('Failed to post comment:', data.message);
+        
       }
     } catch {
-      console.error('Error posting comment');
+      
     } finally {
       setIsPostingComment(null);
     }
@@ -303,10 +303,10 @@ export default function Announcements({
         setNewReplies(prev => ({ ...prev, [commentId]: '' }));
         await refreshAnnouncements();
       } else {
-        console.error('Failed to post reply:', data.message);
+        
       }
     } catch {
-      console.error('Error posting reply');
+      
     } finally {
       setIsPostingComment(null);
     }
@@ -325,10 +325,10 @@ export default function Announcements({
       if (data.success) {
         await refreshAnnouncements();
       } else {
-        console.error('Failed to delete comment:', data.message);
+        
       }
     } catch (error) {
-      console.error('Error deleting comment:', error);
+      
     }
   };
 

@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error creating reply:', error);
+    
     return NextResponse.json(
       { success: false, message: 'Failed to create reply' },
       { status: 500 }

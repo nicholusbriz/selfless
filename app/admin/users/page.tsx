@@ -26,7 +26,7 @@ export default function AdminUsersPage() {
           });
         }
       } catch (error) {
-        console.error('Error getting admin info:', error);
+        
       } finally {
         setLoading(false);
       }

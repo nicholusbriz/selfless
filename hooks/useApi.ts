@@ -201,26 +201,22 @@ export const useDashboardStats = () => {
   const { data: cleaningDays = [] } = useCleaningDays();
   const { data: courseRegistrations = [] } = useCourseRegistrations();
 
-  return useQuery({
-    queryKey: ['dashboard-stats'],
-    queryFn: () => {
-      const totalUsers = users.length;
-      const registeredForDays = new Set(cleaningDays.map(user => user.id)).size;
-      const totalRegistrations = cleaningDays.length;
-      const remainingDays = Math.max(0, 75 - totalRegistrations); // 75 total capacity
-      const courseSubmissions = courseRegistrations.length;
+  // Calculate stats directly from the data
+  const totalUsers = users.length;
+  const registeredForDays = new Set(cleaningDays.map(user => user.id)).size;
+  const totalRegistrations = cleaningDays.length;
+  const remainingDays = Math.max(0, 75 - totalRegistrations); // 75 total capacity
+  const courseSubmissions = courseRegistrations.length;
 
-      return {
-        totalUsers,
-        registeredForDays,
-        remainingDays,
-        totalCapacity: 75,
-        usedCapacity: totalRegistrations,
-        courseSubmissions,
-      };
-    },
-    staleTime: 2 * 60 * 1000, // 2 minutes - stats change frequently
-  });
+  return {
+    totalUsers,
+    registeredForDays,
+    remainingDays,
+    totalCapacity: 75,
+    usedCapacity: totalRegistrations,
+    courseSubmissions,
+    isLoading: false, // Data is available from the other hooks
+  };
 };
 
 // Hook for manual refetch controls

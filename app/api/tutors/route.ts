@@ -73,7 +73,7 @@ export async function GET(request: Request) {
     });
 
   } catch (error) {
-    console.error('Error fetching tutors:', error);
+    
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }
@@ -142,7 +142,7 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
-    console.error('Error adding tutor:', error);
+    
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }
@@ -179,7 +179,7 @@ export async function DELETE(request: Request) {
     });
 
   } catch (error) {
-    console.error('Error removing tutor:', error);
+    
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }

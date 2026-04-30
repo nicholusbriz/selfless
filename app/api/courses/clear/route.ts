@@ -41,7 +41,7 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error clearing course registrations:', error);
+    
     return NextResponse.json(
       { success: false, message: 'Failed to clear course registrations' },
       { status: 500 }
