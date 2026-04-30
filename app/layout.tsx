@@ -139,6 +139,7 @@ export const viewport = {
 };
 
 import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration';
+import { QueryProvider } from './providers';
 
 export default function RootLayout({
   children,
@@ -157,8 +158,10 @@ export default function RootLayout({
       }}
     >
       <body className="min-h-full flex flex-col">
-        {children}
-        <ServiceWorkerRegistration />
+        <QueryProvider>
+          {children}
+          <ServiceWorkerRegistration />
+        </QueryProvider>
       </body>
     </html>
   );
