@@ -186,7 +186,7 @@ export default function Announcements({
           setAnnouncements(data.announcements);
         }
       } catch (error) {
-        
+
       } finally {
         setIsLoading(false);
       }
@@ -218,7 +218,7 @@ export default function Announcements({
           }
         }
       } catch (error) {
-        
+
       }
     };
 
@@ -235,7 +235,7 @@ export default function Announcements({
         setAnnouncements(data.announcements);
       }
     } catch (error) {
-      
+
     }
   };
 
@@ -266,10 +266,10 @@ export default function Announcements({
         setNewComments(prev => ({ ...prev, [announcementId]: '' }));
         await refreshAnnouncements();
       } else {
-        
+
       }
     } catch {
-      
+
     } finally {
       setIsPostingComment(null);
     }
@@ -303,10 +303,10 @@ export default function Announcements({
         setNewReplies(prev => ({ ...prev, [commentId]: '' }));
         await refreshAnnouncements();
       } else {
-        
+
       }
     } catch {
-      
+
     } finally {
       setIsPostingComment(null);
     }
@@ -325,10 +325,10 @@ export default function Announcements({
       if (data.success) {
         await refreshAnnouncements();
       } else {
-        
+
       }
     } catch (error) {
-      
+
     }
   };
 

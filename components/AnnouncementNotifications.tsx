@@ -253,7 +253,6 @@ export default function AnnouncementNotifications({ isAdmin = false, adminId = '
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
-  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [newComments, setNewComments] = useState<{ [key: string]: string }>({});
   const [newReplies, setNewReplies] = useState<{ [key: string]: string }>({});
   const [isPostingComment, setIsPostingComment] = useState<string | null>(null);
@@ -273,7 +272,7 @@ export default function AnnouncementNotifications({ isAdmin = false, adminId = '
           setAnnouncements(data.announcements);
         }
       } catch (error) {
-        
+
       } finally {
         setIsLoading(false);
       }
@@ -282,38 +281,30 @@ export default function AnnouncementNotifications({ isAdmin = false, adminId = '
     fetchAnnouncements();
   }, []);
 
-  // Get current user from database
+  // Get current user from JWT token
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('userId');
+        // Get user info from JWT token
+        const response = await fetch('/api/user-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
-        if (!userId) {
-          
-          return;
-        }
-
-        // Fetch user data from database
-        const response = await fetch(`/api/users?id=${userId}`);
-        const data = await response.json();
-
-        if (data.success && data.users) {
-          const user = data.users.find((u: { id: string; fullName: string; email: string }) => u.id === userId);
-          if (user) {
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.user) {
             setCurrentUser({
-              id: user.id,
-              name: user.fullName,
-              email: user.email
+              id: data.user.id,
+              name: data.user.fullName,
+              email: data.user.email
             });
-          } else {
-            
           }
-        } else {
-          
         }
       } catch (error) {
-        
+
       }
     };
 
@@ -323,9 +314,6 @@ export default function AnnouncementNotifications({ isAdmin = false, adminId = '
 
   const handleOpenModal = () => {
     setShowModal(true);
-    // Expand all comments by default when modal opens
-    const allAnnouncementIds = announcements.map(a => a.id);
-    setExpandedComments(new Set(allAnnouncementIds));
   };
 
   const handleDeleteAnnouncement = async (announcementId: string) => {
@@ -349,7 +337,7 @@ export default function AnnouncementNotifications({ isAdmin = false, adminId = '
         setAnnouncements(announcements.filter(a => a.id !== announcementId));
       }
     } catch (error) {
-      
+
       // Still remove from local state even if API fails
       setAnnouncements(announcements.filter(a => a.id !== announcementId));
     } finally {
@@ -386,10 +374,10 @@ export default function AnnouncementNotifications({ isAdmin = false, adminId = '
         // Refresh the announcements to get the latest data from database
         await refreshAnnouncements();
       } else {
-        
+
       }
     } catch (error) {
-      
+
     } finally {
       setIsPostingComment(null);
     }
@@ -425,10 +413,10 @@ export default function AnnouncementNotifications({ isAdmin = false, adminId = '
         // Refresh the announcements to get the latest data from database
         await refreshAnnouncements();
       } else {
-        
+
       }
     } catch (error) {
-      
+
     } finally {
       setIsPostingComment(null);
     }
@@ -448,22 +436,13 @@ export default function AnnouncementNotifications({ isAdmin = false, adminId = '
         // Refresh announcements to get the latest data from database
         await refreshAnnouncements();
       } else {
-        
+
       }
     } catch (error) {
-      
+
     }
   };
 
-  const toggleComments = (announcementId: string) => {
-    const newExpanded = new Set(expandedComments);
-    if (newExpanded.has(announcementId)) {
-      newExpanded.delete(announcementId);
-    } else {
-      newExpanded.add(announcementId);
-    }
-    setExpandedComments(newExpanded);
-  };
 
   const refreshAnnouncements = async () => {
     try {
@@ -474,7 +453,7 @@ export default function AnnouncementNotifications({ isAdmin = false, adminId = '
         setAnnouncements(data.announcements);
       }
     } catch (error) {
-      
+
     }
   };
 
@@ -513,7 +492,7 @@ export default function AnnouncementNotifications({ isAdmin = false, adminId = '
         alert(data.message || 'Failed to create announcement');
       }
     } catch (error) {
-      
+
       alert('Network error occurred');
     } finally {
       setIsCreating(false);
@@ -636,26 +615,22 @@ export default function AnnouncementNotifications({ isAdmin = false, adminId = '
                         {announcement.content}
                       </div>
 
-                      {/* Comments Section */}
+                      {/* Comments Section - Always Expanded */}
                       <div className="border-t border-gray-100 pt-4">
                         <div className="flex items-center justify-between mb-3">
-                          <button
-                            onClick={() => toggleComments(announcement.id)}
-                            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
-                          >
+                          <div className="flex items-center gap-2 text-blue-600 text-sm font-medium">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                             </svg>
                             {announcement.comments?.length || 0} Comment{(announcement.comments?.length || 0) !== 1 ? 's' : ''}
-                          </button>
-                          {expandedComments.has(announcement.id) && (
-                            <span className="text-xs text-gray-500">
-                              Click to hide
-                            </span>
-                          )}
+                          </div>
+                          <span className="text-xs text-gray-500">
+                            Comments are always visible
+                          </span>
                         </div>
 
-                        {expandedComments.has(announcement.id) && currentUser && (
+                        {/* Comment Input - Always Visible */}
+                        {currentUser ? (
                           <div className="mb-4">
                             <div className="flex gap-2">
                               <input
@@ -676,31 +651,34 @@ export default function AnnouncementNotifications({ isAdmin = false, adminId = '
                               </button>
                             </div>
                           </div>
-                        )}
-
-                        {expandedComments.has(announcement.id) && (
-                          <div className="space-y-3">
-                            {announcement.comments?.map((comment) => (
-                              <CommentItem
-                                key={comment.id}
-                                comment={comment}
-                                currentUser={currentUser}
-                                announcementId={announcement.id}
-                                onReply={handlePostReply}
-                                onDelete={handleDeleteComment}
-                                newReplies={newReplies}
-                                setNewReplies={setNewReplies}
-                                isPostingComment={isPostingComment}
-                                formatDate={formatDate}
-                              />
-                            ))}
-                            {(!announcement.comments || announcement.comments.length === 0) && (
-                              <p className="text-gray-500 text-sm text-center py-2">
-                                No comments yet. Be the first to comment!
-                              </p>
-                            )}
+                        ) : (
+                          <div className="mb-4 text-center text-gray-500 text-sm py-2 bg-gray-50 rounded-lg border border-gray-200">
+                            Please login to comment
                           </div>
                         )}
+
+                        {/* Comments Display - Always Visible */}
+                        <div className="space-y-3">
+                          {announcement.comments?.map((comment) => (
+                            <CommentItem
+                              key={comment.id}
+                              comment={comment}
+                              currentUser={currentUser}
+                              announcementId={announcement.id}
+                              onReply={handlePostReply}
+                              onDelete={handleDeleteComment}
+                              newReplies={newReplies}
+                              setNewReplies={setNewReplies}
+                              isPostingComment={isPostingComment}
+                              formatDate={formatDate}
+                            />
+                          ))}
+                          {(!announcement.comments || announcement.comments.length === 0) && (
+                            <p className="text-gray-500 text-sm text-center py-2">
+                              No comments yet. Be the first to comment!
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
