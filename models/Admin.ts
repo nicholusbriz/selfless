@@ -97,9 +97,7 @@ const AdminSchema: Schema = new Schema({
   timestamps: true
 });
 
-// Index for efficient queries
-AdminSchema.index({ userId: 1 });
-AdminSchema.index({ email: 1 });
+// Index for efficient queries (userId and email already indexed via unique: true)
 AdminSchema.index({ addedBy: 1 });
 AdminSchema.index({ isActive: 1 });
 AdminSchema.index({ role: 1 });

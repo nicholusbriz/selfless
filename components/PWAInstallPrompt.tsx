@@ -13,16 +13,13 @@ export default function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstall, setShowInstall] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
-
-  useEffect(() => {
-    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    setIsIOS(isIOSDevice);
-  }, []);
+  const [isIOS, setIsIOS] = useState(() => /iPad|iPhone|iPod/.test(navigator.userAgent));
 
   useEffect(() => {
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
     const isStandalone = 'standalone' in window.navigator && !!(window.navigator as { standalone?: boolean }).standalone;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsIOS(isIOSDevice);
 
     // Show install prompt for iOS users after a delay
     if (isIOSDevice && !isStandalone) {

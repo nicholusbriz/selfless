@@ -2,13 +2,52 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/models/database';
 import User from '@/models/User';
 import Registration from '@/models/Registration';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+// Helper function to verify user token
+async function verifyUserToken(request: Request) {
+  const cookieHeader = request.headers.get('cookie');
+  if (!cookieHeader) return null;
+
+  const cookies = cookieHeader.split(';').reduce((acc: { [key: string]: string }, cookie) => {
+    const [key, value] = cookie.trim().split('=');
+    acc[key] = value;
+    return acc;
+  }, {});
+
+  const token = cookies['auth-token'];
+  if (!token) return null;
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    const user = await User.findById(decoded.userId);
+    if (!user) return null;
+
+    return user;
+  } catch {
+    return null;
+  }
+}
 
 export async function POST(request: Request) {
   try {
+    // Verify user authentication
+    const authenticatedUser = await verifyUserToken(request);
+    if (!authenticatedUser) {
+      return NextResponse.json({ success: false, message: 'Authentication required' }, { status: 401 });
+    }
+
     await connectDB();
     const { cleaningDayId, userId } = await request.json();
 
-    
+    // Security: Ensure user can only register themselves
+    if (userId !== authenticatedUser._id.toString()) {
+      return NextResponse.json({ success: false, message: 'Unauthorized: You can only register yourself' }, { status: 403 });
+    }
+
+
 
     // Validation
     if (!cleaningDayId || !userId) {
@@ -16,9 +55,9 @@ export async function POST(request: Request) {
     }
 
     // Find user
-    
+
     const user = await User.findById(userId);
-    
+
     if (!user) {
       return NextResponse.json({
         success: false,
@@ -72,7 +111,7 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
-    
+
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }

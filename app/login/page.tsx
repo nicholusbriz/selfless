@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { BackgroundImage, LoadingSpinner, LoadingButton } from '@/components/ui';
+import { BackgroundImage, LoadingButton } from '@/components/ui';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({

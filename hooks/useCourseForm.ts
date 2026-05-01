@@ -35,7 +35,7 @@ interface CourseFormActions {
   setMessageType: (value: 'success' | 'error' | '') => void;
 }
 
-export const useCourseForm = (user: User | null, router: any): CourseFormState & CourseFormActions => {
+export const useCourseForm = (user: User | null, router: { push: (path: string) => void }): CourseFormState & CourseFormActions => {
   const [currentCourse, setCurrentCourse] = useState<Course>({ id: '', name: '', credits: '' });
   const [courses, setCourses] = useState<Course[]>([]);
   const [takesReligion, setTakesReligion] = useState(false);

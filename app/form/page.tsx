@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { User as UserType, CleaningDay, Weeks, UserRegistration } from '@/types';
 import { checkUserAccess, User } from '@/lib/auth';
-import { PageLoader, BackgroundImage, DashboardButton } from '@/components/ui';
+import { PageLoader, BackgroundImage } from '@/components/ui';
 
 export default function FormPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -664,7 +664,15 @@ export default function FormPage() {
         </div>
 
         <div className="text-center mt-auto space-y-4">
-          <DashboardButton text="Go back to Dashboard" />
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 transform hover:scale-105 flex items-center gap-2"
+            >
+              <span className="text-xl">📊</span>
+              Go back to Dashboard
+            </button>
+          </div>
         </div>
       </div>
     </BackgroundImage>

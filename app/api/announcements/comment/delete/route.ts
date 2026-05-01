@@ -82,7 +82,7 @@ export async function DELETE(request: NextRequest) {
       message: 'Comment deleted successfully'
     });
   } catch (error) {
-    
+
     return NextResponse.json(
       { success: false, message: 'Failed to delete comment' },
       { status: 500 }

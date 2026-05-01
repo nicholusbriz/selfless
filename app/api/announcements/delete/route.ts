@@ -92,12 +92,24 @@ export async function DELETE(request: NextRequest) {
       _id: announcementId
     });
 
+    // Delete all comments and replies associated with this announcement
+    const mongoose = await connectToDatabase();
+    const db = mongoose.connection.db;
+
+    if (db) {
+      const deleteResult = await db.collection('comments').deleteMany({
+        announcementId: announcementId
+      });
+
+      console.log(`Deleted ${deleteResult.deletedCount} comments and replies for announcement ${announcementId}`);
+    }
+
     return NextResponse.json({
       success: true,
-      message: 'Announcement deleted successfully'
+      message: 'Announcement and all associated comments deleted successfully'
     });
   } catch (error) {
-    
+
     return NextResponse.json(
       { success: false, message: 'Failed to delete announcement' },
       { status: 500 }

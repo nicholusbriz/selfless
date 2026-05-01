@@ -1,13 +1,81 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/models/database';
 import Registration from '@/models/Registration';
+import User from '@/models/User';
+import Admin from '@/models/Admin';
+import jwt from 'jsonwebtoken';
+import { isSuperAdminEmail } from '@/config/admin';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+// Helper function to verify admin token
+async function verifyAdminToken(request: Request) {
+  const cookieHeader = request.headers.get('cookie');
+  if (!cookieHeader) return null;
+
+  const cookies = cookieHeader.split(';').reduce((acc: { [key: string]: string }, cookie) => {
+    const [key, value] = cookie.trim().split('=');
+    acc[key] = value;
+    return acc;
+  }, {});
+
+  const token = cookies['auth-token'];
+  if (!token) return null;
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    const user = await User.findById(decoded.userId);
+    if (!user) return null;
+
+    // Check if user is admin using admin.ts config
+    const isSuperAdmin = isSuperAdminEmail(user.email);
+    const promotedAdmin = await Admin.findOne({ userId: user._id.toString() });
+
+    if (!isSuperAdmin && !promotedAdmin) return null;
+
+    return { user, isSuperAdmin, promotedAdmin };
+  } catch {
+    return null;
+  }
+}
+
+// Helper function to verify user token
+async function verifyUserToken(request: Request) {
+  const cookieHeader = request.headers.get('cookie');
+  if (!cookieHeader) return null;
+
+  const cookies = cookieHeader.split(';').reduce((acc: { [key: string]: string }, cookie) => {
+    const [key, value] = cookie.trim().split('=');
+    acc[key] = value;
+    return acc;
+  }, {});
+
+  const token = cookies['auth-token'];
+  if (!token) return null;
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    const user = await User.findById(decoded.userId);
+    if (!user) return null;
+
+    return user;
+  } catch {
+    return null;
+  }
+}
 
 // Cache configuration for PWA performance
 export const revalidate = 60; // Revalidate every minute for cleaning days
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await connectDB();
+
+    // Verify user access (any authenticated user can view cleaning days)
+    const user = await verifyUserToken(request);
+    if (!user) {
+      return NextResponse.json({ success: false, message: 'Authentication required' }, { status: 401 });
+    }
 
     // Fetch all registrations from database with populated user data
     const registrations = await Registration.find({}).populate({
@@ -130,6 +198,12 @@ export async function GET() {
 export async function DELETE(request: Request) {
   try {
     await connectDB();
+
+    // Verify admin access for deletion operations
+    const adminData = await verifyAdminToken(request);
+    if (!adminData) {
+      return NextResponse.json({ success: false, message: 'Admin access required for deletions' }, { status: 401 });
+    }
 
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');

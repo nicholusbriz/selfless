@@ -58,8 +58,8 @@ export async function checkAdminStatus(userEmail: string, userId: string): Promi
     const adminData = await response.json();
     return adminData.success ? adminData.admin : null;
 
-  } catch (error) {
-    
+  } catch {
+
     return null;
   }
 }

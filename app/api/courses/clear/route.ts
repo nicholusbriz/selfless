@@ -4,12 +4,21 @@ import CourseRegistration from '@/models/CourseRegistration';
 
 export async function DELETE(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId } = body;
+    // Get submission ID from query parameter or JSON body
+    const { searchParams } = new URL(request.url);
+    const submissionId = searchParams.get('id');
 
-    if (!userId) {
+    let submissionIdToDelete;
+    if (submissionId) {
+      submissionIdToDelete = submissionId;
+    } else {
+      const body = await request.json();
+      submissionIdToDelete = body.userId;
+    }
+
+    if (!submissionIdToDelete) {
       return NextResponse.json(
-        { success: false, message: 'User ID is required' },
+        { success: false, message: 'Submission ID is required' },
         { status: 400 }
       );
     }
@@ -17,12 +26,12 @@ export async function DELETE(request: NextRequest) {
     // Connect to database
     await connectDB();
 
-    // Find and delete the user's course registration
-    const deletedRegistration = await CourseRegistration.findOneAndDelete({ userId });
+    // Find and delete the course registration by document ID
+    const deletedRegistration = await CourseRegistration.findByIdAndDelete(submissionIdToDelete);
 
     if (!deletedRegistration) {
       return NextResponse.json(
-        { success: false, message: 'No course registration found for this user' },
+        { success: false, message: 'No course registration found with this ID' },
         { status: 404 }
       );
     }
@@ -41,7 +50,7 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    
+
     return NextResponse.json(
       { success: false, message: 'Failed to clear course registrations' },
       { status: 500 }

@@ -12,9 +12,10 @@ export function createQueryClient() {
         // PWA Optimizations:
         staleTime: 5 * 60 * 1000, // 5 minutes - perfect for mobile
         gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
-        retry: (failureCount, error: any) => {
+        retry: (failureCount, error: unknown) => {
           // Don't retry on 4xx errors (client faults)
-          if (error?.status >= 400 && error?.status < 500) return false;
+          const err = error as { status?: number };
+          if (typeof err.status === 'number' && err.status >= 400 && err.status < 500) return false;
           // Retry up to 2 times for network issues
           return failureCount < 2;
         },

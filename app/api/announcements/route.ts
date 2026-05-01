@@ -1,9 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/models/database';
 import Announcement, { CreateAnnouncementData } from '@/models/Announcement';
+import User from '@/models/User';
+import Tutor from '@/models/Tutor';
+import Admin from '@/models/Admin';
+import jwt from 'jsonwebtoken';
+import { isSuperAdminEmail } from '@/config/admin';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+// Helper function to verify admin (super admin or promoted admin)
+async function verifyAdmin(userId: string) {
+  const user = await User.findById(userId);
+  if (!user) return null;
+
+  // Check if user is admin using admin.ts config
+  const isSuperAdmin = isSuperAdminEmail(user.email);
+  const promotedAdmin = await Admin.findOne({ userId: user._id.toString() });
+
+  if (!isSuperAdmin && !promotedAdmin) return null;
+
+  return { user, isSuperAdmin, promotedAdmin };
+}
+
+// Helper function to verify tutor permissions
+async function verifyTutorPermissions(userId: string) {
+  const user = await User.findById(userId);
+  if (!user) return null;
+
+  const tutor = await Tutor.findOne({ userId: user._id.toString() });
+  if (!tutor || !tutor.permissions.canPostAnnouncements) return null;
+
+  return { user, tutor };
+}
 
 // Recursive function to fetch nested replies
-async function fetchNestedReplies(parentCommentId: string, db: { collection: (name: string) => { find: (query: any) => { sort: (sort: any) => { toArray: () => Promise<any[]> } } } }, depth = 0): Promise<any[]> {
+async function fetchNestedReplies(parentCommentId: string, db: any, depth = 0): Promise<any[]> {
   if (depth > 3) return []; // Limit nesting depth to prevent infinite recursion
 
   const replies = await db.collection('comments')
@@ -92,7 +124,7 @@ export async function GET() {
       announcements: announcementsWithComments
     });
   } catch (error) {
-    
+
     return NextResponse.json(
       { success: false, message: 'Failed to fetch announcements' },
       { status: 500 }
@@ -103,6 +135,51 @@ export async function GET() {
 // POST new announcement
 export async function POST(request: NextRequest) {
   try {
+    // Extract JWT token from Authorization header
+    const authHeader = request.headers.get('Authorization');
+    const token = authHeader?.replace('Bearer ', '');
+
+    if (!token) {
+      return NextResponse.json(
+        { success: false, message: 'Authorization token required' },
+        { status: 401 }
+      );
+    }
+
+    // Verify JWT token
+    let decoded: { userId: string };
+    try {
+      decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    } catch (jwtError) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid or expired token' },
+        { status: 401 }
+      );
+    }
+
+    if (!decoded || !decoded.userId) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid token payload' },
+        { status: 401 }
+      );
+    }
+
+    await connectToDatabase();
+
+    // Check if user is admin (super admin or promoted admin)
+    const adminData = await verifyAdmin(decoded.userId);
+
+    // Check if user is tutor with posting permissions
+    const tutorData = await verifyTutorPermissions(decoded.userId);
+
+    // User must be either admin or authorized tutor
+    if (!adminData && !tutorData) {
+      return NextResponse.json(
+        { success: false, message: 'Unauthorized: Only admins and authorized tutors can post announcements' },
+        { status: 403 }
+      );
+    }
+
     const body: CreateAnnouncementData = await request.json();
 
     if (!body.title || !body.content || !body.adminId || !body.adminName || !body.adminEmail) {
@@ -112,7 +189,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await connectToDatabase();
+    // Additional security: Ensure user can only post as themselves
+    const currentUser = adminData?.user || tutorData?.user;
+    if (body.adminId !== decoded.userId ||
+      body.adminEmail !== currentUser.email) {
+      return NextResponse.json(
+        { success: false, message: 'Unauthorized: You can only post announcements as yourself' },
+        { status: 403 }
+      );
+    }
 
     const newAnnouncement = new Announcement({
       title: body.title.trim(),
@@ -140,7 +225,7 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error) {
-    
+
     return NextResponse.json(
       { success: false, message: 'Failed to create announcement' },
       { status: 500 }

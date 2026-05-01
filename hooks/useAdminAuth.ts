@@ -94,9 +94,9 @@ export const useAdminAuth = (user: User | null): UseAdminAuthResult => {
 
   useEffect(() => {
     if (queryError) {
-      setError(queryError instanceof Error ? queryError.message : 'Authentication error');
+      setTimeout(() => setError(queryError instanceof Error ? queryError.message : 'Authentication error'), 0);
     } else {
-      setError(null);
+      setTimeout(() => setError(null), 0);
     }
   }, [queryError]);
 

@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { User } from '@/lib/auth';
 import AdminDashboard from '@/components/AdminDashboard';
 import { PageLoader, BackgroundImage, DashboardButton } from '@/components/ui';
+import UserSearch from '@/components/UserSearch';
 import { useUsers, useCourseRegistrations, useCleaningDays, useDashboardStats, useRefetchControls } from '@/hooks/useApi';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
@@ -55,12 +56,17 @@ const adminContent = {
       { icon: '📊', value: '0', label: 'Remaining Days Available' },
       { icon: '📚', value: '0', label: 'Credits' }
     ]
+  },
+  search: {
+    title: 'User Search',
+    description: 'Search for any user by name or email to view their complete information including course registrations and cleaning day assignments.'
   }
 };
 
 // Navigation items
 const navigationItems = [
   { id: 'overview', title: 'Overview', icon: '📊' },
+  { id: 'search', title: 'Search Users', icon: '🔍' },
   { id: 'users', title: 'Users', icon: '👥' },
   { id: 'courses', title: 'Courses', icon: '📚' },
   { id: 'registered-days', title: 'Registered Days', icon: '📅' },
@@ -79,7 +85,7 @@ function Admin() {
   const [currentUser, setCurrentUser] = useState<{ adminId: string; adminEmail: string; adminName: string; isSuperAdmin: boolean } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeSection, setActiveSection] = useState('overview');
-  const [showDashboard, setShowDashboard] = useState<'overview' | 'users' | 'courses' | 'registered-days' | 'announcements' | 'tutors' | 'admins' | undefined>(undefined);
+  const [showDashboard, setShowDashboard] = useState<'overview' | 'users' | 'courses' | 'registered-days' | 'announcements' | 'tutors' | 'admins' | 'security' | 'system' | 'communication' | 'reporting' | 'search' | undefined>(undefined);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [copyFeedback, setCopyFeedback] = useState('');
   const [editingPhone, setEditingPhone] = useState<string | null>(null);
@@ -228,65 +234,56 @@ function Admin() {
               </div>
             </div>
 
-            {/* Main Content */}
+            {/* Main Content Area */}
             <div className="flex-1">
-              <div className="bg-black/30 rounded-2xl p-8 lg:p-12 border border-white/20">
-                <div className="mb-8">
-                  <h1 className="text-3xl lg:text-4xl xl:text-5xl font-bold bg-gradient-to-r from-purple-100 to-indigo-100 bg-clip-text text-transparent mb-4 animate-slide-in-right drop-shadow-2xl">
-                    {adminContent[activeSection as keyof typeof adminContent]?.title ||
-                      activeSection === 'users' ? 'User Management' :
-                      activeSection === 'courses' ? 'Course Management' :
-                        activeSection === 'registered-days' ? 'Registered Days' :
-                          activeSection === 'announcements' ? 'Announcements Management' :
-                            activeSection === 'tutors' ? 'Tutor Management' :
-                              activeSection === 'admins' ? 'Admin Management' :
-                                'Dashboard'
-                    }
-                  </h1>
-                  <div className="h-2 bg-gradient-to-r from-purple-500 via-indigo-500 to-pink-500 rounded-full w-32 animate-slide-in-left shadow-lg shadow-purple-500/50"></div>
+              {/* Show AdminDashboard if a section is selected */}
+              {showDashboard && showDashboard !== 'search' && currentUser && (
+                <div className="bg-black/30 rounded-2xl border border-white/20 p-8 animate-fade-in-up">
+                  <AdminDashboard
+                    adminId={currentUser.adminId}
+                    adminEmail={currentUser.adminEmail}
+                    adminName={currentUser.adminName}
+                    isSuperAdmin={currentUser.isSuperAdmin}
+                    initialSection={showDashboard}
+                    onStatsRefresh={refetchAll}
+                  />
                 </div>
+              )}
 
-                <div className="prose prose-lg max-w-none">
-                  {renderAdminContent(activeSection, adminContent[activeSection as keyof typeof adminContent] || {}, setShowDashboard, dashboardStats || {
-                    totalUsers: 0,
-                    registeredForDays: 0,
-                    remainingDays: 0,
-                    totalCapacity: 0,
-                    usedCapacity: 0,
-                    courseSubmissions: 0
-                  })}
+              {/* Show overview content when no specific section selected */}
+              {!showDashboard && (
+                <div className="bg-black/30 rounded-2xl p-8 lg:p-12 border border-white/20">
+                  <div className="mb-8">
+                    <h1 className="text-3xl lg:text-4xl xl:text-5xl font-bold bg-gradient-to-r from-purple-100 to-indigo-100 bg-clip-text text-transparent mb-4 animate-slide-in-right drop-shadow-2xl">
+                      {adminContent[activeSection as keyof typeof adminContent]?.title ||
+                        activeSection === 'search' ? 'User Search' :
+                        activeSection === 'users' ? 'User Management' :
+                          activeSection === 'courses' ? 'Course Management' :
+                            activeSection === 'registered-days' ? 'Registered Days' :
+                              activeSection === 'announcements' ? 'Announcements Management' :
+                                activeSection === 'tutors' ? 'Tutor Management' :
+                                  activeSection === 'admins' ? 'Admin Management' :
+                                    activeSection === 'overview' ? 'Dashboard Overview' :
+                                      'Dashboard'
+                      }
+                    </h1>
+                    <div className="h-2 bg-gradient-to-r from-purple-500 via-indigo-500 to-pink-500 rounded-full w-32 animate-slide-in-left shadow-lg shadow-purple-500/50"></div>
+                  </div>
+
+                  <div className="prose prose-lg max-w-none">
+                    {renderAdminContent(activeSection, adminContent[activeSection as keyof typeof adminContent] || {}, setShowDashboard, dashboardStats || {
+                      totalUsers: 0,
+                      registeredForDays: 0,
+                      remainingDays: 0,
+                      totalCapacity: 0,
+                      usedCapacity: 0,
+                      courseSubmissions: 0
+                    }, users, courseRegistrations, cleaningDays)}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
-
-          {/* Show AdminDashboard if a section is selected */}
-          {showDashboard && currentUser && (
-            <div className="mb-12 animate-fade-in-up">
-              <div className="mb-8">
-                <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-purple-100 to-indigo-100 bg-clip-text text-transparent text-center mb-4 animate-slide-in-right drop-shadow-2xl">
-                  {showDashboard === 'users' ? 'User Management' :
-                    showDashboard === 'courses' ? 'Course Management' :
-                      showDashboard === 'registered-days' ? 'Registered Days' :
-                        showDashboard === 'announcements' ? 'Announcements Management' :
-                          showDashboard === 'tutors' ? 'Tutor Management' :
-                            showDashboard === 'admins' ? 'Admin Management' :
-                              showDashboard === 'overview' ? 'Dashboard Overview' : 'Dashboard'}
-                </h2>
-                <div className="h-2 bg-gradient-to-r from-purple-500 via-indigo-500 to-pink-500 rounded-full w-48 mx-auto animate-slide-in-left shadow-lg shadow-purple-500/50"></div>
-              </div>
-              <div className="bg-black/30 rounded-2xl border border-white/20 p-8">
-                <AdminDashboard
-                  adminId={currentUser.adminId}
-                  adminEmail={currentUser.adminEmail}
-                  adminName={currentUser.adminName}
-                  isSuperAdmin={currentUser.isSuperAdmin}
-                  initialSection={showDashboard}
-                  onStatsRefresh={refetchAll}
-                />
-              </div>
-            </div>
-          )}
 
           {/* Go to Dashboard Button */}
           <div className="mb-12 text-center animate-fade-in-up">
@@ -301,7 +298,7 @@ function Admin() {
 export default Admin;
 
 // Render admin content (policies-style)
-const renderAdminContent = (sectionKey: string, section: { title: string; description: string }, setShowDashboard: (section: 'overview' | 'users' | 'courses' | undefined) => void, dashboardStats: { totalUsers: number; registeredForDays: number; remainingDays: number; totalCapacity: number; usedCapacity: number; courseSubmissions: number }) => {
+const renderAdminContent = (sectionKey: string, section: { title: string; description: string }, setShowDashboard: (section: 'overview' | 'users' | 'courses' | 'registered-days' | 'announcements' | 'tutors' | 'admins' | 'security' | 'system' | 'communication' | 'reporting' | 'search' | undefined) => void, dashboardStats: { totalUsers: number; registeredForDays: number; remainingDays: number; totalCapacity: number; usedCapacity: number; courseSubmissions: number }, users: any[], courseRegistrations: any[], cleaningDays: any[]) => {
   if (sectionKey === 'overview') {
     // Create dynamic stats based on real data
     const dynamicStats = [
@@ -325,6 +322,24 @@ const renderAdminContent = (sectionKey: string, section: { title: string; descri
               </div>
             ))}
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (sectionKey === 'search') {
+    return (
+      <div className="space-y-12">
+        <div className="bg-black/30 rounded-2xl p-10 border border-white/20">
+          <h3 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-100 to-indigo-100 bg-clip-text text-transparent mb-6 animate-slide-in-right drop-shadow-2xl">User Search</h3>
+          <p className="text-gray-100 text-lg sm:text-xl md:text-2xl leading-relaxed mb-8 animate-slide-in-left drop-shadow-lg">
+            Search for any user by name or email to view their complete information including course registrations and cleaning day assignments.
+          </p>
+          <UserSearch
+            users={users || []}
+            courseRegistrations={courseRegistrations || []}
+            cleaningDays={cleaningDays || []}
+          />
         </div>
       </div>
     );
