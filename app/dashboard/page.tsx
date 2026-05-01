@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { User } from '@/lib/auth';
 import AnnouncementNotifications from '@/components/AnnouncementNotifications';
+import TutorSchedule from '@/components/TutorSchedule';
 import { BackgroundImage, PageLoader } from '@/components/ui';
 import { useCleaningDays } from '@/hooks/useApi';
 import { useAuth } from '@/hooks/useAuth';
@@ -143,7 +144,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Admin/Tutor Sections */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Admin Panel */}
           {user && user.isAdmin && (
             <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 backdrop-blur-md rounded-2xl border border-amber-400/30 hover:from-amber-500/30 hover:to-orange-500/30 transition-all duration-300">
@@ -191,6 +192,11 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Tutor Schedule - Visible to all users */}
+        <div className="mb-8">
+          <TutorSchedule />
         </div>
 
         {/* Sign Out Section */}
