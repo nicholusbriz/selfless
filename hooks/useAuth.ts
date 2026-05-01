@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { checkUserAccess, User } from '@/lib/auth';
 
@@ -22,7 +22,7 @@ export const useAuth = (redirectTo = '/') => {
 
   const router = useRouter();
 
-  const authenticate = async () => {
+  const authenticate = useCallback(async () => {
     try {
       const authResult = await checkUserAccess();
 
@@ -41,8 +41,8 @@ export const useAuth = (redirectTo = '/') => {
         });
         router.push(redirectTo);
       }
-    } catch (authError) {
-      
+    } catch {
+
       setState({
         user: null,
         isLoading: false,
@@ -50,7 +50,7 @@ export const useAuth = (redirectTo = '/') => {
       });
       router.push(redirectTo);
     }
-  };
+  }, [router, redirectTo]);
 
   const logout = () => {
     setState({
@@ -67,8 +67,9 @@ export const useAuth = (redirectTo = '/') => {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     authenticate();
-  }, [router]);
+  }, [authenticate]);
 
   return {
     ...state,

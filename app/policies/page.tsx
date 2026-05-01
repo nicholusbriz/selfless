@@ -1,39 +1,22 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useState } from 'react';
-import { checkUserAccess } from '@/lib/auth';
 import { BackgroundImage, DashboardButton, PageLoader } from '@/components/ui';
 
 function PoliciesPage() {
-  const router = useRouter();
   const [activeSection, setActiveSection] = useState('purpose');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
-  // Check authentication
+  // Policies are publicly accessible - no authentication required
   useEffect(() => {
-    const checkAuthentication = async () => {
-      try {
-        const authResult = await checkUserAccess();
-
-        if (authResult.success && authResult.user) {
-          setIsAuthenticated(true);
-        } else {
-          // User not found, redirect to home
-          router.push('/');
-        }
-      } catch {
-        router.push('/');
-      } finally {
-        setCheckingAuth(false);
-      }
-    };
-
-    checkAuthentication();
-  }, [router]);
+    setTimeout(() => {
+      setCheckingAuth(false);
+      setIsAuthenticated(true); // Allow all users to view policies
+    }, 0);
+  }, []);
 
   // Scroll to bottom if URL contains #bottom
   useEffect(() => {

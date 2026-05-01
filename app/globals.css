@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800;900&display=swap');
+
 /* stylelint-disable-next-line at-rule-no-unknown */
 @tailwind base;
 /* stylelint-disable-next-line at-rule-no-unknown */
@@ -24,7 +26,8 @@
     }
 
     body {
-        font-feature-settings: 'rlig' 1, 'calt' 1;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1, 'ss02' 1;
         overflow-x: hidden;
         max-width: 100vw;
         /* Enable smooth scrolling with hardware acceleration */
@@ -34,12 +37,34 @@
         -webkit-text-size-adjust: 100%;
         -webkit-tap-highlight-color: transparent;
         -webkit-touch-callout: none;
-        /* Remove user-select: none to fix text rendering issues */
-        /* user-select: none; */
-        /* Better font rendering */
+        /* Premium font rendering */
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
         text-rendering: optimizeLegibility;
+        font-variant-ligatures: common-ligatures;
+        font-variant-numeric: oldstyle-nums;
+    }
+
+    /* Premium font classes */
+    .font-display {
+        font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+    }
+
+    .font-heading {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+    }
+
+    .font-body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-weight: 400;
+    }
+
+    .font-mono {
+        font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
     }
 
     * {
@@ -312,5 +337,119 @@
 
     to {
         transform: rotate(360deg);
+    }
+}
+
+/* Imaging Design System Animations */
+@keyframes gradient-shift {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+@keyframes shine {
+    0% {
+        transform: translateX(-100%) translateY(-100%) rotate(45deg);
+    }
+
+    50% {
+        transform: translateX(100%) translateY(100%) rotate(45deg);
+    }
+
+    100% {
+        transform: translateX(-100%) translateY(-100%) rotate(45deg);
+    }
+}
+
+@keyframes pulse-glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.3),
+            0 0 40px rgba(255, 255, 255, 0.2),
+            0 0 60px rgba(255, 255, 255, 0.1);
+    }
+
+    50% {
+        box-shadow: 0 0 30px rgba(255, 255, 255, 0.5),
+            0 0 60px rgba(255, 255, 255, 0.3),
+            0 0 90px rgba(255, 255, 255, 0.2);
+    }
+}
+
+@keyframes slide-in-bright {
+    0% {
+        opacity: 0;
+        transform: translateX(-50px) scale(0.8);
+        filter: blur(10px);
+    }
+
+    50% {
+        opacity: 0.5;
+        transform: translateX(-25px) scale(0.9);
+        filter: blur(5px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+        filter: blur(0);
+    }
+}
+
+/* Sliding container animation for all cards */
+.sliding-container {
+    animation: slide-in-bright 1.2s ease-out;
+}
+
+.sliding-container>* {
+    animation: slide-in-bright 1.2s ease-out;
+}
+
+.sliding-container>*:nth-child(1) {
+    animation-delay: 0ms;
+}
+
+.sliding-container>*:nth-child(2) {
+    animation-delay: 200ms;
+}
+
+.sliding-container>*:nth-child(3) {
+    animation-delay: 400ms;
+}
+
+.sliding-container>*:nth-child(4) {
+    animation-delay: 600ms;
+}
+
+.sliding-container>*:nth-child(5) {
+    animation-delay: 800ms;
+}
+
+.sliding-container>*:nth-child(6) {
+    animation-delay: 1000ms;
+}
+
+@keyframes float-bright {
+
+    0%,
+    100% {
+        transform: translateY(0px) rotate(0deg);
+    }
+
+    25% {
+        transform: translateY(-5px) rotate(1deg);
+    }
+
+    75% {
+        transform: translateY(5px) rotate(-1deg);
     }
 }

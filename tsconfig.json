@@ -25,10 +25,28 @@
     "baseUrl": ".",
     "paths": {
       "@/*": [
-        ".//*"
+        "./*"
       ],
-      "@/database/*": [
-        "./database/*"
+      "@/app/*": [
+        "./app/*"
+      ],
+      "@/components/*": [
+        "./components/*"
+      ],
+      "@/models/*": [
+        "./models/*"
+      ],
+      "@/lib/*": [
+        "./lib/*"
+      ],
+      "@/hooks/*": [
+        "./hooks/*"
+      ],
+      "@/types/*": [
+        "./types/*"
+      ],
+      "@/config/*": [
+        "./config/*"
       ]
     }
   },

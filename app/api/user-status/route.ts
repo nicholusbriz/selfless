@@ -21,7 +21,7 @@ export async function GET() {
     }, { status: 401 });
 
   } catch (error) {
-    
+    console.error('User status GET error:', error);
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }
@@ -49,9 +49,9 @@ export async function POST(request: Request) {
     }
 
     // Verify JWT token
-    let decoded: any;
+    let decoded: { userId: string; email: string };
     try {
-      decoded = jwt.verify(token, JWT_SECRET);
+      decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string };
     } catch {
       return NextResponse.json({ success: false, message: 'Invalid authentication token' }, { status: 401 });
     }
@@ -103,14 +103,16 @@ export async function POST(request: Request) {
         tutorPermissions: isTutor ? tutor.permissions : null
       },
       isRegistered,
-      registrations: isRegistered ? [{
-        ...registration,
-        formattedDate
-      }] : []
+      registrations: isRegistered ? [
+        {
+          ...registration,
+          formattedDate
+        }
+      ] : []
     });
 
   } catch (error) {
-    
+    console.error('User status error:', error);
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }

@@ -76,9 +76,7 @@ const TutorSchema: Schema = new Schema({
   timestamps: true
 });
 
-// Index for efficient queries
-TutorSchema.index({ userId: 1 });
-TutorSchema.index({ email: 1 });
+// Index for efficient queries (userId and email already indexed via unique: true)
 TutorSchema.index({ addedBy: 1 });
 TutorSchema.index({ isActive: 1 });
 

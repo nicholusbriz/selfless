@@ -28,7 +28,7 @@ interface CourseRegistration {
 }
 
 export default function CreditsPage() {
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<{ adminId: string; adminEmail: string; adminName: string } | null>(null);
   const [courseRegistrations, setCourseRegistrations] = useState<CourseRegistration[]>([]);
   const router = useRouter();
 

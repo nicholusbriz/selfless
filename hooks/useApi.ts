@@ -78,9 +78,11 @@ export const useCourseRegistrations = () => {
     queryFn: fetchCourseRegistrations,
     staleTime: 5 * 60 * 1000, // 5 minutes
     select: (data) => {
-      return data.registrations.map((reg) => ({
+      return data.registrations.map((reg: CourseRegistration) => ({
         id: reg.id,
-        userId: reg.userId,
+        userId: reg.userId && typeof reg.userId === 'object' && '_id' in reg.userId
+          ? (reg.userId as { _id: { toString: () => string } })._id.toString()
+          : reg.userId?.toString() || reg.userId,
         userName: reg.user?.fullName || `${reg.user?.firstName || ''} ${reg.user?.lastName || ''}`.trim(),
         religion: reg.takesReligion ? 'Yes' : 'No',
         courseName: reg.courses?.map((c) => c.name).join(', ') || 'Unknown',
@@ -114,9 +116,9 @@ export const useCleaningDays = () => {
       }> = [];
       Object.values(data.weeks).forEach((weekDays) => {
         weekDays.forEach((day) => {
-          day.registeredUsers.forEach((user: any) => {
+          day.registeredUsers.forEach((user: { id: string; firstName: string; lastName: string; fullName: string; email: string; createdAt: string; updatedAt: string }) => {
             // Find user's phone number from users array
-            const userCredentials = users.find((u: any) => u.id === user.id);
+            const userCredentials = users.find((u: User) => u.id === user.id);
 
             allRegisteredUsers.push({
               id: user.id,
@@ -197,9 +199,9 @@ export const useDeleteUser = () => {
 
 // Hook for dashboard statistics
 export const useDashboardStats = () => {
-  const { data: users = [] } = useUsers();
-  const { data: cleaningDays = [] } = useCleaningDays();
-  const { data: courseRegistrations = [] } = useCourseRegistrations();
+  const { data: users = [], isLoading: usersLoading } = useUsers();
+  const { data: cleaningDays = [], isLoading: daysLoading } = useCleaningDays();
+  const { data: courseRegistrations = [], isLoading: coursesLoading } = useCourseRegistrations();
 
   // Calculate stats directly from the data
   const totalUsers = users.length;
@@ -215,7 +217,7 @@ export const useDashboardStats = () => {
     totalCapacity: 75,
     usedCapacity: totalRegistrations,
     courseSubmissions,
-    isLoading: false, // Data is available from the other hooks
+    isLoading: usersLoading || daysLoading || coursesLoading,
   };
 };
 

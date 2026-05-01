@@ -1,5 +1,5 @@
 import { useRouter } from 'next/navigation';
-import React from 'react';
+import { useState, useEffect } from 'react';
 
 // User interface for authentication response
 export interface User {
@@ -54,8 +54,8 @@ export const checkUserAccess = async (): Promise<AuthResponse> => {
     }
 
     return data;
-  } catch (error) {
-    
+  } catch {
+
     return {
       success: false,
       message: 'Network error during authentication'
@@ -147,8 +147,68 @@ export const verifyApiAuth = async (request: Request) => {
       isSuperAdmin: data.user.isSuperAdmin,
       isAdmin: data.user.isAdmin
     };
-  } catch (error) {
-    
+  } catch {
+
     return { user: null, isSuperAdmin: false, isAdmin: false };
   }
+};
+
+/**
+ * Hook for handling authentication with login redirect for unauthenticated users
+ * @param redirectTo - Where to redirect if authentication fails (default: '/login')
+ * @param requiredRole - Optional role check ('admin' | 'superadmin' | 'tutor')
+ */
+export const useAuthWithLogin = (redirectTo: string = '/login', requiredRole?: 'admin' | 'superadmin' | 'tutor') => {
+  const router = useRouter();
+
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const authenticate = async () => {
+      try {
+        const authResult = await checkUserAccess();
+
+        if (!authResult.success || !authResult.user) {
+          router.push(redirectTo);
+          return;
+        }
+
+        // Check for required role if specified
+        if (requiredRole) {
+          switch (requiredRole) {
+            case 'admin':
+              if (!authResult.user.isAdmin) {
+                router.push(redirectTo);
+                return;
+              }
+              break;
+            case 'superadmin':
+              if (!authResult.user.isSuperAdmin) {
+                router.push(redirectTo);
+                return;
+              }
+              break;
+            case 'tutor':
+              if (!authResult.user.isTutor) {
+                router.push(redirectTo);
+                return;
+              }
+              break;
+          }
+        }
+
+        setUser(authResult.user);
+      } catch {
+        router.push(redirectTo);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    authenticate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return { user, isLoading };
 };

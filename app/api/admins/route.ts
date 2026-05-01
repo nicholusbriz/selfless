@@ -22,7 +22,7 @@ async function verifyAdminToken(request: Request) {
   if (!token) return null;
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
     const user = await User.findById(decoded.userId);
     if (!user) return null;
 
@@ -73,7 +73,7 @@ export async function GET(request: Request) {
     });
 
   } catch (error) {
-    
+
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }
@@ -151,7 +151,7 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
-    
+
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }
@@ -199,7 +199,7 @@ export async function DELETE(request: Request) {
     });
 
   } catch (error) {
-    
+
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }
