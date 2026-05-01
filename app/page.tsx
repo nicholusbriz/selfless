@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import PWAInstallPrompt from '@/components/PWAInstallPrompt';
 import { BackgroundImage } from '@/components/ui';
+import { OrganizationStructuredData, WebSiteStructuredData, WebApplicationStructuredData } from '@/components/StructuredData';
 
 export default function Page() {
   const router = useRouter();
@@ -36,6 +37,9 @@ export default function Page() {
 
   return (
     <>
+      <OrganizationStructuredData />
+      <WebSiteStructuredData />
+      <WebApplicationStructuredData />
       <BackgroundImage className="min-h-screen relative overflow-hidden">
         {/* Enhanced overlay with sophisticated gradients */}
         <div className="absolute inset-0 bg-gradient-to-br from-slate-900/50 via-blue-900/30 to-indigo-900/50"></div>
