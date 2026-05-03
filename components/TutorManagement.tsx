@@ -1,20 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useTutors, useAddTutor, useRemoveTutor } from '@/hooks/adminHooks';
 
-interface Tutor {
-  id: string;
-  userId: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  fullName: string;
-  addedAt: string;
-  permissions: {
-    canViewAnnouncements: boolean;
-    canPostAnnouncements: boolean;
-    canManageUsers: boolean;
-  };
+interface TutorPermissions {
+  canViewAnnouncements: boolean;
+  canPostAnnouncements: boolean;
+  canManageUsers: boolean;
 }
 
 interface TutorManagementProps {
@@ -24,8 +16,12 @@ interface TutorManagementProps {
 }
 
 export default function TutorManagement({ }: TutorManagementProps) {
-  const [tutors, setTutors] = useState<Tutor[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Use API hooks
+  const { data: tutors = [], isLoading: loading, error } = useTutors();
+  const addTutor = useAddTutor();
+  const removeTutor = useRemoveTutor();
+
+  // Local state for UI only
   const [showAddForm, setShowAddForm] = useState(false);
   const [newTutorEmail, setNewTutorEmail] = useState('');
   const [newTutorPermissions, setNewTutorPermissions] = useState({
@@ -36,96 +32,45 @@ export default function TutorManagement({ }: TutorManagementProps) {
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
 
-  // Fetch tutors
-  const fetchTutors = async () => {
-    try {
-      const response = await fetch('/api/tutors');
-      const data = await response.json();
-
-      if (data.success) {
-        setTutors(data.tutors);
-      } else {
-        setMessage('Error fetching tutors');
-        setMessageType('error');
-      }
-    } catch {
-      setMessage('Network error');
-      setMessageType('error');
-    }
-  };
-
-  useEffect(() => {
-    const loadTutors = async () => {
-      await fetchTutors();
-      setLoading(false);
-    };
-
-    loadTutors();
-  }, []);
-
-  const handleAddTutor = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!newTutorEmail) {
-      setMessage('Email is required');
+  // Add tutor
+  const handleAddTutor = async () => {
+    if (!newTutorEmail.trim()) {
+      setMessage('Please enter a valid email');
       setMessageType('error');
       return;
     }
 
     try {
-      const response = await fetch('/api/tutors', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: newTutorEmail,
-          permissions: newTutorPermissions
-        })
+      await addTutor.mutateAsync({
+        email: newTutorEmail.trim(),
+        permissions: newTutorPermissions,
       });
 
-      const data = await response.json();
-
-      if (data.success) {
-        setMessage('Tutor added successfully!');
-        setMessageType('success');
-        setNewTutorEmail('');
-        setShowAddForm(false);
-        fetchTutors();
-      } else {
-        setMessage(data.message || 'Error adding tutor');
-        setMessageType('error');
-      }
-    } catch {
-      setMessage('Network error');
+      setMessage('Tutor added successfully');
+      setMessageType('success');
+      setNewTutorEmail('');
+      setNewTutorPermissions({
+        canViewAnnouncements: true,
+        canPostAnnouncements: true,
+        canManageUsers: false
+      });
+      setShowAddForm(false);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error adding tutor';
+      setMessage(errorMessage);
       setMessageType('error');
     }
   };
 
+  // Remove tutor
   const handleRemoveTutor = async (tutorId: string) => {
-    if (!confirm('Are you sure you want to permanently remove this tutor from the system? This will completely delete their tutor record.')) return;
-
     try {
-      const response = await fetch('/api/tutors', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ tutorId })
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setMessage('Tutor removed successfully from database!');
-        setMessageType('success');
-        fetchTutors();
-      } else {
-        setMessage(data.message || 'Error removing tutor');
-        setMessageType('error');
-      }
-    } catch {
-      setMessage('Network error');
+      await removeTutor.mutateAsync(tutorId);
+      setMessage('Tutor removed successfully');
+      setMessageType('success');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error removing tutor';
+      setMessage(errorMessage);
       setMessageType('error');
     }
   };
@@ -238,22 +183,22 @@ export default function TutorManagement({ }: TutorManagementProps) {
                 <div>
                   <h4 className="font-semibold text-gray-800">{tutor.fullName}</h4>
                   <p className="text-sm text-gray-600">{tutor.email}</p>
-                  <p className="text-xs text-gray-500">Added: {new Date(tutor.addedAt).toLocaleDateString()}</p>
+                  <p className="text-xs text-gray-500">Added: {tutor.addedAt ? new Date(tutor.addedAt).toLocaleDateString() : 'Unknown'}</p>
 
                   <div className="mt-2 space-y-1">
-                    {tutor.permissions.canViewAnnouncements && (
+                    {tutor.permissions?.canViewAnnouncements && (
                       <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
                         Can View Announcements
                       </span>
                     )}
-                    {tutor.permissions.canPostAnnouncements && (
+                    {tutor.permissions?.canPostAnnouncements && (
                       <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded ml-1">
                         Can Post Announcements
                       </span>
                     )}
-                    {tutor.permissions.canManageUsers && (
+                    {tutor.permissions?.canManageSchedule && (
                       <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded ml-1">
-                        Can Manage Users
+                        Can Manage Schedule
                       </span>
                     )}
                   </div>

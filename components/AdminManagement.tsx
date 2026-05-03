@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useAdmins, useAddAdmin, useRemoveAdmin } from '@/hooks/adminHooks';
 
 interface Admin {
   id: string;
@@ -21,113 +22,53 @@ interface AdminManagementProps {
 }
 
 export default function AdminManagement({ }: AdminManagementProps) {
-  const [admins, setAdmins] = useState<Admin[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Use API hooks
+  const { data: admins = [], isLoading: loading, error } = useAdmins();
+  const addAdmin = useAddAdmin();
+  const removeAdmin = useRemoveAdmin();
+
+  // Local state for UI only
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
 
-  // Fetch admins
-  const fetchAdmins = async () => {
-    try {
-      const response = await fetch('/api/admins');
-      const data = await response.json();
-
-      if (data.success) {
-        setAdmins(data.admins);
-      } else {
-        setMessage('Error fetching admins');
-        setMessageType('error');
-      }
-    } catch {
-      setMessage('Network error');
-      setMessageType('error');
-    }
-  };
-
-  useEffect(() => {
-    const loadAdmins = async () => {
-      await fetchAdmins();
-      setLoading(false);
-    };
-
-    loadAdmins();
-  }, []);
-
-  const handleAddAdmin = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!newAdminEmail) {
-      setMessage('Email is required');
+  // Add admin
+  const handleAddAdmin = async () => {
+    if (!newAdminEmail.trim()) {
+      setMessage('Please enter a valid email');
       setMessageType('error');
       return;
     }
 
     try {
-      const response = await fetch('/api/admins', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: newAdminEmail
-        })
+      await addAdmin.mutateAsync({
+        email: newAdminEmail.trim(),
+        firstName: '',
+        lastName: '',
       });
 
-      const data = await response.json();
-
-      if (data.success) {
-        setMessage('Admin added successfully!');
-        setMessageType('success');
-        setNewAdminEmail('');
-        setShowAddForm(false);
-        fetchAdmins();
-      } else {
-        setMessage(data.message || 'Error adding admin');
-        setMessageType('error');
-      }
-    } catch {
-      setMessage('Network error');
+      setMessage('Admin added successfully');
+      setMessageType('success');
+      setNewAdminEmail('');
+      setShowAddForm(false);
+    } catch (error: any) {
+      setMessage(error.message || 'Error adding admin');
       setMessageType('error');
     }
   };
 
-
+  // Remove admin
   const handleRemoveAdmin = async (adminId: string) => {
-    const admin = admins.find(a => a.id === adminId);
-    const adminEmail = admin?.email;
-
-    if (!confirm(`Are you sure you want to permanently remove ${adminEmail} from the admin system? This will completely delete their admin record.`)) return;
-
     try {
-      const response = await fetch('/api/admins', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ adminId })
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setMessage('Admin removed successfully!');
-        setMessageType('success');
-        fetchAdmins();
-      } else {
-        setMessage(data.message || 'Error removing admin');
-        setMessageType('error');
-      }
-    } catch {
-      setMessage('Network error');
+      await removeAdmin.mutateAsync(adminId);
+      setMessage('Admin removed successfully');
+      setMessageType('success');
+    } catch (error: any) {
+      setMessage(error.message || 'Error removing admin');
       setMessageType('error');
     }
   };
-
-
-  // Any admin can manage other admins (except hardcoded super admin)
-  // The API will prevent removing the super admin
 
   if (loading) {
     return (
@@ -205,7 +146,7 @@ export default function AdminManagement({ }: AdminManagementProps) {
                 <div>
                   <h4 className="font-semibold text-gray-800">{admin.fullName}</h4>
                   <p className="text-sm text-gray-600">{admin.email}</p>
-                  <p className="text-xs text-gray-500">Added: {new Date(admin.addedAt).toLocaleDateString()}</p>
+                  <p className="text-xs text-gray-500">Added: {admin.addedAt ? new Date(admin.addedAt).toLocaleDateString() : 'Unknown'}</p>
 
                   <div className="mt-2">
                     <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded">

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import PWAInstallPrompt from '@/components/PWAInstallPrompt';
-import { BackgroundImage } from '@/components/ui';
+import { BackgroundImage, Logo } from '@/components/ui';
 import { OrganizationStructuredData, WebSiteStructuredData, WebApplicationStructuredData } from '@/components/StructuredData';
 
 export default function Page() {
@@ -15,13 +15,37 @@ export default function Page() {
     {
       title: "Cleaning Day Registration",
       description: "Register for your assigned cleaning duty and manage your schedule efficiently",
-      icon: "",
+      icon: "🧹",
+      action: () => router.push('/login')
+    },
+    {
+      title: "Course Registration",
+      description: "Register for your courses and manage your academic schedule seamlessly",
+      icon: "📚",
+      action: () => router.push('/login')
+    },
+    {
+      title: "Tutor Management",
+      description: "Connect with experienced tutors and get personalized academic support",
+      icon: "👨‍🏫",
       action: () => router.push('/login')
     },
     {
       title: "Announcements",
-      description: "Stay updated with latest announcements and notifications",
-      icon: "",
+      description: "Stay updated with latest announcements and important notifications",
+      icon: "📢",
+      action: () => router.push('/login')
+    },
+    {
+      title: "Student Dashboard",
+      description: "Access your personalized dashboard with all your academic information",
+      icon: "📊",
+      action: () => router.push('/login')
+    },
+    {
+      title: "Admin Portal",
+      description: "Comprehensive admin tools for managing students, courses, and schedules",
+      icon: "👑",
       action: () => router.push('/login')
     }
   ];
@@ -42,9 +66,9 @@ export default function Page() {
       <WebApplicationStructuredData />
       <BackgroundImage className="min-h-screen relative overflow-hidden">
         {/* Enhanced overlay with sophisticated gradients */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/50 via-blue-900/30 to-indigo-900/50"></div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/50"></div>
-        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-15"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/20 via-blue-900/15 to-indigo-900/20"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/20"></div>
+        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
 
         {/* Premium floating elements */}
         <div className="absolute top-20 left-20 w-48 h-48 bg-gradient-to-r from-blue-500/25 to-purple-500/25 rounded-full blur-3xl animate-float"></div>
@@ -57,20 +81,13 @@ export default function Page() {
             {/* Hero Section */}
             <div className="text-center mb-20 animate-fade-in">
               {/* Premium Logo with enhanced effects */}
-              <div className="inline-flex items-center justify-center w-40 h-40 bg-gradient-to-br from-slate-800 via-blue-900 to-indigo-900 rounded-full mb-8 shadow-2xl p-4 relative"
-                style={{
-                  boxShadow: '0 0 80px rgba(59, 130, 246, 0.6), 0 0 160px rgba(99, 102, 241, 0.4), inset 0 0 60px rgba(255, 255, 255, 0.15)'
-                }}>
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/25 to-purple-500/25 rounded-full animate-pulse-slow"></div>
-                <Image
-                  src="/freedom.png"
-                  alt="Freedom City Tech Center Logo"
-                  width={160}
-                  height={160}
-                  className="w-full h-full object-contain relative z-10"
-                  style={{ filter: 'drop-shadow(0 0 40px rgba(255, 255, 255, 0.95))' }}
-                />
-              </div>
+              <Logo
+                size="xl"
+                variant="hero"
+                className="mb-8"
+                loading="eager"
+                priority
+              />
 
               {/* Premium Typography */}
               <h1 className="font-display text-6xl md:text-8xl bg-gradient-to-r from-slate-100 via-blue-200 to-indigo-200 bg-clip-text text-transparent mb-8 animate-slide-up" style={{

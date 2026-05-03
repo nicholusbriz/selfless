@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { AUTH_CONSTANTS } from '@/config/constants';
 
 export async function POST() {
   try {
@@ -8,7 +9,7 @@ export async function POST() {
     });
 
     // Clear the auth cookie
-    response.cookies.set('auth-token', '', {
+    response.cookies.set(AUTH_CONSTANTS.TOKEN_NAME, '', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',

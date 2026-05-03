@@ -1,4 +1,5 @@
 export { default as BackgroundImage } from './BackgroundImage';
+export { default as Logo } from './Logo';
 export { default as LoadingSpinner } from './LoadingSpinner';
 export { default as BackgroundGradient } from './BackgroundGradient';
 export { default as LoadingButton } from './LoadingButton';

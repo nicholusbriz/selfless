@@ -5,23 +5,23 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { User } from '@/lib/auth';
 import AdminDashboard from '@/components/AdminDashboard';
-import { PageLoader, BackgroundImage, DashboardButton } from '@/components/ui';
+import { PageLoader, BackgroundImage, DashboardButton, Logo } from '@/components/ui';
 import UserSearch from '@/components/UserSearch';
-import { useUsers, useCourseRegistrations, useCleaningDays, useDashboardStats, useRefetchControls } from '@/hooks/useApi';
+import { useUsers, useCleaningDays } from '@/hooks/cleaningHooks';
+import { useCourseRegistrations } from '@/hooks/courseHooks';
+import { useDashboardStats, useRefetchControls } from '@/hooks/utilityHooks';
 import { useAuth } from '@/hooks/useAuth';
-import { useAdminAuth } from '@/hooks/useAdminAuth';
+import ExcelExporter from '@/components/ExcelExporter';
 
 // Types
 interface Course {
   id: string;
   name: string;
-  credits: number;
 }
 
 interface CourseRegistration {
   userId: string;
   courses: Course[];
-  totalCredits: number;
   takesReligion: boolean;
   user?: User;
 }
@@ -54,7 +54,6 @@ const adminContent = {
       { icon: '👥', value: '0', label: 'Total Users Registered' },
       { icon: '📅', value: '0', label: 'Students Registered for Days' },
       { icon: '📊', value: '0', label: 'Remaining Days Available' },
-      { icon: '📚', value: '0', label: 'Credits' }
     ]
   },
   search: {
@@ -68,24 +67,24 @@ const navigationItems = [
   { id: 'overview', title: 'Overview', icon: '📊' },
   { id: 'search', title: 'Search Users', icon: '🔍' },
   { id: 'users', title: 'Users', icon: '👥' },
-  { id: 'courses', title: 'Courses', icon: '📚' },
   { id: 'registered-days', title: 'Registered Days', icon: '📅' },
-  { id: 'announcements', title: 'Announcements', icon: '📢' },
   { id: 'tutors', title: 'Tutors', icon: '👨‍🏫' },
   { id: 'admins', title: 'Admins', icon: '👑' }
 ];
 
 function Admin() {
-  // Authentication hook - handles JWT validation and user state
-  const { user, isLoading: authLoading } = useAuth('/dashboard');
+  // Authentication hook - handles JWT validation and user state with admin requirement
+  const { user, isLoading: authLoading } = useAuth('/dashboard', 'admin');
 
-  // Admin authentication hook - checks both super admin and promoted admins
-  const { adminUser, isLoading: adminLoading, isAdmin, isSuperAdmin } = useAdminAuth(user);
+  // Check if user is admin using the auth hook
+  const isAdmin = user?.isAdmin || user?.isSuperAdmin || false;
+  const isSuperAdmin = user?.isSuperAdmin || false;
+  const adminLoading = authLoading;
 
   const [currentUser, setCurrentUser] = useState<{ adminId: string; adminEmail: string; adminName: string; isSuperAdmin: boolean } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeSection, setActiveSection] = useState('overview');
-  const [showDashboard, setShowDashboard] = useState<'overview' | 'users' | 'courses' | 'registered-days' | 'announcements' | 'tutors' | 'admins' | 'security' | 'system' | 'communication' | 'reporting' | 'search' | undefined>(undefined);
+  const [showDashboard, setShowDashboard] = useState<'overview' | 'users' | 'registered-days' | 'tutors' | 'admins' | 'security' | 'system' | 'communication' | 'reporting' | 'search' | undefined>(undefined);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [copyFeedback, setCopyFeedback] = useState('');
   const [editingPhone, setEditingPhone] = useState<string | null>(null);
@@ -105,10 +104,10 @@ function Admin() {
 
   const router = useRouter();
 
-  // Auto-navigate to management containers when users/courses/registered-days/announcements/tutors/admins sections are selected
+  // Auto-navigate to management containers when users/registered-days/tutors/admins sections are selected
   useEffect(() => {
-    if (activeSection === 'users' || activeSection === 'courses' || activeSection === 'registered-days' || activeSection === 'announcements' || activeSection === 'tutors' || activeSection === 'admins') {
-      setShowDashboard(activeSection as 'users' | 'courses' | 'registered-days' | 'announcements' | 'tutors' | 'admins');
+    if (activeSection === 'users' || activeSection === 'registered-days' || activeSection === 'tutors' || activeSection === 'admins') {
+      setShowDashboard(activeSection as 'users' | 'registered-days' | 'tutors' | 'admins');
     } else {
       setShowDashboard(undefined);
     }
@@ -124,17 +123,17 @@ function Admin() {
         return;
       }
 
-      if (adminUser) {
+      if (user && isAdmin) {
         // Set current admin user
         setCurrentUser({
-          adminId: adminUser.id,
-          adminEmail: adminUser.email,
-          adminName: adminUser.fullName || `${adminUser.firstName || ''} ${adminUser.lastName || ''}`.trim(),
+          adminId: user.id,
+          adminEmail: user.email,
+          adminName: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
           isSuperAdmin: isSuperAdmin
         });
       }
     }
-  }, [user, adminUser, adminLoading, isAdmin, isSuperAdmin, router]);
+  }, [user, isAdmin, isSuperAdmin, router]);
 
   // Show loading if still loading or if no current user yet
   if (authLoading || adminLoading || !currentUser) {
@@ -150,15 +149,11 @@ function Admin() {
         <div className="overflow-y-auto flex-1">
           {/* Enhanced Header */}
           <div className="text-center mb-16 animate-fade-in-down">
-            <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-600 rounded-full mb-8 shadow-2xl shadow-purple-500/30 p-3 animate-bounce-in">
-              <Image
-                src="/freedom.png"
-                alt="Freedom City Tech Center Logo"
-                width={96}
-                height={96}
-                className="w-full h-full object-contain animate-glow"
-              />
-            </div>
+            <Logo
+              size="md"
+              variant="admin"
+              className="mb-8"
+            />
             <div className="max-w-4xl mx-auto">
               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold bg-gradient-to-r from-purple-100 via-indigo-100 to-pink-100 bg-clip-text text-transparent mb-6 animate-slide-in-right leading-relaxed drop-shadow-2xl">
                 FreedomCity Tech Center Admin Management Dashboard
@@ -258,27 +253,34 @@ function Admin() {
                       {adminContent[activeSection as keyof typeof adminContent]?.title ||
                         activeSection === 'search' ? 'User Search' :
                         activeSection === 'users' ? 'User Management' :
-                          activeSection === 'courses' ? 'Course Management' :
-                            activeSection === 'registered-days' ? 'Registered Days' :
-                              activeSection === 'announcements' ? 'Announcements Management' :
-                                activeSection === 'tutors' ? 'Tutor Management' :
-                                  activeSection === 'admins' ? 'Admin Management' :
-                                    activeSection === 'overview' ? 'Dashboard Overview' :
-                                      'Dashboard'
+                          activeSection === 'registered-days' ? 'Registered Days' :
+                            activeSection === 'announcements' ? 'Announcements Management' :
+                              activeSection === 'tutors' ? 'Tutor Management' :
+                                activeSection === 'admins' ? 'Admin Management' :
+                                  activeSection === 'overview' ? 'Dashboard Overview' :
+                                    'Dashboard'
                       }
                     </h1>
                     <div className="h-2 bg-gradient-to-r from-purple-500 via-indigo-500 to-pink-500 rounded-full w-32 animate-slide-in-left shadow-lg shadow-purple-500/50"></div>
                   </div>
 
                   <div className="prose prose-lg max-w-none">
-                    {renderAdminContent(activeSection, adminContent[activeSection as keyof typeof adminContent] || {}, setShowDashboard, dashboardStats || {
-                      totalUsers: 0,
-                      registeredForDays: 0,
-                      remainingDays: 0,
-                      totalCapacity: 0,
-                      usedCapacity: 0,
-                      courseSubmissions: 0
-                    }, users, courseRegistrations, cleaningDays)}
+                    {renderAdminContent(
+                      activeSection,
+                      adminContent[activeSection as keyof typeof adminContent] || {},
+                      setShowDashboard,
+                      dashboardStats || {
+                        totalUsers: 0,
+                        registeredForDays: 0,
+                        remainingDays: 0,
+                        totalCapacity: 0,
+                        usedCapacity: 0,
+                        courseSubmissions: 0
+                      },
+                      users,
+                      courseRegistrations,
+                      cleaningDays
+                    )}
                   </div>
                 </div>
               )}
@@ -298,14 +300,13 @@ function Admin() {
 export default Admin;
 
 // Render admin content (policies-style)
-const renderAdminContent = (sectionKey: string, section: { title: string; description: string }, setShowDashboard: (section: 'overview' | 'users' | 'courses' | 'registered-days' | 'announcements' | 'tutors' | 'admins' | 'security' | 'system' | 'communication' | 'reporting' | 'search' | undefined) => void, dashboardStats: { totalUsers: number; registeredForDays: number; remainingDays: number; totalCapacity: number; usedCapacity: number; courseSubmissions: number }, users: any[], courseRegistrations: any[], cleaningDays: any[]) => {
+const renderAdminContent = (sectionKey: string, section: { title: string; description: string }, setShowDashboard: React.Dispatch<React.SetStateAction<'overview' | 'users' | 'registered-days' | 'tutors' | 'admins' | 'security' | 'system' | 'communication' | 'reporting' | 'search' | undefined>>, dashboardStats: { totalUsers: number; registeredForDays: number; remainingDays: number; totalCapacity: number; usedCapacity: number; courseSubmissions: number }, users: any[], courseRegistrations: any[], cleaningDays: any[]) => {
   if (sectionKey === 'overview') {
     // Create dynamic stats based on real data
     const dynamicStats = [
       { icon: '👥', value: (dashboardStats?.totalUsers || 0).toString(), label: 'Total Users Registered' },
       { icon: '📅', value: (dashboardStats?.registeredForDays || 0).toString(), label: 'Students Registered for Days' },
       { icon: '📊', value: (dashboardStats?.remainingDays || 0).toString(), label: 'Remaining Days Available' },
-      { icon: '📚', value: (dashboardStats?.courseSubmissions || 0).toString(), label: 'Credits' }
     ];
 
     return (

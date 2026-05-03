@@ -7,6 +7,10 @@ export interface IUser extends Document {
   email: string;
   password: string;
   phoneNumber?: string;
+  isAdmin: boolean;
+  isSuperAdmin: boolean;
+  isTutor: boolean;
+  isRegistered: boolean;
   comparePassword(candidatePassword: string): Promise<boolean>;
   createdAt: Date;
   updatedAt: Date;
@@ -44,7 +48,23 @@ const UserSchema: Schema = new Schema({
     type: String,
     trim: true,
     match: [/^\+?[\d\s\-\(\)]+$/, 'Please enter a valid phone number']
-  }
+  },
+  isAdmin: {
+    type: Boolean,
+    default: false,
+  },
+  isSuperAdmin: {
+    type: Boolean,
+    default: false,
+  },
+  isTutor: {
+    type: Boolean,
+    default: false,
+  },
+  isRegistered: {
+    type: Boolean,
+    default: false,
+  },
 }, {
   timestamps: true,
 });
