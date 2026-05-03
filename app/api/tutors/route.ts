@@ -5,6 +5,7 @@ import Tutor from '@/models/Tutor';
 import Admin from '@/models/Admin';
 import jwt from 'jsonwebtoken';
 import { isSuperAdminEmail } from '@/config/admin';
+import { AUTH_CONSTANTS } from '@/config/constants';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -19,7 +20,7 @@ async function verifyAdminToken(request: Request) {
     return acc;
   }, {});
 
-  const token = cookies['auth-token'];
+  const token = cookies[AUTH_CONSTANTS.TOKEN_NAME];
   if (!token) return null;
 
   try {
@@ -34,6 +35,31 @@ async function verifyAdminToken(request: Request) {
     if (!isSuperAdmin && !promotedAdmin) return null;
 
     return { user, isSuperAdmin, promotedAdmin };
+  } catch {
+    return null;
+  }
+}
+
+// Helper function to verify user token (for tutor checking)
+async function verifyUserToken(request: Request) {
+  const cookieHeader = request.headers.get('cookie');
+  if (!cookieHeader) return null;
+
+  const cookies = cookieHeader.split(';').reduce((acc: { [key: string]: string }, cookie) => {
+    const [key, value] = cookie.trim().split('=');
+    acc[key] = value;
+    return acc;
+  }, {});
+
+  const token = cookies[AUTH_CONSTANTS.TOKEN_NAME];
+  if (!token) return null;
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    const user = await User.findById(decoded.userId);
+    if (!user) return null;
+
+    return { user };
   } catch {
     return null;
   }

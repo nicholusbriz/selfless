@@ -37,7 +37,7 @@ export default function AnnouncementsPage() {
 
         setUser(authResult.user);
       } catch (error) {
-        
+
         router.push('/');
       } finally {
         setCheckingStatus(false);
@@ -148,6 +148,7 @@ export default function AnnouncementsPage() {
                 tutorEmail={user.email}
                 tutorName={user.fullName}
                 canPostAnnouncements={canPostAnnouncements || false}
+                showAnnouncementsList={false}
               />
             </div>
           </div>

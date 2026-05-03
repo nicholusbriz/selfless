@@ -4,15 +4,18 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { BackgroundImage, LoadingButton } from '@/components/ui';
+import { useLogin } from '@/hooks/loginRegister';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
     email: ''
   });
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
+
+  // Use login hook instead of manual fetch
+  const login = useLogin();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -30,33 +33,11 @@ export default function LoginPage() {
       return;
     }
 
-    setIsLoading(true);
     setMessage('');
     setMessageType('');
 
     try {
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-
-        // Handle specific database errors gracefully
-        if (errorData.message?.includes('database') || errorData.message?.includes('MongoDB')) {
-          throw new Error('Database connection issue. Please try again in a few minutes.');
-        }
-
-        throw new Error(errorData.message || `Login failed with status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      await login.mutateAsync({ email: formData.email });
 
       // All users redirect to dashboard after login
       setMessage('Access granted! Redirecting to your dashboard...');
@@ -68,8 +49,6 @@ export default function LoginPage() {
       const errorMessage = error instanceof Error ? error.message : 'Network error. Please try again.';
       setMessage(errorMessage);
       setMessageType('error');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -166,7 +145,7 @@ export default function LoginPage() {
 
               <LoadingButton
                 type="submit"
-                isLoading={isLoading}
+                isLoading={login.isPending}
                 className="w-full bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white font-bold py-3 px-6 rounded-xl hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-4 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-500 transform hover:scale-105 shadow-2xl hover:shadow-blue-500/40 text-base"
                 loadingText="Signing in..."
               >

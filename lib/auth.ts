@@ -1,5 +1,8 @@
+'use client';
+
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { API_ENDPOINTS } from '@/config/constants';
 
 // User interface for authentication response
 export interface User {
@@ -9,6 +12,7 @@ export interface User {
   email: string;
   phoneNumber?: string;
   fullName?: string;
+  createdAt?: string | Date;
   isAdmin: boolean;
   isSuperAdmin: boolean;
   isTutor?: boolean;
@@ -20,6 +24,7 @@ export interface User {
   registrations?: Array<{
     id: string;
     formattedDate: string;
+    createdAt?: string | Date;
   }>;
 }
 
@@ -36,7 +41,7 @@ export interface AuthResponse {
  */
 export const checkUserAccess = async (): Promise<AuthResponse> => {
   try {
-    const response = await fetch('/api/user-status', {
+    const response = await fetch(API_ENDPOINTS.USER_STATUS, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -109,49 +114,6 @@ export const useAuth = (redirectTo: string = '/', requiredRole?: 'admin' | 'supe
   return { authenticate };
 };
 
-/**
- * Simple authentication check for API routes
- * @param request - Next.js request object
- * @returns { user: User | null, isSuperAdmin: boolean, isAdmin: boolean }
- */
-export const verifyApiAuth = async (request: Request) => {
-  const cookieHeader = request.headers.get('cookie');
-  if (!cookieHeader) return { user: null, isSuperAdmin: false, isAdmin: false };
-
-  const cookies = cookieHeader.split(';').reduce((acc: { [key: string]: string }, cookie) => {
-    const [key, value] = cookie.trim().split('=');
-    acc[key] = value;
-    return acc;
-  }, {});
-
-  const token = cookies['auth-token'];
-  if (!token) return { user: null, isSuperAdmin: false, isAdmin: false };
-
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/user-status`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cookie': `auth-token=${token}`
-      }
-    });
-
-    const data: AuthResponse = await response.json();
-
-    if (!data.success || !data.user) {
-      return { user: null, isSuperAdmin: false, isAdmin: false };
-    }
-
-    return {
-      user: data.user,
-      isSuperAdmin: data.user.isSuperAdmin,
-      isAdmin: data.user.isAdmin
-    };
-  } catch {
-
-    return { user: null, isSuperAdmin: false, isAdmin: false };
-  }
-};
 
 /**
  * Hook for handling authentication with login redirect for unauthenticated users

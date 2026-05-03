@@ -4,21 +4,27 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { User } from '@/lib/auth';
-import AnnouncementNotifications from '@/components/AnnouncementNotifications';
-import TutorSchedule from '@/components/TutorSchedule';
 import { BackgroundImage, PageLoader } from '@/components/ui';
-import { useCleaningDays } from '@/hooks/useApi';
+import { useCleaningDays } from '@/hooks/cleaningHooks';
 import { useAuth } from '@/hooks/useAuth';
+import { API_ENDPOINTS } from '@/config/constants';
+import NotificationsIcon from '@/components/NotificationsIcon';
+import Announcements from '@/components/Announcements';
+import UnifiedMessaging from '@/components/chat/UnifiedMessaging';
 
 export default function DashboardPage() {
   // Authentication hook - handles JWT validation and user state
   const { user, isLoading: authLoading } = useAuth('/');
   const router = useRouter();
 
-  // Use React Query for cleaning days data
+  // Use React Query for data fetching
   const { data: cleaningDays = [], isLoading: daysLoading } = useCleaningDays();
 
-  // React Query handles cleaning days data fetching automatically
+  // State for overlays
+  const [isAnnouncementsOpen, setIsAnnouncementsOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
 
   if (!user || authLoading) {
     return (
@@ -52,17 +58,28 @@ export default function DashboardPage() {
             </div>
 
             <div className="flex items-center gap-4">
+              {/* Notification Icon */}
+              <NotificationsIcon
+                onClick={() => {
+                  // Open slide-down overlay
+                  setIsAnnouncementsOpen(true);
+                }}
+                forceClose={isAnnouncementsOpen}
+              />
+
               <div className="text-right">
                 <button
-                  onClick={() => router.push('/profile')}
+                  onClick={() => setIsProfileOpen(true)}
                   className="text-sm font-medium text-white hover:text-cyan-200 transition-colors cursor-pointer"
                 >
                   {user.fullName || `${user.firstName} ${user.lastName}`}
                 </button>
-                <p className="text-xs text-white/80">{user.email}</p>
+                <p className="text-xs text-white/80 hover:text-cyan-200 transition-colors cursor-pointer" onClick={() => setIsProfileOpen(true)}>
+                  go to profile
+                </p>
               </div>
               <button
-                onClick={() => router.push('/profile')}
+                onClick={() => setIsProfileOpen(true)}
                 className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center text-white font-bold hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 transform hover:scale-105 cursor-pointer"
               >
                 {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
@@ -73,35 +90,26 @@ export default function DashboardPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+      <main className="max-w-7xl mx-auto px-6 sm:px-6 lg:px-8 py-8 pb-20 sm:pb-8 relative z-10">
         {/* Welcome Section */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-white mb-2">Welcome back, {user.firstName}!</h2>
           <p className="text-white/80">Manage your academic activities and stay updated with the latest announcements.</p>
         </div>
 
-        {/* Announcement Notifications */}
-        <div className="mb-8">
-          <AnnouncementNotifications
-            isAdmin={false}
-            adminId={user?.id || ''}
-            adminName={user?.fullName || `${user?.firstName} ${user?.lastName}` || ''}
-          />
-        </div>
-
         {/* Quick Actions Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Cleaning Day Registration */}
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/30 hover:bg-white/20 transition-all duration-300">
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/30 hover:bg-white/20 transition-all duration-300 group">
             <div className="p-6">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <span className="text-2xl">📝</span>
               </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Cleaning Day Registration</h3>
-              <p className="text-white/70 mb-4">Register for your assigned cleaning duty and manage your schedule efficiently.</p>
+              <h3 className="text-lg font-semibold text-white mb-2">Cleaning Day</h3>
+              <p className="text-white/70 text-sm mb-4">Register for your assigned cleaning duty</p>
               <button
-                onClick={() => router.push('/form')}
-                className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-medium py-3 px-4 rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 transform hover:scale-105"
+                onClick={() => router.push('/cleaning-form')}
+                className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-medium py-2 px-4 rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 transform hover:scale-105"
               >
                 Register Now
               </button>
@@ -109,16 +117,16 @@ export default function DashboardPage() {
           </div>
 
           {/* Course Management */}
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/30 hover:bg-white/20 transition-all duration-300">
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/30 hover:bg-white/20 transition-all duration-300 group">
             <div className="p-6">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <span className="text-2xl">📚</span>
               </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Course Management</h3>
-              <p className="text-white/70 mb-4">Submit your course units and credits for academic tracking and evaluation.</p>
+              <h3 className="text-lg font-semibold text-white mb-2">Courses</h3>
+              <p className="text-white/70 text-sm mb-4">Submit course units and credits</p>
               <button
                 onClick={() => router.push('/courses')}
-                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium py-3 px-4 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 transform hover:scale-105"
+                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium py-2 px-4 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 transform hover:scale-105"
               >
                 Manage Courses
               </button>
@@ -126,77 +134,69 @@ export default function DashboardPage() {
           </div>
 
           {/* Policy Guidelines */}
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/30 hover:bg-white/20 transition-all duration-300">
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/30 hover:bg-white/20 transition-all duration-300 group">
             <div className="p-6">
-              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-xl flex items-center justify-center mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <span className="text-2xl">📖</span>
               </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Policy Guidelines</h3>
-              <p className="text-white/70 mb-4">Access SELFLESS Organisation Policy Book for regulations and guidelines.</p>
+              <h3 className="text-lg font-semibold text-white mb-2">Policies</h3>
+              <p className="text-white/70 text-sm mb-4">Access organization guidelines</p>
               <button
                 onClick={() => router.push('/policies')}
-                className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-medium py-3 px-4 rounded-lg hover:from-indigo-700 hover:to-blue-700 transition-all duration-200 transform hover:scale-105"
+                className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-medium py-2 px-4 rounded-lg hover:from-indigo-700 hover:to-blue-700 transition-all duration-200 transform hover:scale-105"
               >
                 View Policies
               </button>
             </div>
           </div>
+
+          {/* Messages */}
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/30 hover:bg-white/20 transition-all duration-300 group">
+            <div className="p-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <span className="text-2xl">💬</span>
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">Messages</h3>
+              <p className="text-white/70 text-sm mb-4">Chat with other users and admin</p>
+              <button
+                onClick={() => setIsChatOpen(true)}
+                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium py-2 px-4 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200 transform hover:scale-105"
+              >
+                Open Chat
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Admin/Tutor Sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Admin Panel */}
-          {user && user.isAdmin && (
-            <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 backdrop-blur-md rounded-2xl border border-amber-400/30 hover:from-amber-500/30 hover:to-orange-500/30 transition-all duration-300">
-              <div className="p-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center">
-                    <span className="text-2xl">⚙️</span>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-white">Admin Panel</h3>
-                    <p className="text-white/70 text-sm">Manage users, courses, and system settings</p>
-                  </div>
+        {/* Admin Panel */}
+        {user && user.isAdmin && (
+          <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 backdrop-blur-md rounded-2xl border border-amber-400/30 hover:from-amber-500/30 hover:to-orange-500/30 transition-all duration-300 mb-6">
+            <div className="p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center">
+                  <span className="text-2xl">⚙️</span>
                 </div>
-                <button
-                  onClick={() => router.push('/admin')}
-                  className="w-full bg-gradient-to-r from-amber-600 to-orange-600 text-white font-medium py-3 px-4 rounded-lg hover:from-amber-700 hover:to-orange-700 transition-all duration-200 transform hover:scale-105"
-                >
-                  Access Admin Panel
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Announcements */}
-          {user && user.isTutor && user.tutorPermissions?.canViewAnnouncements && (
-            <div className="bg-gradient-to-br from-emerald-500/20 to-teal-500/20 backdrop-blur-md rounded-2xl border border-emerald-400/30 hover:from-emerald-500/30 hover:to-teal-500/30 transition-all duration-300">
-              <div className="p-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center">
-                    <span className="text-2xl">📢</span>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-white">Announcements</h3>
-                    <p className="text-white/70 text-sm">
-                      {user.tutorPermissions?.canPostAnnouncements ? 'Manage and post announcements' : 'View latest announcements'}
-                    </p>
-                  </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-white">Admin Panel</h3>
+                  <p className="text-white/70 text-sm">Manage users, courses, and system settings</p>
                 </div>
-                <button
-                  onClick={() => router.push('/announcements')}
-                  className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-medium py-3 px-4 rounded-lg hover:from-emerald-700 hover:to-teal-700 transition-all duration-200 transform hover:scale-105"
-                >
-                  {user.tutorPermissions?.canPostAnnouncements ? 'Manage Announcements' : 'View Announcements'}
-                </button>
               </div>
+              <button
+                onClick={() => router.push('/admin')}
+                className="w-full bg-gradient-to-r from-amber-600 to-orange-600 text-white font-medium py-3 px-4 rounded-lg hover:from-amber-700 hover:to-orange-700 transition-all duration-200 transform hover:scale-105"
+              >
+                Access Admin Panel
+              </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Tutor Schedule - Visible to all users */}
+        {/* Tutor Schedule Section - Placeholder */}
         <div className="mb-8">
-          <TutorSchedule />
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/30 p-6">
+            <h3 className="text-xl font-semibold text-white mb-2">👨‍🏫 Tutor Schedule</h3>
+            <p className="text-white/70">Tutor schedule will be available here</p>
+          </div>
         </div>
 
         {/* Sign Out Section */}
@@ -209,15 +209,20 @@ export default function DashboardPage() {
             <button
               onClick={async () => {
                 try {
-                  await fetch('/api/signout', {
+                  const response = await fetch(API_ENDPOINTS.SIGNOUT, {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
                     },
                   });
+
+                  if (!response.ok) {
+                    console.error('Signout failed');
+                  }
                 } catch (error) {
-                  // Handle error silently
+                  console.error('Error during signout:', error);
                 } finally {
+                  // Always redirect to home page
                   router.push('/');
                 }
               }}
@@ -229,6 +234,165 @@ export default function DashboardPage() {
           </div>
         </div>
       </main>
+
+      {/* Announcements Slide-Down Overlay */}
+      {isAnnouncementsOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col">
+          {/* Semi-transparent backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setIsAnnouncementsOpen(false)}
+          />
+
+          {/* Slide-down content */}
+          <div className="relative bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-2xl transform transition-transform duration-300 ease-out">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                    <span className="text-lg">📢</span>
+                  </div>
+                  <h2 className="text-xl font-bold">Announcements</h2>
+                </div>
+                <button
+                  onClick={() => setIsAnnouncementsOpen(false)}
+                  className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
+                >
+                  <span className="text-lg">✕</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable content */}
+            <div className="max-h-[70vh] overflow-y-auto">
+              <div className="p-6">
+                <Announcements
+                  isAdmin={user?.isAdmin || false}
+                  adminId={user?.id || ''}
+                  adminEmail={user?.email || ''}
+                  adminName={user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim()}
+                  isTutor={user?.isTutor || false}
+                  tutorId={user?.id || ''}
+                  tutorEmail={user?.email || ''}
+                  tutorName={user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim()}
+                  canPostAnnouncements={user?.tutorPermissions?.canPostAnnouncements || true}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Profile Slide-Right Overlay */}
+      {isProfileOpen && (
+        <div className="fixed inset-0 z-50">
+          {/* Semi-transparent backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setIsProfileOpen(false)}
+          />
+
+          {/* Slide-right content */}
+          <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white/95 backdrop-blur-md shadow-2xl transform transition-transform duration-300 ease-out overflow-y-auto">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-4 border-b border-gray-200 sticky top-0 z-10">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                    <span className="text-lg">👤</span>
+                  </div>
+                  <h2 className="text-xl font-bold">Profile</h2>
+                </div>
+                <button
+                  onClick={() => setIsProfileOpen(false)}
+                  className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
+                >
+                  <span className="text-lg">✕</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Profile Content */}
+            <div className="p-6 space-y-6">
+              {/* Profile Header */}
+              <div className="text-center">
+                <div className="relative inline-block">
+                  <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-xl mx-auto">
+                    {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+                  </div>
+                  <div className="absolute bottom-0 right-0 w-6 h-6 bg-green-500 rounded-full border-4 border-white/20"></div>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-800 mt-4 mb-2">
+                  {user.fullName || `${user.firstName} ${user.lastName}`}
+                </h3>
+                <div className="flex flex-wrap justify-center gap-2 mb-4">
+                  {user.isAdmin && (
+                    <span className="px-3 py-1 bg-gradient-to-r from-amber-500 to-orange-600 text-white text-xs rounded-full font-medium">
+                      Admin
+                    </span>
+                  )}
+                  {user.isTutor && (
+                    <span className="px-3 py-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs rounded-full font-medium">
+                      Tutor
+                    </span>
+                  )}
+                  <span className="px-3 py-1 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs rounded-full font-medium">
+                    Student
+                  </span>
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="bg-gray-50 rounded-xl p-4">
+                <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                  <span className="text-lg">📞</span> Contact Information
+                </h4>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-gray-600 text-sm">Email Address</p>
+                    <p className="text-gray-800 font-medium">{user.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600 text-sm">Phone Number</p>
+                    <p className="text-gray-800 font-medium">
+                      {user.phoneNumber || 'Not provided'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Academic Information */}
+              <div className="bg-gray-50 rounded-xl p-4">
+                <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                  <span className="text-lg">📚</span> Academic Information
+                </h4>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-gray-600 text-sm">Student ID</p>
+                    <p className="text-gray-800 font-medium">{user.id}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600 text-sm">Member Since</p>
+                    <p className="text-gray-800 font-medium">Active Student</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600 text-sm">Account Status</p>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <p className="text-green-600 font-medium">Active</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unified Messaging */}
+      <UnifiedMessaging isOpen={isChatOpen} setIsOpen={setIsChatOpen} />
     </BackgroundImage>
   );
 }

@@ -16,11 +16,13 @@ interface CourseRegistration {
   id: string;
   userId: string;
   userName?: string;
-  religion?: string;
-  courseName?: string;
-  credits?: number;
-  submittedAt?: string;
-  status?: 'pending' | 'approved' | 'rejected';
+  userEmail?: string;
+  courses: Array<{ name: string; credits: number }>;
+  totalCredits: number;
+  takesReligion: boolean;
+  submittedAt: string;
+  registrationDate?: string;
+  status?: 'approved' | 'pending' | 'rejected';
 }
 
 interface CleaningDayUser {
@@ -226,36 +228,54 @@ export default function UserSearch({ users, courseRegistrations, cleaningDays }:
           {/* Course Registrations */}
           <div className="bg-purple-600/20 rounded-lg p-3 border border-purple-400/30">
             <h4 className="text-base font-semibold text-white mb-3">
-              📚 Course Registrations ({selectedUser.courses.length})
+              📚 Course Registrations ({selectedUser.courses.reduce((total, reg) => total + (reg.courses?.length || 0), 0)})
             </h4>
             {selectedUser.courses.length > 0 ? (
-              <div className="space-y-2">
-                {selectedUser.courses.map((course) => (
-                  <div key={course.id} className="bg-white/10 rounded-lg p-3 border border-white/20">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h5 className="font-medium text-white text-sm mb-1">
-                          {course.courseName || 'No courses specified'}
-                        </h5>
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div>
-                            <span className="text-gray-300">Credits:</span>
-                            <span className="text-white ml-1">{course.credits || 0}</span>
+              <div className="space-y-3">
+                {selectedUser.courses.map((registration) => (
+                  <div key={registration.id} className="bg-white/10 rounded-lg p-3 border border-white/20">
+                    <div className="mb-2">
+                      <p className="text-xs text-gray-300 mb-1">
+                        Registered: {new Date(registration.submittedAt || registration.registrationDate || '').toLocaleDateString()}
+                      </p>
+                    </div>
+                    {registration.courses && registration.courses.length > 0 ? (
+                      <div className="space-y-2">
+                        {registration.courses.map((course: any, index: number) => (
+                          <div key={index} className="bg-black/20 rounded p-2">
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <h5 className="font-medium text-white text-sm mb-1">
+                                  {course.name || 'No course name'}
+                                </h5>
+                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                  <div>
+                                    <span className="text-gray-300">Credits:</span>
+                                    <span className="text-white ml-1">{course.credits || 0}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-300">Religion:</span>
+                                    <span className={`ml-1 ${registration.takesReligion ? 'text-green-400' : 'text-gray-400'}`}>
+                                      {registration.takesReligion ? '✓ Yes' : '✗ No'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          <div>
-                            <span className="text-gray-300">Religion:</span>
-                            <span className={`ml-1 ${course.religion === 'Yes' ? 'text-green-400' : 'text-gray-400'}`}>
-                              {course.religion === 'Yes' ? '✓ Yes' : '✗ No'}
+                        ))}
+                        <div className="mt-2 pt-2 border-t border-white/10">
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-gray-300">Total Credits:</span>
+                            <span className="text-white font-bold">
+                              {registration.courses.reduce((sum: number, course: any) => sum + (course.credits || 0), 0)}
                             </span>
                           </div>
                         </div>
-                        {course.submittedAt && (
-                          <p className="text-xs text-gray-300 mt-1">
-                            Registered: {new Date(course.submittedAt).toLocaleDateString()}
-                          </p>
-                        )}
                       </div>
-                    </div>
+                    ) : (
+                      <p className="text-gray-300 text-sm">No courses specified</p>
+                    )}
                   </div>
                 ))}
               </div>

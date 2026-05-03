@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/models/database';
 import User from '@/models/User';
 import jwt from 'jsonwebtoken';
+import { AUTH_CONSTANTS } from '@/config/constants';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -39,11 +40,11 @@ export async function POST(request: Request) {
       }
     });
 
-    response.cookies.set('auth-token', token, {
+    response.cookies.set(AUTH_CONSTANTS.TOKEN_NAME, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      maxAge: AUTH_CONSTANTS.COOKIE_MAX_AGE, // 7 days
       path: '/'
     });
 

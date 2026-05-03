@@ -16,6 +16,42 @@
         -webkit-text-size-adjust: 100%;
     }
 
+    /* Modern logo animations */
+    @keyframes shimmer {
+        0% {
+            transform: translateX(-100%);
+        }
+
+        100% {
+            transform: translateX(100%);
+        }
+    }
+
+    @keyframes glow {
+
+        0%,
+        100% {
+            filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.8)) brightness(1.1);
+        }
+
+        50% {
+            filter: drop-shadow(0 0 40px rgba(255, 255, 255, 1)) brightness(1.2);
+        }
+    }
+
+    .animate-shimmer {
+        animation: shimmer 2s infinite;
+        background: linear-gradient(90deg,
+                transparent,
+                rgba(255, 255, 255, 0.1),
+                transparent);
+        background-size: 200% 100%;
+    }
+
+    .animate-glow {
+        animation: glow 2s ease-in-out infinite;
+    }
+
     /* iPhone safe area support */
     @supports (padding: max(0px)) {
         body {

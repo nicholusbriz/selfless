@@ -3,6 +3,7 @@ import connectDB from '@/models/database';
 import User from '@/models/User';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { AUTH_CONSTANTS } from '@/config/constants';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -35,7 +36,8 @@ export async function POST(request: Request) {
       lastName,
       email: email.toLowerCase(),
       password: hashedPassword,
-      phoneNumber: phoneNumber || undefined
+      phoneNumber: phoneNumber || undefined,
+      isRegistered: true // Mark as registered student
     });
 
     await newUser.save();
@@ -62,18 +64,18 @@ export async function POST(request: Request) {
       }
     });
 
-    response.cookies.set('auth-token', token, {
+    response.cookies.set(AUTH_CONSTANTS.TOKEN_NAME, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      maxAge: AUTH_CONSTANTS.COOKIE_MAX_AGE, // 7 days
       path: '/'
     });
 
     return response;
 
   } catch (error) {
-    
+
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }

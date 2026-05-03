@@ -5,6 +5,7 @@ import Registration from '@/models/Registration';
 import Admin from '@/models/Admin';
 import jwt from 'jsonwebtoken';
 import { isSuperAdminEmail } from '@/config/admin';
+import { AUTH_CONSTANTS } from '@/config/constants';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -19,7 +20,7 @@ async function verifyAdminToken(request: Request) {
     return acc;
   }, {});
 
-  const token = cookies['auth-token'];
+  const token = cookies[AUTH_CONSTANTS.TOKEN_NAME];
   if (!token) return null;
 
   try {
@@ -105,9 +106,16 @@ export async function DELETE(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('id');
+    const type = searchParams.get('type'); // 'soft' or 'permanent'
 
     if (!userId) {
       return NextResponse.json({ success: false, message: 'User ID required' }, { status: 400 });
+    }
+
+    // Verify admin access for delete operations
+    const adminData = await verifyAdminToken(request);
+    if (!adminData) {
+      return NextResponse.json({ success: false, message: 'Admin access required' }, { status: 401 });
     }
 
     // First, find the user to get their information
@@ -116,25 +124,40 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
     }
 
-    // Delete all registrations associated with this user (but keep the user account)
+    // Delete all registrations associated with this user
     const deletedRegistrations = await Registration.deleteMany({ userId });
 
+    if (type === 'permanent') {
+      // Permanent delete: Remove user completely from database
+      const deletedUser = await User.findByIdAndDelete(userId);
 
-
-    return NextResponse.json({
-      success: true,
-      message: 'User registrations deleted successfully. User account preserved for future login.',
-      deletedRegistrations: deletedRegistrations.deletedCount,
-      preservedUser: {
-        id: user._id.toString(),
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email
-      }
-    });
+      return NextResponse.json({
+        success: true,
+        message: 'User permanently deleted from database',
+        deletedUser: {
+          id: deletedUser._id.toString(),
+          firstName: deletedUser.firstName,
+          lastName: deletedUser.lastName,
+          email: deletedUser.email
+        },
+        deletedRegistrations: deletedRegistrations.deletedCount
+      });
+    } else {
+      // Soft delete (default): Remove registrations but preserve user account
+      return NextResponse.json({
+        success: true,
+        message: 'User registrations deleted successfully. User account preserved for future login.',
+        deletedRegistrations: deletedRegistrations.deletedCount,
+        preservedUser: {
+          id: user._id.toString(),
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email
+        }
+      });
+    }
 
   } catch (error) {
-
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }

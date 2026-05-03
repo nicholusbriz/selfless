@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { BackgroundImage, LoadingButton } from '@/components/ui';
+import { useRegister } from '@/hooks/loginRegister';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -16,8 +17,10 @@ export default function RegisterPage() {
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
+  // Use register hook instead of manual fetch
+  const register = useRegister();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -51,43 +54,25 @@ export default function RegisterPage() {
       return;
     }
 
-    setIsLoading(true);
-    setMessage('');
-
     try {
-
-      const response = await fetch('/api/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          password: formData.password,
-          phoneNumber: formData.phoneNumber
-        }),
+      await register.mutateAsync({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        phoneNumber: formData.phoneNumber
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        // All users redirect to dashboard after registration
-        setMessage('Account created successfully! Redirecting to your dashboard...');
-        setMessageType('success');
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 1500);
-      } else {
-        setMessage(data.message || 'Registration failed');
-        setMessageType('error');
-      }
-    } catch {
-      setMessage('Network error. Please try again.');
+      // All users redirect to dashboard after registration
+      setMessage('Account created successfully! Redirecting to your dashboard...');
+      setMessageType('success');
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 1500);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+      setMessage(errorMessage);
       setMessageType('error');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -271,7 +256,7 @@ export default function RegisterPage() {
               <div className="mt-4">
                 <LoadingButton
                   type="submit"
-                  isLoading={isLoading}
+                  isLoading={register.isPending}
                   className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg"
                   loadingText="Creating Account..."
                 >

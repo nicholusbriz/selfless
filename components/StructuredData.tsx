@@ -1,10 +1,8 @@
 'use client';
 
-import Head from 'next/head';
-
 interface StructuredDataProps {
   type: 'Organization' | 'WebSite' | 'WebApplication';
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 }
 
 export default function StructuredData({ type, data }: StructuredDataProps) {
@@ -94,7 +92,7 @@ export function WebSiteStructuredData() {
         name: "Technology Education"
       },
       {
-        "@type": "Thing", 
+        "@type": "Thing",
         name: "Student Registration System"
       },
       {
@@ -127,7 +125,7 @@ export function WebApplicationStructuredData() {
     },
     featureList: [
       "Student Registration",
-      "Course Management", 
+      "Course Management",
       "Cleaning Schedule Tracking",
       "Admin Dashboard",
       "Tutor Management",

@@ -3,10 +3,14 @@
 import { useRouter } from 'next/navigation';
 import { BackgroundImage, PageLoader } from '@/components/ui';
 import { useAuthWithLogin } from '@/lib/auth';
+import { useSignout } from '@/hooks/loginRegister';
 
 export default function ProfilePage() {
   const { user, isLoading: authLoading } = useAuthWithLogin('/login');
   const router = useRouter();
+
+  // Use signout hook instead of manual fetch
+  const signout = useSignout();
 
   if (!user || authLoading) {
     return <PageLoader text="Loading Profile" color="purple" />;
@@ -179,22 +183,18 @@ export default function ProfilePage() {
             <button
               onClick={async () => {
                 try {
-                  await fetch('/api/signout', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                  });
+                  await signout.mutateAsync();
+                  router.push('/');
                 } catch (error) {
-                  // Handle error silently
-                } finally {
+                  // Handle error silently or show message
                   router.push('/');
                 }
               }}
-              className="bg-gradient-to-r from-red-600 to-rose-600 text-white font-medium py-3 px-6 rounded-lg hover:from-red-700 hover:to-rose-700 transition-all duration-200 transform hover:scale-105 flex items-center gap-2"
+              disabled={signout.isPending}
+              className="bg-gradient-to-r from-red-600 to-rose-600 text-white font-medium py-3 px-6 rounded-lg hover:from-red-700 hover:to-rose-700 transition-all duration-200 transform hover:scale-105 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="text-xl">🚪</span>
-              Sign Out
+              {signout.isPending ? 'Signing Out...' : 'Sign Out'}
             </button>
           </div>
         </div>

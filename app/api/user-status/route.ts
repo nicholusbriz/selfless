@@ -6,6 +6,7 @@ import Tutor from '@/models/Tutor';
 import Admin from '@/models/Admin';
 import jwt from 'jsonwebtoken';
 import { isSuperAdminEmail } from '@/config/admin';
+import { AUTH_CONSTANTS } from '@/config/constants';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
       return acc;
     }, {});
 
-    const token = cookies['auth-token'];
+    const token = cookies[AUTH_CONSTANTS.TOKEN_NAME];
     if (!token) {
       return NextResponse.json({ success: false, message: 'Authentication token missing' }, { status: 401 });
     }
@@ -56,8 +57,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'Invalid authentication token' }, { status: 401 });
     }
 
-    // Find user by ID from token
-    const user = await User.findById(decoded.userId);
+    // Find user by ID from token with timeout
+    let user;
+    try {
+      user = await Promise.race([
+        User.findById(decoded.userId),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Database timeout')), 8000)
+        )
+      ]);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Database timeout') {
+        return NextResponse.json({
+          success: false,
+          message: 'Database temporarily unavailable. Please try again.'
+        }, { status: 503 });
+      }
+      return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
+    }
+
     if (!user) {
       return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
     }
@@ -67,17 +85,50 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'Token mismatch' }, { status: 403 });
     }
 
-    // Check if user has any registration
-    const registration = await Registration.findOne({ userId: decoded.userId });
+    // Check if user has any registration with timeout
+    let registration = null;
+    try {
+      registration = await Promise.race([
+        Registration.findOne({ userId: decoded.userId }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Database timeout')), 5000)
+        )
+      ]);
+    } catch (error) {
+      // Registration lookup failed, continue without it
+      console.log('Registration lookup failed:', error);
+    }
     const isRegistered = !!registration;
 
-    // Check if user is a tutor
-    const tutor = await Tutor.findOne({ userId: decoded.userId });
+    // Check if user is a tutor with timeout
+    let tutor = null;
+    try {
+      tutor = await Promise.race([
+        Tutor.findOne({ userId: decoded.userId }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Database timeout')), 5000)
+        )
+      ]);
+    } catch (error) {
+      // Tutor lookup failed, continue without it
+      console.log('Tutor lookup failed:', error);
+    }
     const isTutor = !!tutor;
 
-    // Check if user is an admin using admin.ts config
+    // Check if user is an admin using admin.ts config with timeout
+    let promotedAdmin = null;
+    try {
+      promotedAdmin = await Promise.race([
+        Admin.findOne({ userId: decoded.userId }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Database timeout')), 5000)
+        )
+      ]);
+    } catch (error) {
+      // Admin lookup failed, continue without it
+      console.log('Admin lookup failed:', error);
+    }
     const isSuperAdmin = isSuperAdminEmail(user.email);
-    const promotedAdmin = await Admin.findOne({ userId: decoded.userId });
     const isAdmin = isSuperAdmin || !!promotedAdmin;
 
     // Get formatted date from registration data
