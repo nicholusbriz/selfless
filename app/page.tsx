@@ -13,6 +13,12 @@ export default function Page() {
 
   const features = [
     {
+      title: "💬 Live Chat System",
+      description: "Connect with students and tutors in real-time. Share ideas, ask questions, and collaborate instantly with our new messaging platform!",
+      icon: "💬",
+      action: () => router.push('/login')
+    },
+    {
       title: "Cleaning Day Registration",
       description: "Register for your assigned cleaning duty and manage your schedule efficiently",
       icon: "🧹",
@@ -118,7 +124,7 @@ export default function Page() {
                 fontWeight: 300,
                 lineHeight: '1.4'
               }}>
-                Where Innovation Meets Opportunity &bull; Transforming Tomorrow&apos;s Leaders Today
+                Where Innovation Meets Opportunity &bull; Connect, Chat, and Transform Tomorrow&apos;s Leaders Today
               </p>
             </div>
 
