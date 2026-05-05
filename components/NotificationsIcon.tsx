@@ -19,6 +19,7 @@ export default function NotificationsIcon({ onClick, className = '', forceClose 
     if (shouldCloseDropdown) {
       setIsOpen(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldCloseDropdown]);
 
   // Count unread announcements (you can modify this logic based on your read/unread tracking)

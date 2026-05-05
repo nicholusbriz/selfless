@@ -1,44 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import connectDB from '@/models/database';
 import User from '@/models/User';
 import Tutor from '@/models/Tutor';
 import Admin from '@/models/Admin';
+import { requireAdmin, createToken, setAuthCookie } from '@/lib/auth-utils';
+import { AUTH_CONSTANTS } from '@/config/constants';
 import jwt from 'jsonwebtoken';
 import { isSuperAdminEmail } from '@/config/admin';
-import { AUTH_CONSTANTS } from '@/config/constants';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-
-// Helper function to verify admin token
-async function verifyAdminToken(request: Request) {
-  const cookieHeader = request.headers.get('cookie');
-  if (!cookieHeader) return null;
-
-  const cookies = cookieHeader.split(';').reduce((acc: { [key: string]: string }, cookie) => {
-    const [key, value] = cookie.trim().split('=');
-    acc[key] = value;
-    return acc;
-  }, {});
-
-  const token = cookies[AUTH_CONSTANTS.TOKEN_NAME];
-  if (!token) return null;
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
-    const user = await User.findById(decoded.userId);
-    if (!user) return null;
-
-    // Check if user is admin using admin.ts config
-    const isSuperAdmin = isSuperAdminEmail(user.email);
-    const promotedAdmin = await Admin.findOne({ userId: user._id.toString(), isActive: true });
-
-    if (!isSuperAdmin && !promotedAdmin) return null;
-
-    return { user, isSuperAdmin, promotedAdmin };
-  } catch {
-    return null;
-  }
-}
 
 // Helper function to verify user token (for tutor checking)
 async function verifyUserToken(request: Request) {
@@ -66,12 +36,12 @@ async function verifyUserToken(request: Request) {
 }
 
 // GET - Fetch all tutors
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     await connectDB();
 
     // Verify admin access
-    const adminData = await verifyAdminToken(request);
+    const adminData = await requireAdmin(request);
     if (!adminData) {
       return NextResponse.json({ success: false, message: 'Admin access required' }, { status: 401 });
     }
@@ -105,12 +75,12 @@ export async function GET(request: Request) {
 }
 
 // POST - Add a new tutor
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     await connectDB();
 
     // Verify admin access
-    const adminData = await verifyAdminToken(request);
+    const adminData = await requireAdmin(request);
     if (!adminData) {
       return NextResponse.json({ success: false, message: 'Admin access required' }, { status: 401 });
     }
@@ -174,12 +144,12 @@ export async function POST(request: Request) {
 }
 
 // DELETE - Remove a tutor
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   try {
     await connectDB();
 
     // Verify admin access
-    const adminData = await verifyAdminToken(request);
+    const adminData = await requireAdmin(request);
     if (!adminData) {
       return NextResponse.json({ success: false, message: 'Admin access required' }, { status: 401 });
     }

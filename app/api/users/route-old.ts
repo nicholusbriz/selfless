@@ -1,20 +1,55 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import connectDB from '@/models/database';
 import User from '@/models/User';
 import Registration from '@/models/Registration';
-import bcrypt from 'bcryptjs';
-import { requireAdmin, requireUser, createToken, setAuthCookie } from '@/lib/auth-utils';
+import Admin from '@/models/Admin';
+import jwt from 'jsonwebtoken';
 import { isSuperAdminEmail } from '@/config/admin';
 import { AUTH_CONSTANTS } from '@/config/constants';
-import jwt from 'jsonwebtoken';
 
-export async function GET(request: NextRequest) {
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+// Helper function to verify admin token
+async function verifyAdminToken(request: Request) {
+  const cookieHeader = request.headers.get('cookie');
+  if (!cookieHeader) return null;
+
+  const cookies = cookieHeader.split(';').reduce((acc: { [key: string]: string }, cookie) => {
+    const [key, value] = cookie.trim().split('=');
+    acc[key] = value;
+    return acc;
+  }, {});
+
+  const token = cookies[AUTH_CONSTANTS.TOKEN_NAME];
+  if (!token) return null;
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    const user = await User.findById(decoded.userId);
+    if (!user) return null;
+
+    // Check if user is admin using admin.ts config
+    const isSuperAdmin = isSuperAdminEmail(user.email);
+    const promotedAdmin = await Admin.findOne({ userId: user._id.toString() });
+
+    if (!isSuperAdmin && !promotedAdmin) return null;
+
+    return { user, isSuperAdmin, promotedAdmin };
+  } catch {
+    return null;
+  }
+}
+
+// Cache configuration for PWA performance
+export const revalidate = 30; // Revalidate every 30 seconds
+
+export async function GET(request: Request) {
   try {
     await connectDB();
 
-    // Authenticate user
-    const authUser = await requireAdmin(request);
-    if (!authUser) {
+    // Verify admin access
+    const adminData = await verifyAdminToken(request);
+    if (!adminData) {
       return NextResponse.json({ success: false, message: 'Admin access required' }, { status: 401 });
     }
 
@@ -24,6 +59,7 @@ export async function GET(request: NextRequest) {
     if (userId) {
       // Fetch single user by ID
       const user = await User.findById(userId).select('-password');
+
       if (!user) {
         return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
       }
@@ -57,80 +93,16 @@ export async function GET(request: NextRequest) {
         }))
       });
     }
+
   } catch (error) {
+
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function DELETE(request: Request) {
   try {
     await connectDB();
-
-    const { firstName, lastName, email, password, phoneNumber } = await request.json();
-
-    // Validation
-    if (!firstName || !lastName || !email || !password) {
-      return NextResponse.json({ success: false, message: 'Please fill in all fields' }, { status: 400 });
-    }
-
-    if (password.length < 6) {
-      return NextResponse.json({ success: false, message: 'Password must be at least 6 characters long' }, { status: 400 });
-    }
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
-    if (existingUser) {
-      return NextResponse.json({ success: false, message: 'User with this email already exists' }, { status: 400 });
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    // Create new User or Admin based on email
-    const isSuperAdmin = isSuperAdminEmail(email);
-    const newUser = new User({
-      firstName,
-      lastName,
-      email: email.toLowerCase(),
-      password: hashedPassword,
-      phoneNumber: phoneNumber || undefined,
-      isRegistered: true,
-      isAdmin: isSuperAdmin
-    });
-
-    await newUser.save();
-
-    // Create JWT token
-    const token = createToken(newUser._id.toString(), newUser.email);
-
-    // Set HTTP-only cookie
-    const response = NextResponse.json({
-      success: true,
-      user: {
-        id: newUser._id.toString(),
-        firstName: newUser.firstName,
-        lastName: newUser.lastName,
-        email: newUser.email,
-        fullName: `${newUser.firstName} ${newUser.lastName}`
-      }
-    });
-
-    setAuthCookie(response, token);
-    return response;
-  } catch (error) {
-    return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
-  }
-}
-
-export async function DELETE(request: NextRequest) {
-  try {
-    await connectDB();
-
-    // Authenticate as admin
-    const authUser = await requireAdmin(request);
-    if (!authUser) {
-      return NextResponse.json({ success: false, message: 'Admin access required' }, { status: 401 });
-    }
 
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('id');
@@ -140,18 +112,24 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'User ID required' }, { status: 400 });
     }
 
-    // Find the user to get their information
+    // Verify admin access for delete operations
+    const adminData = await verifyAdminToken(request);
+    if (!adminData) {
+      return NextResponse.json({ success: false, message: 'Admin access required' }, { status: 401 });
+    }
+
+    // First, find the user to get their information
     const user = await User.findById(userId);
     if (!user) {
       return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
     }
 
+    // Delete all registrations associated with this user
+    const deletedRegistrations = await Registration.deleteMany({ userId });
+
     if (type === 'permanent') {
       // Permanent delete: Remove user completely from database
       const deletedUser = await User.findByIdAndDelete(userId);
-
-      // Delete all registrations associated with this User
-      const deletedRegistrations = await Registration.deleteMany({ userId });
 
       return NextResponse.json({
         success: true,
@@ -166,8 +144,6 @@ export async function DELETE(request: NextRequest) {
       });
     } else {
       // Soft delete (default): Remove registrations but preserve user account
-      const deletedRegistrations = await Registration.deleteMany({ userId });
-
       return NextResponse.json({
         success: true,
         message: 'User registrations deleted successfully. User account preserved for future login.',
@@ -180,6 +156,7 @@ export async function DELETE(request: NextRequest) {
         }
       });
     }
+
   } catch (error) {
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }

@@ -20,7 +20,6 @@ export async function GET() {
       success: false,
       message: 'Authentication required for user status'
     }, { status: 401 });
-
   } catch (error) {
     console.error('User status GET error:', error);
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
@@ -54,28 +53,11 @@ export async function POST(request: Request) {
     try {
       decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string };
     } catch {
-      return NextResponse.json({ success: false, message: 'Invalid authentication token' }, { status: 401 });
+      return NextResponse.json({ success: false, message: 'Invalid authentication token' }, { status: 403 });
     }
 
-    // Find user by ID from token with timeout
-    let user;
-    try {
-      user = await Promise.race([
-        User.findById(decoded.userId),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Database timeout')), 8000)
-        )
-      ]);
-    } catch (error) {
-      if (error instanceof Error && error.message === 'Database timeout') {
-        return NextResponse.json({
-          success: false,
-          message: 'Database temporarily unavailable. Please try again.'
-        }, { status: 503 });
-      }
-      return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
-    }
-
+    // Find user by ID from token
+    const user = await User.findById(decoded.userId);
     if (!user) {
       return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
     }
@@ -85,49 +67,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'Token mismatch' }, { status: 403 });
     }
 
-    // Check if user has any registration with timeout
-    let registration = null;
-    try {
-      registration = await Promise.race([
-        Registration.findOne({ userId: decoded.userId }),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Database timeout')), 5000)
-        )
-      ]);
-    } catch (error) {
-      // Registration lookup failed, continue without it
-      console.log('Registration lookup failed:', error);
-    }
+    // Check if User has any registration
+    const registration = await Registration.findOne({ userId: decoded.userId });
     const isRegistered = !!registration;
 
-    // Check if user is a tutor with timeout
-    let tutor = null;
-    try {
-      tutor = await Promise.race([
-        Tutor.findOne({ userId: decoded.userId }),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Database timeout')), 5000)
-        )
-      ]);
-    } catch (error) {
-      // Tutor lookup failed, continue without it
-      console.log('Tutor lookup failed:', error);
-    }
+    // Check if User is a tutor
+    const tutor = await Tutor.findOne({ userId: decoded.userId });
     const isTutor = !!tutor;
 
-    // Check if user is an admin using admin.ts config with timeout
-    let promotedAdmin = null;
-    try {
-      promotedAdmin = await Promise.race([
-        Admin.findOne({ userId: decoded.userId }),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Database timeout')), 5000)
-        )
-      ]);
-    } catch (error) {
-      // Admin lookup failed, continue without it
-      console.log('Admin lookup failed:', error);
-    }
+    // Check if User is an admin using admin.ts config
+    const promotedAdmin = await Admin.findOne({ userId: decoded.userId, isActive: true });
     const isSuperAdmin = isSuperAdminEmail(user.email);
     const isAdmin = isSuperAdmin || !!promotedAdmin;
 
@@ -161,7 +110,6 @@ export async function POST(request: Request) {
         ] : []
       }
     });
-
   } catch (error) {
     console.error('User status error:', error);
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });

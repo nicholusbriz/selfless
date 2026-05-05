@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { API_ENDPOINTS } from '@/config/constants';
+import { IUser } from '@/models/User';
 
 interface LoginCredentials {
   email: string;
@@ -16,7 +17,13 @@ interface RegisterData {
 
 interface AuthResponse {
   success: boolean;
-  user?: any;
+  user?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    fullName: string;
+  };
   message?: string;
 }
 

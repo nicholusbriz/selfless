@@ -8,9 +8,7 @@ const CHAT_ENDPOINTS = {
   CONVERSATIONS: '/api/chat/conversations',
   MESSAGES: '/api/chat/messages',
   SEND_MESSAGE: '/api/chat/send',
-  MARK_READ: '/api/chat/mark-read',
   USERS: '/api/chat/users',
-  ONLINE_USERS: '/api/chat/online-users',
 };
 
 // Helper function to make authenticated API calls
@@ -53,24 +51,11 @@ export const useConversations = () => {
     refetchOnWindowFocus: true,
   });
 
-  const markAsRead = useMutation({
-    mutationFn: async ({ conversationId }: { conversationId: string }) => {
-      const response = await makeAuthenticatedRequest(CHAT_ENDPOINTS.MARK_READ, {
-        method: 'POST',
-        body: JSON.stringify({ conversationId, userId: user?.id }),
-      });
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversations', user?.id] });
-    },
-  });
 
   return {
     conversations,
     isLoading,
     error,
-    markAsRead,
   };
 };
 
@@ -149,53 +134,6 @@ export const useChatUsers = () => {
   };
 };
 
-// Hook for managing online users
-export const useOnlineUsers = () => {
-  const { user } = useAuth();
-  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
-  const [isPolling, setIsPolling] = useState(false);
-
-  useEffect(() => {
-    if (!user?.id) return;
-
-    let interval: NodeJS.Timeout | null = null;
-    let retryCount = 0;
-    const maxRetries = 3;
-
-    const fetchOnlineUsers = async () => {
-      try {
-        const response = await makeAuthenticatedRequest(CHAT_ENDPOINTS.ONLINE_USERS);
-        const users = await response.json();
-        setOnlineUsers(users);
-        retryCount = 0; // Reset retry count on success
-        setIsPolling(true);
-      } catch (error) {
-        console.error('Failed to fetch online users:', error);
-        retryCount++;
-
-        // Stop polling after max retries on auth errors
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        if (errorMessage.includes('401') || retryCount >= maxRetries) {
-          console.log('Stopping online users polling due to repeated failures');
-          if (interval) clearInterval(interval);
-          setIsPolling(false);
-        }
-      }
-    };
-
-    // Initial fetch
-    fetchOnlineUsers();
-
-    // Start polling after successful initial fetch
-    interval = setInterval(fetchOnlineUsers, 30000); // Poll every 30 seconds
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [user?.id]);
-
-  return { onlineUsers, isPolling };
-};
 
 // Main chat hook that combines all chat functionality
 export const useChat = () => {
@@ -204,13 +142,12 @@ export const useChat = () => {
   const [activeConversation, setActiveConversation] = useState<Conversation | undefined>();
   const [isChatOpen, setIsChatOpen] = useState(false);
 
-  const { conversations, isLoading: conversationsLoading, markAsRead } = useConversations();
+  const { conversations, isLoading: conversationsLoading } = useConversations();
   const { messages, isLoading: messagesLoading, sendMessage } = useMessages(activeConversation?.id);
   const { users, isLoading: usersLoading } = useChatUsers();
-  const { onlineUsers } = useOnlineUsers();
 
   // Delete message function
-  const deleteMessage = async (messageId: string, deleteForEveryone: boolean = false) => {
+  const deleteMessage = async (messageId: string) => {
     try {
       console.log('🗑️ Starting delete for message:', messageId);
 
@@ -220,7 +157,7 @@ export const useChat = () => {
           'Content-Type': 'application/json',
           'Cookie': document.cookie,
         },
-        body: JSON.stringify({ messageId, deleteForEveryone }),
+        body: JSON.stringify({ messageId }),
       });
 
       if (!response.ok) {
@@ -251,11 +188,7 @@ export const useChat = () => {
     setActiveConversation(conversation || undefined);
     setIsChatOpen(!!conversation);
 
-    // Mark messages as read
-    if (conversation && conversation.unreadCount > 0) {
-      markAsRead.mutate({ conversationId: conversation.id });
-    }
-  }, [markAsRead]);
+  }, []);
 
   const startNewConversation = useCallback((targetUser: ChatUser) => {
     console.log('🔍 Starting conversation with:', targetUser.name, 'ID:', targetUser.id);
@@ -304,7 +237,6 @@ export const useChat = () => {
     conversations,
     messages,
     users,
-    onlineUsers,
     isChatOpen,
     totalUnreadCount,
 
@@ -317,7 +249,6 @@ export const useChat = () => {
     closeChat,
     sendMessage,
     deleteMessage,
-    markAsRead,
     setIsChatOpen,
   };
 };

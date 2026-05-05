@@ -3,12 +3,6 @@
 import { useState } from 'react';
 import { useTutors, useAddTutor, useRemoveTutor } from '@/hooks/adminHooks';
 
-interface TutorPermissions {
-  canViewAnnouncements: boolean;
-  canPostAnnouncements: boolean;
-  canManageUsers: boolean;
-}
-
 interface TutorManagementProps {
   adminId: string;
   adminEmail: string;
@@ -17,7 +11,7 @@ interface TutorManagementProps {
 
 export default function TutorManagement({ }: TutorManagementProps) {
   // Use API hooks
-  const { data: tutors = [], isLoading: loading, error } = useTutors();
+  const { data: tutors = [], isLoading: loading } = useTutors();
   const addTutor = useAddTutor();
   const removeTutor = useRemoveTutor();
 

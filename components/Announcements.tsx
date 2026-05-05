@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAnnouncements, useCreateAnnouncement, useDeleteAnnouncement, usePostComment, usePostReply, useDeleteComment, useCheckTutorStatus } from '@/hooks/announcementHooks';
+import { useAnnouncements, useDeleteAnnouncement, useCreateAnnouncement, usePostComment, usePostReply, useDeleteComment, useCheckTutorStatus } from '@/hooks/announcementHooks';
+import { useUserStatus } from '@/hooks/loginRegister';
+import { formatDate } from '@/lib/utils';
 
 interface Comment {
   id: string;
@@ -24,8 +26,8 @@ interface Announcement {
   adminEmail: string;
   createdAt: string;
   updatedAt: string;
-  isActive: boolean;
-  comments: Comment[];
+  isActive?: boolean;
+  comments?: Comment[];
 }
 
 interface AnnouncementsProps {
@@ -171,6 +173,7 @@ function CommentItem({ comment, currentUser, announcementId, onReply, onDelete, 
     if (shouldResetCommentReplyInput) {
       setShowReplyInput(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldResetCommentReplyInput]);
 
   return (
@@ -268,10 +271,10 @@ export default function Announcements({
 }: AnnouncementsProps) {
   // Use API hooks
   const { data: announcements = [], isLoading } = useAnnouncements();
-  const createAnnouncement = useCreateAnnouncement();
-  const deleteAnnouncement = useDeleteAnnouncement();
-  const postComment = usePostComment();
-  const postReply = usePostReply();
+  const createAnnouncementMutation = useCreateAnnouncement();
+  const deleteAnnouncementMutation = useDeleteAnnouncement();
+  const postCommentMutation = usePostComment();
+  const postReplyMutation = usePostReply();
   const deleteCommentMutation = useDeleteComment();
   const { data: tutorData } = useCheckTutorStatus();
 
@@ -354,7 +357,7 @@ export default function Announcements({
 
     console.log('✅ All checks passed, attempting to create announcement...');
     try {
-      const result = await createAnnouncement.mutateAsync({
+      const result = await createAnnouncementMutation.mutateAsync({
         title: newAnnouncement.title.trim(),
         content: newAnnouncement.content.trim(),
         adminId: isAdmin ? (adminId || currentUser?.id || '') : (tutorId || currentUser?.id || ''),
@@ -382,7 +385,7 @@ export default function Announcements({
     }
 
     try {
-      await deleteAnnouncement.mutateAsync({
+      await deleteAnnouncementMutation.mutateAsync({
         announcementId,
         userId: currentUser?.id || ''
       });
@@ -402,7 +405,7 @@ export default function Announcements({
       setIsPostingComment(parentCommentId || announcementId);
 
       if (parentCommentId) {
-        await postReply.mutateAsync({
+        await postReplyMutation.mutateAsync({
           commentId: parentCommentId,
           announcementId,
           userId: currentUser?.id || '',
@@ -411,7 +414,7 @@ export default function Announcements({
           content
         });
       } else {
-        await postComment.mutateAsync({
+        await postCommentMutation.mutateAsync({
           announcementId,
           userId: currentUser?.id || '',
           userName: currentUser?.name || '',
@@ -530,10 +533,10 @@ export default function Announcements({
               </button>
               <button
                 onClick={handleCreateAnnouncement}
-                disabled={createAnnouncement.isPending}
+                disabled={createAnnouncementMutation.isPending}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {createAnnouncement.isPending ? 'Creating...' : 'Create'}
+                {createAnnouncementMutation.isPending ? 'Creating...' : 'Create'}
               </button>
             </div>
           </div>
@@ -545,7 +548,7 @@ export default function Announcements({
           {announcements.length === 0 ? (
             <p className="text-gray-500 text-center py-8">No announcements yet.</p>
           ) : (
-            announcements.map((announcement) => (
+            announcements.map((announcement: Announcement) => (
               <div key={announcement.id} className="bg-white border border-gray-200 rounded-lg p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>

@@ -5,26 +5,9 @@ import { useRouter } from 'next/navigation';
 import { Message, Conversation, ChatUser } from '@/types';
 import { useChat } from '@/hooks/chatHooks';
 import { useAuth } from '@/hooks/useAuth';
-import { useNetworkStatus } from '@/hooks/useNetworkStatus';
-import { useOfflineMessaging } from '@/hooks/useOfflineMessaging';
 import { useQueryClient } from '@tanstack/react-query';
 import MobileGestureTutorial from './MobileGestureTutorial';
 
-// Message Status Indicator Component
-const MessageStatusIndicator = ({ status }: { status: 'sending' | 'sent' | 'delivered' | 'read' }) => {
-  switch (status) {
-    case 'sending':
-      return <span className="text-xs">⏳</span>;
-    case 'sent':
-      return <span className="text-xs">✅</span>;
-    case 'delivered':
-      return <span className="text-xs">✅✅</span>;
-    case 'read':
-      return <span className="text-xs">✅✅✅</span>;
-    default:
-      return <span className="text-xs">✅</span>;
-  }
-};
 
 interface UnifiedMessagingProps {
   isOpen: boolean;
@@ -34,8 +17,6 @@ interface UnifiedMessagingProps {
 export default function UnifiedMessaging({ isOpen, setIsOpen }: UnifiedMessagingProps) {
   const { user } = useAuth();
   const router = useRouter();
-  const networkStatus = useNetworkStatus();
-  const offlineMessaging = useOfflineMessaging();
   const queryClient = useQueryClient();
   const [messageInput, setMessageInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,7 +33,6 @@ export default function UnifiedMessaging({ isOpen, setIsOpen }: UnifiedMessaging
     conversations,
     messages,
     users,
-    onlineUsers,
     totalUnreadCount,
     isLoading,
     sendMessage,
@@ -71,30 +51,6 @@ export default function UnifiedMessaging({ isOpen, setIsOpen }: UnifiedMessaging
     }
   }, [messages]);
 
-  const updateMessageStatus = async (messageId: string, status: 'sent' | 'delivered' | 'read') => {
-    try {
-      const response = await fetch('/api/chat/status', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cookie': document.cookie,
-        },
-        body: JSON.stringify({ messageId, status }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update message status');
-      }
-
-      const result = await response.json();
-      console.log('Message status updated:', result);
-
-      // Invalidate messages cache to show updated status
-      queryClient.invalidateQueries({ queryKey: ['messages', activeConversation?.id] });
-    } catch (error) {
-      console.error('Error updating message status:', error);
-    }
-  };
 
   useEffect(() => {
     // Add CSS animations only on client side
@@ -144,37 +100,7 @@ export default function UnifiedMessaging({ isOpen, setIsOpen }: UnifiedMessaging
     }
   }, []);
 
-  useEffect(() => {
-    if (messages.length > 0 && activeConversation && user) {
-      const unreadMessages = messages.filter(
-        msg => msg.receiverId === user.id && msg.status !== 'read'
-      );
 
-      // Mark messages as delivered
-      unreadMessages.forEach(msg => {
-        if (msg.status === 'sent') {
-          updateMessageStatus(msg._id || msg.id!, 'delivered');
-        }
-      });
-    }
-  }, [messages, activeConversation, user, updateMessageStatus]);
-
-  useEffect(() => {
-    if (messages.length > 0 && activeConversation && user) {
-      const unreadMessages = messages.filter(
-        msg => msg.receiverId === user.id && msg.status !== 'read'
-      );
-
-      // Mark messages as read after a short delay
-      const timer = setTimeout(() => {
-        unreadMessages.forEach(msg => {
-          updateMessageStatus(msg._id || msg.id!, 'read');
-        });
-      }, 1000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [activeConversation?.id]);
 
   // Check if user should see mobile tutorial
   useEffect(() => {
@@ -219,59 +145,19 @@ export default function UnifiedMessaging({ isOpen, setIsOpen }: UnifiedMessaging
     const messageContent = messageInput.trim();
 
     try {
-      if (networkStatus.isOnline) {
-        // Send message normally when online
-        await sendMessage.mutateAsync({
-          content: messageContent,
-          receiverId,
-        });
-        setMessageInput('');
-      } else {
-        // Queue message when offline
-        const queuedMessage: Message = {
-          id: `queued-${Date.now()}`,
-          senderId: user?.id || '',
-          receiverId,
-          content: messageContent,
-          timestamp: new Date(),
-          read: false,
-          messageType: 'text',
-          senderName: user?.fullName || `${user?.firstName} ${user?.lastName}`,
-          receiverName: activeConversation.participants.find(p => p.userId === receiverId)?.userName || '',
-        };
-
-        offlineMessaging.queueMessage(queuedMessage);
-
-        // Add to local messages immediately for better UX
-        // This would require updating the local state
-
-        setMessageInput('');
-        console.log('📤 Message queued for offline sending');
-      }
+      await sendMessage.mutateAsync({
+        content: messageContent,
+        receiverId,
+      });
+      setMessageInput('');
     } catch (error) {
       console.error('Failed to send message:', error);
-      // Queue message if sending fails
-      if (networkStatus.isOnline) {
-        const queuedMessage: Message = {
-          id: `queued-${Date.now()}`,
-          senderId: user?.id || '',
-          receiverId,
-          content: messageContent,
-          timestamp: new Date(),
-          read: false,
-          messageType: 'text',
-          senderName: user?.fullName || `${user?.firstName} ${user?.lastName}`,
-          receiverName: activeConversation.participants.find(p => p.userId === receiverId)?.userName || '',
-        };
-        offlineMessaging.queueMessage(queuedMessage);
-        setMessageInput('');
-      }
     }
   };
 
-  const handleDeleteMessage = async (messageId: string, deleteForEveryone: boolean) => {
+  const handleDeleteMessage = async (messageId: string) => {
     try {
-      await deleteMessage(messageId, deleteForEveryone);
+      await deleteMessage(messageId);
       setSelectedMessage(null);
       setShowDeleteOptions(false);
     } catch (error) {
@@ -409,17 +295,6 @@ export default function UnifiedMessaging({ isOpen, setIsOpen }: UnifiedMessaging
     <>
       <div className={`fixed bottom-4 right-4 z-50 w-96 h-[600px] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:w-[450px] md:h-[650px] lg:w-[500px] lg:h-[700px] max-w-[90vw] max-h-[90vh] border border-gray-100 backdrop-blur-xl bg-white/95 transition-all duration-500 ease-out ${isOpen ? 'scale-100 opacity-100 translate-y-0' : 'scale-95 opacity-0 translate-y-4 pointer-events-none'
         }`}>
-        {/* Network Status Warning */}
-        {!networkStatus.isOnline && (
-          <div className="bg-red-50 border-b border-red-200 px-4 py-2">
-            <div className="flex items-center gap-2 text-red-700">
-              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              <span className="text-xs font-medium">
-                You're offline - Messages will send when connection is restored
-              </span>
-            </div>
-          </div>
-        )}
 
         {/* Header */}
         <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white p-5 relative overflow-hidden">
@@ -444,19 +319,7 @@ export default function UnifiedMessaging({ isOpen, setIsOpen }: UnifiedMessaging
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-bold text-xl mb-1 bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">Messages</h3>
-                    <div className="flex items-center gap-3">
-                      <p className="text-xs text-white/90 font-medium">Connect with students & admin</p>
-                      <div className="flex items-center gap-2 bg-white/10 px-2 py-1 rounded-full">
-                        <div className={`w-2 h-2 rounded-full ${networkStatus.isOnline ? 'bg-green-400 animate-pulse' : 'bg-red-400'
-                          }`} />
-                        <span className="text-xs text-white/90 font-medium">
-                          {networkStatus.isOnline ? 'Online' : 'Offline'}
-                        </span>
-                        {!networkStatus.isOnline && (
-                          <span className="text-xs">📱</span>
-                        )}
-                      </div>
-                    </div>
+                    <p className="text-xs text-white/90 font-medium">Connect with students & admin</p>
                   </div>
 
                   {/* Help Button */}
@@ -543,9 +406,6 @@ export default function UnifiedMessaging({ isOpen, setIsOpen }: UnifiedMessaging
                             <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold text-base md:text-lg shadow-lg group-hover:scale-110 transition-transform duration-200">
                               {otherUser?.userName.charAt(0).toUpperCase()}
                             </div>
-                            {onlineUsers.includes(otherUser?.userId || '') && (
-                              <div className="absolute bottom-0 right-0 w-3 h-3 md:w-4 md:h-4 bg-green-500 rounded-full border-2 border-white shadow-md animate-pulse"></div>
-                            )}
                           </div>
                           <div className="flex-1 text-left min-w-0">
                             <div className="flex items-center justify-between mb-1">
@@ -640,9 +500,6 @@ export default function UnifiedMessaging({ isOpen, setIsOpen }: UnifiedMessaging
                             <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold text-lg shadow-lg group-hover:scale-110 transition-transform duration-200">
                               {chatUser.name.charAt(0).toUpperCase()}
                             </div>
-                            {onlineUsers.includes(chatUser.id) && (
-                              <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-md animate-pulse"></div>
-                            )}
                           </div>
                           <div className="flex-1 text-left">
                             <p className="font-semibold text-gray-900 text-base mb-2">{chatUser.name}</p>
@@ -691,16 +548,10 @@ export default function UnifiedMessaging({ isOpen, setIsOpen }: UnifiedMessaging
                   <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold">
                     {getOtherParticipant(activeConversation)?.userName.charAt(0).toUpperCase()}
                   </div>
-                  {onlineUsers.includes(getOtherParticipant(activeConversation)?.userId || '') && (
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-                  )}
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-gray-900">
                     {getOtherParticipant(activeConversation)?.userName}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {onlineUsers.includes(getOtherParticipant(activeConversation)?.userId || '') ? 'Online' : 'Offline'}
                   </p>
                 </div>
               </div>
@@ -749,8 +600,6 @@ export default function UnifiedMessaging({ isOpen, setIsOpen }: UnifiedMessaging
                             <span className="text-xs">{formatTime(message.timestamp)}</span>
                             {isOwn && (
                               <div className="flex items-center gap-1">
-                                {/* Message Status Indicator */}
-                                <MessageStatusIndicator status={message.status || 'sent'} />
                                 {/* Delete Button */}
                                 <button
                                   onClick={() => messageId && handleMessageLongPress(messageId)}
@@ -843,37 +692,25 @@ export default function UnifiedMessaging({ isOpen, setIsOpen }: UnifiedMessaging
                     type="text"
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
-                    placeholder={networkStatus.isOnline ? "Type a message..." : "Offline - messages will queue"}
-                    disabled={!networkStatus.isOnline}
+                    placeholder="Type a message..."
                     autoFocus={false}
                     autoComplete="off"
                     autoCorrect="off"
                     autoCapitalize="sentences"
                     spellCheck={true}
                     enterKeyHint="send"
-                    className={`flex-1 px-3 py-2 sm:px-4 sm:py-2 border rounded-full focus:outline-none focus:ring-2 text-sm sm:text-base touch-manipulation ${networkStatus.isOnline
-                      ? 'border-gray-300 focus:ring-blue-500'
-                      : 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
-                      }`}
+                    className="flex-1 px-3 py-2 sm:px-4 sm:py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base touch-manipulation"
                   />
                   <button
                     type="submit"
-                    disabled={!messageInput.trim() || sendMessage.isPending || !networkStatus.isOnline}
-                    className={`bg-gradient-to-r text-white p-2 sm:p-2 rounded-full transition-colors disabled:opacity-50 flex-shrink-0 ${networkStatus.isOnline
-                      ? 'from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700'
-                      : 'from-gray-400 to-gray-500 cursor-not-allowed'
-                      }`}
+                    disabled={!messageInput.trim() || sendMessage.isPending}
+                    className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white p-2 sm:p-2 rounded-full transition-colors disabled:opacity-50 flex-shrink-0"
                   >
                     <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                     </svg>
                   </button>
                 </div>
-                {!networkStatus.isOnline && (
-                  <p className="text-xs text-gray-500 mt-2 text-center">
-                    ⚠️ You're offline. Messages will be sent when connection is restored.
-                  </p>
-                )}
               </form>
             </div>
           )}
@@ -886,26 +723,14 @@ export default function UnifiedMessaging({ isOpen, setIsOpen }: UnifiedMessaging
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Delete Message</h3>
             <div className="space-y-2">
               <button
-                onClick={() => handleDeleteMessage(selectedMessage!, false)}
-                className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-3"
-              >
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <div>
-                  <p className="font-medium text-gray-900">Delete for me</p>
-                  <p className="text-sm text-gray-500">Message will be deleted only for you</p>
-                </div>
-              </button>
-              <button
-                onClick={() => handleDeleteMessage(selectedMessage!, true)}
+                onClick={() => handleDeleteMessage(selectedMessage!)}
                 className="w-full text-left px-4 py-3 rounded-lg hover:bg-red-50 transition-colors flex items-center gap-3"
               >
                 <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
                 <div>
-                  <p className="font-medium text-red-600">Delete for everyone</p>
+                  <p className="font-medium text-red-600">Delete Message</p>
                   <p className="text-sm text-gray-500">Message will be deleted for all participants</p>
                 </div>
               </button>

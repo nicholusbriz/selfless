@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { User } from '@/lib/auth';
-import { useRouter } from 'next/navigation';
 import { useCourseRegistrations, useSubmitCourseRegistration } from '@/hooks/courseHooks';
 
 // Course interface
@@ -57,6 +56,7 @@ export default function CourseManager({
       setCourses(transformedCourses);
       setTakesReligion(userRegistration.takesReligion || false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userRegistration]);
 
   const addCourse = () => {

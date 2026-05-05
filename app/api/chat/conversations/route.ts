@@ -3,20 +3,7 @@ import { connectToDatabase } from '@/models/database';
 import { IUser } from '@/models/User';
 import mongoose from 'mongoose';
 import { verifyUserToken } from '@/lib/auth-server';
-
-// Message schema
-const MessageSchema = new mongoose.Schema({
-  senderId: { type: String, required: true },
-  receiverId: { type: String, required: true },
-  content: { type: String, required: true },
-  messageType: { type: String, enum: ['text'], default: 'text' },
-  read: { type: Boolean, default: false },
-  timestamp: { type: Date, default: Date.now },
-  senderName: { type: String, required: true },
-  receiverName: { type: String, required: true },
-});
-
-const MessageModel = mongoose.models.Message || mongoose.model('Message', MessageSchema);
+import { MessageModel } from '@/models/Message';
 
 export async function GET(request: NextRequest) {
   try {
@@ -65,7 +52,7 @@ export async function GET(request: NextRequest) {
             }
           ],
           lastMessage: message,
-          unreadCount: message.read ? 0 : 1,
+          unreadCount: 0,
           createdAt: message.timestamp,
           updatedAt: message.timestamp,
         });
@@ -74,7 +61,7 @@ export async function GET(request: NextRequest) {
         const conv = conversationsMap.get(conversationId);
         if (conv) {
           conv.lastMessage = message;
-          conv.unreadCount = message.read ? conv.unreadCount : conv.unreadCount + 1;
+          // No unread count tracking - simplified logic
           conv.updatedAt = message.timestamp;
         }
       }

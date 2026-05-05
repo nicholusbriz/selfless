@@ -1,13 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/models/database';
 import User from '@/models/User';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import { requireUser, createToken, setAuthCookie } from '@/lib/auth-utils';
 import { AUTH_CONSTANTS } from '@/config/constants';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     await connectDB();
     const { firstName, lastName, email, password, phoneNumber } = await request.json();
@@ -21,7 +19,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'Password must be at least 6 characters long' }, { status: 400 });
     }
 
-    // Check if user already exists
+    // Check if User already exists
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
       return NextResponse.json({ success: false, message: 'User with this email already exists' }, { status: 400 });
@@ -30,7 +28,7 @@ export async function POST(request: Request) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create new user
+    // Create new User
     const newUser = new User({
       firstName,
       lastName,
@@ -42,17 +40,10 @@ export async function POST(request: Request) {
 
     await newUser.save();
 
-    // Create JWT token (same as login)
-    const token = jwt.sign(
-      {
-        userId: newUser._id.toString(),
-        email: newUser.email
-      },
-      JWT_SECRET,
-      { expiresIn: '7d' } // Token expires in 7 days
-    );
+    // Create JWT token
+    const token = createToken(newUser._id.toString(), newUser.email);
 
-    // Set HTTP-only cookie (same as login)
+    // Set HTTP-only cookie
     const response = NextResponse.json({
       success: true,
       user: {
@@ -64,16 +55,8 @@ export async function POST(request: Request) {
       }
     });
 
-    response.cookies.set(AUTH_CONSTANTS.TOKEN_NAME, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: AUTH_CONSTANTS.COOKIE_MAX_AGE, // 7 days
-      path: '/'
-    });
-
+    setAuthCookie(response, token);
     return response;
-
   } catch (error) {
 
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });

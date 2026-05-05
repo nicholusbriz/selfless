@@ -1,15 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { createToken, setAuthCookie } from '@/lib/auth-utils';
 import connectDB from '@/models/database';
 import User from '@/models/User';
-import jwt from 'jsonwebtoken';
-import { AUTH_CONSTANTS } from '@/config/constants';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    await connectDB();
-
     const { email, password } = await request.json();
 
     // Validation
@@ -18,6 +13,7 @@ export async function POST(request: Request) {
     }
 
     // Find user by email
+    await connectDB();
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       return NextResponse.json({
@@ -36,14 +32,7 @@ export async function POST(request: Request) {
     }
 
     // Create JWT token
-    const token = jwt.sign(
-      {
-        userId: user._id.toString(),
-        email: user.email
-      },
-      JWT_SECRET,
-      { expiresIn: '7d' } // Token expires in 7 days
-    );
+    const token = createToken(user._id.toString(), user.email);
 
     // Set HTTP-only cookie
     const response = NextResponse.json({
@@ -57,14 +46,7 @@ export async function POST(request: Request) {
       }
     });
 
-    response.cookies.set(AUTH_CONSTANTS.TOKEN_NAME, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: AUTH_CONSTANTS.COOKIE_MAX_AGE, // 7 days
-      path: '/'
-    });
-
+    setAuthCookie(response, token);
     return response;
 
   } catch (error) {
