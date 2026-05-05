@@ -151,15 +151,15 @@ export async function POST(request: Request) {
         adminPermissions: promotedAdmin ? promotedAdmin.permissions : null,
         adminRole: isSuperAdmin ? 'super-admin' : (promotedAdmin ? promotedAdmin.role : null),
         isTutor,
-        tutorPermissions: isTutor ? tutor.permissions : null
-      },
-      isRegistered,
-      registrations: isRegistered ? [
-        {
-          ...registration,
-          formattedDate
-        }
-      ] : []
+        tutorPermissions: isTutor ? tutor.permissions : null,
+        isRegistered,
+        registrations: isRegistered ? [
+          {
+            ...registration,
+            formattedDate
+          }
+        ] : []
+      }
     });
 
   } catch (error) {
