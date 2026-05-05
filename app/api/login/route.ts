@@ -10,12 +10,29 @@ export async function POST(request: Request) {
   try {
     await connectDB();
 
-    const { email } = await request.json();
+    const { email, password } = await request.json();
+
+    // Validation
+    if (!email || !password) {
+      return NextResponse.json({ success: false, message: 'Email and password are required' }, { status: 400 });
+    }
 
     // Find user by email
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
-      return NextResponse.json({ success: false, message: 'Email not found. Please register first.' }, { status: 404 });
+      return NextResponse.json({
+        success: false,
+        message: 'Invalid email or password. If you\'re new, please register first.'
+      }, { status: 401 });
+    }
+
+    // Verify password
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) {
+      return NextResponse.json({
+        success: false,
+        message: 'Invalid email or password. Please check your credentials and try again.'
+      }, { status: 401 });
     }
 
     // Create JWT token

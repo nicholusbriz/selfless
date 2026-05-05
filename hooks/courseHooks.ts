@@ -81,15 +81,12 @@ export const useCourseRegistrations = () => {
         };
       });
 
-      console.log('Original registrations:', registrations.length);
-      console.log('Student registrations (each with course list):', transformedRegistrations.length);
 
       // Remove any duplicates based on the registration ID
       const uniqueRegistrations = transformedRegistrations.filter((reg, index, arr) =>
         arr.findIndex(r => r.id === reg.id) === index
       );
 
-      console.log('Unique student registrations:', uniqueRegistrations.length);
 
       return uniqueRegistrations;
     },
@@ -201,7 +198,6 @@ export const useCourseManagement = ({
       // Success feedback
       alert('✅ Course registration cleared successfully! You can now register for new courses.');
     } catch (error) {
-      console.error('Failed to clear course submission:', error);
       // Error feedback
       alert('❌ Failed to clear course registration. Please try again.');
     }

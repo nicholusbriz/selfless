@@ -8,8 +8,10 @@ import { useLogin } from '@/hooks/loginRegister';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
-    email: ''
+    email: '',
+    password: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
@@ -27,8 +29,8 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.email) {
-      setMessage('Please enter your email address');
+    if (!formData.email || !formData.password) {
+      setMessage('Please enter both email and password');
       setMessageType('error');
       return;
     }
@@ -37,7 +39,7 @@ export default function LoginPage() {
     setMessageType('');
 
     try {
-      await login.mutateAsync({ email: formData.email });
+      await login.mutateAsync({ email: formData.email, password: formData.password });
 
       // All users redirect to dashboard after login
       setMessage('Access granted! Redirecting to your dashboard...');
@@ -126,6 +128,31 @@ export default function LoginPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
                   </div>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="password" className="block text-base font-semibold text-white/90 mb-2">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border-2 border-white/30 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-4 focus:ring-blue-500/50 focus:border-blue-400 transition-all duration-300 text-base font-medium pr-10"
+                    placeholder="Enter your password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white transition-colors text-lg"
+                  >
+                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                  </button>
                 </div>
               </div>
 

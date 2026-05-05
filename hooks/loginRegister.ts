@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from '@/config/constants';
 
 interface LoginCredentials {
   email: string;
+  password: string;
 }
 
 interface RegisterData {
