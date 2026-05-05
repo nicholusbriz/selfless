@@ -25,6 +25,11 @@ export interface User {
     id: string;
     formattedDate: string;
     createdAt?: string | Date;
+    dayName?: string;
+    cleaningDayDate?: string;
+    userId?: string;
+    registeredCount?: number;
+    maxSlots?: number;
   }>;
 }
 
