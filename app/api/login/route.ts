@@ -5,20 +5,19 @@
  * It provides secure login functionality with JWT token management.
  * 
  * Key Features:
- * - Secure password verification with bcrypt
+ * - Email-based authentication
  * - JWT token generation and HTTP-only cookie management
  * - User session establishment
  * - Security-conscious error messaging
  * - Email normalization and validation
  * 
  * Authentication Flow:
- * 1. User submits email and password
- * 2. Server validates credentials
+ * 1. User submits email
+ * 2. Server validates email exists in database
  * 3. JWT token is generated and stored in HTTP-only cookie
  * 4. User session is established for subsequent requests
  * 
  * Security Features:
- * - Password comparison using bcrypt (12 rounds)
  * - HTTP-only cookies prevent XSS attacks
  * - Generic error messages prevent email enumeration
  * - Email normalization for consistent authentication
@@ -32,24 +31,22 @@ import User from '@/models/User';
 /**
  * POST /api/login - Authenticate user and establish session
  * 
- * This endpoint handles user login by validating credentials and
+ * This endpoint handles user login by validating email and
  * creating an authenticated session with JWT tokens.
  * 
  * Request Body:
  * - email (required): User's email address
- * - password (required): User's plaintext password
  * 
  * Authentication Process:
  * 1. Validate input parameters
  * 2. Find user by normalized email
- * 3. Compare password using bcrypt
- * 4. Generate JWT token upon successful authentication
- * 5. Set HTTP-only cookie with token
+ * 3. Generate JWT token upon successful authentication
+ * 4. Set HTTP-only cookie with token
  * 
  * Returns:
  * - 200: Authentication successful with user data and cookie
  * - 400: Missing required fields
- * - 401: Invalid credentials (generic message for security)
+ * - 401: Invalid email (generic message for security)
  * - 500: Server error
  * 
  * Response Format (Success):
@@ -67,18 +64,17 @@ import User from '@/models/User';
  * }
  * 
  * Security Notes:
- * - Passwords are never returned in responses
  * - Error messages are generic to prevent email enumeration
  * - Tokens are stored in HTTP-only cookies for security
  * - Email addresses are normalized to lowercase
  */
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
+    const { email } = await request.json();
 
     // Input validation
-    if (!email || !password) {
-      return NextResponse.json({ success: false, message: 'Email and password are required' }, { status: 400 });
+    if (!email) {
+      return NextResponse.json({ success: false, message: 'Email is required' }, { status: 400 });
     }
 
     // Connect to database
@@ -89,16 +85,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({
         success: false,
-        message: 'Invalid email or password. If you\'re new, please register first.'
-      }, { status: 401 });
-    }
-
-    // Verify password using secure comparison
-    const isPasswordValid = await user.comparePassword(password);
-    if (!isPasswordValid) {
-      return NextResponse.json({
-        success: false,
-        message: 'Invalid email or password. Please check your credentials and try again.'
+        message: 'Email not found. If you\'re new, please register first.'
       }, { status: 401 });
     }
 

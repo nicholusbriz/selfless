@@ -4,7 +4,6 @@ import { IUser } from '@/models/User';
 
 interface LoginCredentials {
   email: string;
-  password: string;
 }
 
 interface RegisterData {
@@ -46,9 +45,9 @@ interface AuthResponse {
  * ```typescript
  * const loginMutation = useLogin();
  * 
- * const handleLogin = async (email, password) => {
+ * const handleLogin = async (email) => {
  *   try {
- *     await loginMutation.mutateAsync({ email, password });
+ *     await loginMutation.mutateAsync({ email });
  *     // User is now logged in and status is updated globally
  *   } catch (error) {
  *     console.error('Login failed:', error);
