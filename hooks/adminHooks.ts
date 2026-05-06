@@ -64,12 +64,46 @@ export const useAddAdmin = () => {
 
   return useMutation({
     mutationFn: async (adminData: AddAdminData) => {
+      // Get all users and find the one with matching email
+      const usersResponse = await fetch('/api/users', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!usersResponse.ok) {
+        throw new Error('Failed to fetch users');
+      }
+
+      const usersData = await usersResponse.json();
+      if (!usersData.success || !usersData.users) {
+        throw new Error('Failed to fetch users');
+      }
+
+      // Find user by email
+      const targetUser = usersData.users.find((user: any) =>
+        user.email.toLowerCase() === adminData.email.toLowerCase()
+      );
+
+      if (!targetUser) {
+        throw new Error('User not found with this email');
+      }
+
+      // Now add the admin with the correct structure
       const response = await fetch(API_ENDPOINTS.ADMINS, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(adminData),
+        body: JSON.stringify({
+          type: 'add',
+          targetUserId: targetUser.id,
+          targetEmail: adminData.email,
+          targetFirstName: adminData.firstName || targetUser.firstName,
+          targetLastName: adminData.lastName || targetUser.lastName,
+          targetRole: 'admin'
+        }),
       });
 
       if (!response.ok) {

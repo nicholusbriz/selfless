@@ -1,6 +1,8 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { CourseRegistration, FlexibleUser } from '@/types';
+import StudentGradesView from './StudentGradesView';
 
 interface CourseRegistrationsDisplayProps {
   courseSubmissions: CourseRegistration[];
@@ -27,11 +29,28 @@ export default function CourseRegistrationsDisplay({
   showAdminActions = false,
   theme = 'student'
 }: CourseRegistrationsDisplayProps) {
+  const [showGradesView, setShowGradesView] = useState(false);
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-12">
         <div className="animate-spin text-2xl">🔄</div>
         <span className="ml-2 text-white">Loading course registrations...</span>
+      </div>
+    );
+  }
+
+  // Show grades view for students viewing their own courses
+  if (showGradesView && currentUser && theme === 'student') {
+    return (
+      <div>
+        <button
+          onClick={() => setShowGradesView(false)}
+          className="mb-6 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+        >
+          ← Back to Course List
+        </button>
+        <StudentGradesView studentId={currentUser.id} theme={theme} />
       </div>
     );
   }
@@ -154,21 +173,29 @@ export default function CourseRegistrationsDisplay({
 
                 {/* Actions */}
                 {(showUserActions || showAdminActions) && (
-                  <div className="flex justify-end">
+                  <div className="flex justify-end gap-2">
                     {showUserActions && currentUser && submission.userId === currentUser.id && (
-                      <button
-                        onClick={() => {
-                          const confirmed = window.confirm(
-                            `⚠️ Clear Course Registration ⚠️\n\nAre you sure you want to clear all your registered courses?\n\nThis will:\n• Remove all your course registrations\n• Delete your course credit totals\n• Allow you to register again\n\nThis action CANNOT be undone!\n\nClick "OK" to clear your courses or "Cancel" to keep them.`
-                          );
-                          if (confirmed) {
-                            onClearSubmission(submission.id, submission.userName, 'courses');
-                          }
-                        }}
-                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                      >
-                        Clear My Courses
-                      </button>
+                      <>
+                        <button
+                          onClick={() => setShowGradesView(true)}
+                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          📊 View Grades
+                        </button>
+                        <button
+                          onClick={() => {
+                            const confirmed = window.confirm(
+                              `⚠️ Clear Course Registration ⚠️\n\nAre you sure you want to clear all your registered courses?\n\nThis will:\n• Remove all your course registrations\n• Delete your course credit totals\n• Allow you to register again\n\nThis action CANNOT be undone!\n\nClick "OK" to clear your courses or "Cancel" to keep them.`
+                            );
+                            if (confirmed) {
+                              onClearSubmission(submission.id, submission.userName, 'courses');
+                            }
+                          }}
+                          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          Clear My Courses
+                        </button>
+                      </>
                     )}
                     {showAdminActions && (
                       <button

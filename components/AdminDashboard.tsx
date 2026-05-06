@@ -472,7 +472,7 @@ export default function AdminDashboard({ initialSection = 'overview', showOnlySe
         </div>
       )}
 
-      {initialSection === 'admins' && contextIsSuperAdmin && (
+      {initialSection === 'admins' && isAdmin && (
         <AdminManagement />
       )}
     </div>

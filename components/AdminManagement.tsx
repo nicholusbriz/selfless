@@ -27,7 +27,11 @@ export default function AdminManagement() {
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
 
   // Add admin
-  const handleAddAdmin = async () => {
+  const handleAddAdmin = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
+
     if (!newAdminEmail.trim()) {
       setMessage('Please enter a valid email');
       setMessageType('error');
