@@ -16,18 +16,19 @@
  * - Promoted Admin: Manually promoted by super admins
  * 
  * Security:
- * - Requires super admin authentication for all operations
+ * - Requires admin authentication for all operations (super admin or promoted admin)
  * - Token-based authentication via HTTP-only cookies
  * - Role-based access control
  */
 
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import connectDB from '@/models/database';
 import User from '@/models/User';
 import Admin from '@/models/Admin';
-import jwt from 'jsonwebtoken';
+import { requireAdmin } from '@/lib/auth-utils';
 import { isSuperAdminEmail } from '@/config/admin';
 import { AUTH_CONSTANTS } from '@/config/constants';
+import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -36,11 +37,12 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-producti
  * 
  * This function extracts and validates the JWT token from HTTP-only cookies,
  * then verifies if the user has admin privileges.
+ * Used for GET and DELETE operations.
  * 
  * @param request - Next.js request object containing cookies
  * @returns Admin user object or null if authentication fails
  */
-async function verifyAdminToken(request: Request) {
+async function verifyAdminToken(request: NextRequest) {
   const cookieHeader = request.headers.get('cookie');
   if (!cookieHeader) return null;
 
@@ -105,7 +107,7 @@ async function verifyAdminToken(request: Request) {
  *   }]
  * }
  */
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     await connectDB();
 
@@ -146,7 +148,7 @@ export async function GET(request: Request) {
 
 
 // DELETE - Remove an admin
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   try {
     await connectDB();
 
@@ -194,7 +196,7 @@ export async function DELETE(request: Request) {
 }
 
 // POST - Check admin status or add new admin (type-based routing)
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     await connectDB();
 
@@ -262,20 +264,10 @@ export async function POST(request: Request) {
 
     } else if (type === 'add') {
       // Add new admin (original POST functionality)
-      // Verify admin access
-      const adminData = await verifyAdminToken(request);
+      // Verify admin access (both super admin and promoted admins can add admins)
+      const adminData = await requireAdmin(request);
       if (!adminData) {
         return NextResponse.json({ success: false, message: 'Admin access required' }, { status: 401 });
-      }
-
-      const { user } = adminData;
-      if (!user) {
-        return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
-      }
-
-      // Only super admin can add new admins
-      if (!adminData.isSuperAdmin) {
-        return NextResponse.json({ success: false, message: 'Super admin access required' }, { status: 403 });
       }
 
       const { targetUserId, targetEmail, targetFirstName, targetLastName, targetRole } = body;
@@ -313,8 +305,8 @@ export async function POST(request: Request) {
           canDeleteData: false
         },
         isActive: true,
-        createdBy: user._id.toString(),
-        createdAt: new Date()
+        addedBy: adminData.user._id.toString(),
+        addedAt: new Date()
       });
 
       await newAdmin.save();
@@ -342,7 +334,11 @@ export async function POST(request: Request) {
     }
 
   } catch (error) {
-    return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
+    console.error('Admin API Error:', error);
+    return NextResponse.json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Server error'
+    }, { status: 500 });
   }
 }
 

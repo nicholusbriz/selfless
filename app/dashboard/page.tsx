@@ -15,7 +15,7 @@ import { withAuth } from '@/lib/routeGuards';
 
 function DashboardPage() {
   // Use global user status for authentication
-  const { user } = useUserStatus();
+  const { user, canManageGrades } = useUserStatus();
   const router = useRouter();
 
   // Use React Query for data fetching
@@ -161,6 +161,25 @@ function DashboardPage() {
               </button>
             </div>
           </div>
+
+          {/* Grade Management - Only for Tutors and Admins */}
+          {canManageGrades && (
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/30 hover:bg-white/20 transition-all duration-300 group">
+              <div className="p-6">
+                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <span className="text-2xl">📊</span>
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">Grade Management</h3>
+                <p className="text-white/70 text-sm mb-4">Enter and manage student grades</p>
+                <button
+                  onClick={() => router.push('/grades')}
+                  className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-medium py-2 px-4 rounded-lg hover:from-emerald-700 hover:to-teal-700 transition-all duration-200 transform hover:scale-105"
+                >
+                  Manage Grades
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Admin Panel */}

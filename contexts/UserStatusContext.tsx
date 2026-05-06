@@ -48,6 +48,7 @@ interface UserStatusContextType {
   canCreateAnnouncements: boolean;
   canDeleteAnnouncements: boolean;
   canViewAdminPanel: boolean;
+  canManageGrades: boolean;
   isAuthenticated: boolean;
   hasPermissions: boolean;
 }
@@ -119,6 +120,7 @@ export function UserStatusProvider({ children }: UserStatusProviderProps) {
   const canCreateAnnouncements = isAdmin || (isTutor && canPostAnnouncements);
   const canDeleteAnnouncements = isAdmin || isTutor;
   const canViewAdminPanel = isAdmin;
+  const canManageGrades = isAdmin || isTutor;
 
   const isAuthenticated = !!user;
   const hasPermissions = isAdmin || isTutor;
@@ -144,6 +146,7 @@ export function UserStatusProvider({ children }: UserStatusProviderProps) {
     canCreateAnnouncements,
     canDeleteAnnouncements,
     canViewAdminPanel,
+    canManageGrades,
     isAuthenticated,
     hasPermissions,
   };
