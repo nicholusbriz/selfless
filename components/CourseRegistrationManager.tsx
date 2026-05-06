@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { User } from '@/lib/auth';
 import { useCourseRegistrations, useSubmitCourseRegistration } from '@/hooks/courseHooks';
 
@@ -36,28 +36,32 @@ export default function CourseManager({
 
   // Local state for form
   const [currentCourse, setCurrentCourse] = useState({ name: '', credits: 1 });
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [takesReligion, setTakesReligion] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error'>('success');
 
   // Find user's existing registration if any
   const userRegistration = existingRegistrations.find(reg => reg.userId === user?.id);
 
-  // Initialize form with existing data
-  useEffect(() => {
+  // Initialize form with existing data using useMemo
+  const initialCourses = useMemo(() => {
     if (userRegistration) {
       // Transform RegisteredCourse[] to Course[] with required id field
-      const transformedCourses = (userRegistration.courses || []).map((course, index) => ({
+      return (userRegistration.courses || []).map((course, index) => ({
         id: course.id || `existing-${index}`,
         name: course.name,
         credits: course.credits
       }));
-      setCourses(transformedCourses);
-      setTakesReligion(userRegistration.takesReligion || false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return [];
   }, [userRegistration]);
+
+  const initialTakesReligion = useMemo(() => {
+    return userRegistration?.takesReligion || false;
+  }, [userRegistration]);
+
+  // Initialize state with memoized values
+  const [courses, setCourses] = useState<Course[]>(initialCourses);
+  const [takesReligion, setTakesReligion] = useState(initialTakesReligion);
 
   const addCourse = () => {
     if (currentCourse.name.trim()) {

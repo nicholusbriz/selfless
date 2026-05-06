@@ -1,13 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import ExcelExporter from './ExcelExporter';
 import Announcements from './Announcements';
 import TutorManagement from './TutorManagement';
 import AdminManagement from './AdminManagement';
-import TutorSchedule from './TutorSchedule';
 import { isSuperAdminEmail } from '@/config/admin';
 import UserSearch from './UserSearch';
+import { useUserStatus } from '@/contexts/UserStatusContext';
 // Import modular admin components
 import UsersTable from './admin/UsersTable';
 import DashboardStats from './admin/DashboardStats';
@@ -40,10 +39,6 @@ const formatDate = (dateString: string): string => {
 
 // Types
 interface AdminDashboardProps {
-  adminId: string;
-  adminEmail: string;
-  adminName: string;
-  isSuperAdmin?: boolean;
   initialSection?: string;
   showOnlySection?: boolean;
   onStatsRefresh?: () => void;
@@ -58,7 +53,43 @@ interface FlattenedCleaningDay {
   registrationId: string;
 }
 
-export default function AdminDashboard({ adminId, adminEmail, adminName, isSuperAdmin = false, initialSection = 'overview', showOnlySection = false, onStatsRefresh }: AdminDashboardProps) {
+/**
+ * @fileoverview Administrative Dashboard Component
+ * 
+ * This component provides a comprehensive administrative interface for managing
+ * the Selfless platform. It serves as the central hub for administrators to monitor
+ * system metrics, manage users, handle registrations, and oversee platform operations.
+ * 
+ * Key Features:
+ * - Real-time system metrics and statistics
+ * - User management with role-based permissions
+ * - Registration tracking and capacity management
+ * - Announcement creation and moderation
+ * - Tutor and administrator management
+ * - Data export functionality
+ * 
+ * Architecture:
+ * - Uses React Query hooks for data fetching and caching
+ * - Integrates with global user status context for permissions
+ * - Modular component structure for maintainability
+ * - Responsive design with mobile and desktop views
+ * 
+ * Data Sources:
+ * - User management via useUsers hook
+ * - Registration data via useCleaningDays hook
+ * - Course submissions via useCourseRegistrations hook
+ * - System statistics via useDashboardStats hook
+ * - User status via useUserStatus context
+ * 
+ * Security:
+ * - Role-based access control through context
+ * - Permission validation for administrative actions
+ * - Secure user deletion with confirmation flows
+ */
+export default function AdminDashboard({ initialSection = 'overview', showOnlySection = false, onStatsRefresh }: AdminDashboardProps) {
+  // Use global user status instead of props
+  const { user, isAdmin, isSuperAdmin: contextIsSuperAdmin } = useUserStatus();
+
   // React Query hooks for data fetching
   const { data: users = [], isLoading: usersLoading, error: usersError } = useUsers();
   const { data: registeredDays = [], isLoading: daysLoading, error: daysError } = useCleaningDays();
@@ -217,23 +248,6 @@ export default function AdminDashboard({ adminId, adminEmail, adminName, isSuper
             />
           </div>
 
-          {/* Export Users Data */}
-          <div className="mt-3 p-3 bg-black/30 rounded-lg border border-white/20">
-            <h3 className="text-sm font-semibold text-white mb-2">Export Users Data</h3>
-            <ExcelExporter
-              data={users.map(user => ({
-                'Full Name': user.fullName || `${user.firstName} ${user.lastName}`,
-                'Email': (user as any).email || '',
-                'Phone Number': (user as any).phoneNumber || 'Not provided',
-                'Role': isSuperAdminEmail((user as any).email) ? 'super admin' : 'user',
-                'Joined Date': user.createdAt ? formatDate(user.createdAt.toString()) : 'Unknown'
-              }))}
-              filename="users.csv"
-              className="mb-1"
-            >
-              📊 Export All Users
-            </ExcelExporter>
-          </div>
         </>
       )}
 
@@ -422,22 +436,6 @@ export default function AdminDashboard({ adminId, adminEmail, adminName, isSuper
               ))}
             </div>
           </div>
-
-          {/* Export Registered Days Data */}
-          <div className="mt-4 p-4 bg-black/30 rounded-lg border border-white/20">
-            <h3 className="text-sm font-semibold text-white mb-3">Export Registered Days Data</h3>
-            <ExcelExporter
-              data={registeredDays.map(registration => ({
-                'Student Name': registration.fullName || `${registration.firstName} ${registration.lastName}`,
-                'Phone Number': registration.phoneNumber || 'Not provided',
-                'Registered Date': registration.formattedDate || ''
-              }))}
-              filename="registered-days.csv"
-              className="mb-2"
-            >
-              📊 Export Registered Days
-            </ExcelExporter>
-          </div>
         </>
       )}
 
@@ -449,11 +447,7 @@ export default function AdminDashboard({ adminId, adminEmail, adminName, isSuper
           </div>
           <div className="p-6">
             <Announcements
-              isAdmin={true}
-              adminId={adminId}
-              adminEmail={adminEmail}
-              adminName={adminName}
-              canPostAnnouncements={true}
+              showAnnouncementsList={true}
             />
           </div>
         </div>
@@ -466,11 +460,7 @@ export default function AdminDashboard({ adminId, adminEmail, adminName, isSuper
           </div>
           <div className="p-6">
             <Announcements
-              isAdmin={true}
-              adminId={adminId}
-              adminEmail={adminEmail}
-              adminName={adminName}
-              canPostAnnouncements={true}
+              showAnnouncementsList={true}
             />
           </div>
         </div>
@@ -478,22 +468,12 @@ export default function AdminDashboard({ adminId, adminEmail, adminName, isSuper
 
       {initialSection === 'tutors' && (
         <div className="space-y-6">
-          <TutorSchedule />
-          <TutorManagement
-            adminId={adminId}
-            adminEmail={adminEmail}
-            adminName={adminName}
-          />
+          <TutorManagement />
         </div>
       )}
 
-      {initialSection === 'admins' && isSuperAdmin && (
-        <AdminManagement
-          adminId={adminId}
-          adminEmail={adminEmail}
-          adminName={adminName}
-          isSuperAdmin={isSuperAdmin}
-        />
+      {initialSection === 'admins' && contextIsSuperAdmin && (
+        <AdminManagement />
       )}
     </div>
   );

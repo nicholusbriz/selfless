@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     const currentYear = new Date().getFullYear().toString();
 
     // Build query based on request type
-    let query: any = { academicYear: currentYear };
+    const query: any = { academicYear: currentYear };
 
     if (submissionId) {
       // Get specific submission by ID

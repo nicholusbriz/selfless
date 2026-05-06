@@ -14,16 +14,9 @@ interface Admin {
   role: 'super-admin' | 'admin';
 }
 
-interface AdminManagementProps {
-  adminId: string;
-  adminEmail: string;
-  adminName: string;
-  isSuperAdmin: boolean;
-}
-
-export default function AdminManagement({ }: AdminManagementProps) {
+export default function AdminManagement() {
   // Use API hooks
-  const { data: admins = [], isLoading: loading, error } = useAdmins();
+  const { data: admins = [], isLoading: loading } = useAdmins();
   const addAdmin = useAddAdmin();
   const removeAdmin = useRemoveAdmin();
 
@@ -52,8 +45,9 @@ export default function AdminManagement({ }: AdminManagementProps) {
       setMessageType('success');
       setNewAdminEmail('');
       setShowAddForm(false);
-    } catch (error: any) {
-      setMessage(error.message || 'Error adding admin');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error adding admin';
+      setMessage(errorMessage);
       setMessageType('error');
     }
   };
@@ -64,8 +58,9 @@ export default function AdminManagement({ }: AdminManagementProps) {
       await removeAdmin.mutateAsync(adminId);
       setMessage('Admin removed successfully');
       setMessageType('success');
-    } catch (error: any) {
-      setMessage(error.message || 'Error removing admin');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error removing admin';
+      setMessage(errorMessage);
       setMessageType('error');
     }
   };

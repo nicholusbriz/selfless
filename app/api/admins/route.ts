@@ -1,3 +1,26 @@
+/**
+ * @fileoverview Admin Management API Route
+ * 
+ * This API endpoint handles admin operations for the Selfless platform.
+ * It manages admin promotions, demotions, and administrative access control.
+ * 
+ * Key Features:
+ * - Promote users to admin status
+ * - View all promoted admins
+ * - Remove admin privileges
+ * - Super admin detection (email-based)
+ * - JWT token verification
+ * 
+ * Admin Types:
+ * - Super Admin: Automatic based on email domain (configurable)
+ * - Promoted Admin: Manually promoted by super admins
+ * 
+ * Security:
+ * - Requires super admin authentication for all operations
+ * - Token-based authentication via HTTP-only cookies
+ * - Role-based access control
+ */
+
 import { NextResponse } from 'next/server';
 import connectDB from '@/models/database';
 import User from '@/models/User';
@@ -8,7 +31,15 @@ import { AUTH_CONSTANTS } from '@/config/constants';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
-// Helper function to verify admin token
+/**
+ * Helper function to verify admin token and permissions
+ * 
+ * This function extracts and validates the JWT token from HTTP-only cookies,
+ * then verifies if the user has admin privileges.
+ * 
+ * @param request - Next.js request object containing cookies
+ * @returns Admin user object or null if authentication fails
+ */
 async function verifyAdminToken(request: Request) {
   const cookieHeader = request.headers.get('cookie');
   if (!cookieHeader) return null;
@@ -39,7 +70,41 @@ async function verifyAdminToken(request: Request) {
   }
 }
 
-// GET - Fetch all admins
+/**
+ * GET /api/admins - Fetch all promoted admins
+ * 
+ * This endpoint retrieves a list of all promoted administrators.
+ * Super admins are not included in this list as they have
+ * automatic admin status based on email domain.
+ * 
+ * Authentication:
+ * - Requires admin authentication (super admin or promoted admin)
+ * - Uses JWT token from HTTP-only cookies
+ * 
+ * Returns:
+ * - 200: List of promoted admins with user details
+ * - 401: Admin authentication required
+ * - 500: Server error
+ * 
+ * Response Format:
+ * {
+ *   success: true,
+ *   admins: [{
+ *     id: string,
+ *     userId: string,
+ *     email: string,
+ *     firstName: string,
+ *     lastName: string,
+ *     fullName: string,
+ *     addedBy: {
+ *       firstName: string,
+ *       lastName: string,
+ *       email: string
+ *     },
+ *     addedAt: string
+ *   }]
+ * }
+ */
 export async function GET(request: Request) {
   try {
     await connectDB();

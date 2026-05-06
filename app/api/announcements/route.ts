@@ -1,3 +1,30 @@
+/**
+ * @fileoverview Announcements API Route
+ * 
+ * This API endpoint manages the announcement system for the Selfless platform.
+ * It handles announcement creation, retrieval, comment management, and moderation.
+ * 
+ * Key Features:
+ * - Create announcements (admin/tutor only)
+ * - Fetch announcements with comments
+ * - Comment system with nested replies
+ * - Delete announcements and comments
+ * - Permission-based access control
+ * - Real-time updates via React Query
+ * 
+ * Permission Levels:
+ * - Super Admin: Full access to all operations
+ * - Promoted Admin: Can create/manage announcements
+ * - Tutor: Can create announcements if permitted
+ * - User: Can view and comment on announcements
+ * 
+ * Security:
+ * - JWT token authentication
+ * - Role-based permission checking
+ * - Content moderation capabilities
+ * - Input validation and sanitization
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/models/database';
 import Announcement, { CreateAnnouncementData } from '@/models/Announcement';
@@ -11,7 +38,15 @@ import { AUTH_CONSTANTS } from '@/config/constants';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
-// Helper function to verify admin (super admin or promoted admin)
+/**
+ * Helper function to verify admin permissions
+ * 
+ * This function checks if a user has admin privileges by verifying
+ * both super admin status (email-based) and promoted admin status.
+ * 
+ * @param userId - User ID to verify
+ * @returns Admin user object or null if not authorized
+ */
 async function verifyAdmin(userId: string) {
   const user = await User.findById(userId);
   if (!user) return null;
@@ -25,7 +60,15 @@ async function verifyAdmin(userId: string) {
   return { user, isSuperAdmin, promotedAdmin };
 }
 
-// Helper function to verify tutor permissions
+/**
+ * Helper function to verify tutor permissions
+ * 
+ * This function checks if a user has tutor privileges and
+ * returns their permission settings for announcement operations.
+ * 
+ * @param userId - User ID to verify
+ * @returns Tutor object with permissions or null if not a tutor
+ */
 async function verifyTutorPermissions(userId: string) {
   const user = await User.findById(userId);
   if (!user) return null;

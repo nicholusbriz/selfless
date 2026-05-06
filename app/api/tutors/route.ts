@@ -1,3 +1,28 @@
+/**
+ * @fileoverview Tutor Management API Route
+ * 
+ * This API endpoint handles tutor management operations for the Selfless platform.
+ * It manages tutor promotions, permissions, and administrative functions.
+ * 
+ * Key Features:
+ * - Promote users to tutor status
+ * - View all active tutors
+ * - Remove tutor privileges
+ * - Granular permission management
+ * - Admin-only operations
+ * 
+ * Tutor Permissions:
+ * - canViewAnnouncements: View announcement content
+ * - canPostAnnouncements: Create new announcements
+ * - canManageUsers: Manage user accounts (admin-level)
+ * 
+ * Security:
+ * - Requires admin authentication for all operations
+ * - JWT token verification via HTTP-only cookies
+ * - Role-based access control
+ * - Audit trail for tutor promotions
+ */
+
 import { NextResponse, NextRequest } from 'next/server';
 import connectDB from '@/models/database';
 import User from '@/models/User';
@@ -10,7 +35,15 @@ import { isSuperAdminEmail } from '@/config/admin';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
-// Helper function to verify user token (for tutor checking)
+/**
+ * Helper function to verify user token (for tutor checking)
+ * 
+ * This function extracts and validates JWT tokens from HTTP-only cookies
+ * to authenticate users for tutor management operations.
+ * 
+ * @param request - Next.js request object containing cookies
+ * @returns User object or null if authentication fails
+ */
 async function verifyUserToken(request: Request) {
   const cookieHeader = request.headers.get('cookie');
   if (!cookieHeader) return null;

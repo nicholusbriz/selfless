@@ -1,7 +1,33 @@
+/**
+ * @fileoverview Announcement System Hooks
+ * 
+ * This file contains React Query hooks for managing the announcement system.
+ * It provides a clean interface between components and the announcement API,
+ * handling data fetching, caching, mutations, and error management.
+ * 
+ * Key Features:
+ * - Automatic caching and background refetching
+ * - Optimistic updates for better UX
+ * - Error handling and loading states
+ * - Type-safe API interactions
+ * 
+ * Available Hooks:
+ * - useAnnouncements: Fetch all announcements
+ * - useCreateAnnouncement: Create new announcement
+ * - useDeleteAnnouncement: Delete announcement
+ * - usePostComment: Add comment to announcement
+ * - usePostReply: Add reply to comment
+ * - useDeleteComment: Delete comment/reply
+ * - useCheckTutorStatus: Verify tutor permissions
+ */
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { API_ENDPOINTS } from '@/config/constants';
 
-// Types for tutor checking
+/**
+ * Type definitions for tutor status checking
+ * Defines the structure of tutor permission responses
+ */
 interface TutorResponse {
   success: boolean;
   isTutor: boolean;
@@ -18,7 +44,10 @@ interface TutorResponse {
   };
 }
 
-// Types for announcements
+/**
+ * Type definitions for announcement comments
+ * Supports nested replies for threaded discussions
+ */
 interface Comment {
   id: string;
   announcementId: string;
@@ -28,29 +57,49 @@ interface Comment {
   content: string;
   createdAt: string;
   updatedAt: string;
-  replies?: Comment[];
+  replies?: Comment[]; // Nested replies for threaded conversations
 }
 
+/**
+ * Type definition for announcements
+ * Contains announcement metadata and associated comments
+ */
 interface Announcement {
   id: string;
   title: string;
   content: string;
-  adminId: string;
-  adminName: string;
-  adminEmail: string;
+  adminId: string;        // Creator ID (admin or tutor)
+  adminName: string;      // Creator display name
+  adminEmail: string;     // Creator email
   createdAt: string;
   updatedAt: string;
-  comments?: Comment[];
+  comments?: Comment[];   // Associated comments
 }
 
-// API fetch functions
+/**
+ * Fetches all announcements from the API
+ * 
+ * This function handles the HTTP request to retrieve announcements.
+ * It includes error handling and type safety.
+ * 
+ * @returns Promise resolving to announcements data
+ * @throws Error if network request fails
+ */
 const fetchAnnouncements = async (): Promise<{ success: boolean; announcements: Announcement[] }> => {
   const response = await fetch(API_ENDPOINTS.ANNOUNCEMENTS);
   if (!response.ok) throw new Error('Failed to fetch announcements');
   return response.json();
 };
 
-// Tutor checking function
+/**
+ * Checks if current user has tutor privileges
+ * 
+ * This function verifies the user's tutor status and permissions
+ * by making a POST request to the tutor checking endpoint.
+ * 
+ * @returns Promise resolving to tutor status and permissions
+ * @throws Error if network request fails
+ */
 const checkTutorStatus = async (): Promise<TutorResponse> => {
   const response = await fetch('/api/tutors/check', {
     method: 'POST',
@@ -66,7 +115,20 @@ const checkTutorStatus = async (): Promise<TutorResponse> => {
   return response.json();
 };
 
-// Announcement hooks
+/**
+ * React Query hook for fetching announcements
+ * 
+ * This hook provides a clean interface for fetching announcements
+ * with automatic caching, background refetching, and error handling.
+ * 
+ * Features:
+ * - Caches announcements for 2 minutes
+ * - Automatically refetches on window focus
+ * - Provides loading and error states
+ * - Returns just the announcements array for convenience
+ * 
+ * @returns React Query result with announcements data
+ */
 export const useAnnouncements = () => {
   return useQuery({
     queryKey: ['announcements'],
@@ -76,13 +138,17 @@ export const useAnnouncements = () => {
   });
 };
 
+/**
+ * Type definition for creating new announcements
+ * Defines the required fields for announcement creation
+ */
 interface CreateAnnouncementData {
-  title: string;
-  content: string;
-  adminId: string;
-  adminName: string;
-  adminEmail: string;
-  isActive: boolean;
+  title: string;        // Announcement title
+  content: string;       // Main announcement content
+  adminId: string;       // Creator's user ID
+  adminName: string;     // Creator's display name
+  adminEmail: string;    // Creator's email
+  isActive: boolean;     // Whether announcement is active
 }
 
 export const useCreateAnnouncement = () => {

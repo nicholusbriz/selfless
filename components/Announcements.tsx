@@ -1,10 +1,33 @@
+/**
+ * @fileoverview Announcements System Component
+ * 
+ * This component manages the announcements feature for the Selfless platform.
+ * It allows admins and tutors to create announcements, and all authenticated users
+ * to view and comment on them.
+ * 
+ * Key Features:
+ * - Create/delete announcements (admin/tutor only)
+ * - View announcements with pagination
+ * - Comment system with nested replies
+ * - Real-time updates via React Query
+ * 
+ * Data Flow:
+ * 1. Component fetches announcements via useAnnouncements hook
+ * 2. User interactions trigger mutations (create/delete/comment)
+ * 3. UI updates automatically when data changes
+ * 4. Comments support nested replies up to 3 levels deep
+ */
+
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useAnnouncements, useDeleteAnnouncement, useCreateAnnouncement, usePostComment, usePostReply, useDeleteComment, useCheckTutorStatus } from '@/hooks/announcementHooks';
-import { useUserStatus } from '@/hooks/loginRegister';
-import { formatDate } from '@/lib/utils';
+import { useState, useMemo } from 'react';
+import { useAnnouncements, useDeleteAnnouncement, useCreateAnnouncement, usePostComment, usePostReply, useDeleteComment } from '@/hooks/announcementHooks';
+import { useUserStatus } from '@/contexts/UserStatusContext';
 
+/**
+ * Represents a single comment in the announcement system.
+ * Comments can have nested replies, creating a threaded discussion.
+ */
 interface Comment {
   id: string;
   announcementId: string;
@@ -14,81 +37,109 @@ interface Comment {
   content: string;
   createdAt: string;
   updatedAt: string;
-  replies?: Comment[];
+  replies?: Comment[]; // Nested replies for threaded conversations
 }
 
+/**
+ * Represents an announcement in the system.
+ * Announcements are created by admins or tutors and can be commented on by users.
+ */
 interface Announcement {
   id: string;
   title: string;
   content: string;
-  adminId: string;
-  adminName: string;
-  adminEmail: string;
+  adminId: string;        // ID of the creator (admin or tutor)
+  adminName: string;      // Name of the creator
+  adminEmail: string;     // Email of the creator
   createdAt: string;
   updatedAt: string;
-  isActive?: boolean;
-  comments?: Comment[];
+  isActive?: boolean;     // Soft delete flag (optional)
+  comments?: Comment[];   // Array of comments on this announcement
 }
 
+/**
+ * Props for the main Announcements component.
+ * 
+ * This component now uses the global user status context instead of
+ * prop-based status passing. Only UI-specific props are needed.
+ * 
+ * Props:
+ * - showAnnouncementsList: Controls whether to display the announcements list
+ */
 interface AnnouncementsProps {
-  isAdmin?: boolean;
-  adminId?: string;
-  adminEmail?: string;
-  adminName?: string;
-  isTutor?: boolean;
-  tutorId?: string;
-  tutorEmail?: string;
-  tutorName?: string;
-  canPostAnnouncements?: boolean;
-  showAnnouncementsList?: boolean;
+  showAnnouncementsList?: boolean; // UI control for showing/hiding list
 }
 
+/**
+ * Props for the ReplyItem component.
+ * 
+ * This component handles individual replies in the comment thread.
+ * It supports nested replies with a maximum depth to prevent infinite nesting.
+ */
 interface ReplyItemProps {
-  reply: Comment;
-  currentUser: { id: string; name: string; email: string } | null;
-  announcementId: string;
-  parentCommentId: string;
-  onReply: (announcementId: string, content: string, parentCommentId?: string, replyId?: string) => void;
-  onDelete: (commentId: string) => void;
-  newReplies: { [key: string]: string };
-  setNewReplies: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>;
-  isPostingComment: string | null;
-  formatDate: (dateString: string) => string;
-  depth: number;
+  reply: Comment;    // The reply comment to display
+  currentUser: { id: string; name: string; email: string } | null; // Current logged-in user
+  announcementId: string;        // Parent announcement ID
+  parentCommentId: string;       // ID of the parent comment being replied to
+  onReply: (announcementId: string, content: string, parentCommentId?: string, replyId?: string) => void; // Reply handler
+  onDelete: (commentId: string) => void; // Delete handler
+  newReplies: { [key: string]: string }; // Reply input state management
+  setNewReplies: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>; // Reply input setter
+  isPostingComment: string | null; // Loading state for reply submission
+  formatDate: (dateString: string) => string; // Date formatting function
+  depth: number;       // Current nesting depth (prevents infinite nesting)
 }
 
+/**
+ * Props for the CommentItem component.
+ * 
+ * This component displays top-level comments and manages their replies.
+ * It handles the main comment interactions and delegates reply rendering.
+ */
 interface CommentItemProps {
-  comment: Comment;
-  currentUser: { id: string; name: string; email: string } | null;
-  announcementId: string;
-  onReply: (announcementId: string, content: string, parentCommentId?: string, replyId?: string) => void;
-  onDelete: (commentId: string) => void;
-  newReplies: { [key: string]: string };
-  setNewReplies: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>;
-  isPostingComment: string | null;
-  formatDate: (dateString: string) => string;
+  comment: Comment;  // The comment to display
+  currentUser: { id: string; name: string; email: string } | null; // Current logged-in user
+  announcementId: string;        // Parent announcement ID
+  onReply: (announcementId: string, content: string, parentCommentId?: string, replyId?: string) => void; // Reply handler
+  onDelete: (commentId: string) => void; // Delete handler
+  newReplies: { [key: string]: string }; // Reply input state management
+  setNewReplies: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>; // Reply input setter
+  isPostingComment: string | null; // Loading state for comment submission
+  formatDate: (dateString: string) => string; // Date formatting function
 }
 
+/**
+ * ReplyItem Component - Handles nested replies in comment threads
+ * 
+ * This component renders individual replies and manages the reply functionality
+ * for comments. It includes permission checks and prevents infinite nesting.
+ * 
+ * Key Features:
+ * - Displays reply content with author info and timestamp
+ * - Allows users to reply to replies (nested comments)
+ * - Permission-based delete functionality
+ * - Maximum nesting depth of 3 levels to maintain readability
+ * - Real-time loading states during reply submission
+ */
 function ReplyItem({ reply, currentUser, announcementId, parentCommentId, onReply, onDelete, newReplies, setNewReplies, isPostingComment, formatDate, depth }: ReplyItemProps) {
   const [showReplyInput, setShowReplyInput] = useState(false);
-  const isOwnReply = currentUser?.id === reply.userId;
-  const isTutorUser = currentUser?.email?.includes('tutor') || false;
-  const maxDepth = 3;
+  const isOwnReply = currentUser?.id === reply.userId;  // User can only delete their own replies
+  const maxDepth = 3;  // Prevent infinite nesting for better UX
 
+  // Use context-based permissions instead of email checking
+  // Note: This component receives permissions as props from parent
+
+  /**
+ * Handles submitting a reply to this comment
+ * Validates content and triggers the parent reply handler
+ */
   const handleReply = () => {
     const content = newReplies[reply.id];
     if (content && content.trim()) {
       onReply(announcementId, content, parentCommentId, reply.id);
-    }
-  };
-
-  // Reset reply input when posting is done and reply field is empty
-  const shouldResetReplyInput = isPostingComment !== reply.id && newReplies[reply.id] === '';
-  useEffect(() => {
-    if (shouldResetReplyInput) {
       setShowReplyInput(false);
     }
-  }, [shouldResetReplyInput]);
+  };
 
   return (
     <div className={`ml-${depth * 4} mt-2 p-3 bg-gray-50 rounded-lg border-l-2 border-gray-200`}>
@@ -100,7 +151,7 @@ function ReplyItem({ reply, currentUser, announcementId, parentCommentId, onRepl
           </div>
           <p className="text-sm text-gray-700 whitespace-pre-wrap">{reply.content}</p>
         </div>
-        {(isOwnReply || isTutorUser) && (
+        {(isOwnReply) && (
           <button
             onClick={() => onDelete(reply.id)}
             className="text-red-500 hover:text-red-700 text-sm p-1 hover:bg-red-50 rounded transition-colors"
@@ -155,26 +206,38 @@ function ReplyItem({ reply, currentUser, announcementId, parentCommentId, onRepl
   );
 }
 
+/**
+ * CommentItem Component - Handles top-level comments and their replies
+ * 
+ * This component manages the display and interaction of individual comments
+ * on announcements. It coordinates between the main comment display and
+ * nested reply components.
+ * 
+ * Key Features:
+ * - Displays comment content with author information
+ * - Manages reply functionality for top-level comments
+ * - Handles permission-based comment deletion
+ * - Coordinates nested reply rendering through ReplyItem components
+ * - Provides real-time feedback during comment operations
+ */
 function CommentItem({ comment, currentUser, announcementId, onReply, onDelete, newReplies, setNewReplies, isPostingComment, formatDate }: CommentItemProps) {
   const [showReplyInput, setShowReplyInput] = useState(false);
-  const isOwnComment = currentUser?.id === comment.userId;
-  const isTutorUser = currentUser?.email?.includes('tutor') || false;
+  const isOwnComment = currentUser?.id === comment.userId;  // User can only delete their own comments
 
+  // Use context-based permissions instead of email checking
+  // Note: This component receives permissions as props from parent
+
+  /**
+   * Handles submitting a reply to this comment
+   * Validates content and triggers the parent reply handler
+   */
   const handleReply = () => {
     const content = newReplies[comment.id];
     if (content && content.trim()) {
       onReply(announcementId, content, comment.id, comment.id);
-    }
-  };
-
-  // Reset reply input when posting is done and reply field is empty
-  const shouldResetCommentReplyInput = isPostingComment !== comment.id && newReplies[comment.id] === '';
-  useEffect(() => {
-    if (shouldResetCommentReplyInput) {
       setShowReplyInput(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shouldResetCommentReplyInput]);
+  };
 
   return (
     <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
@@ -183,7 +246,7 @@ function CommentItem({ comment, currentUser, announcementId, onReply, onDelete, 
           <span className="font-medium text-gray-900">{comment.userName}</span>
           <span className="text-xs text-gray-400">{formatDate(comment.createdAt)}</span>
         </div>
-        {(isOwnComment || isTutorUser) && (
+        {(isOwnComment) && (
           <button
             onClick={() => onDelete(comment.id)}
             className="text-red-500 hover:text-red-700 text-sm p-1 hover:bg-red-50 rounded transition-colors"
@@ -258,25 +321,23 @@ function CommentItem({ comment, currentUser, announcementId, onReply, onDelete, 
 }
 
 export default function Announcements({
-  isAdmin = false,
-  adminId = '',
-  adminEmail = '',
-  adminName = '',
-  isTutor = false,
-  tutorId = '',
-  tutorEmail = '',
-  tutorName = '',
-  canPostAnnouncements = false,
   showAnnouncementsList = true
 }: AnnouncementsProps) {
-  // Use API hooks
+  // Use global user status context instead of props
+  const {
+    user,
+    canCreateAnnouncements,
+    canDeleteAnnouncements,
+    isAuthenticated
+  } = useUserStatus();
+
+  // Use API hooks for data management
   const { data: announcements = [], isLoading } = useAnnouncements();
   const createAnnouncementMutation = useCreateAnnouncement();
   const deleteAnnouncementMutation = useDeleteAnnouncement();
   const postCommentMutation = usePostComment();
   const postReplyMutation = usePostReply();
   const deleteCommentMutation = useDeleteComment();
-  const { data: tutorData } = useCheckTutorStatus();
 
   // Local state for UI only
   const [newAnnouncement, setNewAnnouncement] = useState({ title: '', content: '' });
@@ -286,93 +347,89 @@ export default function Announcements({
   const [newComments, setNewComments] = useState<{ [key: string]: string }>({});
   const [newReplies, setNewReplies] = useState<{ [key: string]: string }>({});
   const [isPostingComment, setIsPostingComment] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState<{ id: string; name: string; email: string } | null>(null);
-  const isTutorUser = tutorData?.isTutor || false;
+
+  // Set current user from context using useMemo to avoid setState in effect
+  const currentUser = useMemo(() => {
+    if (user) {
+      return {
+        id: user.id,
+        name: user.fullName || `${user.firstName} ${user.lastName}`,
+        email: user.email
+      };
+    }
+    return null;
+  }, [user]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   };
 
-  // Fetch current user info
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        const response = await fetch('/api/user-status', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
+  // Fetch current user info - REMOVED: Now using context
+  // useEffect(() => {
+  //   const fetchCurrentUser = async () => {
+  //     try {
+  //       const response = await fetch('/api/user-status', {
+  //         method: 'POST',
+  //         headers: {
+  //           'Content-Type': 'application/json',
+  //         },
+  //       });
 
-        if (response.ok) {
-          const userData = await response.json();
-          if (userData.success && userData.user) {
-            setCurrentUser({
-              id: userData.user.id,
-              name: userData.user.fullName || `${userData.user.firstName} ${userData.user.lastName}`,
-              email: userData.user.email
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch current user:', error);
-      }
-    };
+  //       if (response.ok) {
+  //         const userData = await response.json();
+  //         if (userData.success && userData.user) {
+  //           setCurrentUser({
+  //             id: userData.user.id,
+  //             name: userData.user.fullName || `${userData.user.firstName} ${userData.user.lastName}`,
+  //             email: userData.user.email
+  //           });
+  //         }
+  //       }
+  //     } catch (error) {
+  //       console.error('Failed to fetch current user:', error);
+  //     }
+  //   };
 
-    fetchCurrentUser();
-  }, []);
+  //   fetchCurrentUser();
+  // }, []);
 
   const handleCreateAnnouncement = async () => {
-    console.log('🔥 Create button clicked!');
-    console.log('🔥 Form data:', newAnnouncement);
-    console.log('🔥 Current user:', currentUser);
-    console.log('🔥 Is tutor user:', isTutorUser);
-
     if (!newAnnouncement.title.trim() || !newAnnouncement.content.trim()) {
-      console.log('❌ Validation failed: missing fields');
       setMessage('Please fill in all fields');
       setMessageType('error');
       return;
     }
 
-    // Debug: Check if currentUser is available
-    console.log('Creating announcement with currentUser:', currentUser);
-
-    if (!currentUser) {
-      console.log('❌ No current user');
+    // Check if user is authenticated
+    if (!isAuthenticated || !user) {
       setMessage('User data not loaded. Please wait and try again.');
       setMessageType('error');
       return;
     }
 
     // Check if user has permission to create announcements
-    const canCreate = isAdmin || (isTutor && canPostAnnouncements);
-    if (!canCreate) {
-      console.log('❌ User does not have permission to create announcements');
+    if (!canCreateAnnouncements) {
       setMessage('You do not have permission to create announcements.');
       setMessageType('error');
       return;
     }
 
-    console.log('✅ All checks passed, attempting to create announcement...');
     try {
-      const result = await createAnnouncementMutation.mutateAsync({
+      await createAnnouncementMutation.mutateAsync({
         title: newAnnouncement.title.trim(),
         content: newAnnouncement.content.trim(),
-        adminId: isAdmin ? (adminId || currentUser?.id || '') : (tutorId || currentUser?.id || ''),
-        adminName: isAdmin ? (adminName || currentUser?.name || '') : (tutorName || currentUser?.name || ''),
-        adminEmail: isAdmin ? (adminEmail || currentUser?.email || '') : (tutorEmail || currentUser?.email || ''),
+        adminId: user.id,
+        adminName: user.fullName || `${user.firstName} ${user.lastName}`,
+        adminEmail: user.email,
         isActive: true
       });
 
-      console.log('✅ Announcement created successfully:', result);
       setMessage('Announcement created successfully');
       setMessageType('success');
       setNewAnnouncement({ title: '', content: '' });
       setShowCreateModal(false);
     } catch (error: unknown) {
-      console.error('❌ Error creating announcement:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to create announcement';
       setMessage(errorMessage);
       setMessageType('error');
@@ -387,7 +444,7 @@ export default function Announcements({
     try {
       await deleteAnnouncementMutation.mutateAsync({
         announcementId,
-        userId: currentUser?.id || ''
+        userId: user?.id || ''
       });
       setMessage('Announcement deleted successfully');
       setMessageType('success');
@@ -408,17 +465,17 @@ export default function Announcements({
         await postReplyMutation.mutateAsync({
           commentId: parentCommentId,
           announcementId,
-          userId: currentUser?.id || '',
-          userName: currentUser?.name || '',
-          userEmail: currentUser?.email || '',
+          userId: user?.id || '',
+          userName: user?.fullName || '',
+          userEmail: user?.email || '',
           content
         });
       } else {
         await postCommentMutation.mutateAsync({
           announcementId,
-          userId: currentUser?.id || '',
-          userName: currentUser?.name || '',
-          userEmail: currentUser?.email || '',
+          userId: user?.id || '',
+          userName: user?.fullName || '',
+          userEmail: user?.email || '',
           content
         });
       }
@@ -448,7 +505,7 @@ export default function Announcements({
     try {
       await deleteCommentMutation.mutateAsync({
         commentId,
-        userId: currentUser?.id || ''
+        userId: user?.id || ''
       });
       setMessage('Comment deleted successfully');
       setMessageType('success');
@@ -472,7 +529,7 @@ export default function Announcements({
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-semibold text-gray-800">Announcements</h3>
-        {(isAdmin || (isTutor && canPostAnnouncements)) && (
+        {canCreateAnnouncements && (
           <button
             onClick={() => setShowCreateModal(true)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
@@ -558,7 +615,7 @@ export default function Announcements({
                       <span className="text-xs text-gray-400">{formatDate(announcement.createdAt)}</span>
                     </div>
                   </div>
-                  {(isAdmin || isTutor || announcement.adminId === tutorId) && (
+                  {(canDeleteAnnouncements) && (
                     <button
                       onClick={() => handleDeleteAnnouncement(announcement.id)}
                       className="text-red-600 hover:text-red-800"

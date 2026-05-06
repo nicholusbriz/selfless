@@ -2,9 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Message, Conversation, ChatUser } from '@/types';
+import { Conversation } from '@/types';
 import { useChat } from '@/hooks/chatHooks';
-import { useAuth } from '@/hooks/useAuth';
+import { useUserStatus } from '@/contexts/UserStatusContext';
 import { useQueryClient } from '@tanstack/react-query';
 import MobileGestureTutorial from './MobileGestureTutorial';
 
@@ -15,16 +15,14 @@ interface UnifiedMessagingProps {
 }
 
 export default function UnifiedMessaging({ isOpen, setIsOpen }: UnifiedMessagingProps) {
-  const { user } = useAuth();
-  const router = useRouter();
-  const queryClient = useQueryClient();
+  // Use global user status for authentication
+  const { user } = useUserStatus();
   const [messageInput, setMessageInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeView, setActiveView] = useState<'conversations' | 'users'>('conversations');
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
   const [showDeleteOptions, setShowDeleteOptions] = useState(false);
   const [replyingTo, setReplyingTo] = useState<{ id: string; content: string; senderName: string } | null>(null);
-  const [showReactions, setShowReactions] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -41,9 +39,6 @@ export default function UnifiedMessaging({ isOpen, setIsOpen }: UnifiedMessaging
     selectConversation,
   } = useChat();
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -189,30 +184,6 @@ export default function UnifiedMessaging({ isOpen, setIsOpen }: UnifiedMessaging
     setReplyingTo(null);
   };
 
-  const handleReaction = async (messageId: string, emoji: string, action: 'add' | 'remove') => {
-    try {
-      const response = await fetch('/api/chat/reactions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cookie': document.cookie,
-        },
-        body: JSON.stringify({ messageId, emoji, action }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to manage reaction');
-      }
-
-      const result = await response.json();
-      console.log('Reaction managed successfully:', result);
-
-      // Invalidate messages cache to show updated reactions
-      queryClient.invalidateQueries({ queryKey: ['messages', activeConversation?.id] });
-    } catch (error) {
-      console.error('Error managing reaction:', error);
-    }
-  };
 
   // Touch tracking for swipe gestures
   const touchStartX = useRef<number>(0);
@@ -267,8 +238,8 @@ export default function UnifiedMessaging({ isOpen, setIsOpen }: UnifiedMessaging
 
   // Filter users based on search query
   const filteredUsers = users.filter(chatUser =>
-    chatUser.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    chatUser.email.toLowerCase().includes(searchQuery.toLowerCase())
+    (chatUser.name?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
+    (chatUser.email?.toLowerCase().includes(searchQuery.toLowerCase()) || false)
   );
 
   if (!isOpen) {
@@ -614,51 +585,6 @@ export default function UnifiedMessaging({ isOpen, setIsOpen }: UnifiedMessaging
                             )}
                           </div>
 
-                          {/* Reactions */}
-                          {message.reactions && message.reactions.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {message.reactions.map((reaction, index) => (
-                                <div
-                                  key={index}
-                                  className="flex items-center gap-1 bg-gray-100 rounded-full px-2 py-1 text-xs"
-                                  title={`${reaction.userName} reacted with ${reaction.emoji}`}
-                                >
-                                  <span>{reaction.emoji}</span>
-                                  <span className="text-gray-600">{1}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Reaction Picker */}
-                          {showReactions === messageId && (
-                            <div className="absolute bottom-full left-0 mb-2 bg-white rounded-lg shadow-lg border border-gray-200 p-2 flex gap-1">
-                              {['❤️', '😂', '😮', '😢', '😡', '👍', '👎'].map((emoji) => {
-                                const hasReacted = message.reactions?.some(r => r.userId === user?.id && r.emoji === emoji);
-                                return (
-                                  <button
-                                    key={emoji}
-                                    onClick={() => handleReaction(messageId, emoji, hasReacted ? 'remove' : 'add')}
-                                    className={`w-8 h-8 rounded-full flex items-center justify-center text-lg hover:bg-gray-100 transition-colors ${hasReacted ? 'bg-blue-100' : ''}`}
-                                    title={hasReacted ? `Remove ${emoji}` : `React with ${emoji}`}
-                                  >
-                                    {emoji}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
-
-                          {/* Reaction Button */}
-                          <button
-                            onClick={() => setShowReactions(showReactions === messageId ? null : (messageId ?? null))}
-                            className="absolute bottom-2 right-2 w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors opacity-0 group-hover:opacity-100"
-                            title="Add reaction"
-                          >
-                            <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          </button>
                         </div>
                       </div>
                     );

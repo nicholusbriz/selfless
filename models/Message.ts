@@ -1,13 +1,5 @@
 import mongoose from 'mongoose';
 
-// Reaction schema
-const ReactionSchema = new mongoose.Schema({
-  emoji: { type: String, required: true },
-  userId: { type: String, required: true },
-  userName: { type: String, required: true },
-  timestamp: { type: Date, default: Date.now },
-});
-
 //Message schema 
 const MessageSchema = new mongoose.Schema({
   senderId: { type: String, required: true },
@@ -17,8 +9,14 @@ const MessageSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
   senderName: { type: String, required: true },
   receiverName: { type: String, required: true },
-  reactions: [ReactionSchema],
 });
 
+// Database indexes for chat performance
+MessageSchema.index({ senderId: 1, receiverId: 1 });  // Conversation queries
+MessageSchema.index({ timestamp: -1 });              // Message ordering
+MessageSchema.index({ senderId: 1 });                  // Sent messages
+MessageSchema.index({ receiverId: 1 });                 // Received messages
+MessageSchema.index({ senderId: 1, timestamp: -1 });  // User's sent history
+MessageSchema.index({ receiverId: 1, timestamp: -1 }); // User's received history
+
 export const MessageModel = mongoose.models.Message || mongoose.model('Message', MessageSchema);
-export { ReactionSchema };

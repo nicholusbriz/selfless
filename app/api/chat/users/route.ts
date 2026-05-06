@@ -1,8 +1,71 @@
+/**
+ * @fileoverview Chat Users API Route
+ * 
+ * This API endpoint provides user data for the chat system.
+ * It returns a list of users that can be contacted for messaging.
+ * 
+ * Key Features:
+ * - Fetch users for chat functionality
+ * - Exclude current user from results
+ * - Provide user contact information
+ * - Support for user search and discovery
+ * 
+ * Use Cases:
+ * - Populate chat user list
+ * - Enable user search in chat
+ * - Display user profiles in messaging
+ * - Support for starting new conversations
+ * 
+ * Security:
+ * - Requires user authentication
+ * - Excludes current user for privacy
+ * - Returns only necessary user information
+ * - No sensitive data exposure
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/models/database';
 import User from '@/models/User';
 import { requireUser } from '@/lib/auth-utils';
 
+/**
+ * GET /api/chat/users - Fetch users for chat functionality
+ * 
+ * This endpoint retrieves a list of users available for chat,
+ * excluding the current user from the results.
+ * 
+ * Query Parameters:
+ * - currentUserId (required): ID of the requesting user
+ * 
+ * Authentication:
+ * - Requires user authentication
+ * - Uses JWT token from HTTP-only cookies
+ * - Users can only see other users (not themselves)
+ * 
+ * Returns:
+ * - 200: List of users available for chat
+ * - 400: Missing currentUserId parameter
+ * - 401: Authentication required
+ * - 500: Server error
+ * 
+ * Response Format:
+ * {
+ *   success: true,
+ *   users: [{
+ *     id: string,
+ *     firstName: string,
+ *     lastName: string,
+ *     fullName: string,
+ *     email: string
+ *   }]
+ * }
+ * 
+ * Usage Example:
+ * // Fetch chat users
+ * const response = await fetch('/api/chat/users?currentUserId=123');
+ * const { users } = await response.json();
+ * // Display users in chat sidebar
+ */
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
@@ -21,7 +84,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch all users except current user for chat
-    const users = await User.find({ 
+    const users = await User.find({
       _id: { $ne: currentUserId }
     }).select('firstName lastName email').sort({ firstName: 1, lastName: 1 });
 
@@ -29,9 +92,7 @@ export async function GET(request: NextRequest) {
       success: true,
       users: users.map(user => ({
         id: user._id.toString(),
-        firstName: user.firstName,
-        lastName: user.lastName,
-        fullName: `${user.firstName} ${user.lastName}`,
+        name: `${user.firstName} ${user.lastName}`,
         email: user.email
       }))
     });

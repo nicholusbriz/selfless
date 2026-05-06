@@ -139,15 +139,6 @@ export default function AnnouncementsPage() {
             {/* Announcements Component */}
             <div className="glass-morphism rounded-2xl border border-purple-500/30 p-6">
               <Announcements
-                isAdmin={isAdmin}
-                adminId={user.id}
-                adminEmail={user.email}
-                adminName={user.fullName}
-                isTutor={isTutor}
-                tutorId={user.id}
-                tutorEmail={user.email}
-                tutorName={user.fullName}
-                canPostAnnouncements={canPostAnnouncements || false}
                 showAnnouncementsList={false}
               />
             </div>

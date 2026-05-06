@@ -27,7 +27,35 @@ interface AuthResponse {
   message?: string;
 }
 
-// Login hook
+/**
+ * Login mutation hook
+ * 
+ * Handles user authentication and automatically updates the user status context
+ * across the entire application. Integrates with React Query for caching
+ * and automatic UI updates.
+ * 
+ * Features:
+ * - Automatic user status refresh on successful login
+ * - Error handling with user-friendly messages
+ * - Integration with global user status context
+ * - Type-safe request/response handling
+ * 
+ * @returns Mutation object with login functionality
+ * 
+ * @example
+ * ```typescript
+ * const loginMutation = useLogin();
+ * 
+ * const handleLogin = async (email, password) => {
+ *   try {
+ *     await loginMutation.mutateAsync({ email, password });
+ *     // User is now logged in and status is updated globally
+ *   } catch (error) {
+ *     console.error('Login failed:', error);
+ *   }
+ * };
+ * ```
+ */
 export const useLogin = () => {
   const queryClient = useQueryClient();
 
@@ -50,14 +78,44 @@ export const useLogin = () => {
       return data;
     },
     onSuccess: () => {
-      // Invalidate user-related queries to refetch data
+      // Automatically update user status across entire application
       queryClient.invalidateQueries({ queryKey: ['user-status'] });
       queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (error) => {
+      console.error('Login error:', error);
     },
   });
 };
 
-// Register hook
+/**
+ * Registration mutation hook
+ * 
+ * Handles user registration and automatically updates the user status context.
+ * Creates new user accounts and establishes authenticated sessions.
+ * 
+ * Features:
+ * - Automatic user status refresh on successful registration
+ * - Form validation and error handling
+ * - Integration with global user status context
+ * - Secure password handling
+ * 
+ * @returns Mutation object with registration functionality
+ * 
+ * @example
+ * ```typescript
+ * const registerMutation = useRegister();
+ * 
+ * const handleRegister = async (userData) => {
+ *   try {
+ *     await registerMutation.mutateAsync(userData);
+ *     // User is now registered and status is updated globally
+ *   } catch (error) {
+ *     console.error('Registration failed:', error);
+ *   }
+ * };
+ * ```
+ */
 export const useRegister = () => {
   const queryClient = useQueryClient();
 
@@ -80,14 +138,47 @@ export const useRegister = () => {
       return data;
     },
     onSuccess: () => {
-      // Invalidate user-related queries to refetch data
+      // Immediately update user status across entire application
       queryClient.invalidateQueries({ queryKey: ['user-status'] });
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['chat-users'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    },
+    onError: (error) => {
+      console.error('Registration error:', error);
     },
   });
 };
 
-// Signout hook
+/**
+ * Signout mutation hook
+ * 
+ * Handles user logout and clears all cached data.
+ * Provides a clean logout experience with proper cleanup.
+ * 
+ * Features:
+ * - Complete cache clearing on logout
+ * - Server-side session termination
+ * - Automatic UI updates across application
+ * - Error handling for failed logout attempts
+ * 
+ * @returns Mutation object with logout functionality
+ * 
+ * @example
+ * ```typescript
+ * const signoutMutation = useSignout();
+ * 
+ * const handleLogout = async () => {
+ *   try {
+ *     await signoutMutation.mutateAsync();
+ *     // User is now logged out and all caches are cleared
+ *     window.location.href = '/login';
+ *   } catch (error) {
+ *     console.error('Logout failed:', error);
+ *   }
+ * };
+ * ```
+ */
 export const useSignout = () => {
   const queryClient = useQueryClient();
 
@@ -107,31 +198,11 @@ export const useSignout = () => {
       return response.json();
     },
     onSuccess: () => {
-      // Clear all user-related queries
+      // Clear all cached data and reset application state
       queryClient.clear();
     },
-  });
-};
-
-// User status hook
-export const useUserStatus = () => {
-  return useQuery({
-    queryKey: ['user-status'],
-    queryFn: async () => {
-      const response = await fetch(API_ENDPOINTS.USER_STATUS, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch user status');
-      }
-
-      return response.json();
+    onError: (error) => {
+      console.error('Signout error:', error);
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 1,
   });
 };

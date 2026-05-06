@@ -1,7 +1,6 @@
 'use client';
 
 import { CourseRegistration, FlexibleUser } from '@/types';
-import ExcelExporter from './ExcelExporter';
 
 interface CourseRegistrationsDisplayProps {
   courseSubmissions: CourseRegistration[];
@@ -191,28 +190,6 @@ export default function CourseRegistrationsDisplay({
               </div>
             ))}
           </div>
-
-          {/* Export */}
-          {showAdminActions && (
-            <div className="p-4 bg-black/30 rounded-lg border border-white/20">
-              <h3 className="text-sm font-semibold text-white mb-3">Export Courses Data</h3>
-              <ExcelExporter
-                data={filteredSubmissions.flatMap(submission =>
-                  submission.courses?.map(course => ({
-                    'Student Name': submission.userName || '',
-                    'Religion': submission.takesReligion ? 'Yes' : 'No',
-                    'Course Name': course.name || '',
-                    'Credits': String(course.credits || 0),
-                    'Submitted Date': submission.submittedAt || ''
-                  })) || []
-                )}
-                filename="course-submissions.csv"
-                className="mb-2"
-              >
-                📊 Export Course Submissions
-              </ExcelExporter>
-            </div>
-          )}
         </>
       )}
     </>

@@ -1,15 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Message, Conversation, ChatUser, ChatState } from '@/types';
-import { useAuth } from './useAuth';
-
-// API endpoints
-const CHAT_ENDPOINTS = {
-  CONVERSATIONS: '/api/chat/conversations',
-  MESSAGES: '/api/chat/messages',
-  SEND_MESSAGE: '/api/chat/send',
-  USERS: '/api/chat/users',
-};
+import { useUserStatus } from '@/contexts/UserStatusContext';
+import { CHAT_ENDPOINTS } from '@/config/constants';
 
 // Helper function to make authenticated API calls
 const makeAuthenticatedRequest = async (url: string, options?: RequestInit) => {
@@ -23,7 +16,19 @@ const makeAuthenticatedRequest = async (url: string, options?: RequestInit) => {
   });
 
   if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    // Try to get more specific error information
+    let errorMessage = `HTTP error! status: ${response.status}`;
+    try {
+      const errorData = await response.json();
+      if (errorData.error) {
+        errorMessage = errorData.error;
+      } else if (errorData.message) {
+        errorMessage = errorData.message;
+      }
+    } catch {
+      // If response is not JSON, keep the status error
+    }
+    throw new Error(errorMessage);
   }
 
   return response;
@@ -31,7 +36,7 @@ const makeAuthenticatedRequest = async (url: string, options?: RequestInit) => {
 
 // Hook for managing conversations
 export const useConversations = () => {
-  const { user } = useAuth();
+  const { user } = useUserStatus();
   const queryClient = useQueryClient();
 
   const {
@@ -61,7 +66,7 @@ export const useConversations = () => {
 
 // Hook for managing messages in a conversation
 export const useMessages = (conversationId?: string) => {
-  const { user } = useAuth();
+  const { user } = useUserStatus();
   const queryClient = useQueryClient();
 
   const {
@@ -86,7 +91,6 @@ export const useMessages = (conversationId?: string) => {
       const response = await makeAuthenticatedRequest(CHAT_ENDPOINTS.SEND_MESSAGE, {
         method: 'POST',
         body: JSON.stringify({
-          senderId: user?.id,
           receiverId,
           content,
         }),
@@ -109,7 +113,7 @@ export const useMessages = (conversationId?: string) => {
 
 // Hook for getting available users to chat with
 export const useChatUsers = () => {
-  const { user } = useAuth();
+  const { user } = useUserStatus();
 
   const {
     data: users = [],
@@ -121,7 +125,8 @@ export const useChatUsers = () => {
       if (!user?.id) return [];
 
       const response = await makeAuthenticatedRequest(`${CHAT_ENDPOINTS.USERS}?currentUserId=${user.id}`);
-      return response.json();
+      const result = await response.json();
+      return result.users || [];
     },
     enabled: !!user?.id,
     staleTime: 1000 * 60 * 10, // 10 minutes
@@ -137,7 +142,7 @@ export const useChatUsers = () => {
 
 // Main chat hook that combines all chat functionality
 export const useChat = () => {
-  const { user } = useAuth();
+  const { user } = useUserStatus();
   const queryClient = useQueryClient();
   const [activeConversation, setActiveConversation] = useState<Conversation | undefined>();
   const [isChatOpen, setIsChatOpen] = useState(false);
