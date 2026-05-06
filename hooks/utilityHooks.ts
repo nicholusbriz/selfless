@@ -38,7 +38,7 @@ export const useDashboardStats = () => {
   const queryClient = useQueryClient();
 
   // Get course registrations directly from query cache to avoid circular import
-  const courseData = queryClient.getQueryData(['course-registrations']) as { registrations: any[] } | undefined;
+  const courseData = queryClient.getQueryData(['course-registrations']) as { registrations: Array<{ id: string; studentName: string; courseName: string; credits: number }> } | undefined;
   // Use the transformed data length, not raw registrations
   const courseRegistrations = courseData?.registrations || [];
 

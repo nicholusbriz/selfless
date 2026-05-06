@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     const currentYear = new Date().getFullYear().toString();
 
     // Build query based on request type
-    let query: any = { academicYear: currentYear };
+    const query: any = { academicYear: currentYear };
 
     if (submissionId) {
       // Get specific submission by ID
@@ -57,11 +57,9 @@ export async function GET(request: NextRequest) {
       // Don't filter by userId - show all courses for all authenticated users
     }
 
-    console.log('Fetching course registrations with query:', query);
     const registrations = await CourseRegistration.find(query)
       .populate('userId', 'firstName lastName email phoneNumber')
       .sort({ registrationDate: -1 });
-    console.log('Found registrations:', registrations.length);
 
     // Format response
     const formattedRegistrations = registrations

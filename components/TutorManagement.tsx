@@ -2,22 +2,47 @@
 
 import { useState } from 'react';
 import { useTutors, useAddTutor, useRemoveTutor } from '@/hooks/adminHooks';
+import { useUserStatus } from '@/contexts/UserStatusContext';
 
-interface TutorPermissions {
-  canViewAnnouncements: boolean;
-  canPostAnnouncements: boolean;
-  canManageUsers: boolean;
-}
+/**
+ * @fileoverview Tutor Management Component
+ * 
+ * This component provides the administrative interface for managing tutor accounts
+ * and their permissions within the educational platform. It handles tutor assignment,
+ * permission configuration, and activity monitoring with comprehensive access control.
+ * 
+ * Key Features:
+ * - Tutor account creation and management
+ * - Permission assignment and configuration
+ * - Activity tracking and performance monitoring
+ * - Role-based access control enforcement
+ * - Integration with course management systems
+ * 
+ * Permission System:
+ * - canViewAnnouncements: Access to announcement content
+ * - canPostAnnouncements: Create new announcements
+ * - canManageUsers: Manage user accounts and permissions
+ * - Permission validation for all tutor operations
+ * 
+ * Architecture:
+ * - Integrates with global user status context for permission validation
+ * - Uses React Query hooks for data fetching and caching
+ * - Implements confirmation workflows for destructive actions
+ * - Provides real-time feedback and error handling
+ * 
+ * Security:
+ * - Admin permission validation for all operations
+ * - Permission-based access control enforcement
+ * - Confirmation prompts for destructive actions
+ * - Audit trail maintenance for compliance
+ */
 
-interface TutorManagementProps {
-  adminId: string;
-  adminEmail: string;
-  adminName: string;
-}
+export default function TutorManagement() {
+  // Use global user status instead of props
+  const { isAdmin } = useUserStatus();
 
-export default function TutorManagement({ }: TutorManagementProps) {
   // Use API hooks
-  const { data: tutors = [], isLoading: loading, error } = useTutors();
+  const { data: tutors = [], isLoading: loading } = useTutors();
   const addTutor = useAddTutor();
   const removeTutor = useRemoveTutor();
 

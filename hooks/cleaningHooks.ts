@@ -60,7 +60,7 @@ export const useDeleteUser = () => {
 
   return useMutation({
     mutationFn: async (userId: string) => {
-      const response = await fetch(`${API_ENDPOINTS.USERS}?id=${userId}`, {
+      const response = await fetch(`${API_ENDPOINTS.USERS}?id=${userId}&type=permanent`, {
         method: 'DELETE',
       });
 
@@ -71,8 +71,12 @@ export const useDeleteUser = () => {
       return response.json();
     },
     onSuccess: () => {
+      // Immediately refresh all user-related data
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['user-status'] });
+      queryClient.invalidateQueries({ queryKey: ['chat-users'] });
+      queryClient.invalidateQueries({ queryKey: ['messages'] });
     },
   });
 };
@@ -149,7 +153,7 @@ export const useRemoveUserFromDay = () => {
 export const useCleaningStats = () => {
   const { data: users = [], isLoading: usersLoading } = useUsers();
   const { data: days = [], isLoading: daysLoading } = useCleaningDays();
-  
+
   return {
     totalUsers: users.length,
     registeredForDays: days.length,

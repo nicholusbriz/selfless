@@ -12,9 +12,17 @@ export const API_ENDPOINTS = {
   USER_STATUS: '/api/user-status',
   SIGNIN: '/api/login',
   SIGNOUT: '/api/signout',
-  REGISTER: '/api/register',
+  REGISTER: '/api/users',
   ADMINS: '/api/admins',  // Updated unified endpoint
   TUTORS: '/api/tutors',
+} as const;
+
+// Chat API endpoints
+export const CHAT_ENDPOINTS = {
+  CONVERSATIONS: '/api/chat/conversations',
+  MESSAGES: '/api/chat/messages',
+  SEND_MESSAGE: '/api/chat/send',
+  USERS: '/api/chat/users',
 } as const;
 
 // Authentication

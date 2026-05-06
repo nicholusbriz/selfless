@@ -140,6 +140,7 @@ export const viewport = {
 
 import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration';
 import { QueryProvider } from './providers';
+import { UserStatusProvider } from '@/contexts/UserStatusContext';
 
 export default function RootLayout({
   children,
@@ -159,7 +160,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <QueryProvider>
-          {children}
+          <UserStatusProvider>
+            {children}
+          </UserStatusProvider>
           <ServiceWorkerRegistration />
         </QueryProvider>
       </body>

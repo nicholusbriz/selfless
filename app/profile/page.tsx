@@ -1,20 +1,17 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { BackgroundImage, PageLoader } from '@/components/ui';
-import { useAuthWithLogin } from '@/lib/auth';
+import { BackgroundImage } from '@/components/ui';
+import { useUserStatus } from '@/contexts/UserStatusContext';
 import { useSignout } from '@/hooks/loginRegister';
+import { withAuth } from '@/lib/routeGuards';
 
-export default function ProfilePage() {
-  const { user, isLoading: authLoading } = useAuthWithLogin('/login');
+function ProfilePage() {
+  const { user } = useUserStatus();
   const router = useRouter();
 
   // Use signout hook instead of manual fetch
   const signout = useSignout();
-
-  if (!user || authLoading) {
-    return <PageLoader text="Loading Profile" color="purple" />;
-  }
 
   return (
     <BackgroundImage className="min-h-screen relative">
@@ -46,7 +43,7 @@ export default function ProfilePage() {
             {/* Avatar */}
             <div className="relative">
               <div className="w-24 h-24 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-xl">
-                {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+                {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
               </div>
               <div className="absolute bottom-0 right-0 w-8 h-8 bg-green-500 rounded-full border-4 border-white/20"></div>
             </div>
@@ -54,16 +51,16 @@ export default function ProfilePage() {
             {/* Basic Info */}
             <div className="flex-1 text-center sm:text-left">
               <h2 className="text-3xl font-bold text-white mb-2">
-                {user.fullName || `${user.firstName} ${user.lastName}`}
+                {user?.fullName || `${user?.firstName} ${user?.lastName}`}
               </h2>
-              <p className="text-white/80 mb-4">{user.email}</p>
+              <p className="text-white/80 mb-4">{user?.email}</p>
               <div className="flex flex-wrap justify-center sm:justify-start gap-2">
-                {user.isAdmin && (
+                {user?.isAdmin && (
                   <span className="px-3 py-1 bg-gradient-to-r from-amber-500 to-orange-600 text-white text-xs rounded-full font-medium">
                     Admin
                   </span>
                 )}
-                {user.isTutor && (
+                {user?.isTutor && (
                   <span className="px-3 py-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs rounded-full font-medium">
                     Tutor
                   </span>
@@ -84,12 +81,12 @@ export default function ProfilePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p className="text-white/70 text-sm mb-1">Email Address</p>
-              <p className="text-white font-medium">{user.email}</p>
+              <p className="text-white font-medium">{user?.email}</p>
             </div>
             <div>
               <p className="text-white/70 text-sm mb-1">Phone Number</p>
               <p className="text-white font-medium">
-                {user.phoneNumber || 'Not provided'}
+                {user?.phoneNumber || 'Not provided'}
               </p>
             </div>
           </div>
@@ -103,11 +100,11 @@ export default function ProfilePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p className="text-white/70 text-sm mb-1">Full Name</p>
-              <p className="text-white font-medium">{user.fullName || `${user.firstName} ${user.lastName}`}</p>
+              <p className="text-white font-medium">{user?.fullName || `${user?.firstName} ${user?.lastName}`}</p>
             </div>
             <div>
               <p className="text-white/70 text-sm mb-1">Student ID</p>
-              <p className="text-white font-medium">{user.id}</p>
+              <p className="text-white font-medium">{user?.id}</p>
             </div>
             <div>
               <p className="text-white/70 text-sm mb-1">Member Since</p>
@@ -154,7 +151,7 @@ export default function ProfilePage() {
                 <span className="text-green-400 text-xs font-medium">Active</span>
               </div>
             </div>
-            {user.isTutor && (
+            {user?.isTutor && (
               <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/20">
                 <span className="text-white font-medium">Tutor Permissions</span>
                 <div className="px-3 py-1 bg-emerald-500/20 rounded-full border border-emerald-400/30">
@@ -162,7 +159,7 @@ export default function ProfilePage() {
                 </div>
               </div>
             )}
-            {user.isAdmin && (
+            {user?.isAdmin && (
               <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/20">
                 <span className="text-white font-medium">Admin Access</span>
                 <div className="px-3 py-1 bg-amber-500/20 rounded-full border border-amber-400/30">
@@ -224,3 +221,7 @@ export default function ProfilePage() {
     </BackgroundImage>
   );
 }
+
+export default withAuth(ProfilePage, {
+  requireAuth: true
+});

@@ -1,7 +1,6 @@
 'use client';
 
 import { CourseRegistration, FlexibleUser } from '@/types';
-import ExcelExporter from './ExcelExporter';
 
 interface CourseRegistrationsDisplayProps {
   courseSubmissions: CourseRegistration[];
@@ -102,7 +101,7 @@ export default function CourseRegistrationsDisplay({
                     Registered Courses:
                   </h4>
                   <div className="space-y-2">
-                    {submission.courses?.map((course: any, index: number) => (
+                    {submission.courses?.map((course: { name: string; credits: number }, index: number) => (
                       <div
                         key={`${submission.id}-course-${index}`}
                         className={`flex justify-between items-center p-2 rounded ${theme === 'admin'
@@ -135,7 +134,7 @@ export default function CourseRegistrationsDisplay({
                     ? 'bg-blue-100 text-blue-800 border border-blue-300'
                     : 'bg-blue-600/20 text-blue-300 border border-blue-400/30'
                     }`}>
-                    Total Credits: {submission.courses?.reduce((sum: number, course: any) => sum + (course.credits || 0), 0) || 0}
+                    Total Credits: {submission.courses?.reduce((sum: number, course: { credits: number }) => sum + (course.credits || 0), 0) || 0}
                   </span>
                 </div>
 
@@ -191,28 +190,6 @@ export default function CourseRegistrationsDisplay({
               </div>
             ))}
           </div>
-
-          {/* Export */}
-          {showAdminActions && (
-            <div className="p-4 bg-black/30 rounded-lg border border-white/20">
-              <h3 className="text-sm font-semibold text-white mb-3">Export Courses Data</h3>
-              <ExcelExporter
-                data={filteredSubmissions.flatMap(submission =>
-                  submission.courses?.map(course => ({
-                    'Student Name': submission.userName || '',
-                    'Religion': submission.takesReligion ? 'Yes' : 'No',
-                    'Course Name': course.name || '',
-                    'Credits': String(course.credits || 0),
-                    'Submitted Date': submission.submittedAt || ''
-                  })) || []
-                )}
-                filename="course-submissions.csv"
-                className="mb-2"
-              >
-                📊 Export Course Submissions
-              </ExcelExporter>
-            </div>
-          )}
         </>
       )}
     </>

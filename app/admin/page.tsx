@@ -5,13 +5,13 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { User } from '@/lib/auth';
 import AdminDashboard from '@/components/AdminDashboard';
-import { PageLoader, BackgroundImage, DashboardButton, Logo } from '@/components/ui';
+import { BackgroundImage, DashboardButton, Logo } from '@/components/ui';
 import UserSearch from '@/components/UserSearch';
 import { useUsers, useCleaningDays } from '@/hooks/cleaningHooks';
 import { useCourseRegistrations } from '@/hooks/courseHooks';
 import { useDashboardStats, useRefetchControls } from '@/hooks/utilityHooks';
-import { useAuth } from '@/hooks/useAuth';
-import ExcelExporter from '@/components/ExcelExporter';
+import { useUserStatus } from '@/contexts/UserStatusContext';
+import { withAuth } from '@/lib/routeGuards';
 
 // Types
 interface Course {
@@ -73,13 +73,12 @@ const navigationItems = [
 ];
 
 function Admin() {
-  // Authentication hook - handles JWT validation and user state with admin requirement
-  const { user, isLoading: authLoading } = useAuth('/dashboard', 'admin');
+  // Router for navigation
+  const router = useRouter();
 
-  // Check if user is admin using the auth hook
-  const isAdmin = user?.isAdmin || user?.isSuperAdmin || false;
+  // Use global user status for authentication and permissions
+  const { user } = useUserStatus();
   const isSuperAdmin = user?.isSuperAdmin || false;
-  const adminLoading = authLoading;
 
   const [currentUser, setCurrentUser] = useState<{ adminId: string; adminEmail: string; adminName: string; isSuperAdmin: boolean } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -102,8 +101,6 @@ function Admin() {
   // Refetch controls
   const { refetchAll } = useRefetchControls();
 
-  const router = useRouter();
-
   // Auto-navigate to management containers when users/registered-days/tutors/admins sections are selected
   useEffect(() => {
     if (activeSection === 'users' || activeSection === 'registered-days' || activeSection === 'tutors' || activeSection === 'admins') {
@@ -113,34 +110,19 @@ function Admin() {
     }
   }, [activeSection]);
 
-  // React Query handles dashboard statistics automatically
-
-  // Admin validation - check if authenticated user is admin (super admin or promoted)
+  // Set current admin user on component mount
   useEffect(() => {
-    if (user && !adminLoading) {
-      if (!isAdmin) {
-        router.push('/dashboard');
-        return;
-      }
-
-      if (user && isAdmin) {
-        // Set current admin user
-        setCurrentUser({
-          adminId: user.id,
-          adminEmail: user.email,
-          adminName: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-          isSuperAdmin: isSuperAdmin
-        });
-      }
+    if (user) {
+      setCurrentUser({
+        adminId: user.id,
+        adminEmail: user.email,
+        adminName: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        isSuperAdmin: isSuperAdmin
+      });
     }
-  }, [user, isAdmin, isSuperAdmin, router]);
+  }, [user, isSuperAdmin]);
 
-  // Show loading if still loading or if no current user yet
-  if (authLoading || adminLoading || !currentUser) {
-    return (
-      <PageLoader text={authLoading ? "Authenticating..." : adminLoading ? "Checking admin access..." : "Loading..."} color="purple" />
-    );
-  }
+  // React Query handles dashboard statistics automatically
 
   return (
     <BackgroundImage className="h-screen">
@@ -235,10 +217,6 @@ function Admin() {
               {showDashboard && showDashboard !== 'search' && currentUser && (
                 <div className="bg-black/30 rounded-2xl border border-white/20 p-8 animate-fade-in-up">
                   <AdminDashboard
-                    adminId={currentUser.adminId}
-                    adminEmail={currentUser.adminEmail}
-                    adminName={currentUser.adminName}
-                    isSuperAdmin={currentUser.isSuperAdmin}
                     initialSection={showDashboard}
                     onStatsRefresh={refetchAll}
                   />
@@ -297,7 +275,10 @@ function Admin() {
   );
 }
 
-export default Admin;
+export default withAuth(Admin, {
+  requireAuth: true,
+  requireAdmin: true
+});
 
 // Render admin content (policies-style)
 const renderAdminContent = (sectionKey: string, section: { title: string; description: string }, setShowDashboard: React.Dispatch<React.SetStateAction<'overview' | 'users' | 'registered-days' | 'tutors' | 'admins' | 'security' | 'system' | 'communication' | 'reporting' | 'search' | undefined>>, dashboardStats: { totalUsers: number; registeredForDays: number; remainingDays: number; totalCapacity: number; usedCapacity: number; courseSubmissions: number }, users: any[], courseRegistrations: any[], cleaningDays: any[]) => {

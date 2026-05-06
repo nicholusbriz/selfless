@@ -48,19 +48,19 @@ if (!global.mongoose) {
  * @throws Error if connection fails
  */
 async function connectDB(): Promise<typeof mongoose> {
-  if (cached.conn) {
+  if (cached.conn && cached.conn.connection.readyState === 1) {
     return cached.conn;
   }
 
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
-      serverSelectionTimeoutMS: 30000, // Increased from 5000 to 30 seconds
-      socketTimeoutMS: 45000, // Increased from 30000 to 45 seconds
+      serverSelectionTimeoutMS: 10000, // Reduced to 10 seconds for faster failure
+      socketTimeoutMS: 20000, // Reduced to 20 seconds
       maxPoolSize: isDevelopment ? 5 : 20, // Increased pool size
       minPoolSize: 2,
-      maxIdleTimeMS: 60000, // Increased from 30000 to 60 seconds
-      connectTimeoutMS: 15000, // Increased from 5000 to 15 seconds
+      maxIdleTimeMS: 30000, // Reduced to 30 seconds
+      connectTimeoutMS: 8000, // Reduced to 8 seconds
       heartbeatFrequencyMS: 10000, // Keep connection alive
       retryWrites: true,
       w: 'majority' as const

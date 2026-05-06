@@ -67,7 +67,8 @@ export default function RegisterPage() {
       setMessage('Account created successfully! Redirecting to your dashboard...');
       setMessageType('success');
       setTimeout(() => {
-        router.push('/dashboard');
+        // Force a hard refresh to ensure user status is updated
+        window.location.href = '/dashboard';
       }, 1500);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Registration failed';

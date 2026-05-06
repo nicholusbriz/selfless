@@ -2,17 +2,17 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FlexibleUser } from '@/types';
-import { BackgroundImage, PageLoader, DashboardButton } from '@/components/ui';
-import { useAuth } from '@/hooks/useAuth';
+import { BackgroundImage, DashboardButton } from '@/components/ui';
+import { useUserStatus } from '@/contexts/UserStatusContext';
 import { useCourseManagement, useCourseRegistrationSearch } from '@/hooks/courseHooks';
 import CourseRegistrationManager from '@/components/CourseRegistrationManager';
 import CourseRegistrationsDisplay from '@/components/CourseRegistrationsDisplay';
+import { withAuth } from '@/lib/routeGuards';
 
-export default function CoursesPage() {
+function CoursesPage() {
 
-  // Authentication hook - handles JWT validation and user state (no admin requirement)
-  const { user, isLoading: authLoading } = useAuth('/');
+  // Use global user status for authentication
+  const { user } = useUserStatus();
 
   // Router for navigation
   const router = useRouter();
@@ -36,12 +36,6 @@ export default function CoursesPage() {
 
   // Course status checking is now handled by useCourseManagement hook
   // React Query handles course registrations data fetching automatically
-
-  if (user === null || authLoading) {
-    return (
-      <PageLoader text="Loading your courses..." color="purple" />
-    );
-  }
 
   return (
     <BackgroundImage className="min-h-screen relative">
@@ -140,7 +134,7 @@ export default function CoursesPage() {
                   )}
                   {!hasRegisteredCourses && (
                     <p className="text-blue-300 text-lg mt-4 bg-blue-600/20 rounded-xl p-3 border-2 border-blue-400/30">
-                      💡 You haven't registered for courses yet, but you can view all student submissions below
+                      💡 You haven&apos;t registered for courses yet, but you can view all student submissions below
                     </p>
                   )}
                 </div>
@@ -170,3 +164,7 @@ export default function CoursesPage() {
     </BackgroundImage>
   );
 }
+
+export default withAuth(CoursesPage, {
+  requireAuth: true
+});

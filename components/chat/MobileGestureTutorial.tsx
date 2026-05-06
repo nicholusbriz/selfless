@@ -51,12 +51,6 @@ export default function MobileGestureTutorial({ isVisible, onClose }: MobileGest
       animation: "long-press"
     },
     {
-      title: "😊 Add Reactions",
-      description: "Tap the emoji button to react to messages",
-      icon: "❤️",
-      animation: "reaction"
-    },
-    {
       title: "✅ Message Status",
       description: "Check message status: ⏳ Sending → ✅ Sent → ✅✅ Delivered → ✅✅✅ Read",
       icon: "📊",
@@ -162,19 +156,6 @@ export default function MobileGestureTutorial({ isVisible, onClose }: MobileGest
             </div>
           )}
 
-          {currentStep === 4 && (
-            <div className="mt-4 p-3 bg-gray-100 rounded-lg">
-              <div className="text-xs text-gray-500 mb-2">Demo:</div>
-              <div className="bg-white rounded-lg p-2 border border-gray-200 relative">
-                <div className="text-sm text-gray-800">Tap for reactions</div>
-                <div className="absolute bottom-0 right-0 flex gap-1">
-                  <span className="text-lg">❤️</span>
-                  <span className="text-lg">😂</span>
-                  <span className="text-lg">😮</span>
-                </div>
-              </div>
-            </div>
-          )}
 
           {currentStep === 5 && (
             <div className="mt-4 p-3 bg-gray-100 rounded-lg">

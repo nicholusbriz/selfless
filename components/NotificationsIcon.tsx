@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAnnouncements } from '@/hooks/announcementHooks';
 
 interface NotificationsIconProps {
@@ -13,13 +13,8 @@ export default function NotificationsIcon({ onClick, className = '', forceClose 
   const [isOpen, setIsOpen] = useState(false);
   const { data: announcements = [] } = useAnnouncements();
 
-  // Close dropdown when forceClose is true
-  const shouldCloseDropdown = forceClose;
-  useEffect(() => {
-    if (shouldCloseDropdown) {
-      setIsOpen(false);
-    }
-  }, [shouldCloseDropdown]);
+  // Close dropdown when forceClose is true - use derived state
+  const isActuallyOpen = isOpen && !forceClose;
 
   // Count unread announcements (you can modify this logic based on your read/unread tracking)
   const unreadCount = announcements.length;
@@ -61,7 +56,7 @@ export default function NotificationsIcon({ onClick, className = '', forceClose 
       </button>
 
       {/* Dropdown Preview (Optional - shows recent announcements) */}
-      {isOpen && (
+      {isActuallyOpen && (
         <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
           <div className="p-4 border-b border-gray-200">
             <h3 className="font-semibold text-gray-900">Announcements ({unreadCount})</h3>

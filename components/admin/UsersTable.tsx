@@ -2,6 +2,7 @@
 
 import { User } from '@/lib/auth';
 import { isSuperAdminEmail } from '@/config/admin';
+import { useUserStatus } from '@/contexts/UserStatusContext';
 
 /**
  * Formats a date string into a readable format
@@ -33,6 +34,9 @@ interface UsersTableProps {
  * @param isLoading - Optional loading state
  */
 export default function UsersTable({ users, onDeleteUser, isLoading = false }: UsersTableProps) {
+  // Use global user status for role checking
+  const { isSuperAdmin: contextIsSuperAdmin } = useUserStatus();
+
   if (isLoading) {
     return (
       <div className="text-center py-8">

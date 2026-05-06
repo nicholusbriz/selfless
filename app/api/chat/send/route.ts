@@ -3,32 +3,7 @@ import { connectToDatabase } from '@/models/database';
 import { IUser } from '@/models/User';
 import mongoose from 'mongoose';
 import { verifyUserToken } from '@/lib/auth-server';
-
-// Reaction schema
-const ReactionSchema = new mongoose.Schema({
-  emoji: { type: String, required: true },
-  userId: { type: String, required: true },
-  userName: { type: String, required: true },
-  timestamp: { type: Date, default: Date.now },
-});
-
-// Message schema
-const MessageSchema = new mongoose.Schema({
-  senderId: { type: String, required: true },
-  receiverId: { type: String, required: true },
-  content: { type: String, required: true },
-  messageType: { type: String, enum: ['text'], default: 'text' },
-  read: { type: Boolean, default: false },
-  timestamp: { type: Date, default: Date.now },
-  senderName: { type: String, required: true },
-  receiverName: { type: String, required: true },
-  deletedFor: [{ type: String }],
-  deletedAt: { type: Date },
-  status: { type: String, enum: ['sending', 'sent', 'delivered', 'read'], default: 'sent' },
-  reactions: [ReactionSchema],
-});
-
-const MessageModel = mongoose.models.Message || mongoose.model('Message', MessageSchema);
+import { MessageModel } from '@/models/Message';
 
 export async function POST(request: NextRequest) {
   try {

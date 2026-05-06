@@ -252,16 +252,13 @@ export default function FormPage() {
                     <h2 className="text-2xl font-semibold text-white">
                       Welcome back, {user.firstName}!
                     </h2>
-                    <p className="text-gray-400">
-                      {user.email}
-                    </p>
                   </div>
                 </div>
                 <div className={`px-4 py-2 rounded-full text-sm font-medium ${isRegistered
                   ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                   : 'bg-orange-500/20 text-orange-300 border border-orange-500/30'
                   }`}>
-                  {isRegistered ? '✓ Registered' : 'Not Registered'}
+                  {isRegistered ? '✓ Registered' : 'Available to Register'}
                 </div>
               </div>
             </div>
@@ -284,11 +281,16 @@ export default function FormPage() {
                   ? 'text-emerald-300'
                   : 'text-orange-300'
                   }`}>
-                  {isRegistered ? 'Registration Complete!' : 'Choose Your Cleaning Day'}
+                  {isRegistered ? '✓ Already Registered for Cleaning Day' : '📅 Choose Your Cleaning Day'}
                 </h2>
                 {!isRegistered && (
                   <p className="text-gray-100 text-xl md:text-2xl lg:text-3xl mb-8">
                     Select your preferred cleaning day from the options below
+                  </p>
+                )}
+                {isRegistered && (
+                  <p className="text-gray-100 text-xl md:text-2xl lg:text-3xl mb-8">
+                    You have successfully registered for a cleaning day. Thank you for your participation!
                   </p>
                 )}
                 {isRegistered && userRegistrations.length > 0 && (

@@ -4,17 +4,18 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { User } from '@/lib/auth';
-import { BackgroundImage, PageLoader } from '@/components/ui';
+import { BackgroundImage } from '@/components/ui';
 import { useCleaningDays } from '@/hooks/cleaningHooks';
-import { useAuth } from '@/hooks/useAuth';
+import { useUserStatus } from '@/contexts/UserStatusContext';
 import { API_ENDPOINTS } from '@/config/constants';
 import NotificationsIcon from '@/components/NotificationsIcon';
 import Announcements from '@/components/Announcements';
 import UnifiedMessaging from '@/components/chat/UnifiedMessaging';
+import { withAuth } from '@/lib/routeGuards';
 
-export default function DashboardPage() {
-  // Authentication hook - handles JWT validation and user state
-  const { user, isLoading: authLoading } = useAuth('/');
+function DashboardPage() {
+  // Use global user status for authentication
+  const { user } = useUserStatus();
   const router = useRouter();
 
   // Use React Query for data fetching
@@ -25,12 +26,6 @@ export default function DashboardPage() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
 
-
-  if (!user || authLoading) {
-    return (
-      <PageLoader text="Loading Dashboard" color="purple" />
-    );
-  }
 
   return (
     <BackgroundImage className="min-h-screen relative">
@@ -72,7 +67,7 @@ export default function DashboardPage() {
                   onClick={() => setIsProfileOpen(true)}
                   className="text-sm font-medium text-white hover:text-cyan-200 transition-colors cursor-pointer"
                 >
-                  {user.fullName || `${user.firstName} ${user.lastName}`}
+                  {user?.fullName || `${user?.firstName} ${user?.lastName}`}
                 </button>
                 <p className="text-xs text-white/80 hover:text-cyan-200 transition-colors cursor-pointer" onClick={() => setIsProfileOpen(true)}>
                   go to profile
@@ -82,7 +77,7 @@ export default function DashboardPage() {
                 onClick={() => setIsProfileOpen(true)}
                 className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center text-white font-bold hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 transform hover:scale-105 cursor-pointer"
               >
-                {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+                {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
               </button>
             </div>
           </div>
@@ -93,7 +88,7 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-6 sm:px-6 lg:px-8 py-8 pb-20 sm:pb-8 relative z-10">
         {/* Welcome Section */}
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-white mb-2">Welcome back, {user.firstName}!</h2>
+          <h2 className="text-3xl font-bold text-white mb-2">Welcome back, {user?.firstName}!</h2>
           <p className="text-white/80">Manage your academic activities and stay updated with the latest announcements.</p>
         </div>
 
@@ -268,15 +263,7 @@ export default function DashboardPage() {
             <div className="max-h-[70vh] overflow-y-auto">
               <div className="p-6">
                 <Announcements
-                  isAdmin={user?.isAdmin || false}
-                  adminId={user?.id || ''}
-                  adminEmail={user?.email || ''}
-                  adminName={user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim()}
-                  isTutor={user?.isTutor || false}
-                  tutorId={user?.id || ''}
-                  tutorEmail={user?.email || ''}
-                  tutorName={user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim()}
-                  canPostAnnouncements={user?.tutorPermissions?.canPostAnnouncements || true}
+                  showAnnouncementsList={true}
                 />
               </div>
             </div>
@@ -319,20 +306,20 @@ export default function DashboardPage() {
               <div className="text-center">
                 <div className="relative inline-block">
                   <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-xl mx-auto">
-                    {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+                    {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
                   </div>
                   <div className="absolute bottom-0 right-0 w-6 h-6 bg-green-500 rounded-full border-4 border-white/20"></div>
                 </div>
                 <h3 className="text-2xl font-bold text-gray-800 mt-4 mb-2">
-                  {user.fullName || `${user.firstName} ${user.lastName}`}
+                  {user?.fullName || `${user?.firstName} ${user?.lastName}`}
                 </h3>
                 <div className="flex flex-wrap justify-center gap-2 mb-4">
-                  {user.isAdmin && (
+                  {user?.isAdmin && (
                     <span className="px-3 py-1 bg-gradient-to-r from-amber-500 to-orange-600 text-white text-xs rounded-full font-medium">
                       Admin
                     </span>
                   )}
-                  {user.isTutor && (
+                  {user?.isTutor && (
                     <span className="px-3 py-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs rounded-full font-medium">
                       Tutor
                     </span>
@@ -351,12 +338,12 @@ export default function DashboardPage() {
                 <div className="space-y-3">
                   <div>
                     <p className="text-gray-600 text-sm">Email Address</p>
-                    <p className="text-gray-800 font-medium">{user.email}</p>
+                    <p className="text-gray-800 font-medium">{user?.email}</p>
                   </div>
                   <div>
                     <p className="text-gray-600 text-sm">Phone Number</p>
                     <p className="text-gray-800 font-medium">
-                      {user.phoneNumber || 'Not provided'}
+                      {user?.phoneNumber || 'Not provided'}
                     </p>
                   </div>
                 </div>
@@ -370,7 +357,7 @@ export default function DashboardPage() {
                 <div className="space-y-3">
                   <div>
                     <p className="text-gray-600 text-sm">Student ID</p>
-                    <p className="text-gray-800 font-medium">{user.id}</p>
+                    <p className="text-gray-800 font-medium">{user?.id}</p>
                   </div>
                   <div>
                     <p className="text-gray-600 text-sm">Member Since</p>
@@ -396,3 +383,7 @@ export default function DashboardPage() {
     </BackgroundImage>
   );
 }
+
+export default withAuth(DashboardPage, {
+  requireAuth: true
+});

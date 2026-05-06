@@ -241,7 +241,7 @@ export default function UserSearch({ users, courseRegistrations, cleaningDays }:
                     </div>
                     {registration.courses && registration.courses.length > 0 ? (
                       <div className="space-y-2">
-                        {registration.courses.map((course: any, index: number) => (
+                        {registration.courses.map((course: { name: string; credits: number }, index: number) => (
                           <div key={index} className="bg-black/20 rounded p-2">
                             <div className="flex justify-between items-start">
                               <div className="flex-1">
@@ -268,7 +268,7 @@ export default function UserSearch({ users, courseRegistrations, cleaningDays }:
                           <div className="flex justify-between items-center text-xs">
                             <span className="text-gray-300">Total Credits:</span>
                             <span className="text-white font-bold">
-                              {registration.courses.reduce((sum: number, course: any) => sum + (course.credits || 0), 0)}
+                              {registration.courses.reduce((sum: number, course: { credits: number }) => sum + (course.credits || 0), 0)}
                             </span>
                           </div>
                         </div>
