@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import GradeManagement from '@/components/GradeManagement';
 import { useUserStatus } from '@/contexts/UserStatusContext';
+import { PageLoader, BackgroundImage } from '@/components/ui';
 
 export default function GradesPage() {
   const router = useRouter();
@@ -10,20 +11,13 @@ export default function GradesPage() {
 
   // Show loading state
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
-        <div className="text-center">
-          <div className="animate-spin text-4xl mb-4">🔄</div>
-          <p className="text-white">Loading...</p>
-        </div>
-      </div>
-    );
+    return <PageLoader text="Loading Grade Management..." color="emerald" />;
   }
 
   // Show error state
   if (error || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+      <BackgroundImage className="min-h-screen flex items-center justify-center">
         <div className="text-center max-w-md">
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
             <div className="text-6xl mb-4">⚠️</div>
@@ -39,14 +33,14 @@ export default function GradesPage() {
             </button>
           </div>
         </div>
-      </div>
+      </BackgroundImage>
     );
   }
 
   // Check if user is tutor or admin (using the same logic as dashboard)
   if (!user.isTutor && !user.isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+      <BackgroundImage className="min-h-screen flex items-center justify-center">
         <div className="text-center max-w-md">
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
             <div className="text-6xl mb-4">🚫</div>
@@ -62,13 +56,13 @@ export default function GradesPage() {
             </button>
           </div>
         </div>
-      </div>
+      </BackgroundImage>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+    <BackgroundImage className="h-screen">
       <GradeManagement tutorId={user.id} />
-    </div>
+    </BackgroundImage>
   );
 }

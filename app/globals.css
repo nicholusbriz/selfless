@@ -153,6 +153,10 @@
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     }
 
+    .shadow-glow-lg {
+        box-shadow: 0 20px 25px rgba(96, 165, 250, 0.15), 0 10px 10px rgba(96, 165, 250, 0.05);
+    }
+
     .text-gradient-primary {
         background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
         -webkit-background-clip: text;
