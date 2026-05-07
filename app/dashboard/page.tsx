@@ -11,6 +11,8 @@ import { API_ENDPOINTS } from '@/config/constants';
 import NotificationsIcon from '@/components/NotificationsIcon';
 import Announcements from '@/components/Announcements';
 import UnifiedMessaging from '@/components/chat/UnifiedMessaging';
+import TutorSchedule from '@/components/TutorSchedule';
+import StudentGradesView from '@/components/StudentGradesView';
 import { withAuth } from '@/lib/routeGuards';
 
 function DashboardPage() {
@@ -25,6 +27,7 @@ function DashboardPage() {
   const [isAnnouncementsOpen, setIsAnnouncementsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isGradesOpen, setIsGradesOpen] = useState(false);
 
 
   return (
@@ -180,6 +183,25 @@ function DashboardPage() {
               </div>
             </div>
           )}
+
+          {/* View My Grades - For All Users */}
+          {user && (
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/30 hover:bg-white/20 transition-all duration-300 group">
+              <div className="p-6">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <span className="text-2xl">🎓</span>
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">My Grades</h3>
+                <p className="text-white/70 text-sm mb-4">View your academic performance and grades</p>
+                <button
+                  onClick={() => setIsGradesOpen(true)}
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium py-2 px-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 transform hover:scale-105"
+                >
+                  View My Grades
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Admin Panel */}
@@ -205,12 +227,9 @@ function DashboardPage() {
           </div>
         )}
 
-        {/* Tutor Schedule Section - Placeholder */}
+        {/* Tutor Schedule Section */}
         <div className="mb-8">
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/30 p-6">
-            <h3 className="text-xl font-semibold text-white mb-2">👨‍🏫 Tutor Schedule</h3>
-            <p className="text-white/70">Tutor schedule will be available here</p>
-          </div>
+          <TutorSchedule />
         </div>
 
         {/* Sign Out Section */}
@@ -392,6 +411,43 @@ function DashboardPage() {
                 </div>
               </div>
 
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Grades Slide-Down Overlay */}
+      {isGradesOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col">
+          {/* Semi-transparent backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setIsGradesOpen(false)}
+          />
+
+          {/* Slide-down content */}
+          <div className="relative bg-white/95 backdrop-blur-lg shadow-2xl mt-4 sm:mt-8 md:mt-12 mx-2 sm:mx-4 md:mx-8 max-w-7xl w-full rounded-2xl max-h-[85vh] sm:max-h-[80vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span className="text-sm sm:text-lg">🎓</span>
+                </div>
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900">My Grades</h2>
+              </div>
+              <button
+                onClick={() => setIsGradesOpen(false)}
+                className="w-6 h-6 sm:w-8 sm:h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
+              >
+                <span className="text-sm sm:text-lg">✕</span>
+              </button>
+            </div>
+
+            {/* Scrollable content */}
+            <div className="max-h-[60vh] sm:max-h-[65vh] overflow-y-auto bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+              <div className="p-3 sm:p-6">
+                <StudentGradesView studentId={user?.id || ''} theme="overlay" />
+              </div>
             </div>
           </div>
         </div>

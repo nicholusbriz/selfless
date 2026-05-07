@@ -345,14 +345,18 @@ export default function GradeManagement({ tutorId }: { tutorId: string }) {
                         </div>
 
                         <div className="flex items-center gap-3">
-                          <input
-                            type="text"
-                            placeholder="Grade"
+                          <select
                             value={studentGrades[student.id]?.[course.name] || ''}
-                            onChange={(e) => updateGrade(student.id, course.name, e.target.value.toUpperCase())}
-                            className="w-20 px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white font-medium placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                            maxLength={3}
-                          />
+                            onChange={(e) => updateGrade(student.id, course.name, e.target.value)}
+                            className="w-24 px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer"
+                          >
+                            <option value="" className="bg-gray-800">Select Grade</option>
+                            {gradeOptions.map(grade => (
+                              <option key={grade} value={grade} className="bg-gray-800">
+                                {grade}
+                              </option>
+                            ))}
+                          </select>
 
                           {studentGrades[student.id]?.[course.name] && studentGrades[student.id][course.name] !== course.grade && (
                             <span className="text-green-400 font-medium text-sm">

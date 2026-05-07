@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAnnouncements } from '@/hooks/announcementHooks';
 
 interface NotificationsIconProps {
@@ -12,6 +12,7 @@ interface NotificationsIconProps {
 export default function NotificationsIcon({ onClick, className = '', forceClose = false }: NotificationsIconProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { data: announcements = [] } = useAnnouncements();
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when forceClose is true - use derived state
   const isActuallyOpen = isOpen && !forceClose;
@@ -19,13 +20,30 @@ export default function NotificationsIcon({ onClick, className = '', forceClose 
   // Count unread announcements (you can modify this logic based on your read/unread tracking)
   const unreadCount = announcements.length;
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isActuallyOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isActuallyOpen]);
+
   const handleClick = () => {
     setIsOpen(!isOpen);
     if (onClick) onClick();
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <button
         onClick={handleClick}
         className={`relative p-2 text-white hover:text-cyan-200 transition-colors ${className}`}
