@@ -3,17 +3,6 @@
 import { useState } from 'react';
 import { useAdmins, useAddAdmin, useRemoveAdmin } from '@/hooks/adminHooks';
 
-interface Admin {
-  id: string;
-  userId: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  fullName: string;
-  addedAt: string;
-  role: 'super-admin' | 'admin';
-}
-
 export default function AdminManagement() {
   // Use API hooks
   const { data: admins = [], isLoading: loading } = useAdmins();

@@ -1,10 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import Announcements from './Announcements';
 import TutorManagement from './TutorManagement';
 import AdminManagement from './AdminManagement';
-import { isSuperAdminEmail } from '@/config/admin';
 import UserSearch from './UserSearch';
 import { useUserStatus } from '@/contexts/UserStatusContext';
 // Import modular admin components
@@ -23,34 +21,11 @@ import {
 } from '@/hooks/utilityHooks';
 import { User } from '@/lib/auth';
 
-/**
- * Convert date string to readable format (e.g., "Jan 1, 2023, 12:00 PM")
- */
-const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
-
 // Types
 interface AdminDashboardProps {
   initialSection?: string;
   showOnlySection?: boolean;
   onStatsRefresh?: () => void;
-}
-
-// Type for the flattened cleaning days data
-interface FlattenedCleaningDay {
-  id: string;
-  dayName: string;
-  formattedDate: string;
-  dayId: string;
-  registrationId: string;
 }
 
 /**
@@ -88,11 +63,11 @@ interface FlattenedCleaningDay {
  */
 export default function AdminDashboard({ initialSection = 'overview', showOnlySection = false, onStatsRefresh }: AdminDashboardProps) {
   // Use global user status instead of props
-  const { user, isAdmin, isSuperAdmin: contextIsSuperAdmin } = useUserStatus();
+  const { isAdmin } = useUserStatus();
 
   // React Query hooks for data fetching
-  const { data: users = [], isLoading: usersLoading, error: usersError } = useUsers();
-  const { data: registeredDays = [], isLoading: daysLoading, error: daysError } = useCleaningDays();
+  const { data: users = [], isLoading: usersLoading } = useUsers();
+  const { data: registeredDays = [], isLoading: daysLoading } = useCleaningDays();
   const { data: courseSubmissions = [], isLoading: coursesLoading } = useCourseRegistrations();
   const dashboardStats = useDashboardStats();
 
@@ -103,7 +78,7 @@ export default function AdminDashboard({ initialSection = 'overview', showOnlySe
   const deleteUser = useDeleteUser();
 
   // Refetch controls
-  const { refetchUsers, refetchDays, refetchAll } = useRefetchControls();
+  const { refetchUsers, refetchDays } = useRefetchControls();
 
   // Loading state
   const loading = usersLoading || daysLoading || coursesLoading;
@@ -122,7 +97,7 @@ export default function AdminDashboard({ initialSection = 'overview', showOnlySe
         if (onStatsRefresh) {
           onStatsRefresh();
         }
-      } catch (error) {
+      } catch {
         alert('Failed to remove user from day');
       }
     }
@@ -148,7 +123,7 @@ export default function AdminDashboard({ initialSection = 'overview', showOnlySe
       if (onStatsRefresh) {
         onStatsRefresh();
       }
-    } catch (error) {
+    } catch {
       alert('Failed to delete user');
     }
   };

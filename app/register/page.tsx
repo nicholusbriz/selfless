@@ -80,22 +80,22 @@ export default function RegisterPage() {
   return (
     <BackgroundImage className="min-h-screen relative overflow-hidden">
       {/* Overlay gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-blue-900/20 via-blue-800/10 to-purple-900/20"></div>
+      <div className="absolute inset-0 bg-gradient-to-b from-emerald-900/30 via-teal-900/20 to-cyan-900/25"></div>
       <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5"></div>
 
       {/* Content */}
       <div className="min-h-screen flex items-center justify-center p-4">
         {/* Floating animated elements - Same as Homepage and Login */}
-        <div className="absolute top-10 left-10 w-32 h-32 bg-blue-400/20 rounded-full blur-3xl"></div>
-        <div className="absolute top-20 right-20 w-40 h-40 bg-purple-400/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-10 left-1/3 w-36 h-36 bg-indigo-400/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 right-1/4 w-28 h-28 bg-pink-400/20 rounded-full blur-3xl"></div>
+        <div className="absolute top-10 left-10 w-32 h-32 bg-emerald-400/25 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute top-20 right-20 w-40 h-40 bg-teal-400/25 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute bottom-10 left-1/3 w-36 h-36 bg-cyan-400/25 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute bottom-20 right-1/4 w-28 h-28 bg-purple-400/25 rounded-full blur-3xl animate-float" style={{ animationDelay: '3s' }}></div>
 
         <div className="w-full max-w-3xl relative z-10">
           <div className="p-6">
             <div className="text-center mb-6">
               {/* Enhanced Logo - Same as Homepage */}
-              <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-700 rounded-full mb-4 shadow-2xl shadow-cyan-500/50 p-2" style={{ boxShadow: '0 0 40px rgba(6, 182, 212, 0.5), 0 0 80px rgba(59, 130, 246, 0.3)' }}>
+              <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-700 rounded-full mb-4 shadow-2xl shadow-emerald-500/50 p-2" style={{ boxShadow: '0 0 40px rgba(16, 185, 129, 0.5), 0 0 80px rgba(6, 182, 212, 0.3)' }}>
                 <Image
                   src="/freedom.png"
                   alt="Freedom City Tech Center Logo"
@@ -107,26 +107,26 @@ export default function RegisterPage() {
               </div>
 
               {/* Enhanced Title - Same styling as homepage */}
-              <h1 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-cyan-300 via-white to-purple-300 bg-clip-text text-transparent mb-3" style={{
-                textShadow: '0 0 30px rgba(255, 255, 255, 0.5), 0 0 60px rgba(6, 182, 212, 0.3)',
+              <h1 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-emerald-100 via-teal-200 to-cyan-300 bg-clip-text text-transparent mb-3" style={{
+                textShadow: '0 0 30px rgba(16, 185, 129, 0.5), 0 0 60px rgba(6, 182, 212, 0.3)',
                 letterSpacing: '0.02em'
               }}>
                 CREATE ACCOUNT
               </h1>
 
               {/* Enhanced Subtitle - Same styling as homepage */}
-              <p className="text-lg md:text-xl font-light text-cyan-200 mb-3 uppercase tracking-widest" style={{
-                textShadow: '0 0 20px rgba(6, 182, 212, 0.8), 0 0 40px rgba(6, 182, 212, 0.4)',
+              <p className="text-lg md:text-xl font-light text-emerald-50/90 mb-3 uppercase tracking-widest" style={{
+                textShadow: '0 0 20px rgba(16, 185, 129, 0.8), 0 0 40px rgba(6, 182, 212, 0.4)',
                 letterSpacing: '0.15em'
               }}>
                 Freedom City Tech Center
               </p>
 
               {/* Enhanced Description - Same styling as homepage */}
-              <div className="inline-flex items-center justify-center bg-gradient-to-r from-cyan-500/30 via-blue-500/20 to-purple-500/30 backdrop-blur-md px-6 py-3 rounded-full border border-cyan-400/40" style={{
-                boxShadow: '0 0 30px rgba(6, 182, 212, 0.3), inset 0 0 20px rgba(255, 255, 255, 0.1)'
+              <div className="inline-flex items-center justify-center bg-gradient-to-r from-emerald-500/30 via-teal-500/20 to-cyan-500/30 backdrop-blur-md px-6 py-3 rounded-full border border-emerald-400/40" style={{
+                boxShadow: '0 0 30px rgba(16, 185, 129, 0.3), inset 0 0 20px rgba(255, 255, 255, 0.1)'
               }}>
-                <span className="text-cyan-100 font-bold text-lg tracking-wide" style={{ textShadow: '0 0 15px rgba(6, 182, 212, 0.8)' }}>🌟 Join Our Community</span>
+                <span className="text-emerald-100 font-bold text-lg tracking-wide" style={{ textShadow: '0 0 15px rgba(16, 185, 129, 0.8)' }}>🌟 Join Our Community</span>
               </div>
             </div>
 
@@ -150,7 +150,7 @@ export default function RegisterPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="firstName" className="block text-base font-semibold text-white/90 mb-2">
+                  <label htmlFor="firstName" className="block text-base font-semibold text-emerald-100/90 mb-2">
                     👤 First Name
                   </label>
                   <input
@@ -160,13 +160,13 @@ export default function RegisterPage() {
                     value={formData.firstName}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border-2 border-white/30 rounded-xl focus:ring-4 focus:ring-blue-500/50 focus:border-blue-400 outline-none transition-all duration-300 text-white placeholder-white/50 text-base font-medium hover:bg-white/25"
+                    className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border-2 border-emerald-400/30 rounded-xl focus:ring-4 focus:ring-emerald-500/50 focus:border-emerald-400 outline-none transition-all duration-300 text-white placeholder-white/50 text-base font-medium hover:bg-white/25"
                     placeholder="Enter your real first name"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="lastName" className="block text-base font-semibold text-white/90 mb-2">
+                  <label htmlFor="lastName" className="block text-base font-semibold text-emerald-100/90 mb-2">
                     👤 Last Name
                   </label>
                   <input
@@ -176,13 +176,13 @@ export default function RegisterPage() {
                     value={formData.lastName}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border-2 border-white/30 rounded-xl focus:ring-4 focus:ring-blue-500/50 focus:border-blue-400 outline-none transition-all duration-300 text-white placeholder-white/50 text-base font-medium hover:bg-white/25"
+                    className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border-2 border-emerald-400/30 rounded-xl focus:ring-4 focus:ring-emerald-500/50 focus:border-emerald-400 outline-none transition-all duration-300 text-white placeholder-white/50 text-base font-medium hover:bg-white/25"
                     placeholder="Enter your real last name"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="email" className="block text-base font-semibold text-white/90 mb-2">
+                  <label htmlFor="email" className="block text-base font-semibold text-emerald-100/90 mb-2">
                     📧 Email Address
                   </label>
                   <div className="relative">
@@ -205,7 +205,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="phoneNumber" className="block text-base font-semibold text-white/90 mb-2">
+                  <label htmlFor="phoneNumber" className="block text-base font-semibold text-emerald-100/90 mb-2">
                     📱 Phone Number
                   </label>
                   <div className="relative">
@@ -229,7 +229,7 @@ export default function RegisterPage() {
               </div>
 
               <div className="md:col-span-2">
-                <label htmlFor="password" className="block text-base font-semibold text-white/90 mb-2">
+                <label htmlFor="password" className="block text-base font-semibold text-emerald-100/90 mb-2">
                   🔐 Password
                 </label>
                 <div className="relative">
@@ -240,7 +240,7 @@ export default function RegisterPage() {
                     value={formData.password}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border-2 border-white/30 rounded-xl focus:ring-4 focus:ring-blue-500/50 focus:border-blue-400 outline-none transition-all duration-300 text-white placeholder-white/50 text-base font-medium hover:bg-white/25 pr-10"
+                    className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border-2 border-emerald-400/30 rounded-xl focus:ring-4 focus:ring-emerald-500/50 focus:border-emerald-400 outline-none transition-all duration-300 text-white placeholder-white/50 text-base font-medium hover:bg-white/25 pr-10"
                     placeholder="Create a strong password (min. 6 characters)"
                   />
                   <button
@@ -258,7 +258,7 @@ export default function RegisterPage() {
                 <LoadingButton
                   type="submit"
                   isLoading={register.isPending}
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg"
+                  className="w-full bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-700 hover:via-teal-700 hover:to-cyan-700 text-white font-bold py-3 px-6 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg"
                   loadingText="Creating Account..."
                 >
                   <span className="flex items-center justify-center">
@@ -273,7 +273,7 @@ export default function RegisterPage() {
               <div className="flex justify-center gap-4">
                 <button
                   onClick={() => router.push('/login')}
-                  className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-500/30 hover:to-purple-500/30 text-blue-300 py-3 px-6 rounded-full font-medium border border-blue-400/50 transition-all duration-300 transform hover:scale-105"
+                  className="bg-gradient-to-r from-emerald-500/20 via-teal-500/20 hover:from-emerald-500/30 hover:via-teal-500/30 text-emerald-100 py-3 px-6 rounded-full font-medium border border-emerald-400/50 transition-all duration-300 transform hover:scale-105"
                 >
                   <span className="flex items-center">
                     <span className="mr-2">🔐</span>
@@ -282,7 +282,7 @@ export default function RegisterPage() {
                 </button>
                 <button
                   onClick={() => router.push('/')}
-                  className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 hover:from-cyan-500/30 hover:to-blue-500/30 text-cyan-300 py-3 px-6 rounded-full font-medium border border-cyan-400/50 transition-all duration-300 transform hover:scale-105"
+                  className="bg-gradient-to-r from-teal-500/20 via-cyan-500/20 hover:from-teal-500/30 hover:via-cyan-500/30 text-teal-100 py-3 px-6 rounded-full font-medium border border-teal-400/50 transition-all duration-300 transform hover:scale-105"
                 >
                   <span className="flex items-center">
                     <span className="mr-2">🏠</span>
@@ -293,16 +293,16 @@ export default function RegisterPage() {
 
               {/* Security and Privacy Info */}
               <div className="text-center">
-                <div className="inline-flex items-center justify-center bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur-sm px-6 py-3 rounded-full border border-white/30">
+                <div className="inline-flex items-center justify-center bg-gradient-to-r from-emerald-500/20 via-teal-500/20 backdrop-blur-sm px-6 py-3 rounded-full border border-emerald-400/30">
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                      <span className="text-white text-sm font-medium">Secure Registration</span>
+                      <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
+                      <span className="text-emerald-100 text-sm font-medium">Secure Registration</span>
                     </div>
-                    <div className="w-px h-4 bg-white/30"></div>
+                    <div className="w-px h-4 bg-emerald-400/30"></div>
                     <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                      <span className="text-white text-sm font-medium">Privacy Protected</span>
+                      <div className="w-2 h-2 bg-teal-400 rounded-full"></div>
+                      <span className="text-emerald-100 text-sm font-medium">Privacy Protected</span>
                     </div>
                   </div>
                 </div>

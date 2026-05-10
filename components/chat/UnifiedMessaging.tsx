@@ -1,11 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Conversation } from '@/types';
 import { useChat } from '@/hooks/chatHooks';
 import { useUserStatus } from '@/contexts/UserStatusContext';
-import { useQueryClient } from '@tanstack/react-query';
 import MobileGestureTutorial from './MobileGestureTutorial';
 
 
@@ -32,7 +30,6 @@ export default function UnifiedMessaging({ isOpen, setIsOpen }: UnifiedMessaging
     messages,
     users,
     totalUnreadCount,
-    isLoading,
     sendMessage,
     deleteMessage,
     startNewConversation,

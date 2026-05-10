@@ -182,7 +182,7 @@ function ProfilePage() {
                 try {
                   await signout.mutateAsync();
                   router.push('/');
-                } catch (error) {
+                } catch {
                   // Handle error silently or show message
                   router.push('/');
                 }

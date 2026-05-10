@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { User as UserType, CleaningDay, Weeks, UserRegistration } from '@/types';
+import { User as UserType, CleaningDay, Weeks, UserRegistration, UserWithAttendance } from '@/types';
 import { checkUserAccess, User } from '@/lib/auth';
-import { PageLoader, BackgroundImage } from '@/components/ui';
+import { PageLoader, BackgroundImage, LoadingButton } from '@/components/ui';
 import { API_ENDPOINTS } from '@/config/constants';
 
 export default function FormPage() {
@@ -18,8 +18,11 @@ export default function FormPage() {
   const [isRegistered, setIsRegistered] = useState(false);
   const [userRegistrations, setUserRegistrations] = useState<UserRegistration[]>([]);
   const [checkingStatus, setCheckingStatus] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Array<{ student: UserWithAttendance, day: CleaningDay }>>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [attendanceLoading, setAttendanceLoading] = useState<string | null>(null);
   const router = useRouter();
-
 
   // Check if user has valid authentication from JWT token
   useEffect(() => {
@@ -89,6 +92,164 @@ export default function FormPage() {
       fetchCleaningDays();
     }
   }, [user, isRegistered, userRegistrations]);
+
+  // Search functionality
+  const handleSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+
+    if (query.trim() === '') {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+
+    const results: Array<{ student: UserWithAttendance, day: CleaningDay }> = [];
+
+    // Search through all weeks and days
+    Object.entries(weeks).forEach(([weekNum, weekDays]) => {
+      weekDays.forEach((day: CleaningDay) => {
+        if (day.registeredUsers) {
+          day.registeredUsers.forEach((student: UserWithAttendance) => {
+            const fullName = `${student.firstName} ${student.lastName}`.toLowerCase();
+            const email = student.email?.toLowerCase() || '';
+            const searchLower = query.toLowerCase();
+
+            if (fullName.includes(searchLower) || email.includes(searchLower)) {
+              results.push({ student, day });
+            }
+          });
+        }
+      });
+    });
+
+    setSearchResults(results);
+    setShowSearchResults(true);
+  }, [weeks]);
+
+  const handleStudentClick = (day: CleaningDay) => {
+    setSelectedDay(day);
+    setShowSearchResults(false);
+    setSearchQuery('');
+  };
+
+  // Check if user can mark attendance
+  const canMarkAttendance = () => {
+    return user && (user.isAdmin || user.isSuperAdmin || user.isTutor);
+  };
+
+  // Handle attendance marking
+  const handleMarkAttendance = useCallback(async (student: UserWithAttendance, status: 'attended' | 'no-show') => {
+    if (!canMarkAttendance()) {
+      setMessage('Only admins, tutors, and super admins can mark attendance.');
+      setMessageType('error');
+      return;
+    }
+
+    setAttendanceLoading(student.registrationId);
+    setMessage('');
+    setMessageType('');
+
+    try {
+      const response = await fetch('/api/attendance', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          registrationId: student.registrationId,
+          attendanceStatus: status,
+          userId: student.id
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage(`Successfully marked ${student.firstName} ${student.lastName} as ${status}.`);
+        setMessageType('success');
+
+        // Refresh the data to show updated attendance
+        const cleaningFormResponse = await fetch(API_ENDPOINTS.CLEANING_FORM);
+        const cleaningFormData = await cleaningFormResponse.json();
+        if (cleaningFormData.success) {
+          setWeeks(cleaningFormData.weeks);
+
+          // Update selected day with new data
+          if (selectedDay) {
+            const updatedDay = cleaningFormData.weeks[selectedDay.week]?.find((d: CleaningDay) => d.id === selectedDay.id);
+            if (updatedDay) {
+              setSelectedDay(updatedDay);
+            }
+          }
+        }
+      } else {
+        setMessage(data.message || 'Failed to mark attendance');
+        setMessageType('error');
+      }
+    } catch {
+      setMessage('Network error. Please try again.');
+      setMessageType('error');
+    } finally {
+      setAttendanceLoading(null);
+    }
+  }, [canMarkAttendance, selectedDay, setMessage, setMessageType]);
+
+  // Handle clearing attendance status
+  const handleClearAttendance = useCallback(async (student: UserWithAttendance) => {
+    if (!canMarkAttendance()) {
+      setMessage('Only admins, tutors, and super admins can clear attendance.');
+      setMessageType('error');
+      return;
+    }
+
+    setAttendanceLoading(student.registrationId);
+    setMessage('');
+    setMessageType('');
+
+    try {
+      const response = await fetch('/api/attendance', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          registrationId: student.registrationId,
+          attendanceStatus: 'pending',
+          userId: student.id
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage(`Successfully cleared attendance for ${student.firstName} ${student.lastName}.`);
+        setMessageType('success');
+
+        // Refresh data to show updated attendance
+        const cleaningFormResponse = await fetch(API_ENDPOINTS.CLEANING_FORM);
+        const cleaningFormData = await cleaningFormResponse.json();
+        if (cleaningFormData.success) {
+          setWeeks(cleaningFormData.weeks);
+
+          // Update selected day with new data
+          if (selectedDay) {
+            const updatedDay = cleaningFormData.weeks[selectedDay.week]?.find((d: CleaningDay) => d.id === selectedDay.id);
+            if (updatedDay) {
+              setSelectedDay(updatedDay);
+            }
+          }
+        }
+      } else {
+        setMessage(data.message || 'Failed to clear attendance');
+        setMessageType('error');
+      }
+    } catch {
+      setMessage('Network error. Please try again.');
+      setMessageType('error');
+    } finally {
+      setAttendanceLoading(null);
+    }
+  }, [canMarkAttendance, selectedDay, setMessage, setMessageType]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -201,599 +362,428 @@ export default function FormPage() {
   }
 
   return (
-    <BackgroundImage className="h-screen">
-      <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20"></div>
-      <div className="relative z-10 container mx-auto px-4 py-8 h-full flex flex-col">
-        <div className="overflow-y-auto flex-1">
-          {/* Modern Header */}
-          <div className="text-center mb-12">
-            <div className="relative inline-block mb-8">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur-xl opacity-50 animate-pulse"></div>
-              <div className="relative bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-2xl">
+    <BackgroundImage className="min-h-screen">
+      {/* Modern dark overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-indigo-950/80 to-slate-900/80 backdrop-blur-sm"></div>
+
+      <div className="relative z-10 container mx-auto px-4 py-6 min-h-screen flex flex-col">
+        {/* Modern Header */}
+        <header className="mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
                 <Image
                   src="/freedom.png"
                   alt="Freedom City Tech Center"
-                  width={80}
-                  height={80}
-                  className="w-20 h-20 object-contain"
+                  width={32}
+                  height={32}
+                  className="w-8 h-8 object-contain"
                 />
               </div>
-            </div>
-
-            <div className="space-y-4">
-              <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-white leading-tight">
-                Cleaning Day
-                <span className="block bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  Registration
-                </span>
-              </h1>
-
-              <div className="flex items-center justify-center gap-2 text-gray-300 text-lg">
-                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                <span>Freedom City Tech Center</span>
-                <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-              </div>
-
-              <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-                Select your preferred cleaning day and help maintain our collaborative workspace
-              </p>
-            </div>
-          </div>
-
-          {/* Modern User Welcome */}
-          <div className="max-w-4xl mx-auto mb-10">
-            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                    {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-semibold text-white">
-                      Welcome back, {user.firstName}!
-                    </h2>
-                  </div>
-                </div>
-                <div className={`px-4 py-2 rounded-full text-sm font-medium ${isRegistered
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                  : 'bg-orange-500/20 text-orange-300 border border-orange-500/30'
-                  }`}>
-                  {isRegistered ? '✓ Registered' : 'Available to Register'}
-                </div>
+              <div>
+                <h1 className="text-2xl font-bold text-slate-100">Cleaning Day Registration</h1>
+                <p className="text-sm text-slate-400">Freedom City Tech Center</p>
               </div>
             </div>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="px-4 py-2 bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 rounded-lg border border-slate-700/50 transition-colors"
+            >
+              ← Back to Dashboard
+            </button>
           </div>
+        </header>
 
-          {/* Modern Status Card */}
-          <div className="max-w-4xl mx-auto mb-12">
-            <div className={`relative overflow-hidden rounded-2xl border p-8 transition-all duration-300 ${isRegistered
-              ? 'bg-emerald-500/10 border-emerald-500/30'
-              : 'bg-orange-500/10 border-orange-500/30'
-              }`}>
-              <div className="text-center">
-                <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full mb-6 ${isRegistered
-                  ? 'bg-emerald-500/20 text-emerald-400'
-                  : 'bg-orange-500/20 text-orange-400'
-                  }`}>
-                  <span className="text-2xl">{isRegistered ? '✓' : '📅'}</span>
+        {/* User Status Card */}
+        <div className="mb-6">
+          <div className="bg-slate-800/60 backdrop-blur-md rounded-2xl p-4 border border-slate-700/50 shadow-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-teal-600 to-cyan-600 rounded-xl flex items-center justify-center text-white font-bold">
+                  {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
                 </div>
-                <h2 className={`text-3xl font-bold mb-4 ${isRegistered
-                  ? 'text-emerald-300'
-                  : 'text-orange-300'
-                  }`}>
-                  {isRegistered ? '✓ Already Registered for Cleaning Day' : '📅 Choose Your Cleaning Day'}
-                </h2>
-                {!isRegistered && (
-                  <p className="text-gray-100 text-xl md:text-2xl lg:text-3xl mb-8">
-                    Select your preferred cleaning day from the options below
-                  </p>
-                )}
-                {isRegistered && (
-                  <p className="text-gray-100 text-xl md:text-2xl lg:text-3xl mb-8">
-                    You have successfully registered for a cleaning day. Thank you for your participation!
-                  </p>
-                )}
-                {isRegistered && userRegistrations.length > 0 && (
-                  <div className="space-y-8">
-                    {userRegistrations.map((registration, index) => (
-                      <div key={index} className="glass-card rounded-3xl p-10 border-2 border-emerald-400/30 shadow-glow-lg">
-                        <div className="flex items-center gap-6 mb-8">
-                          <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-green-400 rounded-full flex items-center justify-center shadow-xl shadow-emerald-400/50">
-                            <span className="text-white text-2xl font-bold">✓</span>
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="text-emerald-100 text-2xl md:text-3xl lg:text-4xl font-bold mb-3">
-                              {registration.dayName}
-                            </h3>
-                            <div className="bg-emerald-500/10 rounded-xl px-6 py-4 border border-emerald-400/30">
-                              <p className="text-emerald-50 text-lg md:text-xl lg:text-2xl font-semibold">
-                                📅 {registration.formattedDate}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="bg-emerald-500/10 rounded-xl px-6 py-4 border border-emerald-400/30 text-center">
-                          <p className="text-emerald-50 text-lg md:text-xl lg:text-2xl font-semibold">
-                            ✅ Registration Confirmed
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                    <div className="glass-card rounded-2xl p-6 border-2 border-yellow-400/30">
-                      <p className="text-yellow-50 text-base md:text-lg lg:text-xl font-medium text-center">
-                        ⚠️ Each student can only register for one cleaning day. Your registration is confirmed!
-                      </p>
-                    </div>
-                  </div>
-                )
-                }
+                <div>
+                  <p className="text-slate-100 font-medium">Welcome, {user.firstName}!</p>
+                  <p className="text-slate-400 text-sm">{user.email}</p>
+                </div>
+              </div>
+              <div className={`px-3 py-1.5 rounded-lg text-sm font-medium ${isRegistered
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                }`}>
+                {isRegistered ? '✓ Registered' : 'Available'}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Modern Message Display */}
+        {/* Search Bar */}
+        <div className="mb-6">
+          <div className="bg-slate-800/60 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-lg p-4">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search for a student by name or email..."
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="w-full px-4 py-3 pl-12 bg-slate-700/50 border border-slate-600/50 rounded-xl text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
+              />
+              <div className="absolute left-4 top-3.5 text-slate-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              {searchQuery && (
+                <button
+                  onClick={() => handleSearch('')}
+                  className="absolute right-4 top-3.5 text-slate-400 hover:text-slate-200 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {/* Search Results */}
+            {showSearchResults && searchResults.length > 0 && (
+              <div className="mt-4 max-h-60 overflow-y-auto">
+                <p className="text-slate-400 text-sm mb-3">Found {searchResults.length} student(s):</p>
+                <div className="space-y-2">
+                  {searchResults.map((result, index) => (
+                    <div
+                      key={index}
+                      onClick={() => handleStudentClick(result.day)}
+                      className="bg-slate-700/50 rounded-lg p-3 flex items-center justify-between cursor-pointer hover:bg-slate-600/50 transition-colors border border-slate-600/50 hover:border-indigo-500/50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-gradient-to-br from-teal-600 to-cyan-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                          {result.student.firstName?.charAt(0)}{result.student.lastName?.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="text-slate-200 text-sm font-medium">{result.student.firstName} {result.student.lastName}</p>
+                          <p className="text-slate-400 text-xs">{result.student.email}</p>
+                          <div className="mt-1">
+                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${result.student.attendanceStatus === 'attended'
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                              : result.student.attendanceStatus === 'no-show'
+                                ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+                                : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                              }`}>
+                              {result.student.attendanceStatus === 'attended' ? '✓ Attended' :
+                                result.student.attendanceStatus === 'no-show' ? '✗ No Show' :
+                                  '⏳ Pending'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-slate-300 text-sm font-medium">{result.day.dayName}</p>
+                        <p className="text-slate-400 text-xs">{new Date(result.day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {showSearchResults && searchResults.length === 0 && (
+              <div className="mt-4 text-center py-4">
+                <p className="text-slate-400 text-sm mb-3">No students found matching "{searchQuery}"</p>
+                <button
+                  onClick={() => handleSearch('')}
+                  className="px-4 py-2 bg-slate-600/50 hover:bg-slate-500/50 text-slate-300 rounded-lg text-sm transition-colors border border-slate-600/50"
+                >
+                  Clear Search
+                </button>
+              </div>
+            )}
+
+            {showSearchResults && searchResults.length > 0 && (
+              <div className="mt-4 pt-3 border-t border-slate-700/50">
+                <button
+                  onClick={() => handleSearch('')}
+                  className="w-full px-4 py-2 bg-slate-600/50 hover:bg-slate-500/50 text-slate-300 rounded-lg text-sm transition-colors border border-slate-600/50"
+                >
+                  Clear All Results
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Message Display */}
         {message && (
-          <div className="max-w-4xl mx-auto mb-8">
-            <div className={`relative overflow-hidden rounded-2xl border p-6 transition-all duration-300 ${messageType === 'success'
+          <div className="mb-6">
+            <div className={`rounded-xl p-4 border ${messageType === 'success'
               ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-100'
               : 'bg-red-500/10 border-red-500/30 text-red-100'
               }`}>
-              <div className="flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${messageType === 'success' ? 'bg-emerald-500/20' : 'bg-red-500/20'
-                  }`}>
-                  <span className="text-lg">{messageType === 'success' ? '✓' : '⚠️'}</span>
-                </div>
-                <p className="font-medium">{message}</p>
+              <div className="flex items-center gap-3">
+                <span className="text-lg">{messageType === 'success' ? '✓' : '⚠️'}</span>
+                <p className="font-medium text-sm">{message}</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Modern Day Selection */}
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white/5 backdrop-blur-md rounded-3xl p-8 border border-white/10">
-            <div className="text-center mb-10">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full mb-6">
-                <span className="text-2xl text-white">📅</span>
+        {/* Already Registered Display */}
+        {isRegistered && userRegistrations.length > 0 && (
+          <div className="flex-1">
+            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6 mb-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center">
+                  <span className="text-2xl">✓</span>
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-emerald-300">Registration Confirmed</h3>
+                  <p className="text-emerald-100/80 text-sm">You have registered for a cleaning day</p>
+                </div>
               </div>
-              <h2 className="text-4xl font-bold text-white mb-4">
-                Choose Your Cleaning Day
-              </h2>
-              <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-                Select from the available days below. Each day has limited spots available.
-              </p>
+              {userRegistrations.map((registration, index) => (
+                <div key={index} className="bg-emerald-500/10 rounded-xl p-4 border border-emerald-500/20">
+                  <p className="text-emerald-100 font-semibold">{registration.dayName}</p>
+                  <p className="text-emerald-100/70 text-sm">{registration.formattedDate}</p>
+                </div>
+              ))}
             </div>
+          </div>
+        )}
 
-            <div className="mb-8">
-              <div className="flex items-center justify-center gap-3 mb-6">
-                <div className="w-8 h-1 bg-gradient-to-r from-transparent to-blue-400"></div>
-                <h3 className="text-2xl font-bold text-white">
-                  Week 1
-                </h3>
-                <div className="w-8 h-1 bg-gradient-to-r from-blue-400 to-transparent"></div>
+        {/* Calendar Layout - Show for all users */}
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Calendar Section */}
+          <div className="lg:col-span-2">
+            <div className="bg-slate-800/60 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-lg p-6 h-full">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-slate-100">May 2026</h2>
+                <div className="flex gap-2">
+                  <span className="px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-lg text-sm">Week 1-3</span>
+                </div>
               </div>
-              <p className="text-center text-gray-400 mb-6">May 4-8, 2026</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {weeks[1]?.filter((day: CleaningDay) => ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].includes(day.dayName)).map((day: CleaningDay, index: number) => (
-                  <div
-                    key={day.id}
-                    onClick={() => !day.isFull && setSelectedDay(day)}
-                    className={`group relative glass-card rounded-2xl p-6 border transition-all duration-300 transform hover:scale-105 cursor-pointer overflow-hidden shadow-lg ${selectedDay?.id === day.id
-                      ? 'bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border-blue-400/50 shadow-xl shadow-blue-400/40'
-                      : day.isFull
-                        ? 'bg-gray-500/20 border-gray-400/50 opacity-75 cursor-not-allowed'
-                        : 'bg-white/10 border-white/30 hover:bg-gradient-to-br hover:from-blue-500/20 hover:to-indigo-500/20 hover:border-blue-400/40 hover:shadow-xl hover:shadow-blue-400/30'
-                      }`}
-                    style={{ animationDelay: `${index * 100}ms` }}
-                  >
-                    {/* Status Badge */}
-                    {day.isFull && (
-                      <div className="absolute top-3 right-3 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md">
-                        FULL
-                      </div>
-                    )}
 
-                    {selectedDay?.id === day.id && (
-                      <div className="absolute top-3 right-3 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md">
-                        SELECTED
-                      </div>
-                    )}
+              {/* Calendar Grid */}
+              <div className="grid grid-cols-7 gap-2 mb-4">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                  <div key={day} className="text-center text-slate-500 text-sm font-medium py-2">
+                    {day}
+                  </div>
+                ))}
+              </div>
 
-                    <div className="flex items-start justify-between mb-6">
-                      <div className="flex items-center space-x-4">
-                        <input
-                          type="radio"
-                          name="cleaningDay"
-                          checked={selectedDay?.id === day.id}
-                          onChange={() => setSelectedDay(day)}
-                          disabled={day.isFull}
-                          className={`w-6 h-6 ${day.isFull ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${selectedDay?.id === day.id ? 'accent-blue-600' : 'accent-gray-600'
-                            }`}
-                        />
-                        <div>
-                          <h4 className={`font-bold text-2xl mb-2 ${day.isFull ? 'text-gray-200' : 'text-white'}`} style={{
-                            textShadow: day.isFull
-                              ? '0 0 20px rgba(255, 255, 255, 0.3)'
-                              : '0 0 30px rgba(255, 255, 255, 0.5), 0 0 60px rgba(59, 130, 246, 0.3)',
-                            letterSpacing: '0.02em'
-                          }}>
-                            {day.dayName}
-                          </h4>
-                          <p className={`text-base ${day.isFull ? 'text-gray-300' : 'text-cyan-200'}`} style={{
-                            textShadow: day.isFull
-                              ? '0 0 15px rgba(255, 255, 255, 0.2)'
-                              : '0 0 20px rgba(6, 182, 212, 0.5), 0 0 40px rgba(6, 182, 212, 0.3)',
-                            letterSpacing: '0.05em'
-                          }}>
-                            May {new Date(day.date).getDate()}, 2026
-                          </p>
-                        </div>
-                      </div>
+              <div className="space-y-4">
+                {Object.entries(weeks).map(([weekNum, weekDays]) => (
+                  <div key={weekNum}>
+                    <p className="text-slate-400 text-sm mb-2 font-medium">Week {weekNum}</p>
+                    <div className="grid grid-cols-7 gap-2">
+                      {weekDays
+                        .filter((day: CleaningDay) => ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].includes(day.dayName))
+                        .map((day: CleaningDay) => {
+                          const date = new Date(day.date);
+                          const isSelected = selectedDay?.id === day.id;
+                          const isFull = day.isFull;
+
+                          return (
+                            <button
+                              key={day.id}
+                              onClick={() => setSelectedDay(day)}
+                              className={`
+                                  aspect-square rounded-xl flex flex-col items-center justify-center
+                                  transition-all duration-200 transform hover:scale-105
+                                  ${isFull
+                                  ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30 cursor-pointer border border-red-500/30'
+                                  : isSelected
+                                    ? 'bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/30'
+                                    : 'bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 cursor-pointer border border-slate-600/50 hover:border-indigo-500/50'
+                                }
+                                `}
+                            >
+                              <span className="text-lg font-semibold">{date.getDate()}</span>
+                              <span className="text-xs mt-1">{day.registeredCount}/{day.maxSlots}</span>
+                              {isFull && <span className="text-xs text-red-400 mt-1">Full</span>}
+                            </button>
+                          );
+                        })}
                     </div>
-
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
-                          <span className="text-blue-300 text-lg">👥</span>
-                        </div>
-                        <div>
-                          <span className={`text-lg font-semibold ${day.isFull ? 'text-red-200' : 'text-cyan-300'}`} style={{
-                            textShadow: day.isFull
-                              ? '0 0 15px rgba(239, 68, 68, 0.5)'
-                              : '0 0 20px rgba(6, 182, 212, 0.6), 0 0 40px rgba(6, 182, 212, 0.4)',
-                            letterSpacing: '0.05em'
-                          }}>
-                            {day.registeredCount}/{day.maxSlots}
-                          </span>
-                          <p className={`text-sm ${day.isFull ? 'text-gray-300' : 'text-cyan-100'}`} style={{
-                            textShadow: day.isFull
-                              ? '0 0 10px rgba(255, 255, 255, 0.2)'
-                              : '0 0 15px rgba(6, 182, 212, 0.4), 0 0 30px rgba(6, 182, 212, 0.3)',
-                            letterSpacing: '0.08em'
-                          }}>
-                            Spots Available
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {day.registeredUsers && day.registeredUsers.length > 0 && (
-                      <div className="mt-6 pt-6 border-t border-white/20">
-                        <div className="flex items-center justify-between mb-4">
-                          <h5 className="text-sm font-semibold text-cyan-100" style={{
-                            textShadow: '0 0 15px rgba(6, 182, 212, 0.6), 0 0 30px rgba(6, 182, 212, 0.4)',
-                            letterSpacing: '0.08em'
-                          }}>
-                            Registered Students ({day.registeredUsers.length})
-                          </h5>
-                          <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center">
-                            <span className="text-gray-300 text-xs">📋</span>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          {day.registeredUsers.map((user: UserType) => (
-                            <div key={user.id} className="bg-white/10 rounded-lg p-3 border border-white/20">
-                              <p className="text-cyan-100 text-sm font-medium" style={{
-                                textShadow: '0 0 10px rgba(6, 182, 212, 0.4), 0 0 20px rgba(6, 182, 212, 0.3)',
-                                letterSpacing: '0.05em'
-                              }}>
-                                {user.firstName} {user.lastName}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
             </div>
+          </div>
 
-            <div className="mb-8">
-              <div className="flex items-center justify-center gap-3 mb-6">
-                <div className="w-8 h-1 bg-gradient-to-r from-transparent to-purple-400"></div>
-                <h3 className="text-2xl font-bold text-white">
-                  Week 2
-                </h3>
-                <div className="w-8 h-1 bg-gradient-to-r from-purple-400 to-transparent"></div>
-              </div>
-              <p className="text-center text-gray-400 mb-6">May 11-15, 2026</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {weeks[2]?.filter((day: CleaningDay) => ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].includes(day.dayName)).map((day: CleaningDay) => (
-                  <div
-                    key={day.id}
-                    onClick={() => !day.isFull && setSelectedDay(day)}
-                    className={`group relative glass-card rounded-2xl p-6 border transition-all duration-300 transform hover:scale-105 cursor-pointer overflow-hidden shadow-lg ${selectedDay?.id === day.id
-                      ? 'bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border-blue-400/50 shadow-xl shadow-blue-400/40'
-                      : day.isFull
-                        ? 'bg-gray-500/20 border-gray-400/50 opacity-75 cursor-not-allowed'
-                        : 'bg-white/10 border-white/30 hover:bg-gradient-to-br hover:from-blue-500/20 hover:to-indigo-500/20 hover:border-blue-400/40 hover:shadow-xl hover:shadow-blue-400/30'
-                      }`}
-                  >
-                    {/* Status Badge */}
-                    {day.isFull && (
-                      <div className="absolute top-3 right-3 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md">
-                        FULL
-                      </div>
-                    )}
+          {/* Day Details Panel */}
+          <div className="lg:col-span-1">
+            <div className="bg-slate-800/60 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-lg p-6 sticky top-6">
+              {selectedDay ? (
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-semibold text-slate-100">Day Details</h3>
+                    <span className={`px-2 py-1 rounded-lg text-xs font-medium ${selectedDay.isFull
+                      ? 'bg-red-500/20 text-red-300'
+                      : 'bg-emerald-500/20 text-emerald-300'
+                      }`}>
+                      {selectedDay.isFull ? 'Full' : 'Available'}
+                    </span>
+                  </div>
 
-                    {selectedDay?.id === day.id && (
-                      <div className="absolute top-3 right-3 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md">
-                        SELECTED
-                      </div>
-                    )}
-
-                    <div className="flex items-start justify-between mb-6">
-                      <div className="flex items-center space-x-4">
-                        <input
-                          type="radio"
-                          name="cleaningDay"
-                          checked={selectedDay?.id === day.id}
-                          onChange={() => setSelectedDay(day)}
-                          disabled={day.isFull}
-                          className={`w-6 h-6 ${day.isFull ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${selectedDay?.id === day.id ? 'accent-blue-600' : 'accent-gray-600'
-                            }`}
-                        />
-                        <div>
-                          <h4 className={`font-bold text-2xl mb-2 ${day.isFull ? 'text-gray-200' : 'text-white'}`} style={{
-                            textShadow: day.isFull
-                              ? '0 0 20px rgba(255, 255, 255, 0.3)'
-                              : '0 0 30px rgba(255, 255, 255, 0.5), 0 0 60px rgba(59, 130, 246, 0.3)',
-                            letterSpacing: '0.02em'
-                          }}>
-                            {day.dayName}
-                          </h4>
-                          <p className={`text-base ${day.isFull ? 'text-gray-300' : 'text-cyan-200'}`} style={{
-                            textShadow: day.isFull
-                              ? '0 0 15px rgba(255, 255, 255, 0.2)'
-                              : '0 0 20px rgba(6, 182, 212, 0.5), 0 0 40px rgba(6, 182, 212, 0.3)',
-                            letterSpacing: '0.05em'
-                          }}>
-                            May {new Date(day.date).getDate()}, 2026
-                          </p>
+                  <div className="space-y-4 mb-6">
+                    <div>
+                      <p className="text-slate-400 text-sm">Day</p>
+                      <p className="text-slate-100 font-semibold text-lg">{selectedDay.dayName}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 text-sm">Date</p>
+                      <p className="text-slate-100 font-semibold">{new Date(selectedDay.date).toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 text-sm mb-2">Availability</p>
+                      <div className="bg-slate-700/50 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-slate-300">Spots</span>
+                          <span className="text-slate-100 font-semibold">{selectedDay.registeredCount}/{selectedDay.maxSlots}</span>
+                        </div>
+                        <div className="w-full bg-slate-600 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full transition-all ${selectedDay.isFull
+                              ? 'bg-red-500'
+                              : selectedDay.registeredCount / selectedDay.maxSlots > 0.7
+                                ? 'bg-amber-500'
+                                : 'bg-emerald-500'
+                              }`}
+                            style={{ width: `${(selectedDay.registeredCount / selectedDay.maxSlots) * 100}%` }}
+                          />
                         </div>
                       </div>
                     </div>
+                  </div>
 
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
-                          <span className="text-blue-300 text-lg">👥</span>
-                        </div>
-                        <div>
-                          <span className={`text-lg font-semibold ${day.isFull ? 'text-red-200' : 'text-cyan-300'}`} style={{
-                            textShadow: day.isFull
-                              ? '0 0 15px rgba(239, 68, 68, 0.5)'
-                              : '0 0 20px rgba(6, 182, 212, 0.6), 0 0 40px rgba(6, 182, 212, 0.4)',
-                            letterSpacing: '0.05em'
-                          }}>
-                            {day.registeredCount}/{day.maxSlots}
-                          </span>
-                          <p className={`text-sm ${day.isFull ? 'text-gray-300' : 'text-cyan-100'}`} style={{
-                            textShadow: day.isFull
-                              ? '0 0 10px rgba(255, 255, 255, 0.2)'
-                              : '0 0 15px rgba(6, 182, 212, 0.4), 0 0 30px rgba(6, 182, 212, 0.3)',
-                            letterSpacing: '0.08em'
-                          }}>
-                            Spots Available
-                          </p>
-                        </div>
+                  {selectedDay.registeredUsers && selectedDay.registeredUsers.length > 0 && (
+                    <div className="mb-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-slate-400 text-sm">Registered Students ({selectedDay.registeredUsers.length})</p>
+                        {canMarkAttendance() && (
+                          <p className="text-xs text-indigo-400">Click to mark attendance</p>
+                        )}
                       </div>
-                    </div>
-
-                    {day.registeredUsers && day.registeredUsers.length > 0 && (
-                      <div className="mt-6 pt-6 border-t border-white/20">
-                        <div className="flex items-center justify-between mb-4">
-                          <h5 className="text-sm font-semibold text-cyan-100" style={{
-                            textShadow: '0 0 15px rgba(6, 182, 212, 0.6), 0 0 30px rgba(6, 182, 212, 0.4)',
-                            letterSpacing: '0.08em'
-                          }}>
-                            Registered Students ({day.registeredUsers.length})
-                          </h5>
-                          <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center">
-                            <span className="text-gray-300 text-xs">📋</span>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          {day.registeredUsers.map((user: UserType) => (
-                            <div key={user.id} className="bg-white/10 rounded-lg p-3 border border-white/20">
-                              <p className="text-cyan-100 text-sm font-medium" style={{
-                                textShadow: '0 0 10px rgba(6, 182, 212, 0.4), 0 0 20px rgba(6, 182, 212, 0.3)',
-                                letterSpacing: '0.05em'
-                              }}>
-                                {user.firstName} {user.lastName}
-                              </p>
+                      <div className="space-y-2">
+                        {selectedDay.registeredUsers.map((u: UserWithAttendance) => (
+                          <div key={u.id} className={`bg-slate-700/50 rounded-lg p-3 flex items-center justify-between ${canMarkAttendance() ? 'hover:bg-slate-600/50 transition-colors' : ''}`}>
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-gradient-to-br from-teal-600 to-cyan-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                                {u.firstName?.charAt(0)}{u.lastName?.charAt(0)}
+                              </div>
+                              <div>
+                                <p className="text-slate-200 text-sm font-medium">{u.firstName} {u.lastName}</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${u.attendanceStatus === 'attended'
+                                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                    : u.attendanceStatus === 'no-show'
+                                      ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+                                      : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                    }`}>
+                                    {u.attendanceStatus === 'attended' ? '✓ Attended' :
+                                      u.attendanceStatus === 'no-show' ? '✗ No Show' :
+                                        '⏳ Pending'}
+                                  </span>
+                                  {u.markedAt && (
+                                    <span className="text-xs text-slate-400">
+                                      {new Date(u.markedAt).toLocaleDateString()}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
 
-            <div className="mb-8">
-              <h3 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-purple-200 to-indigo-200 bg-clip-text text-transparent mb-6 text-center drop-shadow-lg">
-                Week 3 (May 18-22, 2026)
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {weeks[3]?.filter((day: CleaningDay) => ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].includes(day.dayName)).map((day: CleaningDay) => (
-                  <div
-                    key={day.id}
-                    onClick={() => !day.isFull && setSelectedDay(day)}
-                    className={`group relative glass-card rounded-2xl p-6 border transition-all duration-300 transform hover:scale-105 cursor-pointer overflow-hidden shadow-lg ${selectedDay?.id === day.id
-                      ? 'bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border-blue-400/50 shadow-xl shadow-blue-400/40'
-                      : day.isFull
-                        ? 'bg-gray-500/20 border-gray-400/50 opacity-75 cursor-not-allowed'
-                        : 'bg-white/10 border-white/30 hover:bg-gradient-to-br hover:from-blue-500/20 hover:to-indigo-500/20 hover:border-blue-400/40 hover:shadow-xl hover:shadow-blue-400/30'
-                      }`}
-                  >
-                    {/* Status Badge */}
-                    {day.isFull && (
-                      <div className="absolute top-3 right-3 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md">
-                        FULL
-                      </div>
-                    )}
+                            {canMarkAttendance() && u.attendanceStatus === 'pending' && (
+                              <div className="flex gap-2">
+                                <LoadingButton
+                                  isLoading={attendanceLoading === u.registrationId}
+                                  loadingText="Marking..."
+                                  onClick={() => handleMarkAttendance(u, 'attended')}
+                                  className="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-medium transition-colors"
+                                >
+                                  <>
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Attended
+                                  </>
+                                </LoadingButton>
+                                <LoadingButton
+                                  isLoading={attendanceLoading === u.registrationId}
+                                  loadingText="Marking..."
+                                  onClick={() => handleMarkAttendance(u, 'no-show')}
+                                  className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30 rounded-lg text-xs font-medium transition-colors"
+                                >
+                                  <>
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                    No Show
+                                  </>
+                                </LoadingButton>
+                              </div>
+                            )}
 
-                    {selectedDay?.id === day.id && (
-                      <div className="absolute top-3 right-3 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md">
-                        SELECTED
-                      </div>
-                    )}
-
-                    <div className="flex items-start justify-between mb-6">
-                      <div className="flex items-center space-x-4">
-                        <input
-                          type="radio"
-                          name="cleaningDay"
-                          checked={selectedDay?.id === day.id}
-                          onChange={() => setSelectedDay(day)}
-                          disabled={day.isFull}
-                          className={`w-6 h-6 ${day.isFull ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${selectedDay?.id === day.id ? 'accent-blue-600' : 'accent-gray-600'
-                            }`}
-                        />
-                        <div>
-                          <h4 className={`font-bold text-2xl mb-2 ${day.isFull ? 'text-gray-200' : 'text-white'}`} style={{
-                            textShadow: day.isFull
-                              ? '0 0 20px rgba(255, 255, 255, 0.3)'
-                              : '0 0 30px rgba(255, 255, 255, 0.5), 0 0 60px rgba(59, 130, 246, 0.3)',
-                            letterSpacing: '0.02em'
-                          }}>
-                            {day.dayName}
-                          </h4>
-                          <p className={`text-base ${day.isFull ? 'text-gray-300' : 'text-cyan-200'}`} style={{
-                            textShadow: day.isFull
-                              ? '0 0 15px rgba(255, 255, 255, 0.2)'
-                              : '0 0 20px rgba(6, 182, 212, 0.5), 0 0 40px rgba(6, 182, 212, 0.3)',
-                            letterSpacing: '0.05em'
-                          }}>
-                            May {new Date(day.date).getDate()}, 2026
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
-                          <span className="text-blue-300 text-lg">👥</span>
-                        </div>
-                        <div>
-                          <span className={`text-lg font-semibold ${day.isFull ? 'text-red-200' : 'text-cyan-300'}`} style={{
-                            textShadow: day.isFull
-                              ? '0 0 15px rgba(239, 68, 68, 0.5)'
-                              : '0 0 20px rgba(6, 182, 212, 0.6), 0 0 40px rgba(6, 182, 212, 0.4)',
-                            letterSpacing: '0.05em'
-                          }}>
-                            {day.registeredCount}/{day.maxSlots}
-                          </span>
-                          <p className={`text-sm ${day.isFull ? 'text-gray-300' : 'text-cyan-100'}`} style={{
-                            textShadow: day.isFull
-                              ? '0 0 10px rgba(255, 255, 255, 0.2)'
-                              : '0 0 15px rgba(6, 182, 212, 0.4), 0 0 30px rgba(6, 182, 212, 0.3)',
-                            letterSpacing: '0.08em'
-                          }}>
-                            Spots Available
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {day.registeredUsers && day.registeredUsers.length > 0 && (
-                      <div className="mt-6 pt-6 border-t border-white/20">
-                        <div className="flex items-center justify-between mb-4">
-                          <h5 className="text-sm font-semibold text-cyan-100" style={{
-                            textShadow: '0 0 15px rgba(6, 182, 212, 0.6), 0 0 30px rgba(6, 182, 212, 0.4)',
-                            letterSpacing: '0.08em'
-                          }}>
-                            Registered Students ({day.registeredUsers.length})
-                          </h5>
-                          <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center">
-                            <span className="text-gray-300 text-xs">📋</span>
+                            {canMarkAttendance() && u.attendanceStatus !== 'pending' && (
+                              <div className="flex gap-2">
+                                <LoadingButton
+                                  isLoading={attendanceLoading === u.registrationId}
+                                  loadingText="Clearing..."
+                                  onClick={() => handleClearAttendance(u)}
+                                  className="px-3 py-1.5 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-medium transition-colors"
+                                >
+                                  <>
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v16a1 1 0 0 1 1v1a1 1 0 0 1-1 1H7a1 1 0 0 1-1V5a1 1 0 0 1 1H3a1 1 0 0 1-1v16a1 1 0 0 1 1z" />
+                                    </svg>
+                                    Clear Status
+                                  </>
+                                </LoadingButton>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                        <div className="space-y-2">
-                          {day.registeredUsers.map((user: UserType) => (
-                            <div key={user.id} className="bg-white/10 rounded-lg p-3 border border-white/20">
-                              <p className="text-cyan-100 text-sm font-medium" style={{
-                                textShadow: '0 0 10px rgba(6, 182, 212, 0.4), 0 0 20px rgba(6, 182, 212, 0.3)',
-                                letterSpacing: '0.05em'
-                              }}>
-                                {user.firstName} {user.lastName}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
+                        ))}
                       </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
 
-            <div className="text-center mt-12">
-              <button
-                onClick={handleSubmit}
-                disabled={isLoading || !selectedDay || isRegistered}
-                className={`px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 ${isRegistered || isLoading || !selectedDay
-                  ? 'bg-gray-700/50 text-gray-400 cursor-not-allowed border border-gray-600/30'
-                  : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:scale-105'
-                  }`}
-              >
-                {isLoading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Processing...
-                  </span>
-                ) : isRegistered ? (
-                  'Already Registered'
-                ) : !selectedDay ? (
-                  'Select a Day First'
-                ) : (
-                  'Register for Cleaning Day'
-                )}
-              </button>
-              {isRegistered && (
-                <div className="mt-6 animate-slide-in-up">
-                  <div className="bg-gradient-to-r from-green-600/20 to-emerald-600/20 backdrop-blur-sm rounded-2xl p-6 border border-green-400/30 shadow-lg shadow-green-500/20">
-                    <div className="text-center">
-                      <div className="text-6xl mb-4">✅</div>
-                      <h3 className="text-2xl font-bold text-green-400 mb-3">
-                        Registration Complete!
-                      </h3>
-                      <p className="text-white text-lg mb-4">
-                        You have successfully registered for cleaning duty
-                      </p>
-                      <div className="bg-black/30 rounded-xl p-4 border border-white/20">
-                        <p className="text-cyan-300 font-semibold text-lg">
-                          📅 {userRegistrations[0]?.dayName}
-                        </p>
-                        <p className="text-white text-sm">
-                          {userRegistrations[0]?.formattedDate}
-                        </p>
-                      </div>
-                      <p className="text-yellow-300 text-sm mt-4 bg-yellow-600/20 rounded-lg p-3 border border-yellow-400/30">
-                        ⚠️ Each student can only register for one cleaning day. Your registration is confirmed!
-                      </p>
+                      {canMarkAttendance() && (
+                        <div className="mt-4 p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-lg">
+                          <p className="text-xs text-indigo-300">
+                            <strong>Admin Access:</strong> You can mark attendance for students. Click "Attended" or "No Show" to update their status.
+                          </p>
+                        </div>
+                      )}
                     </div>
+                  )}
+
+                  <form onSubmit={handleSubmit}>
+                    <button
+                      type="submit"
+                      disabled={isLoading || selectedDay.isFull || isRegistered}
+                      className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 ${isLoading || selectedDay.isFull || isRegistered
+                        ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-lg shadow-indigo-500/30'
+                        }`}
+                    >
+                      {isRegistered ? 'Already Registered' : (isLoading ? 'Registering...' : 'Register for This Day')}
+                    </button>
+                  </form>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-slate-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-3xl">📅</span>
                   </div>
+                  <p className="text-slate-400">Select a day from the calendar</p>
+                  <p className="text-slate-500 text-sm mt-2">Click on an available day to see details</p>
                 </div>
               )}
             </div>
-          </div>
-        </div>
-
-        <div className="text-center mt-auto space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 transform hover:scale-105 flex items-center gap-2"
-            >
-              <span className="text-xl">📊</span>
-              Go back to Dashboard
-            </button>
           </div>
         </div>
       </div>

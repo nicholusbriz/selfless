@@ -3,12 +3,14 @@
 import React, { useEffect } from 'react';
 import Image from 'next/image';
 import { useState } from 'react';
-import { BackgroundImage, DashboardButton, PageLoader } from '@/components/ui';
+import { useRouter } from 'next/navigation';
+import { BackgroundImage, PageLoader } from '@/components/ui';
 
 function PoliciesPage() {
   const [activeSection, setActiveSection] = useState('purpose');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const router = useRouter();
 
   // Policies are publicly accessible - no authentication required
   useEffect(() => {
@@ -219,26 +221,26 @@ function PoliciesPage() {
   const renderContent = (content: string | string[], isList: boolean = false) => {
     if (Array.isArray(content)) {
       return (
-        <div className={isList ? "space-y-2" : "space-y-1"}>
+        <div className={isList ? "space-y-3" : "space-y-2"}>
           {content.map((item, index) => (
-            <div key={index} className="text-gray-100 leading-relaxed">
+            <div key={index} className="text-slate-100 leading-relaxed">
               {isList && item.startsWith('•') ? (
-                <div className="flex items-start space-x-2">
-                  <span className="text-blue-400 mt-1">•</span>
-                  <span>{item.replace('•', '').trim()}</span>
+                <div className="flex items-start space-x-3">
+                  <span className="text-purple-400 mt-1">•</span>
+                  <span className="flex-1">{item.replace('•', '').trim()}</span>
                 </div>
               ) : item.startsWith('  •') ? (
-                <div className="flex items-start space-x-2 ml-4">
-                  <span className="text-blue-400 mt-1">•</span>
-                  <span>{item.replace('  •', '').trim()}</span>
+                <div className="flex items-start space-x-3 ml-4">
+                  <span className="text-purple-400 mt-1">•</span>
+                  <span className="flex-1">{item.replace('  •', '').trim()}</span>
                 </div>
               ) : item.match(/^\d+\./) ? (
-                <div className="flex items-start space-x-2">
-                  <span className="text-blue-400 font-semibold">{item.split('.')[0]}.</span>
-                  <span>{item.split('.').slice(1).join('.').trim()}</span>
+                <div className="flex items-start space-x-3">
+                  <span className="text-purple-400 font-semibold">{item.split('.')[0]}.</span>
+                  <span className="flex-1">{item.split('.').slice(1).join('.').trim()}</span>
                 </div>
               ) : (
-                <div>{item}</div>
+                <div className="flex-1">{item}</div>
               )}
             </div>
           ))}
@@ -246,7 +248,7 @@ function PoliciesPage() {
       );
     }
 
-    return <p className="text-gray-100 leading-relaxed">{content}</p>;
+    return <p className="text-slate-100 leading-relaxed">{content}</p>;
   };
 
   const renderSection = (sectionKey: string, section: { content?: string | string[]; subsections?: Record<string, { title: string; content?: string | string[]; list?: string }> }) => {
@@ -255,8 +257,8 @@ function PoliciesPage() {
         {section.content && renderContent(section.content)}
 
         {section.subsections && Object.entries(section.subsections).map(([subKey, subsection]: [string, { title: string; content?: string | string[]; list?: string }]) => (
-          <div key={subKey} className="bg-black/20 rounded-lg p-6 border border-white/20">
-            <h3 className="text-xl font-semibold text-white mb-4">{subsection.title}</h3>
+          <div key={subKey} className="bg-slate-700/50 rounded-xl p-6 border border-slate-600/50">
+            <h3 className="text-lg font-semibold text-slate-100 mb-4">{subsection.title}</h3>
             {subsection.content && renderContent(subsection.content, true)}
             {subsection.list && renderContent(subsection.list, true)}
             {subsection.content && typeof subsection.content === 'string' && renderContent(subsection.content)}
@@ -277,99 +279,125 @@ function PoliciesPage() {
   }
 
   return (
-    <BackgroundImage className="h-screen">
-      <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20"></div>
-      <div className="relative z-10 container mx-auto px-4 py-8 h-full flex flex-col">
-        <div className="overflow-y-auto flex-1">
-          {/* Enhanced Header */}
-          <div className="text-center mb-16 animate-fade-in-down">
-            <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-600 rounded-full mb-8 shadow-2xl shadow-purple-500/30 p-3 animate-bounce-in">
-              <Image
-                src="/freedom.png"
-                alt="Freedom City Tech Center Logo"
-                width={96}
-                height={96}
-                className="w-full h-full object-contain animate-glow"
-              />
+    <BackgroundImage className="min-h-screen relative">
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-indigo-950/80 to-slate-900/80 backdrop-blur-sm"></div>
+      <div className="relative z-10 container mx-auto px-4 py-6">
+        {/* Professional Header */}
+        <header className="mb-8">
+          {/* Breadcrumb Navigation */}
+          <nav className="flex items-center space-x-2 text-sm text-slate-400 mb-4">
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="hover:text-slate-200 transition-colors"
+            >
+              Dashboard
+            </button>
+            <span>/</span>
+            <span className="text-slate-200">Policies</span>
+          </nav>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-600 rounded-2xl flex items-center justify-center shadow-xl shadow-purple-500/30">
+                <Image
+                  src="/freedom.png"
+                  alt="Freedom City Tech Center"
+                  className="w-10 h-10 object-contain"
+                  width={40}
+                  height={40}
+                />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-slate-100">SELFLESS CE Policies</h1>
+                <p className="text-slate-400">Freedom City Tech Center • Organization Guidelines</p>
+              </div>
             </div>
-            <div className="max-w-4xl mx-auto">
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold bg-gradient-to-r from-purple-100 via-indigo-100 to-pink-100 bg-clip-text text-transparent mb-6 animate-slide-in-right leading-relaxed drop-shadow-2xl">
-                SELFLESS CE Policies
-              </h1>
-            </div>
-            <div className="max-w-2xl mx-auto">
-              <p className="text-purple-100 text-lg sm:text-xl md:text-2xl lg:text-3xl font-medium mb-4 animate-slide-in-left drop-shadow-lg">
-                Freedom City Tech Center
-              </p>
-              <p className="text-gray-300 text-base sm:text-lg md:text-xl lg:text-2xl animate-slide-in-up drop-shadow-md">
-                Center policies and guidelines
-              </p>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="px-4 py-2 bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 rounded-lg border border-slate-700/50 transition-colors"
+              >
+                ← Back
+              </button>
             </div>
           </div>
+        </header>
 
-          {/* Navigation and Content Container */}
-          <div className="flex flex-col lg:flex-row gap-8 animate-fade-in-up">
-            {/* Desktop Navigation */}
-            <div className="hidden lg:block w-80 flex-shrink-0">
-              <div className="bg-black/30 rounded-2xl p-8 border border-white/20 sticky top-8">
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-100 to-indigo-100 bg-clip-text text-transparent mb-6 text-center drop-shadow-lg">Policy Sections</h2>
-                <nav className="space-y-3">
+        {/* Navigation and Content Container */}
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Desktop Navigation */}
+          <div className="hidden lg:block w-80 flex-shrink-0">
+            <div className="bg-slate-800/60 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-lg">
+              <div className="p-6 border-b border-slate-700/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-purple-500/20 rounded-xl flex items-center justify-center">
+                    <span className="text-purple-400 text-sm">📋</span>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-100">Policy Sections</h2>
+                    <p className="text-slate-400 text-sm">Navigate guidelines</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-4">
+                <nav className="space-y-2">
                   {navigationItems.map((item) => (
                     <button
                       key={item.id}
                       onClick={() => setActiveSection(item.id)}
-                      className={`w-full text-left px-6 py-4 rounded-2xl transition-all duration-300 flex items-center space-x-4 transform hover:scale-105 ${activeSection === item.id
-                        ? 'bg-gradient-to-r from-purple-600/30 to-indigo-600/30 border-2 border-purple-400/50 shadow-xl shadow-purple-500/40 text-white'
-                        : 'bg-white/10 border-2 border-white/30 text-gray-200 hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-indigo-500/20 hover:border-purple-400/40'
+                      className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-200 flex items-center gap-3 ${activeSection === item.id
+                        ? 'bg-purple-600/20 border border-purple-500/30 text-purple-300'
+                        : 'bg-slate-700/50 border border-slate-600/50 text-slate-300 hover:bg-slate-600/50 hover:border-purple-500/30'
                         }`}
                     >
-                      <span className="text-2xl">{item.icon}</span>
-                      <span className="font-semibold text-lg">{item.title}</span>
+                      <span className="text-lg">{item.icon}</span>
+                      <span className="font-medium">{item.title}</span>
                     </button>
                   ))}
                 </nav>
               </div>
             </div>
+          </div>
 
-            {/* Mobile Navigation */}
-            <div className="lg:hidden bg-black/30 rounded-2xl p-4 border border-white/20 sticky top-4 z-40">
-              <div className="grid grid-cols-3 gap-3">
-                {navigationItems.slice(0, 9).map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveSection(item.id)}
-                    className={`p-4 rounded-2xl transition-all duration-300 flex flex-col items-center space-y-2 transform hover:scale-105 ${activeSection === item.id
-                      ? 'bg-gradient-to-r from-purple-600/30 to-indigo-600/30 border-2 border-purple-400/50 shadow-xl shadow-purple-500/40 text-white'
-                      : 'bg-white/10 border-2 border-white/30 text-gray-200 hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-indigo-500/20 hover:border-purple-400/40'
-                      }`}
-                  >
-                    <span className="text-2xl">{item.icon}</span>
-                    <span className="text-xs font-semibold text-center">{item.title.split(' ')[0]}</span>
-                  </button>
-                ))}
-              </div>
+          {/* Mobile Navigation */}
+          <div className="lg:hidden bg-slate-800/60 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-lg p-4 mb-6">
+            <div className="grid grid-cols-3 gap-3">
+              {navigationItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveSection(item.id)}
+                  className={`p-3 rounded-xl transition-all duration-200 flex flex-col items-center gap-2 ${activeSection === item.id
+                    ? 'bg-purple-600/20 border border-purple-500/30 text-purple-300'
+                    : 'bg-slate-700/50 border border-slate-600/50 text-slate-300'
+                    }`}
+                >
+                  <span className="text-lg">{item.icon}</span>
+                  <span className="text-xs font-medium text-center">{item.title.split(' ')[0]}</span>
+                </button>
+              ))}
             </div>
+          </div>
 
-            {/* Main Content */}
-            <div className="flex-1">
-              <div className="bg-black/30 rounded-2xl p-8 lg:p-12 border border-white/20">
-                <div className="mb-8">
-                  <h1 className="text-3xl lg:text-4xl xl:text-5xl font-bold bg-gradient-to-r from-purple-100 to-indigo-100 bg-clip-text text-transparent mb-4 animate-slide-in-right drop-shadow-2xl">
-                    {policies[activeSection as keyof typeof policies].title}
-                  </h1>
-                  <div className="h-2 bg-gradient-to-r from-purple-500 via-indigo-500 to-pink-500 rounded-full w-32 animate-slide-in-left shadow-lg shadow-purple-500/50"></div>
+          {/* Main Content */}
+          <div className="flex-1">
+            <div className="bg-slate-800/60 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-lg">
+              <div className="p-6 border-b border-slate-700/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-purple-500/20 rounded-xl flex items-center justify-center">
+                    <span className="text-purple-400 text-sm">📄</span>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold text-slate-100">{policies[activeSection as keyof typeof policies].title}</h2>
+                    <p className="text-slate-400 text-sm">Current policy section</p>
+                  </div>
                 </div>
-
-                <div className="prose prose-lg max-w-none">
+              </div>
+              <div className="p-6">
+                <div className="prose prose-invert max-w-none">
                   {renderSection(activeSection, policies[activeSection as keyof typeof policies])}
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Go to Dashboard Button */}
-          <div className="mb-12 text-center animate-fade-in-up">
-            <DashboardButton text="Back to Dashboard" />
           </div>
         </div>
       </div>

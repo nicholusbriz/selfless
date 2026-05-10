@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+/* eslint-disable react-hooks/set-state-in-effect */
+import { useState, useEffect, useCallback } from 'react';
 
 interface Course {
   name: string;
@@ -37,11 +38,7 @@ export default function StudentGradesView({ studentId, theme = 'student' }: Stud
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchStudentGrades();
-  }, [studentId]);
-
-  const fetchStudentGrades = async () => {
+  const fetchStudentGrades = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/grades?studentId=${studentId}`);
@@ -52,12 +49,16 @@ export default function StudentGradesView({ studentId, theme = 'student' }: Stud
       } else {
         setError('Failed to fetch grades');
       }
-    } catch (error) {
+    } catch {
       setError('Error fetching grades');
     } finally {
       setLoading(false);
     }
-  };
+  }, [studentId]);
+
+  useEffect(() => {
+    fetchStudentGrades();
+  }, [fetchStudentGrades]);
 
   if (loading) {
     return (

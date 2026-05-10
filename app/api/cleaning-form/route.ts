@@ -107,6 +107,10 @@ export async function GET(request: Request) {
                 lastName: reg.userId.lastName,
                 fullName: `${reg.userId.firstName} ${reg.userId.lastName}`,
                 email: reg.userId.email,
+                attendanceStatus: reg.attendanceStatus || 'pending',
+                markedBy: reg.markedBy,
+                markedAt: reg.markedAt,
+                registrationId: reg._id.toString(),
                 createdAt: reg.createdAt,
                 updatedAt: reg.updatedAt
               })),
@@ -163,6 +167,10 @@ export async function GET(request: Request) {
               lastName: reg.userId.lastName,
               fullName: `${reg.userId.firstName} ${reg.userId.lastName}`,
               email: reg.userId.email,
+              attendanceStatus: reg.attendanceStatus || 'pending',
+              markedBy: reg.markedBy,
+              markedAt: reg.markedAt,
+              registrationId: reg._id.toString(),
               createdAt: reg.createdAt,
               updatedAt: reg.updatedAt
             })),

@@ -24,13 +24,16 @@ export default function BackgroundImage({
           fill
           className="object-cover"
           style={{
-            filter: 'brightness(0.3) contrast(1.1) saturate(0.8) blur(0.8px)',
+            filter: 'brightness(0.25) contrast(1.2) saturate(1.1) blur(0.3px)',
             objectFit: 'cover',
             objectPosition: 'center',
             ...style
           }}
           priority={priority}
         />
+        {/* Modern gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-purple-900/20" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
       </div>
       {children && (
         <div className="relative z-10">

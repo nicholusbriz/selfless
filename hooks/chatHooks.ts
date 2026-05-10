@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Message, Conversation, ChatUser, ChatState } from '@/types';
+import { Message, Conversation, ChatUser } from '@/types';
 import { useUserStatus } from '@/contexts/UserStatusContext';
 import { CHAT_ENDPOINTS } from '@/config/constants';
 
@@ -37,7 +37,6 @@ const makeAuthenticatedRequest = async (url: string, options?: RequestInit) => {
 // Hook for managing conversations
 export const useConversations = () => {
   const { user } = useUserStatus();
-  const queryClient = useQueryClient();
 
   const {
     data: conversations = [],

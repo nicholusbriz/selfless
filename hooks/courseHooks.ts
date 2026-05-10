@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useMemo } from 'react';
 import { API_ENDPOINTS } from '@/config/constants';
-import { FlexibleUser, CourseRegistration, RawCourseRegistration } from '@/types';
+import { FlexibleUser, CourseRegistration } from '@/types';
 
 interface RegisteredCourse {
   name: string;
@@ -23,6 +23,12 @@ export const useCourseRegistrations = () => {
     staleTime: 2 * 60 * 1000, // 2 minutes
     select: (data) => {
       const registrations = data.registrations || [];
+
+      interface Course {
+        id: string;
+        name: string;
+        credits: number;
+      }
 
       interface ApiRegistration {
         id: string;
@@ -49,12 +55,6 @@ export const useCourseRegistrations = () => {
         takesReligion: boolean;
         createdAt?: string;
         updatedAt?: string;
-      }
-
-      interface Course {
-        id: string;
-        name: string;
-        credits: number;
       }
 
       interface RegisteredCourse {
@@ -197,7 +197,7 @@ export const useCourseManagement = ({
       await clearCourseSubmissionMutation.mutateAsync(submissionId);
       // Success feedback
       alert('✅ Course registration cleared successfully! You can now register for new courses.');
-    } catch (error) {
+    } catch {
       // Error feedback
       alert('❌ Failed to clear course registration. Please try again.');
     }

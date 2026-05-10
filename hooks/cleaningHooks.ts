@@ -83,8 +83,6 @@ export const useDeleteUser = () => {
 
 // Cleaning days hooks
 export const useCleaningDays = () => {
-  const { data: users = [] } = useUsers();
-
   return useQuery({
     queryKey: ['cleaning-days'],
     queryFn: fetchCleaningDays,
@@ -105,9 +103,6 @@ export const useCleaningDays = () => {
       Object.values(data.weeks).forEach((weekDays) => {
         weekDays.forEach((day) => {
           day.registeredUsers.forEach((user: { id: string; firstName: string; lastName: string; fullName: string; email: string; createdAt: string; updatedAt: string }) => {
-            // Find user's phone number from users array
-            const userCredentials = users.find((u: User) => u.id === user.id);
-
             allRegisteredUsers.push({
               id: user.id,
               firstName: user.firstName,
@@ -116,7 +111,7 @@ export const useCleaningDays = () => {
               formattedDate: day.formattedDate,
               dayId: day.id.toString(),
               email: user.email,
-              phoneNumber: userCredentials?.phoneNumber || undefined,
+              phoneNumber: undefined, // Phone number not available in this context
             });
           });
         });
