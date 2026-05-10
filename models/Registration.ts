@@ -6,6 +6,9 @@ export interface IRegistration extends Document {
   cleaningDayId: number;
   cleaningDayName: string;
   cleaningDayDate: string;
+  attendanceStatus: 'pending' | 'attended' | 'no-show';
+  markedBy?: string;
+  markedAt?: Date;
   createdAt: Date;
 }
 
@@ -32,6 +35,18 @@ const RegistrationSchema: Schema = new Schema({
   cleaningDayDate: {
     type: String,
     required: [true, 'Cleaning day date is required']
+  },
+  attendanceStatus: {
+    type: String,
+    enum: ['pending', 'attended', 'no-show'],
+    default: 'pending'
+  },
+  markedBy: {
+    type: String,
+    ref: 'User'
+  },
+  markedAt: {
+    type: Date
   }
 }, {
   timestamps: true,

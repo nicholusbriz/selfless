@@ -1,6 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { API_ENDPOINTS } from '@/config/constants';
-import { IUser } from '@/models/User';
 
 interface LoginCredentials {
   email: string;

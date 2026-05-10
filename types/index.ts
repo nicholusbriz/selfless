@@ -34,12 +34,28 @@ export interface CleaningDay {
   dayName: string;
   week: number;
   maxSlots: number;
-  registeredUsers: User[];
+  registeredUsers: UserWithAttendance[];
   registeredCount: number;
   isFull: boolean;
   formattedDate: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+// User with attendance information
+export interface UserWithAttendance extends User {
+  attendanceStatus: 'pending' | 'attended' | 'no-show';
+  markedBy?: string;
+  markedAt?: Date;
+  registrationId: string;
+}
+
+// Attendance statistics
+export interface AttendanceStats {
+  total: number;
+  pending: number;
+  attended: number;
+  noShow: number;
 }
 
 export interface Weeks {

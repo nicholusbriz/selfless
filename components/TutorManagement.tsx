@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useTutors, useAddTutor, useRemoveTutor } from '@/hooks/adminHooks';
-import { useUserStatus } from '@/contexts/UserStatusContext';
 
 /**
  * @fileoverview Tutor Management Component
@@ -38,9 +37,6 @@ import { useUserStatus } from '@/contexts/UserStatusContext';
  */
 
 export default function TutorManagement() {
-  // Use global user status instead of props
-  const { isAdmin } = useUserStatus();
-
   // Use API hooks
   const { data: tutors = [], isLoading: loading } = useTutors();
   const addTutor = useAddTutor();

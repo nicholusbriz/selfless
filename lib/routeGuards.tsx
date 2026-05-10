@@ -16,7 +16,7 @@ export function withAuth<P extends object>(
   options: GuardOptions = {}
 ) {
   return function AuthenticatedComponent(props: P) {
-    const { user, isLoading, isAuthenticated, isAdmin, isSuperAdmin } = useUserStatus();
+    const { isLoading, isAuthenticated, isAdmin, isSuperAdmin } = useUserStatus();
     const router = useRouter();
 
     const {

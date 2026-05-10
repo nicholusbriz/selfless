@@ -23,6 +23,7 @@
 import { useState, useMemo } from 'react';
 import { useAnnouncements, useDeleteAnnouncement, useCreateAnnouncement, usePostComment, usePostReply, useDeleteComment } from '@/hooks/announcementHooks';
 import { useUserStatus } from '@/contexts/UserStatusContext';
+import { BackgroundImage } from '@/components/ui';
 
 /**
  * Represents a single comment in the announcement system.
@@ -142,19 +143,24 @@ function ReplyItem({ reply, currentUser, announcementId, parentCommentId, onRepl
   };
 
   return (
-    <div className={`ml-${depth * 4} mt-2 p-3 bg-gray-50 rounded-lg border-l-2 border-gray-200`}>
+    <div className={`ml-${depth * 4} mt-2 p-3 bg-slate-700/30 rounded-xl border-l-2 border-slate-600/50`}>
       <div className="flex justify-between items-start">
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-medium text-sm text-gray-900">{reply.userName}</span>
-            <span className="text-xs text-gray-400">{formatDate(reply.createdAt)}</span>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-6 h-6 bg-slate-600/50 rounded-full flex items-center justify-center">
+              <span className="text-xs font-semibold text-slate-300">{reply.userName.charAt(0)}</span>
+            </div>
+            <div>
+              <span className="font-medium text-sm text-slate-100">{reply.userName}</span>
+              <span className="text-xs text-slate-400 ml-2">{formatDate(reply.createdAt)}</span>
+            </div>
           </div>
-          <p className="text-sm text-gray-700 whitespace-pre-wrap">{reply.content}</p>
+          <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">{reply.content}</p>
         </div>
         {(isOwnReply) && (
           <button
             onClick={() => onDelete(reply.id)}
-            className="text-red-500 hover:text-red-700 text-sm p-1 hover:bg-red-50 rounded transition-colors"
+            className="text-red-400 hover:text-red-300 text-sm p-1.5 hover:bg-red-500/20 rounded-lg transition-colors"
             title="Delete reply"
           >
             <svg
@@ -175,26 +181,26 @@ function ReplyItem({ reply, currentUser, announcementId, parentCommentId, onRepl
         )}
       </div>
       {depth < maxDepth && (
-        <div className="mt-2">
+        <div className="mt-3">
           <button
             onClick={() => setShowReplyInput(!showReplyInput)}
-            className="text-blue-600 hover:text-blue-800 text-sm"
+            className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
           >
             Reply
           </button>
           {showReplyInput && (
-            <div className="mt-2 flex gap-2">
+            <div className="mt-3 flex gap-2">
               <input
                 type="text"
                 placeholder="Write a reply..."
                 value={newReplies[reply.id] || ''}
                 onChange={(e) => setNewReplies((prev: { [key: string]: string }) => ({ ...prev, [reply.id]: e.target.value }))}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-3 py-2.5 bg-slate-600/50 border border-slate-500/50 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
               />
               <button
                 onClick={handleReply}
                 disabled={isPostingComment === reply.id}
-                className="px-3 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 disabled:opacity-50"
+                className="px-3 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isPostingComment === reply.id ? 'Posting...' : 'Reply'}
               </button>
@@ -240,16 +246,21 @@ function CommentItem({ comment, currentUser, announcementId, onReply, onDelete, 
   };
 
   return (
-    <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
-      <div className="flex justify-between items-start mb-2">
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-gray-900">{comment.userName}</span>
-          <span className="text-xs text-gray-400">{formatDate(comment.createdAt)}</span>
+    <div className="mt-4 p-4 bg-slate-700/50 rounded-xl border border-slate-600/50">
+      <div className="flex justify-between items-start mb-3">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-slate-600/50 rounded-full flex items-center justify-center">
+            <span className="text-sm font-semibold text-slate-300">{comment.userName.charAt(0)}</span>
+          </div>
+          <div>
+            <span className="font-medium text-slate-100">{comment.userName}</span>
+            <span className="text-xs text-slate-400 ml-2">{formatDate(comment.createdAt)}</span>
+          </div>
         </div>
         {(isOwnComment) && (
           <button
             onClick={() => onDelete(comment.id)}
-            className="text-red-500 hover:text-red-700 text-sm p-1 hover:bg-red-50 rounded transition-colors"
+            className="text-red-400 hover:text-red-300 text-sm p-1.5 hover:bg-red-500/20 rounded-lg transition-colors"
             title="Delete comment"
           >
             <svg
@@ -269,7 +280,7 @@ function CommentItem({ comment, currentUser, announcementId, onReply, onDelete, 
           </button>
         )}
       </div>
-      <p className="text-gray-700 whitespace-pre-wrap mb-3">{comment.content}</p>
+      <p className="text-slate-200 leading-relaxed whitespace-pre-wrap mb-3">{comment.content}</p>
 
       <div className="space-y-2">
         {comment.replies?.map((reply: Comment) => (
@@ -290,26 +301,26 @@ function CommentItem({ comment, currentUser, announcementId, onReply, onDelete, 
         ))}
       </div>
 
-      <div className="mt-3">
+      <div className="mt-4">
         <button
           onClick={() => setShowReplyInput(!showReplyInput)}
-          className="text-blue-600 hover:text-blue-800 text-sm"
+          className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
         >
           Reply
         </button>
         {showReplyInput && (
-          <div className="mt-2 flex gap-2">
+          <div className="mt-3 flex gap-2">
             <input
               type="text"
               placeholder="Write a reply..."
               value={newReplies[comment.id] || ''}
-              onChange={(e) => setNewReplies((prev: { [key: string]: string }) => ({ ...prev, [comment.id]: e.target.value }))}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => setNewReplies(prev => ({ ...prev, [comment.id]: e.target.value }))}
+              className="flex-1 px-3 py-2.5 bg-slate-600/50 border border-slate-500/50 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
             />
             <button
               onClick={handleReply}
               disabled={isPostingComment === comment.id}
-              className="px-3 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 disabled:opacity-50"
+              className="px-3 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isPostingComment === comment.id ? 'Posting...' : 'Reply'}
             </button>
@@ -321,6 +332,19 @@ function CommentItem({ comment, currentUser, announcementId, onReply, onDelete, 
 }
 
 export default function Announcements({
+  showAnnouncementsList = true
+}: AnnouncementsProps) {
+  return (
+    <BackgroundImage className="min-h-screen relative">
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-indigo-950/80 to-slate-900/80 backdrop-blur-sm"></div>
+      <div className="relative z-10 container mx-auto px-4 py-6">
+        <AnnouncementsContent showAnnouncementsList={showAnnouncementsList} />
+      </div>
+    </BackgroundImage>
+  );
+}
+
+function AnnouncementsContent({
   showAnnouncementsList = true
 }: AnnouncementsProps) {
   // Use global user status context instead of props
@@ -519,8 +543,8 @@ export default function Announcements({
   if (isLoading) {
     return (
       <div className="text-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-        <p className="text-gray-600 mt-2">Loading announcements...</p>
+        <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p className="text-slate-400 mt-2">Loading announcements...</p>
       </div>
     );
   }
@@ -528,11 +552,19 @@ export default function Announcements({
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-xl font-semibold text-gray-800">Announcements</h3>
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-blue-500/20 rounded-xl flex items-center justify-center">
+            <span className="text-blue-400 text-sm">📢</span>
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold text-slate-100">Announcements</h3>
+            <p className="text-slate-400 text-sm">Latest updates and news</p>
+          </div>
+        </div>
         {canCreateAnnouncements && (
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/25"
           >
             <span className="text-lg">+</span>
             Create Announcement
@@ -541,57 +573,68 @@ export default function Announcements({
       </div>
 
       {message && (
-        <div className={`p-3 rounded-lg ${messageType === 'success'
-          ? 'bg-green-100 text-green-800 border border-green-200'
-          : 'bg-red-100 text-red-800 border border-red-200'
+        <div className={`rounded-lg p-4 text-center ${messageType === 'success'
+          ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
+          : 'bg-red-500/10 border border-red-500/30 text-red-300'
           }`}>
-          {message}
+          <div className="flex items-center justify-center gap-2">
+            <span>{messageType === 'success' ? '✓' : '⚠️'}</span>
+            <span className="font-medium">{message}</span>
+          </div>
         </div>
       )}
 
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4">Create Announcement</h3>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-slate-800/90 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-2xl p-6 w-full max-w-md">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                <span className="text-blue-400 text-lg">📝</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-slate-100">Create Announcement</h3>
+                <p className="text-slate-400 text-sm">Share important updates</p>
+              </div>
+            </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-300 mb-2">
                   Title
                 </label>
                 <input
                   type="text"
                   value={newAnnouncement.title}
                   onChange={(e) => setNewAnnouncement({ ...newAnnouncement, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2.5 bg-slate-700/50 border border-slate-600/50 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
                   placeholder="Announcement title"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-300 mb-2">
                   Content
                 </label>
                 <textarea
                   value={newAnnouncement.content}
                   onChange={(e) => setNewAnnouncement({ ...newAnnouncement, content: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2.5 bg-slate-700/50 border border-slate-600/50 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all resize-none"
                   rows={4}
                   placeholder="Announcement content"
                   required
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-2 mt-6">
+            <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                className="px-4 py-2.5 bg-slate-700/50 border border-slate-600/50 text-slate-300 rounded-lg hover:bg-slate-600/50 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateAnnouncement}
                 disabled={createAnnouncementMutation.isPending}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-blue-500/25"
               >
                 {createAnnouncementMutation.isPending ? 'Creating...' : 'Create'}
               </button>
@@ -603,44 +646,62 @@ export default function Announcements({
       {showAnnouncementsList && (
         <div className="space-y-4">
           {announcements.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No announcements yet.</p>
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-slate-700/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">📢</span>
+              </div>
+              <p className="text-slate-400">No announcements yet.</p>
+            </div>
           ) : (
             announcements.map((announcement: Announcement) => (
-              <div key={announcement.id} className="bg-white border border-gray-200 rounded-lg p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h4 className="text-lg font-semibold text-gray-900">{announcement.title}</h4>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-sm text-gray-600">{announcement.adminName}</span>
-                      <span className="text-xs text-gray-400">{formatDate(announcement.createdAt)}</span>
+              <div key={announcement.id} className="bg-slate-800/60 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-lg">
+                <div className="p-6 border-b border-slate-700/50">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                          <span className="text-blue-400 text-lg">📢</span>
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-slate-100">{announcement.title}</h4>
+                          <div className="flex items-center gap-3 mt-1">
+                            <div className="w-6 h-6 bg-slate-600/50 rounded-full flex items-center justify-center">
+                              <span className="text-xs font-semibold text-slate-300">{announcement.adminName.charAt(0)}</span>
+                            </div>
+                            <span className="text-sm text-slate-300">{announcement.adminName}</span>
+                            <span className="text-xs text-slate-400">{formatDate(announcement.createdAt)}</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
+                    {(canDeleteAnnouncements) && (
+                      <button
+                        onClick={() => handleDeleteAnnouncement(announcement.id)}
+                        className="text-red-400 hover:text-red-300 p-2 hover:bg-red-500/20 rounded-lg transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
-                  {(canDeleteAnnouncements) && (
-                    <button
-                      onClick={() => handleDeleteAnnouncement(announcement.id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      Delete
-                    </button>
-                  )}
+                  <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">{announcement.content}</div>
                 </div>
 
-                <div className="text-gray-700 whitespace-pre-wrap mb-4">{announcement.content}</div>
-
-                <div className="border-t pt-4">
-                  <div className="mt-4 space-y-3">
+                <div className="p-6 border-t border-slate-700/50">
+                  <div className="space-y-4">
                     <div className="flex gap-2">
                       <input
                         type="text"
                         placeholder="Add a comment..."
                         value={newComments[announcement.id] || ''}
                         onChange={(e) => setNewComments(prev => ({ ...prev, [announcement.id]: e.target.value }))}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 px-3 py-2.5 bg-slate-700/50 border border-slate-600/50 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
                       />
                       <button
                         onClick={() => handleComment(announcement.id, newComments[announcement.id])}
                         disabled={isPostingComment === announcement.id}
-                        className="px-3 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 disabled:opacity-50"
+                        className="px-3 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-blue-500/25"
                       >
                         {isPostingComment === announcement.id ? 'Posting...' : 'Comment'}
                       </button>

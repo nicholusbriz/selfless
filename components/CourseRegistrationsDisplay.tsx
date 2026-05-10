@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { CourseRegistration, FlexibleUser } from '@/types';
 import StudentGradesView from './StudentGradesView';
 

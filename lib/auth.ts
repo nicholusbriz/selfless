@@ -1,7 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
 import { API_ENDPOINTS } from '@/config/constants';
 
 // User interface for authentication response
