@@ -1,26 +1,13 @@
-// ============================================
-// HOMEPAGE COMPONENT - Freedom City Tech Center
-// ============================================
-// This is the main landing page that includes:
-// - Modern navigation with modal authentication
-// - Hero section with stats and CTAs
-// - Features showcase section
-// - Student testimonials
-// - About section with institutional stats
-// - Call-to-action section
-// - Footer with navigation and contact info
-// - Login and Register modal components
-// ============================================
-
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PWAInstallPrompt from '@/components/PWAInstallPrompt';
 import { Logo } from '@/components/ui';
 import { OrganizationStructuredData, WebSiteStructuredData, WebApplicationStructuredData } from '@/components/StructuredData';
 import { useLogin, useRegister } from '@/hooks/loginRegister';
 import { LoadingSpinner } from '@/components/ui';
+import TypewriterText from '@/components/ui/TypewriterText';
 
 // ============================================
 // LOGIN FORM COMPONENT
@@ -86,7 +73,7 @@ function LoginForm({ closeModal }: { closeModal: () => void }) {
       ) : (
         <>
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="email" className="block text-sm font-medium text-byu-navy-700 mb-2">
               Email Address
             </label>
             <input
@@ -95,7 +82,7 @@ function LoginForm({ closeModal }: { closeModal: () => void }) {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+              className="w-full px-4 py-3 border border-byu-navy-300 rounded-xl focus:ring-2 focus:ring-byu-gold-500 focus:border-byu-gold-500 outline-none transition-all"
               placeholder="your@email.com"
               disabled={isLoading}
               required
@@ -109,7 +96,7 @@ function LoginForm({ closeModal }: { closeModal: () => void }) {
           <button
             type="submit"
             disabled={isLoading || login.isPending}
-            className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 px-6 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-byu-navy-900 hover:bg-byu-navy-800 text-white font-semibold py-3 px-6 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <div className="flex items-center justify-center">
@@ -190,7 +177,7 @@ function RegisterForm({ closeModal }: { closeModal: () => void }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label htmlFor="firstName" className="block text-sm font-medium text-slate-700 mb-2">
+        <label htmlFor="firstName" className="block text-sm font-medium text-byu-navy-700 mb-2">
           First Name
         </label>
         <input
@@ -199,13 +186,13 @@ function RegisterForm({ closeModal }: { closeModal: () => void }) {
           name="firstName"
           value={formData.firstName}
           onChange={handleChange}
-          className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+          className="w-full px-4 py-3 border border-byu-navy-300 rounded-xl focus:ring-2 focus:ring-byu-gold-500 focus:border-byu-gold-500 outline-none transition-all"
           placeholder="John"
           required
         />
       </div>
       <div>
-        <label htmlFor="lastName" className="block text-sm font-medium text-slate-700 mb-2">
+        <label htmlFor="lastName" className="block text-sm font-medium text-byu-navy-700 mb-2">
           Last Name
         </label>
         <input
@@ -214,13 +201,13 @@ function RegisterForm({ closeModal }: { closeModal: () => void }) {
           name="lastName"
           value={formData.lastName}
           onChange={handleChange}
-          className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+          className="w-full px-4 py-3 border border-byu-navy-300 rounded-xl focus:ring-2 focus:ring-byu-gold-500 focus:border-byu-gold-500 outline-none transition-all"
           placeholder="Doe"
           required
         />
       </div>
       <div>
-        <label htmlFor="reg-email" className="block text-sm font-medium text-slate-700 mb-2">
+        <label htmlFor="reg-email" className="block text-sm font-medium text-byu-navy-700 mb-2">
           Email Address
         </label>
         <input
@@ -229,13 +216,13 @@ function RegisterForm({ closeModal }: { closeModal: () => void }) {
           name="email"
           value={formData.email}
           onChange={handleChange}
-          className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+          className="w-full px-4 py-3 border border-byu-navy-300 rounded-xl focus:ring-2 focus:ring-byu-gold-500 focus:border-byu-gold-500 outline-none transition-all"
           placeholder="your@email.com"
           required
         />
       </div>
       <div>
-        <label htmlFor="phoneNumber" className="block text-sm font-medium text-slate-700 mb-2">
+        <label htmlFor="phoneNumber" className="block text-sm font-medium text-byu-navy-700 mb-2">
           Phone Number
         </label>
         <input
@@ -244,13 +231,13 @@ function RegisterForm({ closeModal }: { closeModal: () => void }) {
           name="phoneNumber"
           value={formData.phoneNumber}
           onChange={handleChange}
-          className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+          className="w-full px-4 py-3 border border-byu-navy-300 rounded-xl focus:ring-2 focus:ring-byu-gold-500 focus:border-byu-gold-500 outline-none transition-all"
           placeholder="+256 123 456 789"
           required
         />
       </div>
       <div>
-        <label htmlFor="reg-password" className="block text-sm font-medium text-slate-700 mb-2">
+        <label htmlFor="reg-password" className="block text-sm font-medium text-byu-navy-700 mb-2">
           Password
         </label>
         <div className="relative">
@@ -260,14 +247,14 @@ function RegisterForm({ closeModal }: { closeModal: () => void }) {
             name="password"
             value={formData.password}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all pr-12"
+            className="w-full px-4 py-3 border border-byu-navy-300 rounded-xl focus:ring-2 focus:ring-byu-gold-500 focus:border-byu-gold-500 outline-none transition-all pr-12"
             placeholder="••••••••"
             required
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-byu-navy-400 hover:text-byu-navy-600"
           >
             {showPassword ? (
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -291,7 +278,7 @@ function RegisterForm({ closeModal }: { closeModal: () => void }) {
       <button
         type="submit"
         disabled={register.isPending}
-        className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 px-6 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-byu-navy-900 hover:bg-byu-navy-800 text-white font-semibold py-3 px-6 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {register.isPending ? 'Creating Account...' : 'Create Account'}
       </button>
@@ -307,6 +294,33 @@ export default function Page() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    setIsVisible(true);
+
+    // Scroll-triggered animations
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, observerOptions);
+
+    // Observe all scroll-animate elements
+    const scrollElements = document.querySelectorAll('.scroll-animate');
+    scrollElements.forEach(el => observer.observe(el));
+
+    return () => {
+      scrollElements.forEach(el => observer.unobserve(el));
+    };
+  }, []);
 
   // ============================================
   // PLATFORM FEATURES ARRAY
@@ -325,43 +339,43 @@ export default function Page() {
       title: "Grade Tracking",
       description: "Monitor your academic performance with real-time grade updates and detailed progress reports",
       icon: "",
-      color: "from-blue-600 to-blue-800",
-      action: () => router.push('/login')
+      color: "from-byu-navy-600 to-byu-navy-800",
+      action: () => setIsLoginModalOpen(true)
     },
     {
       title: "Cleaning Day Management",
       description: "Schedule and track cleaning duties efficiently with our automated assignment system",
       icon: "",
-      color: "from-green-600 to-green-800",
-      action: () => router.push('/login')
+      color: "from-byu-navy-600 to-byu-navy-800",
+      action: () => setIsLoginModalOpen(true)
     },
     {
       title: "Performance Analytics",
       description: "Visualize your academic progress with interactive charts and detailed analytics",
       icon: "",
-      color: "from-purple-600 to-purple-800",
-      action: () => router.push('/login')
+      color: "from-byu-navy-600 to-byu-navy-800",
+      action: () => setIsLoginModalOpen(true)
     },
     {
       title: "Credit Tracking",
       description: "Keep track of your academic credits and graduation requirements in real-time",
       icon: "",
-      color: "from-orange-600 to-orange-800",
-      action: () => router.push('/login')
+      color: "from-byu-navy-600 to-byu-navy-800",
+      action: () => setIsLoginModalOpen(true)
     },
     {
       title: "Policy Center",
       description: "Access all institutional policies, guidelines, and academic regulations in one place",
       icon: "",
-      color: "from-red-600 to-red-800",
-      action: () => router.push('/login')
+      color: "from-byu-navy-600 to-byu-navy-800",
+      action: () => setIsLoginModalOpen(true)
     },
     {
       title: "Student Dashboard",
       description: "Centralized hub for all your academic information and quick access to all features",
       icon: "",
-      color: "from-teal-600 to-teal-800",
-      action: () => router.push('/login')
+      color: "from-byu-navy-600 to-byu-navy-800",
+      action: () => setIsLoginModalOpen(true)
     }
   ];
 
@@ -405,10 +419,10 @@ export default function Page() {
           - Dashboard button (opens login modal)
           - Sign In button (opens login modal)
           - Mobile hamburger menu
-          - Professional gradient background
+          - Professional navy background
           - Enhanced shadow effects
           - ============================================ */}
-      <header className="fixed top-0 w-full bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-700/50 z-50 shadow-lg">
+      <header className="fixed top-0 w-full bg-byu-navy-900 border-b border-byu-navy-800 z-50 shadow-lg">
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
@@ -419,18 +433,18 @@ export default function Page() {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-1">
-              <a href="#features" className="text-slate-300 hover:text-white px-4 py-2 rounded-lg hover:bg-slate-700/50 transition-all font-medium">Features</a>
-              <a href="#about" className="text-slate-300 hover:text-white px-4 py-2 rounded-lg hover:bg-slate-700/50 transition-all font-medium">About</a>
-              <a href="#testimonials" className="text-slate-300 hover:text-white px-4 py-2 rounded-lg hover:bg-slate-700/50 transition-all font-medium">Testimonials</a>
+              <a href="#features" className="text-byu-navy-100 hover:text-white px-4 py-2 rounded-lg hover:bg-byu-navy-800 transition-all font-medium">Features</a>
+              <a href="#about" className="text-byu-navy-100 hover:text-white px-4 py-2 rounded-lg hover:bg-byu-navy-800 transition-all font-medium">About</a>
+              <a href="#testimonials" className="text-byu-navy-100 hover:text-white px-4 py-2 rounded-lg hover:bg-byu-navy-800 transition-all font-medium">Testimonials</a>
               <button
                 onClick={() => setIsLoginModalOpen(true)}
-                className="text-slate-300 hover:text-white px-4 py-2 rounded-lg hover:bg-slate-700/50 transition-all font-medium"
+                className="text-byu-navy-100 hover:text-white px-4 py-2 rounded-lg hover:bg-byu-navy-800 transition-all font-medium"
               >
                 Dashboard
               </button>
               <button
                 onClick={() => setIsLoginModalOpen(true)}
-                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-5 py-2.5 rounded-lg transition-all font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
+                className="bg-byu-gold-500 hover:bg-byu-gold-600 text-white px-5 py-2.5 rounded-lg transition-all font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
               >
                 Sign In
               </button>
@@ -439,7 +453,7 @@ export default function Page() {
             {/* Mobile menu button */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden text-slate-300 p-2 hover:bg-slate-700/50 rounded-lg transition-colors"
+              className="md:hidden text-byu-navy-100 p-2 hover:bg-byu-navy-800 rounded-lg transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -449,25 +463,25 @@ export default function Page() {
 
           {/* Mobile Menu */}
           {isMenuOpen && (
-            <div className="md:hidden bg-slate-900/95 backdrop-blur-md border-t border-slate-700/50">
+            <div className="md:hidden bg-byu-navy-900/95 backdrop-blur-md border-t border-byu-navy-800">
               <div className="px-4 py-4 space-y-1">
                 <a
                   href="#features"
-                  className="block text-slate-300 hover:text-white px-4 py-2 rounded-lg hover:bg-slate-700/50 transition-all font-medium"
+                  className="block text-byu-navy-100 hover:text-white px-4 py-2 rounded-lg hover:bg-byu-navy-800 transition-all font-medium"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Features
                 </a>
                 <a
                   href="#about"
-                  className="block text-slate-300 hover:text-white px-4 py-2 rounded-lg hover:bg-slate-700/50 transition-all font-medium"
+                  className="block text-byu-navy-100 hover:text-white px-4 py-2 rounded-lg hover:bg-byu-navy-800 transition-all font-medium"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   About
                 </a>
                 <a
                   href="#testimonials"
-                  className="block text-slate-300 hover:text-white px-4 py-2 rounded-lg hover:bg-slate-700/50 transition-all font-medium"
+                  className="block text-byu-navy-100 hover:text-white px-4 py-2 rounded-lg hover:bg-byu-navy-800 transition-all font-medium"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Testimonials
@@ -477,7 +491,7 @@ export default function Page() {
                     setIsLoginModalOpen(true);
                     setIsMenuOpen(false);
                   }}
-                  className="block text-slate-300 hover:text-white px-4 py-2 rounded-lg hover:bg-slate-700/50 transition-all font-medium"
+                  className="block text-byu-navy-100 hover:text-white px-4 py-2 rounded-lg hover:bg-byu-navy-800 transition-all font-medium"
                 >
                   Dashboard
                 </button>
@@ -486,7 +500,7 @@ export default function Page() {
                     setIsLoginModalOpen(true);
                     setIsMenuOpen(false);
                   }}
-                  className="block bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2.5 rounded-lg transition-all font-medium shadow-lg hover:shadow-xl transform hover:scale-105 w-full"
+                  className="block bg-byu-gold-500 hover:bg-byu-gold-600 text-white px-4 py-2.5 rounded-lg transition-all font-medium shadow-lg hover:shadow-xl transform hover:scale-105 w-full"
                 >
                   Sign In
                 </button>
@@ -499,49 +513,60 @@ export default function Page() {
       {/* ============================================
           HERO SECTION
           ============================================
-          Main landing section with:
+          Professional university landing section with:
           - Trust badge showing user count
-          - Bold headline with gradient text
+          - Bold headline with professional branding
           - Value proposition description
           - Two CTA buttons (Get Started, Sign Up)
           - Statistics grid (4 key metrics)
-          - Subtle background patterns and gradients
+          - Professional navy background
+          - Subtle gold accents
           - Responsive design for all screen sizes
           ============================================ */}
-      <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50 overflow-hidden">
+      <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-byu-navy-900 via-byu-navy-800 to-byu-navy-900 overflow-hidden">
         {/* Subtle Background Pattern */}
-        <div className="absolute inset-0 opacity-30">
+        <div className="absolute inset-0 opacity-20">
           <div className="absolute inset-0" style={{
-            backgroundImage: 'radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.08) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(147, 51, 234, 0.08) 0%, transparent 50%)'
+            backgroundImage: 'radial-gradient(circle at 25% 25%, rgba(196, 160, 0, 0.1) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(196, 160, 0, 0.05) 0%, transparent 50%)'
           }}></div>
         </div>
         <div className="absolute inset-0" style={{
-          backgroundImage: 'linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px)',
+          backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px)',
           backgroundSize: '64px 64px'
         }}></div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-20">
           <div className="animate-fade-in">
             {/* Badge */}
-            <div className="inline-flex items-center px-4 py-2 bg-blue-50 border border-blue-200 rounded-full mb-8 animate-slide-up">
-              <span className="w-2 h-2 bg-blue-600 rounded-full mr-2 animate-pulse"></span>
-              <span className="text-sm font-medium text-blue-700">Trusted by 1500+ students</span>
+            <div className="inline-flex items-center px-4 py-2 bg-byu-navy-800 border border-byu-gold-500/30 rounded-full mb-8 animate-slide-up">
+              <span className="w-2 h-2 bg-byu-gold-500 rounded-full mr-2 animate-pulse"></span>
+              <span className="text-sm font-medium text-byu-gold-500">Trusted by 1500+ students</span>
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-bold text-slate-900 mb-6 leading-tight tracking-tight animate-slide-down">
-              Student Management
-              <span className="block bg-gradient-to-r from-blue-600 via-blue-700 to-purple-600 bg-clip-text text-transparent mt-2">Made Simple</span>
+            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight tracking-tight animate-slide-down">
+              Freedom City Tech Center
+              <span className="block bg-gradient-to-r from-byu-gold-400 via-byu-gold-500 to-byu-gold-600 bg-clip-text text-transparent mt-2">Tracking System</span>
             </h1>
 
-            <p className="text-xl md:text-2xl text-slate-600 mb-10 max-w-3xl mx-auto animate-fade-in animation-delay-200 leading-relaxed font-normal">
-              Track grades, manage schedules, and access everything you need in one powerful platform.
-              <span className="block text-slate-500 mt-2 text-lg">Your academic journey, streamlined.</span>
-            </p>
+            <div className="text-xl md:text-2xl text-byu-navy-100 mb-10 max-w-3xl mx-auto animate-fade-in animation-delay-200 leading-relaxed font-normal">
+              <TypewriterText
+                texts={[
+                  "Track grades, manage schedules, and access everything you need in one powerful platform.",
+                  "Monitor your academic progress with real-time updates and detailed analytics.",
+                  "Streamline your educational journey with our comprehensive tracking system."
+                ]}
+                className="block"
+                speed={50}
+                deleteSpeed={30}
+                pauseDuration={3000}
+              />
+              <span className="block text-byu-navy-200 mt-2 text-lg">Your academic journey, streamlined.</span>
+            </div>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-20 animate-fade-in animation-delay-400">
               <button
                 onClick={() => setIsLoginModalOpen(true)}
-                className="group bg-slate-900 hover:bg-slate-800 text-white font-semibold py-4 px-8 rounded-xl text-lg transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                className="group bg-byu-gold-500 hover:bg-byu-gold-600 text-white font-semibold py-4 px-8 rounded-xl text-lg transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
               >
                 Get Started Free
                 <svg className="inline-block w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -550,7 +575,7 @@ export default function Page() {
               </button>
               <button
                 onClick={() => setIsRegisterModalOpen(true)}
-                className="group bg-white hover:bg-slate-50 text-slate-700 border-2 border-slate-200 hover:border-slate-300 font-semibold py-4 px-8 rounded-xl text-lg transition-all duration-300 hover:shadow-md"
+                className="group bg-byu-navy-800 hover:bg-byu-navy-700 text-white border-2 border-byu-navy-600 hover:border-byu-gold-500 font-semibold py-4 px-8 rounded-xl text-lg transition-all duration-300 hover:shadow-md"
               >
                 <svg className="inline-block w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
@@ -563,10 +588,10 @@ export default function Page() {
             {/* Modern Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
               {stats.map((stat, index) => (
-                <div key={index} className="group text-center animate-fade-in animation-delay-600">
-                  <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-lg hover:border-blue-200 transition-all duration-300">
-                    <div className="text-3xl md:text-4xl font-bold text-slate-900 mb-1">{stat.number}</div>
-                    <div className="text-slate-500 text-sm font-medium">{stat.label}</div>
+                <div key={index} className="group text-center animate-slide-in-up stagger-{index + 1}">
+                  <div className="bg-byu-navy-800/50 backdrop-blur-sm rounded-2xl p-6 border border-byu-navy-700 hover:border-byu-gold-500/50 hover-glow transition-all duration-300">
+                    <div className="text-3xl md:text-4xl font-bold text-white mb-1 animate-count-up">{stat.number}</div>
+                    <div className="text-byu-navy-200 text-sm font-medium">{stat.label}</div>
                   </div>
                 </div>
               ))}
@@ -586,23 +611,33 @@ export default function Page() {
           - Hover effects with border and shadow changes
           - Clicking opens login modal to access feature
           - Responsive grid (1 col mobile, 2 col tablet, 3 col desktop)
+          - Modern gradient background
           ============================================ */}
-      <section id="features" className="py-24 bg-white">
+      <section id="features" className="py-24 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4 animate-slide-up tracking-tight">
+          <div className="text-center mb-16 scroll-animate">
+            <h2 className="text-4xl md:text-5xl font-bold text-byu-navy-900 mb-4 tracking-tight">
               Everything you need
             </h2>
-            <p className="text-xl text-slate-600 max-w-2xl mx-auto animate-fade-in animation-delay-200 leading-relaxed">
-              Powerful features designed to streamline your academic journey
-            </p>
+            <div className="text-xl text-byu-navy-600 max-w-2xl mx-auto leading-relaxed">
+              <TypewriterText
+                texts={[
+                  "Powerful features designed to streamline your academic journey",
+                  "Comprehensive tools for modern education management",
+                  "Innovative solutions for student success"
+                ]}
+                speed={30}
+                deleteSpeed={20}
+                pauseDuration={2500}
+              />
+            </div>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, index) => (
               <div
                 key={index}
-                className="group bg-slate-50 rounded-2xl p-6 border border-slate-200 hover:border-blue-300 hover:shadow-lg hover:bg-white transition-all duration-300 cursor-pointer animate-fade-in animation-delay-300"
+                className={`group bg-white rounded-2xl p-6 border border-byu-navy-200 hover:border-byu-gold-500 hover:shadow-lg hover-lift transform-3d transition-all duration-300 cursor-pointer animate-slide-in-up stagger-${index + 1}`}
                 onClick={feature.action}
               >
                 <div className={`w-12 h-12 bg-gradient-to-br ${feature.color} rounded-xl flex items-center justify-center mb-4 shadow-sm group-hover:scale-110 transition-transform duration-300`}>
@@ -610,13 +645,13 @@ export default function Page() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">
+                <h3 className="text-xl font-bold text-byu-navy-900 mb-2 group-hover:text-byu-gold-600 transition-colors">
                   {feature.title}
                 </h3>
-                <p className="text-slate-600 leading-relaxed mb-4">
+                <p className="text-byu-navy-600 leading-relaxed mb-4">
                   {feature.description}
                 </p>
-                <div className="flex items-center text-blue-600 font-medium text-sm group-hover:translate-x-1 transition-transform">
+                <div className="flex items-center text-byu-gold-600 font-medium text-sm group-hover:translate-x-1 transition-transform">
                   Learn more
                   <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -636,83 +671,83 @@ export default function Page() {
           - 5-star rating display
           - Student name and role
           - Personal quote/experience
-          - Color-coded avatars (blue, purple, green)
-          - Hover shadow effects
-          - ============================================ */}
-      <section id="testimonials" className="py-24 bg-slate-50">
+          - Professional color-coded avatars
+          - Hover shadow effects with gold accents
+          ============================================ */}
+      <section id="testimonials" className="py-24 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4 animate-slide-up tracking-tight">
+          <div className="text-center mb-16 scroll-animate">
+            <h2 className="text-4xl md:text-5xl font-bold text-byu-navy-900 mb-4 tracking-tight">
               Loved by students
             </h2>
-            <p className="text-xl text-slate-600 max-w-2xl mx-auto animate-fade-in animation-delay-200">
+            <p className="text-xl text-byu-navy-600 max-w-2xl mx-auto leading-relaxed">
               See what our community has to say
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-lg transition-shadow duration-300 animate-fade-in animation-delay-300">
+            <div className="bg-byu-navy-50 rounded-2xl p-8 shadow-sm hover:shadow-lg hover:border-byu-gold-500 border border-byu-navy-200 hover-lift transform-3d transition-all duration-300 animate-slide-in-left stagger-1">
               <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
+                <div className="w-12 h-12 bg-byu-navy-200 rounded-full flex items-center justify-center text-byu-navy-800 font-bold animate-float">
                   NT
                 </div>
                 <div className="ml-4">
-                  <h4 className="font-semibold text-slate-900">Nicholus Turyamureba</h4>
-                  <p className="text-sm text-slate-500">Software Engineer expert  </p>
+                  <h4 className="font-semibold text-byu-navy-900">Nicholus Turyamureba</h4>
+                  <p className="text-sm text-byu-navy-600">Software Engineer expert  </p>
                 </div>
               </div>
               <div className="flex mb-4">
                 {[...Array(5)].map((_, i) => (
-                  <svg key={i} className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                  <svg key={i} className="w-5 h-5 text-byu-gold-500 fill-current animate-glow" viewBox="0 0 20 20">
                     <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
                   </svg>
                 ))}
               </div>
-              <p className="text-slate-600 leading-relaxed">
+              <p className="text-byu-navy-700 leading-relaxed">
                 "The grade tracking system helps me monitor my progress in real-time. It's been a game-changer for my studies!"
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-lg transition-shadow duration-300 animate-fade-in animation-delay-400">
+            <div className="bg-byu-navy-50 rounded-2xl p-8 shadow-sm hover:shadow-lg hover:border-byu-gold-500 border border-byu-navy-200 hover-lift transform-3d transition-all duration-300 animate-slide-in-up stagger-2">
               <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-bold">
+                <div className="w-12 h-12 bg-byu-navy-200 rounded-full flex items-center justify-center text-byu-navy-800 font-bold animate-float">
                   MN
                 </div>
                 <div className="ml-4">
-                  <h4 className="font-semibold text-slate-900">Mercy Nalubega</h4>
-                  <p className="text-sm text-slate-500">Applied Health Student</p>
+                  <h4 className="font-semibold text-byu-navy-900">Mercy Nalubega</h4>
+                  <p className="text-sm text-byu-navy-600">Applied Health Student</p>
                 </div>
               </div>
               <div className="flex mb-4">
                 {[...Array(5)].map((_, i) => (
-                  <svg key={i} className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                  <svg key={i} className="w-5 h-5 text-byu-gold-500 fill-current animate-glow" viewBox="0 0 20 20">
                     <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
                   </svg>
                 ))}
               </div>
-              <p className="text-slate-600 leading-relaxed">
+              <p className="text-byu-navy-700 leading-relaxed">
                 "The course registration system is so intuitive! I can easily manage my schedule. This platform has made my academic life easier."
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-lg transition-shadow duration-300 animate-fade-in animation-delay-500">
+            <div className="bg-byu-navy-50 rounded-2xl p-8 shadow-sm hover:shadow-lg hover:border-byu-gold-500 border border-byu-navy-200 hover-lift transform-3d transition-all duration-300 animate-slide-in-right stagger-3">
               <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-600 font-bold">
+                <div className="w-12 h-12 bg-byu-navy-200 rounded-full flex items-center justify-center text-byu-navy-800 font-bold animate-float">
                   PA
                 </div>
                 <div className="ml-4">
-                  <h4 className="font-semibold text-slate-900">Princess Agatha</h4>
-                  <p className="text-sm text-slate-500">Applied Health Student</p>
+                  <h4 className="font-semibold text-byu-navy-900">Princess Agatha</h4>
+                  <p className="text-sm text-byu-navy-600">Applied Health Student</p>
                 </div>
               </div>
               <div className="flex mb-4">
                 {[...Array(5)].map((_, i) => (
-                  <svg key={i} className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                  <svg key={i} className="w-5 h-5 text-byu-gold-500 fill-current animate-glow" viewBox="0 0 20 20">
                     <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
                   </svg>
                 ))}
               </div>
-              <p className="text-slate-600 leading-relaxed">
+              <p className="text-byu-navy-700 leading-relaxed">
                 "Finding tutors has been incredible. The personalized support helped me master difficult concepts. I feel more confident."
               </p>
             </div>
@@ -730,25 +765,26 @@ export default function Page() {
             * 50+ Expert Faculty
             * 95% Employment Rate
           - Clean, centered layout
-          - ============================================ */}
-      <section id="about" className="py-24 bg-white">
+          - Modern gradient background
+          ============================================ */}
+      <section id="about" className="py-24 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 tracking-tight">About Freedom City Tech Center</h2>
-          <p className="text-xl text-slate-600 leading-relaxed mb-12">
+          <h2 className="text-4xl md:text-5xl font-bold text-byu-navy-900 mb-6 tracking-tight scroll-animate">About Freedom City Tech Center</h2>
+          <p className="text-xl text-byu-navy-600 leading-relaxed mb-12 scroll-animate">
             Where innovation meets opportunity in technology education. We empower the next generation of tech leaders through cutting-edge programs and hands-on learning experiences.
           </p>
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-slate-50 rounded-2xl p-8">
-              <div className="text-4xl font-bold text-slate-900 mb-2">1500+</div>
-              <div className="text-slate-600 font-medium">Students Enrolled</div>
+            <div className="bg-white rounded-2xl p-8 border border-byu-navy-200 hover:border-byu-gold-500 hover-lift transform-3d transition-all duration-300 animate-slide-in-left stagger-1">
+              <div className="text-4xl font-bold text-byu-navy-900 mb-2 animate-count-up">1500+</div>
+              <div className="text-byu-navy-600 font-medium">Students Enrolled</div>
             </div>
-            <div className="bg-slate-50 rounded-2xl p-8">
-              <div className="text-4xl font-bold text-slate-900 mb-2">50+</div>
-              <div className="text-slate-600 font-medium">Expert Faculty</div>
+            <div className="bg-white rounded-2xl p-8 border border-byu-navy-200 hover:border-byu-gold-500 hover-lift transform-3d transition-all duration-300 animate-slide-in-up stagger-2">
+              <div className="text-4xl font-bold text-byu-navy-900 mb-2 animate-count-up">50+</div>
+              <div className="text-byu-navy-600 font-medium">Expert Faculty</div>
             </div>
-            <div className="bg-slate-50 rounded-2xl p-8">
-              <div className="text-4xl font-bold text-slate-900 mb-2">95%</div>
-              <div className="text-slate-600 font-medium">Employment Rate</div>
+            <div className="bg-white rounded-2xl p-8 border border-byu-navy-200 hover:border-byu-gold-500 hover-lift transform-3d transition-all duration-300 animate-slide-in-right stagger-3">
+              <div className="text-4xl font-bold text-byu-navy-900 mb-2 animate-count-up">95%</div>
+              <div className="text-byu-navy-600 font-medium">Employment Rate</div>
             </div>
           </div>
         </div>
@@ -758,30 +794,30 @@ export default function Page() {
           CALL-TO-ACTION (CTA) SECTION
           ============================================
           Final conversion section with:
-          - Dark slate background for contrast
+          - Professional navy background for contrast
           - Compelling headline
           - Supporting text
           - Two action buttons:
-            * Get Started Free (white, primary)
+            * Get Started Free (gold, primary)
             * Learn More (outlined, secondary)
           - Both open modals (register/login)
           ============================================ */}
-      <section className="py-24 bg-slate-900">
+      <section className="py-24 bg-byu-navy-900">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 tracking-tight">Ready to get started?</h2>
-          <p className="text-xl text-slate-300 mb-10 max-w-2xl mx-auto">
+          <p className="text-xl text-byu-navy-200 mb-10 max-w-2xl mx-auto">
             Join thousands of students already transforming their academic journey with our platform.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={() => setIsRegisterModalOpen(true)}
-              className="bg-white text-slate-900 hover:bg-slate-100 font-semibold py-4 px-8 rounded-xl text-lg transition-all hover:shadow-lg"
+              className="bg-byu-gold-500 text-white hover:bg-byu-gold-600 font-semibold py-4 px-8 rounded-xl text-lg transition-all hover:shadow-lg"
             >
               Get Started Free
             </button>
             <button
               onClick={() => setIsLoginModalOpen(true)}
-              className="bg-transparent border-2 border-slate-700 text-white hover:border-slate-600 font-semibold py-4 px-8 rounded-xl text-lg transition-all hover:bg-slate-800"
+              className="bg-transparent border-2 border-byu-gold-500 text-byu-gold-500 hover:bg-byu-gold-500 hover:text-white font-semibold py-4 px-8 rounded-xl text-lg transition-all"
             >
               Learn More
             </button>
@@ -798,49 +834,52 @@ export default function Page() {
           - Column 3: Resource links
           - Column 4: Contact information
           - Copyright notice at bottom
-          - Light theme with subtle border
+          - Modern gradient background
           - ============================================ */}
-      <footer className="bg-white border-t border-slate-200 py-16">
+      <footer className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-t border-slate-700 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-12">
             <div>
               <div className="flex items-center mb-4">
                 <Logo size="sm" className="mr-3" />
-                <span className="font-bold text-xl text-slate-900">Freedom City Tech Center</span>
+                <span className="font-bold text-xl text-white">Freedom City Tech Center</span>
               </div>
-              <p className="text-slate-500 text-sm leading-relaxed">
+              <p className="text-slate-300 text-sm leading-relaxed">
                 Leading technology education for tomorrow's innovators.
               </p>
             </div>
             <div>
-              <h3 className="font-semibold mb-4 text-slate-900">Features</h3>
-              <ul className="space-y-3 text-slate-600 text-sm">
-                <li><a href="#features" className="hover:text-slate-900 transition-colors">Grade Tracking</a></li>
-                <li><a href="#features" className="hover:text-slate-900 transition-colors">Cleaning Days</a></li>
-                <li><a href="#features" className="hover:text-slate-900 transition-colors">Performance Analytics</a></li>
-                <li><a href="#features" className="hover:text-slate-900 transition-colors">Credit Tracking</a></li>
+              <h3 className="font-semibold mb-4 text-white">Features</h3>
+              <ul className="space-y-3 text-slate-400 text-sm">
+                <li><a href="#features" className="hover:text-white transition-colors">Grade Tracking</a></li>
+                <li><a href="#features" className="hover:text-white transition-colors">Cleaning Days</a></li>
+                <li><a href="#features" className="hover:text-white transition-colors">Performance Analytics</a></li>
+                <li><a href="#features" className="hover:text-white transition-colors">Credit Tracking</a></li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold mb-4 text-slate-900">Resources</h3>
-              <ul className="space-y-3 text-slate-600 text-sm">
-                <li><a href="/dashboard" className="hover:text-slate-900 transition-colors">Student Dashboard</a></li>
-                <li><a href="/policies" className="hover:text-slate-900 transition-colors">Policy Center</a></li>
-                <li><a href="/cleaning-days" className="hover:text-slate-900 transition-colors">Cleaning Schedule</a></li>
-                <li><a href="/login" className="hover:text-slate-900 transition-colors">Support</a></li>
+              <h3 className="font-semibold mb-4 text-white">Resources</h3>
+              <ul className="space-y-3 text-slate-400 text-sm">
+                <li><button onClick={() => setIsLoginModalOpen(true)} className="hover:text-white transition-colors text-left w-full">Student Dashboard</button></li>
+                <li><button onClick={() => setIsLoginModalOpen(true)} className="hover:text-white transition-colors text-left w-full">Policy Center</button></li>
+                <li><button onClick={() => setIsLoginModalOpen(true)} className="hover:text-white transition-colors text-left w-full">Cleaning Schedule</button></li>
+                <li><button onClick={() => setIsLoginModalOpen(true)} className="hover:text-white transition-colors text-left w-full">My Grades</button></li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold mb-4 text-slate-900">Contact</h3>
-              <ul className="space-y-3 text-slate-600 text-sm">
-                <li>info@freedomcitytech.edu</li>
+              <h3 className="font-semibold mb-4 text-white">Contact</h3>
+              <ul className="space-y-3 text-slate-400 text-sm">
+                <li className="font-medium text-white">Kiwanuka Tonny</li>
+                <li>Manager, Freedom City Tech Center</li>
+                <li>Graduate, BYU Idaho</li>
                 <li>+256 761996296</li>
                 <li>Kampala, Uganda</li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-slate-200 mt-12 pt-8 text-center text-slate-500 text-sm">
+          <div className="border-t border-slate-700 mt-12 pt-8 text-center text-slate-400 text-sm">
             <p>&copy; 2024 Freedom City Tech Center. All rights reserved.</p>
+            <p className="mt-2 text-slate-500">Developed by Nicholus Turyamureba • Student at BYU Idaho Freedom City Tech Center • Kampala, Uganda</p>
           </div>
         </div>
       </footer>
@@ -864,10 +903,10 @@ export default function Page() {
             className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
             onClick={() => setIsLoginModalOpen(false)}
           ></div>
-          <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-fade-in">
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-fade-in border border-byu-navy-200">
             <button
               onClick={() => setIsLoginModalOpen(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
+              className="absolute top-4 right-4 text-byu-navy-400 hover:text-byu-navy-600 transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -876,19 +915,19 @@ export default function Page() {
             <div className="p-8">
               <div className="text-center mb-6">
                 <Logo size="lg" className="mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">Welcome Back</h2>
-                <p className="text-slate-600">Sign in to access your dashboard</p>
+                <h2 className="text-2xl font-bold text-byu-navy-900 mb-2">Welcome Back</h2>
+                <p className="text-byu-navy-600">Sign in to access your dashboard</p>
               </div>
               <LoginForm closeModal={() => setIsLoginModalOpen(false)} />
               <div className="mt-6 text-center">
-                <p className="text-slate-600 text-sm">
+                <p className="text-byu-navy-600 text-sm">
                   Don't have an account?{' '}
                   <button
                     onClick={() => {
                       setIsLoginModalOpen(false);
                       setIsRegisterModalOpen(true);
                     }}
-                    className="text-blue-600 hover:text-blue-700 font-medium"
+                    className="text-byu-gold-600 hover:text-byu-gold-700 font-medium"
                   >
                     Sign up
                   </button>
@@ -918,10 +957,10 @@ export default function Page() {
             className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
             onClick={() => setIsRegisterModalOpen(false)}
           ></div>
-          <div className="relative bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-fade-in">
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-fade-in border border-byu-navy-200">
             <button
               onClick={() => setIsRegisterModalOpen(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
+              className="absolute top-4 right-4 text-byu-navy-400 hover:text-byu-navy-600 transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -930,19 +969,19 @@ export default function Page() {
             <div className="p-8">
               <div className="text-center mb-6">
                 <Logo size="lg" className="mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">Create Account</h2>
-                <p className="text-slate-600">Join our community today</p>
+                <h2 className="text-2xl font-bold text-byu-navy-900 mb-2">Create Account</h2>
+                <p className="text-byu-navy-600">Join our community today</p>
               </div>
               <RegisterForm closeModal={() => setIsRegisterModalOpen(false)} />
               <div className="mt-6 text-center">
-                <p className="text-slate-600 text-sm">
+                <p className="text-byu-navy-600 text-sm">
                   Already have an account?{' '}
                   <button
                     onClick={() => {
                       setIsRegisterModalOpen(false);
                       setIsLoginModalOpen(true);
                     }}
-                    className="text-blue-600 hover:text-blue-700 font-medium"
+                    className="text-byu-gold-600 hover:text-byu-gold-700 font-medium"
                   >
                     Sign in
                   </button>
