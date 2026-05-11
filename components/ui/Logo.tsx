@@ -34,7 +34,7 @@ export default function Logo({
   variant = 'default',
   className = '',
   style,
-  loading = 'lazy',
+  loading = 'eager',
   priority = false
 }: LogoProps) {
   const config = LogoConfig[size];
