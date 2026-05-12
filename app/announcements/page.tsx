@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Announcements from '@/components/Announcements';
 import { checkUserAccess, User } from '@/lib/auth';
-import { BackgroundImage, PageLoader, DashboardButton } from '@/components/ui';
+import { PageLoader, DashboardButton } from '@/components/ui';
 
 export default function AnnouncementsPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -49,7 +49,9 @@ export default function AnnouncementsPage() {
 
   if (!user || checkingStatus) {
     return (
-      <PageLoader text="Loading announcements..." color="purple" />
+      <div className="min-h-screen bg-gradient-to-br from-violet-900 via-purple-900 to-indigo-900 flex items-center justify-center">
+        <PageLoader text="Loading announcements..." color="white" />
+      </div>
     );
   }
 
@@ -58,93 +60,100 @@ export default function AnnouncementsPage() {
   const canPostAnnouncements = isTutor && user.tutorPermissions?.canPostAnnouncements;
 
   return (
-    <BackgroundImage className="h-screen relative overflow-hidden">
-      {/* Overlay gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-blue-900/20 via-blue-800/10 to-purple-900/20"></div>
-      <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5"></div>
+    <div className="min-h-screen bg-gradient-to-br from-violet-900 via-purple-900 to-indigo-900 relative overflow-hidden">
+      {/* Modern Background Effects */}
+      <div className="absolute inset-0">
+        {/* Animated gradient orbs */}
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-violet-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-pulse animation-delay-4000"></div>
+        {/* Grid pattern */}
+        <div className="absolute inset-0" style={{
+          backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px)',
+          backgroundSize: '60px 60px'
+        }}></div>
+      </div>
 
-      {/* Content */}
-      <div className="relative z-10 h-screen flex items-center justify-center">
-        {/* Floating animated elements */}
-        <div className="absolute top-10 left-10 w-32 h-32 bg-blue-400/20 rounded-full blur-3xl"></div>
-        <div className="absolute top-20 right-20 w-40 h-40 bg-purple-400/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-10 left-1/3 w-36 h-36 bg-indigo-400/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 right-1/4 w-28 h-28 bg-pink-400/20 rounded-full blur-3xl"></div>
-
-        <div className="w-full max-w-4xl relative z-10 overflow-y-auto max-h-full px-4 py-2">
-          <div className="p-4">
-            <div className="text-center mb-6">
-              {/* Back to Dashboard Button */}
-              <div className="mb-4">
-                <DashboardButton text="Back to Dashboard" variant="outline" fullWidth={false} icon="🔙" />
-              </div>
-
-              {/* Logo */}
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-700 rounded-full mb-4 shadow-2xl shadow-cyan-500/50 p-2 mx-auto" style={{ boxShadow: '0 0 40px rgba(6, 182, 212, 0.5), 0 0 80px rgba(59, 130, 246, 0.3)' }}>
+      <div className="relative z-10 container mx-auto px-4 py-6 min-h-screen flex flex-col">
+        {/* Modern Header */}
+        <header className="mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-violet-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/30">
                 <Image
                   src="/freedom.png"
-                  alt="Freedom City Tech Center Logo"
-                  width={80}
-                  height={80}
-                  className="w-full h-full object-contain"
-                  style={{ filter: 'drop-shadow(0 0 20px rgba(255, 255, 255, 0.8))' }}
+                  alt="Freedom City Tech Center"
+                  width={32}
+                  height={32}
+                  className="w-8 h-8 object-contain"
                 />
               </div>
-
-              {/* Title */}
-              <h1 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-cyan-300 via-white to-purple-300 bg-clip-text text-transparent mb-3" style={{
-                textShadow: '0 0 30px rgba(255, 255, 255, 0.5), 0 0 60px rgba(6, 182, 212, 0.3)',
-                letterSpacing: '0.02em'
-              }}>
-                ANNOUNCEMENTS
-              </h1>
-
-              {/* Subtitle */}
-              <p className="text-base md:text-lg font-light text-cyan-200 mb-4 uppercase tracking-widest" style={{
-                textShadow: '0 0 20px rgba(6, 182, 212, 0.8), 0 0 40px rgba(6, 182, 212, 0.4)',
-                letterSpacing: '0.15em'
-              }}>
-                {isAdmin ? 'Administrator' : isTutor ? 'Tutor' : 'User'}
-              </p>
-
-              {/* Description */}
-              <div className="inline-flex items-center justify-center bg-gradient-to-r from-cyan-500/30 via-blue-500/20 to-purple-500/30 backdrop-blur-md px-6 py-3 rounded-full border border-cyan-400/40 mb-4" style={{
-                boxShadow: '0 0 30px rgba(6, 182, 212, 0.3), inset 0 0 20px rgba(255, 255, 255, 0.1)'
-              }}>
-                <span className="text-cyan-100 font-bold text-lg tracking-wide" style={{ textShadow: '0 0 15px rgba(6, 182, 212, 0.8)' }}>
-                  📢 Freedom City Tech Center Communications
-                </span>
+              <div>
+                <h1 className="text-2xl font-bold text-white">Announcements</h1>
+                <p className="text-sm text-violet-200">Freedom City Tech Center</p>
               </div>
-
+            </div>
+            <div className="flex items-center gap-3">
               {/* Permissions indicator */}
-              <div className="flex justify-center gap-2 text-sm">
+              <div className="flex gap-2">
                 {isAdmin && (
-                  <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full border border-purple-200">
+                  <span className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-lg text-sm border border-purple-500/30">
                     👑 Administrator
                   </span>
                 )}
                 {isTutor && (
-                  <span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full border border-emerald-200">
+                  <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-lg text-sm border border-emerald-500/30">
                     👨‍🏫 Tutor
                   </span>
                 )}
                 {canPostAnnouncements && (
-                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full border border-blue-200">
+                  <span className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-lg text-sm border border-blue-500/30">
                     ✍️ Can Post
                   </span>
                 )}
               </div>
+              <DashboardButton text="Back to Dashboard" variant="outline" fullWidth={false} icon="🔙" />
             </div>
+          </div>
+        </header>
 
-            {/* Announcements Component */}
-            <div className="glass-morphism rounded-2xl border border-purple-500/30 p-6">
-              <Announcements
-                showAnnouncementsList={false}
-              />
+        {/* Main Content */}
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-full max-w-4xl">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl p-8">
+              {/* Hero Section */}
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600 rounded-full mb-6 shadow-2xl shadow-violet-500/50 p-2">
+                  <Image
+                    src="/freedom.png"
+                    alt="Freedom City Tech Center Logo"
+                    width={80}
+                    height={80}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+
+                <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-violet-300 via-white to-purple-300 bg-clip-text text-transparent mb-4">
+                  ANNOUNCEMENTS
+                </h1>
+
+                <div className="inline-flex items-center justify-center bg-gradient-to-r from-violet-500/30 via-purple-500/20 to-indigo-500/30 backdrop-blur-md px-6 py-3 rounded-full border border-violet-400/40 mb-6">
+                  <span className="text-violet-100 font-bold text-lg">
+                    📢 Freedom City Tech Center Communications
+                  </span>
+                </div>
+              </div>
+
+              {/* Announcements Component */}
+              <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-6">
+                <Announcements
+                  showAnnouncementsList={false}
+                />
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </BackgroundImage>
+    </div>
   );
 }

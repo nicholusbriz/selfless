@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { User as UserType, CleaningDay, Weeks, UserRegistration, UserWithAttendance } from '@/types';
 import { checkUserAccess, User } from '@/lib/auth';
-import { PageLoader, BackgroundImage, LoadingButton } from '@/components/ui';
+import { PageLoader, LoadingButton } from '@/components/ui';
 import { API_ENDPOINTS } from '@/config/constants';
 
 export default function FormPage() {
@@ -357,21 +357,33 @@ export default function FormPage() {
 
   if (!user || checkingStatus) {
     return (
-      <PageLoader text="Loading your registration..." color="orange" />
+      <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-teal-800 to-cyan-900 flex items-center justify-center">
+        <PageLoader text="Loading your registration..." color="white" />
+      </div>
     );
   }
 
   return (
-    <BackgroundImage className="min-h-screen">
-      {/* Modern dark overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-indigo-950/80 to-slate-900/80 backdrop-blur-sm"></div>
+    <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-teal-800 to-cyan-900 relative overflow-hidden">
+      {/* Modern Background Effects */}
+      <div className="absolute inset-0">
+        {/* Animated gradient orbs */}
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-teal-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-pulse animation-delay-4000"></div>
+        {/* Grid pattern */}
+        <div className="absolute inset-0" style={{
+          backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px)',
+          backgroundSize: '60px 60px'
+        }}></div>
+      </div>
 
       <div className="relative z-10 container mx-auto px-4 py-6 min-h-screen flex flex-col">
         {/* Modern Header */}
         <header className="mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
+              <div className="w-12 h-12 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
                 <Image
                   src="/freedom.png"
                   alt="Freedom City Tech Center"
@@ -381,13 +393,13 @@ export default function FormPage() {
                 />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-slate-100">Cleaning Day Registration</h1>
-                <p className="text-sm text-slate-400">Freedom City Tech Center</p>
+                <h1 className="text-2xl font-bold text-white">Cleaning Day Registration</h1>
+                <p className="text-sm text-emerald-200">Freedom City Tech Center</p>
               </div>
             </div>
             <button
               onClick={() => router.push('/dashboard')}
-              className="px-4 py-2 bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 rounded-lg border border-slate-700/50 transition-colors"
+              className="px-4 py-2 bg-white/10 backdrop-blur-md hover:bg-white/20 text-white rounded-lg border border-white/20 transition-all duration-300"
             >
               ← Back to Dashboard
             </button>
@@ -396,15 +408,15 @@ export default function FormPage() {
 
         {/* User Status Card */}
         <div className="mb-6">
-          <div className="bg-slate-800/60 backdrop-blur-md rounded-2xl p-4 border border-slate-700/50 shadow-lg">
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-xl">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-teal-600 to-cyan-600 rounded-xl flex items-center justify-center text-white font-bold">
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center text-white font-bold">
                   {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
                 </div>
                 <div>
-                  <p className="text-slate-100 font-medium">Welcome, {user.firstName}!</p>
-                  <p className="text-slate-400 text-sm">{user.email}</p>
+                  <p className="text-white font-medium">Welcome, {user.firstName}!</p>
+                  <p className="text-emerald-200 text-sm">{user.email}</p>
                 </div>
               </div>
               <div className={`px-3 py-1.5 rounded-lg text-sm font-medium ${isRegistered
@@ -419,16 +431,16 @@ export default function FormPage() {
 
         {/* Search Bar */}
         <div className="mb-6">
-          <div className="bg-slate-800/60 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-lg p-4">
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl p-4">
             <div className="relative">
               <input
                 type="text"
                 placeholder="Search for a student by name or email..."
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="w-full px-4 py-3 pl-12 bg-slate-700/50 border border-slate-600/50 rounded-xl text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
+                className="w-full px-4 py-3 pl-12 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white placeholder-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all"
               />
-              <div className="absolute left-4 top-3.5 text-slate-400">
+              <div className="absolute left-4 top-3.5 text-emerald-300">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
@@ -436,7 +448,7 @@ export default function FormPage() {
               {searchQuery && (
                 <button
                   onClick={() => handleSearch('')}
-                  className="absolute right-4 top-3.5 text-slate-400 hover:text-slate-200 transition-colors"
+                  className="absolute right-4 top-3.5 text-emerald-300 hover:text-white transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -448,21 +460,21 @@ export default function FormPage() {
             {/* Search Results */}
             {showSearchResults && searchResults.length > 0 && (
               <div className="mt-4 max-h-60 overflow-y-auto">
-                <p className="text-slate-400 text-sm mb-3">Found {searchResults.length} student(s):</p>
+                <p className="text-emerald-200 text-sm mb-3">Found {searchResults.length} student(s):</p>
                 <div className="space-y-2">
                   {searchResults.map((result, index) => (
                     <div
                       key={index}
                       onClick={() => handleStudentClick(result.day)}
-                      className="bg-slate-700/50 rounded-lg p-3 flex items-center justify-between cursor-pointer hover:bg-slate-600/50 transition-colors border border-slate-600/50 hover:border-indigo-500/50"
+                      className="bg-white/10 backdrop-blur-md rounded-lg p-3 flex items-center justify-between cursor-pointer hover:bg-white/20 transition-all duration-300 border border-white/20 hover:border-emerald-400/40"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gradient-to-br from-teal-600 to-cyan-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                        <div className="w-8 h-8 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
                           {result.student.firstName?.charAt(0)}{result.student.lastName?.charAt(0)}
                         </div>
                         <div>
-                          <p className="text-slate-200 text-sm font-medium">{result.student.firstName} {result.student.lastName}</p>
-                          <p className="text-slate-400 text-xs">{result.student.email}</p>
+                          <p className="text-white text-sm font-medium">{result.student.firstName} {result.student.lastName}</p>
+                          <p className="text-emerald-200 text-xs">{result.student.email}</p>
                           <div className="mt-1">
                             <span className={`text-xs px-2 py-1 rounded-full font-medium ${result.student.attendanceStatus === 'attended'
                               ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
@@ -478,8 +490,8 @@ export default function FormPage() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-slate-300 text-sm font-medium">{result.day.dayName}</p>
-                        <p className="text-slate-400 text-xs">{new Date(result.day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+                        <p className="text-white text-sm font-medium">{result.day.dayName}</p>
+                        <p className="text-emerald-200 text-xs">{new Date(result.day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
                       </div>
                     </div>
                   ))}
@@ -489,43 +501,17 @@ export default function FormPage() {
 
             {showSearchResults && searchResults.length === 0 && (
               <div className="mt-4 text-center py-4">
-                <p className="text-slate-400 text-sm mb-3">No students found matching "{searchQuery}"</p>
+                <p className="text-emerald-200 text-sm mb-3">No students found matching "{searchQuery}"</p>
                 <button
                   onClick={() => handleSearch('')}
-                  className="px-4 py-2 bg-slate-600/50 hover:bg-slate-500/50 text-slate-300 rounded-lg text-sm transition-colors border border-slate-600/50"
+                  className="px-4 py-2 bg-emerald-500/10 backdrop-blur-md hover:bg-emerald-500/20 text-emerald-300 rounded-lg text-sm transition-all duration-300 border border-emerald-500/20"
                 >
                   Clear Search
                 </button>
               </div>
             )}
-
-            {showSearchResults && searchResults.length > 0 && (
-              <div className="mt-4 pt-3 border-t border-slate-700/50">
-                <button
-                  onClick={() => handleSearch('')}
-                  className="w-full px-4 py-2 bg-slate-600/50 hover:bg-slate-500/50 text-slate-300 rounded-lg text-sm transition-colors border border-slate-600/50"
-                >
-                  Clear All Results
-                </button>
-              </div>
-            )}
           </div>
         </div>
-
-        {/* Message Display */}
-        {message && (
-          <div className="mb-6">
-            <div className={`rounded-xl p-4 border ${messageType === 'success'
-              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-100'
-              : 'bg-red-500/10 border-red-500/30 text-red-100'
-              }`}>
-              <div className="flex items-center gap-3">
-                <span className="text-lg">{messageType === 'success' ? '✓' : '⚠️'}</span>
-                <p className="font-medium text-sm">{message}</p>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Already Registered Display */}
         {isRegistered && userRegistrations.length > 0 && (
@@ -554,18 +540,18 @@ export default function FormPage() {
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Calendar Section */}
           <div className="lg:col-span-2">
-            <div className="bg-slate-800/60 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-lg p-6 h-full">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl p-6 h-full">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-slate-100">May 2026</h2>
+                <h2 className="text-xl font-semibold text-white">May 2026</h2>
                 <div className="flex gap-2">
-                  <span className="px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-lg text-sm">Week 1-3</span>
+                  <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-lg text-sm">Week 1-3</span>
                 </div>
               </div>
 
               {/* Calendar Grid */}
               <div className="grid grid-cols-7 gap-2 mb-4">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                  <div key={day} className="text-center text-slate-500 text-sm font-medium py-2">
+                  <div key={day} className="text-center text-emerald-200 text-sm font-medium py-2">
                     {day}
                   </div>
                 ))}
@@ -574,7 +560,7 @@ export default function FormPage() {
               <div className="space-y-4">
                 {Object.entries(weeks).map(([weekNum, weekDays]) => (
                   <div key={weekNum}>
-                    <p className="text-slate-400 text-sm mb-2 font-medium">Week {weekNum}</p>
+                    <p className="text-emerald-200 text-sm mb-2 font-medium">Week {weekNum}</p>
                     <div className="grid grid-cols-7 gap-2">
                       {weekDays
                         .filter((day: CleaningDay) => ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].includes(day.dayName))
@@ -593,8 +579,8 @@ export default function FormPage() {
                                   ${isFull
                                   ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30 cursor-pointer border border-red-500/30'
                                   : isSelected
-                                    ? 'bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/30'
-                                    : 'bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 cursor-pointer border border-slate-600/50 hover:border-indigo-500/50'
+                                    ? 'bg-gradient-to-br from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/30'
+                                    : 'bg-white/10 hover:bg-white/20 text-white cursor-pointer border border-white/20 hover:border-emerald-400/40'
                                 }
                                 `}
                             >
@@ -610,14 +596,13 @@ export default function FormPage() {
               </div>
             </div>
           </div>
-
           {/* Day Details Panel */}
           <div className="lg:col-span-1">
-            <div className="bg-slate-800/60 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-lg p-6 sticky top-6">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl p-6 sticky top-6">
               {selectedDay ? (
                 <div>
                   <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-semibold text-slate-100">Day Details</h3>
+                    <h3 className="text-lg font-semibold text-white">Day Details</h3>
                     <span className={`px-2 py-1 rounded-lg text-xs font-medium ${selectedDay.isFull
                       ? 'bg-red-500/20 text-red-300'
                       : 'bg-emerald-500/20 text-emerald-300'
@@ -628,12 +613,12 @@ export default function FormPage() {
 
                   <div className="space-y-4 mb-6">
                     <div>
-                      <p className="text-slate-400 text-sm">Day</p>
-                      <p className="text-slate-100 font-semibold text-lg">{selectedDay.dayName}</p>
+                      <p className="text-emerald-200 text-sm">Day</p>
+                      <p className="text-white font-semibold text-lg">{selectedDay.dayName}</p>
                     </div>
                     <div>
-                      <p className="text-slate-400 text-sm">Date</p>
-                      <p className="text-slate-100 font-semibold">{new Date(selectedDay.date).toLocaleDateString('en-US', {
+                      <p className="text-emerald-200 text-sm">Date</p>
+                      <p className="text-white font-semibold">{new Date(selectedDay.date).toLocaleDateString('en-US', {
                         weekday: 'long',
                         month: 'long',
                         day: 'numeric',
@@ -641,13 +626,13 @@ export default function FormPage() {
                       })}</p>
                     </div>
                     <div>
-                      <p className="text-slate-400 text-sm mb-2">Availability</p>
-                      <div className="bg-slate-700/50 rounded-lg p-3">
+                      <p className="text-emerald-200 text-sm mb-2">Availability</p>
+                      <div className="bg-white/10 backdrop-blur-md rounded-lg p-3 border border-white/20">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-slate-300">Spots</span>
-                          <span className="text-slate-100 font-semibold">{selectedDay.registeredCount}/{selectedDay.maxSlots}</span>
+                          <span className="text-emerald-200">Spots</span>
+                          <span className="text-white font-semibold">{selectedDay.registeredCount}/{selectedDay.maxSlots}</span>
                         </div>
-                        <div className="w-full bg-slate-600 rounded-full h-2">
+                        <div className="w-full bg-white/20 rounded-full h-2">
                           <div
                             className={`h-2 rounded-full transition-all ${selectedDay.isFull
                               ? 'bg-red-500'
@@ -665,20 +650,20 @@ export default function FormPage() {
                   {selectedDay.registeredUsers && selectedDay.registeredUsers.length > 0 && (
                     <div className="mb-6">
                       <div className="flex items-center justify-between mb-3">
-                        <p className="text-slate-400 text-sm">Registered Students ({selectedDay.registeredUsers.length})</p>
+                        <p className="text-emerald-200 text-sm">Registered Students ({selectedDay.registeredUsers.length})</p>
                         {canMarkAttendance() && (
                           <p className="text-xs text-indigo-400">Click to mark attendance</p>
                         )}
                       </div>
                       <div className="space-y-2">
                         {selectedDay.registeredUsers.map((u: UserWithAttendance) => (
-                          <div key={u.id} className={`bg-slate-700/50 rounded-lg p-3 flex items-center justify-between ${canMarkAttendance() ? 'hover:bg-slate-600/50 transition-colors' : ''}`}>
+                          <div key={u.id} className={`bg-white/10 backdrop-blur-md rounded-lg p-3 flex items-center justify-between ${canMarkAttendance() ? 'hover:bg-white/20 transition-colors' : ''} border border-white/20`}>
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-gradient-to-br from-teal-600 to-cyan-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                              <div className="w-8 h-8 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
                                 {u.firstName?.charAt(0)}{u.lastName?.charAt(0)}
                               </div>
                               <div>
-                                <p className="text-slate-200 text-sm font-medium">{u.firstName} {u.lastName}</p>
+                                <p className="text-white text-sm font-medium">{u.firstName} {u.lastName}</p>
                                 <div className="flex items-center gap-2 mt-1">
                                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${u.attendanceStatus === 'attended'
                                     ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
@@ -691,7 +676,7 @@ export default function FormPage() {
                                         '⏳ Pending'}
                                   </span>
                                   {u.markedAt && (
-                                    <span className="text-xs text-slate-400">
+                                    <span className="text-xs text-emerald-200">
                                       {new Date(u.markedAt).toLocaleDateString()}
                                     </span>
                                   )}
@@ -767,7 +752,7 @@ export default function FormPage() {
                       disabled={isLoading || selectedDay.isFull || isRegistered}
                       className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 ${isLoading || selectedDay.isFull || isRegistered
                         ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-lg shadow-indigo-500/30'
+                        : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/30'
                         }`}
                     >
                       {isRegistered ? 'Already Registered' : (isLoading ? 'Registering...' : 'Register for This Day')}
@@ -776,17 +761,17 @@ export default function FormPage() {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-slate-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-4 border border-white/20">
                     <span className="text-3xl">📅</span>
                   </div>
-                  <p className="text-slate-400">Select a day from the calendar</p>
-                  <p className="text-slate-500 text-sm mt-2">Click on an available day to see details</p>
+                  <p className="text-emerald-200">Select a day from the calendar</p>
+                  <p className="text-emerald-300 text-sm mt-2">Click on an available day to see details</p>
                 </div>
               )}
             </div>
           </div>
         </div>
       </div>
-    </BackgroundImage>
+    </div>
   );
 }
