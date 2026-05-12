@@ -146,7 +146,7 @@ function LoginForm({ closeModal }: { closeModal: () => void }) {
 
           <div>
 
-            <label htmlFor="email" className="block text-sm font-medium text-byu-navy-700 mb-2">
+            <label htmlFor="email" className="block text-sm font-medium text-pink-200 mb-2">
 
               Email Address
 
@@ -164,7 +164,7 @@ function LoginForm({ closeModal }: { closeModal: () => void }) {
 
               onChange={handleChange}
 
-              className="w-full px-4 py-3 border border-byu-navy-300 rounded-xl focus:ring-2 focus:ring-byu-gold-500 focus:border-byu-gold-500 outline-none transition-all"
+              className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-pink-400/30 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition-all text-white placeholder-pink-300"
 
               placeholder="your@email.com"
 
@@ -178,7 +178,7 @@ function LoginForm({ closeModal }: { closeModal: () => void }) {
 
           {message && (
 
-            <div className={`p-3 rounded-xl text-sm ${messageType === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+            <div className={`p-3 rounded-xl text-sm ${messageType === 'success' ? 'bg-green-900/50 text-green-300 border border-green-700' : 'bg-red-900/50 text-red-300 border border-red-700'}`}>
 
               {message}
 
@@ -192,7 +192,7 @@ function LoginForm({ closeModal }: { closeModal: () => void }) {
 
             disabled={isLoading || login.isPending}
 
-            className="w-full bg-byu-navy-900 hover:bg-byu-navy-800 text-white font-semibold py-3 px-6 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
 
           >
 
@@ -354,7 +354,7 @@ function RegisterForm({ closeModal }: { closeModal: () => void }) {
 
       <div>
 
-        <label htmlFor="firstName" className="block text-sm font-medium text-byu-navy-700 mb-2">
+        <label htmlFor="firstName" className="block text-sm font-medium text-emerald-200 mb-2">
 
           First Name
 
@@ -372,7 +372,7 @@ function RegisterForm({ closeModal }: { closeModal: () => void }) {
 
           onChange={handleChange}
 
-          className="w-full px-4 py-3 border border-byu-navy-300 rounded-xl focus:ring-2 focus:ring-byu-gold-500 focus:border-byu-gold-500 outline-none transition-all"
+          className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-emerald-400/30 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-white placeholder-emerald-300"
 
           placeholder="John"
 
@@ -384,7 +384,7 @@ function RegisterForm({ closeModal }: { closeModal: () => void }) {
 
       <div>
 
-        <label htmlFor="lastName" className="block text-sm font-medium text-byu-navy-700 mb-2">
+        <label htmlFor="lastName" className="block text-sm font-medium text-emerald-200 mb-2">
 
           Last Name
 
@@ -402,7 +402,7 @@ function RegisterForm({ closeModal }: { closeModal: () => void }) {
 
           onChange={handleChange}
 
-          className="w-full px-4 py-3 border border-byu-navy-300 rounded-xl focus:ring-2 focus:ring-byu-gold-500 focus:border-byu-gold-500 outline-none transition-all"
+          className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-emerald-400/30 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-white placeholder-emerald-300"
 
           placeholder="Doe"
 
@@ -414,7 +414,7 @@ function RegisterForm({ closeModal }: { closeModal: () => void }) {
 
       <div>
 
-        <label htmlFor="reg-email" className="block text-sm font-medium text-byu-navy-700 mb-2">
+        <label htmlFor="reg-email" className="block text-sm font-medium text-emerald-200 mb-2">
 
           Email Address
 
@@ -432,7 +432,7 @@ function RegisterForm({ closeModal }: { closeModal: () => void }) {
 
           onChange={handleChange}
 
-          className="w-full px-4 py-3 border border-byu-navy-300 rounded-xl focus:ring-2 focus:ring-byu-gold-500 focus:border-byu-gold-500 outline-none transition-all"
+          className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-emerald-400/30 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-white placeholder-emerald-300"
 
           placeholder="your@email.com"
 
@@ -444,7 +444,7 @@ function RegisterForm({ closeModal }: { closeModal: () => void }) {
 
       <div>
 
-        <label htmlFor="phoneNumber" className="block text-sm font-medium text-byu-navy-700 mb-2">
+        <label htmlFor="phoneNumber" className="block text-sm font-medium text-emerald-200 mb-2">
 
           Phone Number
 
@@ -462,7 +462,7 @@ function RegisterForm({ closeModal }: { closeModal: () => void }) {
 
           onChange={handleChange}
 
-          className="w-full px-4 py-3 border border-byu-navy-300 rounded-xl focus:ring-2 focus:ring-byu-gold-500 focus:border-byu-gold-500 outline-none transition-all"
+          className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-emerald-400/30 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-white placeholder-emerald-300"
 
           placeholder="+256 123 456 789"
 
@@ -474,7 +474,7 @@ function RegisterForm({ closeModal }: { closeModal: () => void }) {
 
       <div>
 
-        <label htmlFor="reg-password" className="block text-sm font-medium text-byu-navy-700 mb-2">
+        <label htmlFor="reg-password" className="block text-sm font-medium text-emerald-200 mb-2">
 
           Password
 
@@ -494,9 +494,9 @@ function RegisterForm({ closeModal }: { closeModal: () => void }) {
 
             onChange={handleChange}
 
-            className="w-full px-4 py-3 border border-byu-navy-300 rounded-xl focus:ring-2 focus:ring-byu-gold-500 focus:border-byu-gold-500 outline-none transition-all pr-12"
+            className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-emerald-400/30 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all pr-12 text-white placeholder-emerald-300"
 
-            placeholder="••••••••"
+            placeholder="••••••••••"
 
             required
 
@@ -508,7 +508,7 @@ function RegisterForm({ closeModal }: { closeModal: () => void }) {
 
             onClick={() => setShowPassword(!showPassword)}
 
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-byu-navy-400 hover:text-byu-navy-600"
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-emerald-300 hover:text-emerald-100"
 
           >
 
@@ -540,9 +540,9 @@ function RegisterForm({ closeModal }: { closeModal: () => void }) {
 
       {message && (
 
-        <div className={`p-3 rounded-xl text-sm ${messageType === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+        <div className={`p-3 rounded-xl text-sm ${messageType === 'success' ? 'bg-green-900/50 text-green-300 border border-green-700' : 'bg-red-900/50 text-red-300 border border-red-700'}`}
 
-          }`}>
+        >
 
           {message}
 
@@ -556,7 +556,7 @@ function RegisterForm({ closeModal }: { closeModal: () => void }) {
 
         disabled={register.isPending}
 
-        className="w-full bg-byu-navy-900 hover:bg-byu-navy-800 text-white font-semibold py-3 px-6 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold py-3 px-6 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
 
       >
 
@@ -678,7 +678,7 @@ export default function Page() {
 
       icon: "",
 
-      color: "from-byu-navy-600 to-byu-navy-800",
+      color: "from-gray-700 to-gray-900",
 
       action: () => setIsLoginModalOpen(true)
 
@@ -692,7 +692,7 @@ export default function Page() {
 
       icon: "",
 
-      color: "from-byu-navy-600 to-byu-navy-800",
+      color: "from-gray-700 to-gray-900",
 
       action: () => setIsLoginModalOpen(true)
 
@@ -706,7 +706,7 @@ export default function Page() {
 
       icon: "",
 
-      color: "from-byu-navy-600 to-byu-navy-800",
+      color: "from-gray-700 to-gray-900",
 
       action: () => setIsLoginModalOpen(true)
 
@@ -720,7 +720,7 @@ export default function Page() {
 
       icon: "",
 
-      color: "from-byu-navy-600 to-byu-navy-800",
+      color: "from-gray-700 to-gray-900",
 
       action: () => setIsLoginModalOpen(true)
 
@@ -734,7 +734,7 @@ export default function Page() {
 
       icon: "",
 
-      color: "from-byu-navy-600 to-byu-navy-800",
+      color: "from-gray-700 to-gray-900",
 
       action: () => setIsLoginModalOpen(true)
 
@@ -748,7 +748,7 @@ export default function Page() {
 
       icon: "",
 
-      color: "from-byu-navy-600 to-byu-navy-800",
+      color: "from-gray-700 to-gray-900",
 
       action: () => setIsLoginModalOpen(true)
 
@@ -844,7 +844,7 @@ export default function Page() {
 
           - ============================================ */}
 
-      <header className="fixed top-0 w-full bg-byu-navy-900 border-b border-byu-navy-800 z-50 shadow-lg">
+      <header className="fixed top-0 w-full bg-black border-b border-gray-800 z-50 shadow-lg">
 
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
@@ -866,17 +866,17 @@ export default function Page() {
 
             <div className="hidden md:flex items-center space-x-1">
 
-              <a href="#features" className="text-byu-navy-100 hover:text-white px-4 py-2 rounded-lg hover:bg-byu-navy-800 transition-all font-medium">Features</a>
+              <a href="#features" className="text-gray-300 hover:text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all font-medium">Features</a>
 
-              <a href="#about" className="text-byu-navy-100 hover:text-white px-4 py-2 rounded-lg hover:bg-byu-navy-800 transition-all font-medium">About</a>
+              <a href="#about" className="text-gray-300 hover:text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all font-medium">About</a>
 
-              <a href="#testimonials" className="text-byu-navy-100 hover:text-white px-4 py-2 rounded-lg hover:bg-byu-navy-800 transition-all font-medium">Testimonials</a>
+              <a href="#testimonials" className="text-gray-300 hover:text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all font-medium">Testimonials</a>
 
               <button
 
                 onClick={() => setIsLoginModalOpen(true)}
 
-                className="text-byu-navy-100 hover:text-white px-4 py-2 rounded-lg hover:bg-byu-navy-800 transition-all font-medium"
+                className="text-gray-300 hover:text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all font-medium"
 
               >
 
@@ -888,7 +888,7 @@ export default function Page() {
 
                 onClick={() => setIsLoginModalOpen(true)}
 
-                className="bg-byu-gold-500 hover:bg-byu-gold-600 text-white px-5 py-2.5 rounded-lg transition-all font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-5 py-2.5 rounded-lg transition-all font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
 
               >
 
@@ -906,7 +906,7 @@ export default function Page() {
 
               onClick={() => setIsMenuOpen(!isMenuOpen)}
 
-              className="md:hidden text-byu-navy-100 p-2 hover:bg-byu-navy-800 rounded-lg transition-colors"
+              className="md:hidden text-gray-300 p-2 hover:bg-gray-800 rounded-lg transition-colors"
 
             >
 
@@ -926,7 +926,7 @@ export default function Page() {
 
           {isMenuOpen && (
 
-            <div className="md:hidden bg-byu-navy-900/95 backdrop-blur-md border-t border-byu-navy-800">
+            <div className="md:hidden bg-black/95 backdrop-blur-md border-t border-gray-800">
 
               <div className="px-4 py-4 space-y-1">
 
@@ -934,7 +934,7 @@ export default function Page() {
 
                   href="#features"
 
-                  className="block text-byu-navy-100 hover:text-white px-4 py-2 rounded-lg hover:bg-byu-navy-800 transition-all font-medium"
+                  className="block text-gray-300 hover:text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all font-medium"
 
                   onClick={() => setIsMenuOpen(false)}
 
@@ -948,7 +948,7 @@ export default function Page() {
 
                   href="#about"
 
-                  className="block text-byu-navy-100 hover:text-white px-4 py-2 rounded-lg hover:bg-byu-navy-800 transition-all font-medium"
+                  className="block text-gray-300 hover:text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all font-medium"
 
                   onClick={() => setIsMenuOpen(false)}
 
@@ -962,7 +962,7 @@ export default function Page() {
 
                   href="#testimonials"
 
-                  className="block text-byu-navy-100 hover:text-white px-4 py-2 rounded-lg hover:bg-byu-navy-800 transition-all font-medium"
+                  className="block text-gray-300 hover:text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all font-medium"
 
                   onClick={() => setIsMenuOpen(false)}
 
@@ -982,7 +982,7 @@ export default function Page() {
 
                   }}
 
-                  className="block text-byu-navy-100 hover:text-white px-4 py-2 rounded-lg hover:bg-byu-navy-800 transition-all font-medium"
+                  className="block text-gray-300 hover:text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all font-medium"
 
                 >
 
@@ -1000,7 +1000,7 @@ export default function Page() {
 
                   }}
 
-                  className="block bg-byu-gold-500 hover:bg-byu-gold-600 text-white px-4 py-2.5 rounded-lg transition-all font-medium shadow-lg hover:shadow-xl transform hover:scale-105 w-full"
+                  className="block bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-4 py-2.5 rounded-lg transition-all font-medium shadow-lg hover:shadow-xl transform hover:scale-105 w-full"
 
                 >
 
@@ -1046,27 +1046,35 @@ export default function Page() {
 
           ============================================ */}
 
-      <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-byu-navy-900 via-byu-navy-800 to-byu-navy-900 overflow-hidden">
+      <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 overflow-hidden">
 
-        {/* Subtle Background Pattern */}
+        {/* Modern Background Effects */}
 
-        <div className="absolute inset-0 opacity-20">
+        <div className="absolute inset-0">
+
+          {/* Animated gradient orbs */}
+
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
+
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse animation-delay-2000"></div>
+
+          <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse animation-delay-4000"></div>
+
+          {/* Grid pattern */}
 
           <div className="absolute inset-0" style={{
 
-            backgroundImage: 'radial-gradient(circle at 25% 25%, rgba(196, 160, 0, 0.1) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(196, 160, 0, 0.05) 0%, transparent 50%)'
+            backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px)',
+
+            backgroundSize: '50px 50px'
 
           }}></div>
 
+          {/* Radial gradient overlay */}
+
+          <div className="absolute inset-0 bg-radial-gradient from-transparent via-black/30 to-black"></div>
+
         </div>
-
-        <div className="absolute inset-0" style={{
-
-          backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px)',
-
-          backgroundSize: '64px 64px'
-
-        }}></div>
 
 
 
@@ -1076,11 +1084,11 @@ export default function Page() {
 
             {/* Badge */}
 
-            <div className="inline-flex items-center px-4 py-2 bg-byu-navy-800 border border-byu-gold-500/30 rounded-full mb-8 animate-slide-up">
+            <div className="inline-flex items-center px-6 py-3 bg-white/10 backdrop-blur-md border border-pink-400/30 rounded-full mb-8 animate-slide-up shadow-xl">
 
-              <span className="w-2 h-2 bg-byu-gold-500 rounded-full mr-2 animate-pulse"></span>
+              <span className="w-2 h-2 bg-gradient-to-r from-pink-400 to-purple-400 rounded-full mr-3 animate-pulse"></span>
 
-              <span className="text-sm font-medium text-byu-gold-500">Trusted by 1500+ students</span>
+              <span className="text-sm font-medium text-white">Trusted by 1500+ students</span>
 
             </div>
 
@@ -1090,35 +1098,37 @@ export default function Page() {
 
               Freedom City Tech Center
 
-              <span className="block bg-gradient-to-r from-byu-gold-400 via-byu-gold-500 to-byu-gold-600 bg-clip-text text-transparent mt-2">Tracking System</span>
+              <span className="block bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent mt-2">Tracking System</span>
 
             </h1>
 
 
 
-            <p className="text-xl md:text-2xl text-byu-navy-100 mb-10 max-w-3xl mx-auto animate-fade-in animation-delay-200 leading-relaxed font-normal">
+            <p className="text-xl md:text-2xl text-gray-300 mb-10 max-w-3xl mx-auto animate-fade-in animation-delay-200 leading-relaxed font-normal">
 
               Track grades, manage schedules, and access everything you need in one powerful platform.
 
-              <span className="block text-byu-navy-200 mt-2 text-lg">Your academic journey, streamlined.</span>
+              <span className="block text-gray-400 mt-2 text-lg">Your academic journey, streamlined.</span>
 
             </p>
 
 
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-20 animate-fade-in animation-delay-400">
+            <div className="flex flex-col sm:flex-row gap-6 justify-center mb-20 animate-fade-in animation-delay-400">
 
               <button
 
                 onClick={() => setIsLoginModalOpen(true)}
 
-                className="group bg-byu-gold-500 hover:bg-byu-gold-600 text-white font-semibold py-4 px-8 rounded-xl text-lg transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                className="group relative bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white font-semibold py-4 px-8 rounded-xl text-lg transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1 overflow-hidden"
 
               >
 
-                Get Started Free
+                <span className="relative z-10">Get Started Free</span>
 
-                <svg className="inline-block w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="absolute inset-0 bg-gradient-to-r from-pink-700 to-purple-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+                <svg className="inline-block w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
 
@@ -1130,19 +1140,21 @@ export default function Page() {
 
                 onClick={() => setIsRegisterModalOpen(true)}
 
-                className="group bg-byu-navy-800 hover:bg-byu-navy-700 text-white border-2 border-byu-navy-600 hover:border-byu-gold-500 font-semibold py-4 px-8 rounded-xl text-lg transition-all duration-300 hover:shadow-md"
+                className="group relative bg-white/10 backdrop-blur-md hover:bg-white/20 text-white border border-pink-400/30 hover:border-pink-400/50 font-semibold py-4 px-8 rounded-xl text-lg transition-all duration-300 hover:shadow-lg overflow-hidden"
 
               >
 
-                <svg className="inline-block w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span className="relative z-10">Sign Up</span>
+
+                <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+                <svg className="inline-block w-5 h-5 mr-2 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
 
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
 
                 </svg>
-
-                Sign Up
 
               </button>
 
@@ -1158,11 +1170,11 @@ export default function Page() {
 
                 <div key={index} className="group text-center animate-slide-in-up stagger-{index + 1}">
 
-                  <div className="bg-byu-navy-800/50 backdrop-blur-sm rounded-2xl p-6 border border-byu-navy-700 hover:border-byu-gold-500/50 hover-glow transition-all duration-300">
+                  <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-pink-400/20 hover:bg-white/10 hover:border-pink-400/40 transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl">
 
                     <div className="text-3xl md:text-4xl font-bold text-white mb-1 animate-count-up">{stat.number}</div>
 
-                    <div className="text-byu-navy-200 text-sm font-medium">{stat.label}</div>
+                    <div className="text-pink-200 text-sm font-medium group-hover:text-pink-100 transition-colors">{stat.label}</div>
 
                   </div>
 
@@ -1206,19 +1218,41 @@ export default function Page() {
 
           ============================================ */}
 
-      <section id="features" className="py-24 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+      <section id="features" className="py-24 bg-gradient-to-br from-emerald-900 via-teal-800 to-cyan-900 relative overflow-hidden">
+
+        {/* Background decoration */}
+
+        <div className="absolute inset-0">
+
+          <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10"></div>
+
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-teal-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10"></div>
+
+          <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-5"></div>
+
+          {/* Grid pattern */}
+
+          <div className="absolute inset-0" style={{
+
+            backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px)',
+
+            backgroundSize: '60px 60px'
+
+          }}></div>
+
+        </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-          <div className="text-center mb-16 scroll-animate">
+          <div className="text-center mb-16 scroll-animate relative z-10">
 
-            <h2 className="text-4xl md:text-5xl font-bold text-byu-navy-900 mb-4 tracking-tight">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">
 
               Everything you need
 
             </h2>
 
-            <p className="text-xl text-byu-navy-600 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-xl text-emerald-200 max-w-2xl mx-auto leading-relaxed">
 
               Powerful features designed to streamline your academic journey
 
@@ -1228,7 +1262,7 @@ export default function Page() {
 
 
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
 
             {features.map((feature, index) => (
 
@@ -1236,13 +1270,17 @@ export default function Page() {
 
                 key={index}
 
-                className={`group bg-white rounded-2xl p-6 border border-byu-navy-200 hover:border-byu-gold-500 hover:shadow-lg hover-lift transform-3d transition-all duration-300 cursor-pointer animate-slide-in-up stagger-${index + 1}`}
+                className={`group bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-emerald-400/20 hover:bg-white/20 hover:border-emerald-400/40 hover:shadow-2xl transform-3d transition-all duration-300 cursor-pointer animate-slide-in-up stagger-${index + 1} relative overflow-hidden`}
 
                 onClick={feature.action}
 
               >
 
-                <div className={`w-12 h-12 bg-gradient-to-br ${feature.color} rounded-xl flex items-center justify-center mb-4 shadow-sm group-hover:scale-110 transition-transform duration-300`}>
+                {/* Hover effect overlay */}
+
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/10 to-teal-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+                <div className={`relative z-10 w-12 h-12 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center mb-4 shadow-sm group-hover:scale-110 group-hover:shadow-lg transition-all duration-300`}>
 
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 
@@ -1252,19 +1290,19 @@ export default function Page() {
 
                 </div>
 
-                <h3 className="text-xl font-bold text-byu-navy-900 mb-2 group-hover:text-byu-gold-600 transition-colors">
+                <h3 className="relative z-10 text-xl font-bold text-white mb-2 group-hover:text-emerald-300 transition-colors">
 
                   {feature.title}
 
                 </h3>
 
-                <p className="text-byu-navy-600 leading-relaxed mb-4">
+                <p className="relative z-10 text-emerald-200 leading-relaxed mb-4 group-hover:text-emerald-100 transition-colors">
 
                   {feature.description}
 
                 </p>
 
-                <div className="flex items-center text-byu-gold-600 font-medium text-sm group-hover:translate-x-1 transition-transform">
+                <div className="relative z-10 flex items-center text-emerald-400 font-medium text-sm group-hover:translate-x-1 transition-transform">
 
                   Learn more
 
@@ -1310,19 +1348,41 @@ export default function Page() {
 
           ============================================ */}
 
-      <section id="testimonials" className="py-24 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <section id="testimonials" className="py-24 bg-gradient-to-br from-amber-900 via-orange-800 to-red-900 relative overflow-hidden">
+
+        {/* Background decoration */}
+
+        <div className="absolute inset-0">
+
+          <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-amber-500 rounded-full mix-blend-multiply filter blur-3xl opacity-15"></div>
+
+          <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-orange-500 rounded-full mix-blend-multiply filter blur-3xl opacity-15"></div>
+
+          <div className="absolute top-3/4 left-3/4 w-96 h-96 bg-red-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10"></div>
+
+          {/* Wave pattern */}
+
+          <div className="absolute inset-0" style={{
+
+            backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px)',
+
+            backgroundSize: '40px 40px'
+
+          }}></div>
+
+        </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-          <div className="text-center mb-16 scroll-animate">
+          <div className="text-center mb-16 scroll-animate relative z-10">
 
-            <h2 className="text-4xl md:text-5xl font-bold text-byu-navy-900 mb-4 tracking-tight">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">
 
               Loved by students
 
             </h2>
 
-            <p className="text-xl text-byu-navy-600 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-xl text-amber-200 max-w-2xl mx-auto leading-relaxed">
 
               See what our community has to say
 
@@ -1330,137 +1390,155 @@ export default function Page() {
 
           </div>
 
+          <div className="grid md:grid-cols-3 gap-6 relative z-10">
 
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-amber-400/20 hover:bg-white/20 hover:border-amber-400/40 hover:shadow-2xl transform-3d transition-all duration-300 animate-slide-in-left stagger-1 group">
 
-          <div className="grid md:grid-cols-3 gap-6">
+              {/* Hover overlay */}
 
-            <div className="bg-byu-navy-50 rounded-2xl p-8 shadow-sm hover:shadow-lg hover:border-byu-gold-500 border border-byu-navy-200 hover-lift transform-3d transition-all duration-300 animate-slide-in-left stagger-1">
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-600/10 to-orange-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
 
-              <div className="flex items-center mb-4">
+              <div className="relative z-10">
 
-                <div className="w-12 h-12 bg-byu-navy-200 rounded-full flex items-center justify-center text-byu-navy-800 font-bold animate-float">
+                <div className="flex items-center mb-4">
 
-                  NT
+                  <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center text-white font-bold animate-float shadow-lg">
+
+                    NT
+
+                  </div>
+
+                  <div className="ml-4">
+
+                    <h4 className="font-semibold text-white">Nicholus Turyamureba</h4>
+
+                    <p className="text-sm text-amber-300">Software Engineer expert  </p>
+
+                  </div>
 
                 </div>
 
-                <div className="ml-4">
+                <div className="flex mb-4">
 
-                  <h4 className="font-semibold text-byu-navy-900">Nicholus Turyamureba</h4>
+                  {[...Array(5)].map((_, i) => (
 
-                  <p className="text-sm text-byu-navy-600">Software Engineer expert  </p>
+                    <svg key={i} className="w-5 h-5 text-amber-400 fill-current animate-glow" viewBox="0 0 20 20">
+
+                      <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+
+                    </svg>
+
+                  ))}
 
                 </div>
 
-              </div>
+                <p className="text-amber-100 leading-relaxed group-hover:text-white transition-colors">
 
-              <div className="flex mb-4">
+                  "The grade tracking system helps me monitor my progress in real-time. It's been a game-changer for my studies!"
 
-                {[...Array(5)].map((_, i) => (
-
-                  <svg key={i} className="w-5 h-5 text-byu-gold-500 fill-current animate-glow" viewBox="0 0 20 20">
-
-                    <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-
-                  </svg>
-
-                ))}
+                </p>
 
               </div>
-
-              <p className="text-byu-navy-700 leading-relaxed">
-
-                "The grade tracking system helps me monitor my progress in real-time. It's been a game-changer for my studies!"
-
-              </p>
 
             </div>
 
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-amber-400/20 hover:bg-white/20 hover:border-amber-400/40 hover:shadow-2xl transform-3d transition-all duration-300 animate-slide-in-up stagger-2 group">
 
+              {/* Hover overlay */}
 
-            <div className="bg-byu-navy-50 rounded-2xl p-8 shadow-sm hover:shadow-lg hover:border-byu-gold-500 border border-byu-navy-200 hover-lift transform-3d transition-all duration-300 animate-slide-in-up stagger-2">
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-600/10 to-orange-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
 
-              <div className="flex items-center mb-4">
+              <div className="relative z-10">
 
-                <div className="w-12 h-12 bg-byu-navy-200 rounded-full flex items-center justify-center text-byu-navy-800 font-bold animate-float">
+                <div className="flex items-center mb-4">
 
-                  MN
+                  <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center text-white font-bold animate-float shadow-lg">
+
+                    MN
+
+                  </div>
+
+                  <div className="ml-4">
+
+                    <h4 className="font-semibold text-white">Mercy Nalubega</h4>
+
+                    <p className="text-sm text-amber-300">Applied Health Student</p>
+
+                  </div>
 
                 </div>
 
-                <div className="ml-4">
+                <div className="flex mb-4">
 
-                  <h4 className="font-semibold text-byu-navy-900">Mercy Nalubega</h4>
+                  {[...Array(5)].map((_, i) => (
 
-                  <p className="text-sm text-byu-navy-600">Applied Health Student</p>
+                    <svg key={i} className="w-5 h-5 text-amber-400 fill-current animate-glow" viewBox="0 0 20 20">
+
+                      <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+
+                    </svg>
+
+                  ))}
 
                 </div>
 
-              </div>
+                <p className="text-amber-100 leading-relaxed group-hover:text-white transition-colors">
 
-              <div className="flex mb-4">
+                  "The course registration system is so intuitive! I can easily manage my schedule. This platform has made my academic life easier."
 
-                {[...Array(5)].map((_, i) => (
-
-                  <svg key={i} className="w-5 h-5 text-byu-gold-500 fill-current animate-glow" viewBox="0 0 20 20">
-
-                    <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-
-                  </svg>
-
-                ))}
+                </p>
 
               </div>
-
-              <p className="text-byu-navy-700 leading-relaxed">
-
-                "The course registration system is so intuitive! I can easily manage my schedule. This platform has made my academic life easier."
-
-              </p>
 
             </div>
 
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-amber-400/20 hover:bg-white/20 hover:border-amber-400/40 hover:shadow-2xl transform-3d transition-all duration-300 animate-slide-in-right stagger-3 group">
 
+              {/* Hover overlay */}
 
-            <div className="bg-byu-navy-50 rounded-2xl p-8 shadow-sm hover:shadow-lg hover:border-byu-gold-500 border border-byu-navy-200 hover-lift transform-3d transition-all duration-300 animate-slide-in-right stagger-3">
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-600/10 to-orange-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
 
-              <div className="flex items-center mb-4">
+              <div className="relative z-10">
 
-                <div className="w-12 h-12 bg-byu-navy-200 rounded-full flex items-center justify-center text-byu-navy-800 font-bold animate-float">
+                <div className="flex items-center mb-4">
 
-                  PA
+                  <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center text-white font-bold animate-float shadow-lg">
+
+                    PA
+
+                  </div>
+
+                  <div className="ml-4">
+
+                    <h4 className="font-semibold text-white">Princess Agatha</h4>
+
+                    <p className="text-sm text-amber-300">Applied Health Student</p>
+
+                  </div>
 
                 </div>
 
-                <div className="ml-4">
+                <div className="flex mb-4">
 
-                  <h4 className="font-semibold text-byu-navy-900">Princess Agatha</h4>
+                  {[...Array(5)].map((_, i) => (
 
-                  <p className="text-sm text-byu-navy-600">Applied Health Student</p>
+                    <svg key={i} className="w-5 h-5 text-amber-400 fill-current animate-glow" viewBox="0 0 20 20">
+
+                      <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+
+                    </svg>
+
+                  ))}
 
                 </div>
 
-              </div>
+                <p className="text-amber-100 leading-relaxed group-hover:text-white transition-colors">
 
-              <div className="flex mb-4">
+                  "Finding tutors has been incredible. The personalized support helped me master difficult concepts. I feel more confident."
 
-                {[...Array(5)].map((_, i) => (
-
-                  <svg key={i} className="w-5 h-5 text-byu-gold-500 fill-current animate-glow" viewBox="0 0 20 20">
-
-                    <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-
-                  </svg>
-
-                ))}
+                </p>
 
               </div>
-
-              <p className="text-byu-navy-700 leading-relaxed">
-
-                "Finding tutors has been incredible. The personalized support helped me master difficult concepts. I feel more confident."
-
-              </p>
 
             </div>
 
@@ -1496,13 +1574,37 @@ export default function Page() {
 
           ============================================ */}
 
-      <section id="about" className="py-24 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
+      <section id="about" className="py-24 bg-gradient-to-br from-violet-900 via-purple-800 to-indigo-900 relative overflow-hidden">
 
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        {/* Background decoration */}
 
-          <h2 className="text-4xl md:text-5xl font-bold text-byu-navy-900 mb-6 tracking-tight scroll-animate">About Freedom City Tech Center</h2>
+        <div className="absolute inset-0">
 
-          <p className="text-xl text-byu-navy-600 leading-relaxed mb-12 scroll-animate">
+          <div className="absolute top-0 left-0 w-96 h-96 bg-violet-500 rounded-full mix-blend-multiply filter blur-3xl opacity-15"></div>
+
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-15"></div>
+
+          <div className="absolute top-1/2 right-1/2 w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10"></div>
+
+          {/* Diagonal pattern */}
+
+          <div className="absolute inset-0" style={{
+
+            backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px)',
+
+            backgroundSize: '70px 70px',
+
+            transform: 'rotate(45deg)'
+
+          }}></div>
+
+        </div>
+
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 tracking-tight scroll-animate">About Freedom City Tech Center</h2>
+
+          <p className="text-xl text-violet-200 leading-relaxed mb-12 scroll-animate">
 
             Where innovation meets opportunity in technology education. We empower the next generation of tech leaders through cutting-edge programs and hands-on learning experiences.
 
@@ -1510,27 +1612,27 @@ export default function Page() {
 
           <div className="grid md:grid-cols-3 gap-8">
 
-            <div className="bg-white rounded-2xl p-8 border border-byu-navy-200 hover:border-byu-gold-500 hover-lift transform-3d transition-all duration-300 animate-slide-in-left stagger-1">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-violet-400/20 hover:bg-white/20 hover:border-violet-400/40 hover:shadow-2xl transform-3d transition-all duration-300 animate-slide-in-left stagger-1">
 
-              <div className="text-4xl font-bold text-byu-navy-900 mb-2 animate-count-up">1500+</div>
+              <div className="text-4xl font-bold text-white mb-2 animate-count-up">1500+</div>
 
-              <div className="text-byu-navy-600 font-medium">Students Enrolled</div>
-
-            </div>
-
-            <div className="bg-white rounded-2xl p-8 border border-byu-navy-200 hover:border-byu-gold-500 hover-lift transform-3d transition-all duration-300 animate-slide-in-up stagger-2">
-
-              <div className="text-4xl font-bold text-byu-navy-900 mb-2 animate-count-up">50+</div>
-
-              <div className="text-byu-navy-600 font-medium">Expert Faculty</div>
+              <div className="text-violet-300 font-medium">Students Enrolled</div>
 
             </div>
 
-            <div className="bg-white rounded-2xl p-8 border border-byu-navy-200 hover:border-byu-gold-500 hover-lift transform-3d transition-all duration-300 animate-slide-in-right stagger-3">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-violet-400/20 hover:bg-white/20 hover:border-violet-400/40 hover:shadow-2xl transform-3d transition-all duration-300 animate-slide-in-up stagger-2">
 
-              <div className="text-4xl font-bold text-byu-navy-900 mb-2 animate-count-up">95%</div>
+              <div className="text-4xl font-bold text-white mb-2 animate-count-up">50+</div>
 
-              <div className="text-byu-navy-600 font-medium">Employment Rate</div>
+              <div className="text-violet-300 font-medium">Expert Faculty</div>
+
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-violet-400/20 hover:bg-white/20 hover:border-violet-400/40 hover:shadow-2xl transform-3d transition-all duration-300 animate-slide-in-right stagger-3">
+
+              <div className="text-4xl font-bold text-white mb-2 animate-count-up">95%</div>
+
+              <div className="text-violet-300 font-medium">Employment Rate</div>
 
             </div>
 
@@ -1566,13 +1668,35 @@ export default function Page() {
 
           ============================================ */}
 
-      <section className="py-24 bg-byu-navy-900">
+      <section className="py-24 bg-gradient-to-br from-rose-900 via-pink-800 to-fuchsia-900 relative overflow-hidden">
 
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        {/* Background decoration */}
+
+        <div className="absolute inset-0">
+
+          <div className="absolute top-0 left-1/3 w-96 h-96 bg-rose-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+
+          <div className="absolute bottom-0 right-1/3 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+
+          <div className="absolute top-1/3 right-1/3 w-96 h-96 bg-fuchsia-500 rounded-full mix-blend-multiply filter blur-3xl opacity-15"></div>
+
+          {/* Animated dots pattern */}
+
+          <div className="absolute inset-0" style={{
+
+            backgroundImage: 'radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 1px)',
+
+            backgroundSize: '30px 30px'
+
+          }}></div>
+
+        </div>
+
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
 
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 tracking-tight">Ready to get started?</h2>
 
-          <p className="text-xl text-byu-navy-200 mb-10 max-w-2xl mx-auto">
+          <p className="text-xl text-rose-200 mb-10 max-w-2xl mx-auto">
 
             Join thousands of students already transforming their academic journey with our platform.
 
@@ -1584,7 +1708,7 @@ export default function Page() {
 
               onClick={() => setIsRegisterModalOpen(true)}
 
-              className="bg-byu-gold-500 text-white hover:bg-byu-gold-600 font-semibold py-4 px-8 rounded-xl text-lg transition-all hover:shadow-lg"
+              className="bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-semibold py-4 px-8 rounded-xl text-lg transition-all hover:shadow-lg transform hover:scale-105"
 
             >
 
@@ -1596,7 +1720,7 @@ export default function Page() {
 
               onClick={() => setIsLoginModalOpen(true)}
 
-              className="bg-transparent border-2 border-byu-gold-500 text-byu-gold-500 hover:bg-byu-gold-500 hover:text-white font-semibold py-4 px-8 rounded-xl text-lg transition-all"
+              className="bg-transparent border-2 border-rose-400 text-rose-300 hover:bg-rose-400 hover:text-white font-semibold py-4 px-8 rounded-xl text-lg transition-all transform hover:scale-105"
 
             >
 
@@ -1634,9 +1758,29 @@ export default function Page() {
 
           - ============================================ */}
 
-      <footer className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-t border-slate-700 py-16">
+      <footer className="bg-gradient-to-br from-slate-900 via-gray-900 to-black border-t border-slate-700 py-16 relative overflow-hidden">
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Background decoration */}
+
+        <div className="absolute inset-0">
+
+          <div className="absolute top-0 left-0 w-64 h-64 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-5"></div>
+
+          <div className="absolute bottom-0 right-0 w-64 h-64 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-5"></div>
+
+          {/* Subtle grid pattern */}
+
+          <div className="absolute inset-0" style={{
+
+            backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px)',
+
+            backgroundSize: '80px 80px'
+
+          }}></div>
+
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
           <div className="grid md:grid-cols-4 gap-12">
 
@@ -1650,7 +1794,7 @@ export default function Page() {
 
               </div>
 
-              <p className="text-slate-300 text-sm leading-relaxed">
+              <p className="text-gray-400 text-sm leading-relaxed">
 
                 Leading technology education for tomorrow's innovators.
 
@@ -1662,15 +1806,15 @@ export default function Page() {
 
               <h3 className="font-semibold mb-4 text-white">Features</h3>
 
-              <ul className="space-y-3 text-slate-400 text-sm">
+              <ul className="space-y-3 text-gray-400 text-sm">
 
-                <li><a href="#features" className="hover:text-white transition-colors">Grade Tracking</a></li>
+                <li><a href="#features" className="hover:text-blue-400 transition-colors">Grade Tracking</a></li>
 
-                <li><a href="#features" className="hover:text-white transition-colors">Cleaning Days</a></li>
+                <li><a href="#features" className="hover:text-blue-400 transition-colors">Cleaning Days</a></li>
 
-                <li><a href="#features" className="hover:text-white transition-colors">Performance Analytics</a></li>
+                <li><a href="#features" className="hover:text-blue-400 transition-colors">Performance Analytics</a></li>
 
-                <li><a href="#features" className="hover:text-white transition-colors">Credit Tracking</a></li>
+                <li><a href="#features" className="hover:text-blue-400 transition-colors">Credit Tracking</a></li>
 
               </ul>
 
@@ -1680,15 +1824,15 @@ export default function Page() {
 
               <h3 className="font-semibold mb-4 text-white">Resources</h3>
 
-              <ul className="space-y-3 text-slate-400 text-sm">
+              <ul className="space-y-3 text-gray-400 text-sm">
 
-                <li><button onClick={() => setIsLoginModalOpen(true)} className="hover:text-white transition-colors text-left w-full">Student Dashboard</button></li>
+                <li><button onClick={() => setIsLoginModalOpen(true)} className="hover:text-purple-400 transition-colors text-left w-full">Student Dashboard</button></li>
 
-                <li><button onClick={() => setIsLoginModalOpen(true)} className="hover:text-white transition-colors text-left w-full">Policy Center</button></li>
+                <li><button onClick={() => setIsLoginModalOpen(true)} className="hover:text-purple-400 transition-colors text-left w-full">Policy Center</button></li>
 
-                <li><button onClick={() => setIsLoginModalOpen(true)} className="hover:text-white transition-colors text-left w-full">Cleaning Schedule</button></li>
+                <li><button onClick={() => setIsLoginModalOpen(true)} className="hover:text-purple-400 transition-colors text-left w-full">Cleaning Schedule</button></li>
 
-                <li><button onClick={() => setIsLoginModalOpen(true)} className="hover:text-white transition-colors text-left w-full">My Grades</button></li>
+                <li><button onClick={() => setIsLoginModalOpen(true)} className="hover:text-purple-400 transition-colors text-left w-full">My Grades</button></li>
 
               </ul>
 
@@ -1698,7 +1842,7 @@ export default function Page() {
 
               <h3 className="font-semibold mb-4 text-white">Contact</h3>
 
-              <ul className="space-y-3 text-slate-400 text-sm">
+              <ul className="space-y-3 text-gray-400 text-sm">
 
                 <li className="font-medium text-white">Kiwanuka Tonny</li>
 
@@ -1706,7 +1850,7 @@ export default function Page() {
 
                 <li>Graduate, BYU Idaho</li>
 
-                <li>+256 761996296</li>
+                <li className="text-cyan-400">+256 761996296</li>
 
                 <li>Kampala, Uganda</li>
 
@@ -1716,11 +1860,11 @@ export default function Page() {
 
           </div>
 
-          <div className="border-t border-slate-700 mt-12 pt-8 text-center text-slate-400 text-sm">
+          <div className="border-t border-slate-700 mt-12 pt-8 text-center text-gray-400 text-sm">
 
             <p>&copy; 2024 Freedom City Tech Center. All rights reserved.</p>
 
-            <p className="mt-2 text-slate-500">Developed by Nicholus Turyamureba • Student at BYU Idaho Freedom City Tech Center • Kampala, Uganda</p>
+            <p className="mt-2 text-gray-500">Developed by Nicholus Turyamureba • Student at BYU Idaho Freedom City Tech Center • Kampala, Uganda</p>
 
           </div>
 
@@ -1756,75 +1900,90 @@ export default function Page() {
 
           ============================================ */}
 
-      {isLoginModalOpen && (
+      {
+        isLoginModalOpen && (
 
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
 
-          <div
+            <div
 
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
-
-            onClick={() => setIsLoginModalOpen(false)}
-
-          ></div>
-
-          <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-fade-in border border-byu-navy-200">
-
-            <button
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
 
               onClick={() => setIsLoginModalOpen(false)}
 
-              className="absolute top-4 right-4 text-byu-navy-400 hover:text-byu-navy-600 transition-colors"
+            ></div>
 
-            >
+            <div className="relative bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-fade-in border border-purple-400/30">
 
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {/* Background decoration */}
 
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <div className="absolute inset-0 rounded-2xl overflow-hidden">
 
-              </svg>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-pink-500 rounded-full mix-blend-multiply filter blur-2xl opacity-20"></div>
 
-            </button>
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500 rounded-full mix-blend-multiply filter blur-2xl opacity-20"></div>
 
-            <div className="p-8">
-
-              <div className="text-center mb-6">
-
-                <Logo size="lg" className="mx-auto mb-4" />
-
-                <h2 className="text-2xl font-bold text-byu-navy-900 mb-2">Welcome Back</h2>
-
-                <p className="text-byu-navy-600">Sign in to access your dashboard</p>
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent"></div>
 
               </div>
 
-              <LoginForm closeModal={() => setIsLoginModalOpen(false)} />
+              <button
 
-              <div className="mt-6 text-center">
+                onClick={() => setIsLoginModalOpen(false)}
 
-                <p className="text-byu-navy-600 text-sm">
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-200 transition-colors"
 
-                  Don't have an account?{' '}
+              >
 
-                  <button
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 
-                    onClick={() => {
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
 
-                      setIsLoginModalOpen(false);
+                </svg>
 
-                      setIsRegisterModalOpen(true);
+              </button>
 
-                    }}
+              <div className="relative z-10 p-8">
 
-                    className="text-byu-gold-600 hover:text-byu-gold-700 font-medium"
+                <div className="text-center mb-6">
 
-                  >
+                  <Logo size="lg" className="mx-auto mb-4" />
 
-                    Sign up
+                  <h2 className="text-2xl font-bold text-white mb-2">Welcome Back</h2>
 
-                  </button>
+                  <p className="text-pink-200">Sign in to access your dashboard</p>
 
-                </p>
+                </div>
+
+                <LoginForm closeModal={() => setIsLoginModalOpen(false)} />
+
+                <div className="mt-6 text-center relative z-10">
+
+                  <p className="text-pink-200 text-sm">
+
+                    Don't have an account?{' '}
+
+                    <button
+
+                      onClick={() => {
+
+                        setIsLoginModalOpen(false);
+
+                        setIsRegisterModalOpen(true);
+
+                      }}
+
+                      className="text-purple-300 hover:text-purple-200 font-medium transition-colors"
+
+                    >
+
+                      Sign up
+
+                    </button>
+
+                  </p>
+
+                </div>
 
               </div>
 
@@ -1832,9 +1991,8 @@ export default function Page() {
 
           </div>
 
-        </div>
-
-      )}
+        )
+      }
 
 
 
@@ -1864,75 +2022,90 @@ export default function Page() {
 
           ============================================ */}
 
-      {isRegisterModalOpen && (
+      {
+        isRegisterModalOpen && (
 
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
 
-          <div
+            <div
 
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
-
-            onClick={() => setIsRegisterModalOpen(false)}
-
-          ></div>
-
-          <div className="relative bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-fade-in border border-byu-navy-200">
-
-            <button
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
 
               onClick={() => setIsRegisterModalOpen(false)}
 
-              className="absolute top-4 right-4 text-byu-navy-400 hover:text-byu-navy-600 transition-colors"
+            ></div>
 
-            >
+            <div className="relative bg-gradient-to-br from-emerald-900 via-teal-800 to-cyan-900 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-fade-in border border-emerald-400/30">
 
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {/* Background decoration */}
 
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <div className="absolute inset-0 rounded-2xl overflow-hidden">
 
-              </svg>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500 rounded-full mix-blend-multiply filter blur-2xl opacity-20"></div>
 
-            </button>
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-teal-500 rounded-full mix-blend-multiply filter blur-2xl opacity-20"></div>
 
-            <div className="p-8">
-
-              <div className="text-center mb-6">
-
-                <Logo size="lg" className="mx-auto mb-4" />
-
-                <h2 className="text-2xl font-bold text-byu-navy-900 mb-2">Create Account</h2>
-
-                <p className="text-byu-navy-600">Join our community today</p>
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent"></div>
 
               </div>
 
-              <RegisterForm closeModal={() => setIsRegisterModalOpen(false)} />
+              <button
 
-              <div className="mt-6 text-center">
+                onClick={() => setIsRegisterModalOpen(false)}
 
-                <p className="text-byu-navy-600 text-sm">
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-200 transition-colors"
 
-                  Already have an account?{' '}
+              >
 
-                  <button
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 
-                    onClick={() => {
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
 
-                      setIsRegisterModalOpen(false);
+                </svg>
 
-                      setIsLoginModalOpen(true);
+              </button>
 
-                    }}
+              <div className="relative z-10 p-8">
 
-                    className="text-byu-gold-600 hover:text-byu-gold-700 font-medium"
+                <div className="text-center mb-6">
 
-                  >
+                  <Logo size="lg" className="mx-auto mb-4" />
 
-                    Sign in
+                  <h2 className="text-2xl font-bold text-white mb-2">Create Account</h2>
 
-                  </button>
+                  <p className="text-emerald-200">Join our community today</p>
 
-                </p>
+                </div>
+
+                <RegisterForm closeModal={() => setIsRegisterModalOpen(false)} />
+
+                <div className="mt-6 text-center relative z-10">
+
+                  <p className="text-emerald-200 text-sm">
+
+                    Already have an account?{' '}
+
+                    <button
+
+                      onClick={() => {
+
+                        setIsRegisterModalOpen(false);
+
+                        setIsLoginModalOpen(true);
+
+                      }}
+
+                      className="text-teal-300 hover:text-teal-200 font-medium transition-colors"
+
+                    >
+
+                      Sign in
+
+                    </button>
+
+                  </p>
+
+                </div>
 
               </div>
 
@@ -1940,9 +2113,8 @@ export default function Page() {
 
           </div>
 
-        </div>
-
-      )}
+        )
+      }
 
 
 
