@@ -192,7 +192,7 @@ export default function FormPage() {
     } finally {
       setAttendanceLoading(null);
     }
-  }, [canMarkAttendance, selectedDay, setMessage, setMessageType]);
+  }, [canMarkAttendance, selectedDay]);
 
   // Handle clearing attendance status
   const handleClearAttendance = useCallback(async (student: UserWithAttendance) => {
@@ -249,7 +249,7 @@ export default function FormPage() {
     } finally {
       setAttendanceLoading(null);
     }
-  }, [canMarkAttendance, selectedDay, setMessage, setMessageType]);
+  }, [canMarkAttendance, selectedDay]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -457,41 +457,68 @@ export default function FormPage() {
               )}
             </div>
 
-            {/* Search Results */}
+            {/* Search Results - Standardized Card Grid */}
             {showSearchResults && searchResults.length > 0 && (
-              <div className="mt-4 max-h-60 overflow-y-auto">
-                <p className="text-emerald-200 text-sm mb-3">Found {searchResults.length} student(s):</p>
-                <div className="space-y-2">
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-emerald-200 text-sm font-medium">
+                    Found {searchResults.length} student{searchResults.length !== 1 ? 's' : ''}
+                  </p>
+                  <button
+                    onClick={() => handleSearch('')}
+                    className="text-xs text-emerald-300 hover:text-white transition-colors"
+                  >
+                    Clear search
+                  </button>
+                </div>
+                
+                {/* Card Grid for Search Results */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto">
                   {searchResults.map((result, index) => (
                     <div
                       key={index}
                       onClick={() => handleStudentClick(result.day)}
-                      className="bg-white/10 backdrop-blur-md rounded-lg p-3 flex items-center justify-between cursor-pointer hover:bg-white/20 transition-all duration-300 border border-white/20 hover:border-emerald-400/40"
+                      className="group bg-white/10 backdrop-blur-md rounded-xl p-3 
+                               cursor-pointer hover:bg-white/20 transition-all duration-300 
+                               border border-white/20 hover:border-emerald-400/40
+                               hover:-translate-y-0.5 hover:shadow-lg"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                      <div className="flex items-start gap-3">
+                        {/* Avatar */}
+                        <div className="w-10 h-10 bg-gradient-to-br from-emerald-600 to-teal-600 
+                                      rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                           {result.student.firstName?.charAt(0)}{result.student.lastName?.charAt(0)}
                         </div>
-                        <div>
-                          <p className="text-white text-sm font-medium">{result.student.firstName} {result.student.lastName}</p>
-                          <p className="text-emerald-200 text-xs">{result.student.email}</p>
-                          <div className="mt-1">
-                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${result.student.attendanceStatus === 'attended'
-                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                              : result.student.attendanceStatus === 'no-show'
-                                ? 'bg-red-500/20 text-red-300 border border-red-500/30'
-                                : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        
+                        {/* Student Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white font-semibold text-sm truncate">
+                            {result.student.firstName} {result.student.lastName}
+                          </p>
+                          <p className="text-emerald-200 text-xs truncate">
+                            {result.student.email || 'No email'}
+                          </p>
+                          <div className="mt-2 flex items-center gap-2 flex-wrap">
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium
+                              ${result.student.attendanceStatus === 'attended'
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                : result.student.attendanceStatus === 'no-show'
+                                  ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+                                  : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                               }`}>
                               {result.student.attendanceStatus === 'attended' ? '✓ Attended' :
-                                result.student.attendanceStatus === 'no-show' ? '✗ No Show' :
-                                  '⏳ Pending'}
+                               result.student.attendanceStatus === 'no-show' ? '✗ No Show' : '⏳ Pending'}
                             </span>
                           </div>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-white text-sm font-medium">{result.day.dayName}</p>
-                        <p className="text-emerald-200 text-xs">{new Date(result.day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+                        
+                        {/* Day Info */}
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-white text-sm font-medium">{result.day.dayName}</p>
+                          <p className="text-emerald-200 text-xs">
+                            {new Date(result.day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -512,6 +539,15 @@ export default function FormPage() {
             )}
           </div>
         </div>
+
+        {/* Message Display */}
+        {message && (
+          <div className={`mb-6 p-4 rounded-xl backdrop-blur-md ${messageType === 'success' 
+            ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300' 
+            : 'bg-red-500/20 border border-red-500/30 text-red-300'}`}>
+            {message}
+          </div>
+        )}
 
         {/* Already Registered Display */}
         {isRegistered && userRegistrations.length > 0 && (
@@ -596,6 +632,7 @@ export default function FormPage() {
               </div>
             </div>
           </div>
+
           {/* Day Details Panel */}
           <div className="lg:col-span-1">
             <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl p-6 sticky top-6">
@@ -647,100 +684,204 @@ export default function FormPage() {
                     </div>
                   </div>
 
+                  {/* Registered Students - Standardized Card Grid */}
                   {selectedDay.registeredUsers && selectedDay.registeredUsers.length > 0 && (
                     <div className="mb-6">
-                      <div className="flex items-center justify-between mb-3">
-                        <p className="text-emerald-200 text-sm">Registered Students ({selectedDay.registeredUsers.length})</p>
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <p className="text-emerald-200 text-sm font-medium">Registered Students</p>
+                          <p className="text-white/60 text-xs mt-0.5">{selectedDay.registeredUsers.length} student(s) assigned</p>
+                        </div>
                         {canMarkAttendance() && (
-                          <p className="text-xs text-indigo-400">Click to mark attendance</p>
+                          <div className="px-2 py-1 bg-indigo-500/20 rounded-lg border border-indigo-500/30">
+                            <p className="text-xs text-indigo-300 font-medium">Admin: Click cards to mark attendance</p>
+                          </div>
                         )}
                       </div>
-                      <div className="space-y-2">
+                      
+                      {/* STANDARDIZED CARD GRID - 1 column on mobile, 2 columns on desktop */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-1">
                         {selectedDay.registeredUsers.map((u: UserWithAttendance) => (
-                          <div key={u.id} className={`bg-white/10 backdrop-blur-md rounded-lg p-3 flex items-center justify-between ${canMarkAttendance() ? 'hover:bg-white/20 transition-colors' : ''} border border-white/20`}>
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                                {u.firstName?.charAt(0)}{u.lastName?.charAt(0)}
-                              </div>
-                              <div>
-                                <p className="text-white text-sm font-medium">{u.firstName} {u.lastName}</p>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${u.attendanceStatus === 'attended'
-                                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                                    : u.attendanceStatus === 'no-show'
-                                      ? 'bg-red-500/20 text-red-300 border border-red-500/30'
-                                      : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                                    }`}>
-                                    {u.attendanceStatus === 'attended' ? '✓ Attended' :
-                                      u.attendanceStatus === 'no-show' ? '✗ No Show' :
-                                        '⏳ Pending'}
+                          <div 
+                            key={u.id} 
+                            className={`
+                              group relative bg-white/10 backdrop-blur-md rounded-xl 
+                              border border-white/20 transition-all duration-300
+                              hover:bg-white/15 hover:border-emerald-400/40 
+                              hover:shadow-lg hover:shadow-emerald-500/10
+                              hover:-translate-y-0.5
+                              ${canMarkAttendance() ? 'cursor-pointer' : ''}
+                            `}
+                          >
+                            {/* Card Content */}
+                            <div className="p-4">
+                              {/* Header with Avatar and Name */}
+                              <div className="flex items-start gap-3 mb-3">
+                                {/* Student Avatar */}
+                                <div className={`
+                                  w-10 h-10 rounded-xl flex items-center justify-center 
+                                  text-white font-bold text-sm shadow-md flex-shrink-0
+                                  bg-gradient-to-br from-emerald-600 to-teal-600
+                                `}>
+                                  {u.firstName?.charAt(0)}{u.lastName?.charAt(0)}
+                                </div>
+                                
+                                {/* Student Info */}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-white font-semibold text-sm truncate">
+                                    {u.firstName} {u.lastName}
+                                  </p>
+                                  <p className="text-emerald-200/80 text-xs truncate">
+                                    {u.email || 'No email provided'}
+                                  </p>
+                                </div>
+                                
+                                {/* Status Badge */}
+                                <div className="flex-shrink-0">
+                                  <span className={`
+                                    inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium
+                                    ${u.attendanceStatus === 'attended'
+                                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                      : u.attendanceStatus === 'no-show'
+                                        ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+                                        : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                    }
+                                  `}>
+                                    {u.attendanceStatus === 'attended' && (
+                                      <svg className="w-2.5 h-2.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    )}
+                                    {u.attendanceStatus === 'no-show' && (
+                                      <svg className="w-2.5 h-2.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
+                                    )}
+                                    {u.attendanceStatus === 'attended' ? 'Attended' :
+                                      u.attendanceStatus === 'no-show' ? 'No Show' : 'Pending'}
                                   </span>
-                                  {u.markedAt && (
-                                    <span className="text-xs text-emerald-200">
-                                      {new Date(u.markedAt).toLocaleDateString()}
-                                    </span>
-                                  )}
                                 </div>
                               </div>
+
+                              {/* Attendance Meta Info */}
+                              {u.markedAt && (
+                                <div className="mt-2 pt-2 border-t border-white/10">
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="text-emerald-200/70">Marked on:</span>
+                                    <span className="text-white/70">
+                                      {new Date(u.markedAt).toLocaleDateString('en-US', {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Admin Action Buttons */}
+                              {canMarkAttendance() && (
+                                <div className="mt-3 pt-3 border-t border-white/15">
+                                  <div className="flex gap-2">
+                                    {u.attendanceStatus === 'pending' ? (
+                                      <>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleMarkAttendance(u, 'attended');
+                                          }}
+                                          disabled={attendanceLoading === u.registrationId}
+                                          className="flex-1 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 
+                                                   text-emerald-300 border border-emerald-500/30 rounded-lg 
+                                                   text-xs font-medium transition-all duration-200
+                                                   flex items-center justify-center gap-1.5
+                                                   hover:scale-105 active:scale-95"
+                                        >
+                                          {attendanceLoading === u.registrationId ? (
+                                            <div className="w-3.5 h-3.5 border-2 border-emerald-300 border-t-transparent rounded-full animate-spin" />
+                                          ) : (
+                                            <>
+                                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                              </svg>
+                                              Attended
+                                            </>
+                                          )}
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleMarkAttendance(u, 'no-show');
+                                          }}
+                                          disabled={attendanceLoading === u.registrationId}
+                                          className="flex-1 py-2 bg-red-600/20 hover:bg-red-600/30 
+                                                   text-red-300 border border-red-500/30 rounded-lg 
+                                                   text-xs font-medium transition-all duration-200
+                                                   flex items-center justify-center gap-1.5
+                                                   hover:scale-105 active:scale-95"
+                                        >
+                                          {attendanceLoading === u.registrationId ? (
+                                            <div className="w-3.5 h-3.5 border-2 border-red-300 border-t-transparent rounded-full animate-spin" />
+                                          ) : (
+                                            <>
+                                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                              </svg>
+                                              No Show
+                                            </>
+                                          )}
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleClearAttendance(u);
+                                        }}
+                                        disabled={attendanceLoading === u.registrationId}
+                                        className="w-full py-2 bg-amber-600/20 hover:bg-amber-600/30 
+                                                 text-amber-300 border border-amber-500/30 rounded-lg 
+                                                 text-xs font-medium transition-all duration-200
+                                                 flex items-center justify-center gap-1.5
+                                                 hover:scale-105 active:scale-95"
+                                      >
+                                        {attendanceLoading === u.registrationId ? (
+                                          <div className="w-3.5 h-3.5 border-2 border-amber-300 border-t-transparent rounded-full animate-spin" />
+                                        ) : (
+                                          <>
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v16a1 1 0 0 1 1v1a1 1 0 0 1-1 1H7a1 1 0 0 1-1V5a1 1 0 0 1 1H3a1 1 0 0 1-1v16a1 1 0 0 1 1z" />
+                                            </svg>
+                                            Clear Status
+                                          </>
+                                        )}
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                             </div>
-
-                            {canMarkAttendance() && u.attendanceStatus === 'pending' && (
-                              <div className="flex gap-2">
-                                <LoadingButton
-                                  isLoading={attendanceLoading === u.registrationId}
-                                  loadingText="Marking..."
-                                  onClick={() => handleMarkAttendance(u, 'attended')}
-                                  className="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-medium transition-colors"
-                                >
-                                  <>
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                    Attended
-                                  </>
-                                </LoadingButton>
-                                <LoadingButton
-                                  isLoading={attendanceLoading === u.registrationId}
-                                  loadingText="Marking..."
-                                  onClick={() => handleMarkAttendance(u, 'no-show')}
-                                  className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30 rounded-lg text-xs font-medium transition-colors"
-                                >
-                                  <>
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                    No Show
-                                  </>
-                                </LoadingButton>
-                              </div>
-                            )}
-
-                            {canMarkAttendance() && u.attendanceStatus !== 'pending' && (
-                              <div className="flex gap-2">
-                                <LoadingButton
-                                  isLoading={attendanceLoading === u.registrationId}
-                                  loadingText="Clearing..."
-                                  onClick={() => handleClearAttendance(u)}
-                                  className="px-3 py-1.5 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-medium transition-colors"
-                                >
-                                  <>
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v16a1 1 0 0 1 1v1a1 1 0 0 1-1 1H7a1 1 0 0 1-1V5a1 1 0 0 1 1H3a1 1 0 0 1-1v16a1 1 0 0 1 1z" />
-                                    </svg>
-                                    Clear Status
-                                  </>
-                                </LoadingButton>
-                              </div>
-                            )}
+                            
+                            {/* Hover Glow Effect */}
+                            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-500/0 via-emerald-500/5 to-emerald-500/0 
+                                          opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                           </div>
                         ))}
                       </div>
 
+                      {/* Admin Info Banner - More compact and modern */}
                       {canMarkAttendance() && (
-                        <div className="mt-4 p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-lg">
-                          <p className="text-xs text-indigo-300">
-                            <strong>Admin Access:</strong> You can mark attendance for students. Click "Attended" or "No Show" to update their status.
-                          </p>
+                        <div className="mt-4 p-3 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 
+                                      backdrop-blur-md border border-indigo-500/30 rounded-xl">
+                          <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4 text-indigo-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p className="text-xs text-indigo-200">
+                              <span className="font-medium">Admin Access:</span> Click on student cards to manage attendance status.
+                            </p>
+                          </div>
                         </div>
                       )}
                     </div>
