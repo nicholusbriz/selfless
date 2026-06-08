@@ -11,7 +11,6 @@ import { API_ENDPOINTS } from '@/config/constants';
 export default function FormPage() {
   const [user, setUser] = useState<User | null>(null);
   const [weeks, setWeeks] = useState<Weeks>({});
-  const [selectedDay, setSelectedDay] = useState<CleaningDay | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
@@ -23,6 +22,21 @@ export default function FormPage() {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [attendanceLoading, setAttendanceLoading] = useState<string | null>(null);
   const router = useRouter();
+
+  // Get all registered students from all days
+  const getAllRegisteredStudents = useCallback(() => {
+    const allStudents: Array<{ student: UserWithAttendance, day: CleaningDay }> = [];
+    Object.entries(weeks).forEach(([weekNum, weekDays]) => {
+      weekDays.forEach((day: CleaningDay) => {
+        if (day.registeredUsers) {
+          day.registeredUsers.forEach((student: UserWithAttendance) => {
+            allStudents.push({ student, day });
+          });
+        }
+      });
+    });
+    return allStudents;
+  }, [weeks]);
 
   // Check if user has valid authentication from JWT token
   useEffect(() => {
@@ -58,7 +72,7 @@ export default function FormPage() {
     authenticateUser();
   }, [router]);
 
-  // Fetch cleaning days and set selected day for registered users
+  // Fetch cleaning days
   useEffect(() => {
     const fetchCleaningDays = async () => {
       try {
@@ -67,20 +81,6 @@ export default function FormPage() {
 
         if (data.success) {
           setWeeks(data.weeks);
-
-          // If user is registered, set their current registered day as selected
-          if (isRegistered && userRegistrations.length > 0) {
-            const currentRegistration = userRegistrations[0];
-            // Find the matching day in weeks data to get formatted date
-            for (const weekNum in data.weeks) {
-              const week = data.weeks[weekNum];
-              const day = week.find((d: CleaningDay) => d.id === currentRegistration.id);
-              if (day) {
-                setSelectedDay(day);
-                break;
-              }
-            }
-          }
         }
       } catch {
         // Error fetching cleaning days - will show in UI
@@ -91,7 +91,7 @@ export default function FormPage() {
     if (user && user.id) {
       fetchCleaningDays();
     }
-  }, [user, isRegistered, userRegistrations]);
+  }, [user]);
 
   // Search functionality
   const handleSearch = useCallback((query: string) => {
@@ -126,15 +126,10 @@ export default function FormPage() {
     setShowSearchResults(true);
   }, [weeks]);
 
-  const handleStudentClick = (day: CleaningDay) => {
-    setSelectedDay(day);
-    setShowSearchResults(false);
-    setSearchQuery('');
-  };
 
   // Check if user can mark attendance
-  const canMarkAttendance = () => {
-    return user && (user.isAdmin || user.isSuperAdmin || user.isTutor);
+  const canMarkAttendance = (): boolean => {
+    return !!(user && (user.isAdmin || user.isSuperAdmin || user.isTutor));
   };
 
   // Handle attendance marking
@@ -173,14 +168,6 @@ export default function FormPage() {
         const cleaningFormData = await cleaningFormResponse.json();
         if (cleaningFormData.success) {
           setWeeks(cleaningFormData.weeks);
-
-          // Update selected day with new data
-          if (selectedDay) {
-            const updatedDay = cleaningFormData.weeks[selectedDay.week]?.find((d: CleaningDay) => d.id === selectedDay.id);
-            if (updatedDay) {
-              setSelectedDay(updatedDay);
-            }
-          }
         }
       } else {
         setMessage(data.message || 'Failed to mark attendance');
@@ -192,7 +179,7 @@ export default function FormPage() {
     } finally {
       setAttendanceLoading(null);
     }
-  }, [canMarkAttendance, selectedDay]);
+  }, [canMarkAttendance]);
 
   // Handle clearing attendance status
   const handleClearAttendance = useCallback(async (student: UserWithAttendance) => {
@@ -230,14 +217,6 @@ export default function FormPage() {
         const cleaningFormData = await cleaningFormResponse.json();
         if (cleaningFormData.success) {
           setWeeks(cleaningFormData.weeks);
-
-          // Update selected day with new data
-          if (selectedDay) {
-            const updatedDay = cleaningFormData.weeks[selectedDay.week]?.find((d: CleaningDay) => d.id === selectedDay.id);
-            if (updatedDay) {
-              setSelectedDay(updatedDay);
-            }
-          }
         }
       } else {
         setMessage(data.message || 'Failed to clear attendance');
@@ -249,141 +228,35 @@ export default function FormPage() {
     } finally {
       setAttendanceLoading(null);
     }
-  }, [canMarkAttendance, selectedDay]);
+  }, [canMarkAttendance]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Validate user is logged in
-    if (!user || !user.id) {
-      setMessage('User session expired. Please log in again.');
-      setMessageType('error');
-      // Redirect to home
-      setTimeout(() => {
-        router.push('/');
-      }, 2000);
-      return;
-    }
-
-    // Validate day selection
-    if (!selectedDay) {
-      setMessage('Please select a cleaning day before submitting.');
-      setMessageType('error');
-      return;
-    }
-
-    if (selectedDay.isFull) {
-      setMessage('This day is already full. Please select another day.');
-      setMessageType('error');
-      return;
-    }
-
-    setIsLoading(true);
-    setMessage('');
-    setMessageType('');
-
-    try {
-      // Only allow initial registration, no updates
-      if (isRegistered) {
-        const registeredDay = userRegistrations[0];
-        setMessage(`You have already registered to work on ${registeredDay?.dayName}, ${registeredDay?.formattedDate}. Each student can only register for one day.`);
-        setMessageType('error');
-        setIsLoading(false);
-        return;
-      }
-
-      const response = await fetch(API_ENDPOINTS.CLEANING_FORM, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'register',
-          cleaningDayId: selectedDay.id,
-          userId: user.id
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        const userName = user?.fullName || `${user?.firstName} ${user?.lastName}`;
-        const dayName = selectedDay?.dayName;
-        const formattedDate = selectedDay?.date ? new Date(selectedDay.date).toLocaleDateString('en-US', {
-          weekday: 'long',
-          month: 'long',
-          day: 'numeric',
-          year: 'numeric'
-        }) : '';
-
-        setMessage(`${userName}, you have successfully registered for ${dayName}, ${formattedDate}! Redirecting to your dashboard...`);
-        setMessageType('success');
-        setSelectedDay(null);
-
-        // Refresh user status before redirect
-        const statusResponse = await fetch(API_ENDPOINTS.USER_STATUS, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: user?.id, email: user?.email }),
-        });
-        const statusData = await statusResponse.json();
-        if (statusData.success) {
-          setIsRegistered(statusData.isRegistered);
-          setUserRegistrations(statusData.registrations);
-        }
-
-        // User stays on form page to manually navigate when ready
-      } else {
-        // Handle specific error cases
-        if (response.status === 404 && data.message?.includes('User not found')) {
-          setMessage('Your session has expired. Please log in again.');
-          setMessageType('error');
-          // Redirect to home
-          setTimeout(() => {
-            router.push('/');
-          }, 2000);
-        } else {
-          setMessage(data.message || 'Failed to register for cleaning day');
-          setMessageType('error');
-        }
-      }
-    } catch {
-      setMessage('Network error. Please try again.');
-      setMessageType('error');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   if (!user || checkingStatus) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-teal-800 to-cyan-900 flex items-center justify-center">
+      <div className="min-h-screen bg-cloud-500 flex items-center justify-center">
         <PageLoader text="Loading your registration..." color="white" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-teal-800 to-cyan-900 relative overflow-hidden">
-      {/* Modern Background Effects */}
+    <div className="min-h-screen bg-cloud-500 relative overflow-hidden">
+      {/* Background Effects */}
       <div className="absolute inset-0">
-        {/* Animated gradient orbs */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-teal-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse animation-delay-2000"></div>
-        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-pulse animation-delay-4000"></div>
-        {/* Grid pattern */}
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-terracotta-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-sage-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse animation-delay-2000"></div>
         <div className="absolute inset-0" style={{
-          backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px)',
+          backgroundImage: 'linear-gradient(rgba(44, 44, 44, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(44, 44, 44, 0.03) 1px, transparent 1px)',
           backgroundSize: '60px 60px'
         }}></div>
       </div>
 
       <div className="relative z-10 container mx-auto px-4 py-6 min-h-screen flex flex-col">
-        {/* Modern Header */}
+        {/* Header */}
         <header className="mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
+              <div className="w-12 h-12 bg-terracotta-400 rounded-xl flex items-center justify-center shadow-lg">
                 <Image
                   src="/freedom.png"
                   alt="Freedom City Tech Center"
@@ -393,13 +266,13 @@ export default function FormPage() {
                 />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">Cleaning Day Registration</h1>
-                <p className="text-sm text-emerald-200">Freedom City Tech Center</p>
+                <h1 className="text-2xl font-bold text-charcoal-700">Cleaning Day Registration</h1>
+                <p className="text-sm text-charcoal-600">Freedom City Tech Center</p>
               </div>
             </div>
             <button
               onClick={() => router.push('/dashboard')}
-              className="px-4 py-2 bg-white/10 backdrop-blur-md hover:bg-white/20 text-white rounded-lg border border-white/20 transition-all duration-300"
+              className="px-4 py-2 bg-cloud-500 backdrop-blur-md hover:bg-cloud-400 text-charcoal-700 border border-sandstone-400 hover:border-terracotta-400 rounded-lg transition-all duration-300"
             >
               ← Back to Dashboard
             </button>
@@ -408,20 +281,20 @@ export default function FormPage() {
 
         {/* User Status Card */}
         <div className="mb-6">
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-xl">
+          <div className="bg-cloud-500 backdrop-blur-md rounded-2xl p-4 border border-sandstone-400 shadow-xl">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center text-white font-bold">
+                <div className="w-10 h-10 bg-terracotta-400 rounded-xl flex items-center justify-center text-white font-bold">
                   {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
                 </div>
                 <div>
-                  <p className="text-white font-medium">Welcome, {user.firstName}!</p>
-                  <p className="text-emerald-200 text-sm">{user.email}</p>
+                  <p className="text-charcoal-700 font-medium">Welcome, {user.firstName}!</p>
+                  <p className="text-charcoal-600 text-sm">{user.email}</p>
                 </div>
               </div>
               <div className={`px-3 py-1.5 rounded-lg text-sm font-medium ${isRegistered
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                ? 'bg-sage-400/20 text-sage-400 border border-sage-400'
+                : 'bg-terracotta-400/20 text-terracotta-400 border border-terracotta-400'
                 }`}>
                 {isRegistered ? '✓ Registered' : 'Available'}
               </div>
@@ -431,16 +304,16 @@ export default function FormPage() {
 
         {/* Search Bar */}
         <div className="mb-6">
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl p-4">
+          <div className="bg-cloud-500 backdrop-blur-md rounded-2xl border border-sandstone-400 shadow-xl p-4">
             <div className="relative">
               <input
                 type="text"
                 placeholder="Search for a student by name or email..."
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="w-full px-4 py-3 pl-12 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white placeholder-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all"
+                className="w-full px-4 py-3 pl-12 bg-cloud-400 backdrop-blur-md border border-sandstone-400 rounded-xl text-charcoal-700 placeholder-charcoal-500 focus:outline-none focus:ring-2 focus:ring-terracotta-400 focus:border-terracotta-400 transition-all"
               />
-              <div className="absolute left-4 top-3.5 text-emerald-300">
+              <div className="absolute left-4 top-3.5 text-charcoal-500">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
@@ -448,7 +321,7 @@ export default function FormPage() {
               {searchQuery && (
                 <button
                   onClick={() => handleSearch('')}
-                  className="absolute right-4 top-3.5 text-emerald-300 hover:text-white transition-colors"
+                  className="absolute right-4 top-3.5 text-charcoal-500 hover:text-terracotta-400 transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -457,65 +330,57 @@ export default function FormPage() {
               )}
             </div>
 
-            {/* Search Results - Standardized Card Grid */}
+            {/* Search Results */}
             {showSearchResults && searchResults.length > 0 && (
               <div className="mt-4">
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-emerald-200 text-sm font-medium">
+                  <p className="text-charcoal-600 text-sm font-medium">
                     Found {searchResults.length} student{searchResults.length !== 1 ? 's' : ''}
                   </p>
                   <button
                     onClick={() => handleSearch('')}
-                    className="text-xs text-emerald-300 hover:text-white transition-colors"
+                    className="text-xs text-charcoal-600 hover:text-terracotta-400 transition-colors"
                   >
                     Clear search
                   </button>
                 </div>
                 
-                {/* Card Grid for Search Results */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto">
                   {searchResults.map((result, index) => (
                     <div
                       key={index}
-                      onClick={() => handleStudentClick(result.day)}
-                      className="group bg-white/10 backdrop-blur-md rounded-xl p-3 
-                               cursor-pointer hover:bg-white/20 transition-all duration-300 
-                               border border-white/20 hover:border-emerald-400/40
+                      className="group bg-cloud-400 backdrop-blur-md rounded-xl p-3 
+                               hover:bg-cloud-300 transition-all duration-300 
+                               border border-sandstone-400 hover:border-terracotta-400
                                hover:-translate-y-0.5 hover:shadow-lg"
                     >
                       <div className="flex items-start gap-3">
-                        {/* Avatar */}
-                        <div className="w-10 h-10 bg-gradient-to-br from-emerald-600 to-teal-600 
-                                      rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                        <div className="w-10 h-10 bg-terracotta-400 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                           {result.student.firstName?.charAt(0)}{result.student.lastName?.charAt(0)}
                         </div>
-                        
-                        {/* Student Info */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-white font-semibold text-sm truncate">
+                          <p className="text-charcoal-700 font-semibold text-sm truncate">
                             {result.student.firstName} {result.student.lastName}
                           </p>
-                          <p className="text-emerald-200 text-xs truncate">
+                          <p className="text-charcoal-600 text-xs truncate">
                             {result.student.email || 'No email'}
                           </p>
                           <div className="mt-2 flex items-center gap-2 flex-wrap">
                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium
                               ${result.student.attendanceStatus === 'attended'
-                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                ? 'bg-sage-400/20 text-sage-400 border border-sage-400'
                                 : result.student.attendanceStatus === 'no-show'
-                                  ? 'bg-red-500/20 text-red-300 border border-red-500/30'
-                                  : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                  ? 'bg-red-400/20 text-red-400 border border-red-400'
+                                  : 'bg-terracotta-400/20 text-terracotta-400 border border-terracotta-400'
                               }`}>
                               {result.student.attendanceStatus === 'attended' ? '✓ Attended' :
                                result.student.attendanceStatus === 'no-show' ? '✗ No Show' : '⏳ Pending'}
                             </span>
                           </div>
                         </div>
-                        
-                        {/* Day Info */}
                         <div className="text-right flex-shrink-0">
-                          <p className="text-white text-sm font-medium">{result.day.dayName}</p>
-                          <p className="text-emerald-200 text-xs">
+                          <p className="text-charcoal-700 text-sm font-medium">{result.day.dayName}</p>
+                          <p className="text-charcoal-600 text-xs">
                             {new Date(result.day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                           </p>
                         </div>
@@ -528,10 +393,10 @@ export default function FormPage() {
 
             {showSearchResults && searchResults.length === 0 && (
               <div className="mt-4 text-center py-4">
-                <p className="text-emerald-200 text-sm mb-3">No students found matching "{searchQuery}"</p>
+                <p className="text-charcoal-600 text-sm mb-3">No students found matching "{searchQuery}"</p>
                 <button
                   onClick={() => handleSearch('')}
-                  className="px-4 py-2 bg-emerald-500/10 backdrop-blur-md hover:bg-emerald-500/20 text-emerald-300 rounded-lg text-sm transition-all duration-300 border border-emerald-500/20"
+                  className="px-4 py-2 bg-terracotta-400/10 backdrop-blur-md hover:bg-terracotta-400/20 text-terracotta-400 rounded-lg text-sm transition-all duration-300 border border-terracotta-400/20"
                 >
                   Clear Search
                 </button>
@@ -543,8 +408,8 @@ export default function FormPage() {
         {/* Message Display */}
         {message && (
           <div className={`mb-6 p-4 rounded-xl backdrop-blur-md ${messageType === 'success' 
-            ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300' 
-            : 'bg-red-500/20 border border-red-500/30 text-red-300'}`}>
+            ? 'bg-sage-400/20 border border-sage-400 text-sage-400' 
+            : 'bg-red-400/20 border border-red-400 text-red-400'}`}>
             {message}
           </div>
         )}
@@ -552,367 +417,242 @@ export default function FormPage() {
         {/* Already Registered Display */}
         {isRegistered && userRegistrations.length > 0 && (
           <div className="flex-1">
-            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6 mb-6">
+            <div className="bg-sage-400/10 border border-sage-400 rounded-2xl p-6 mb-6">
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center">
+                <div className="w-12 h-12 bg-sage-400/20 rounded-full flex items-center justify-center">
                   <span className="text-2xl">✓</span>
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-emerald-300">Registration Confirmed</h3>
-                  <p className="text-emerald-100/80 text-sm">You have registered for a cleaning day</p>
+                  <h3 className="text-xl font-semibold text-sage-400">Registration Confirmed</h3>
+                  <p className="text-charcoal-600 text-sm">You have registered for a cleaning day</p>
                 </div>
               </div>
               {userRegistrations.map((registration, index) => (
-                <div key={index} className="bg-emerald-500/10 rounded-xl p-4 border border-emerald-500/20">
-                  <p className="text-emerald-100 font-semibold">{registration.dayName}</p>
-                  <p className="text-emerald-100/70 text-sm">{registration.formattedDate}</p>
+                <div key={index} className="bg-sage-400/10 rounded-xl p-4 border border-sage-400/20">
+                  <p className="text-charcoal-700 font-semibold">{registration.dayName}</p>
+                  <p className="text-charcoal-600 text-sm">{registration.formattedDate}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Calendar Layout - Show for all users */}
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Calendar Section */}
-          <div className="lg:col-span-2">
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl p-6 h-full">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-white">May 2026</h2>
-                <div className="flex gap-2">
-                  <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-lg text-sm">Week 1-3</span>
-                </div>
+        {/* All Registered Students Card Grid - Grouped by Date */}
+        <div className="flex-1">
+          <div className="bg-cloud-500 backdrop-blur-md rounded-2xl border border-sandstone-400 shadow-xl p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-semibold text-charcoal-700">Cleaning Day Schedule</h2>
+                <p className="text-charcoal-600 text-sm mt-1">All registered students by date</p>
               </div>
-
-              {/* Calendar Grid */}
-              <div className="grid grid-cols-7 gap-2 mb-4">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                  <div key={day} className="text-center text-emerald-200 text-sm font-medium py-2">
-                    {day}
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-4">
-                {Object.entries(weeks).map(([weekNum, weekDays]) => (
-                  <div key={weekNum}>
-                    <p className="text-emerald-200 text-sm mb-2 font-medium">Week {weekNum}</p>
-                    <div className="grid grid-cols-7 gap-2">
-                      {weekDays
-                        .filter((day: CleaningDay) => ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].includes(day.dayName))
-                        .map((day: CleaningDay) => {
-                          const date = new Date(day.date);
-                          const isSelected = selectedDay?.id === day.id;
-                          const isFull = day.isFull;
-
-                          return (
-                            <button
-                              key={day.id}
-                              onClick={() => setSelectedDay(day)}
-                              className={`
-                                  aspect-square rounded-xl flex flex-col items-center justify-center
-                                  transition-all duration-200 transform hover:scale-105
-                                  ${isFull
-                                  ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30 cursor-pointer border border-red-500/30'
-                                  : isSelected
-                                    ? 'bg-gradient-to-br from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/30'
-                                    : 'bg-white/10 hover:bg-white/20 text-white cursor-pointer border border-white/20 hover:border-emerald-400/40'
-                                }
-                                `}
-                            >
-                              <span className="text-lg font-semibold">{date.getDate()}</span>
-                              <span className="text-xs mt-1">{day.registeredCount}/{day.maxSlots}</span>
-                              {isFull && <span className="text-xs text-red-400 mt-1">Full</span>}
-                            </button>
-                          );
-                        })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Day Details Panel */}
-          <div className="lg:col-span-1">
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl p-6 sticky top-6">
-              {selectedDay ? (
-                <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-semibold text-white">Day Details</h3>
-                    <span className={`px-2 py-1 rounded-lg text-xs font-medium ${selectedDay.isFull
-                      ? 'bg-red-500/20 text-red-300'
-                      : 'bg-emerald-500/20 text-emerald-300'
-                      }`}>
-                      {selectedDay.isFull ? 'Full' : 'Available'}
-                    </span>
-                  </div>
-
-                  <div className="space-y-4 mb-6">
-                    <div>
-                      <p className="text-emerald-200 text-sm">Day</p>
-                      <p className="text-white font-semibold text-lg">{selectedDay.dayName}</p>
-                    </div>
-                    <div>
-                      <p className="text-emerald-200 text-sm">Date</p>
-                      <p className="text-white font-semibold">{new Date(selectedDay.date).toLocaleDateString('en-US', {
-                        weekday: 'long',
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric'
-                      })}</p>
-                    </div>
-                    <div>
-                      <p className="text-emerald-200 text-sm mb-2">Availability</p>
-                      <div className="bg-white/10 backdrop-blur-md rounded-lg p-3 border border-white/20">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-emerald-200">Spots</span>
-                          <span className="text-white font-semibold">{selectedDay.registeredCount}/{selectedDay.maxSlots}</span>
-                        </div>
-                        <div className="w-full bg-white/20 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full transition-all ${selectedDay.isFull
-                              ? 'bg-red-500'
-                              : selectedDay.registeredCount / selectedDay.maxSlots > 0.7
-                                ? 'bg-amber-500'
-                                : 'bg-emerald-500'
-                              }`}
-                            style={{ width: `${(selectedDay.registeredCount / selectedDay.maxSlots) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Registered Students - Standardized Card Grid */}
-                  {selectedDay.registeredUsers && selectedDay.registeredUsers.length > 0 && (
-                    <div className="mb-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <p className="text-emerald-200 text-sm font-medium">Registered Students</p>
-                          <p className="text-white/60 text-xs mt-0.5">{selectedDay.registeredUsers.length} student(s) assigned</p>
-                        </div>
-                        {canMarkAttendance() && (
-                          <div className="px-2 py-1 bg-indigo-500/20 rounded-lg border border-indigo-500/30">
-                            <p className="text-xs text-indigo-300 font-medium">Admin: Click cards to mark attendance</p>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* STANDARDIZED CARD GRID - 1 column on mobile, 2 columns on desktop */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-1">
-                        {selectedDay.registeredUsers.map((u: UserWithAttendance) => (
-                          <div 
-                            key={u.id} 
-                            className={`
-                              group relative bg-white/10 backdrop-blur-md rounded-xl 
-                              border border-white/20 transition-all duration-300
-                              hover:bg-white/15 hover:border-emerald-400/40 
-                              hover:shadow-lg hover:shadow-emerald-500/10
-                              hover:-translate-y-0.5
-                              ${canMarkAttendance() ? 'cursor-pointer' : ''}
-                            `}
-                          >
-                            {/* Card Content */}
-                            <div className="p-4">
-                              {/* Header with Avatar and Name */}
-                              <div className="flex items-start gap-3 mb-3">
-                                {/* Student Avatar */}
-                                <div className={`
-                                  w-10 h-10 rounded-xl flex items-center justify-center 
-                                  text-white font-bold text-sm shadow-md flex-shrink-0
-                                  bg-gradient-to-br from-emerald-600 to-teal-600
-                                `}>
-                                  {u.firstName?.charAt(0)}{u.lastName?.charAt(0)}
-                                </div>
-                                
-                                {/* Student Info */}
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-white font-semibold text-sm truncate">
-                                    {u.firstName} {u.lastName}
-                                  </p>
-                                  <p className="text-emerald-200/80 text-xs truncate">
-                                    {u.email || 'No email provided'}
-                                  </p>
-                                </div>
-                                
-                                {/* Status Badge */}
-                                <div className="flex-shrink-0">
-                                  <span className={`
-                                    inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium
-                                    ${u.attendanceStatus === 'attended'
-                                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                                      : u.attendanceStatus === 'no-show'
-                                        ? 'bg-red-500/20 text-red-300 border border-red-500/30'
-                                        : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                                    }
-                                  `}>
-                                    {u.attendanceStatus === 'attended' && (
-                                      <svg className="w-2.5 h-2.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                      </svg>
-                                    )}
-                                    {u.attendanceStatus === 'no-show' && (
-                                      <svg className="w-2.5 h-2.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                      </svg>
-                                    )}
-                                    {u.attendanceStatus === 'attended' ? 'Attended' :
-                                      u.attendanceStatus === 'no-show' ? 'No Show' : 'Pending'}
-                                  </span>
-                                </div>
-                              </div>
-
-                              {/* Attendance Meta Info */}
-                              {u.markedAt && (
-                                <div className="mt-2 pt-2 border-t border-white/10">
-                                  <div className="flex items-center justify-between text-xs">
-                                    <span className="text-emerald-200/70">Marked on:</span>
-                                    <span className="text-white/70">
-                                      {new Date(u.markedAt).toLocaleDateString('en-US', {
-                                        month: 'short',
-                                        day: 'numeric',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                      })}
-                                    </span>
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Admin Action Buttons */}
-                              {canMarkAttendance() && (
-                                <div className="mt-3 pt-3 border-t border-white/15">
-                                  <div className="flex gap-2">
-                                    {u.attendanceStatus === 'pending' ? (
-                                      <>
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleMarkAttendance(u, 'attended');
-                                          }}
-                                          disabled={attendanceLoading === u.registrationId}
-                                          className="flex-1 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 
-                                                   text-emerald-300 border border-emerald-500/30 rounded-lg 
-                                                   text-xs font-medium transition-all duration-200
-                                                   flex items-center justify-center gap-1.5
-                                                   hover:scale-105 active:scale-95"
-                                        >
-                                          {attendanceLoading === u.registrationId ? (
-                                            <div className="w-3.5 h-3.5 border-2 border-emerald-300 border-t-transparent rounded-full animate-spin" />
-                                          ) : (
-                                            <>
-                                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                                              </svg>
-                                              Attended
-                                            </>
-                                          )}
-                                        </button>
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleMarkAttendance(u, 'no-show');
-                                          }}
-                                          disabled={attendanceLoading === u.registrationId}
-                                          className="flex-1 py-2 bg-red-600/20 hover:bg-red-600/30 
-                                                   text-red-300 border border-red-500/30 rounded-lg 
-                                                   text-xs font-medium transition-all duration-200
-                                                   flex items-center justify-center gap-1.5
-                                                   hover:scale-105 active:scale-95"
-                                        >
-                                          {attendanceLoading === u.registrationId ? (
-                                            <div className="w-3.5 h-3.5 border-2 border-red-300 border-t-transparent rounded-full animate-spin" />
-                                          ) : (
-                                            <>
-                                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                                              </svg>
-                                              No Show
-                                            </>
-                                          )}
-                                        </button>
-                                      </>
-                                    ) : (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleClearAttendance(u);
-                                        }}
-                                        disabled={attendanceLoading === u.registrationId}
-                                        className="w-full py-2 bg-amber-600/20 hover:bg-amber-600/30 
-                                                 text-amber-300 border border-amber-500/30 rounded-lg 
-                                                 text-xs font-medium transition-all duration-200
-                                                 flex items-center justify-center gap-1.5
-                                                 hover:scale-105 active:scale-95"
-                                      >
-                                        {attendanceLoading === u.registrationId ? (
-                                          <div className="w-3.5 h-3.5 border-2 border-amber-300 border-t-transparent rounded-full animate-spin" />
-                                        ) : (
-                                          <>
-                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v16a1 1 0 0 1 1v1a1 1 0 0 1-1 1H7a1 1 0 0 1-1V5a1 1 0 0 1 1H3a1 1 0 0 1-1v16a1 1 0 0 1 1z" />
-                                            </svg>
-                                            Clear Status
-                                          </>
-                                        )}
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                            
-                            {/* Hover Glow Effect */}
-                            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-500/0 via-emerald-500/5 to-emerald-500/0 
-                                          opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Admin Info Banner - More compact and modern */}
-                      {canMarkAttendance() && (
-                        <div className="mt-4 p-3 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 
-                                      backdrop-blur-md border border-indigo-500/30 rounded-xl">
-                          <div className="flex items-center gap-2">
-                            <svg className="w-4 h-4 text-indigo-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <p className="text-xs text-indigo-200">
-                              <span className="font-medium">Admin Access:</span> Click on student cards to manage attendance status.
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <form onSubmit={handleSubmit}>
-                    <button
-                      type="submit"
-                      disabled={isLoading || selectedDay.isFull || isRegistered}
-                      className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 ${isLoading || selectedDay.isFull || isRegistered
-                        ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/30'
-                        }`}
-                    >
-                      {isRegistered ? 'Already Registered' : (isLoading ? 'Registering...' : 'Register for This Day')}
-                    </button>
-                  </form>
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-4 border border-white/20">
-                    <span className="text-3xl">📅</span>
-                  </div>
-                  <p className="text-emerald-200">Select a day from the calendar</p>
-                  <p className="text-emerald-300 text-sm mt-2">Click on an available day to see details</p>
+              {canMarkAttendance() && (
+                <div className="px-3 py-1.5 bg-terracotta-400/20 rounded-lg border border-terracotta-400">
+                  <p className="text-xs text-terracotta-400 font-medium">Admin Access Enabled</p>
                 </div>
               )}
             </div>
+
+            {showSearchResults ? (
+              /* Show Search Results - Grouped by Date */
+              <div className="space-y-4">
+                {Object.entries(
+                  searchResults.reduce((acc, result) => {
+                    const dateKey = String(result.day.date);
+                    if (!acc[dateKey]) {
+                      acc[dateKey] = { day: result.day, students: [] };
+                    }
+                    acc[dateKey].students.push(result.student);
+                    return acc;
+                  }, {} as Record<string, { day: CleaningDay; students: UserWithAttendance[] }>)
+                ).map(([dateKey, { day, students }]) => (
+                  <DateCard
+                    key={dateKey}
+                    day={day}
+                    students={students}
+                    canMarkAttendance={canMarkAttendance()}
+                    attendanceLoading={attendanceLoading}
+                    onMarkAttendance={handleMarkAttendance}
+                    onClearAttendance={handleClearAttendance}
+                  />
+                ))}
+              </div>
+            ) : (
+              /* Show All Registered Students - Grouped by Date */
+              <div className="space-y-4">
+                {Object.entries(
+                  getAllRegisteredStudents().reduce((acc, result) => {
+                    const dateKey = String(result.day.date);
+                    if (!acc[dateKey]) {
+                      acc[dateKey] = { day: result.day, students: [] };
+                    }
+                    acc[dateKey].students.push(result.student);
+                    return acc;
+                  }, {} as Record<string, { day: CleaningDay; students: UserWithAttendance[] }>)
+                ).map(([dateKey, { day, students }]) => (
+                  <DateCard
+                    key={dateKey}
+                    day={day}
+                    students={students}
+                    canMarkAttendance={canMarkAttendance()}
+                    attendanceLoading={attendanceLoading}
+                    onMarkAttendance={handleMarkAttendance}
+                    onClearAttendance={handleClearAttendance}
+                  />
+                ))}
+              </div>
+            )}
+
+            {getAllRegisteredStudents().length === 0 && !showSearchResults && (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-cloud-400 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-4 border border-sandstone-400">
+                  <span className="text-3xl">📋</span>
+                </div>
+                <p className="text-charcoal-600">No students registered yet</p>
+                <p className="text-charcoal-500 text-sm mt-2">Students will appear here once they register</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Date Card Component - Groups students by date
+interface DateCardProps {
+  day: CleaningDay;
+  students: UserWithAttendance[];
+  canMarkAttendance: boolean;
+  attendanceLoading: string | null;
+  onMarkAttendance: (student: UserWithAttendance, status: 'attended' | 'no-show') => void;
+  onClearAttendance: (student: UserWithAttendance) => void;
+}
+
+function DateCard({ day, students, canMarkAttendance, attendanceLoading, onMarkAttendance, onClearAttendance }: DateCardProps) {
+  const attendedCount = students.filter(s => s.attendanceStatus === 'attended').length;
+  const noShowCount = students.filter(s => s.attendanceStatus === 'no-show').length;
+  const pendingCount = students.filter(s => s.attendanceStatus === 'pending').length;
+
+  return (
+    <div className="group relative bg-cloud-400 backdrop-blur-md rounded-2xl border border-sandstone-400 hover:border-terracotta-400 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
+      <div className="p-6">
+        {/* Date Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-xl font-bold text-charcoal-700">{day.dayName}</h3>
+            <p className="text-charcoal-600 text-sm">
+              {new Date(day.date).toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                month: 'long', 
+                day: 'numeric', 
+                year: 'numeric' 
+              })}
+            </p>
+          </div>
+          <div className="text-right">
+            <div className="text-2xl font-bold text-terracotta-400">{students.length}</div>
+            <div className="text-charcoal-600 text-xs">Registered</div>
+          </div>
+        </div>
+
+        {/* Stats Bar */}
+        <div className="flex gap-2 mb-4">
+          <div className="flex-1 bg-sage-400/20 rounded-lg p-2 text-center border border-sage-400">
+            <div className="text-lg font-bold text-sage-400">{attendedCount}</div>
+            <div className="text-xs text-charcoal-600">Attended</div>
+          </div>
+          <div className="flex-1 bg-terracotta-400/20 rounded-lg p-2 text-center border border-terracotta-400">
+            <div className="text-lg font-bold text-terracotta-400">{pendingCount}</div>
+            <div className="text-xs text-charcoal-600">Pending</div>
+          </div>
+          <div className="flex-1 bg-red-400/20 rounded-lg p-2 text-center border border-red-400">
+            <div className="text-lg font-bold text-red-400">{noShowCount}</div>
+            <div className="text-xs text-charcoal-600">No Show</div>
+          </div>
+        </div>
+
+        {/* Students List */}
+        <div className="space-y-2">
+          {students.map((student) => (
+            <div 
+              key={student.id}
+              className="flex items-center justify-between p-3 bg-cloud-500 rounded-lg border border-sandstone-400 hover:border-terracotta-400 transition-all"
+            >
+              <p className="text-charcoal-700 font-medium text-sm">{student.firstName} {student.lastName}</p>
+              
+              <div className="flex items-center gap-2">
+                {/* Status Badge */}
+                <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                  student.attendanceStatus === 'attended'
+                    ? 'bg-sage-400/20 text-sage-400 border border-sage-400'
+                    : student.attendanceStatus === 'no-show'
+                      ? 'bg-red-400/20 text-red-400 border border-red-400'
+                      : 'bg-terracotta-400/20 text-terracotta-400 border border-terracotta-400'
+                }`}>
+                  {student.attendanceStatus === 'attended' ? '✓' :
+                   student.attendanceStatus === 'no-show' ? '✗' : '⏳'}
+                </span>
+
+                {/* Admin Actions */}
+                {canMarkAttendance && (
+                  <div className="flex gap-1">
+                    {student.attendanceStatus === 'pending' ? (
+                      <>
+                        <button
+                          onClick={() => onMarkAttendance(student, 'attended')}
+                          disabled={attendanceLoading === student.registrationId}
+                          className="p-1.5 bg-sage-400/20 hover:bg-sage-400/30 text-sage-400 border border-sage-400 rounded-lg transition-all hover:scale-105"
+                          title="Mark as Attended"
+                        >
+                          {attendanceLoading === student.registrationId ? (
+                            <div className="w-3 h-3 border-2 border-sage-400 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => onMarkAttendance(student, 'no-show')}
+                          disabled={attendanceLoading === student.registrationId}
+                          className="p-1.5 bg-red-400/20 hover:bg-red-400/30 text-red-400 border border-red-400 rounded-lg transition-all hover:scale-105"
+                          title="Mark as No Show"
+                        >
+                          {attendanceLoading === student.registrationId ? (
+                            <div className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          )}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => onClearAttendance(student)}
+                        disabled={attendanceLoading === student.registrationId}
+                        className="p-1.5 bg-terracotta-400/20 hover:bg-terracotta-400/30 text-terracotta-400 border border-terracotta-400 rounded-lg transition-all hover:scale-105"
+                        title="Clear Status"
+                      >
+                        {attendanceLoading === student.registrationId ? (
+                          <div className="w-3 h-3 border-2 border-terracotta-400 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v16h16V4H4z" />
+                          </svg>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Hover Glow Effect */}
+      <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-terracotta-400/0 via-terracotta-400/5 to-terracotta-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
     </div>
   );
 }
