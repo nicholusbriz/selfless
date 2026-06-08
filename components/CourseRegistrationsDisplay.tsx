@@ -35,7 +35,7 @@ export default function CourseRegistrationsDisplay({
     return (
       <div className="flex justify-center items-center py-12">
         <div className="animate-spin text-2xl">🔄</div>
-        <span className="ml-2 text-white">Loading course registrations...</span>
+        <span className="ml-2 text-charcoal-600">Loading course registrations...</span>
       </div>
     );
   }
@@ -46,7 +46,7 @@ export default function CourseRegistrationsDisplay({
       <div>
         <button
           onClick={() => setShowGradesView(false)}
-          className="mb-6 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+          className="mb-6 bg-gradient-to-r from-terracotta-400 to-terracotta-600 hover:from-terracotta-500 hover:to-terracotta-700 text-white px-4 py-2 rounded-lg font-medium transition-all shadow-lg shadow-terracotta-400/30"
         >
           ← Back to Course List
         </button>
@@ -66,15 +66,15 @@ export default function CourseRegistrationsDisplay({
               placeholder="Search by student name or course..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full px-4 py-2 pl-10 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 pl-12 bg-cloud-400 border border-sandstone-400 rounded-xl text-charcoal-700 placeholder-charcoal-500 focus:outline-none focus:ring-2 focus:ring-terracotta-400 focus:border-terracotta-400 transition-all"
             />
-            <div className="absolute left-3 top-2.5 text-gray-400">
+            <div className="absolute left-4 top-3.5 text-charcoal-500">
               <span className="text-sm">🔍</span>
             </div>
             {searchTerm && (
               <button
                 onClick={() => onSearchChange('')}
-                className="absolute right-2 top-1.5 px-2 py-1 bg-red-600/20 text-red-300 rounded text-xs hover:bg-red-600/30 transition-colors duration-200"
+                className="absolute right-3 top-2 px-3 py-1.5 bg-terracotta-400/10 text-terracotta-600 border border-terracotta-400/30 rounded-lg text-xs hover:bg-terracotta-400/20 transition-colors duration-200 font-medium"
               >
                 Clear
               </button>
@@ -86,8 +86,8 @@ export default function CourseRegistrationsDisplay({
       {filteredSubmissions.length === 0 ? (
         <div className="text-center py-12">
           <div className="text-6xl mb-4">📚</div>
-          <h3 className="text-xl font-semibold text-white mb-2">No Course Registrations Found</h3>
-          <p className="text-gray-300">
+          <h3 className="text-xl font-semibold text-charcoal-700 mb-2">No Course Registrations Found</h3>
+          <p className="text-charcoal-600">
             {searchTerm ? 'No courses match your search criteria.' : 'No students have registered for courses yet.'}
           </p>
         </div>
@@ -98,24 +98,32 @@ export default function CourseRegistrationsDisplay({
             {filteredSubmissions.map((submission) => (
               <div
                 key={submission.id}
-                className={`p-6 rounded-xl border ${theme === 'admin'
-                  ? 'bg-white border-gray-200'
-                  : 'bg-black/30 border-white/20'
+                className={`group p-6 rounded-2xl border shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 ${theme === 'admin'
+                  ? 'bg-gradient-to-br from-white to-cloud-400 border-sandstone-400'
+                  : 'bg-gradient-to-br from-white to-cloud-400 border-sandstone-400'
                   }`}
               >
                 {/* Header */}
                 <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className={`font-semibold text-lg ${theme === 'admin' ? 'text-gray-900' : 'text-white'
+                  <div className="flex items-center gap-3">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${theme === 'admin'
+                      ? 'bg-gradient-to-br from-terracotta-400 to-terracotta-600 shadow-terracotta-400/30'
+                      : 'bg-gradient-to-br from-terracotta-400 to-terracotta-600 shadow-terracotta-400/30'
                       }`}>
-                      {submission.userName}
-                    </h3>
+                      <span className="text-white text-lg">👤</span>
+                    </div>
+                    <div>
+                      <h3 className={`font-semibold text-lg ${theme === 'admin' ? 'text-charcoal-700' : 'text-charcoal-700'
+                        }`}>
+                        {submission.userName}
+                      </h3>
+                    </div>
                   </div>
                 </div>
 
                 {/* Courses List */}
                 <div className="mb-4">
-                  <h4 className={`text-sm font-medium mb-2 ${theme === 'admin' ? 'text-gray-700' : 'text-gray-300'
+                  <h4 className={`text-sm font-medium mb-3 uppercase tracking-wide ${theme === 'admin' ? 'text-charcoal-600' : 'text-charcoal-600'
                     }`}>
                     Registered Courses:
                   </h4>
@@ -123,23 +131,23 @@ export default function CourseRegistrationsDisplay({
                     {submission.courses?.map((course: { name: string; credits: number }, index: number) => (
                       <div
                         key={`${submission.id}-course-${index}`}
-                        className={`flex justify-between items-center p-2 rounded ${theme === 'admin'
-                          ? 'bg-gray-50 border border-gray-200'
-                          : 'bg-black/20 border border-white/10'
+                        className={`flex justify-between items-center p-3 rounded-xl border ${theme === 'admin'
+                          ? 'bg-cloud-400 border-sandstone-400 group-hover:border-terracotta-400 transition-colors'
+                          : 'bg-cloud-400 border-sandstone-400 group-hover:border-terracotta-400 transition-colors'
                           }`}
                       >
-                        <span className={
-                          theme === 'admin' ? 'text-gray-900' : 'text-white'
-                        }>
+                        <span className={`font-medium ${
+                          theme === 'admin' ? 'text-charcoal-700' : 'text-charcoal-700'
+                        }`}>
                           {course.name}
                         </span>
-                        <span className={`text-sm ${theme === 'admin' ? 'text-gray-600' : 'text-gray-400'
+                        <span className={`text-sm font-bold ${theme === 'admin' ? 'text-terracotta-600' : 'text-terracotta-600'
                           }`}>
                           {course.credits} credit{course.credits !== 1 ? 's' : ''}
                         </span>
                       </div>
                     )) || (
-                        <p className={`text-sm ${theme === 'admin' ? 'text-gray-500' : 'text-gray-400'
+                        <p className={`text-sm ${theme === 'admin' ? 'text-charcoal-500' : 'text-charcoal-500'
                           }`}>
                           No courses registered
                         </p>
@@ -149,9 +157,9 @@ export default function CourseRegistrationsDisplay({
 
                 {/* Credits Summary */}
                 <div className="mb-4">
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${theme === 'admin'
-                    ? 'bg-blue-100 text-blue-800 border border-blue-300'
-                    : 'bg-blue-600/20 text-blue-300 border border-blue-400/30'
+                  <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold ${theme === 'admin'
+                    ? 'bg-gradient-to-r from-terracotta-400/10 to-terracotta-400/5 text-terracotta-600 border border-terracotta-400/30'
+                    : 'bg-gradient-to-r from-terracotta-400/10 to-terracotta-400/5 text-terracotta-600 border border-terracotta-400/30'
                     }`}>
                     Total Credits: {submission.courses?.reduce((sum: number, course: { credits: number }) => sum + (course.credits || 0), 0) || 0}
                   </span>
@@ -159,13 +167,13 @@ export default function CourseRegistrationsDisplay({
 
                 {/* Religion Status */}
                 <div className="mb-4">
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${submission.takesReligion
+                  <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold ${submission.takesReligion
                     ? theme === 'admin'
-                      ? 'bg-green-100 text-green-800 border border-green-300'
-                      : 'bg-green-600/20 text-green-300 border border-green-400/30'
+                      ? 'bg-gradient-to-r from-sage-400/10 to-sage-400/5 text-sage-600 border border-sage-400/30'
+                      : 'bg-gradient-to-r from-sage-400/10 to-sage-400/5 text-sage-600 border border-sage-400/30'
                     : theme === 'admin'
-                      ? 'bg-gray-100 text-gray-600 border border-gray-200'
-                      : 'bg-gray-600/20 text-gray-400 border border-gray-400/30'
+                      ? 'bg-gradient-to-r from-charcoal-400/10 to-charcoal-400/5 text-charcoal-600 border border-charcoal-400/30'
+                      : 'bg-gradient-to-r from-charcoal-400/10 to-charcoal-400/5 text-charcoal-600 border border-charcoal-400/30'
                     }`}>
                     {submission.takesReligion ? '✓ Taking Religion' : 'No Religion Course'}
                   </span>
@@ -173,12 +181,12 @@ export default function CourseRegistrationsDisplay({
 
                 {/* Actions */}
                 {(showUserActions || showAdminActions) && (
-                  <div className="flex justify-end gap-2">
+                  <div className="flex justify-end gap-2 pt-4 border-t border-sandstone-400">
                     {showUserActions && currentUser && submission.userId === currentUser.id && (
                       <>
                         <button
                           onClick={() => setShowGradesView(true)}
-                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                          className="bg-gradient-to-r from-sage-400 to-sage-600 hover:from-sage-500 hover:to-sage-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-md shadow-sage-400/30 hover:shadow-lg"
                         >
                           📊 View Grades
                         </button>
@@ -191,7 +199,7 @@ export default function CourseRegistrationsDisplay({
                               onClearSubmission(submission.id, submission.userName, 'courses');
                             }
                           }}
-                          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                          className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-md shadow-red-500/30 hover:shadow-lg"
                         >
                           Clear My Courses
                         </button>
@@ -207,7 +215,7 @@ export default function CourseRegistrationsDisplay({
                             onClearSubmission(submission.id, submission.userName, 'courses');
                           }
                         }}
-                        className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        className="bg-gradient-to-r from-terracotta-400 to-terracotta-600 hover:from-terracotta-500 hover:to-terracotta-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-md shadow-terracotta-400/30 hover:shadow-lg"
                       >
                         Clear Courses
                       </button>
