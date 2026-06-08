@@ -143,24 +143,24 @@ function ReplyItem({ reply, currentUser, announcementId, parentCommentId, onRepl
   };
 
   return (
-    <div className={`ml-${depth * 4} mt-2 p-3 bg-slate-700/30 rounded-xl border-l-2 border-slate-600/50`}>
+    <div className={`ml-${depth * 4} mt-2 p-3 bg-cloud-500 rounded-xl border-l-2 border-sandstone-400`}>
       <div className="flex justify-between items-start">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-6 h-6 bg-slate-600/50 rounded-full flex items-center justify-center">
-              <span className="text-xs font-semibold text-slate-300">{reply.userName.charAt(0)}</span>
+            <div className="w-6 h-6 bg-terracotta-400 rounded-full flex items-center justify-center shadow-md shadow-terracotta-400/30">
+              <span className="text-xs font-semibold text-white">{reply.userName.charAt(0)}</span>
             </div>
             <div>
-              <span className="font-medium text-sm text-slate-100">{reply.userName}</span>
-              <span className="text-xs text-slate-400 ml-2">{formatDate(reply.createdAt)}</span>
+              <span className="font-medium text-sm text-charcoal-700">{reply.userName}</span>
+              <span className="text-xs text-charcoal-500 ml-2">{formatDate(reply.createdAt)}</span>
             </div>
           </div>
-          <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">{reply.content}</p>
+          <p className="text-sm text-charcoal-700 leading-relaxed whitespace-pre-wrap">{reply.content}</p>
         </div>
         {(isOwnReply) && (
           <button
             onClick={() => onDelete(reply.id)}
-            className="text-red-400 hover:text-red-300 text-sm p-1.5 hover:bg-red-500/20 rounded-lg transition-colors"
+            className="text-red-600 hover:text-red-700 text-sm p-1.5 hover:bg-red-400/10 rounded-lg transition-colors"
             title="Delete reply"
           >
             <svg
@@ -184,7 +184,7 @@ function ReplyItem({ reply, currentUser, announcementId, parentCommentId, onRepl
         <div className="mt-3">
           <button
             onClick={() => setShowReplyInput(!showReplyInput)}
-            className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
+            className="text-terracotta-600 hover:text-terracotta-700 text-sm font-medium transition-colors"
           >
             Reply
           </button>
@@ -195,12 +195,12 @@ function ReplyItem({ reply, currentUser, announcementId, parentCommentId, onRepl
                 placeholder="Write a reply..."
                 value={newReplies[reply.id] || ''}
                 onChange={(e) => setNewReplies((prev: { [key: string]: string }) => ({ ...prev, [reply.id]: e.target.value }))}
-                className="flex-1 px-3 py-2.5 bg-slate-600/50 border border-slate-500/50 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
+                className="flex-1 px-3 py-2.5 bg-cloud-400 border border-sandstone-400 rounded-lg text-charcoal-700 placeholder-charcoal-500 focus:outline-none focus:ring-2 focus:ring-terracotta-400 focus:border-terracotta-400 transition-all"
               />
               <button
                 onClick={handleReply}
                 disabled={isPostingComment === reply.id}
-                className="px-3 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-2.5 bg-gradient-to-r from-terracotta-400 to-terracotta-600 text-white rounded-lg text-sm font-medium hover:from-terracotta-500 hover:to-terracotta-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-terracotta-400/30"
               >
                 {isPostingComment === reply.id ? 'Posting...' : 'Reply'}
               </button>
@@ -246,21 +246,21 @@ function CommentItem({ comment, currentUser, announcementId, onReply, onDelete, 
   };
 
   return (
-    <div className="mt-4 p-4 bg-slate-700/50 rounded-xl border border-slate-600/50">
+    <div className="mt-4 p-4 bg-cloud-400 rounded-xl border border-sandstone-400">
       <div className="flex justify-between items-start mb-3">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-slate-600/50 rounded-full flex items-center justify-center">
-            <span className="text-sm font-semibold text-slate-300">{comment.userName.charAt(0)}</span>
+          <div className="w-8 h-8 bg-sage-400 rounded-full flex items-center justify-center shadow-md shadow-sage-400/30">
+            <span className="text-sm font-semibold text-white">{comment.userName.charAt(0)}</span>
           </div>
           <div>
-            <span className="font-medium text-slate-100">{comment.userName}</span>
-            <span className="text-xs text-slate-400 ml-2">{formatDate(comment.createdAt)}</span>
+            <span className="font-medium text-charcoal-700">{comment.userName}</span>
+            <span className="text-xs text-charcoal-500 ml-2">{formatDate(comment.createdAt)}</span>
           </div>
         </div>
         {(isOwnComment) && (
           <button
             onClick={() => onDelete(comment.id)}
-            className="text-red-400 hover:text-red-300 text-sm p-1.5 hover:bg-red-500/20 rounded-lg transition-colors"
+            className="text-red-600 hover:text-red-700 text-sm p-1.5 hover:bg-red-400/10 rounded-lg transition-colors"
             title="Delete comment"
           >
             <svg
@@ -280,7 +280,7 @@ function CommentItem({ comment, currentUser, announcementId, onReply, onDelete, 
           </button>
         )}
       </div>
-      <p className="text-slate-200 leading-relaxed whitespace-pre-wrap mb-3">{comment.content}</p>
+      <p className="text-charcoal-700 leading-relaxed whitespace-pre-wrap mb-3">{comment.content}</p>
 
       <div className="space-y-2">
         {comment.replies?.map((reply: Comment) => (
@@ -304,7 +304,7 @@ function CommentItem({ comment, currentUser, announcementId, onReply, onDelete, 
       <div className="mt-4">
         <button
           onClick={() => setShowReplyInput(!showReplyInput)}
-          className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
+          className="text-terracotta-600 hover:text-terracotta-700 text-sm font-medium transition-colors"
         >
           Reply
         </button>
@@ -315,12 +315,12 @@ function CommentItem({ comment, currentUser, announcementId, onReply, onDelete, 
               placeholder="Write a reply..."
               value={newReplies[comment.id] || ''}
               onChange={(e) => setNewReplies(prev => ({ ...prev, [comment.id]: e.target.value }))}
-              className="flex-1 px-3 py-2.5 bg-slate-600/50 border border-slate-500/50 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
+              className="flex-1 px-3 py-2.5 bg-cloud-500 border border-sandstone-400 rounded-lg text-charcoal-700 placeholder-charcoal-500 focus:outline-none focus:ring-2 focus:ring-terracotta-400 focus:border-terracotta-400 transition-all"
             />
             <button
               onClick={handleReply}
               disabled={isPostingComment === comment.id}
-              className="px-3 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-2.5 bg-gradient-to-r from-terracotta-400 to-terracotta-600 text-white rounded-lg text-sm font-medium hover:from-terracotta-500 hover:to-terracotta-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-terracotta-400/30"
             >
               {isPostingComment === comment.id ? 'Posting...' : 'Reply'}
             </button>
@@ -335,12 +335,20 @@ export default function Announcements({
   showAnnouncementsList = true
 }: AnnouncementsProps) {
   return (
-    <BackgroundImage className="min-h-screen relative">
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-indigo-950/80 to-slate-900/80 backdrop-blur-sm"></div>
+    <div className="min-h-screen bg-cloud-500 relative overflow-hidden">
+      {/* Background Effects */}
+      <div className="absolute inset-0">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-terracotta-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-sage-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse animation-delay-2000"></div>
+        <div className="absolute inset-0" style={{
+          backgroundImage: 'linear-gradient(rgba(44, 44, 44, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(44, 44, 44, 0.03) 1px, transparent 1px)',
+          backgroundSize: '60px 60px'
+        }}></div>
+      </div>
       <div className="relative z-10 container mx-auto px-4 py-6">
         <AnnouncementsContent showAnnouncementsList={showAnnouncementsList} />
       </div>
-    </BackgroundImage>
+    </div>
   );
 }
 
@@ -543,8 +551,8 @@ function AnnouncementsContent({
   if (isLoading) {
     return (
       <div className="text-center py-8">
-        <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
-        <p className="text-slate-400 mt-2">Loading announcements...</p>
+        <div className="w-8 h-8 border-2 border-terracotta-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p className="text-charcoal-600 mt-2">Loading announcements...</p>
       </div>
     );
   }
@@ -553,18 +561,18 @@ function AnnouncementsContent({
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-blue-500/20 rounded-xl flex items-center justify-center">
-            <span className="text-blue-400 text-sm">📢</span>
+          <div className="w-12 h-12 bg-gradient-to-br from-terracotta-400 to-terracotta-600 rounded-xl flex items-center justify-center shadow-lg shadow-terracotta-400/30">
+            <span className="text-2xl text-white">📢</span>
           </div>
           <div>
-            <h3 className="text-xl font-semibold text-slate-100">Announcements</h3>
-            <p className="text-slate-400 text-sm">Latest updates and news</p>
+            <h3 className="text-xl font-semibold text-charcoal-700">Announcements</h3>
+            <p className="text-charcoal-600 text-sm">Latest updates and news</p>
           </div>
         </div>
         {canCreateAnnouncements && (
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/25"
+            className="px-4 py-2 bg-gradient-to-r from-terracotta-400 to-terracotta-600 text-white rounded-lg hover:from-terracotta-500 hover:to-terracotta-700 transition-all flex items-center gap-2 shadow-lg shadow-terracotta-400/30"
           >
             <span className="text-lg">+</span>
             Create Announcement
@@ -574,8 +582,8 @@ function AnnouncementsContent({
 
       {message && (
         <div className={`rounded-lg p-4 text-center ${messageType === 'success'
-          ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
-          : 'bg-red-500/10 border border-red-500/30 text-red-300'
+          ? 'bg-sage-400/10 border border-sage-400/30 text-sage-600'
+          : 'bg-red-400/10 border border-red-400/30 text-red-600'
           }`}>
           <div className="flex items-center justify-center gap-2">
             <span>{messageType === 'success' ? '✓' : '⚠️'}</span>
@@ -586,38 +594,38 @@ function AnnouncementsContent({
 
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-slate-800/90 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-2xl p-6 w-full max-w-md">
+          <div className="bg-gradient-to-br from-cloud-500 to-cloud-400 backdrop-blur-md rounded-2xl border border-sandstone-400 shadow-2xl p-6 w-full max-w-md">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                <span className="text-blue-400 text-lg">📝</span>
+              <div className="w-10 h-10 bg-gradient-to-br from-terracotta-400 to-terracotta-600 rounded-xl flex items-center justify-center shadow-lg shadow-terracotta-400/30">
+                <span className="text-lg text-white">📝</span>
               </div>
               <div>
-                <h3 className="text-xl font-semibold text-slate-100">Create Announcement</h3>
-                <p className="text-slate-400 text-sm">Share important updates</p>
+                <h3 className="text-xl font-semibold text-charcoal-700">Create Announcement</h3>
+                <p className="text-charcoal-600 text-sm">Share important updates</p>
               </div>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="block text-sm font-medium text-charcoal-700 mb-2">
                   Title
                 </label>
                 <input
                   type="text"
                   value={newAnnouncement.title}
                   onChange={(e) => setNewAnnouncement({ ...newAnnouncement, title: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-slate-700/50 border border-slate-600/50 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
+                  className="w-full px-4 py-2.5 bg-cloud-400 border border-sandstone-400 rounded-lg text-charcoal-700 placeholder-charcoal-500 focus:outline-none focus:ring-2 focus:ring-terracotta-400 focus:border-terracotta-400 transition-all"
                   placeholder="Announcement title"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="block text-sm font-medium text-charcoal-700 mb-2">
                   Content
                 </label>
                 <textarea
                   value={newAnnouncement.content}
                   onChange={(e) => setNewAnnouncement({ ...newAnnouncement, content: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-slate-700/50 border border-slate-600/50 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all resize-none"
+                  className="w-full px-4 py-2.5 bg-cloud-400 border border-sandstone-400 rounded-lg text-charcoal-700 placeholder-charcoal-500 focus:outline-none focus:ring-2 focus:ring-terracotta-400 focus:border-terracotta-400 transition-all resize-none"
                   rows={4}
                   placeholder="Announcement content"
                   required
@@ -627,14 +635,14 @@ function AnnouncementsContent({
             <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="px-4 py-2.5 bg-slate-700/50 border border-slate-600/50 text-slate-300 rounded-lg hover:bg-slate-600/50 transition-colors"
+                className="px-4 py-2.5 bg-cloud-400 border border-sandstone-400 text-charcoal-700 rounded-lg hover:bg-sandstone-400 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateAnnouncement}
                 disabled={createAnnouncementMutation.isPending}
-                className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-blue-500/25"
+                className="px-4 py-2.5 bg-gradient-to-r from-terracotta-400 to-terracotta-600 text-white rounded-lg hover:from-terracotta-500 hover:to-terracotta-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-terracotta-400/30"
               >
                 {createAnnouncementMutation.isPending ? 'Creating...' : 'Create'}
               </button>
@@ -647,29 +655,29 @@ function AnnouncementsContent({
         <div className="space-y-4">
           {announcements.length === 0 ? (
             <div className="text-center py-12">
-              <div className="w-16 h-16 bg-slate-700/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-cloud-400 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-sandstone-400">
                 <span className="text-2xl">📢</span>
               </div>
-              <p className="text-slate-400">No announcements yet.</p>
+              <p className="text-charcoal-600">No announcements yet.</p>
             </div>
           ) : (
             announcements.map((announcement: Announcement) => (
-              <div key={announcement.id} className="bg-slate-800/60 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-lg">
-                <div className="p-6 border-b border-slate-700/50">
+              <div key={announcement.id} className="bg-gradient-to-br from-white to-cloud-400 backdrop-blur-md rounded-2xl border border-sandstone-400 shadow-xl hover:shadow-2xl transition-all duration-300">
+                <div className="p-6 border-b border-sandstone-400">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                          <span className="text-blue-400 text-lg">📢</span>
+                        <div className="w-10 h-10 bg-gradient-to-br from-terracotta-400 to-terracotta-600 rounded-xl flex items-center justify-center shadow-lg shadow-terracotta-400/30">
+                          <span className="text-lg text-white">📢</span>
                         </div>
                         <div>
-                          <h4 className="text-lg font-semibold text-slate-100">{announcement.title}</h4>
+                          <h4 className="text-lg font-semibold text-charcoal-700">{announcement.title}</h4>
                           <div className="flex items-center gap-3 mt-1">
-                            <div className="w-6 h-6 bg-slate-600/50 rounded-full flex items-center justify-center">
-                              <span className="text-xs font-semibold text-slate-300">{announcement.adminName.charAt(0)}</span>
+                            <div className="w-6 h-6 bg-sage-400 rounded-full flex items-center justify-center shadow-md shadow-sage-400/30">
+                              <span className="text-xs font-semibold text-white">{announcement.adminName.charAt(0)}</span>
                             </div>
-                            <span className="text-sm text-slate-300">{announcement.adminName}</span>
-                            <span className="text-xs text-slate-400">{formatDate(announcement.createdAt)}</span>
+                            <span className="text-sm text-charcoal-700">{announcement.adminName}</span>
+                            <span className="text-xs text-charcoal-500">{formatDate(announcement.createdAt)}</span>
                           </div>
                         </div>
                       </div>
@@ -677,7 +685,7 @@ function AnnouncementsContent({
                     {(canDeleteAnnouncements) && (
                       <button
                         onClick={() => handleDeleteAnnouncement(announcement.id)}
-                        className="text-red-400 hover:text-red-300 p-2 hover:bg-red-500/20 rounded-lg transition-colors"
+                        className="text-red-600 hover:text-red-700 p-2 hover:bg-red-400/10 rounded-lg transition-colors"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -685,10 +693,10 @@ function AnnouncementsContent({
                       </button>
                     )}
                   </div>
-                  <div className="text-slate-200 leading-relaxed whitespace-pre-wrap">{announcement.content}</div>
+                  <div className="text-charcoal-700 leading-relaxed whitespace-pre-wrap">{announcement.content}</div>
                 </div>
 
-                <div className="p-6 border-t border-slate-700/50">
+                <div className="p-6 border-t border-sandstone-400">
                   <div className="space-y-4">
                     <div className="flex gap-2">
                       <input
@@ -696,12 +704,12 @@ function AnnouncementsContent({
                         placeholder="Add a comment..."
                         value={newComments[announcement.id] || ''}
                         onChange={(e) => setNewComments(prev => ({ ...prev, [announcement.id]: e.target.value }))}
-                        className="flex-1 px-3 py-2.5 bg-slate-700/50 border border-slate-600/50 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
+                        className="flex-1 px-3 py-2.5 bg-cloud-400 border border-sandstone-400 rounded-lg text-charcoal-700 placeholder-charcoal-500 focus:outline-none focus:ring-2 focus:ring-terracotta-400 focus:border-terracotta-400 transition-all"
                       />
                       <button
                         onClick={() => handleComment(announcement.id, newComments[announcement.id])}
                         disabled={isPostingComment === announcement.id}
-                        className="px-3 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-blue-500/25"
+                        className="px-3 py-2.5 bg-gradient-to-r from-sage-400 to-sage-600 text-white rounded-lg text-sm font-medium hover:from-sage-500 hover:to-sage-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-sage-400/30"
                       >
                         {isPostingComment === announcement.id ? 'Posting...' : 'Comment'}
                       </button>
