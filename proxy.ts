@@ -24,7 +24,7 @@ const protectedApiRoutes = {
 };
 
 const publicRoutes = ['/login', '/register'];
-const publicApiRoutes = ['/api/auth/login', '/api/auth/register', '/api/auth/logout'];
+const publicApiRoutes = ['/api/auth/login','/api/debug', '/api/auth/register', '/api/auth/logout'];
 
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
