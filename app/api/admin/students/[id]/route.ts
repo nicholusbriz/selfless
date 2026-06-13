@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireRole } from '@/lib/auth-helper';
 
 // GET /api/admin/students/:id - Get student details
 export async function GET(
@@ -8,14 +7,20 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const authResult = await requireRole(request, ['admin']);
-    if (authResult instanceof NextResponse) {
-      return authResult;
+    // Get user info from proxy headers
+    const userId = request.headers.get('x-user-id');
+    const userRole = request.headers.get('x-user-role');
+    
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const { user } = authResult;
+    
+    if (userRole !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden', message: 'Admin access required' }, { status: 403 });
+    }
 
     const { id } = await params;
-    const student = await (prisma as any).studentProfile.findUnique({
+    const student = await prisma.studentProfile.findUnique({
       where: { id },
       include: {
         user: true,
@@ -49,19 +54,37 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const authResult = await requireRole(request, ['admin']);
-    if (authResult instanceof NextResponse) {
-      return authResult;
+    // Get user info from proxy headers
+    const userId = request.headers.get('x-user-id');
+    const userRole = request.headers.get('x-user-role');
+    
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const { user } = authResult;
+    
+    if (userRole !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden', message: 'Admin access required' }, { status: 403 });
+    }
 
     const { firstName, lastName, email, phoneNumber } = await request.json();
     const { id } = await params;
 
-    const student = await (prisma as any).studentProfile.findUnique({
+    let student = await prisma.studentProfile.findUnique({
       where: { id },
       include: { user: true }
     });
+
+    if (!student) {
+      // Try to find by User ID
+      const userRecord = await prisma.user.findUnique({
+        where: { id },
+        include: { studentProfile: true }
+      });
+      
+      if (userRecord?.studentProfile) {
+        student = { ...userRecord.studentProfile, user: userRecord } as any;
+      }
+    }
 
     if (!student) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
@@ -90,16 +113,22 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const authResult = await requireRole(request, ['admin']);
-    if (authResult instanceof NextResponse) {
-      return authResult;
+    // Get user info from proxy headers
+    const userId = request.headers.get('x-user-id');
+    const userRole = request.headers.get('x-user-role');
+    
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const { user } = authResult;
+    
+    if (userRole !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden', message: 'Admin access required' }, { status: 403 });
+    }
 
     const { id } = await params;
     
     // Try to find by StudentProfile ID first
-    let student = await (prisma as any).studentProfile.findUnique({
+    let student = await prisma.studentProfile.findUnique({
       where: { id },
       include: { user: true }
     });
@@ -112,8 +141,7 @@ export async function DELETE(
       });
       
       if (userRecord?.studentProfile) {
-        student = userRecord.studentProfile;
-        student.user = userRecord;
+        student = { ...userRecord.studentProfile, user: userRecord } as any;
       }
     }
 
@@ -121,12 +149,48 @@ export async function DELETE(
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
     }
 
-    // Delete student profile (cascade will handle related records)
-    await (prisma as any).studentProfile.delete({
+    // Delete in correct order to avoid foreign key constraints
+    // 1. Delete grades
+    await prisma.grade.deleteMany({
+      where: { studentId: student.id }
+    });
+    
+    // 2. Delete enrolled courses
+    await prisma.enrolledCourse.deleteMany({
+      where: { studentId: student.id }
+    });
+    
+    // 3. Delete teacher-student assignments
+    await prisma.teacherStudentAssignment.deleteMany({
+      where: { studentId: student.user.id }
+    });
+    
+    // 4. Delete teacher profile if exists
+    const teacherProfile = await prisma.teacherProfile.findUnique({
+      where: { userId: student.user.id }
+    });
+    if (teacherProfile) {
+      await prisma.teacherProfile.delete({
+        where: { id: teacherProfile.id }
+      });
+    }
+    
+    // 5. Delete admin profile if exists
+    const adminProfile = await prisma.adminProfile.findUnique({
+      where: { userId: student.user.id }
+    });
+    if (adminProfile) {
+      await prisma.adminProfile.delete({
+        where: { id: adminProfile.id }
+      });
+    }
+    
+    // 6. Delete student profile
+    await prisma.studentProfile.delete({
       where: { id: student.id }
     });
 
-    // Delete user
+    // 7. Delete user
     await prisma.user.delete({
       where: { id: student.user.id }
     });

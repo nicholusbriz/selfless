@@ -2,14 +2,14 @@
 
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Search, LayoutGrid, List, BookOpen, User } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { Search, LayoutGrid, List, BookOpen, User, GraduationCap } from 'lucide-react';
 
 interface Student {
   id: string;
   name: string;
   studentId: string;
   email: string;
+  takesReligion?: boolean;
   enrolledCourses: {
     id: string;
     courseName: string;
@@ -21,31 +21,30 @@ interface Student {
 interface StudentCoursesTabProps {
   searchTerm: string;
   onSearchChange: (term: string) => void;
+  students: Student[];
+  currentUserId?: string; // Optional - for filtering current student
 }
 
-export default function StudentCoursesTab({ searchTerm, onSearchChange }: StudentCoursesTabProps) {
+export default function StudentCoursesTab({ 
+  searchTerm, 
+  onSearchChange, 
+  students,
+  currentUserId
+}: StudentCoursesTabProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  const { data: studentsData, isLoading, error, refetch } = useQuery({
-    queryKey: ['students'],
-    queryFn: async () => {
-      const response = await fetch('/api/admin/students');
-      if (!response.ok) {
-        throw new Error('Failed to fetch students');
-      }
-      const data = await response.json();
-      return data.students || [];
-    },
-    staleTime: 30 * 1000,
-    refetchInterval: 60 * 1000,
-  });
-
-  const students = studentsData || [];
+  // Filter to show current student only (for student role)
+  const displayStudents = useMemo(() => {
+    if (currentUserId) {
+      return students.filter(s => s.id === currentUserId);
+    }
+    return students;
+  }, [students, currentUserId]);
 
   const filteredStudents = useMemo(() => {
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
-      return students.filter((student: Student) =>
+      return displayStudents.filter((student: Student) =>
         student.name.toLowerCase().includes(search) ||
         student.studentId.toLowerCase().includes(search) ||
         student.enrolledCourses?.some((course: any) =>
@@ -53,51 +52,13 @@ export default function StudentCoursesTab({ searchTerm, onSearchChange }: Studen
         )
       );
     }
-    return students;
-  }, [students, searchTerm]);
+    return displayStudents;
+  }, [displayStudents, searchTerm]);
 
-  if (isLoading) {
+  if (!displayStudents || displayStudents.length === 0) {
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {[...Array(8)].map((_, index) => (
-            <div
-              key={index}
-              className="bg-white/5 backdrop-blur-lg rounded-xl p-4 border border-white/10 animate-pulse"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <div className="h-5 bg-white/10 rounded w-3/4 mb-2"></div>
-                  <div className="h-3 bg-white/10 rounded w-1/2"></div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="bg-white/5 rounded-lg p-2">
-                    <div className="h-3 bg-white/10 rounded w-full mb-1"></div>
-                    <div className="h-2 bg-white/10 rounded w-1/3"></div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <p className="text-red-400 text-lg mb-2">Error loading students</p>
-          <button
-            onClick={() => refetch()}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-          >
-            Retry
-          </button>
-        </div>
+      <div className="text-center py-12">
+        <p className="text-gray-400">No courses found</p>
       </div>
     );
   }
@@ -110,7 +71,7 @@ export default function StudentCoursesTab({ searchTerm, onSearchChange }: Studen
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
             type="text"
-            placeholder="Search students or courses..."
+            placeholder="Search your courses..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
@@ -135,12 +96,12 @@ export default function StudentCoursesTab({ searchTerm, onSearchChange }: Studen
 
       {/* Results Count */}
       <div className="text-gray-400 text-sm">
-        Showing {filteredStudents.length} of {students.length} students
+        Showing {filteredStudents.length} of {displayStudents.length} student
       </div>
 
       {/* GRID VIEW */}
       {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredStudents.map((student: Student, index: number) => (
             <motion.div
               key={student.id}
@@ -150,7 +111,7 @@ export default function StudentCoursesTab({ searchTerm, onSearchChange }: Studen
               className="bg-white/5 backdrop-blur-lg rounded-xl p-4 border border-white/10 hover:border-purple-500/30 transition-all duration-300"
               whileHover={{ y: -2 }}
             >
-              {/* Student Info */}
+              {/* Student Header */}
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
@@ -159,6 +120,18 @@ export default function StudentCoursesTab({ searchTerm, onSearchChange }: Studen
                   </div>
                   <p className="text-purple-300 text-xs">ID: {student.studentId}</p>
                 </div>
+                
+                {/* ✅ Display Religion Status (Read-only) */}
+                <div className={`flex items-center gap-1 px-2 py-1 rounded-full ${
+                  student.takesReligion
+                    ? 'bg-orange-500/20 text-orange-400'
+                    : 'bg-gray-500/20 text-gray-400'
+                }`}>
+                  <GraduationCap className="w-3 h-3" />
+                  <span className="text-xs font-medium">
+                    {student.takesReligion ? 'Religion' : 'No Religion'}
+                  </span>
+                </div>
               </div>
 
               {/* Courses List */}
@@ -166,7 +139,7 @@ export default function StudentCoursesTab({ searchTerm, onSearchChange }: Studen
                 <div className="flex items-center gap-2 mb-2">
                   <BookOpen className="w-3 h-3 text-blue-400" />
                   <p className="text-gray-400 text-xs font-medium">
-                    Courses ({student.enrolledCourses?.length || 0})
+                    Your Courses ({student.enrolledCourses?.length || 0})
                   </p>
                 </div>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -193,6 +166,7 @@ export default function StudentCoursesTab({ searchTerm, onSearchChange }: Studen
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Student</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase">ID</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Religion</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Courses</th>
                 </tr>
               </thead>
@@ -211,6 +185,18 @@ export default function StudentCoursesTab({ searchTerm, onSearchChange }: Studen
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-gray-400 text-sm">{student.studentId}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full ${
+                        student.takesReligion
+                          ? 'bg-orange-500/20 text-orange-400'
+                          : 'bg-gray-500/20 text-gray-400'
+                      }`}>
+                        <GraduationCap className="w-3 h-3" />
+                        <span className="text-xs font-medium">
+                          {student.takesReligion ? 'Takes Religion' : 'No Religion'}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1.5">
@@ -239,7 +225,6 @@ export default function StudentCoursesTab({ searchTerm, onSearchChange }: Studen
         </div>
       )}
 
-      {/* Empty State */}
       {filteredStudents.length === 0 && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -247,7 +232,7 @@ export default function StudentCoursesTab({ searchTerm, onSearchChange }: Studen
           className="text-center py-12"
         >
           <Search className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-          <p className="text-gray-400 text-lg">No students found matching "{searchTerm}"</p>
+          <p className="text-gray-400 text-lg">No courses found matching "{searchTerm}"</p>
         </motion.div>
       )}
     </div>

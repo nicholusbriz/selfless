@@ -26,24 +26,26 @@ export default function OverviewPage() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch students using TanStack Query
-  const { data: studentsData, isLoading, error, refetch } = useQuery({
-    queryKey: ['students'],
+  // Fetch overview data using TanStack Query
+  const { data: overviewData, isLoading, error, refetch } = useQuery({
+    queryKey: ['overview'],
     queryFn: async () => {
-      const response = await fetch('/api/admin/students');
+      const response = await fetch('/api/overview');
       if (!response.ok) {
-        throw new Error('Failed to fetch students');
+        throw new Error('Failed to fetch overview data');
       }
       const data = await response.json();
-      return data.students || [];
+      return data;
     },
-    staleTime: 30 * 1000, // 30 seconds
-    refetchInterval: 60 * 1000, // Refresh every minute for real-time updates
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
+    enabled: !!user,
   });
 
-  const students = studentsData || [];
-
-  // Calculate statistics
+  // Extract students from the single data source
+  const students = overviewData?.students || [];
+  
+  // Calculate statistics from REAL data
   const totalStudents = students.length;
   const totalCourses = students.reduce((sum: number, student: any) => 
     sum + (student.enrolledCourses?.length || 0), 0
@@ -51,11 +53,10 @@ export default function OverviewPage() {
   const totalCredits = students.reduce((sum: number, student: any) => 
     sum + (student.totalCredits || 0), 0
   );
+  
+  // ✅ Count students who take religion based on takesReligion field
   const religionStudents = students.filter((student: any) => 
-    student.enrolledCourses?.some((course: any) => 
-      course.courseName.toLowerCase().includes('religion') || 
-      course.courseName.toLowerCase().includes('rel')
-    )
+    student.takesReligion === true
   ).length;
 
   const stats = [
@@ -97,7 +98,6 @@ export default function OverviewPage() {
     }
   ];
 
-  // Loading state with skeleton
   if (isLoading) {
     return (
       <div className="flex flex-col h-full">
@@ -188,7 +188,11 @@ export default function OverviewPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
             >
-              <StudentCoursesTab searchTerm={searchTerm} onSearchChange={setSearchTerm} />
+              <StudentCoursesTab 
+                searchTerm={searchTerm} 
+                onSearchChange={setSearchTerm}
+                students={students}
+              />
             </motion.div>
           </motion.div>
         )}
