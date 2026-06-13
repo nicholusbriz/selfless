@@ -28,7 +28,6 @@ import {
   Code
 } from 'lucide-react';
 import { BGPattern } from '@/components/ui/bg-pattern';
-import RippleButton from '@/components/RippleButton';
 import PWAInstallPrompt from '@/components/PWAInstallPrompt';
 import { useAuthStore } from '@/stores/authStore';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
@@ -465,41 +464,32 @@ export default function HomePage() {
               transition={{ duration: 0.8, delay: 0.6 }}
             >
               {user ? (
-                <motion.div
+                <motion.button
+                  onClick={() => router.push('/dashboard')}
+                  className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold text-lg"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <RippleButton
-                    onClick={() => router.push('/dashboard')}
-                    className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold text-lg"
-                  >
-                    Go to Dashboard
-                  </RippleButton>
-                </motion.div>
+                  Go to Dashboard
+                </motion.button>
               ) : (
                 <>
-                  <motion.div
+                  <motion.button
+                    onClick={() => router.push('/login')}
+                    className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold text-lg"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <RippleButton
-                      onClick={() => router.push('/login')}
-                      className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold text-lg"
-                    >
-                      Sign In
-                    </RippleButton>
-                  </motion.div>
-                  <motion.div
+                    Sign In
+                  </motion.button>
+                  <motion.button
+                    onClick={() => router.push('/register')}
+                    className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white rounded-lg font-semibold text-lg border border-white/20"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <RippleButton
-                      onClick={() => router.push('/register')}
-                      className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white rounded-lg font-semibold text-lg border border-white/20"
-                    >
-                      Get Started
-                    </RippleButton>
-                  </motion.div>
+                    Get Started
+                  </motion.button>
                 </>
               )}
             </motion.div>
@@ -776,7 +766,9 @@ export default function HomePage() {
               Join our community of Experts!
             </motion.p>
             {!user && (
-              <motion.div
+              <motion.button
+                onClick={() => router.push('/register')}
+                className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold text-lg inline-flex items-center space-x-2"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -784,19 +776,14 @@ export default function HomePage() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <RippleButton
-                  onClick={() => router.push('/register')}
-                  className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold text-lg inline-flex items-center space-x-2"
+                <span>Get Started</span>
+                <motion.div
+                  animate={{ x: [0, 5, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
                 >
-                  <span>Get Started</span>
-                  <motion.div
-                    animate={{ x: [0, 5, 0] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                  </motion.div>
-                </RippleButton>
-              </motion.div>
+                  <ChevronRight className="w-5 h-5" />
+                </motion.div>
+              </motion.button>
             )}
           </motion.div>
         </div>
