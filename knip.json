@@ -1,0 +1,14 @@
+{
+  "entry": [
+    "app/**/*.{ts,tsx}",
+    "components/**/*.{ts,tsx}"
+  ],
+  "project": [
+    "**/*.{ts,tsx,js,jsx}",
+    "!**/*.d.ts",
+    "!**/node_modules/**",
+    "!**/.next/**",
+    "!**/dist/**",
+    "!**/build/**"
+  ]
+}

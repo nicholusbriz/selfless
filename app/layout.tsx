@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import QueryProvider from '@/components/QueryProvider';
+import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,27 +16,43 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: 'https://selfless-henna.vercel.app',
-  title: "Selfless Ce Freedomcity Tech center",
-  description: "Created by Atbriz Nicholus Software Developer at Byu ldaho",
+  title: "Freedom City Tech Center - Academic Dashboard",
+  description: "Academic management system for Freedom City Tech Center - Track students, courses, and academic progress",
   icons: {
-    icon: "/favicon.ico.png",
-    shortcut: "/favicon.ico.png",
-    apple: "/favicon.ico.png",
+    icon: "/freedom.png",
+    shortcut: "/freedom.png",
+    apple: "/freedom.png",
   },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
-    title: "Freedom City Tech Center",
+    statusBarStyle: "black-translucent",
+    title: "Freedom Tech",
+    startupImage: [
+      {
+        url: "/freedom.png",
+        media: "(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)",
+      },
+    ],
   },
   formatDetection: {
     telephone: false,
   },
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#8b5cf6" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f0f23" },
+  ],
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
   openGraph: {
     type: "website",
     siteName: "Freedom City Tech Center",
-    title: "Freedom City Tech Center - Cleaning Registration System",
-    description: "Professional cleaning registration system for Freedom City Tech Center",
+    title: "Freedom City Tech Center - Academic Dashboard",
+    description: "Academic management system for Freedom City Tech Center - Track students, courses, and academic progress",
     images: [
       {
         url: "/freedom.png",
@@ -46,13 +64,11 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Freedom City Tech Center",
-    description: "Professional cleaning registration system",
+    title: "Freedom City Tech Center - Academic Dashboard",
+    description: "Academic management system for Freedom City Tech Center",
     images: ["/freedom.png"],
   },
 };
-
-import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration';
 
 export default function RootLayout({
   children,
@@ -63,10 +79,15 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      data-scroll-behavior="smooth"
     >
       <body className="min-h-full flex flex-col">
-        {children}
-        <ServiceWorkerRegistration />
+        <QueryProvider>
+          <ServiceWorkerRegistration />
+          <main className="flex-1">
+            {children}
+          </main>
+        </QueryProvider>
       </body>
     </html>
   );

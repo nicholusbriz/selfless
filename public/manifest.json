@@ -1,26 +1,64 @@
 {
-  "name": "Freedom City Tech Center",
+  "name": "Freedom City Tech Center - Academic Dashboard",
   "short_name": "Freedom Tech",
-  "description": "Professional cleaning registration system for Freedom City Tech Center",
-  "start_url": "/",
+  "description": "Academic management system for Freedom City Tech Center - Track students, courses, and academic progress",
+  "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#1e1b4b",
+  "display_override": ["standalone", "window-controls-overlay"],
+  "background_color": "#0f0f23",
   "theme_color": "#8b5cf6",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
   "scope": "/",
   "categories": [
     "education",
     "productivity",
-    "business"
+    "business",
+    "utilities"
   ],
   "lang": "en",
   "dir": "ltr",
   "icons": [
     {
       "src": "/freedom.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/freedom.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/freedom.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/freedom.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/freedom.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/freedom.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/freedom.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/freedom.png",
@@ -35,7 +73,40 @@
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Freedom City Tech Center - Main Dashboard"
+      "label": "Academic Dashboard - Student Overview"
+    },
+    {
+      "src": "/freedom.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Academic Dashboard - Mobile View"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Students",
+      "short_name": "Students",
+      "description": "View all students and their courses",
+      "url": "/dashboard/overview",
+      "icons": [
+        {
+          "src": "/freedom.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Go to main dashboard",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/freedom.png",
+          "sizes": "96x96"
+        }
+      ]
     }
   ]
 }

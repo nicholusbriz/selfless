@@ -1,0 +1,153 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// MAIN USER - Everyone has one account
+model User {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  firstName   String
+  lastName    String
+  email       String   @unique
+  password    String
+  phoneNumber String?
+  role        Role?    @relation(fields: [roleId], references: [id])
+  roleId      String?  @db.ObjectId
+  
+  // Student specific
+  studentProfile StudentProfile?
+  
+  // Teacher specific  
+  teacherProfile TeacherProfile?
+  
+  // Admin specific
+  adminProfile AdminProfile?
+  
+  // Assignments where this user is a teacher
+  teachingAssignments TeacherStudentAssignment[] @relation("TeacherAssignments")
+  
+  // Assignments where this user is a student
+  studentAssignments TeacherStudentAssignment[] @relation("StudentAssignments")
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("users")
+}
+
+// ROLES - Simple role-based access control
+model Role {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String   @unique  // "admin", "teacher", "student"
+  permissions String[]
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("roles")
+}
+
+// STUDENT PROFILE - Academic tracking (every user has one)
+model StudentProfile {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @unique @db.ObjectId
+  user         User     @relation(fields: [userId], references: [id])
+  studentId    String   @unique  // Format: STU2024001
+  takesReligion Boolean @default(false)  // Whether student takes religion courses
+  tuition      Float?   // Total tuition amount demanded
+  tuitionPaid  Boolean  @default(false)  // Whether tuition has been paid
+  currentGPA   Float    @default(0)
+  totalCredits Int      @default(0)
+  enrolledCourses EnrolledCourse[]
+  grades       Grade[]
+
+  @@map("student_profiles")
+}
+
+// TEACHER PROFILE - Teaching capabilities (only for teachers)
+model TeacherProfile {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @unique @db.ObjectId
+  user       User     @relation(fields: [userId], references: [id])
+  teacherId  String   @unique  // Format: TCH2024001
+  department String?
+  assignedAt DateTime @default(now())
+  
+  @@map("teacher_profiles")
+}
+
+// ADMIN PROFILE - Admin capabilities (only for admins)
+model AdminProfile {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @unique @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  adminId   String   @unique  // Format: ADM2024001
+  promotedAt DateTime @default(now())
+  notes     String?
+  
+  @@map("admin_profiles")
+}
+
+// ENROLLED COURSES - Every student's courses (includes teachers/admins as students)
+model EnrolledCourse {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  studentId   String   @db.ObjectId
+  student     StudentProfile @relation(fields: [studentId], references: [id])
+  courseName  String
+  credits     Int
+  status      String   @default("active")  // active, dropped, completed
+  submittedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  grades      Grade[]
+  
+  @@map("enrolled_courses")
+}
+
+// GRADES - Academic performance tracking for ALL users
+model Grade {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  studentId   String   @db.ObjectId
+  student     StudentProfile @relation(fields: [studentId], references: [id])
+  courseId    String   @db.ObjectId
+  course      EnrolledCourse @relation(fields: [courseId], references: [id])
+  week        Int      // 1-7 only
+  gradeLetter String   // A, A-, B+, B, B-, C+, C, C-, D+, D, D-, E, F
+  gradePoints Float    // Calculated from gradeLetter
+  assignedBy  String   @db.ObjectId  // User ID of teacher or admin
+  assignedAt  DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([studentId, courseId, week])  // One grade per course per week
+  @@index([week, gradeLetter])
+  @@map("grades")
+}
+
+// TEACHER-STUDENT ASSIGNMENT - Which teachers are responsible for which students
+// NOW USING DIRECT USER IDs (simplified!)
+model TeacherStudentAssignment {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  teacherId   String   @db.ObjectId  // Direct User ID (from User table)
+  studentId   String   @db.ObjectId  // Direct User ID (from User table)
+  status      String   @default("not_verified")  // not_verified, verified
+  notes       String?
+  assignedAt  DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations to User model
+  teacher     User     @relation("TeacherAssignments", fields: [teacherId], references: [id])
+  student     User     @relation("StudentAssignments", fields: [studentId], references: [id])
+  
+  @@unique([teacherId, studentId])  // One assignment per teacher-student pair
+  @@index([teacherId])
+  @@index([studentId])
+  @@index([status])
+  @@map("teacher_student_assignments")
+}

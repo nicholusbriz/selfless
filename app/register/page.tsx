@@ -3,8 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import RippleButton from '@/components/RippleButton';
-import { isAdminEmail } from '@/config/admin';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { useAuthStore } from '@/stores/authStore';
+import axios from '@/lib/axios';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, User, Mail, Phone, Lock, Eye, EyeOff, Sparkles, Building2 } from 'lucide-react';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -19,6 +22,7 @@ export default function RegisterPage() {
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+  const login = useAuthStore(state => state.login);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -56,46 +60,30 @@ export default function RegisterPage() {
     setMessage('');
 
     try {
-
-      const response = await fetch('/api/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          password: formData.password,
-          phoneNumber: formData.phoneNumber
-        }),
+      const response = await axios.post('/auth/register', {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        phoneNumber: formData.phoneNumber
       });
 
-      const data = await response.json();
+      const data = response.data;
 
-      if (response.ok) {
-        // Check if user is admin and redirect accordingly
-        const isAdmin = isAdminEmail(data.user.email);
+      if (data.success) {
+        setMessage('Registration successful! Redirecting to dashboard...');
+        setMessageType('success');
 
-        if (isAdmin) {
-          setMessage('Admin account created! Redirecting to admin dashboard...');
-          setMessageType('success');
-          setTimeout(() => {
-            router.push(`/admin?userId=${data.user.id}&email=${encodeURIComponent(data.user.email)}`);
-          }, 1500);
-        } else {
-          setMessage('Account created successfully! Redirecting to your dashboard...');
-          setMessageType('success');
-          setTimeout(() => {
-            router.push(`/dashboard?userId=${data.user.id}&email=${encodeURIComponent(data.user.email)}`);
-          }, 1500);
-        }
+        // Cookie is set automatically by the server, just redirect to dashboard
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 1500);
       } else {
         setMessage(data.message || 'Registration failed');
         setMessageType('error');
       }
-    } catch {
-      setMessage('Network error. Please try again.');
+    } catch (error: any) {
+      setMessage(error.response?.data?.message || error.message || 'Network error. Please try again.');
       setMessageType('error');
     } finally {
       setIsLoading(false);
@@ -103,12 +91,53 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center p-4 relative">
-      {/* Enhanced animated background elements */}
+    <motion.div 
+      className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center p-4 relative overflow-hidden"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.8 }}
+    >
+      {/* Animated Background elements */}
       <div className="absolute inset-0">
-        <div className="absolute top-20 left-20 w-72 h-72 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float"></div>
-        <div className="absolute top-40 right-20 w-72 h-72 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float animation-delay-2000"></div>
-        <div className="absolute -bottom-8 left-40 w-72 h-72 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float animation-delay-4000"></div>
+        <motion.div 
+          className="absolute top-20 left-20 w-72 h-72 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20"
+          animate={{ 
+            x: [0, 100, 0],
+            y: [0, -100, 0],
+            scale: [1, 1.2, 1]
+          }}
+          transition={{ 
+            duration: 20,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div 
+          className="absolute top-40 right-20 w-72 h-72 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full mix-blend-multiply filter blur-xl opacity-20"
+          animate={{ 
+            x: [0, -100, 0],
+            y: [0, 100, 0],
+            scale: [1, 1.1, 1]
+          }}
+          transition={{ 
+            duration: 15,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div 
+          className="absolute -bottom-8 left-40 w-72 h-72 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20"
+          animate={{ 
+            x: [0, 50, 0],
+            y: [0, 50, 0],
+            scale: [1, 1.3, 1]
+          }}
+          transition={{ 
+            duration: 18,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
       </div>
 
       {/* Grid pattern overlay */}
@@ -119,42 +148,101 @@ export default function RegisterPage() {
         }}
       />
 
-      <div className="w-full max-w-md relative z-10 animate-fade-in-up">
-        <div className="glass-card rounded-3xl p-8 border border-white/20 shadow-glow-lg hover-lift">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 rounded-full mb-4 shadow-lg shadow-purple-500/50 p-2">
+      <motion.div 
+        className="w-full max-w-md relative z-10"
+        initial={{ opacity: 0, y: 50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+      >
+        <motion.div 
+          className="rounded-3xl p-8 border border-white/20 bg-white/10 backdrop-blur-lg"
+          whileHover={{ scale: 1.02 }}
+          transition={{ duration: 0.3 }}
+        >
+          <motion.div 
+            className="text-center mb-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            <motion.div 
+              className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 rounded-full mb-4 shadow-lg shadow-purple-500/50 p-2"
+              animate={{ 
+                rotate: [0, 360],
+                boxShadow: [
+                  "0 0 20px rgba(139, 92, 246, 0.5)",
+                  "0 0 40px rgba(236, 72, 153, 0.5)",
+                  "0 0 20px rgba(139, 92, 246, 0.5)"
+                ]
+              }}
+              transition={{ 
+                duration: 4,
+                repeat: Infinity,
+                ease: "linear"
+              }}
+            >
               <img
                 src="/freedom.png"
                 alt="Freedom City Tech Center Logo"
                 className="w-full h-full object-contain"
               />
-            </div>
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-violet-300 via-purple-300 to-indigo-300 bg-clip-text text-transparent mb-3">
+            </motion.div>
+            <motion.h1 
+              className="text-5xl font-bold bg-gradient-to-r from-violet-300 via-purple-300 to-indigo-300 bg-clip-text text-transparent mb-3"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+            >
               Create Account
-            </h1>
-            <p className="text-cyan-300 text-xl mb-4 font-medium">
-              Freedom Tech Center
-            </p>
-          </div>
+            </motion.h1>
+            <motion.p 
+              className="text-cyan-300 text-xl mb-4 font-medium"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+            >
+              Freedom City Tech Center
+            </motion.p>
+          </motion.div>
 
-          {message && (
-            <div className={`mb-6 rounded-lg p-4 text-center ${messageType === 'success'
-              ? 'bg-green-600/20 border border-green-400/30'
-              : 'bg-red-600/20 border border-red-400/30'
-              }`}>
-              <p className={`font-medium ${messageType === 'success' ? 'text-green-400' : 'text-red-400'
+          <AnimatePresence>
+            {message && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className={`mb-6 rounded-lg p-4 text-center ${
+                  messageType === 'success'
+                    ? 'bg-green-600/20 border border-green-400/30'
+                    : 'bg-red-600/20 border border-red-400/30'
+                }`}
+              >
+                <p className={`font-medium ${
+                  messageType === 'success' ? 'text-green-400' : 'text-red-400'
                 }`}>
-                {message}
-              </p>
-            </div>
-          )}
+                  {message}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="firstName" className="block text-sm font-medium text-violet-200 mb-2">
-                👤 First Name (Real Name Required)
+          <motion.form 
+            onSubmit={handleSubmit} 
+            className="space-y-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+          >
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.6 }}
+            >
+              <label htmlFor="firstName" className="block text-sm font-medium text-violet-200 mb-2 flex items-center">
+                <User className="w-4 h-4 mr-2" />
+                First Name (Real Name Required)
               </label>
-              <input
+              <motion.input
                 type="text"
                 id="firstName"
                 name="firstName"
@@ -163,14 +251,21 @@ export default function RegisterPage() {
                 required
                 className="w-full px-4 py-4 bg-white/10 backdrop-blur-sm border border-violet-400/30 rounded-2xl focus:ring-4 focus:ring-violet-400/50 focus:border-violet-300 outline-none transition-all duration-300 text-white placeholder-violet-300/70 hover:bg-white/15"
                 placeholder="Enter your real first name"
+                whileFocus={{ scale: 1.02 }}
+                transition={{ duration: 0.2 }}
               />
-            </div>
+            </motion.div>
 
-            <div>
-              <label htmlFor="lastName" className="block text-sm font-medium text-violet-200 mb-2">
-                👤 Last Name (Real Name Required)
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.7 }}
+            >
+              <label htmlFor="lastName" className="block text-sm font-medium text-violet-200 mb-2 flex items-center">
+                <User className="w-4 h-4 mr-2" />
+                Last Name (Real Name Required)
               </label>
-              <input
+              <motion.input
                 type="text"
                 id="lastName"
                 name="lastName"
@@ -179,14 +274,21 @@ export default function RegisterPage() {
                 required
                 className="w-full px-4 py-4 bg-white/10 backdrop-blur-sm border border-violet-400/30 rounded-2xl focus:ring-4 focus:ring-violet-400/50 focus:border-violet-300 outline-none transition-all duration-300 text-white placeholder-violet-300/70 hover:bg-white/15"
                 placeholder="Enter your real last name"
+                whileFocus={{ scale: 1.02 }}
+                transition={{ duration: 0.2 }}
               />
-            </div>
+            </motion.div>
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-violet-200 mb-2">
-                📧 Email Address (BYU or Personal Email)
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.8 }}
+            >
+              <label htmlFor="email" className="block text-sm font-medium text-violet-200 mb-2 flex items-center">
+                <Mail className="w-4 h-4 mr-2" />
+                Email Address (BYU or Personal Email)
               </label>
-              <input
+              <motion.input
                 type="email"
                 id="email"
                 name="email"
@@ -195,14 +297,21 @@ export default function RegisterPage() {
                 required
                 className="w-full px-4 py-4 bg-white/10 backdrop-blur-sm border border-violet-400/30 rounded-2xl focus:ring-4 focus:ring-violet-400/50 focus:border-violet-300 outline-none transition-all duration-300 text-white placeholder-violet-300/70 hover:bg-white/15"
                 placeholder="your.email@byu.edu or personal@email.com"
+                whileFocus={{ scale: 1.02 }}
+                transition={{ duration: 0.2 }}
               />
-            </div>
+            </motion.div>
 
-            <div>
-              <label htmlFor="phoneNumber" className="block text-sm font-medium text-violet-200 mb-2">
-                📱 Phone Number
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.9 }}
+            >
+              <label htmlFor="phoneNumber" className="block text-sm font-medium text-violet-200 mb-2 flex items-center">
+                <Phone className="w-4 h-4 mr-2" />
+                Phone Number
               </label>
-              <input
+              <motion.input
                 type="tel"
                 id="phoneNumber"
                 name="phoneNumber"
@@ -211,15 +320,22 @@ export default function RegisterPage() {
                 required
                 className="w-full px-4 py-4 bg-white/10 backdrop-blur-sm border border-violet-400/30 rounded-2xl focus:ring-4 focus:ring-violet-400/50 focus:border-violet-300 outline-none transition-all duration-300 text-white placeholder-violet-300/70 hover:bg-white/15"
                 placeholder="+256 123 456 789 *"
+                whileFocus={{ scale: 1.02 }}
+                transition={{ duration: 0.2 }}
               />
-            </div>
+            </motion.div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-violet-200 mb-2">
-                🔐 Password (Min. 6 Characters)
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 1.0 }}
+            >
+              <label htmlFor="password" className="block text-sm font-medium text-violet-200 mb-2 flex items-center">
+                <Lock className="w-4 h-4 mr-2" />
+                Password (Min. 6 Characters)
               </label>
               <div className="relative">
-                <input
+                <motion.input
                   type={showPassword ? "text" : "password"}
                   id="password"
                   name="password"
@@ -228,56 +344,88 @@ export default function RegisterPage() {
                   required
                   className="w-full px-4 py-4 bg-white/10 backdrop-blur-sm border border-violet-400/30 rounded-2xl focus:ring-4 focus:ring-violet-400/50 focus:border-violet-300 outline-none transition-all duration-300 text-white placeholder-violet-300/70 hover:bg-white/15 pr-12"
                   placeholder="Create a strong password"
+                  whileFocus={{ scale: 1.02 }}
+                  transition={{ duration: 0.2 }}
                 />
-                <button
+                <motion.button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-violet-300 hover:text-violet-200 transition-colors text-xl"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-violet-300 hover:text-violet-200 transition-colors"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
                 >
-                  {showPassword ? '👁️' : '👁️‍🗨️'}
-                </button>
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </motion.button>
               </div>
-            </div>
+            </motion.div>
 
-            <RippleButton
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-2xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-purple-500/50 hover:shadow-purple-500/70"
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 1.1 }}
             >
-              {isLoading ? (
-                <LoadingSpinner size="md" text="Creating Account..." className="text-white" />
-              ) : (
-                <span className="flex items-center justify-center">
-                  <span className="mr-2">🚀</span>
-                  Create Account
-                </span>
-              )}
-            </RippleButton>
-          </form>
+              <RippleButton
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-2xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-purple-500/50 hover:shadow-purple-500/70"
+              >
+                {isLoading ? (
+                  <LoadingSpinner size="md" text="Creating Account..." className="text-white" />
+                ) : (
+                  <span className="flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Create Account
+                  </span>
+                )}
+              </RippleButton>
+            </motion.div>
+          </motion.form>
 
-          <div className="mt-8 pt-6 border-t border-violet-400/20">
+          <motion.div 
+            className="mt-8 pt-6 border-t border-violet-400/20"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 1.2 }}
+          >
             <div className="text-center">
               <p className="text-violet-200 text-sm mb-4">
                 Already have an account?{' '}
-                <RippleButton
+                <motion.button
                   onClick={() => router.push('/login')}
-                  className="text-cyan-300 hover:text-white font-bold underline transition-all duration-300 transform hover:scale-105"
+                  className="text-cyan-300 hover:text-white font-bold underline transition-all duration-300"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  🔑 Login here
-                </RippleButton>
+                  Login here
+                </motion.button>
               </p>
-              <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-sm rounded-xl p-3 border border-blue-400/30">
-                <p className="text-violet-200 text-xs font-medium mb-1">
-                  💻 Freedom Tech Center
+              <motion.div 
+                className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-sm rounded-xl p-3 border border-blue-400/30"
+                whileHover={{ scale: 1.02 }}
+                transition={{ duration: 0.3 }}
+              >
+                <p className="text-violet-200 text-xs font-medium mb-1 flex items-center justify-center">
+                  <Building2 className="w-3 h-3 mr-1" />
+                  Freedom City Tech Center
                 </p>
                 <p className="text-violet-300 text-xs">
-                  Empowering through technology education 🚀
+                  Empowering through technology education
                 </p>
-              </div>
+              </motion.div>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
+          </motion.div>
+
+          <motion.button
+            onClick={() => router.push('/')}
+            className="mt-4 text-cyan-300 hover:text-white font-medium text-sm transition-colors duration-300 flex items-center justify-center mx-auto"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Home
+          </motion.button>
+        </motion.div>
+      </motion.div>
+    </motion.div>
   );
 }

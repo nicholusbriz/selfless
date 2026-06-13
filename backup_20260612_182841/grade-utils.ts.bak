@@ -1,0 +1,23 @@
+// lib/grade-utils.ts
+
+// FIX: Change calculateWeeklyGPA to calculateWeeklyGPAs
+import { calculateGPA, calculateWeeklyGPAs, calculateGradePoints } from './gpa-calculator';
+
+export function getGPACategory(gpa: number): string {
+  if (gpa >= 3.5) return 'Excellent';
+  if (gpa >= 3.0) return 'Good';
+  if (gpa >= 2.5) return 'Satisfactory';
+  if (gpa >= 2.0) return 'Fair';
+  return 'Needs Improvement';
+}
+
+export function getGPACategoryColor(gpa: number): string {
+  if (gpa >= 3.5) return 'text-green-400';
+  if (gpa >= 3.0) return 'text-blue-400';
+  if (gpa >= 2.5) return 'text-yellow-400';
+  if (gpa >= 2.0) return 'text-orange-400';
+  return 'text-red-400';
+}
+
+// Re-export for convenience
+export { calculateGPA, calculateWeeklyGPAs, calculateGradePoints };

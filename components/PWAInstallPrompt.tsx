@@ -44,21 +44,36 @@ export default function PWAInstallPrompt() {
     setDeferredPrompt(null);
   };
 
+  const handleDismiss = () => {
+    setShowInstall(false);
+    setDeferredPrompt(null);
+  };
+
   if (!showInstall && !showSuccess) return null;
 
   // Success message when app is installed
   if (showSuccess) {
     return (
-      <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-bounce-in">
-        <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 rounded-xl p-4 shadow-2xl border border-white/30 backdrop-blur-lg max-w-md">
-          <div className="flex items-center justify-center gap-3">
-            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-              <span className="text-2xl">✅</span>
+      <div className="fixed top-6 left-6 z-50 animate-fade-in-up">
+        <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 rounded-2xl p-5 shadow-2xl border border-white/30 backdrop-blur-lg max-w-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                <span className="text-xl">✅</span>
+              </div>
+              <div>
+                <p className="text-white font-bold text-sm">Successfully Installed!</p>
+                <p className="text-green-100 text-xs">App is now on your device</p>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-white font-bold text-lg">Successfully Installed!</p>
-              <p className="text-green-100 text-sm">Freedom City Tech Center is now on your desktop</p>
-            </div>
+            <button
+              onClick={() => setShowSuccess(false)}
+              className="text-white/80 hover:text-white transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -67,23 +82,45 @@ export default function PWAInstallPrompt() {
 
   // Install prompt
   return (
-    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-slide-down">
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-xl p-4 shadow-2xl border border-white/30 backdrop-blur-lg max-w-md">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-              <span className="text-2xl">📱</span>
+    <div className="fixed top-6 left-6 z-50 animate-slide-up">
+      <div className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 rounded-2xl p-5 shadow-2xl border border-white/30 backdrop-blur-lg max-w-sm">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3 flex-1">
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+              <img
+                src="/freedom.png"
+                alt="App Icon"
+                className="w-8 h-8 object-contain"
+              />
             </div>
-            <div>
-              <p className="text-white font-semibold text-sm">Install Freedom City Tech Center</p>
-              <p className="text-blue-100 text-xs">Add to your home screen for quick access</p>
+            <div className="flex-1">
+              <p className="text-white font-bold text-sm mb-1">Install App</p>
+              <p className="text-purple-100 text-xs leading-relaxed">
+                Add Freedom City Tech Center to your home screen for quick access
+              </p>
             </div>
           </div>
           <button
-            onClick={handleInstallClick}
-            className="bg-white text-blue-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-50 transition-all duration-300 transform hover:scale-105 shadow-lg"
+            onClick={handleDismiss}
+            className="text-white/70 hover:text-white transition-colors flex-shrink-0"
           >
-            Install App
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="mt-4 flex gap-2">
+          <button
+            onClick={handleInstallClick}
+            className="flex-1 bg-white text-purple-600 px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-purple-50 transition-all duration-300 transform hover:scale-105 shadow-lg"
+          >
+            Install Now
+          </button>
+          <button
+            onClick={handleDismiss}
+            className="flex-1 bg-white/10 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-white/20 transition-all duration-300"
+          >
+            Later
           </button>
         </div>
       </div>

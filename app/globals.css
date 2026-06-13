@@ -98,12 +98,11 @@
     }
 
     .animate-float {
-        animation: float 4s ease-in-out infinite;
+        animation: float 6s ease-in-out infinite;
     }
 
     .animate-float-delayed {
-        animation: float 4s ease-in-out infinite;
-        animation-delay: 2s;
+        animation: float-delayed 8s ease-in-out infinite;
     }
 
     .animate-glow {
@@ -194,14 +193,24 @@
 }
 
 @keyframes float {
-
     0%,
     100% {
         transform: translateY(0px);
     }
 
     50% {
-        transform: translateY(-10px);
+        transform: translateY(-20px);
+    }
+}
+
+@keyframes float-delayed {
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-15px);
     }
 }
 
