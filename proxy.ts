@@ -23,11 +23,16 @@ const protectedApiRoutes = {
   '/api/auth/me': ['student', 'teacher', 'admin'],
 };
 
-const publicRoutes = ['/login', '/register', '/'];
+const publicRoutes = ['/login', '/register'];
 const publicApiRoutes = ['/api/auth/login', '/api/auth/register', '/api/auth/logout'];
 
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  
+  // ✅ Allow home page immediately (no checks)
+  if (pathname === '/') {
+    return NextResponse.next();
+  }
   
   // Get token from cookies
   const token = request.cookies.get('token')?.value;
@@ -94,12 +99,12 @@ export default async function proxy(request: NextRequest) {
     }
   }
 
-  // Handle page routes
+  // Handle page routes (excluding home page which is already handled)
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
   
   if (isPublicRoute) {
     if (token && (pathname === '/login' || pathname === '/register')) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+      return NextResponse.redirect(new URL('/dashboard/overview', request.url));
     }
     return NextResponse.next();
   }
@@ -129,7 +134,7 @@ export default async function proxy(request: NextRequest) {
       
       if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
         // User doesn't have permission for this page
-        return NextResponse.redirect(new URL('/dashboard', request.url));
+        return NextResponse.redirect(new URL('/dashboard/overview', request.url));
       }
     } catch (error) {
       const loginUrl = new URL('/login', request.url);
