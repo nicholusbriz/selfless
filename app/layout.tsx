@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import QueryProvider from '@/components/QueryProvider';
@@ -38,16 +38,6 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#8b5cf6" },
-    { media: "(prefers-color-scheme: dark)", color: "#0f0f23" },
-  ],
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
   openGraph: {
     type: "website",
     siteName: "Freedom City Tech Center",
@@ -68,6 +58,17 @@ export const metadata: Metadata = {
     description: "Academic management system for Freedom City Tech Center",
     images: ["/freedom.png"],
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#8b5cf6" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f0f23" },
+  ],
 };
 
 export default function RootLayout({
