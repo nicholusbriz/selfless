@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import RippleButton from '@/components/RippleButton';
-import LoadingSpinner from '@/components/LoadingSpinner';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { useAuthStore } from '@/stores/authStore';
 import axios from '@/lib/axios';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -364,10 +363,12 @@ export default function RegisterPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 1.1 }}
             >
-              <RippleButton
+              <motion.button
                 type="submit"
                 disabled={isLoading}
                 className="w-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-2xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-purple-500/50 hover:shadow-purple-500/70"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
                 {isLoading ? (
                   <LoadingSpinner size="md" text="Creating Account..." className="text-white" />
@@ -377,7 +378,7 @@ export default function RegisterPage() {
                     Create Account
                   </span>
                 )}
-              </RippleButton>
+              </motion.button>
             </motion.div>
           </motion.form>
 
