@@ -12,13 +12,14 @@ import AdminStatsCards from '@/components/admin/AdminStatsCards';
 import AdminStudentTable from '@/components/admin/AdminStudentTable';
 import AdminTuitionList from '@/components/admin/AdminTuitionList';
 import AdminAssignmentManager from '@/components/admin/AdminAssignmentManager';
-import { Users, Award, DollarSign, UserPlus, TrendingUp, FileText, BarChart3 } from 'lucide-react';
+import ApplicationsTab from '@/components/admin/ApplicationsTab';
+import { Users, Award, DollarSign, UserPlus, TrendingUp, FileText, BarChart3, MessageSquare } from 'lucide-react';
 import { useAdminStudents, useGPADistribution, useWeeklyProgress, useUpdateTuitionStatus, useUpdateUserRole, useRoles, useDeleteStudent } from '@/hooks/queries/admin';
 import { useAssignGrade } from '@/hooks/queries/teacher';
 import { useAssignments, useTeachers, useCreateBulkAssignments, useDeleteBulkAssignments, useUpdateAssignment } from '@/hooks/queries/assignments';
 import { motion } from 'framer-motion';
 
-type Tab = 'overview' | 'students' | 'grades' | 'tuition' | 'assignments' | 'reports';
+type Tab = 'overview' | 'students' | 'grades' | 'tuition' | 'assignments' | 'reports' | 'applications';
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
@@ -27,6 +28,7 @@ const TABS = [
   { id: 'tuition', label: 'Tuition', icon: DollarSign },
   { id: 'assignments', label: 'Assignments', icon: UserPlus },
   { id: 'reports', label: 'Reports', icon: FileText },
+  { id: 'applications', label: 'Applications', icon: MessageSquare },
 ];
 
 export default function AdminDashboard() {
@@ -35,6 +37,7 @@ export default function AdminDashboard() {
   const [selectedWeek, setSelectedWeek] = useState(1);
   const [filters, setFilters] = useState<any>({});
   const [gpaFilter, setGpaFilter] = useState<{ min: number; max: number } | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Data hooks
   const { data: studentsData, isLoading: studentsLoading, error: studentsError, refetch } = useAdminStudents();
@@ -496,6 +499,16 @@ export default function AdminDashboard() {
                 ))}
               </div>
             </motion.div>
+          </motion.div>
+        )}
+
+        {activeTab === 'applications' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <ApplicationsTab searchTerm={searchTerm} onSearchChange={setSearchTerm} />
           </motion.div>
         )}
       </div>

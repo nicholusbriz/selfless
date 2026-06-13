@@ -2,7 +2,8 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuthStore } from '@/stores/authStore';
 
 // Create a client with PWA-optimized settings
 export function createQueryClient() {
@@ -32,11 +33,27 @@ export function createQueryClient() {
   });
 }
 
+// AuthSync component to sync auth state on page load
+function AuthSync() {
+  const { fetchUser, isAuthenticated, user } = useAuthStore();
+
+  useEffect(() => {
+    // If localStorage says authenticated but we don't have user data, fetch it
+    if (isAuthenticated && !user) {
+      console.log('AuthSync: Fetching user data...');
+      fetchUser();
+    }
+  }, [isAuthenticated, user, fetchUser]);
+
+  return null;
+}
+
 export function QueryProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => createQueryClient());
 
   return (
     <QueryClientProvider client={queryClient}>
+      <AuthSync />
       {children}
       {process.env.NODE_ENV === 'development' && (
         <ReactQueryDevtools initialIsOpen={false} />

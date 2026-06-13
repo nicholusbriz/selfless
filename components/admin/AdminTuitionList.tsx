@@ -1,127 +1,128 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, DollarSign, CheckCircle, XCircle } from 'lucide-react';
-import EmptyState from '@/components/shared/EmptyState';
+import { motion } from 'framer-motion';
+import { CheckCircle, XCircle, DollarSign } from 'lucide-react';
+
+interface Student {
+  id: string;
+  name: string;
+  studentId: string;
+  email: string;
+  tuition: number | null;
+  tuitionPaid: boolean;
+}
 
 interface AdminTuitionListProps {
-  students: any[];
-  isLoading?: boolean;
-  onTogglePayment?: (studentId: string, currentStatus: boolean) => void;
+  students: Student[];
+  onTogglePayment: (studentId: string, currentStatus: boolean) => void;
 }
 
 export default function AdminTuitionList({
   students,
-  isLoading,
   onTogglePayment
 }: AdminTuitionListProps) {
-  const [search, setSearch] = useState('');
-
-  const studentsWithTuition = students.filter(s => s.tuition !== null);
-  const filteredStudents = studentsWithTuition.filter(student =>
-    student.name.toLowerCase().includes(search.toLowerCase()) ||
-    student.studentId.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const totalTuition = studentsWithTuition.reduce((sum, s) => sum + (s.tuition || 0), 0);
-  const paidTuition = studentsWithTuition.filter(s => s.tuitionPaid).reduce((sum, s) => sum + (s.tuition || 0), 0);
-  const pendingTuition = totalTuition - paidTuition;
-  const pendingCount = studentsWithTuition.filter(s => !s.tuitionPaid).length;
-
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="bg-white/5 rounded-xl p-6 animate-pulse">
-              <div className="h-4 bg-white/10 rounded w-24 mb-2"></div>
-              <div className="h-8 bg-white/10 rounded w-32"></div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (studentsWithTuition.length === 0) {
-    return (
-      <EmptyState
-        icon={DollarSign}
-        title="No tuition records"
-        description="Students haven't set their tuition amounts yet"
-      />
-    );
-  }
+  // Calculate total tuition (handling null values)
+  const totalTuition = students.reduce((sum, student) => sum + (student.tuition || 0), 0);
+  const paidCount = students.filter(s => s.tuitionPaid).length;
+  const pendingCount = students.filter(s => !s.tuitionPaid).length;
 
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-gradient-to-br from-green-600/20 to-emerald-600/20 backdrop-blur-lg border border-white/10 rounded-xl p-6">
-          <div className="flex items-center gap-3 mb-2">
-            <DollarSign className="w-5 h-5 text-green-400" />
-            <h3 className="text-gray-400 text-sm font-medium">Total Tuition</h3>
-          </div>
-          <p className="text-3xl font-bold text-white">${totalTuition.toLocaleString()}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-green-500/10 rounded-xl p-4 text-center border border-green-500/20">
+          <DollarSign className="w-6 h-6 text-green-400 mx-auto mb-2" />
+          <p className="text-2xl font-bold text-white">${totalTuition.toLocaleString()}</p>
+          <p className="text-gray-400 text-sm">Total Tuition</p>
         </div>
-        <div className="bg-gradient-to-br from-blue-600/20 to-cyan-600/20 backdrop-blur-lg border border-white/10 rounded-xl p-6">
-          <div className="flex items-center gap-3 mb-2">
-            <CheckCircle className="w-5 h-5 text-blue-400" />
-            <h3 className="text-gray-400 text-sm font-medium">Paid Tuition</h3>
-          </div>
-          <p className="text-3xl font-bold text-white">${paidTuition.toLocaleString()}</p>
+        <div className="bg-green-500/10 rounded-xl p-4 text-center border border-green-500/20">
+          <CheckCircle className="w-6 h-6 text-green-400 mx-auto mb-2" />
+          <p className="text-2xl font-bold text-white">{paidCount}</p>
+          <p className="text-gray-400 text-sm">Paid Students</p>
         </div>
-        <div className="bg-gradient-to-br from-orange-600/20 to-red-600/20 backdrop-blur-lg border border-white/10 rounded-xl p-6">
-          <div className="flex items-center gap-3 mb-2">
-            <XCircle className="w-5 h-5 text-orange-400" />
-            <h3 className="text-gray-400 text-sm font-medium">Pending ({pendingCount})</h3>
-          </div>
-          <p className="text-3xl font-bold text-white">${pendingTuition.toLocaleString()}</p>
+        <div className="bg-red-500/10 rounded-xl p-4 text-center border border-red-500/20">
+          <XCircle className="w-6 h-6 text-red-400 mx-auto mb-2" />
+          <p className="text-2xl font-bold text-white">{pendingCount}</p>
+          <p className="text-gray-400 text-sm">Pending Payment</p>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Search students..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full bg-white/10 border border-white/20 rounded-lg pl-10 pr-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
-        />
-      </div>
-
-      {/* Tuition List */}
+      {/* Tuition Table */}
       <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl overflow-hidden">
-        <div className="divide-y divide-white/10">
-          {filteredStudents.map((student) => (
-            <div key={student.id} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
-              <div className="flex-1">
-                <p className="text-white font-medium">{student.name}</p>
-                <p className="text-gray-400 text-sm">{student.studentId}</p>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <p className="text-white font-semibold">${student.tuition?.toLocaleString()}</p>
-                  <p className="text-gray-400 text-xs">{student.email}</p>
-                </div>
-                {onTogglePayment && (
-                  <button
-                    onClick={() => onTogglePayment(student.id, student.tuitionPaid)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-white/10">
+                <th className="text-left p-4 text-gray-400 font-medium">Student ID</th>
+                <th className="text-left p-4 text-gray-400 font-medium">Name</th>
+                <th className="text-left p-4 text-gray-400 font-medium">Email</th>
+                <th className="text-left p-4 text-gray-400 font-medium">Tuition</th>
+                <th className="text-left p-4 text-gray-400 font-medium">Status</th>
+                <th className="text-left p-4 text-gray-400 font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {students.map((student, index) => (
+                <motion.tr
+                  key={student.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  className="border-b border-white/5 hover:bg-white/5"
+                >
+                  <td className="p-4 text-white">{student.studentId}</td>
+                  <td className="p-4 text-white">{student.name}</td>
+                  <td className="p-4 text-gray-400">{student.email}</td>
+                  <td className="p-4 text-white font-semibold">
+                    {student.tuition ? (
+                      `$${student.tuition.toLocaleString()}`
+                    ) : (
+                      <span className="text-gray-500">Not set</span>
+                    )}
+                  </td>
+                  <td className="p-4">
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${
                       student.tuitionPaid
-                        ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                        : 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'
-                    }`}
-                  >
-                    {student.tuitionPaid ? 'Paid' : 'Pending'}
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
+                        ? 'bg-green-500/20 text-green-400'
+                        : 'bg-red-500/20 text-red-400'
+                    }`}>
+                      {student.tuitionPaid ? (
+                        <>
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                          Paid
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="w-4 h-4 mr-1" />
+                          Pending
+                        </>
+                      )}
+                    </span>
+                  </td>
+                  <td className="p-4">
+                    <motion.button
+                      onClick={() => onTogglePayment(student.id, student.tuitionPaid)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        student.tuitionPaid
+                          ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                          : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                      }`}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      {student.tuitionPaid ? 'Mark Unpaid' : 'Mark Paid'}
+                    </motion.button>
+                  </td>
+                </motion.tr>
+              ))}
+            </tbody>
+          </table>
         </div>
+        {students.length === 0 && (
+          <div className="p-8 text-center text-gray-400">
+            No students found
+          </div>
+        )}
       </div>
     </div>
   );

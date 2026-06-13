@@ -1,36 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyToken } from '@/lib/jwt';
-import { cookies } from 'next/headers';
 import { calculateGradePoints, calculateGPA } from '@/lib/gpa-calculator';
 
 // POST /api/teacher/grades - Assign/update a grade
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
-
-    if (!token) {
+    // Get user info from proxy headers
+    const userId = request.headers.get('x-user-id');
+    const userRole = request.headers.get('x-user-role');
+    
+    // Proxy already verified authentication, just check if userId exists
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      include: { role: true }
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    // Only teachers and admins can assign grades
-    if (user.role?.name !== 'teacher' && user.role?.name !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden - only teachers and admins can assign grades' }, { status: 403 });
+    
+    // Check for teacher or admin role
+    if (userRole !== 'teacher' && userRole !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden', message: 'Teacher or admin access required' }, { status: 403 });
     }
 
     const { studentId, courseId, week, gradeLetter } = await request.json();
@@ -42,7 +28,7 @@ export async function POST(request: NextRequest) {
     const gradePoints = calculateGradePoints(gradeLetter);
 
     // Check if grade already exists
-    const existingGrade = await (prisma as any).grade.findUnique({
+    const existingGrade = await prisma.grade.findUnique({
       where: {
         studentId_courseId_week: {
           studentId,
@@ -55,31 +41,31 @@ export async function POST(request: NextRequest) {
     let grade;
     if (existingGrade) {
       // Update existing grade
-      grade = await (prisma as any).grade.update({
+      grade = await prisma.grade.update({
         where: { id: existingGrade.id },
         data: {
           gradeLetter,
           gradePoints,
-          assignedBy: user.id,
+          assignedBy: userId,
           updatedAt: new Date()
         }
       });
     } else {
       // Create new grade
-      grade = await (prisma as any).grade.create({
+      grade = await prisma.grade.create({
         data: {
           studentId,
           courseId,
           week,
           gradeLetter,
           gradePoints,
-          assignedBy: user.id
+          assignedBy: userId
         }
       });
     }
 
     // Recalculate student's GPA
-    const student = await (prisma as any).studentProfile.findUnique({
+    const student = await prisma.studentProfile.findUnique({
       where: { id: studentId },
       include: {
         enrolledCourses: true,
@@ -90,7 +76,7 @@ export async function POST(request: NextRequest) {
     if (student) {
       const newGPA = calculateGPA(student.enrolledCourses, student.grades);
       
-      await (prisma as any).studentProfile.update({
+      await prisma.studentProfile.update({
         where: { id: studentId },
         data: { currentGPA: newGPA }
       });
@@ -112,33 +98,26 @@ export async function POST(request: NextRequest) {
 // GET /api/teacher/grades/progress - Get grading progress by week
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
-
-    if (!token) {
+    // Get user info from proxy headers
+    const userId = request.headers.get('x-user-id');
+    const userRole = request.headers.get('x-user-role');
+    
+    // Proxy already verified authentication, just check if userId exists
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    
+    // Check for teacher or admin role
+    if (userRole !== 'teacher' && userRole !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden', message: 'Teacher or admin access required' }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
     const week = searchParams.get('week');
 
-    // Verify user is teacher or admin for GET request as well
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      include: { role: true }
-    });
-
-    if (!user || (user.role?.name !== 'teacher' && user.role?.name !== 'admin')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const students = await (prisma as any).studentProfile.findMany({
+    const students = await prisma.studentProfile.findMany({
       include: {
+        user: true,
         enrolledCourses: true,
         grades: true
       }

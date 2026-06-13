@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyToken } from '@/lib/jwt';
-import { cookies } from 'next/headers';
 
 // PUT /api/admin/users/[id]/role - Update user role
 export async function PUT(
@@ -9,29 +7,22 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
-
-    if (!token) {
+    // Get user info from proxy headers
+    const userId = request.headers.get('x-user-id');
+    const userRole = request.headers.get('x-user-role');
+    
+    // Proxy already verified authentication, just check if userId exists
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
-    const adminUser = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      include: { role: true }
-    });
-
-    if (!adminUser || adminUser.role?.name !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    
+    // Check for admin role
+    if (userRole !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden', message: 'Admin access required' }, { status: 403 });
     }
 
     const { roleId } = await request.json();
-    const userId = (await params).id;
+    const targetUserId = (await params).id;
 
     // Verify the role exists
     const role = await prisma.role.findUnique({
@@ -44,7 +35,7 @@ export async function PUT(
 
     // Get the current user with all profiles
     const currentUser = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: targetUserId },
       include: {
         role: true,
         studentProfile: true,
@@ -56,7 +47,7 @@ export async function PUT(
     if (!currentUser) {
       return NextResponse.json({ 
         error: 'User not found',
-        details: `No user found with ID: ${userId}`
+        details: `No user found with ID: ${targetUserId}`
       }, { status: 404 });
     }
 
@@ -115,7 +106,7 @@ export async function PUT(
 
       // Update the user's role
       await tx.user.update({
-        where: { id: userId },
+        where: { id: targetUserId },
         data: { roleId }
       });
 
@@ -124,7 +115,7 @@ export async function PUT(
         const teacherId = await generateTeacherId();
         await tx.teacherProfile.create({
           data: {
-            userId: userId,
+            userId: targetUserId,
             teacherId: teacherId
           }
         });
@@ -135,7 +126,7 @@ export async function PUT(
         const adminId = await generateAdminId();
         await tx.adminProfile.create({
           data: {
-            userId: userId,
+            userId: targetUserId,
             adminId: adminId
           }
         });
@@ -146,7 +137,7 @@ export async function PUT(
 
     // Fetch updated user with all profiles (outside transaction)
     const userWithProfiles = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: targetUserId },
       include: {
         role: true,
         studentProfile: true,

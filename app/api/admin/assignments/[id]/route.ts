@@ -1,36 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyToken } from '@/lib/jwt';
-import { cookies } from 'next/headers';
 
 // DELETE /api/admin/assignments/[id] - Remove an assignment
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }  // ← FIXED: Added Promise
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
-
-    if (!token) {
+    // Get user info from proxy headers
+    const userId = request.headers.get('x-user-id');
+    const userRole = request.headers.get('x-user-role');
+    
+    // Proxy already verified authentication, just check if userId exists
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    
+    // Check for admin role
+    if (userRole !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden', message: 'Admin access required' }, { status: 403 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      include: { role: true }
-    });
-
-    if (!user || user.role?.name !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const { id } = await params;  // ← FIXED: Added await
+    const { id } = await params;
 
     await prisma.teacherStudentAssignment.delete({
       where: { id: id }
@@ -46,31 +37,24 @@ export async function DELETE(
 // PATCH /api/admin/assignments/[id] - Update assignment status
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }  // ← FIXED: Added Promise
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
-
-    if (!token) {
+    // Get user info from proxy headers
+    const userId = request.headers.get('x-user-id');
+    const userRole = request.headers.get('x-user-role');
+    
+    // Proxy already verified authentication, just check if userId exists
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    
+    // Check for admin or teacher role
+    if (userRole !== 'admin' && userRole !== 'teacher') {
+      return NextResponse.json({ error: 'Forbidden', message: 'Admin or teacher access required' }, { status: 403 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      include: { role: true }
-    });
-
-    if (!user || (user.role?.name !== 'admin' && user.role?.name !== 'teacher')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const { id } = await params;  // ← FIXED: Added await
+    const { id } = await params;
     const { status, notes } = await request.json();
 
     const assignment = await prisma.teacherStudentAssignment.update({

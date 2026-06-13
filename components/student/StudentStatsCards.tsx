@@ -1,7 +1,7 @@
 'use client';
 
 import StatsCard from '@/components/shared/StatsCard';
-import StatsCardSkeleton from '@/components/skeletons/StatsCardSkeleton';
+import StatsCardSkeleton from '@/components/shared/LoadingState';
 
 interface StatItem {
   id: string;

@@ -125,8 +125,11 @@ export async function POST(request: Request) {
       return userWithProfiles;
     });
 
-    // Generate JWT token
-    const token = generateToken(result!.id);
+    // ✅ UPDATED: Generate JWT token with userId AND role
+    const token = generateToken({ 
+      userId: result!.id, 
+      role: 'student'  // New registrations are always students
+    });
 
     // Set HTTP-only cookie
     const response = NextResponse.json({

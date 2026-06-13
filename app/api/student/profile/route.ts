@@ -1,24 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyToken } from '@/lib/jwt';
-import { cookies } from 'next/headers';
 
+// GET /api/student/profile - Get student profile for authenticated user
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
-
-    if (!token) {
+    // Get user info from proxy headers
+    const userId = request.headers.get('x-user-id');
+    
+    // Proxy already verified authentication, just check if userId exists
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
+    const userWithProfile = await prisma.user.findUnique({
+      where: { id: userId },
       include: {
         studentProfile: {
           include: {
@@ -29,13 +24,13 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    if (!user?.studentProfile) {
+    if (!userWithProfile?.studentProfile) {
       return NextResponse.json({ error: 'Student profile not found' }, { status: 404 });
     }
 
     return NextResponse.json({ 
       success: true, 
-      profile: user.studentProfile 
+      profile: userWithProfile.studentProfile 
     });
   } catch (error) {
     console.error('Error fetching student profile:', error);
@@ -43,28 +38,25 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// PUT /api/student/profile - Update student profile
 export async function PUT(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
-
-    if (!token) {
+    // Get user info from proxy headers
+    const userId = request.headers.get('x-user-id');
+    
+    // Proxy already verified authentication, just check if userId exists
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     const { takesReligion, tuition } = await request.json();
 
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
+    const userWithProfile = await prisma.user.findUnique({
+      where: { id: userId },
       include: { studentProfile: true }
     });
 
-    if (!user?.studentProfile) {
+    if (!userWithProfile?.studentProfile) {
       return NextResponse.json({ error: 'Student profile not found' }, { status: 404 });
     }
 
@@ -77,7 +69,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const updatedProfile = await prisma.studentProfile.update({
-      where: { id: user.studentProfile.id },
+      where: { id: userWithProfile.studentProfile.id },
       data: updateData
     });
 

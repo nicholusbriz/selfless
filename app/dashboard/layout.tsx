@@ -1,43 +1,20 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
-import DashboardLayoutSkeleton from '@/components/skeletons/DashboardLayoutSkeleton';
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user, logout, isAuthenticated, isLoading, fetchUser } = useAuthStore();
+  const { user, logout, isAuthenticated } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
-
-  // Check authentication on mount - call fetchUser BEFORE checking isAuthenticated
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        await fetchUser();
-      } catch (error) {
-        console.error('Auth check failed:', error);
-      } finally {
-        setIsCheckingAuth(false);
-      }
-    };
-    checkAuth();
-  }, [fetchUser]);
-
-  // Redirect to login if not authenticated after checking
-  useEffect(() => {
-    if (!isCheckingAuth && !isAuthenticated) {
-      router.replace('/login');
-    }
-  }, [isCheckingAuth, isAuthenticated, router]);
 
   const handleLogout = () => {
     logout();
@@ -132,8 +109,11 @@ export default function DashboardLayout({
 
   const navItems = getNavItems();
 
-  if (isCheckingAuth || isLoading || !user) {
-    return <DashboardLayoutSkeleton />;
+
+  // Proxy handles authentication - if not authenticated, it will redirect
+  // This is just a safety check
+  if (!isAuthenticated || !user) {
+    return null;
   }
 
   return (
@@ -156,7 +136,7 @@ export default function DashboardLayout({
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-between p-6 border-b border-white/10 flex-shrink-0">
-            <Link href="/dashboard" className="text-white font-bold text-xl">
+            <Link href="/dashboard/overview" className="text-white font-bold text-xl">
               Dashboard
             </Link>
             <button

@@ -1,0 +1,62 @@
+{
+  "@context": "https://schema.org",
+  "@type": "EducationalOrganization",
+  "name": "Freedom City Tech Center",
+  "alternateName": [
+    "Seeta Tech Center",
+    "Ntinda Teach Center",
+    "Masaka Teach Center",
+    "Jinja Tech Center",
+    "Mbale Tech Center",
+    "Kololo Stake Center",
+    "Kaboowa Tech Center"
+  ],
+  "description": "Academic management system for tech education centers in Uganda. Track students, courses, and academic progress.",
+  "url": "https://selfless-henna.vercel.app",
+  "logo": "https://selfless-henna.vercel.app/freedom.png",
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "telephone": "+256 761 996 296",
+    "contactType": "customer service",
+    "email": "info@freedomcitytech.com",
+    "areaServed": "Uganda",
+    "availableLanguage": "English"
+  },
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "Freedom City Tech Center",
+    "addressLocality": "Kampala",
+    "addressCountry": "UG"
+  },
+  "founder": {
+    "@type": "Person",
+    "name": "Nicholus Turyamureba",
+    "alternateName": "Atbriz",
+    "jobTitle": "Software Developer"
+  },
+  "creator": {
+    "@type": "Organization",
+    "name": "Cyber Touch",
+    "description": "Software development company"
+  },
+  "keywords": [
+    "Freedom City Tech Center",
+    "Seeta Tech Center",
+    "Ntinda Teach Center",
+    "Masaka Teach Center",
+    "Jinja Tech Center",
+    "Mbale Tech Center",
+    "Kololo Stake Center",
+    "Kaboowa Tech Center",
+    "Selfless CE",
+    "Nicholus Turyamureba",
+    "Atbriz",
+    "Cyber Touch",
+    "academic management",
+    "student tracking",
+    "course management",
+    "tech education",
+    "Uganda tech centers"
+  ],
+  "sameAs": []
+}

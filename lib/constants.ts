@@ -19,3 +19,8 @@ export const GRADE_LETTERS = ['A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+',
 export const WEEKS = [1, 2, 3, 4, 5, 6, 7] as const;
 
 export const CREDIT_OPTIONS = [1, 2, 3, 4, 5, 6] as const;
+
+export const AUTH_CONSTANTS = {
+  TOKEN_NAME: 'auth_token',
+  COOKIE_MAX_AGE: 60 * 60 * 24 * 7 // 7 days
+} as const;

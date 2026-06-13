@@ -7,7 +7,7 @@ import LoadingState, { StatsCardSkeleton, StudentListItemSkeleton, TabSkeleton }
 import ErrorState from '@/components/shared/ErrorState';
 import WeekSelector from '@/components/ui/WeekSelector';
 import GradeFilterBar from '@/components/ui/GradeFilterBar';
-import GradeAssignmentCard from '@/components/ui/GradeAssignmentCard';
+import StudentsAndGrades from '@/components/shared/StudentsAndGrades';
 import TeacherStatsCards from '@/components/teacher/TeacherStatsCards';
 import TeacherAssignmentList from '@/components/teacher/TeacherAssignmentList';
 import { Users, BookOpen, Award, TrendingUp, UserCheck } from 'lucide-react';
@@ -221,30 +221,19 @@ export default function TeachersPage() {
             </motion.div>
 
             <motion.div 
-              className="space-y-4 max-h-[600px] overflow-y-auto"
+              className="max-h-[600px] overflow-y-auto"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.5 }}
             >
-              {filteredStudents.length === 0 ? (
-                <div className="text-center text-gray-400 py-8">No students found</div>
-              ) : (
-                filteredStudents.map((student, index) => (
-                  <motion.div
-                    key={student.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.6 + index * 0.05 }}
-                  >
-                    <GradeAssignmentCard
-                      student={student}
-                      weekNumber={selectedWeek}
-                      onGradeAssign={(courseId, gradeLetter) => handleGradeAssign(student.id, courseId, gradeLetter)}
-                      isEditable={true}
-                    />
-                  </motion.div>
-                ))
-              )}
+              <StudentsAndGrades
+                students={filteredStudents}
+                selectedWeek={selectedWeek}
+                isLoading={studentsLoading}
+                isEditable={true}
+                onGradeAssign={handleGradeAssign}
+                mode="teacher"
+              />
             </motion.div>
           </motion.div>
         )}

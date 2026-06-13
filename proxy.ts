@@ -2,109 +2,146 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/jwt';
-import { prisma } from '@/lib/prisma';
 
-// Public routes that don't require authentication
-const PUBLIC_ROUTES = ['/', '/login', '/register'];
+// Define protected routes and their required roles
+const protectedRoutes = {
+  '/dashboard': ['student', 'teacher', 'admin'],
+  '/dashboard/overview': ['student', 'teacher', 'admin'],
+  '/dashboard/profile': ['student', 'teacher', 'admin'],
+  '/dashboard/settings': ['student', 'teacher', 'admin'],
+  '/dashboard/student': ['student', 'teacher', 'admin'],
+  '/dashboard/teachers': ['teacher', 'admin'],
+  '/dashboard/admin': ['admin'],
+};
 
-// Admin-only routes
-const ADMIN_ROUTES = ['/dashboard/admin', '/admin'];
+// Define protected API routes and their required roles
+const protectedApiRoutes = {
+  '/api/admin': ['admin'],
+  '/api/teacher': ['teacher', 'admin'],
+  '/api/admin/students': ['student', 'teacher', 'admin'],
+  '/api/student': ['student', 'teacher', 'admin'],
+  '/api/auth/me': ['student', 'teacher', 'admin'],
+};
 
-// Teacher-only routes (admin can also access)
-const TEACHER_ROUTES = ['/dashboard/teachers'];
+const publicRoutes = ['/login', '/register', '/'];
+const publicApiRoutes = ['/api/auth/login', '/api/auth/register', '/api/auth/logout'];
 
-// Check if a path is in a list of routes
-function isRouteInList(pathname: string, routes: string[]): boolean {
-  return routes.some(route => pathname.startsWith(route));
-}
-
-export async function proxy(request: NextRequest) {
-  const token = request.cookies.get('token')?.value;
+export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  
+  // Get token from cookies
+  const token = request.cookies.get('token')?.value;
 
-  // Skip proxy for static files (images, videos, fonts, etc.)
-  const staticFileExtensions = ['.mp4', '.webm', '.ogg', '.mp3', '.wav', '.jpg', '.jpeg', '.png', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.eot'];
-  if (staticFileExtensions.some(ext => pathname.endsWith(ext))) {
+  // Handle API routes
+  if (pathname.startsWith('/api')) {
+    // Check if it's a public API route
+    const isPublicApi = publicApiRoutes.some(route => pathname.startsWith(route));
+    if (isPublicApi) {
+      return NextResponse.next();
+    }
+
+    // For protected API routes, verify authentication
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    // Verify token
+    try {
+      const decoded = verifyToken(token);
+      if (!decoded || !decoded.userId) {
+        return NextResponse.json(
+          { error: 'Unauthorized', message: 'Invalid token' },
+          { status: 401 }
+        );
+      }
+
+      // Get role from token (no database call needed!)
+      const userRole = decoded.role || null;
+      
+      // Add user info to headers for API routes to use
+      const requestHeaders = new Headers(request.headers);
+      requestHeaders.set('x-user-id', decoded.userId);
+      if (userRole) {
+        requestHeaders.set('x-user-role', userRole);
+      }
+
+      // Check role-based access at proxy level for API routes
+      for (const [route, allowedRoles] of Object.entries(protectedApiRoutes)) {
+        if (pathname.startsWith(route)) {
+          if (!userRole || !allowedRoles.includes(userRole)) {
+            return NextResponse.json(
+              { error: 'Forbidden', message: `Requires one of these roles: ${allowedRoles.join(', ')}` },
+              { status: 403 }
+            );
+          }
+          break;
+        }
+      }
+
+      return NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      });
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Invalid token' },
+        { status: 401 }
+      );
+    }
+  }
+
+  // Handle page routes
+  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
+  
+  if (isPublicRoute) {
+    if (token && (pathname === '/login' || pathname === '/register')) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
     return NextResponse.next();
   }
 
-  const isPublicRoute = isRouteInList(pathname, PUBLIC_ROUTES);
-  const isAdminRoute = isRouteInList(pathname, ADMIN_ROUTES);
-  const isTeacherRoute = isRouteInList(pathname, TEACHER_ROUTES);
-
-  console.log('[Proxy] Path:', pathname, 'Has token:', !!token, 'Is public:', isPublicRoute);
-
-  // If no token and trying to access protected route, redirect to login with return URL
-  if (!token && !isPublicRoute) {
-    console.log('[Proxy] No token, redirecting to login');
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('from', pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  // Allow authenticated users to access login/register pages (no redirect)
-
-  // Verify token and check roles for protected routes
-  if (token && !isPublicRoute) {
-    const decoded = verifyToken(token);
-    
-    if (!decoded) {
-      // Token is invalid or expired, clear cookie and redirect to login
-      console.log('[Proxy] Invalid token on protected route, redirecting to login');
-      const response = NextResponse.redirect(new URL('/login', request.url));
-      response.cookies.delete('token');
-      return response;
+  const protectedRoute = Object.keys(protectedRoutes).find(route => 
+    pathname.startsWith(route)
+  );
+  
+  if (protectedRoute) {
+    if (!token) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('callbackUrl', pathname);
+      return NextResponse.redirect(loginUrl);
     }
 
-    // ✅ Fetch user role from database for authorization
+    // Verify token is valid and check role for page routes
     try {
-      const user = await prisma.user.findUnique({
-        where: { id: decoded.userId },
-        select: { role: { select: { name: true } } }
-      });
-
-      if (!user) {
-        // User not found, clear cookie and redirect to login
-        console.log('[Proxy] User not found, redirecting to login');
-        const response = NextResponse.redirect(new URL('/login', request.url));
-        response.cookies.delete('token');
-        return response;
+      const decoded = verifyToken(token);
+      if (!decoded || !decoded.userId) {
+        const loginUrl = new URL('/login', request.url);
+        return NextResponse.redirect(loginUrl);
       }
 
-      const userRole = user.role?.name;
-
-      // Check admin routes - only admin can access
-      if (isAdminRoute && userRole !== 'admin') {
-        console.log('[Proxy] Not admin, redirecting to dashboard');
-        return NextResponse.redirect(new URL('/dashboard', request.url));
-      }
-
-      // Check teacher routes - only teacher or admin can access
-      if (isTeacherRoute && userRole !== 'teacher' && userRole !== 'admin') {
-        console.log('[Proxy] Not teacher or admin, redirecting to dashboard');
+      // Get role from token for page access check
+      const userRole = decoded.role || null;
+      const allowedRoles = protectedRoutes[protectedRoute as keyof typeof protectedRoutes];
+      
+      if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
+        // User doesn't have permission for this page
         return NextResponse.redirect(new URL('/dashboard', request.url));
       }
     } catch (error) {
-      console.error('[Proxy] Role check failed:', error);
-      // On error, redirect to login for safety
-      return NextResponse.redirect(new URL('/login', request.url));
+      const loginUrl = new URL('/login', request.url);
+      return NextResponse.redirect(loginUrl);
     }
   }
 
-  console.log('[Proxy] Allowing request to proceed');
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - api routes (we handle auth separately)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
-  // Skip static files by checking extensions in the proxy function itself
 };

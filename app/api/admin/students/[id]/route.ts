@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyToken } from '@/lib/jwt';
-import { cookies } from 'next/headers';
+import { requireRole } from '@/lib/auth-helper';
 
 // GET /api/admin/students/:id - Get student details
 export async function GET(
@@ -9,26 +8,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
-
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireRole(request, ['admin']);
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      include: { role: true }
-    });
-
-    if (!user || user.role?.name !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const { user } = authResult;
 
     const { id } = await params;
     const student = await (prisma as any).studentProfile.findUnique({
@@ -65,26 +49,11 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
-
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireRole(request, ['admin']);
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      include: { role: true }
-    });
-
-    if (!user || user.role?.name !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const { user } = authResult;
 
     const { firstName, lastName, email, phoneNumber } = await request.json();
     const { id } = await params;
@@ -121,26 +90,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
-
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireRole(request, ['admin']);
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      include: { role: true }
-    });
-
-    if (!user || user.role?.name !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const { user } = authResult;
 
     const { id } = await params;
     
@@ -152,14 +106,14 @@ export async function DELETE(
 
     // If not found, try to find by User ID (for backward compatibility)
     if (!student) {
-      const user = await prisma.user.findUnique({
+      const userRecord = await prisma.user.findUnique({
         where: { id },
         include: { studentProfile: true }
       });
       
-      if (user?.studentProfile) {
-        student = user.studentProfile;
-        student.user = user;
+      if (userRecord?.studentProfile) {
+        student = userRecord.studentProfile;
+        student.user = userRecord;
       }
     }
 

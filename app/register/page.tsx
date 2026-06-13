@@ -1,12 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { useAuthStore } from '@/stores/authStore';
 import axios from '@/lib/axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, User, Mail, Phone, Lock, Eye, EyeOff, Sparkles, Building2 } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, Lock, Eye, EyeOff, Sparkles, Building2, Loader2 } from 'lucide-react';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -21,7 +20,14 @@ export default function RegisterPage() {
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
-  const login = useAuthStore(state => state.login);
+  const { isAuthenticated, user } = useAuthStore();
+
+  // Redirect when authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      router.push('/dashboard/overview');
+    }
+  }, [isAuthenticated, user, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -34,14 +40,12 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.password || !formData.phoneNumber) {
       setMessage('Please fill in all required fields including phone number');
       setMessageType('error');
       return;
     }
 
-    // Basic phone number validation
     const phoneRegex = /^[\d\s\-\+\(\)]+$/;
     if (!phoneRegex.test(formData.phoneNumber.trim())) {
       setMessage('Please enter a valid phone number');
@@ -72,10 +76,9 @@ export default function RegisterPage() {
       if (data.success) {
         setMessage('Registration successful! Redirecting to dashboard...');
         setMessageType('success');
-
-        // Cookie is set automatically by the server, just redirect to dashboard
+        // The useEffect will handle redirect when user becomes authenticated
         setTimeout(() => {
-          router.push('/dashboard');
+          window.location.href = '/dashboard/overview';
         }, 1500);
       } else {
         setMessage(data.message || 'Registration failed');
@@ -96,50 +99,24 @@ export default function RegisterPage() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
     >
-      {/* Animated Background elements */}
       <div className="absolute inset-0">
         <motion.div 
           className="absolute top-20 left-20 w-72 h-72 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20"
-          animate={{ 
-            x: [0, 100, 0],
-            y: [0, -100, 0],
-            scale: [1, 1.2, 1]
-          }}
-          transition={{ 
-            duration: 20,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
+          animate={{ x: [0, 100, 0], y: [0, -100, 0], scale: [1, 1.2, 1] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div 
           className="absolute top-40 right-20 w-72 h-72 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full mix-blend-multiply filter blur-xl opacity-20"
-          animate={{ 
-            x: [0, -100, 0],
-            y: [0, 100, 0],
-            scale: [1, 1.1, 1]
-          }}
-          transition={{ 
-            duration: 15,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
+          animate={{ x: [0, -100, 0], y: [0, 100, 0], scale: [1, 1.1, 1] }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div 
           className="absolute -bottom-8 left-40 w-72 h-72 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20"
-          animate={{ 
-            x: [0, 50, 0],
-            y: [0, 50, 0],
-            scale: [1, 1.3, 1]
-          }}
-          transition={{ 
-            duration: 18,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
+          animate={{ x: [0, 50, 0], y: [0, 50, 0], scale: [1, 1.3, 1] }}
+          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
         />
       </div>
 
-      {/* Grid pattern overlay */}
       <div
         className="absolute inset-0 opacity-20"
         style={{
@@ -174,17 +151,9 @@ export default function RegisterPage() {
                   "0 0 20px rgba(139, 92, 246, 0.5)"
                 ]
               }}
-              transition={{ 
-                duration: 4,
-                repeat: Infinity,
-                ease: "linear"
-              }}
+              transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
             >
-              <img
-                src="/freedom.png"
-                alt="Freedom City Tech Center Logo"
-                className="w-full h-full object-contain"
-              />
+              <img src="/freedom.png" alt="Freedom City Tech Center Logo" className="w-full h-full object-contain" />
             </motion.div>
             <motion.h1 
               className="text-5xl font-bold bg-gradient-to-r from-violet-300 via-purple-300 to-indigo-300 bg-clip-text text-transparent mb-3"
@@ -371,7 +340,10 @@ export default function RegisterPage() {
                 whileTap={{ scale: 0.95 }}
               >
                 {isLoading ? (
-                  <LoadingSpinner size="md" text="Creating Account..." className="text-white" />
+                  <span className="flex items-center justify-center">
+                    <Loader2 className="animate-spin" />
+                    <span className="ml-2">Creating Account...</span>
+                  </span>
                 ) : (
                   <span className="flex items-center justify-center">
                     <Sparkles className="w-5 h-5 mr-2" />
@@ -391,14 +363,12 @@ export default function RegisterPage() {
             <div className="text-center">
               <p className="text-violet-200 text-sm mb-4">
                 Already have an account?{' '}
-                <motion.button
+                <button
                   onClick={() => router.push('/login')}
                   className="text-cyan-300 hover:text-white font-bold underline transition-all duration-300"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
                 >
                   Login here
-                </motion.button>
+                </button>
               </p>
               <motion.div 
                 className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-sm rounded-xl p-3 border border-blue-400/30"
@@ -416,15 +386,13 @@ export default function RegisterPage() {
             </div>
           </motion.div>
 
-          <motion.button
+          <button
             onClick={() => router.push('/')}
             className="mt-4 text-cyan-300 hover:text-white font-medium text-sm transition-colors duration-300 flex items-center justify-center mx-auto"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Home
-          </motion.button>
+          </button>
         </motion.div>
       </motion.div>
     </motion.div>

@@ -1,60 +1,114 @@
-// app/page.tsx
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  Menu, 
-  X, 
-  Sparkles, 
-  Users, 
-  Calendar, 
-  Award,
-  ChevronRight,
-  Star,
-  Heart,
-  Shield,
-  Clock,
-  MapPin,
-  Phone,
-  Mail,
-  ArrowUp,
-  Zap,
-  Rocket,
-  Target,
-  TrendingUp,
-  Cpu,
-  Globe,
-  Code
+  Menu, X, Sparkles, Users, Calendar, Award, ChevronRight,
+  Star, Heart, Shield, Clock, MapPin, Phone, Mail, ArrowUp,
+  Cpu, Globe, Code, Home, Info, Briefcase, Contact, Send, CheckCircle, AlertCircle
 } from 'lucide-react';
-import { BGPattern } from '@/components/ui/bg-pattern';
-import PWAInstallPrompt from '@/components/PWAInstallPrompt';
 import { useAuthStore } from '@/stores/authStore';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import axios from '@/lib/axios';
 
 export default function HomePage() {
   const router = useRouter();
-  const { user, logout } = useAuthStore();
+  const { user, logout, clearAuth, isAuthenticated } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
+  const [activeSection, setActiveSection] = useState('home');
+  
+  // Contact form state
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    message: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
 
-  // Refs for sections
   const homeRef = useRef<HTMLElement>(null);
   const aboutRef = useRef<HTMLElement>(null);
   const servicesRef = useRef<HTMLElement>(null);
   const contactRef = useRef<HTMLElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Scroll animations
   const { scrollY } = useScroll();
   const heroOpacity = useTransform(scrollY, [0, 300], [1, 0]);
-  const heroScale = useTransform(scrollY, [0, 300], [1, 0.8]);
-  const navBackground = useTransform(scrollY, [0, 50], ['transparent', 'rgba(0,0,0,0.8)']);
+  const heroScale = useTransform(scrollY, [0, 300], [1, 0.95]);
+  const navBackground = useTransform(scrollY, [0, 50], ['rgba(0,0,0,0)', 'rgba(0,0,0,0.95)']);
+
+  // Check auth status on page load
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (!response.ok && response.status === 401) {
+          clearAuth();
+          await fetch('/api/auth/logout', { method: 'POST' });
+        } else if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.user) {
+            useAuthStore.getState().setAuth(data.user);
+          } else {
+            clearAuth();
+            await fetch('/api/auth/logout', { method: 'POST' });
+          }
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        clearAuth();
+        await fetch('/api/auth/logout', { method: 'POST' });
+      } finally {
+        setIsAuthChecked(true);
+      }
+    };
+    
+    checkAuth();
+  }, [clearAuth]);
+
+  // Track active section based on scroll position
+  useEffect(() => {
+    const handleScrollActive = () => {
+      const sections = [
+        { id: 'home', ref: homeRef },
+        { id: 'about', ref: aboutRef },
+        { id: 'services', ref: servicesRef },
+        { id: 'contact', ref: contactRef }
+      ];
+
+      const scrollPosition = window.scrollY + 100;
+
+      for (const section of sections) {
+        if (section.ref.current) {
+          const element = section.ref.current;
+          const offsetTop = element.offsetTop;
+          const offsetHeight = element.offsetHeight;
+
+          if (scrollPosition >= offsetTop && scrollPosition < offsetTop + offsetHeight) {
+            setActiveSection(section.id);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScrollActive);
+    return () => window.removeEventListener('scroll', handleScrollActive);
+  }, []);
+
+  useEffect(() => {
+    const video = document.createElement('video');
+    video.src = '/freedomvideo.mp4';
+    video.onloadeddata = () => setVideoLoaded(true);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
       setShowScrollTop(window.scrollY > 300);
     };
 
@@ -73,400 +127,334 @@ export default function HomePage() {
     };
   }, []);
 
-  const scrollToSection = (ref: React.RefObject<HTMLElement | null>) => {
+  const scrollToSection = (ref: React.RefObject<HTMLElement | null>, sectionId: string) => {
     ref.current?.scrollIntoView({ behavior: 'smooth' });
+    setActiveSection(sectionId);
     setMobileMenuOpen(false);
   };
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    setActiveSection('home');
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.push('/');
   };
 
-  const navLinks = [
-    { name: 'Home', ref: homeRef },
-    { name: 'About', ref: aboutRef },
-    { name: 'Services', ref: servicesRef },
-    { name: 'Contact', ref: contactRef },
-  ];
-
-  // Animation variants
-  const fadeInUp = {
-    initial: { opacity: 0, y: 60 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.6 }
+  const handleSignIn = () => {
+    router.push('/login');
   };
 
-  const staggerContainer = {
-    animate: {
-      transition: {
-        staggerChildren: 0.1
+  const handleGetStarted = () => {
+    router.push('/register');
+  };
+
+  const handleDashboard = () => {
+    router.push('/dashboard/overview');
+  };
+
+  // Handle form input changes
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validation
+    if (!formData.name || !formData.email || !formData.phone || !formData.message) {
+      setSubmitStatus({ type: 'error', message: 'Please fill in all fields' });
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setSubmitStatus({ type: 'error', message: 'Please enter a valid email address' });
+      return;
+    }
+
+    // Phone validation (basic)
+    const phoneRegex = /^[\d\s\-\+\(\)]{10,}$/;
+    if (!phoneRegex.test(formData.phone.replace(/\s/g, ''))) {
+      setSubmitStatus({ type: 'error', message: 'Please enter a valid phone number' });
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitStatus({ type: null, message: '' });
+
+    try {
+      // Send to API endpoint
+      const response = await axios.post('/contact', {
+        name: formData.name,
+        email: formData.email,
+        phoneNumber: formData.phone,
+        message: formData.message
+      });
+      
+      if (response.data.success) {
+        setSubmitStatus({ type: 'success', message: 'Message sent successfully! We\'ll get back to you soon.' });
+        // Reset form
+        setFormData({ name: '', email: '', phone: '', message: '' });
+      } else {
+        setSubmitStatus({ type: 'error', message: response.data.message || 'Failed to send message. Please try again.' });
       }
+    } catch (error) {
+      console.error('Contact form error:', error);
+      setSubmitStatus({ type: 'error', message: 'Network error. Please try again later.' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const slideInLeft = {
-    initial: { opacity: 0, x: -100 },
-    animate: { opacity: 1, x: 0 },
-    transition: { duration: 0.8 }
-  };
+  const navLinks = [
+    { id: 'home', name: 'Home', ref: homeRef, icon: <Home className="w-4 h-4" /> },
+    { id: 'about', name: 'About', ref: aboutRef, icon: <Info className="w-4 h-4" /> },
+    { id: 'services', name: 'Services', ref: servicesRef, icon: <Briefcase className="w-4 h-4" /> },
+    { id: 'contact', name: 'Contact', ref: contactRef, icon: <Contact className="w-4 h-4" /> },
+  ];
 
-  const slideInRight = {
-    initial: { opacity: 0, x: 100 },
-    animate: { opacity: 1, x: 0 },
-    transition: { duration: 0.8 }
-  };
+  if (!isAuthChecked) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
-      {/* Interactive Mouse-following Background */}
       <motion.div 
-        className="fixed inset-0 pointer-events-none"
+        className="fixed inset-0 pointer-events-none z-0"
         style={{
-          background: `radial-gradient(circle at ${mousePosition.x}% ${mousePosition.y}%, rgba(139, 92, 246, 0.15) 0%, transparent 50%)`,
+          background: `radial-gradient(circle at ${mousePosition.x}% ${mousePosition.y}%, rgba(139, 92, 246, 0.15) 0%, transparent 60%)`,
         }}
       />
-      
-      {/* Animated Background Orbs */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <motion.div 
-          animate={{ 
-            x: [0, 100, 0],
-            y: [0, -100, 0],
-            scale: [1, 1.2, 1]
-          }}
-          transition={{ 
-            duration: 20,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          className="absolute top-20 -left-20 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"
-        />
-        <motion.div 
-          animate={{ 
-            x: [0, -100, 0],
-            y: [0, 100, 0],
-            scale: [1, 1.1, 1]
-          }}
-          transition={{ 
-            duration: 15,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          className="absolute top-40 -right-20 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"
-        />
-        <motion.div 
-          animate={{ 
-            x: [0, 50, 0],
-            y: [0, 50, 0],
-            scale: [1, 1.3, 1]
-          }}
-          transition={{ 
-            duration: 18,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          className="absolute -bottom-20 left-40 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"
-        />
-      </div>
 
-      {/* Navigation Header */}
       <motion.nav 
         style={{ background: navBackground }}
-        className="fixed top-0 w-full z-50 backdrop-blur-xl transition-all duration-500"
+        className="fixed top-0 w-full z-50 backdrop-blur-xl border-b border-white/10"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 md:h-20">
-            {/* Animated Logo */}
+            {/* Logo */}
             <motion.div 
               className="flex items-center space-x-3 cursor-pointer"
               whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => scrollToTop()}
+              onClick={scrollToTop}
             >
-              <motion.div 
-                className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg"
-                animate={{ 
-                  rotate: [0, 360],
-                  boxShadow: [
-                    "0 0 20px rgba(168, 85, 247, 0.5)",
-                    "0 0 40px rgba(236, 72, 153, 0.5)",
-                    "0 0 20px rgba(168, 85, 247, 0.5)"
-                  ]
-                }}
-                transition={{ 
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: "linear"
-                }}
-              >
+              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
                 <img src="/freedom.png" alt="Logo" className="w-8 h-8 object-contain" />
-              </motion.div>
-              <motion.span 
-                className="text-white font-bold text-lg md:text-xl bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent"
-                animate={{ backgroundPosition: ["0%", "100%"] }}
-                transition={{ duration: 3, repeat: Infinity }}
-                style={{ backgroundSize: "200% 200%" }}
-              >
-                Freedom City Tech
-              </motion.span>
+              </div>
+              <span className="text-white font-bold text-lg md:text-xl">Freedom City Tech</span>
             </motion.div>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-8">
-              {navLinks.map((link, index) => (
+            <div className="hidden md:flex items-center space-x-1">
+              {navLinks.map((link) => (
                 <motion.button
-                  key={link.name}
-                  onClick={() => scrollToSection(link.ref)}
-                  className="text-gray-300 hover:text-white transition-colors duration-300 text-sm font-medium relative group"
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  whileHover={{ scale: 1.1 }}
+                  key={link.id}
+                  onClick={() => scrollToSection(link.ref, link.id)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
+                    activeSection === link.id
+                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                      : 'text-gray-300 hover:text-white hover:bg-white/10'
+                  }`}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  {link.name}
-                  <motion.span 
-                    className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-purple-500 to-pink-500"
-                    whileHover={{ width: "100%" }}
-                    transition={{ duration: 0.3 }}
-                  />
+                  {link.icon}
+                  <span className="text-sm font-medium">{link.name}</span>
                 </motion.button>
               ))}
               
-              {user ? (
-                <motion.div 
-                  className="flex items-center space-x-4"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                >
-                  <motion.span 
-                    className="text-white text-sm"
-                    animate={{ opacity: [0.5, 1, 0.5] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  >
-                    Hi, {user.firstName}
+              <div className="w-px h-6 bg-white/20 mx-2"></div>
+              
+              {user && isAuthenticated ? (
+                <div className="flex items-center space-x-3 ml-2">
+                  <motion.span className="text-white text-sm px-2 py-1 bg-white/10 rounded-full">
+                    👋 {user.firstName}
                   </motion.span>
                   <motion.button
-                    onClick={() => router.push('/dashboard')}
-                    className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:shadow-lg transition-all duration-300"
-                    whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(34, 197, 94, 0.5)" }}
+                    onClick={handleDashboard}
+                    className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm font-medium cursor-pointer hover:shadow-lg transition"
+                    whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
                     Dashboard
                   </motion.button>
                   <motion.button
                     onClick={handleLogout}
-                    className="px-4 py-2 bg-red-500/20 text-red-300 rounded-lg hover:bg-red-500/30 transition-all duration-300"
+                    className="px-4 py-2 bg-red-500/20 text-red-300 rounded-lg text-sm font-medium cursor-pointer hover:bg-red-500/30 transition"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
                     Logout
                   </motion.button>
-                </motion.div>
+                </div>
               ) : (
-                <motion.div 
-                  className="flex items-center space-x-4"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                >
+                <div className="flex items-center space-x-3 ml-2">
                   <motion.button
-                    onClick={() => router.push('/login')}
-                    className="px-4 py-2 text-white hover:text-purple-300 transition-colors"
+                    onClick={handleSignIn}
+                    className="px-4 py-2 text-gray-300 hover:text-white text-sm font-medium cursor-pointer hover:bg-white/10 rounded-lg transition"
                     whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                   >
                     Sign In
                   </motion.button>
                   <motion.button
-                    onClick={() => router.push('/register')}
-                    className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:shadow-lg transition-all duration-300"
-                    whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(168, 85, 247, 0.5)" }}
+                    onClick={handleGetStarted}
+                    className="px-5 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm font-medium cursor-pointer hover:shadow-lg transition"
+                    whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
                     Get Started
                   </motion.button>
-                </motion.div>
+                </div>
               )}
             </div>
 
-            {/* Mobile Menu Button */}
             <motion.button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden text-white p-2"
+              className="md:hidden text-white p-2 rounded-lg hover:bg-white/10 transition"
               whileTap={{ scale: 0.9 }}
             >
-              <AnimatePresence mode="wait">
-                {mobileMenuOpen ? (
-                  <motion.div
-                    key="close"
-                    initial={{ rotate: -90, opacity: 0 }}
-                    animate={{ rotate: 0, opacity: 1 }}
-                    exit={{ rotate: 90, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <X size={24} />
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="menu"
-                    initial={{ rotate: 90, opacity: 0 }}
-                    animate={{ rotate: 0, opacity: 1 }}
-                    exit={{ rotate: -90, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <Menu size={24} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </motion.button>
           </div>
         </div>
-
-        {/* Mobile Menu */}
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="md:hidden bg-black/95 backdrop-blur-xl border-t border-white/10 overflow-hidden"
-            >
-              <motion.div 
-                className="px-4 py-6 space-y-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.1 }}
-              >
-                {navLinks.map((link, index) => (
-                  <motion.button
-                    key={link.name}
-                    onClick={() => scrollToSection(link.ref)}
-                    className="block w-full text-left text-gray-300 hover:text-white py-2 transition-colors"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                  >
-                    {link.name}
-                  </motion.button>
-                ))}
-                {user ? (
-                  <>
-                    <motion.button
-                      onClick={() => router.push('/dashboard')}
-                      className="w-full px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      Dashboard
-                    </motion.button>
-                    <motion.button
-                      onClick={handleLogout}
-                      className="w-full px-4 py-2 bg-red-500/20 text-red-300 rounded-lg"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      Logout
-                    </motion.button>
-                  </>
-                ) : (
-                  <>
-                    <motion.button
-                      onClick={() => router.push('/login')}
-                      className="w-full px-4 py-2 text-white border border-white/20 rounded-lg"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      Sign In
-                    </motion.button>
-                    <motion.button
-                      onClick={() => router.push('/register')}
-                      className="w-full px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      Get Started
-                    </motion.button>
-                  </>
-                )}
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </motion.nav>
 
-      {/* Hero Section */}
-      <motion.section 
-        ref={homeRef} 
-        className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden"
-        style={{ opacity: heroOpacity, scale: heroScale }}
-      >
-        {/* Video Background */}
-        <div className="absolute inset-0 z-0">
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="w-full h-full object-cover"
-            style={{
-              filter: 'brightness(0.4) contrast(1.1)'
-            }}
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden fixed top-16 left-0 right-0 bg-black/95 backdrop-blur-xl border-t border-white/10 z-40"
           >
-            <source src="/freedomvideo.mp4" type="video/mp4" />
-          </video>
-          {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-purple-900/70 to-slate-900/80" />
+            <div className="px-4 py-6 space-y-2">
+              {navLinks.map((link) => (
+                <motion.button
+                  key={link.id}
+                  onClick={() => scrollToSection(link.ref, link.id)}
+                  className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg transition-all duration-300 ${
+                    activeSection === link.id
+                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                      : 'text-gray-300 hover:text-white hover:bg-white/10'
+                  }`}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {link.icon}
+                  <span className="text-sm font-medium">{link.name}</span>
+                </motion.button>
+              ))}
+              
+              <div className="h-px bg-white/10 my-3"></div>
+              
+              {user && isAuthenticated ? (
+                <>
+                  <div className="px-4 py-2">
+                    <p className="text-white text-sm">Signed in as</p>
+                    <p className="text-purple-300 text-sm font-medium">{user.firstName} {user.lastName}</p>
+                  </div>
+                  <button
+                    onClick={handleDashboard}
+                    className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-center font-medium"
+                  >
+                    Dashboard
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full px-4 py-3 bg-red-500/20 text-red-300 rounded-lg text-center font-medium"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={handleSignIn}
+                    className="w-full px-4 py-3 text-white border border-white/20 rounded-lg text-center font-medium"
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    onClick={handleGetStarted}
+                    className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-center font-medium"
+                  >
+                    Get Started
+                  </button>
+                </>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Hero Section */}
+      <section ref={homeRef} id="home" className="relative min-h-screen flex items-center justify-center pt-20">
+        <div className="absolute inset-0 z-0">
+          {videoLoaded ? (
+            <video
+              ref={videoRef}
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="w-full h-full object-cover"
+              style={{ filter: 'brightness(0.35)' }}
+            >
+              <source src="/freedomvideo.mp4" type="video/mp4" />
+            </video>
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-purple-900/50 to-transparent" />
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10">
-          <div className="text-center">
-            <motion.div 
-              className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-8"
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-2 mb-6"
             >
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              >
-                <Sparkles className="w-4 h-4 text-purple-400" />
-              </motion.div>
-              <span className="text-sm text-gray-300">Welcome to Selfless CE</span>
+              <Sparkles className="w-4 h-4 text-purple-400" />
+              <span className="text-purple-300 text-sm">Welcome to Selfless CE</span>
             </motion.div>
+
+            <h1 className="text-5xl md:text-7xl font-bold mb-6">
+              <span className="bg-gradient-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent">
+                Freedom City
+              </span>
+              <br />
+              <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                Tech Center
+              </span>
+            </h1>
             
-            <motion.h1 
-              className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              style={{ backgroundSize: "200% 200%" }}
-            >
-              Freedom City Tech Center
-            </motion.h1>
+            <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
+              Empowering the next generation of tech leaders through innovative education, 
+              hands-on experience, and community collaboration.
+            </p>
             
-            <motion.p 
-              className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-            >
-              Tech center management System — Join our community of volunteers maintaining a clean and inspiring learning environment.
-            </motion.p>
-            
-            <motion.div 
-              className="flex flex-col sm:flex-row gap-4 justify-center"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.6 }}
-            >
-              {user ? (
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              {user && isAuthenticated ? (
                 <motion.button
-                  onClick={() => router.push('/dashboard')}
-                  className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold text-lg"
+                  onClick={handleDashboard}
+                  className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold text-lg cursor-pointer hover:shadow-xl transition"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -475,16 +463,16 @@ export default function HomePage() {
               ) : (
                 <>
                   <motion.button
-                    onClick={() => router.push('/login')}
-                    className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold text-lg"
+                    onClick={handleSignIn}
+                    className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold text-lg cursor-pointer hover:shadow-xl transition"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
                     Sign In
                   </motion.button>
                   <motion.button
-                    onClick={() => router.push('/register')}
-                    className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white rounded-lg font-semibold text-lg border border-white/20"
+                    onClick={handleGetStarted}
+                    className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white rounded-xl font-semibold text-lg border border-white/20 cursor-pointer hover:bg-white/20 transition"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -492,48 +480,27 @@ export default function HomePage() {
                   </motion.button>
                 </>
               )}
-            </motion.div>
-
-            {/* Floating Tech Icons */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
-              {[...Array(6)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  className="absolute text-purple-500/20"
-                  animate={{
-                    y: [0, -30, 0],
-                    rotate: [0, 360],
-                    opacity: [0.2, 0.5, 0.2]
-                  }}
-                  transition={{
-                    duration: 4 + i * 0.5,
-                    repeat: Infinity,
-                    delay: i * 0.2
-                  }}
-                  style={{
-                    left: `${10 + i * 15}%`,
-                    top: `${30 + (i % 3) * 20}%`
-                  }}
-                >
-                  {i % 3 === 0 && <Cpu size={40} />}
-                  {i % 3 === 1 && <Code size={40} />}
-                  {i % 3 === 2 && <Globe size={40} />}
-                </motion.div>
-              ))}
             </div>
-          </div>
+
+            <motion.div
+              className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+              animate={{ y: [0, 10, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center">
+                <motion.div
+                  animate={{ y: [0, 15, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  className="w-1 h-2 bg-white/50 rounded-full mt-2"
+                />
+              </div>
+            </motion.div>
+          </motion.div>
         </div>
-      </motion.section>
+      </section>
 
       {/* About Section */}
-      <motion.section 
-        ref={aboutRef} 
-        className="relative py-20 bg-black/30"
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true, margin: "-100px" }}
-        transition={{ duration: 0.8 }}
-      >
+      <section ref={aboutRef} id="about" className="relative py-24 bg-black/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div 
             className="text-center mb-12"
@@ -542,22 +509,17 @@ export default function HomePage() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <motion.h2 
-              className="text-3xl md:text-4xl font-bold text-white mb-4"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+            <motion.div
+              initial={{ scale: 0 }}
+              whileInView={{ scale: 1 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
+              className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-1 mb-4"
             >
-              About Us
-            </motion.h2>
-            <motion.div 
-              className="w-20 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto"
-              initial={{ width: 0 }}
-              whileInView={{ width: 80 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-            />
+              <Heart className="w-4 h-4 text-purple-400" />
+              <span className="text-purple-300 text-sm">About Us</span>
+            </motion.div>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">About Us</h2>
+            <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto" />
           </motion.div>
           
           <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -568,38 +530,29 @@ export default function HomePage() {
               viewport={{ once: true }}
               transition={{ duration: 0.8 }}
             >
-              <motion.p 
-                className="text-gray-300 text-lg leading-relaxed"
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-              >
-                Freedom City Tech Center is dedicated to providing quality tech education and resources to our community. Our management system helps organize volunteers and maintain a pristine learning environment.
-              </motion.p>
+              <p className="text-gray-300 text-lg leading-relaxed">
+                Freedom City Tech Center is dedicated to providing quality tech education and resources to our community. 
+                Our state-of-the-art facility and expert instructors create an environment where innovation thrives.
+              </p>
               <div className="grid grid-cols-2 gap-4">
                 {[
                   { icon: Heart, text: "Community Driven", color: "purple" },
                   { icon: Shield, text: "Safe & Clean", color: "pink" },
-                  { icon: Users, text: "Active Volunteers", color: "blue" },
-                  { icon: Star, text: "5-Star Rating", color: "green" }
+                  { icon: Users, text: "Expert Instructors", color: "blue" },
+                  { icon: Star, text: "Excellence", color: "green" }
                 ].map((item, index) => (
                   <motion.div 
                     key={index}
-                    className="flex items-center space-x-3"
+                    className="flex items-center space-x-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-300"
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: 0.3 + index * 0.1 }}
-                    whileHover={{ scale: 1.05 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    whileHover={{ scale: 1.05, x: 5 }}
                   >
-                    <motion.div 
-                      className={`w-10 h-10 bg-${item.color}-500/20 rounded-lg flex items-center justify-center`}
-                      whileHover={{ rotate: 360 }}
-                      transition={{ duration: 0.6 }}
-                    >
+                    <div className={`w-10 h-10 bg-${item.color}-500/20 rounded-lg flex items-center justify-center`}>
                       <item.icon className={`w-5 h-5 text-${item.color}-400`} />
-                    </motion.div>
+                    </div>
                     <span className="text-gray-300">{item.text}</span>
                   </motion.div>
                 ))}
@@ -613,39 +566,23 @@ export default function HomePage() {
               viewport={{ once: true }}
               transition={{ duration: 0.8 }}
             >
-              <motion.div 
-                className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl blur-2xl opacity-20"
-                animate={{ 
-                  scale: [1, 1.1, 1],
-                  opacity: [0.2, 0.3, 0.2]
-                }}
-                transition={{ 
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
+              <motion.div
+                className="absolute -inset-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl blur-2xl opacity-30"
+                animate={{ scale: [1, 1.05, 1], opacity: [0.3, 0.5, 0.3] }}
+                transition={{ duration: 4, repeat: Infinity }}
               />
-              <motion.img
+              <img
                 src="/freedomcity.jpeg"
                 alt="Freedom City Tech Center"
                 className="rounded-2xl shadow-2xl relative z-10 w-full h-auto"
-                whileHover={{ scale: 1.02 }}
-                transition={{ duration: 0.3 }}
               />
             </motion.div>
           </div>
         </div>
-      </motion.section>
+      </section>
 
       {/* Services Section */}
-      <motion.section 
-        ref={servicesRef} 
-        className="relative py-20"
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true, margin: "-100px" }}
-        transition={{ duration: 0.8 }}
-      >
+      <section ref={servicesRef} id="services" className="relative py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div 
             className="text-center mb-12"
@@ -654,60 +591,51 @@ export default function HomePage() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <motion.h2 
-              className="text-3xl md:text-4xl font-bold text-white mb-4"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+            <motion.div
+              initial={{ scale: 0 }}
+              whileInView={{ scale: 1 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
+              className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-1 mb-4"
             >
-              Our Services
-            </motion.h2>
-            <motion.div 
-              className="w-20 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto"
-              initial={{ width: 0 }}
-              whileInView={{ width: 80 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-            />
+              <Award className="w-4 h-4 text-purple-400" />
+              <span className="text-purple-300 text-sm">Our Services</span>
+            </motion.div>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Our Services</h2>
+            <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto" />
           </motion.div>
           
-          <motion.div 
-            className="grid md:grid-cols-3 gap-8"
-            variants={staggerContainer}
-            initial="initial"
-            whileInView="animate"
-            viewport={{ once: true }}
-          >
+          <div className="grid md:grid-cols-3 gap-8">
             {[
               {
                 icon: <Calendar className="w-8 h-8" />,
                 title: "Easy Registration",
                 description: "Simple and quick cleaning schedule registration system",
+                features: ["24/7 Access", "Instant Confirmation", "Email Updates"],
                 color: "from-purple-500 to-pink-500"
               },
               {
                 icon: <Clock className="w-8 h-8" />,
-                title: "Flexible Timing",
-                description: "Choose your preferred cleaning slots that fit your schedule",
+                title: "Flexible Scheduling",
+                description: "Choose your preferred learning slots that fit your schedule",
+                features: ["Morning Classes", "Evening Sessions", "Weekend Workshops"],
                 color: "from-blue-500 to-cyan-500"
               },
               {
                 icon: <Award className="w-8 h-8" />,
                 title: "Recognition Program",
                 description: "Earn certificates and rewards for your dedication",
+                features: ["Industry Recognized", "Project Based", "Career Support"],
                 color: "from-orange-500 to-red-500"
               }
             ].map((service, index) => (
               <motion.div
                 key={index}
-                className="group relative bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 hover:border-white/20"
-                variants={fadeInUp}
-                whileHover={{ 
-                  y: -10,
-                  boxShadow: "0 20px 40px rgba(168, 85, 247, 0.2)"
-                }}
-                transition={{ duration: 0.3 }}
+                className="group relative bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 hover:border-white/20 transition-all duration-300"
+                initial={{ opacity: 0, y: 60 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                whileHover={{ y: -10, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
               >
                 <motion.div 
                   className={`w-16 h-16 bg-gradient-to-r ${service.color} rounded-xl flex items-center justify-center mb-6 text-white shadow-lg`}
@@ -717,7 +645,15 @@ export default function HomePage() {
                   {service.icon}
                 </motion.div>
                 <h3 className="text-xl font-bold text-white mb-3">{service.title}</h3>
-                <p className="text-gray-400">{service.description}</p>
+                <p className="text-gray-400 mb-4">{service.description}</p>
+                <div className="space-y-2">
+                  {service.features.map((feature, i) => (
+                    <div key={i} className="flex items-center gap-2 text-sm text-gray-500">
+                      <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                      <span>{feature}</span>
+                    </div>
+                  ))}
+                </div>
                 <motion.div 
                   className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-b-2xl"
                   initial={{ width: 0 }}
@@ -726,78 +662,12 @@ export default function HomePage() {
                 />
               </motion.div>
             ))}
-          </motion.div>
+          </div>
         </div>
-      </motion.section>
+      </section>
 
-      {/* CTA Section */}
-      <motion.section 
-        className="relative py-20"
-        initial={{ opacity: 0, y: 50 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-100px" }}
-        transition={{ duration: 0.8 }}
-      >
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div 
-            className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 backdrop-blur-sm rounded-3xl p-12 border border-white/20"
-            whileHover={{ 
-              boxShadow: "0 0 60px rgba(168, 85, 247, 0.3)",
-              scale: 1.02
-            }}
-            transition={{ duration: 0.3 }}
-          >
-            <motion.h3 
-              className="text-3xl md:text-4xl font-bold text-white mb-4"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              Ready to Make a Difference?
-            </motion.h3>
-            <motion.p 
-              className="text-gray-300 text-lg mb-8"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-            >
-              Join our community of Experts!
-            </motion.p>
-            {!user && (
-              <motion.button
-                onClick={() => router.push('/register')}
-                className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold text-lg inline-flex items-center space-x-2"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.6 }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <span>Get Started</span>
-                <motion.div
-                  animate={{ x: [0, 5, 0] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </motion.div>
-              </motion.button>
-            )}
-          </motion.div>
-        </div>
-      </motion.section>
-
-      {/* Contact Section */}
-      <motion.section 
-        ref={contactRef} 
-        className="relative py-20 bg-black/30"
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true, margin: "-100px" }}
-        transition={{ duration: 0.8 }}
-      >
+      {/* Contact Section with Form */}
+      <section ref={contactRef} id="contact" className="relative py-24 bg-black/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div 
             className="text-center mb-12"
@@ -806,25 +676,21 @@ export default function HomePage() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <motion.h2 
-              className="text-3xl md:text-4xl font-bold text-white mb-4"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+            <motion.div
+              initial={{ scale: 0 }}
+              whileInView={{ scale: 1 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
+              className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-1 mb-4"
             >
-              Contact Us
-            </motion.h2>
-            <motion.div 
-              className="w-20 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto"
-              initial={{ width: 0 }}
-              whileInView={{ width: 80 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-            />
+              <Mail className="w-4 h-4 text-purple-400" />
+              <span className="text-purple-300 text-sm">Get In Touch</span>
+            </motion.div>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Contact Us</h2>
+            <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto" />
           </motion.div>
           
           <div className="grid md:grid-cols-2 gap-12">
+            {/* Contact Info */}
             <motion.div 
               className="space-y-6"
               initial={{ opacity: 0, x: -50 }}
@@ -833,112 +699,208 @@ export default function HomePage() {
               transition={{ duration: 0.8 }}
             >
               {[
-                { icon: MapPin, label: "Location", value: "Freedom City Tech Center, Kampala Uganda" },
-                { icon: Phone, label: "Phone", value: "+256 761 996 296 " },
-                { icon: Mail, label: "Email", value: "turyamurebanicholus@gmail.com.com" }
+                { icon: MapPin, label: "Visit Us", value: "Freedom City Tech Center, Kampala, Uganda", detail: "Monday - Friday, 9am - 6pm" },
+                { icon: Phone, label: "Call Us", value: "+256 761 996 296", detail: "Available 24/7 for support" },
+                { icon: Mail, label: "Email Us", value: "turyamurebanicholus@gmail.com", detail: "We'll respond within 24 hours" }
               ].map((item, index) => (
                 <motion.div 
                   key={index}
-                  className="flex items-center space-x-4"
+                  className="flex items-start space-x-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-300"
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
                   whileHover={{ x: 10 }}
                 >
-                  <motion.div 
-                    className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center"
-                    whileHover={{ scale: 1.1, rotate: 360 }}
-                    transition={{ duration: 0.6 }}
-                  >
+                  <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
                     <item.icon className="w-6 h-6 text-purple-400" />
-                  </motion.div>
+                  </div>
                   <div>
-                    <p className="text-gray-300 font-semibold">{item.label}</p>
-                    <p className="text-gray-400">{item.value}</p>
+                    <p className="text-gray-300 font-semibold text-lg">{item.label}</p>
+                    <p className="text-white text-base">{item.value}</p>
+                    <p className="text-gray-500 text-sm mt-1">{item.detail}</p>
                   </div>
                 </motion.div>
               ))}
             </motion.div>
             
+            {/* Contact Form */}
             <motion.div 
               initial={{ opacity: 0, x: 50 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.8 }}
             >
-              <motion.form 
-                className="space-y-4"
-                whileHover={{ scale: 1.02 }}
-                transition={{ duration: 0.3 }}
-              >
-                <motion.input
-                  type="text"
-                  placeholder="Your Name"
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 transition-colors"
-                  whileFocus={{ scale: 1.02, borderColor: "rgba(168, 85, 247, 0.5)" }}
-                  transition={{ duration: 0.2 }}
-                />
-                <motion.input
-                  type="email"
-                  placeholder="Your Email"
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 transition-colors"
-                  whileFocus={{ scale: 1.02, borderColor: "rgba(168, 85, 247, 0.5)" }}
-                  transition={{ duration: 0.2 }}
-                />
-                <motion.textarea
-                  placeholder="Your Message"
-                  rows={4}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 transition-colors resize-none"
-                  whileFocus={{ scale: 1.02, borderColor: "rgba(168, 85, 247, 0.5)" }}
-                  transition={{ duration: 0.2 }}
-                />
-                <motion.button 
-                  className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold hover:shadow-lg transition-all"
-                  whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(168, 85, 247, 0.5)" }}
-                  whileTap={{ scale: 0.95 }}
+              <form onSubmit={handleSubmit} className="space-y-4 p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10">
+                {/* Success/Error Message */}
+                <AnimatePresence>
+                  {submitStatus.type && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className={`p-3 rounded-lg flex items-center gap-2 ${
+                        submitStatus.type === 'success' 
+                          ? 'bg-green-500/20 border border-green-500/50 text-green-300' 
+                          : 'bg-red-500/20 border border-red-500/50 text-red-300'
+                      }`}
+                    >
+                      {submitStatus.type === 'success' ? (
+                        <CheckCircle className="w-4 h-4" />
+                      ) : (
+                        <AlertCircle className="w-4 h-4" />
+                      )}
+                      <span className="text-sm">{submitStatus.message}</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Name Field */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Full Name *</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    placeholder="Enter your full name"
+                    className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                    required
+                  />
+                </div>
+
+                {/* Email Field */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Email Address *</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    placeholder="you@example.com"
+                    className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                    required
+                  />
+                </div>
+
+                {/* Phone Field */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Phone Number *</label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    placeholder="+256 123 456 789"
+                    className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                    required
+                  />
+                </div>
+
+                {/* Message Field */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Message *</label>
+                  <textarea
+                    name="message"
+                    value={formData.message}
+                    onChange={handleInputChange}
+                    rows={4}
+                    placeholder="Tell us how we can help you..."
+                    className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all resize-none"
+                    required
+                  />
+                </div>
+
+                {/* Submit Button */}
+                <motion.button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
-                  Send Message
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      <span>Sending...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-5 h-5" />
+                      <span>Send Message</span>
+                    </>
+                  )}
                 </motion.button>
-              </motion.form>
+              </form>
             </motion.div>
           </div>
         </div>
-      </motion.section>
+      </section>
 
       {/* Footer */}
-      <motion.footer 
-        className="relative py-8 border-t border-white/10"
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.p 
-            className="text-gray-400 text-sm"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            © 2024 Freedom City Tech Center. Created by Atbriz Nicholus. All rights reserved.
-          </motion.p>
+      <footer className="relative py-12 border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <img src="/freedom.png" alt="Logo" className="w-8 h-8" />
+                <span className="text-white font-bold">Freedom City Tech</span>
+              </div>
+              <p className="text-gray-400 text-sm">Empowering the next generation through technology education.</p>
+            </div>
+            <div>
+              <h4 className="text-white font-semibold mb-4">Quick Links</h4>
+              <ul className="space-y-2 text-sm text-gray-400">
+                <li><button onClick={scrollToTop} className="hover:text-purple-400 transition">Home</button></li>
+                <li><button onClick={() => scrollToSection(aboutRef, 'about')} className="hover:text-purple-400 transition">About</button></li>
+                <li><button onClick={() => scrollToSection(servicesRef, 'services')} className="hover:text-purple-400 transition">Services</button></li>
+                <li><button onClick={() => scrollToSection(contactRef, 'contact')} className="hover:text-purple-400 transition">Contact</button></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-white font-semibold mb-4">Resources</h4>
+              <ul className="space-y-2 text-sm text-gray-400">
+                <li><a href="#" className="hover:text-purple-400 transition">Blog</a></li>
+                <li><a href="#" className="hover:text-purple-400 transition">FAQs</a></li>
+                <li><a href="#" className="hover:text-purple-400 transition">Support</a></li>
+                <li><a href="#" className="hover:text-purple-400 transition">Privacy Policy</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-white font-semibold mb-4">Follow Us</h4>
+              <div className="flex gap-3">
+                {["FB", "TW", "LI", "IG"].map((social, i) => (
+                  <motion.a
+                    key={i}
+                    href="#"
+                    className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-purple-500/50 transition-colors"
+                    whileHover={{ scale: 1.1 }}
+                  >
+                    <span className="text-xs text-white">{social}</span>
+                  </motion.a>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="text-center pt-8 border-t border-white/10">
+            <p className="text-gray-400 text-sm">
+              © 2024 Freedom City Tech Center. Created by Atbriz Nicholus. All rights reserved.
+            </p>
+          </div>
         </div>
-      </motion.footer>
+      </footer>
 
       {/* Scroll to Top Button */}
       <AnimatePresence>
         {showScrollTop && (
           <motion.button
             onClick={scrollToTop}
-            className="fixed bottom-8 right-8 z-50 w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg"
+            className="fixed bottom-8 right-8 z-50 w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg group"
             initial={{ opacity: 0, scale: 0, y: 100 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0, y: 100 }}
-            whileHover={{ scale: 1.1, boxShadow: "0 0 30px rgba(168, 85, 247, 0.5)" }}
+            whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            transition={{ duration: 0.3 }}
           >
             <motion.div
               animate={{ y: [0, -5, 0] }}
@@ -949,8 +911,6 @@ export default function HomePage() {
           </motion.button>
         )}
       </AnimatePresence>
-
-      <PWAInstallPrompt />
     </div>
   );
 }

@@ -1,12 +1,10 @@
-// app/login/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Mail, Sparkles } from 'lucide-react';
+import { ArrowLeft, Mail, Sparkles, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -14,14 +12,14 @@ export default function LoginPage() {
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
   
   const router = useRouter();
-  const { login, isAuthenticated, isLoading } = useAuthStore();
+  const { login, isLoading, isAuthenticated, user } = useAuthStore();
 
-  // ✅ Check if already authenticated and redirect to dashboard
+  // Redirect when authenticated
   useEffect(() => {
-    if (isAuthenticated) {
-      router.push('/dashboard');
+    if (isAuthenticated && user) {
+      router.push('/dashboard/overview');
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +30,6 @@ export default function LoginPage() {
       return;
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setMessage('Please enter a valid email address');
@@ -47,27 +44,11 @@ export default function LoginPage() {
       await login(email);
       setMessage('Login successful! Redirecting...');
       setMessageType('success');
-      
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 1000);
+      // The useEffect will handle redirect
     } catch (error: any) {
       setMessage(error.response?.data?.message || 'Login failed. Please try again.');
       setMessageType('error');
     }
-  };
-
-  // Animation variants
-  const fadeInUp = {
-    initial: { opacity: 0, y: 30 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.6 }
-  };
-
-  const slideInLeft = {
-    initial: { opacity: 0, x: -50 },
-    animate: { opacity: 1, x: 0 },
-    transition: { duration: 0.8 }
   };
 
   return (
@@ -77,50 +58,24 @@ export default function LoginPage() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
     >
-      {/* Animated Background elements */}
       <div className="absolute inset-0">
         <motion.div 
           className="absolute top-20 left-20 w-72 h-72 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20"
-          animate={{ 
-            x: [0, 100, 0],
-            y: [0, -100, 0],
-            scale: [1, 1.2, 1]
-          }}
-          transition={{ 
-            duration: 20,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
+          animate={{ x: [0, 100, 0], y: [0, -100, 0], scale: [1, 1.2, 1] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div 
           className="absolute top-40 right-20 w-72 h-72 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full mix-blend-multiply filter blur-xl opacity-20"
-          animate={{ 
-            x: [0, -100, 0],
-            y: [0, 100, 0],
-            scale: [1, 1.1, 1]
-          }}
-          transition={{ 
-            duration: 15,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
+          animate={{ x: [0, -100, 0], y: [0, 100, 0], scale: [1, 1.1, 1] }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div 
           className="absolute -bottom-8 left-40 w-72 h-72 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20"
-          animate={{ 
-            x: [0, 50, 0],
-            y: [0, 50, 0],
-            scale: [1, 1.3, 1]
-          }}
-          transition={{ 
-            duration: 18,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
+          animate={{ x: [0, 50, 0], y: [0, 50, 0], scale: [1, 1.3, 1] }}
+          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
         />
       </div>
 
-      {/* Grid pattern overlay */}
       <div
         className="absolute inset-0 opacity-20"
         style={{
@@ -155,17 +110,9 @@ export default function LoginPage() {
                   "0 0 20px rgba(139, 92, 246, 0.5)"
                 ]
               }}
-              transition={{ 
-                duration: 4,
-                repeat: Infinity,
-                ease: "linear"
-              }}
+              transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
             >
-              <img
-                src="/freedom.png"
-                alt="Logo"
-                className="w-full h-full object-contain"
-              />
+              <img src="/freedom.png" alt="Logo" className="w-full h-full object-contain" />
             </motion.div>
             <motion.h1 
               className="text-4xl font-bold bg-gradient-to-r from-violet-300 via-purple-300 to-indigo-300 bg-clip-text text-transparent mb-3"
@@ -250,7 +197,7 @@ export default function LoginPage() {
             >
               {isLoading ? (
                 <span className="flex items-center justify-center">
-                  <LoadingSpinner />
+                  <Loader2 className="animate-spin" />
                   <span className="ml-2">Accessing...</span>
                 </span>
               ) : (
@@ -270,25 +217,21 @@ export default function LoginPage() {
           >
             <div className="text-cyan-300 text-sm">
               Don&apos;t have an account?{' '}
-              <motion.button
+              <button
                 onClick={() => router.push('/register')}
                 className="text-violet-300 hover:text-white font-medium underline transition-colors duration-300"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
               >
                 Register here
-              </motion.button>
+              </button>
             </div>
 
-            <motion.button
+            <button
               onClick={() => router.push('/')}
               className="text-cyan-300 hover:text-white font-medium text-sm transition-colors duration-300 flex items-center justify-center mx-auto"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Home
-            </motion.button>
+            </button>
           </motion.div>
         </motion.div>
       </motion.div>

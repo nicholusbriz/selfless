@@ -1,3 +1,4 @@
+// app/api/auth/login/route.ts (UPDATED)
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { generateToken } from '@/lib/jwt';
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
 
     // Rate limiting
     const identifier = getIdentifier(request, email);
-    const rateLimitResult = rateLimit(identifier, 5, 60 * 1000); // 5 requests per minute
+    const rateLimitResult = rateLimit(identifier, 5, 60 * 1000);
 
     if (!rateLimitResult.success) {
       return NextResponse.json(
@@ -39,8 +40,8 @@ export async function POST(request: Request) {
       where: { email },
       include: { 
         role: true,
-        studentProfile: true,  // ← Add this
-        teacherProfile: true   // ← Add this
+        studentProfile: true,
+        teacherProfile: true
       }
     });
 
@@ -51,8 +52,11 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate JWT token with ONLY userId (no role in token)
-    const token = generateToken(user.id);
+    // Generate JWT token with userId AND role (recommended for better performance)
+    const token = generateToken({ 
+      userId: user.id, 
+      role: user.role?.name || 'student'  // Include role in token
+    });
 
     // Remove password from response
     const { password, ...userWithoutPassword } = user;
@@ -61,7 +65,7 @@ export async function POST(request: Request) {
     const response = NextResponse.json({
       success: true,
       message: 'Login successful',
-      user: userWithoutPassword  // Now includes studentProfile and teacherProfile
+      user: userWithoutPassword
     });
 
     response.cookies.set('token', token, {

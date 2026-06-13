@@ -23,7 +23,7 @@ interface Assignment {
 
 export const assignmentsApi = {
   // Get all assignments
-  getAssignments: async (params?: { teacherId?: string; studentId?: string }) => {
+  getAssignments: async (params?: { teacherId?: string; studentId?: string; status?: string }) => {
     const response = await axios.get('/admin/assignments', { params });
     return response.data;
   },

@@ -12,12 +12,11 @@ import TuitionInput from '@/components/ui/TuitionInput';
 import StudentStatsCards from '@/components/student/StudentStatsCards';
 import StudentGPATimeline from '@/components/student/StudentGPATimeline';
 import StudentCourseList from '@/components/student/StudentCourseList';
-import StudentGradesTable from '@/components/student/StudentGradesTable';
+import StudentsAndGrades from '@/components/shared/StudentsAndGrades';
 import StudentGradeLegend from '@/components/student/StudentGradeLegend';
 import { BookOpen, TrendingUp, Award } from 'lucide-react';
 import { calculateGPA, calculateWeeklyGPAs } from '@/lib/gpa-calculator';
-import { useStudentCourses, useStudentGrades, useSubmitCourses, useUpdateCourse, useDeleteCourse } from '@/hooks/queries/student';
-import { studentApi } from '@/lib/api/student';
+import { useStudentCourses, useStudentGrades, useSubmitCourses, useUpdateCourse, useDeleteCourse, useStudentProfile, useUpdateReligion, useUpdateTuition } from '@/hooks/queries/student';
 import { motion } from 'framer-motion';
 
 type Tab = 'overview' | 'courses' | 'grades';
@@ -39,9 +38,12 @@ export default function StudentDashboard() {
 
   const { data: coursesData, isLoading: coursesLoading, error: coursesError, refetch: refetchCourses } = useStudentCourses();
   const { data: gradesData, isLoading: gradesLoading, error: gradesError, refetch: refetchGrades } = useStudentGrades();
+  const { data: profileData } = useStudentProfile();
   const submitCoursesMutation = useSubmitCourses();
   const updateCourseMutation = useUpdateCourse();
   const deleteCourseMutation = useDeleteCourse();
+  const updateReligionMutation = useUpdateReligion();
+  const updateTuitionMutation = useUpdateTuition();
 
   const courses = coursesData?.courses || [];
   const grades = gradesData?.grades || [];
@@ -64,23 +66,17 @@ export default function StudentDashboard() {
   }, [user?.id, refetchCourses, refetchGrades]);
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const response = await studentApi.getProfile();
-        if (response.profile?.takesReligion !== undefined) setTakesReligion(response.profile.takesReligion);
-        if (response.profile?.tuition !== undefined) setTuition(response.profile.tuition);
-        if (response.profile?.tuitionPaid !== undefined) setTuitionPaid(response.profile.tuitionPaid);
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-      }
-    };
-    if (user?.id) fetchProfile();
-  }, [user?.id]);
+    if (profileData?.profile) {
+      if (profileData.profile.takesReligion !== undefined) setTakesReligion(profileData.profile.takesReligion);
+      if (profileData.profile.tuition !== undefined) setTuition(profileData.profile.tuition);
+      if (profileData.profile.tuitionPaid !== undefined) setTuitionPaid(profileData.profile.tuitionPaid);
+    }
+  }, [profileData]);
 
   const handleReligionSave = async (takesReligion: boolean) => {
     setIsLoadingProfile(true);
     try {
-      await studentApi.updateReligion(takesReligion);
+      await updateReligionMutation.mutateAsync(takesReligion);
       setTakesReligion(takesReligion);
     } finally {
       setIsLoadingProfile(false);
@@ -90,7 +86,7 @@ export default function StudentDashboard() {
   const handleTuitionSave = async (tuitionValue: number) => {
     setIsLoadingProfile(true);
     try {
-      await studentApi.updateTuition(tuitionValue);
+      await updateTuitionMutation.mutateAsync(tuitionValue);
       setTuition(tuitionValue);
     } finally {
       setIsLoadingProfile(false);
@@ -320,7 +316,14 @@ export default function StudentDashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.5 }}
             >
-              <StudentGradesTable courses={courses} grades={grades} selectedWeek={selectedWeek} />
+              <StudentsAndGrades
+                courses={courses}
+                grades={grades}
+                selectedWeek={selectedWeek}
+                isLoading={gradesLoading}
+                isEditable={false}
+                mode="student"
+              />
             </motion.div>
             
             <motion.div

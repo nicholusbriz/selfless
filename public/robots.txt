@@ -1,6 +1,7 @@
 # Freedom City Tech Center - Robots.txt
 # Developed by Atbriz Nicholus Software Developer, Kampala Uganda
 # Contact: atbriz256@gmail.com
+# Keywords: Seeta Tech Center, Ntinda Teach Center, Masaka Teach Center, Jinja Tech Center, Mbale Tech Center, Kololo Stake Center, Kaboowa Tech Center, Freedom City Tech Center, Selfless CE, Nicholus Turyamureba, Atbriz, Cyber Touch
 
 User-agent: *
 Allow: /

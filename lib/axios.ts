@@ -1,4 +1,4 @@
-// lib/axios.ts
+// lib/axios.ts - Optimized version
 import axios from 'axios';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -14,15 +14,12 @@ const axiosInstance = axios.create({
 // Request interceptor - NO token needed! Cookie is sent automatically
 axiosInstance.interceptors.request.use(
   (config) => {
-    // For HTTP-only cookies, we don't need to add anything!
-    // The cookie is automatically sent by the browser
-    
     // Add request timestamp
     config.headers['X-Request-Time'] = Date.now().toString();
     
     // Log request in development
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`, config.data);
+      console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`);
     }
     
     return config;
@@ -33,12 +30,12 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle errors and add retry logic
+// Response interceptor
 axiosInstance.interceptors.response.use(
   (response) => {
     // Log response in development
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[API Response] ${response.config.url}`, response.data);
+      console.log(`[API Response] ${response.config.url}`, response.status);
     }
     return response;
   },
@@ -47,48 +44,46 @@ axiosInstance.interceptors.response.use(
     
     // Log error in development
     if (process.env.NODE_ENV === 'development') {
-      console.error('[API Error]', error);
+      console.error('[API Error]', error.response?.status, error.response?.data?.message || error.message);
     }
     
-    // Retry logic for network failures (max 3 retries)
-    if (!error.response && !originalRequest._retry && originalRequest._retryCount !== undefined) {
+    // ✅ Don't retry on 401 or 403 - they won't succeed
+    const shouldNotRetry = [401, 403].includes(error.response?.status);
+    
+    // Retry logic for network failures only (not auth errors)
+    if (!error.response && !shouldNotRetry) {
+      if (!originalRequest._retry) {
+        originalRequest._retry = true;
+        originalRequest._retryCount = 0;
+      }
+      
       originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
       
       if (originalRequest._retryCount <= 3) {
         console.log(`[API Retry] Attempt ${originalRequest._retryCount} for ${originalRequest.url}`);
-        await new Promise(resolve => setTimeout(resolve, 1000 * originalRequest._retryCount)); // Exponential backoff
+        const delay = 1000 * Math.min(originalRequest._retryCount, 5);
+        await new Promise(resolve => setTimeout(resolve, delay));
         return axiosInstance(originalRequest);
       }
     }
     
-    // Initialize retry count for network errors
-    if (!error.response && !originalRequest._retry) {
-      originalRequest._retry = true;
-      originalRequest._retryCount = 0;
-      console.log(`[API Retry] Attempt 1 for ${originalRequest.url}`);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return axiosInstance(originalRequest);
-    }
-    
     // Handle 401 unauthorized errors
-    if (error.response?.status === 401 && !originalRequest._authHandled) {
-      originalRequest._authHandled = true;
-      
-      // Clear auth state and redirect to login
+    if (error.response?.status === 401) {
       useAuthStore.getState().clearAuth();
       
-      if (typeof window !== 'undefined') {
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
         window.location.href = '/login';
       }
     }
     
-    // Handle 403 forbidden errors (wrong role)
+    // Handle 403 forbidden errors
     if (error.response?.status === 403) {
       console.error('Access forbidden:', error.response?.data?.message);
-      // Optionally redirect to dashboard or show message
-      if (typeof window !== 'undefined') {
-        // Redirect to dashboard or show error
-        window.location.href = '/dashboard';
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/dashboard')) {
+        // Don't redirect if already on dashboard
+        if (!window.location.pathname.includes('/dashboard')) {
+          window.location.href = '/dashboard';
+        }
       }
     }
     

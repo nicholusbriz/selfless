@@ -80,3 +80,41 @@ export const useDeleteCourse = () => {
     },
   });
 };
+
+export const useStudentProfile = () => {
+  const { user } = useAuthStore();
+  const userId = user?.id || 'anonymous';
+
+  return useQuery({
+    queryKey: ['student', userId, 'profile'],
+    queryFn: studentApi.getProfile,
+    staleTime: 5 * 60 * 1000,
+    enabled: !!user?.id,
+  });
+};
+
+export const useUpdateReligion = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const userId = user?.id || 'anonymous';
+
+  return useMutation({
+    mutationFn: studentApi.updateReligion,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['student', userId, 'profile'] });
+    },
+  });
+};
+
+export const useUpdateTuition = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const userId = user?.id || 'anonymous';
+
+  return useMutation({
+    mutationFn: studentApi.updateTuition,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['student', userId, 'profile'] });
+    },
+  });
+};

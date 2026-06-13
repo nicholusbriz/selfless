@@ -1,12 +1,6 @@
 'use client';
 
 import { Loader2 } from 'lucide-react';
-import StatsCardSkeleton from '@/components/skeletons/StatsCardSkeleton';
-import StudentListItemSkeleton from '@/components/skeletons/StudentListItemSkeleton';
-import CourseListItemSkeleton from '@/components/skeletons/CourseListItemSkeleton';
-import TabSkeleton from '@/components/skeletons/TabSkeleton';
-import CardSkeleton from '@/components/skeletons/CardSkeleton';
-import DashboardLayoutSkeleton from '@/components/skeletons/DashboardLayoutSkeleton';
 
 export function LoadingSpinner({ message = 'Loading...' }: { message?: string }) {
   return (
@@ -17,15 +11,63 @@ export function LoadingSpinner({ message = 'Loading...' }: { message?: string })
   );
 }
 
-// Export all skeletons for easy access
-export {
-  StatsCardSkeleton,
-  StudentListItemSkeleton,
-  CourseListItemSkeleton,
-  TabSkeleton,
-  CardSkeleton,
-  DashboardLayoutSkeleton,
-};
+// Simple skeleton components
+export function StatsCardSkeleton() {
+  return (
+    <div className="bg-white/5 rounded-xl p-6 animate-pulse">
+      <div className="h-4 bg-white/10 rounded w-24 mb-4"></div>
+      <div className="h-8 bg-white/10 rounded w-16"></div>
+    </div>
+  );
+}
+
+export function TabSkeleton() {
+  return (
+    <div className="flex space-x-2 mb-6">
+      {[1, 2, 3, 4].map(i => (
+        <div key={i} className="h-10 bg-white/10 rounded-lg w-24 animate-pulse"></div>
+      ))}
+    </div>
+  );
+}
+
+export function StudentListItemSkeleton() {
+  return (
+    <div className="bg-white/5 rounded-xl p-4 animate-pulse">
+      <div className="h-4 bg-white/10 rounded w-32 mb-3"></div>
+      <div className="h-3 bg-white/10 rounded w-48"></div>
+    </div>
+  );
+}
+
+export function CourseListItemSkeleton() {
+  return (
+    <div className="bg-white/5 rounded-xl p-4 animate-pulse">
+      <div className="h-4 bg-white/10 rounded w-40 mb-3"></div>
+      <div className="h-3 bg-white/10 rounded w-56"></div>
+    </div>
+  );
+}
+
+export function CardSkeleton() {
+  return (
+    <div className="bg-white/5 rounded-xl p-6 animate-pulse">
+      <div className="h-4 bg-white/10 rounded w-32 mb-4"></div>
+      <div className="h-8 bg-white/10 rounded w-16"></div>
+    </div>
+  );
+}
+
+export function DashboardLayoutSkeleton() {
+  return (
+    <div className="h-screen bg-black flex items-center justify-center">
+      <div className="animate-pulse text-center">
+        <div className="h-8 bg-gray-800 rounded w-32 mx-auto mb-4"></div>
+        <div className="h-4 bg-gray-800 rounded w-48 mx-auto"></div>
+      </div>
+    </div>
+  );
+}
 
 interface LoadingStateProps {
   type?: 'spinner' | 'dashboard' | 'tabs' | 'stats' | 'students' | 'courses' | 'full';

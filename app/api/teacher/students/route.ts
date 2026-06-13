@@ -1,35 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyToken } from '@/lib/jwt';
-import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
-
-    if (!token) {
+    // Get user info from proxy headers
+    const userId = request.headers.get('x-user-id');
+    const userRole = request.headers.get('x-user-role');
+    
+    // Proxy already verified authentication, just check if userId exists
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      include: { role: true, teacherProfile: true }
-    });
-
-    if (!user || (user.role?.name !== 'teacher' && user.role?.name !== 'admin')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    
+    // Check for teacher or admin role
+    if (userRole !== 'teacher' && userRole !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden', message: 'Teacher or admin access required' }, { status: 403 });
     }
 
     // Get all assignments for this teacher (using User ID directly)
     const assignments = await prisma.teacherStudentAssignment.findMany({
       where: {
-        teacherId: user.id
+        teacherId: userId
       },
       include: {
         student: {
