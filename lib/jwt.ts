@@ -3,13 +3,15 @@ import jwt from 'jsonwebtoken';
 
 const SECRET = process.env.JWT_SECRET;
 
-// Warning instead of error
-if (!SECRET && process.env.NODE_ENV === 'development') {
-  console.warn('⚠️ JWT_SECRET not set - using fallback for development');
+// Skip validation during build
+const isBuild = process.env.NEXT_PHASE === 'phase-production-build';
+
+if (!isBuild && !SECRET) {
+  throw new Error('JWT_SECRET environment variable is not set');
 }
 
-// Use fallback if secret is missing (for build/development)
-const SECRET_KEY = (SECRET || 'development-fallback-secret-32-chars-long!!') as string;
+// Use fallback during build only
+const SECRET_KEY = (SECRET || (isBuild ? 'build-fallback' : '')) as string;
 
 export function generateToken(payload: string | { userId: string; role?: string }) {
   if (typeof payload === 'string') {
