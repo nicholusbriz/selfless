@@ -268,7 +268,7 @@ export default function HomePage() {
         className="fixed top-0 w-full z-50 backdrop-blur-xl border-b border-white/10"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 md:h-20">
+          <div className="flex items-center justify-between h-14 sm:h-16 md:h-20">
             {/* Logo */}
             <motion.div 
               className="flex items-center space-x-3 cursor-pointer"
@@ -278,7 +278,7 @@ export default function HomePage() {
               <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
                 <img src="/freedom.png" alt="Logo" className="w-8 h-8 object-contain" />
               </div>
-              <span className="text-white font-bold text-lg md:text-xl">Freedom City Tech</span>
+              <span className="text-white font-bold text-base sm:text-lg md:text-xl">Freedom City Tech</span>
             </motion.div>
 
             {/* Desktop Navigation */}
@@ -348,10 +348,10 @@ export default function HomePage() {
 
             <motion.button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden text-white p-2 rounded-lg hover:bg-white/10 transition"
+              className="md:hidden text-white p-3 rounded-lg hover:bg-white/10 transition"
               whileTap={{ scale: 0.9 }}
             >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
             </motion.button>
           </div>
         </div>
@@ -459,10 +459,10 @@ export default function HomePage() {
               className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-2 mb-6"
             >
               <Sparkles className="w-4 h-4 text-purple-400" />
-              <span className="text-purple-300 text-sm">Welcome to Selfless CE</span>
+              <span className="text-purple-300 text-base sm:text-base">Welcome to Selfless CE</span>
             </motion.div>
 
-            <h1 className="text-5xl md:text-7xl font-bold mb-6">
+            <h1 className="text-5xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6">
               <span className="bg-gradient-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent">
                 Freedom City
               </span>
@@ -472,16 +472,16 @@ export default function HomePage() {
               </span>
             </h1>
             
-            <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-lg sm:text-lg md:text-xl lg:text-2xl text-gray-300 mb-6 sm:mb-8 max-w-3xl mx-auto leading-relaxed">
               Empowering the next generation of tech leaders through innovative education, 
               hands-on experience, and community collaboration.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-4">
               {user && isAuthenticated ? (
                 <motion.button
                   onClick={handleDashboard}
-                  className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold text-lg cursor-pointer hover:shadow-xl transition"
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold text-base sm:text-lg cursor-pointer hover:shadow-xl transition"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -491,7 +491,7 @@ export default function HomePage() {
                 <>
                   <motion.button
                     onClick={handleSignIn}
-                    className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold text-lg cursor-pointer hover:shadow-xl transition"
+                    className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold text-base sm:text-lg cursor-pointer hover:shadow-xl transition"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -499,7 +499,7 @@ export default function HomePage() {
                   </motion.button>
                   <motion.button
                     onClick={handleGetStarted}
-                    className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white rounded-xl font-semibold text-lg border border-white/20 cursor-pointer hover:bg-white/20 transition"
+                    className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white/10 backdrop-blur-sm text-white rounded-xl font-semibold text-base sm:text-lg border border-white/20 cursor-pointer hover:bg-white/20 transition"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -511,7 +511,7 @@ export default function HomePage() {
               {/* Relax Button - Beautiful Design */}
               <motion.button
                 onClick={handleOpenMusicPlayer}
-                className="relative px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-semibold text-lg cursor-pointer transition-all duration-300 flex items-center gap-3 overflow-hidden group"
+                className="relative w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-semibold text-base sm:text-lg cursor-pointer transition-all duration-300 flex items-center justify-center gap-3 overflow-hidden group"
                 whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
                 whileTap={{ scale: 0.95 }}
                 initial={{ opacity: 0, y: 20 }}
@@ -832,7 +832,7 @@ export default function HomePage() {
                 </AnimatePresence>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Full Name *</label>
+                  <label className="block text-base font-medium text-gray-300 mb-2">Full Name *</label>
                   <input
                     type="text"
                     name="name"

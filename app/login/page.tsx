@@ -110,13 +110,13 @@ export default function LoginPage() {
       />
 
       <motion.div 
-        className="w-full max-w-md relative z-10"
+        className="w-full max-w-md relative z-10 px-2"
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
       >
         <motion.div 
-          className="rounded-3xl p-8 border border-white/20 bg-white/10 backdrop-blur-lg"
+          className="rounded-3xl p-6 sm:p-8 border border-white/20 bg-white/10 backdrop-blur-lg"
           whileHover={{ scale: 1.02 }}
           transition={{ duration: 0.3 }}
         >
@@ -141,7 +141,7 @@ export default function LoginPage() {
               <img src="/freedom.png" alt="Logo" className="w-full h-full object-contain" />
             </motion.div>
             <motion.h1 
-              className="text-4xl font-bold bg-gradient-to-r from-violet-300 via-purple-300 to-indigo-300 bg-clip-text text-transparent mb-3"
+              className="text-4xl sm:text-4xl font-bold bg-gradient-to-r from-violet-300 via-purple-300 to-indigo-300 bg-clip-text text-transparent mb-3"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
@@ -149,7 +149,7 @@ export default function LoginPage() {
               Welcome Back
             </motion.h1>
             <motion.p 
-              className="text-cyan-300 text-lg mb-2"
+              className="text-cyan-300 text-basese sm:text-lg mb-2"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
@@ -157,7 +157,7 @@ export default function LoginPage() {
               Freedom City Tech Center
             </motion.p>
             <motion.p 
-              className="text-gray-300 text-sm"
+              className="text-gray-300 text- mm:text-base"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.5 }}
@@ -178,7 +178,7 @@ export default function LoginPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.7 }}
             >
-              <label htmlFor="email" className="block text-sm font-medium text-violet-200 mb-2 flex items-center">
+              <label htmlFor="email" className="block text-base font-medium text-violet-200 mb-2 flex items-center">
                 <Mail className="w-4 h-4 mr-2" />
                 Email Address
               </label>
@@ -188,7 +188,7 @@ export default function LoginPage() {
                 name="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-black/50 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
+                className="w-full px-4 py-3 bg-black/50 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 text-base"
                 placeholder="Enter your authorized email"
                 disabled={isLoading}
                 autoComplete="email"
@@ -217,7 +217,7 @@ export default function LoginPage() {
             <motion.button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white font-semibold py-3 sm:py-3 px-6 rounded-lg hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-base"
               whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(139, 92, 246, 0.5)" }}
               whileTap={{ scale: 0.95 }}
             >
@@ -241,7 +241,7 @@ export default function LoginPage() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.9 }}
           >
-            <div className="text-cyan-300 text-sm">
+            <div className="text-cyan-300 text-base sm:text-base">
               Don&apos;t have an account?{' '}
               <button
                 onClick={() => router.push('/register')}
@@ -253,7 +253,7 @@ export default function LoginPage() {
 
             <button
               onClick={() => router.push('/')}
-              className="text-cyan-300 hover:text-white font-medium text-sm transition-colors duration-300 flex items-center justify-center mx-auto"
+              className="text-cyan-300 hover:text-white font-medium text-base sm:text-base transition-colors duration-300 flex items-center justify-center mx-auto"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Home
