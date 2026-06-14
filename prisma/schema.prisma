@@ -1,0 +1,339 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// AUTH & USER MANAGEMENT
+// ============================================
+
+// MAIN USER - Everyone has one account
+model User {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  firstName   String
+  lastName    String
+  email       String   @unique
+  password    String
+  phoneNumber String?
+  role        Role?    @relation(fields: [roleId], references: [id])
+  roleId      String?  @db.ObjectId
+  
+  // Student specific
+  studentProfile StudentProfile?
+  
+  // Teacher specific  
+  teacherProfile TeacherProfile?
+  
+  // Admin specific
+  adminProfile AdminProfile?
+  
+  // Assignments where this user is a teacher
+  teachingAssignments TeacherStudentAssignment[] @relation("TeacherAssignments")
+  
+  // Assignments where this user is a student
+  studentAssignments TeacherStudentAssignment[] @relation("StudentAssignments")
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("users")
+}
+
+// ROLES - Simple role-based access control
+model Role {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String   @unique  // "admin", "teacher", "student"
+  permissions String[]
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("roles")
+}
+
+// ============================================
+// USER PROFILES
+// ============================================
+
+// STUDENT PROFILE - Academic tracking (every user has one)
+model StudentProfile {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @unique @db.ObjectId
+  user         User     @relation(fields: [userId], references: [id])
+  studentId    String   @unique  // Format: STU2024001
+  takesReligion Boolean @default(false)
+  tuition      Float?
+  tuitionPaid  Boolean  @default(false)
+  currentGPA   Float    @default(0)
+  totalCredits Int      @default(0)
+  enrolledCourses EnrolledCourse[]
+  grades       Grade[]
+
+  @@map("student_profiles")
+}
+
+// TEACHER PROFILE - Teaching capabilities (only for teachers)
+model TeacherProfile {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @unique @db.ObjectId
+  user       User     @relation(fields: [userId], references: [id])
+  teacherId  String   @unique  // Format: TCH2024001
+  department String?
+  assignedAt DateTime @default(now())
+  
+  @@map("teacher_profiles")
+}
+
+// ADMIN PROFILE - Admin capabilities (only for admins)
+model AdminProfile {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @unique @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  adminId   String   @unique  // Format: ADM2024001
+  promotedAt DateTime @default(now())
+  notes     String?
+  
+  @@map("admin_profiles")
+}
+
+// ============================================
+// ACADEMIC TRACKING
+// ============================================
+
+// ENROLLED COURSES - Every student's courses
+model EnrolledCourse {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  studentId   String   @db.ObjectId
+  student     StudentProfile @relation(fields: [studentId], references: [id])
+  courseName  String
+  credits     Int
+  status      String   @default("active")
+  submittedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  grades      Grade[]
+  
+  @@map("enrolled_courses")
+}
+
+// GRADES - Academic performance tracking
+model Grade {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  studentId   String   @db.ObjectId
+  student     StudentProfile @relation(fields: [studentId], references: [id])
+  courseId    String   @db.ObjectId
+  course      EnrolledCourse @relation(fields: [courseId], references: [id])
+  week        Int
+  gradeLetter String
+  gradePoints Float
+  assignedBy  String   @db.ObjectId
+  assignedAt  DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([studentId, courseId, week])
+  @@index([week, gradeLetter])
+  @@map("grades")
+}
+
+// TEACHER-STUDENT ASSIGNMENT
+model TeacherStudentAssignment {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  teacherId   String   @db.ObjectId
+  studentId   String   @db.ObjectId
+  status      String   @default("not_verified")
+  notes       String?
+  assignedAt  DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  teacher     User     @relation("TeacherAssignments", fields: [teacherId], references: [id])
+  student     User     @relation("StudentAssignments", fields: [studentId], references: [id])
+  
+  @@unique([teacherId, studentId])
+  @@index([teacherId])
+  @@index([studentId])
+  @@index([status])
+  @@map("teacher_student_assignments")
+}
+
+// ============================================
+// CONTACT & MESSAGING
+// ============================================
+
+// CONTACT MESSAGES
+model ContactMessage {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  email       String
+  phoneNumber String?
+  message     String
+  status      String   @default("unread")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([status])
+  @@index([createdAt])
+  @@map("contact_messages")
+}
+
+// ============================================
+// YOUTUBE MUSIC PLAYER CACHE (ENHANCED)
+// ============================================
+
+// YOUTUBE VIDEOS CACHE - Store video metadata
+model YouTubeVideo {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  videoId      String   @unique
+  title        String
+  thumbnail    String
+  channelTitle String
+  category     String?
+  duration     String?
+  views        String?
+  publishedAt  DateTime?
+  searchQuery  String?
+  cachedAt     DateTime @default(now())
+  expiresAt    DateTime
+  lastAccessed DateTime @default(now())
+  accessCount  Int      @default(0)
+  
+  // Single compound index for category + expiry
+  @@index([category, expiresAt])
+  @@index([searchQuery, expiresAt])
+  @@map("youtube_videos")
+}
+
+// YOUTUBE PLAYLISTS CACHE
+model YouTubePlaylist {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  playlistId   String   @unique
+  name         String
+  description  String?
+  coverImage   String
+  category     String
+  songCount    Int
+  videos       String[]
+  cachedAt     DateTime @default(now())
+  expiresAt    DateTime
+  
+  @@index([category])
+  @@map("youtube_playlists")
+}
+
+// YOUTUBE CACHE STATS
+model YouTubeCacheStats {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  totalRequests Int      @default(0)
+  cacheHits     Int      @default(0)
+  cacheMisses   Int      @default(0)
+  apiCalls      Int      @default(0)
+  lastCleaned   DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@map("youtube_cache_stats")
+}
+
+// USER WATCH HISTORY
+model UserWatchHistory {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String
+  videoId   String
+  watchedAt DateTime @default(now())
+  
+  @@unique([userId, videoId])
+  @@index([userId, watchedAt])  // Single compound index instead of two separate
+  @@map("user_watch_history")
+}
+
+// ============================================
+// 🆕 NEW ENHANCED MODELS FOR PERFORMANCE
+// ============================================
+
+// SEARCH CACHE - Instant search results
+model SearchCache {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  query       String   @unique
+  results     Json
+  resultCount Int
+  cachedAt    DateTime @default(now())
+  expiresAt   DateTime
+  
+  @@index([expiresAt])
+  @@map("search_cache")
+}
+
+// USER PREFERENCES - Personalized experience
+model UserPreference {
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId             String   @unique
+  preferredCategories String[]
+  muted              Boolean  @default(false)
+  volume             Int      @default(70)
+  autoplayNext       Boolean  @default(true)
+  lastActiveCategory String   @default("all")
+  updatedAt          DateTime @updatedAt
+  
+  @@map("user_preferences")
+}
+
+// WATCH PROGRESS - Resume playback
+model WatchProgress {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String
+  videoId      String
+  progress     Float
+  lastPosition Int
+  updatedAt    DateTime @updatedAt
+  
+  @@unique([userId, videoId])
+  @@index([userId])
+  @@map("watch_progress")
+}
+
+// CATEGORY CACHE STATS - Performance monitoring
+model CategoryCacheStats {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  category      String   @unique
+  videoCount    Int
+  lastRefreshed DateTime
+  refreshCount  Int      @default(0)
+  avgLoadTime   Float
+  
+  @@map("category_cache_stats")
+}
+
+// VIDEO POPULARITY - Track trending videos
+model VideoPopularity {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  videoId     String   @unique
+  watchCount  Int      @default(0)
+  searchCount Int      @default(0)
+  shareCount  Int      @default(0)
+  lastUpdated DateTime @updatedAt
+  
+  @@index([watchCount])
+  @@map("video_popularity")
+}
+
+// USER SESSION - Track active sessions
+model UserSession {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String
+  sessionId    String   @unique
+  deviceInfo   String?
+  ipAddress    String?
+  userAgent    String?
+  startedAt    DateTime @default(now())
+  lastActiveAt DateTime @default(now())
+  endedAt      DateTime?
+  
+  @@index([userId])
+  @@index([lastActiveAt])
+  @@map("user_sessions")
+}

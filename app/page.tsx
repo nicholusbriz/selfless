@@ -1,837 +1,987 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import PWAInstallPrompt from '@/components/PWAInstallPrompt';
-import { Logo } from '@/components/ui';
-import { OrganizationStructuredData, WebSiteStructuredData, WebApplicationStructuredData } from '@/components/StructuredData';
-import { useLogin, useRegister } from '@/hooks/loginRegister';
-import { LoadingSpinner } from '@/components/ui';
+import { 
+  Menu, X, Sparkles, Users, Calendar, Award, ChevronRight,
+  Star, Heart, Shield, Clock, MapPin, Phone, Mail, ArrowUp,
+  Cpu, Globe, Code, Home, Info, Briefcase, Contact, Send, CheckCircle, AlertCircle,
+  Music, Headphones, Radio, PlayCircle
+} from 'lucide-react';
+import { useAuthStore } from '@/stores/authStore';
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import axios from '@/lib/axios';
+import { useQueryClient } from '@tanstack/react-query';
+import { fetchWithPrefetch } from '@/hooks/queries/useYouTubeMusicWithCache';
 
-// ============================================
-// LOGIN FORM COMPONENT (Unchanged - perfect)
-// ============================================
-function LoginForm({ closeModal }: { closeModal: () => void }) {
-  // ... (your existing LoginForm code is perfect, no changes needed)
-  const [formData, setFormData] = useState({ email: '' });
-  const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
-  const [isLoading, setIsLoading] = useState(false);
+export default function HomePage() {
   const router = useRouter();
-  const login = useLogin();
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.email) {
-      setMessage('Please enter your email');
-      setMessageType('error');
-      return;
-    }
-
-    setMessage('');
-    setMessageType('');
-
-    setIsLoading(true);
-
-    try {
-      await login.mutateAsync({ email: formData.email });
-      setMessage('Success! Redirecting...');
-      setMessageType('success');
-
-      setTimeout(() => {
-        closeModal();
-        router.push('/dashboard');
-      }, 1000);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Login failed';
-      setMessage(errorMessage);
-      setMessageType('error');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {isLoading ? (
-        <div className="flex items-center justify-center py-4">
-          <LoadingSpinner size="md" color="white" showText={false} />
-        </div>
-      ) : (
-        <>
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-charcoal-700 mb-2">
-              Email Address
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full px-4 py-3 bg-cloud-500 backdrop-blur-md border border-sandstone-400 rounded-xl focus:ring-2 focus:ring-terracotta-400 focus:border-terracotta-400 outline-none transition-all text-charcoal-700 placeholder-charcoal-500"
-              placeholder="your@email.com"
-              disabled={isLoading}
-              required
-            />
-          </div>
-          {message && (
-            <div className={`p-3 rounded-xl text-sm ${messageType === 'success' ? 'bg-green-900/50 text-green-300 border border-green-700' : 'bg-red-900/50 text-red-300 border border-red-700'}`}>
-              {message}
-            </div>
-          )}
-          <button
-            type="submit"
-            disabled={isLoading || login.isPending}
-            className="w-full bg-terracotta-400 hover:bg-terracotta-600 text-white font-semibold py-3 px-6 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? (
-              <div className="flex items-center justify-center">
-                <LoadingSpinner size="sm" color="white" showText={false} className="mr-2" />
-                Signing in...
-              </div>
-            ) : login.isPending ? 'Signing in...' : 'Sign In'}
-          </button>
-        </>
-      )}
-    </form>
-  );
-}
-
-// ============================================
-// REGISTER FORM COMPONENT (Unchanged - perfect)
-// ============================================
-function RegisterForm({ closeModal }: { closeModal: () => void }) {
-  // ... (your existing RegisterForm code is perfect, no changes needed)
+  const queryClient = useQueryClient();
+  const { user, logout, clearAuth, isAuthenticated, fetchUser } = useAuthStore();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
+  const [activeSection, setActiveSection] = useState('home');
+  
+  // Contact form state
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    name: '',
     email: '',
-    password: '',
-    phoneNumber: ''
+    phone: '',
+    message: ''
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
-  const router = useRouter();
-  const register = useRegister();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
+  const homeRef = useRef<HTMLElement>(null);
+  const aboutRef = useRef<HTMLElement>(null);
+  const servicesRef = useRef<HTMLElement>(null);
+  const contactRef = useRef<HTMLElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const { scrollY } = useScroll();
+  const heroOpacity = useTransform(scrollY, [0, 300], [1, 0]);
+  const heroScale = useTransform(scrollY, [0, 300], [1, 0.95]);
+  const navBackground = useTransform(scrollY, [0, 50], ['rgba(0,0,0,0)', 'rgba(0,0,0,0.95)']);
 
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password || !formData.phoneNumber) {
-      setMessage('Please fill in all fields');
-      setMessageType('error');
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setMessage('Password must be at least 6 characters');
-      setMessageType('error');
-      return;
-    }
-
-    try {
-      await register.mutateAsync(formData);
-      setMessage('Account created! Redirecting...');
-      setMessageType('success');
-      setTimeout(() => {
-        closeModal();
-        router.push('/dashboard');
-      }, 1000);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
-      setMessage(errorMessage);
-      setMessageType('error');
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label htmlFor="firstName" className="block text-sm font-medium text-charcoal-700 mb-2">
-          First Name
-        </label>
-        <input
-          type="text"
-          id="firstName"
-          name="firstName"
-          value={formData.firstName}
-          onChange={handleChange}
-          className="w-full px-4 py-3 bg-cloud-500 backdrop-blur-md border border-sandstone-400 rounded-xl focus:ring-2 focus:ring-terracotta-400 focus:border-terracotta-400 outline-none transition-all text-charcoal-700 placeholder-charcoal-500"
-          placeholder="John"
-          required
-        />
-      </div>
-      <div>
-        <label htmlFor="lastName" className="block text-sm font-medium text-charcoal-700 mb-2">
-          Last Name
-        </label>
-        <input
-          type="text"
-          id="lastName"
-          name="lastName"
-          value={formData.lastName}
-          onChange={handleChange}
-          className="w-full px-4 py-3 bg-cloud-500 backdrop-blur-md border border-sandstone-400 rounded-xl focus:ring-2 focus:ring-terracotta-400 focus:border-terracotta-400 outline-none transition-all text-charcoal-700 placeholder-charcoal-500"
-          placeholder="Doe"
-          required
-        />
-      </div>
-      <div>
-        <label htmlFor="reg-email" className="block text-sm font-medium text-charcoal-700 mb-2">
-          Email Address
-        </label>
-        <input
-          type="email"
-          id="reg-email"
-          name="email"
-          value={formData.email}
-          onChange={handleChange}
-          className="w-full px-4 py-3 bg-cloud-500 backdrop-blur-md border border-sandstone-400 rounded-xl focus:ring-2 focus:ring-terracotta-400 focus:border-terracotta-400 outline-none transition-all text-charcoal-700 placeholder-charcoal-500"
-          placeholder="your@email.com"
-          required
-        />
-      </div>
-      <div>
-        <label htmlFor="phoneNumber" className="block text-sm font-medium text-charcoal-700 mb-2">
-          Phone Number
-        </label>
-        <input
-          type="tel"
-          id="phoneNumber"
-          name="phoneNumber"
-          value={formData.phoneNumber}
-          onChange={handleChange}
-          className="w-full px-4 py-3 bg-cloud-500 backdrop-blur-md border border-sandstone-400 rounded-xl focus:ring-2 focus:ring-terracotta-400 focus:border-terracotta-400 outline-none transition-all text-charcoal-700 placeholder-charcoal-500"
-          placeholder="+256 123 456 789"
-          required
-        />
-      </div>
-      <div>
-        <label htmlFor="reg-password" className="block text-sm font-medium text-charcoal-700 mb-2">
-          Password
-        </label>
-        <div className="relative">
-          <input
-            type={showPassword ? 'text' : 'password'}
-            id="reg-password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-emerald-400/30 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all pr-12 text-white placeholder-emerald-300"
-            placeholder="••••••••••"
-            required
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-charcoal-500 hover:text-terracotta-400"
-          >
-            {showPassword ? (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-            )}
-          </button>
-        </div>
-      </div>
-      {message && (
-        <div className={`p-3 rounded-xl text-sm ${messageType === 'success' ? 'bg-green-900/50 text-green-300 border border-green-700' : 'bg-red-900/50 text-red-300 border border-red-700'}`}
-        >
-          {message}
-        </div>
-      )}
-      <button
-        type="submit"
-        disabled={register.isPending}
-        className="w-full bg-terracotta-400 hover:bg-terracotta-600 text-white font-semibold py-3 px-6 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {register.isPending ? 'Creating Account...' : 'Create Account'}
-      </button>
-    </form>
-  );
-}
-
-// ============================================
-// MAIN PAGE COMPONENT - PROFESSIONALLY REDESIGNED
-// ============================================
-export default function Page() {
-  const router = useRouter();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-
+  // ✅ FIXED: Use the store's fetchUser method instead of direct axios call
   useEffect(() => {
-    setIsVisible(true);
+    const checkAuth = async () => {
+      try {
+        // Use the store's fetchUser method which handles cookies automatically
+        await fetchUser();
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        clearAuth();
+      } finally {
+        setIsAuthChecked(true);
+      }
+    };
+    
+    checkAuth();
+  }, [fetchUser, clearAuth]);
 
-    const observerOptions = {
-      threshold: 0.1,
-      rootMargin: '0px 0px -50px 0px'
+  // Prefetch music videos on page load for instant playback
+  useEffect(() => {
+    const prefetchVideos = async () => {
+      const userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+      try {
+        // Prefetch the default 'all' category
+        await queryClient.prefetchQuery({
+          queryKey: ['youtube-videos', 'all'],
+          queryFn: () => fetchWithPrefetch('all', userId),
+          staleTime: 30 * 60 * 1000, // 30 minutes
+        });
+        // Prefetch trending category as well
+        await queryClient.prefetchQuery({
+          queryKey: ['youtube-videos', 'trending'],
+          queryFn: () => fetchWithPrefetch('trending', userId),
+          staleTime: 30 * 60 * 1000,
+        });
+      } catch (error) {
+        console.log('Video prefetch failed (non-critical):', error);
+      }
     };
 
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
+    // Prefetch after a short delay to not block initial render
+    const timer = setTimeout(prefetchVideos, 1000);
+    return () => clearTimeout(timer);
+  }, [queryClient]);
+
+  // Track active section based on scroll position
+  useEffect(() => {
+    const handleScrollActive = () => {
+      const sections = [
+        { id: 'home', ref: homeRef },
+        { id: 'about', ref: aboutRef },
+        { id: 'services', ref: servicesRef },
+        { id: 'contact', ref: contactRef }
+      ];
+
+      const scrollPosition = window.scrollY + 100;
+
+      for (const section of sections) {
+        if (section.ref.current) {
+          const element = section.ref.current;
+          const offsetTop = element.offsetTop;
+          const offsetHeight = element.offsetHeight;
+
+          if (scrollPosition >= offsetTop && scrollPosition < offsetTop + offsetHeight) {
+            setActiveSection(section.id);
+            break;
+          }
         }
+      }
+    };
+
+    window.addEventListener('scroll', handleScrollActive);
+    return () => window.removeEventListener('scroll', handleScrollActive);
+  }, []);
+
+  useEffect(() => {
+    const video = document.createElement('video');
+    video.src = '/freedomvideo.mp4';
+    video.onloadeddata = () => setVideoLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({
+        x: (e.clientX / window.innerWidth) * 100,
+        y: (e.clientY / window.innerHeight) * 100
       });
-    }, observerOptions);
+    };
 
-    const scrollElements = document.querySelectorAll('.scroll-animate');
-    scrollElements.forEach(el => observer.observe(el));
-
+    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('mousemove', handleMouseMove);
     return () => {
-      scrollElements.forEach(el => observer.unobserve(el));
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('mousemove', handleMouseMove);
     };
   }, []);
 
-  // ============================================
-  // FEATURES ARRAY - Refined descriptions for professionalism
-  // ============================================
-  const features = [
-    {
-      title: "Academic Performance Analytics",
-      description: "Real-time grade tracking with predictive insights and personalized recommendations for academic improvement.",
-      icon: "",
-      color: "from-gray-700 to-gray-900",
-      action: () => setIsLoginModalOpen(true)
-    },
-    {
-      title: "Intelligent Schedule Management",
-      description: "Automated cleaning duty assignments with conflict detection and calendar synchronization.",
-      icon: "",
-      color: "from-gray-700 to-gray-900",
-      action: () => setIsLoginModalOpen(true)
-    },
-    {
-      title: "Comprehensive Credit Audit",
-      description: "Visual degree progress tracking, requirement completion status, and graduation eligibility checker.",
-      icon: "",
-      color: "from-gray-700 to-gray-900",
-      action: () => setIsLoginModalOpen(true)
-    },
-    {
-      title: "Institutional Policy Hub",
-      description: "Centralized access to academic regulations, institutional guidelines, and policy updates.",
-      icon: "",
-      color: "from-gray-700 to-gray-900",
-      action: () => setIsLoginModalOpen(true)
-    },
-    {
-      title: "Interactive Analytics Dashboard",
-      description: "Data visualization of performance trends, attendance patterns, and comparative class metrics.",
-      icon: "",
-      color: "from-gray-700 to-gray-900",
-      action: () => setIsLoginModalOpen(true)
-    },
-    {
-      title: "Unified Student Portal",
-      description: "Single access point for all academic resources, communications, and administrative services.",
-      icon: "",
-      color: "from-gray-700 to-gray-900",
-      action: () => setIsLoginModalOpen(true)
+  const scrollToSection = (ref: React.RefObject<HTMLElement | null>, sectionId: string) => {
+    ref.current?.scrollIntoView({ behavior: 'smooth' });
+    setActiveSection(sectionId);
+    setMobileMenuOpen(false);
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setActiveSection('home');
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/');
+  };
+
+  const handleSignIn = () => {
+    router.push('/login');
+  };
+
+  const handleGetStarted = () => {
+    router.push('/register');
+  };
+
+  const handleDashboard = () => {
+    router.push('/dashboard/overview');
+  };
+
+  const handleOpenMusicPlayer = () => {
+    // Find and click the global music button
+    const musicButton = document.querySelector('.global-music-button');
+    if (musicButton) {
+      (musicButton as HTMLButtonElement).click();
     }
+  };
+
+  // Handle form input changes
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.name || !formData.email || !formData.phone || !formData.message) {
+      setSubmitStatus({ type: 'error', message: 'Please fill in all fields' });
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setSubmitStatus({ type: 'error', message: 'Please enter a valid email address' });
+      return;
+    }
+
+    const phoneRegex = /^[\d\s\-\+\(\)]{10,}$/;
+    if (!phoneRegex.test(formData.phone.replace(/\s/g, ''))) {
+      setSubmitStatus({ type: 'error', message: 'Please enter a valid phone number' });
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitStatus({ type: null, message: '' });
+
+    try {
+      // ✅ FIXED: Use full API path with /api prefix
+      const response = await axios.post('/api/contact', {
+        name: formData.name,
+        email: formData.email,
+        phoneNumber: formData.phone,
+        message: formData.message
+      });
+      
+      if (response.data.success) {
+        setSubmitStatus({ type: 'success', message: 'Message sent successfully! We\'ll get back to you soon.' });
+        setFormData({ name: '', email: '', phone: '', message: '' });
+      } else {
+        setSubmitStatus({ type: 'error', message: response.data.message || 'Failed to send message. Please try again.' });
+      }
+    } catch (error) {
+      console.error('Contact form error:', error);
+      setSubmitStatus({ type: 'error', message: 'Network error. Please try again later.' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const navLinks = [
+    { id: 'home', name: 'Home', ref: homeRef, icon: <Home className="w-4 h-4" /> },
+    { id: 'about', name: 'About', ref: aboutRef, icon: <Info className="w-4 h-4" /> },
+    { id: 'services', name: 'Services', ref: servicesRef, icon: <Briefcase className="w-4 h-4" /> },
+    { id: 'contact', name: 'Contact', ref: contactRef, icon: <Contact className="w-4 h-4" /> },
   ];
 
-  // ============================================
-  // STATISTICS - More impactful metrics
-  // ============================================
-  const stats = [
-    { number: "99.9%", label: "Platform Uptime" },
-    { number: "< 2min", label: "Average Support Response" },
-    { number: "24/7", label: "System Availability" },
-    { number: "100%", label: "Data Encryption" }
-  ];
-
-  // ============================================
-  // TESTIMONIALS - More professional quotes
-  // ============================================
-  const testimonials = [
-    {
-      initials: "NT",
-      name: "Nicholus Turyamureba",
-      role: "Senior Software Engineering Student",
-      quote: "The platform's analytics have transformed how I track my academic progress. The real-time insights are invaluable.",
-      rating: 5
-    },
-    {
-      initials: "MN",
-      name: "Mercy Nalubega",
-      role: "Applied Health Sciences",
-      quote: "Managing my schedule and cleaning duties has never been easier. This platform brings much-needed organization to campus life.",
-      rating: 5
-    },
-    {
-      initials: "PA",
-      name: "Princess Agatha",
-      role: "Health Sciences, Year 3",
-      quote: "The credit tracking feature ensures I never miss graduation requirements. It's like having an academic advisor 24/7.",
-      rating: 5
-    }
-  ];
+  // ✅ FIXED: Better loading state
+  if (!isAuthChecked) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p className="text-purple-300">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <OrganizationStructuredData />
-      <WebSiteStructuredData />
-      <WebApplicationStructuredData />
+    <div className="relative min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
+      <motion.div 
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{
+          background: `radial-gradient(circle at ${mousePosition.x}% ${mousePosition.y}%, rgba(139, 92, 246, 0.15) 0%, transparent 60%)`,
+        }}
+      />
 
-      {/* ============================================
-          NAVIGATION - Refined with better semantic structure
-          ============================================ */}
-      <header className="fixed top-0 w-full bg-cloud-500 border-b border-sandstone-400 z-50 shadow-lg">
-        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
-              <Logo size="sm" className="mr-3" />
-              <span className="text-charcoal-700 font-bold text-xl tracking-tight">Freedom City Tech Center</span>
-              <span className="hidden lg:inline-block ml-3 px-2 py-1 bg-terracotta-400/10 text-terracotta-400 text-xs font-semibold rounded-md">Student Portal</span>
-            </div>
+      <motion.nav 
+        style={{ background: navBackground }}
+        className="fixed top-0 w-full z-50 backdrop-blur-xl border-b border-white/10"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 md:h-20">
+            {/* Logo */}
+            <motion.div 
+              className="flex items-center space-x-3 cursor-pointer"
+              whileHover={{ scale: 1.05 }}
+              onClick={scrollToTop}
+            >
+              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                <img src="/freedom.png" alt="Logo" className="w-8 h-8 object-contain" />
+              </div>
+              <span className="text-white font-bold text-lg md:text-xl">Freedom City Tech</span>
+            </motion.div>
 
-            {/* Desktop Navigation - Clearer primary/secondary actions */}
+            {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-1">
-              <a href="#features" className="text-charcoal-600 hover:text-charcoal-700 px-4 py-2 rounded-lg hover:bg-sandstone-400 transition-all font-medium">Features</a>
-              <a href="#testimonials" className="text-charcoal-600 hover:text-charcoal-700 px-4 py-2 rounded-lg hover:bg-sandstone-400 transition-all font-medium">Success Stories</a>
-              <a href="#about" className="text-charcoal-600 hover:text-charcoal-700 px-4 py-2 rounded-lg hover:bg-sandstone-400 transition-all font-medium">About</a>
-              
-              {/* Secondary action - Dashboard */}
-              <button
-                onClick={() => setIsLoginModalOpen(true)}
-                className="text-charcoal-600 hover:text-charcoal-700 px-4 py-2 rounded-lg hover:bg-sandstone-400 transition-all font-medium ml-2"
-              >
-                Dashboard
-              </button>
-              
-              {/* Primary action - Sign In */}
-              <button
-                onClick={() => setIsLoginModalOpen(true)}
-                className="bg-terracotta-400 hover:bg-terracotta-600 text-white px-6 py-2.5 rounded-lg transition-all font-medium shadow-lg hover:shadow-xl transform hover:scale-105 ml-2"
-              >
-                Sign In
-              </button>
-            </div>
-
-            {/* Mobile menu button */}
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden text-charcoal-600 p-2 hover:bg-sandstone-400 rounded-lg transition-colors"
-              aria-label="Menu"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Mobile Menu */}
-          {isMenuOpen && (
-            <div className="md:hidden bg-cloud-500/95 backdrop-blur-md border-t border-sandstone-400">
-              <div className="px-4 py-4 space-y-1">
-                <a href="#features" className="block text-charcoal-600 hover:text-charcoal-700 px-4 py-2 rounded-lg hover:bg-sandstone-400 transition-all font-medium" onClick={() => setIsMenuOpen(false)}>Features</a>
-                <a href="#testimonials" className="block text-charcoal-600 hover:text-charcoal-700 px-4 py-2 rounded-lg hover:bg-sandstone-400 transition-all font-medium" onClick={() => setIsMenuOpen(false)}>Success Stories</a>
-                <a href="#about" className="block text-charcoal-600 hover:text-charcoal-700 px-4 py-2 rounded-lg hover:bg-sandstone-400 transition-all font-medium" onClick={() => setIsMenuOpen(false)}>About</a>
-                <button onClick={() => { setIsLoginModalOpen(true); setIsMenuOpen(false); }} className="block w-full text-left text-charcoal-600 hover:text-charcoal-700 px-4 py-2 rounded-lg hover:bg-sandstone-400 transition-all font-medium">Dashboard</button>
-                <button onClick={() => { setIsLoginModalOpen(true); setIsMenuOpen(false); }} className="block w-full bg-terracotta-400 hover:bg-terracotta-600 text-white px-4 py-2.5 rounded-lg transition-all font-medium shadow-lg text-center">Sign In</button>
-              </div>
-            </div>
-          )}
-        </nav>
-      </header>
-
-      {/* ============================================
-          HERO SECTION - More professional and benefit-driven
-          ============================================ */}
-      <section className="relative min-h-screen flex items-center justify-center bg-cloud-500 overflow-hidden pt-16">
-        <div className="absolute inset-0">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-terracotta-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse"></div>
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-sage-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse animation-delay-2000"></div>
-          <div className="absolute inset-0" style={{
-            backgroundImage: 'linear-gradient(rgba(44, 44, 44, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(44, 44, 44, 0.03) 1px, transparent 1px)',
-            backgroundSize: '50px 50px'
-          }}></div>
-        </div>
-
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-20">
-          <div className="animate-fade-in">
-            {/* Trust badge - social proof immediately */}
-            <div className="inline-flex items-center px-6 py-3 bg-sage-400/20 backdrop-blur-md border border-sandstone-400 rounded-full mb-8 animate-slide-up shadow-xl">
-              <span className="w-2 h-2 bg-terracotta-400 rounded-full mr-3 animate-pulse"></span>
-              <span className="text-sm font-medium text-charcoal-700">Trusted by 1,500+ students and faculty</span>
-            </div>
-
-            {/* Clear value proposition */}
-            <h1 className="text-5xl md:text-7xl font-bold text-charcoal-700 mb-6 leading-tight tracking-tight animate-slide-down">
-              Your Academic Journey,
-              <span className="block text-terracotta-400 mt-2">Intelligently Orchestrated</span>
-            </h1>
-
-            <p className="text-xl md:text-2xl text-charcoal-600 mb-10 max-w-3xl mx-auto animate-fade-in animation-delay-200 leading-relaxed">
-              One unified platform for grades, schedules, credits, and institutional policies. 
-              <span className="block text-charcoal-500 mt-2 text-lg">Everything you need to succeed, beautifully organized.</span>
-            </p>
-
-            {/* Clear primary and secondary CTAs */}
-            <div className="flex flex-col sm:flex-row gap-6 justify-center mb-20 animate-fade-in animation-delay-400">
-              <button
-                onClick={() => setIsRegisterModalOpen(true)}
-                className="group relative bg-terracotta-400 hover:bg-terracotta-600 text-white font-semibold py-4 px-10 rounded-xl text-lg transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1 overflow-hidden"
-              >
-                <span className="relative z-10">Start Your Journey →</span>
-                <div className="absolute inset-0 bg-terracotta-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </button>
-              <button
-                onClick={() => setIsLoginModalOpen(true)}
-                className="group relative bg-cloud-500 backdrop-blur-md hover:bg-cloud-400 text-charcoal-700 border border-sandstone-400 hover:border-terracotta-400 font-semibold py-4 px-10 rounded-xl text-lg transition-all duration-300 hover:shadow-lg overflow-hidden"
-              >
-                <span className="relative z-10">Existing Users: Sign In</span>
-                <div className="absolute inset-0 bg-sandstone-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </button>
-            </div>
-
-            {/* Professional metrics - focusing on value, not just numbers */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
-              {stats.map((stat, index) => (
-                <div key={index} className="group text-center animate-slide-in-up stagger-{index + 1}">
-                  <div className="bg-sage-400/20 backdrop-blur-md rounded-2xl p-6 border border-sandstone-400 hover:bg-sage-400/30 hover:border-terracotta-400 transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl">
-                    <div className="text-3xl md:text-4xl font-bold text-terracotta-400 mb-1 animate-count-up">{stat.number}</div>
-                    <div className="text-charcoal-600 text-sm font-medium group-hover:text-charcoal-700 transition-colors">{stat.label}</div>
-                  </div>
-                </div>
+              {navLinks.map((link) => (
+                <motion.button
+                  key={link.id}
+                  onClick={() => scrollToSection(link.ref, link.id)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
+                    activeSection === link.id
+                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                      : 'text-gray-300 hover:text-white hover:bg-white/10'
+                  }`}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {link.icon}
+                  <span className="text-sm font-medium">{link.name}</span>
+                </motion.button>
               ))}
+              
+              <div className="w-px h-6 bg-white/20 mx-2"></div>
+              
+              {user && isAuthenticated ? (
+                <div className="flex items-center space-x-3 ml-2">
+                  <motion.span className="text-white text-sm px-2 py-1 bg-white/10 rounded-full">
+                    👋 {user.firstName}
+                  </motion.span>
+                  <motion.button
+                    onClick={handleDashboard}
+                    className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm font-medium cursor-pointer hover:shadow-lg transition"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    Dashboard
+                  </motion.button>
+                  <motion.button
+                    onClick={handleLogout}
+                    className="px-4 py-2 bg-red-500/20 text-red-300 rounded-lg text-sm font-medium cursor-pointer hover:bg-red-500/30 transition"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    Logout
+                  </motion.button>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-3 ml-2">
+                  <motion.button
+                    onClick={handleSignIn}
+                    className="px-4 py-2 text-gray-300 hover:text-white text-sm font-medium cursor-pointer hover:bg-white/10 rounded-lg transition"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    Sign In
+                  </motion.button>
+                  <motion.button
+                    onClick={handleGetStarted}
+                    className="px-5 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm font-medium cursor-pointer hover:shadow-lg transition"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    Get Started
+                  </motion.button>
+                </div>
+              )}
             </div>
+
+            <motion.button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden text-white p-2 rounded-lg hover:bg-white/10 transition"
+              whileTap={{ scale: 0.9 }}
+            >
+              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </motion.button>
           </div>
         </div>
-      </section>
+      </motion.nav>
 
-      {/* ============================================
-          FEATURES SECTION - Reorganized for better scannability
-          ============================================ */}
-      <section id="features" className="py-24 bg-sandstone-400/30 relative overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-terracotta-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10"></div>
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-sage-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10"></div>
-          <div className="absolute inset-0" style={{
-            backgroundImage: 'linear-gradient(rgba(44, 44, 44, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(44, 44, 44, 0.03) 1px, transparent 1px)',
-            backgroundSize: '60px 60px'
-          }}></div>
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden fixed top-16 left-0 right-0 bg-black/95 backdrop-blur-xl border-t border-white/10 z-40"
+          >
+            <div className="px-4 py-6 space-y-2">
+              {navLinks.map((link) => (
+                <motion.button
+                  key={link.id}
+                  onClick={() => scrollToSection(link.ref, link.id)}
+                  className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg transition-all duration-300 ${
+                    activeSection === link.id
+                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                      : 'text-gray-300 hover:text-white hover:bg-white/10'
+                  }`}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {link.icon}
+                  <span className="text-sm font-medium">{link.name}</span>
+                </motion.button>
+              ))}
+              
+              <div className="h-px bg-white/10 my-3"></div>
+              
+              {user && isAuthenticated ? (
+                <>
+                  <div className="px-4 py-2">
+                    <p className="text-white text-sm">Signed in as</p>
+                    <p className="text-purple-300 text-sm font-medium">{user.firstName} {user.lastName}</p>
+                  </div>
+                  <button
+                    onClick={handleDashboard}
+                    className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-center font-medium"
+                  >
+                    Dashboard
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full px-4 py-3 bg-red-500/20 text-red-300 rounded-lg text-center font-medium"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={handleSignIn}
+                    className="w-full px-4 py-3 text-white border border-white/20 rounded-lg text-center font-medium"
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    onClick={handleGetStarted}
+                    className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-center font-medium"
+                  >
+                    Get Started
+                  </button>
+                </>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Hero Section */}
+      <section ref={homeRef} id="home" className="relative min-h-screen flex items-center justify-center pt-20">
+        <div className="absolute inset-0 z-0">
+          {videoLoaded ? (
+            <video
+              ref={videoRef}
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="w-full h-full object-cover"
+              style={{ filter: 'brightness(0.35)' }}
+            >
+              <source src="/freedomvideo.mp4" type="video/mp4" />
+            </video>
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-purple-900/50 to-transparent" />
         </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16 scroll-animate relative z-10">
-            <span className="text-terracotta-400 font-semibold text-sm uppercase tracking-wider">Platform Capabilities</span>
-            <h2 className="text-4xl md:text-5xl font-bold text-charcoal-700 mb-4 tracking-tight mt-2">
-              Everything You Need to Succeed
-            </h2>
-            <p className="text-xl text-charcoal-600 max-w-2xl mx-auto leading-relaxed">
-              Comprehensive tools designed specifically for Freedom City Tech Center students
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-2 mb-6"
+            >
+              <Sparkles className="w-4 h-4 text-purple-400" />
+              <span className="text-purple-300 text-sm">Welcome to Selfless CE</span>
+            </motion.div>
+
+            <h1 className="text-5xl md:text-7xl font-bold mb-6">
+              <span className="bg-gradient-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent">
+                Freedom City
+              </span>
+              <br />
+              <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                Tech Center
+              </span>
+            </h1>
+            
+            <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
+              Empowering the next generation of tech leaders through innovative education, 
+              hands-on experience, and community collaboration.
             </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 relative z-10">
-            {features.map((feature, index) => (
-              <div
-                key={index}
-                className={`group bg-cloud-500 backdrop-blur-md rounded-2xl p-8 border border-sandstone-400 hover:bg-cloud-400 hover:border-terracotta-400 hover:shadow-2xl transform-3d transition-all duration-300 cursor-pointer animate-slide-in-up stagger-${index + 1} relative overflow-hidden`}
-                onClick={feature.action}
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              {user && isAuthenticated ? (
+                <motion.button
+                  onClick={handleDashboard}
+                  className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold text-lg cursor-pointer hover:shadow-xl transition"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Go to Dashboard
+                </motion.button>
+              ) : (
+                <>
+                  <motion.button
+                    onClick={handleSignIn}
+                    className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold text-lg cursor-pointer hover:shadow-xl transition"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    Sign In
+                  </motion.button>
+                  <motion.button
+                    onClick={handleGetStarted}
+                    className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white rounded-xl font-semibold text-lg border border-white/20 cursor-pointer hover:bg-white/20 transition"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    Get Started
+                  </motion.button>
+                </>
+              )}
+              
+              {/* Relax Button - Beautiful Design */}
+              <motion.button
+                onClick={handleOpenMusicPlayer}
+                className="relative px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-semibold text-lg cursor-pointer transition-all duration-300 flex items-center gap-3 overflow-hidden group"
+                whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
+                whileTap={{ scale: 0.95 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-terracotta-400/10 to-sage-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className={`relative z-10 w-12 h-12 bg-terracotta-400 rounded-xl flex items-center justify-center mb-5 shadow-sm group-hover:scale-110 group-hover:shadow-lg transition-all duration-300`}>
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-                <h3 className="relative z-10 text-xl font-bold text-charcoal-700 mb-3 group-hover:text-terracotta-400 transition-colors">
-                  {feature.title}
-                </h3>
-                <p className="relative z-10 text-charcoal-600 leading-relaxed mb-4 group-hover:text-charcoal-700 transition-colors">
-                  {feature.description}
-                </p>
-                <div className="relative z-10 flex items-center text-terracotta-400 font-medium text-sm group-hover:translate-x-1 transition-transform">
-                  Learn more →
-                </div>
+                <motion.div
+                  animate={{ rotate: [0, 10, -10, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                  className="relative z-10"
+                >
+                  <Headphones className="w-5 h-5" />
+                </motion.div>
+                <span className="relative z-10">Relax & Unwind</span>
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-green-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                />
+                <motion.div
+                  className="absolute inset-0 bg-white/20"
+                  initial={{ x: '-100%' }}
+                  whileHover={{ x: '100%' }}
+                  transition={{ duration: 0.5 }}
+                />
+              </motion.button>
+            </div>
+
+            {/* Music Features Badges */}
+            <motion.div
+              className="flex flex-wrap items-center justify-center gap-3 mt-8"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+            >
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full backdrop-blur-sm border border-white/10">
+                <Radio className="w-3 h-3 text-green-400" />
+                <span className="text-xs text-gray-300">Trending Music</span>
               </div>
-            ))}
-          </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full backdrop-blur-sm border border-white/10">
+                <PlayCircle className="w-3 h-3 text-green-400" />
+                <span className="text-xs text-gray-300">Play in Background</span>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full backdrop-blur-sm border border-white/10">
+                <Music className="w-3 h-3 text-green-400" />
+                <span className="text-xs text-gray-300">Unlimited Access</span>
+              </div>
+            </motion.div>
+
+            <motion.div
+              className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+              animate={{ y: [0, 10, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center">
+                <motion.div
+                  animate={{ y: [0, 15, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  className="w-1 h-2 bg-white/50 rounded-full mt-2"
+                />
+              </div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
-      {/* ============================================
-          TESTIMONIALS - More professional presentation
-          ============================================ */}
-      <section id="testimonials" className="py-24 bg-sandstone-400/50 relative overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-terracotta-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10"></div>
-          <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-sage-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10"></div>
-          <div className="absolute inset-0" style={{
-            backgroundImage: 'linear-gradient(rgba(44, 44, 44, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(44, 44, 44, 0.02) 1px, transparent 1px)',
-            backgroundSize: '40px 40px'
-          }}></div>
-        </div>
+      {/* About Section */}
+      <section ref={aboutRef} id="about" className="relative py-24 bg-black/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16 scroll-animate relative z-10">
-            <span className="text-terracotta-400 font-semibold text-sm uppercase tracking-wider">Student Success Stories</span>
-            <h2 className="text-4xl md:text-5xl font-bold text-charcoal-700 mb-4 tracking-tight mt-2">
-              Trusted by Future Leaders
-            </h2>
-            <p className="text-xl text-charcoal-600 max-w-2xl mx-auto leading-relaxed">
-              See how our platform is transforming the academic experience
-            </p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8 relative z-10">
-            {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-cloud-500 backdrop-blur-md rounded-2xl p-8 border border-sandstone-400 hover:bg-cloud-400 hover:border-terracotta-400 hover:shadow-2xl transform-3d transition-all duration-300 animate-slide-in-left stagger-1 group relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-terracotta-400/10 to-sage-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
-                <div className="relative z-10">
-                  <div className="flex items-center mb-4">
-                    <div className="w-12 h-12 bg-terracotta-400 rounded-full flex items-center justify-center text-white font-bold animate-float shadow-lg">
-                      {testimonial.initials}
+          <motion.div 
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              whileInView={{ scale: 1 }}
+              viewport={{ once: true }}
+              className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-1 mb-4"
+            >
+              <Heart className="w-4 h-4 text-purple-400" />
+              <span className="text-purple-300 text-sm">About Us</span>
+            </motion.div>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">About Us</h2>
+            <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto" />
+          </motion.div>
+          
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <motion.div 
+              className="space-y-6"
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+            >
+              <p className="text-gray-300 text-lg leading-relaxed">
+                Freedom City Tech Center is dedicated to providing quality tech education and resources to our community. 
+                Our state-of-the-art facility and expert instructors create an environment where innovation thrives.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { icon: Heart, text: "Community Driven", color: "purple" },
+                  { icon: Shield, text: "Safe & Clean", color: "pink" },
+                  { icon: Users, text: "Expert Instructors", color: "blue" },
+                  { icon: Star, text: "Excellence", color: "green" }
+                ].map((item, index) => (
+                  <motion.div 
+                    key={index}
+                    className="flex items-center space-x-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-300"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    whileHover={{ scale: 1.05, x: 5 }}
+                  >
+                    <div className={`w-10 h-10 bg-${item.color}-500/20 rounded-lg flex items-center justify-center`}>
+                      <item.icon className={`w-5 h-5 text-${item.color}-400`} />
                     </div>
-                    <div className="ml-4">
-                      <h4 className="font-semibold text-charcoal-700">{testimonial.name}</h4>
-                      <p className="text-sm text-charcoal-500">{testimonial.role}</p>
-                    </div>
-                  </div>
-                  <div className="flex mb-4">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <svg key={i} className="w-5 h-5 text-terracotta-400 fill-current animate-glow" viewBox="0 0 20 20">
-                        <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                      </svg>
-                    ))}
-                  </div>
-                  <p className="text-charcoal-600 leading-relaxed group-hover:text-charcoal-700 transition-colors">
-                    "{testimonial.quote}"
-                  </p>
-                </div>
+                    <span className="text-gray-300">{item.text}</span>
+                  </motion.div>
+                ))}
               </div>
+            </motion.div>
+            
+            <motion.div 
+              className="relative"
+              initial={{ opacity: 0, x: 50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+            >
+              <motion.div
+                className="absolute -inset-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl blur-2xl opacity-30"
+                animate={{ scale: [1, 1.05, 1], opacity: [0.3, 0.5, 0.3] }}
+                transition={{ duration: 4, repeat: Infinity }}
+              />
+              <img
+                src="/freedomcity.jpeg"
+                alt="Freedom City Tech Center"
+                className="rounded-2xl shadow-2xl relative z-10 w-full h-auto"
+              />
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Services Section */}
+      <section ref={servicesRef} id="services" className="relative py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div 
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              whileInView={{ scale: 1 }}
+              viewport={{ once: true }}
+              className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-1 mb-4"
+            >
+              <Award className="w-4 h-4 text-purple-400" />
+              <span className="text-purple-300 text-sm">Our Services</span>
+            </motion.div>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Our Services</h2>
+            <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto" />
+          </motion.div>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: <Calendar className="w-8 h-8" />,
+                title: "Easy Registration",
+                description: "Simple and quick cleaning schedule registration system",
+                features: ["24/7 Access", "Instant Confirmation", "Email Updates"],
+                color: "from-purple-500 to-pink-500"
+              },
+              {
+                icon: <Clock className="w-8 h-8" />,
+                title: "Flexible Scheduling",
+                description: "Choose your preferred learning slots that fit your schedule",
+                features: ["Morning Classes", "Evening Sessions", "Weekend Workshops"],
+                color: "from-blue-500 to-cyan-500"
+              },
+              {
+                icon: <Award className="w-8 h-8" />,
+                title: "Recognition Program",
+                description: "Earn certificates and rewards for your dedication",
+                features: ["Industry Recognized", "Project Based", "Career Support"],
+                color: "from-orange-500 to-red-500"
+              }
+            ].map((service, index) => (
+              <motion.div
+                key={index}
+                className="group relative bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 hover:border-white/20 transition-all duration-300"
+                initial={{ opacity: 0, y: 60 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                whileHover={{ y: -10, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
+              >
+                <motion.div 
+                  className={`w-16 h-16 bg-gradient-to-r ${service.color} rounded-xl flex items-center justify-center mb-6 text-white shadow-lg`}
+                  whileHover={{ rotate: 360, scale: 1.1 }}
+                  transition={{ duration: 0.6 }}
+                >
+                  {service.icon}
+                </motion.div>
+                <h3 className="text-xl font-bold text-white mb-3">{service.title}</h3>
+                <p className="text-gray-400 mb-4">{service.description}</p>
+                <div className="space-y-2">
+                  {service.features.map((feature, i) => (
+                    <div key={i} className="flex items-center gap-2 text-sm text-gray-500">
+                      <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                      <span>{feature}</span>
+                    </div>
+                  ))}
+                </div>
+                <motion.div 
+                  className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-b-2xl"
+                  initial={{ width: 0 }}
+                  whileHover={{ width: "100%" }}
+                  transition={{ duration: 0.3 }}
+                />
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ============================================
-          ABOUT SECTION - More focused on mission and value
-          ============================================ */}
-      <section id="about" className="py-24 bg-cloud-500 relative overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-0 left-0 w-96 h-96 bg-terracotta-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10"></div>
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-sage-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10"></div>
-          <div className="absolute inset-0" style={{
-            backgroundImage: 'linear-gradient(rgba(44, 44, 44, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(44, 44, 44, 0.03) 1px, transparent 1px)',
-            backgroundSize: '70px 70px'
-          }}></div>
-        </div>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <span className="text-terracotta-400 font-semibold text-sm uppercase tracking-wider">Our Mission</span>
-          <h2 className="text-4xl md:text-5xl font-bold text-charcoal-700 mb-6 tracking-tight scroll-animate mt-2">Empowering Tech Education</h2>
-          <p className="text-xl text-charcoal-600 leading-relaxed mb-12 scroll-animate">
-            Freedom City Tech Center bridges the gap between academic potential and professional excellence. 
-            Our platform provides the infrastructure needed for students to track, manage, and excel in their educational journey.
-          </p>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-sage-400/20 backdrop-blur-md rounded-2xl p-8 border border-sandstone-400 hover:bg-sage-400/30 hover:border-terracotta-400 hover:shadow-2xl transform-3d transition-all duration-300 animate-slide-in-left stagger-1">
-              <div className="text-4xl font-bold text-terracotta-400 mb-2 animate-count-up">1,500+</div>
-              <div className="text-charcoal-600 font-medium">Active Students</div>
-              <div className="text-sm text-charcoal-500 mt-1">and growing</div>
-            </div>
-            <div className="bg-sage-400/20 backdrop-blur-md rounded-2xl p-8 border border-sandstone-400 hover:bg-sage-400/30 hover:border-terracotta-400 hover:shadow-2xl transform-3d transition-all duration-300 animate-slide-in-up stagger-2">
-              <div className="text-4xl font-bold text-terracotta-400 mb-2 animate-count-up">95%</div>
-              <div className="text-charcoal-600 font-medium">Student Satisfaction</div>
-              <div className="text-sm text-charcoal-500 mt-1">based on 500+ reviews</div>
-            </div>
-            <div className="bg-sage-400/20 backdrop-blur-md rounded-2xl p-8 border border-sandstone-400 hover:bg-sage-400/30 hover:border-terracotta-400 hover:shadow-2xl transform-3d transition-all duration-300 animate-slide-in-right stagger-3">
-              <div className="text-4xl font-bold text-terracotta-400 mb-2 animate-count-up">24/7</div>
-              <div className="text-charcoal-600 font-medium">Platform Access</div>
-              <div className="text-sm text-charcoal-500 mt-1">anytime, anywhere</div>
-            </div>
+      {/* Contact Section with Form */}
+      <section ref={contactRef} id="contact" className="relative py-24 bg-black/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div 
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              whileInView={{ scale: 1 }}
+              viewport={{ once: true }}
+              className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-1 mb-4"
+            >
+              <Mail className="w-4 h-4 text-purple-400" />
+              <span className="text-purple-300 text-sm">Get In Touch</span>
+            </motion.div>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Contact Us</h2>
+            <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto" />
+          </motion.div>
+          
+          <div className="grid md:grid-cols-2 gap-12">
+            {/* Contact Info */}
+            <motion.div 
+              className="space-y-6"
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+            >
+              {[
+                { icon: MapPin, label: "Visit Us", value: "Freedom City Tech Center, Kampala, Uganda", detail: "Monday - Friday, 9am - 6pm" },
+                { icon: Phone, label: "Call Us", value: "+256 761 996 296", detail: "Available 24/7 for support" },
+                { icon: Mail, label: "Email Us", value: "turyamurebanicholus@gmail.com", detail: "We'll respond within 24 hours" }
+              ].map((item, index) => (
+                <motion.div 
+                  key={index}
+                  className="flex items-start space-x-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-300"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  whileHover={{ x: 10 }}
+                >
+                  <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <item.icon className="w-6 h-6 text-purple-400" />
+                  </div>
+                  <div>
+                    <p className="text-gray-300 font-semibold text-lg">{item.label}</p>
+                    <p className="text-white text-base">{item.value}</p>
+                    <p className="text-gray-500 text-sm mt-1">{item.detail}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+            
+            {/* Contact Form */}
+            <motion.div 
+              initial={{ opacity: 0, x: 50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+            >
+              <form onSubmit={handleSubmit} className="space-y-4 p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10">
+                <AnimatePresence>
+                  {submitStatus.type && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className={`p-3 rounded-lg flex items-center gap-2 ${
+                        submitStatus.type === 'success' 
+                          ? 'bg-green-500/20 border border-green-500/50 text-green-300' 
+                          : 'bg-red-500/20 border border-red-500/50 text-red-300'
+                      }`}
+                    >
+                      {submitStatus.type === 'success' ? (
+                        <CheckCircle className="w-4 h-4" />
+                      ) : (
+                        <AlertCircle className="w-4 h-4" />
+                      )}
+                      <span className="text-sm">{submitStatus.message}</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Full Name *</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    placeholder="Enter your full name"
+                    className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Email Address *</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    placeholder="you@example.com"
+                    className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Phone Number *</label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    placeholder="+256 123 456 789"
+                    className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Message *</label>
+                  <textarea
+                    name="message"
+                    value={formData.message}
+                    onChange={handleInputChange}
+                    rows={4}
+                    placeholder="Tell us how we can help you..."
+                    className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all resize-none"
+                    required
+                  />
+                </div>
+
+                <motion.button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      <span>Sending...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-5 h-5" />
+                      <span>Send Message</span>
+                    </>
+                  )}
+                </motion.button>
+              </form>
+            </motion.div>
           </div>
         </div>
       </section>
 
-      {/* ============================================
-          CTA SECTION - Clear, compelling final action
-          ============================================ */}
-      <section className="py-24 bg-terracotta-400 relative overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-0 left-1/3 w-96 h-96 bg-sage-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
-          <div className="absolute bottom-0 right-1/3 w-96 h-96 bg-sandstone-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
-          <div className="absolute inset-0" style={{
-            backgroundImage: 'radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 1px)',
-            backgroundSize: '30px 30px'
-          }}></div>
-        </div>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 tracking-tight">Ready to Transform Your Academic Experience?</h2>
-          <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto">
-            Join over 1,500 students who are already using our platform to stay organized, track progress, and achieve their goals.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button
-              onClick={() => setIsRegisterModalOpen(true)}
-              className="bg-white hover:bg-cloud-500 text-terracotta-400 font-semibold py-4 px-10 rounded-xl text-lg transition-all hover:shadow-lg transform hover:scale-105"
-            >
-              Create Free Account →
-            </button>
-            <button
-              onClick={() => setIsLoginModalOpen(true)}
-              className="bg-transparent border-2 border-white text-white hover:bg-white/10 font-semibold py-4 px-10 rounded-xl text-lg transition-all transform hover:scale-105"
-            >
-              Existing Users: Sign In
-            </button>
-          </div>
-          <p className="text-white/70 text-sm mt-6">No credit card required • Free for all FTC students</p>
-        </div>
-      </section>
-
-      {/* ============================================
-          FOOTER - Professional with clear information hierarchy
-          ============================================ */}
-      <footer className="bg-gradient-to-br from-slate-900 via-gray-900 to-black border-t border-slate-700 py-16 relative overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-0 left-0 w-64 h-64 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-5"></div>
-          <div className="absolute bottom-0 right-0 w-64 h-64 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-5"></div>
-          <div className="absolute inset-0" style={{
-            backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px)',
-            backgroundSize: '80px 80px'
-          }}></div>
-        </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid md:grid-cols-4 gap-12">
+      {/* Footer */}
+      <footer className="relative py-12 border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
-              <div className="flex items-center mb-4">
-                <Logo size="sm" className="mr-3" />
-                <span className="font-bold text-xl text-white">Freedom City Tech Center</span>
+              <div className="flex items-center gap-2 mb-4">
+                <img src="/freedom.png" alt="Logo" className="w-8 h-8" />
+                <span className="text-white font-bold">Freedom City Tech</span>
               </div>
-              <p className="text-gray-400 text-sm leading-relaxed">
-                Empowering the next generation of technology leaders through innovative education and intelligent tools.
-              </p>
+              <p className="text-gray-400 text-sm">Empowering the next generation through technology education.</p>
             </div>
             <div>
-              <h3 className="font-semibold mb-4 text-white">Platform</h3>
-              <ul className="space-y-3 text-gray-400 text-sm">
-                <li><a href="#features" className="hover:text-terracotta-400 transition-colors">Grade Tracking</a></li>
-                <li><a href="#features" className="hover:text-terracotta-400 transition-colors">Schedule Management</a></li>
-                <li><a href="#features" className="hover:text-terracotta-400 transition-colors">Performance Analytics</a></li>
-                <li><a href="#features" className="hover:text-terracotta-400 transition-colors">Credit Audit</a></li>
+              <h4 className="text-white font-semibold mb-4">Quick Links</h4>
+              <ul className="space-y-2 text-sm text-gray-400">
+                <li><button onClick={scrollToTop} className="hover:text-purple-400 transition">Home</button></li>
+                <li><button onClick={() => scrollToSection(aboutRef, 'about')} className="hover:text-purple-400 transition">About</button></li>
+                <li><button onClick={() => scrollToSection(servicesRef, 'services')} className="hover:text-purple-400 transition">Services</button></li>
+                <li><button onClick={() => scrollToSection(contactRef, 'contact')} className="hover:text-purple-400 transition">Contact</button></li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold mb-4 text-white">Resources</h3>
-              <ul className="space-y-3 text-gray-400 text-sm">
-                <li><button onClick={() => setIsLoginModalOpen(true)} className="hover:text-terracotta-400 transition-colors text-left w-full">Student Dashboard</button></li>
-                <li><button onClick={() => setIsLoginModalOpen(true)} className="hover:text-terracotta-400 transition-colors text-left w-full">Policy Center</button></li>
-                <li><button onClick={() => setIsLoginModalOpen(true)} className="hover:text-terracotta-400 transition-colors text-left w-full">Support Center</button></li>
-                <li><button onClick={() => setIsLoginModalOpen(true)} className="hover:text-terracotta-400 transition-colors text-left w-full">Documentation</button></li>
+              <h4 className="text-white font-semibold mb-4">Resources</h4>
+              <ul className="space-y-2 text-sm text-gray-400">
+                <li><a href="#" className="hover:text-purple-400 transition">Blog</a></li>
+                <li><a href="#" className="hover:text-purple-400 transition">FAQs</a></li>
+                <li><a href="#" className="hover:text-purple-400 transition">Support</a></li>
+                <li><a href="#" className="hover:text-purple-400 transition">Privacy Policy</a></li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold mb-4 text-white">Contact & Support</h3>
-              <ul className="space-y-3 text-gray-400 text-sm">
-                <li className="font-medium text-white">Kiwanuka Tonny</li>
-                <li>Platform Manager</li>
-                <li className="text-terracotta-400">+256 761 996 296</li>
-                <li>Kampala, Uganda</li>
-                <li><button className="text-terracotta-400 hover:text-terracotta-300 transition-colors">support@freedomcity.tech</button></li>
-              </ul>
+              <h4 className="text-white font-semibold mb-4">Follow Us</h4>
+              <div className="flex gap-3">
+                {["FB", "TW", "LI", "IG"].map((social, i) => (
+                  <motion.a
+                    key={i}
+                    href="#"
+                    className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-purple-500/50 transition-colors"
+                    whileHover={{ scale: 1.1 }}
+                  >
+                    <span className="text-xs text-white">{social}</span>
+                  </motion.a>
+                ))}
+              </div>
             </div>
           </div>
-          <div className="border-t border-slate-700 mt-12 pt-8 text-center text-gray-400 text-sm">
-            <p>&copy; 2024 Freedom City Tech Center. All rights reserved.</p>
-            <p className="mt-2 text-gray-500">Developed by Nicholus Turyamureba • BYU Idaho • Freedom City Tech Center, Kampala</p>
+          <div className="text-center pt-8 border-t border-white/10">
+            <p className="text-gray-400 text-sm">
+              © 2024 Freedom City Tech Center. Created by Atbriz Nicholus. All rights reserved.
+            </p>
           </div>
         </div>
       </footer>
 
-      {/* ============================================
-          LOGIN MODAL - Unchanged structure, perfect as is
-          ============================================ */}
-      {isLoginModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onClick={() => setIsLoginModalOpen(false)}></div>
-          <div className="relative bg-cloud-500 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-fade-in border border-sandstone-400">
-            <div className="absolute inset-0 rounded-2xl overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-terracotta-400 rounded-full mix-blend-multiply filter blur-2xl opacity-10"></div>
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-sage-400 rounded-full mix-blend-multiply filter blur-2xl opacity-10"></div>
-              <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent"></div>
-            </div>
-            <button onClick={() => setIsLoginModalOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-200 transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <div className="relative z-10 p-8">
-              <div className="text-center mb-6">
-                <Logo size="lg" className="mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-charcoal-700 mb-2">Welcome Back</h2>
-                <p className="text-charcoal-600">Access your student dashboard</p>
-              </div>
-              <LoginForm closeModal={() => setIsLoginModalOpen(false)} />
-              <div className="mt-6 text-center relative z-10">
-                <p className="text-charcoal-600 text-sm">
-                  Don't have an account?{' '}
-                  <button onClick={() => { setIsLoginModalOpen(false); setIsRegisterModalOpen(true); }} className="text-terracotta-400 hover:text-terracotta-600 font-medium transition-colors">
-                    Create one here
-                  </button>
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ============================================
-          REGISTER MODAL - Unchanged structure, perfect as is
-          ============================================ */}
-      {isRegisterModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onClick={() => setIsRegisterModalOpen(false)}></div>
-          <div className="relative bg-cloud-500 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-fade-in border border-sandstone-400">
-            <div className="absolute inset-0 rounded-2xl overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-terracotta-400 rounded-full mix-blend-multiply filter blur-2xl opacity-10"></div>
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-sage-400 rounded-full mix-blend-multiply filter blur-2xl opacity-10"></div>
-              <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent"></div>
-            </div>
-            <button onClick={() => setIsRegisterModalOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-200 transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <div className="relative z-10 p-8">
-              <div className="text-center mb-6">
-                <Logo size="lg" className="mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-charcoal-700 mb-2">Join Freedom City Tech</h2>
-                <p className="text-charcoal-600">Start your journey with us today</p>
-              </div>
-              <RegisterForm closeModal={() => setIsRegisterModalOpen(false)} />
-              <div className="mt-6 text-center relative z-10">
-                <p className="text-charcoal-600 text-sm">
-                  Already have an account?{' '}
-                  <button onClick={() => { setIsRegisterModalOpen(false); setIsLoginModalOpen(true); }} className="text-terracotta-400 hover:text-terracotta-600 font-medium transition-colors">
-                    Sign in here
-                  </button>
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <PWAInstallPrompt />
-    </>
+      {/* Scroll to Top Button */}
+      <AnimatePresence>
+        {showScrollTop && (
+          <motion.button
+            onClick={scrollToTop}
+            className="fixed bottom-24 right-8 z-50 w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg group"
+            initial={{ opacity: 0, scale: 0, y: 100 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0, y: 100 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            <motion.div
+              animate={{ y: [0, -5, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            >
+              <ArrowUp className="w-5 h-5 text-white" />
+            </motion.div>
+          </motion.button>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

@@ -1,321 +1,269 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800;900&display=swap');
-
-
-
 /* stylelint-disable-next-line at-rule-no-unknown */
-
 @tailwind base;
-
 /* stylelint-disable-next-line at-rule-no-unknown */
-
 @tailwind components;
-
 /* stylelint-disable-next-line at-rule-no-unknown */
-
 @tailwind utilities;
 
-
-
 @layer base {
-
     html {
-
         scroll-behavior: smooth;
-
         overflow-x: hidden;
-
-        /* iPhone-specific viewport settings */
-
-        height: 100%;
-
-        -webkit-text-size-adjust: 100%;
-
     }
-
-
-
-    /* Modern logo animations */
-
-    @keyframes shimmer {
-
-        0% {
-
-            transform: translateX(-100%);
-
-        }
-
-
-
-        100% {
-
-            transform: translateX(100%);
-
-        }
-
-    }
-
-
-
-    @keyframes glow {
-
-
-
-        0%,
-
-        100% {
-
-            filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.8)) brightness(1.1);
-
-        }
-
-
-
-        50% {
-
-            filter: drop-shadow(0 0 40px rgba(255, 255, 255, 1)) brightness(1.2);
-
-        }
-
-    }
-
-
-
-    .animate-shimmer {
-
-        animation: shimmer 2s infinite;
-
-        background: linear-gradient(90deg,
-
-                transparent,
-
-                rgba(255, 255, 255, 0.1),
-
-                transparent);
-
-        background-size: 200% 100%;
-
-    }
-
-
-
-    .animate-glow {
-
-        animation: glow 2s ease-in-out infinite;
-
-    }
-
-
-
-    /* iPhone safe area support */
-
-    @supports (padding: max(0px)) {
-
-        body {
-
-            padding-left: max(0px, env(safe-area-inset-left));
-
-            padding-right: max(0px, env(safe-area-inset-right));
-
-            padding-bottom: max(0px, env(safe-area-inset-bottom));
-
-        }
-
-    }
-
-
 
     body {
-
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-
-        font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1, 'ss02' 1;
-
+        font-feature-settings: 'rlig' 1, 'calt' 1;
         overflow-x: hidden;
-
         max-width: 100vw;
-
         /* Enable smooth scrolling with hardware acceleration */
-
         -webkit-overflow-scrolling: touch;
-
         scroll-behavior: smooth;
-
-        /* iPhone-specific optimizations */
-
-        -webkit-text-size-adjust: 100%;
-
-        -webkit-tap-highlight-color: transparent;
-
-        -webkit-touch-callout: none;
-
-        /* Premium font rendering */
-
-        -webkit-font-smoothing: antialiased;
-
-        -moz-osx-font-smoothing: grayscale;
-
-        text-rendering: optimizeLegibility;
-
-        font-variant-ligatures: common-ligatures;
-
-        font-variant-numeric: oldstyle-nums;
-
     }
-
-
 
     * {
-
         box-sizing: border-box;
-
     }
 
+    /* Custom scrollbar styling for better visibility and performance */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: rgba(96, 165, 250, 0.5);
+        border-radius: 4px;
+        transition: background 0.3s ease;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(96, 165, 250, 0.8);
+    }
+
+    ::-webkit-scrollbar-corner {
+        background: transparent;
+    }
+
+    /* Firefox scrollbar styling */
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(96, 165, 250, 0.5) rgba(0, 0, 0, 0.1);
+    }
 }
-
-
 
 @layer components {
-
     .glass-morphism {
-
         background: rgba(255, 255, 255, 0.1);
-
         backdrop-filter: blur(10px);
-
         border: 1px solid rgba(255, 255, 255, 0.2);
-
     }
 
-
-
-    .glass-card {
-
-        background: rgba(16, 185, 129, 0.08);
-
-        backdrop-filter: blur(12px);
-
-        border: 1px solid rgba(6, 182, 212, 0.15);
-
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-
+    .text-gradient-primary {
+        background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     }
 
+    .hover-lift {
+        transition: all 0.3s ease;
+    }
+
+    .hover-lift:hover {
+        transform: translateY(-4px);
+    }
 }
-
-
 
 @layer utilities {
-
     .animate-fade-in {
-
-        animation: fade-in 0.5s ease-in-out;
-
+        animation: fadeIn 0.5s ease-in-out;
     }
-
-
 
     .animate-slide-up {
-
-        animation: fade-in-up 0.6s ease-out;
-
+        animation: fadeInUp 0.6s ease-out;
     }
-
-
 
     .animate-slide-down {
-
-        animation: fade-in-down 0.6s ease-out;
-
+        animation: slideDown 0.6s ease-out;
     }
 
+    .animate-bounce-in {
+        animation: bounceIn 0.5s ease-out;
+    }
+
+    .animate-float {
+        animation: float 6s ease-in-out infinite;
+    }
+
+    .animate-float-delayed {
+        animation: float-delayed 8s ease-in-out infinite;
+    }
+
+    .animate-glow {
+        animation: glow 2s ease-in-out infinite alternate;
+    }
+
+    .animate-shimmer {
+        animation: shimmer 2s ease-in-out infinite;
+    }
+
+    .animate-pulse {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    .animate-scale-in {
+        animation: scaleIn 0.5s ease-out;
+    }
+
+    .animate-spin-slow {
+        animation: spin 2s linear infinite;
+    }
+
+    .text-visible {
+        color: #e5e7eb;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .text-bright {
+        color: #f8fafc;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
 }
-
-
 
 /* Essential animations */
-
-@keyframes fade-in {
-
+@keyframes fadeIn {
     from {
-
         opacity: 0;
-
     }
-
-
 
     to {
-
         opacity: 1;
-
     }
-
 }
 
-
-
-@keyframes fade-in-up {
-
+@keyframes fadeInUp {
     from {
-
         opacity: 0;
-
         transform: translateY(20px);
-
     }
-
-
 
     to {
-
         opacity: 1;
-
         transform: translateY(0);
-
     }
-
 }
 
-
-
-@keyframes fade-in-down {
-
+@keyframes slideDown {
     from {
-
         opacity: 0;
-
         transform: translateY(-20px);
-
     }
-
-
 
     to {
-
         opacity: 1;
-
         transform: translateY(0);
+    }
+}
 
+@keyframes bounceIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.3);
     }
 
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+
+    70% {
+        transform: scale(0.9);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
+@keyframes float {
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
 
-
-/* Enhanced hover effects */
-
-.group:hover .group-hover\:translate-x-2 {
-
-    transform: translateX(0.5rem);
-
+    50% {
+        transform: translateY(-20px);
+    }
 }
 
+@keyframes float-delayed {
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
 
+    50% {
+        transform: translateY(-15px);
+    }
+}
 
-/* Enhanced shadow effects */
+@keyframes glow {
+    from {
+        text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #60a5fa;
+    }
 
-.hover\:shadow-2xl:hover {
+    to {
+        text-shadow: 0 0 20px #fff, 0 0 30px #60a5fa, 0 0 40px #60a5fa;
+    }
+}
 
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+@keyframes shimmer {
+    0% {
+        background-position: 0% 50%;
+    }
 
+    100% {
+        background-position: 100% 50%;
+    }
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }

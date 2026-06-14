@@ -1,146 +1,73 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import QueryProvider from '@/components/QueryProvider';
+import PWAInstall from '@/components/PWAInstall';
+import MusicButton from '@/components/MusicButton';
 
 export const metadata: Metadata = {
-  metadataBase: 'https://selfless-henna.vercel.app',
-  title: {
-    default: "Freedom City Tech Center - Professional Registration System",
-    template: "%s | Freedom City Tech Center"
-  },
-  description: "Professional cleaning and course registration system for Freedom City Tech Center. Developed by Atbriz Nicholus Software Developer in Kampala, Uganda. Streamline student registrations, track cleaning schedules, and manage course credits efficiently.",
-  keywords: [
-    "Freedom City Tech Center",
-    "cleaning registration",
-    "course registration",
-    "student management",
-    "Atbriz Nicholus",
-    "software developer Kampala Uganda",
-    "tech center management",
-    "education management system",
-    "student tracking",
-    "course credits",
-    "cleaning schedule",
-    "Nicholus Turyamureba",
-    "Selfless ce organisation",
-    "professional registration system"
-  ] as string[],
-  authors: [{ name: "Atbriz Nicholus", url: "https://selfless-henna.vercel.app" }],
-  creator: "Atbriz Nicholus Software Developer",
-  publisher: "Freedom City Tech Center",
+  metadataBase: new URL('https://selfless-henna.vercel.app'),
+  title: "Freedom City Tech Center - Selfless CE | Academic Management System",
+  description: "Freedom City Tech Center, Seeta Tech Center, Ntinda Teach Center, Masaka Teach Center, Jinja Tech Center, Mbale Tech Center, Kololo Stake Center, Kaboowa Tech Center - Academic management system by Selfless CE. Track students, courses, and academic progress. Developed by Nicholus Turyamureba (Atbriz) and Cyber Touch.",
+  keywords: "Freedom City Tech Center, Seeta Tech Center, Ntinda Teach Center, Masaka Teach Center, Jinja Tech Center, Mbale Tech Center, Kololo Stake Center, Kaboowa Tech Center, Selfless CE, Nicholus Turyamureba, Atbriz, Cyber Touch, academic management, student tracking, course management, tech education, Uganda tech centers",
+  authors: [{ name: "Nicholus Turyamureba", url: "https://selfless-henna.vercel.app" }],
+  creator: "Atbriz",
+  publisher: "Cyber Touch",
   icons: {
-    icon: [
-      { url: "/favicon.ico.png", sizes: "32x32", type: "image/png" },
-      { url: "/favicon.ico.png", sizes: "16x16", type: "image/png" },
-    ],
-    shortcut: "/favicon.ico.png",
-    apple: [
-      { url: "/favicon.ico.png", sizes: "180x180", type: "image/png" },
-    ],
+    icon: "/freedom.png",
+    shortcut: "/freedom.png",
+    apple: "/freedom.png",
   },
   manifest: "/manifest.json",
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
-  },
-  verification: {
-    google: "CWp1CoMCJwY7mM1h2Ds4IjRT6rRLqmNL3hy8-mU_MLQ",
-  },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
-    title: "Freedom City Tech Center",
+    statusBarStyle: "black-translucent",
+    title: "Freedom Tech",
     startupImage: [
       {
         url: "/freedom.png",
-        media: "(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2)"
-      }
-    ]
+        media: "(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)",
+      },
+    ],
   },
   formatDetection: {
     telephone: false,
-    email: false,
-    address: false,
   },
   openGraph: {
     type: "website",
     siteName: "Freedom City Tech Center",
-    title: "Freedom City Tech Center - Professional Registration System",
-    description: "Professional cleaning and course registration system developed by Atbriz Nicholus Software Developer in Kampala, Uganda. Streamline student registrations and management.",
-    url: "https://selfless-henna.vercel.app",
-    locale: "en_US",
+    title: "Freedom City Tech Center - Selfless CE | Academic Management System",
+    description: "Academic management system for Freedom City Tech Center, Seeta Tech Center, Ntinda Teach Center, Masaka Teach Center, Jinja Tech Center, Mbale Tech Center, Kololo Stake Center, Kaboowa Tech Center. Track students, courses, and academic progress. Developed by Nicholus Turyamureba (Atbriz) and Cyber Touch.",
     images: [
-      {
-        url: "/freedom.png",
-        width: 1200,
-        height: 630,
-        alt: "Freedom City Tech Center - Professional Registration System",
-        type: "image/png",
-      },
       {
         url: "/freedom.png",
         width: 512,
         height: 512,
         alt: "Freedom City Tech Center Logo",
-        type: "image/png",
-      }
+      },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Freedom City Tech Center - Professional Registration System",
-    description: "Professional cleaning and course registration system by Atbriz Nicholus Software Developer Kampala Uganda",
-    site: "@freedomcitytech",
-    creator: "@atbrizdev",
-    images: [
-      {
-        url: "/freedom.png",
-        width: 1200,
-        height: 630,
-        alt: "Freedom City Tech Center",
-      }
-    ],
+    title: "Freedom City Tech Center - Selfless CE | Academic Management System",
+    description: "Academic management system for Freedom City Tech Center, Seeta Tech Center, Ntinda Teach Center, Masaka Teach Center, Jinja Tech Center, Mbale Tech Center, Kololo Stake Center, Kaboowa Tech Center. Developed by Nicholus Turyamureba (Atbriz) and Cyber Touch.",
+    images: ["/freedom.png"],
+    creator: "@atbriz",
   },
-  other: {
-    "author": "Atbriz Nicholus Software Developer",
-    "developer": "Atbriz Nicholus",
-    "developer-email": "atbriz256@gmail.com",
-    "developer-location": "Kampala, Uganda",
-    "developer-website": "https://selfless-henna.vercel.app",
-    "contact-email": "atbriz256@gmail.com",
-    "organization": "Freedom City Tech Center",
-    "category": "Education, Technology, Software Development"
-  }
+  verification: {
+    google: "your-google-verification-code",
+  },
 };
 
-export const viewport = {
-  width: 'device-width',
+export const viewport: Viewport = {
+  width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  viewportFit: 'cover',
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#8b5cf6" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f0f23" },
+  ],
 };
-
-import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration';
-import { QueryProvider } from './providers';
-import { UserStatusProvider } from '@/contexts/UserStatusContext';
 
 export default function RootLayout({
   children,
@@ -150,20 +77,84 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className="h-full antialiased"
       data-scroll-behavior="smooth"
-      style={{
-        WebkitFontSmoothing: 'antialiased',
-        MozOsxFontSmoothing: 'grayscale',
-        textRendering: 'optimizeLegibility'
-      }}
     >
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "EducationalOrganization",
+              "name": "Freedom City Tech Center",
+              "alternateName": [
+                "Seeta Tech Center",
+                "Ntinda Teach Center",
+                "Masaka Teach Center",
+                "Jinja Tech Center",
+                "Mbale Tech Center",
+                "Kololo Stake Center",
+                "Kaboowa Tech Center"
+              ],
+              "description": "Academic management system for tech education centers in Uganda. Track students, courses, and academic progress.",
+              "url": "https://selfless-henna.vercel.app",
+              "logo": "https://selfless-henna.vercel.app/freedom.png",
+              "contactPoint": {
+                "@type": "ContactPoint",
+                "telephone": "+256 761 996 296",
+                "contactType": "customer service",
+                "email": "info@freedomcitytech.com",
+                "areaServed": "Uganda",
+                "availableLanguage": "English"
+              },
+              "address": {
+                "@type": "PostalAddress",
+                "streetAddress": "Freedom City Tech Center",
+                "addressLocality": "Kampala",
+                "addressCountry": "UG"
+              },
+              "founder": {
+                "@type": "Person",
+                "name": "Nicholus Turyamureba",
+                "alternateName": "Atbriz",
+                "jobTitle": "Software Developer"
+              },
+              "creator": {
+                "@type": "Organization",
+                "name": "Cyber Touch",
+                "description": "Software development company"
+              },
+              "keywords": [
+                "Freedom City Tech Center",
+                "Seeta Tech Center",
+                "Ntinda Teach Center",
+                "Masaka Teach Center",
+                "Jinja Tech Center",
+                "Mbale Tech Center",
+                "Kololo Stake Center",
+                "Kaboowa Tech Center",
+                "Selfless CE",
+                "Nicholus Turyamureba",
+                "Atbriz",
+                "Cyber Touch",
+                "academic management",
+                "student tracking",
+                "course management",
+                "tech education",
+                "Uganda tech centers"
+              ]
+            })
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">
         <QueryProvider>
-          <UserStatusProvider>
+          <PWAInstall />
+          <main className="flex-1">
             {children}
-          </UserStatusProvider>
-          <ServiceWorkerRegistration />
+          </main>
+          <MusicButton />
         </QueryProvider>
       </body>
     </html>

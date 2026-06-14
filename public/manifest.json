@@ -1,41 +1,108 @@
 {
-  "name": "Freedom City Tech Center",
+  "name": "Freedom City Tech Center - Academic Dashboard",
   "short_name": "Freedom Tech",
-  "description": "Professional cleaning registration system for Freedom City Tech Center",
-  "start_url": "/",
+  "description": "Academic management system for Freedom City Tech Center - Track students, courses, and academic progress",
+  "start_url": "/dashboard/overview",
   "display": "standalone",
-  "background_color": "#1e1b4b",
+  "display_override": ["standalone", "window-controls-overlay"],
+  "background_color": "#0f0f23",
   "theme_color": "#8b5cf6",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
   "scope": "/",
   "categories": [
     "education",
     "productivity",
-    "business"
+    "business",
+    "utilities"
   ],
   "lang": "en",
   "dir": "ltr",
   "icons": [
     {
-      "src": "/freedom.png",
+      "src": "/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/freedom.png",
+      "src": "/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
   ],
-  "screenshots": [
+  "shortcuts": [
     {
-      "src": "/freedom.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Freedom City Tech Center - Main Dashboard"
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Go to main dashboard",
+      "url": "/dashboard/overview",
+      "icons": [
+        {
+          "src": "/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Students",
+      "short_name": "Students",
+      "description": "View all students and their courses",
+      "url": "/dashboard/overview?tab=students",
+      "icons": [
+        {
+          "src": "/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "short_name": "Profile",
+      "description": "View your profile",
+      "url": "/dashboard/profile",
+      "icons": [
+        {
+          "src": "/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
     }
   ]
 }
