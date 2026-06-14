@@ -34,6 +34,11 @@ export default async function proxy(request: NextRequest) {
   
   // Get token from cookies
   const token = request.cookies.get('token')?.value;
+  
+  // Debug logging
+  console.log('🔍 Middleware: Token present:', !!token, 'Token length:', token?.length);
+  console.log('🔍 Middleware: Pathname:', pathname);
+  console.log('🔍 Middleware: All cookies:', request.cookies.getAll());
 
   // Handle API routes
   if (pathname.startsWith('/api')) {

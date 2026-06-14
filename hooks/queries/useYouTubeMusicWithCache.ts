@@ -2,8 +2,11 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from '@/lib/axios';
+import { indexedDBCache } from '@/lib/indexedDB';
+
+
 
 export interface YouTubeVideo {
   id: string;
@@ -49,65 +52,118 @@ const getAnonymousUserId = (): string => {
   return userId;
 };
 
-// API functions
-const fetchVideosByCategory = async (category: string): Promise<YouTubeVideo[]> => {
-  const userId = getAnonymousUserId();
-  const endpoint = category==='all'
+// 🆕 Prefetch adjacent categories in background
+const prefetchQueue = new Map<string, Promise<any>>();
+
+export async function fetchWithPrefetch(category: string, userId: string): Promise<YouTubeVideo[]> {
+  // Check if already prefetching
+  if (prefetchQueue.has(category)) {
+    return prefetchQueue.get(category)!
+  }
+  
+  const promise = (async () => {
+    // Try IndexedDB first (instant)
+    const cached = await indexedDBCache.getVideos(category)
+    if (cached && cached.length > 0) {
+      // Return cached instantly, then refresh in background
+      setTimeout(() => {
+        fetchFromAPI(category, userId).catch(() => {})
+      }, 0)
+      // Map cached videos to ensure they have the required id field
+      return cached.map((v: any) => ({
+        ...v,
+        id: v.videoId || v.id,
+      })) as YouTubeVideo[]
+    }
+    
+    // Fall back to API
+    return fetchFromAPI(category, userId)
+  })()
+  
+  prefetchQueue.set(category, promise)
+  const result = await promise
+  prefetchQueue.delete(category)
+  return result
+}
+
+async function fetchFromAPI(category: string, userId: string): Promise<YouTubeVideo[]> {
+  const endpoint = category === 'all'
     ? `/api/youtube/cache?category=mixed&userId=${userId}`
     : `/api/youtube/cache?category=${category}&userId=${userId}`;
+  
   const response = await axios.get(endpoint);
   if (response.data.success) {
-    return response.data.videos;
+    const videos = response.data.videos;
+    // Save to IndexedDB for next time
+    await indexedDBCache.saveVideos(category, videos);
+    return videos;
   }
   throw new Error(response.data.error || 'Failed to fetch videos');
-};
+}
 
-const searchVideosAPI = async (query: string): Promise<YouTubeVideo[]> => {
+// 🆕 Optimized search with caching
+const searchCache = new Map<string, { data: YouTubeVideo[]; timestamp: number }>();
+
+async function searchVideosAPI(query: string): Promise<YouTubeVideo[]> {
   if (!query.trim()) return [];
+  
   const userId = getAnonymousUserId();
-  const response = await axios.get(`/api/youtube/cache?query=${encodeURIComponent(query)}&userId=${userId}`);
+  // Add timestamp to prevent any CDN or browser caching
+  const timestamp = Date.now();
+  const response = await axios.get(
+    `/api/youtube/cache?query=${encodeURIComponent(query)}&userId=${userId}&_t=${timestamp}`
+  );
+  
   if (response.data.success) {
     return response.data.videos;
   }
   throw new Error(response.data.error || 'Search failed');
-};
+}
 
-const refreshCategoryCacheAPI = async (category: string) => {
-  const response = await axios.post('/api/youtube/cache', { category });
-  return response.data;
-};
+// Record watch history (optimized with debounce)
+const watchQueue = new Set<string>();
+let watchTimeout: NodeJS.Timeout | null = null;
 
-// Record watch history
 export const recordWatch = async (videoId: string) => {
   const userId = getAnonymousUserId();
-  try {
-    await axios.post('/api/youtube/cache', { 
-      userId, 
-      videoId, 
-      action: 'watch' 
-    });
-    console.log(`📺 Recorded watch: ${userId} watched ${videoId}`);
-  } catch (error) {
-    console.error('Failed to record watch:', error);
-  }
+  const key = `${userId}:${videoId}`;
+  
+  watchQueue.add(key);
+  
+  if (watchTimeout) clearTimeout(watchTimeout);
+  watchTimeout = setTimeout(async () => {
+    const toSend = Array.from(watchQueue);
+    watchQueue.clear();
+    
+    try {
+      await axios.post('/api/youtube/cache', { 
+        userId, 
+        videos: toSend.map(k => k.split(':')[1]),
+        action: 'batchWatch' 
+      });
+    } catch (error) {
+      console.error('Failed to record watch:', error);
+    }
+  }, 2000);
 };
 
-// Main hook for YouTube music with caching
+// Main hook - FIXED: Removed infinite query
 export function useYouTubeMusic() {
   const queryClient = useQueryClient();
-  const [activeCategory, setActiveCategory] = useState('all'); // Default to mixed feed
+  const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const userId = getAnonymousUserId();
 
-  // Debounce search
+  // Debounce search with 300ms for faster response
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
-    }, 500);
+    }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Query for category videos
+  // ✅ FIXED: Regular query instead of infinite query
   const {
     data: videos = [],
     isLoading: isLoadingVideos,
@@ -116,7 +172,7 @@ export function useYouTubeMusic() {
     isFetching: isFetchingVideos,
   } = useQuery({
     queryKey: ['youtube-videos', activeCategory],
-    queryFn: () => fetchVideosByCategory(activeCategory),
+    queryFn: () => fetchWithPrefetch(activeCategory, userId),
     staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -124,37 +180,16 @@ export function useYouTubeMusic() {
     retry: 2,
   });
 
-  // Query for search results
-  const {
-    data: searchResults = [],
-    isLoading: isSearching,
-  } = useQuery({
-    queryKey: ['youtube-search', debouncedSearch],
-    queryFn: () => searchVideosAPI(debouncedSearch),
-    enabled: debouncedSearch.length > 2,
-    staleTime: 30 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
-    retry: 1,
-  });
-
-  // Mutation for refreshing cache
-  const refreshMutation = useMutation({
-    mutationFn: refreshCategoryCacheAPI,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['youtube-videos', activeCategory] });
-    },
-  });
-
-  // Prefetch adjacent categories for faster navigation
-  const prefetchCategory = async (categoryId: string) => {
+  // 🆕 Prefetch next category immediately
+  const prefetchCategory = useCallback(async (categoryId: string) => {
     await queryClient.prefetchQuery({
       queryKey: ['youtube-videos', categoryId],
-      queryFn: () => fetchVideosByCategory(categoryId),
+      queryFn: () => fetchWithPrefetch(categoryId, userId),
       staleTime: 30 * 60 * 1000,
     });
-  };
+  }, [queryClient, userId]);
 
-  // Auto-prefetch next/prev categories
+  // Auto-prefetch adjacent categories
   useEffect(() => {
     const currentIndex = categories.findIndex(c => c.id === activeCategory);
     const nextCategory = categories[currentIndex + 1]?.id;
@@ -162,27 +197,58 @@ export function useYouTubeMusic() {
     
     if (nextCategory) prefetchCategory(nextCategory);
     if (prevCategory) prefetchCategory(prevCategory);
-  }, [activeCategory]);
+  }, [activeCategory, prefetchCategory]);
+
+  // Search query with no caching to prevent stale results
+  const {
+    data: searchResults = [],
+    isLoading: isSearching,
+  } = useQuery({
+    queryKey: ['youtube-search', debouncedSearch],
+    queryFn: () => searchVideosAPI(debouncedSearch),
+    enabled: debouncedSearch.length > 2,
+    staleTime: 0, // Don't cache search results at all
+    gcTime: 30 * 1000, // Clear garbage collection faster (30 seconds)
+    placeholderData: (previousData) => {
+      // Only show previous data if it's from the EXACT SAME search query
+      if (previousData && debouncedSearch.length > 2) {
+        return undefined; // Don't show stale data - show loading instead
+      }
+      return undefined;
+    },
+  });
 
   const changeCategory = (categoryId: string) => {
     setActiveCategory(categoryId);
+    // Prefetch next immediately after change
+    const nextIndex = categories.findIndex(c => c.id === categoryId) + 1;
+    if (nextIndex < categories.length) {
+      prefetchCategory(categories[nextIndex].id);
+    }
   };
 
   const search = (query: string) => {
     setSearchQuery(query);
+    // Clear previous results immediately when query changes
+    if (query.length === 0 || query !== debouncedSearch) {
+      // Invalidate the query to force fresh fetch
+      queryClient.invalidateQueries({ queryKey: ['youtube-search'] });
+    }
   };
 
   const clearSearch = () => {
     setSearchQuery('');
     setDebouncedSearch('');
+    // Clear search results from cache
+    queryClient.invalidateQueries({ queryKey: ['youtube-search'] });
+    queryClient.setQueryData(['youtube-search', ''], []);
   };
 
-  const refreshCache = () => {
-    refreshMutation.mutate(activeCategory);
-  };
-
-  // Get fresh content (pull to refresh)
+  // 🆕 Get fresh content with optimistic UI
   const getFreshContent = async () => {
+    // Clear IndexedDB cache for this category
+    await indexedDBCache.saveVideos(activeCategory, []);
+    // Invalidate query
     await queryClient.invalidateQueries({ queryKey: ['youtube-videos', activeCategory] });
     return refetchVideos();
   };
@@ -193,7 +259,6 @@ export function useYouTubeMusic() {
     activeCategory,
     searchResults,
     searchQuery,
-    debouncedSearch,
     isLoadingVideos: isLoadingVideos || isFetchingVideos,
     isSearching,
     videosError,
@@ -201,162 +266,37 @@ export function useYouTubeMusic() {
     search,
     clearSearch,
     refetchVideos,
-    refreshCache,
     getFreshContent,
-    isRefreshing: refreshMutation.isPending,
     prefetchCategory,
-    getAnonymousUserId,
-    recordWatch,
   };
 }
 
-// Hook for video player state with working playlist
-export function useVideoPlayer() {
-  const [currentVideo, setCurrentVideo] = useState<YouTubeVideo | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(70);
-  const [isMuted, setIsMuted] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [queue, setQueue] = useState<YouTubeVideo[]>([]);
-  const [playlist, setPlaylist] = useState<YouTubeVideo[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(-1);
-  const [repeatMode, setRepeatMode] = useState<'off' | 'one' | 'all'>('off');
-  const [isShuffling, setIsShuffling] = useState(false);
-  const [history, setHistory] = useState<YouTubeVideo[]>([]);
+// 🆕 Hook for watch progress (resume playback)
+export function useWatchProgress() {
+  const [progress, setProgress] = useState<Record<string, number>>({});
 
-  const playVideo = (video: YouTubeVideo, playlistVideos?: YouTubeVideo[]) => {
-    setCurrentVideo(video);
-    setIsPlaying(true);
-    setProgress(0);
+  const saveProgress = useCallback(async (videoId: string, position: number) => {
+    const userId = getAnonymousUserId();
+    setProgress(prev => ({ ...prev, [videoId]: position }));
     
-    if (playlistVideos) {
-      setPlaylist(playlistVideos);
-      const index = playlistVideos.findIndex(v => v.videoId === video.videoId);
-      setCurrentIndex(index);
+    try {
+      await axios.post('/api/youtube/progress', { userId, videoId, position });
+    } catch (error) {
+      console.error('Failed to save progress:', error);
     }
-    
-    setHistory(prev => {
-      const newHistory = [video, ...prev.filter(v => v.videoId !== video.videoId)];
-      return newHistory.slice(0, 50);
-    });
-  };
-  
-  const togglePlay = () => setIsPlaying(prev => !prev);
-  
-  const playNext = () => {
-    if (queue.length > 0) {
-      const nextVideo = queue[0];
-      setQueue(prev => prev.slice(1));
-      playVideo(nextVideo, playlist);
-      return;
-    }
-    
-    if (playlist.length === 0) return;
-    
-    let nextIndex = currentIndex + 1;
-    if (nextIndex >= playlist.length) {
-      if (repeatMode === 'all') {
-        nextIndex = 0;
-      } else {
-        return;
-      }
-    }
-    
-    const nextVideo = playlist[nextIndex];
-    setCurrentIndex(nextIndex);
-    playVideo(nextVideo, playlist);
-  };
-  
-  const playPrevious = () => {
-    if (history.length > 1) {
-      const previousVideo = history[1];
-      playVideo(previousVideo, playlist);
-      return;
-    }
-    
-    if (playlist.length === 0) return;
-    
-    let prevIndex = currentIndex - 1;
-    if (prevIndex < 0) {
-      if (repeatMode === 'all') {
-        prevIndex = playlist.length - 1;
-      } else {
-        return;
-      }
-    }
-    
-    const prevVideo = playlist[prevIndex];
-    setCurrentIndex(prevIndex);
-    playVideo(prevVideo, playlist);
-  };
-  
-  const seekTo = (value: number) => setProgress(value);
-  
-  const adjustVolume = (newVolume: number) => {
-    setVolume(newVolume);
-    setIsMuted(newVolume === 0);
-  };
-  
-  const toggleMute = () => setIsMuted(prev => !prev);
-  
-  const addToQueue = (video: YouTubeVideo) => {
-    setQueue(prev => [...prev, video]);
-  };
-  
-  const removeFromQueue = (videoId: string) => {
-    setQueue(prev => prev.filter(v => v.videoId !== videoId));
-  };
-  
-  const clearQueue = () => setQueue([]);
-  
-  const toggleRepeat = () => {
-    setRepeatMode(current => {
-      if (current === 'off') return 'one';
-      if (current === 'one') return 'all';
-      return 'off';
-    });
-  };
-  
-  const toggleShuffle = () => {
-    if (!isShuffling && playlist.length > 0) {
-      const shuffled = [...playlist];
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
-      setPlaylist(shuffled);
-    }
-    setIsShuffling(prev => !prev);
-  };
-  
-  const setDurationFromPlayer = (newDuration: number) => setDuration(newDuration);
+  }, []);
 
-  return {
-    currentVideo,
-    isPlaying,
-    volume,
-    isMuted,
-    progress,
-    setProgress,
-    duration,
-    queue,
-    playlist,
-    repeatMode,
-    isShuffling,
-    history,
-    playVideo,
-    togglePlay,
-    playNext,
-    playPrevious,
-    seekTo,
-    adjustVolume,
-    toggleMute,
-    addToQueue,
-    removeFromQueue,
-    clearQueue,
-    toggleRepeat,
-    toggleShuffle,
-    setDurationFromPlayer,
-  };
+  const getProgress = useCallback(async (videoId: string): Promise<number> => {
+    if (progress[videoId]) return progress[videoId];
+    
+    const userId = getAnonymousUserId();
+    try {
+      const response = await axios.get(`/api/youtube/progress?userId=${userId}&videoId=${videoId}`);
+      return response.data.progress || 0;
+    } catch {
+      return 0;
+    }
+  }, [progress]);
+
+  return { saveProgress, getProgress };
 }

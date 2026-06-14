@@ -27,7 +27,7 @@ export default function MusicButton() {
         </motion.div>
       </motion.button>
 
-      <MusicPlayer isOpen={isPlayerOpen} onClose={() => setIsPlayerOpen(false)} />
+      {isPlayerOpen && <MusicPlayer isOpen={isPlayerOpen} onClose={() => setIsPlayerOpen(false)} />}
     </>
   );
 }

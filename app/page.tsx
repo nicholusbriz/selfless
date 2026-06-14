@@ -11,9 +11,12 @@ import {
 import { useAuthStore } from '@/stores/authStore';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import axios from '@/lib/axios';
+import { useQueryClient } from '@tanstack/react-query';
+import { fetchWithPrefetch } from '@/hooks/queries/useYouTubeMusicWithCache';
 
 export default function HomePage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user, logout, clearAuth, isAuthenticated, fetchUser } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -59,6 +62,33 @@ export default function HomePage() {
     
     checkAuth();
   }, [fetchUser, clearAuth]);
+
+  // Prefetch music videos on page load for instant playback
+  useEffect(() => {
+    const prefetchVideos = async () => {
+      const userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+      try {
+        // Prefetch the default 'all' category
+        await queryClient.prefetchQuery({
+          queryKey: ['youtube-videos', 'all'],
+          queryFn: () => fetchWithPrefetch('all', userId),
+          staleTime: 30 * 60 * 1000, // 30 minutes
+        });
+        // Prefetch trending category as well
+        await queryClient.prefetchQuery({
+          queryKey: ['youtube-videos', 'trending'],
+          queryFn: () => fetchWithPrefetch('trending', userId),
+          staleTime: 30 * 60 * 1000,
+        });
+      } catch (error) {
+        console.log('Video prefetch failed (non-critical):', error);
+      }
+    };
+
+    // Prefetch after a short delay to not block initial render
+    const timer = setTimeout(prefetchVideos, 1000);
+    return () => clearTimeout(timer);
+  }, [queryClient]);
 
   // Track active section based on scroll position
   useEffect(() => {

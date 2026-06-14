@@ -1,38 +1,29 @@
 // app/api/youtube/cache/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-
-// Helper to generate unique IDs without mongodb dependency
-function generateId(): string {
-  return `${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-}
+import { prisma, batchSaveVideosOptimized as batchSaveVideos, getCachedVideosOptimized as getCachedVideosWithFallback } from '@/lib/prisma';
 
 const CACHE_EXPIRY_HOURS = 24;
 
 // All genres for mixed feed
 const ALL_GENRES = [
-  { id: 'trending', query: 'trending music 2026 uganda', maxResults: 15, duration: 'short' },
-  { id: 'afrobeat', query: 'afrobeat music 2026', maxResults: 15, duration: 'medium' },
-  { id: 'rnb', query: 'rnb music 2026', maxResults: 15, duration: 'short' },
-  { id: 'gospel', query: 'gospel music 2026', maxResults: 10, duration: 'short' },
-  { id: 'hiphop', query: 'hip hop music 2026', maxResults: 15, duration: 'short' },
-  { id: 'local', query: 'ugandan music 2026', maxResults: 15, duration: 'short' },
+  { id: 'trending', query: 'trending music 2026 uganda', maxResults: 15 },
+  { id: 'afrobeat', query: 'afrobeat music 2026', maxResults: 15 },
+  { id: 'rnb', query: 'rnb music 2026', maxResults: 15 },
+  { id: 'gospel', query: 'gospel music 2026', maxResults: 10 },
+  { id: 'hiphop', query: 'hip hop music 2026', maxResults: 15 },
+  { id: 'local', query: 'ugandan music 2026', maxResults: 15 },
 ];
 
-const CATEGORIES: Record<string, { query: string; maxResults: number; duration?: string }> = {
-  trending: { query: 'trending music 2026 uganda', maxResults: 20, duration: 'short' },
-  afrobeat: { query: 'afrobeat music 2026', maxResults: 20, duration: 'medium' },
-  rnb: { query: 'rnb music 2026', maxResults: 20, duration: 'short' },
-  gospel: { query: 'gospel music 2026', maxResults: 20, duration: 'short' },
-  hiphop: { query: 'hip hop music 2026', maxResults: 20, duration: 'short' },
-  local: { query: 'ugandan music 2026', maxResults: 20, duration: 'short' },
-  workout: { query: 'workout music 2026', maxResults: 15, duration: 'medium' },
-  chill: { query: 'chill music 2026', maxResults: 20, duration: 'short' },
+const CATEGORIES: Record<string, { query: string; maxResults: number }> = {
+  trending: { query: 'trending music 2026 uganda', maxResults: 20 },
+  afrobeat: { query: 'afrobeat music 2026', maxResults: 20 },
+  rnb: { query: 'rnb music 2026', maxResults: 20 },
+  gospel: { query: 'gospel music 2026', maxResults: 20 },
+  hiphop: { query: 'hip hop music 2026', maxResults: 20 },
+  local: { query: 'ugandan music 2026', maxResults: 20 },
+  workout: { query: 'workout music 2026', maxResults: 15 },
+  chill: { query: 'chill music 2026', maxResults: 20 },
 };
-
-// ──────────────────────────────────────────────────────────────────────────
-// HELPERS (defined once)
-// ──────────────────────────────────────────────────────────────────────────
 
 function shuffleArray<T>(array: T[]): T[] {
   for (let i = array.length - 1; i > 0; i--) {
@@ -42,70 +33,47 @@ function shuffleArray<T>(array: T[]): T[] {
   return array;
 }
 
-async function getUserWatchHistory(userId: string): Promise<string[]> {
-  try {
-    const history = await prisma.userWatchHistory.findMany({
-      where: { userId },
-      orderBy: { watchedAt: 'desc' },
-      take: 50,
-    });
-    return history.map(h => h.videoId);
-  } catch (error) {
-    console.error('Error fetching watch history:', error);
-    return [];
-  }
-}
-
+// 🆕 Optimized mixed feed with better caching
 async function getMixedGenreFeed(forceFresh: boolean = false, userId: string = 'anonymous') {
+  console.log('🎵 [getMixedGenreFeed] START:', { forceFresh, userId });
   const now = new Date();
   
-  // Get user's watch history to avoid repeats
-  const watchHistory = await getUserWatchHistory(userId);
-  const watchedIds = new Set(watchHistory);
+  const allVideos = await Promise.all(
+    ALL_GENRES.map(async (genre) => {
+      console.log(`🎵 [getMixedGenreFeed] Fetching genre: ${genre.id}`);
+      const cached = await prisma.youTubeVideo.findMany({
+        where: {
+          category: genre.id,
+          expiresAt: { gt: now },
+        },
+        take: genre.maxResults,
+        orderBy: { accessCount: 'desc' },
+      });
+      
+      if (cached.length > 0 && !forceFresh) {
+        console.log(`🎵 [getMixedGenreFeed] Using cached for ${genre.id}: ${cached.length} videos`);
+        return cached;
+      }
+      
+      console.log(`🎵 [getMixedGenreFeed] Fetching fresh for ${genre.id}`);
+      const freshVideos = await fetchFromYouTube(genre.query, genre.maxResults);
+      await batchSaveVideos(freshVideos, genre.id, 'category');
+      console.log(`🎵 [getMixedGenreFeed] Fresh videos for ${genre.id}: ${freshVideos.length}`);
+      return freshVideos;
+    })
+  );
   
-  let allVideos: any[] = [];
-  
-  // Fetch videos from each genre
-  for (const genre of ALL_GENRES) {
-    const cached = await prisma.youTubeVideo.findMany({
-      where: {
-        category: genre.id,
-        expiresAt: { gt: now },
-      },
-      take: genre.maxResults,
-    });
-    
-    if (cached.length > 0 && !forceFresh) {
-      allVideos.push(...cached);
-    } else {
-      // Fetch fresh from YouTube
-      const freshVideos = await fetchFromYouTube(genre.query, genre.maxResults, genre.duration);
-      await saveToCache(freshVideos, genre.id, 'category');
-      allVideos.push(...freshVideos);
-    }
-  }
-  
-  // Filter out watched videos
-  const unwatchedVideos = allVideos.filter(v => !watchedIds.has(v.videoId));
-  
-  // Mix: 70% unwatched, 30% watched (for variety)
-  const shuffledUnwatched = shuffleArray([...unwatchedVideos]);
-  const shuffledWatched = shuffleArray([...allVideos.filter(v => watchedIds.has(v.videoId))]);
-  
-  const finalVideos = [
-    ...shuffledUnwatched.slice(0, 20),
-    ...shuffledWatched.slice(0, 8),
-    ...shuffledUnwatched.slice(20, 25),
-  ].slice(0, 30);
-  
-  return shuffleArray(finalVideos);
+  const flatVideos = allVideos.flat();
+  const shuffled = shuffleArray(flatVideos).slice(0, 50);
+  console.log(`🎵 [getMixedGenreFeed] FINAL: ${shuffled.length} videos mixed`);
+  return shuffled;
 }
 
-// ──────────────────────────────────────────────────────────────────────────
-// GET handler
-// ──────────────────────────────────────────────────────────────────────────
-
 export async function GET(request: NextRequest) {
+  const startTime = Date.now();
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('🎯 [API] GET /api/youtube/cache CALLED');
+  
   try {
     const searchParams = request.nextUrl.searchParams;
     const category = searchParams.get('category');
@@ -113,80 +81,86 @@ export async function GET(request: NextRequest) {
     const fresh = searchParams.get('fresh') === 'true';
     const userId = searchParams.get('userId') || 'anonymous';
 
-    console.log('📺 API called with:', { category, query, fresh, userId });
+    console.log('📊 [API] Request params:', {
+      category,
+      query,
+      fresh,
+      userId,
+      url: request.url,
+    });
 
-    // Handle search query
+    // Handle search query - DO NOT use database cache for searches
     if (query) {
-      const cached = await prisma.youTubeVideo.findMany({
-        where: {
-          searchQuery: query,
-          expiresAt: { gt: new Date() },
-        },
-        take: 50,
-      });
-
-      if (cached.length > 0 && !fresh) {
-        return NextResponse.json({ 
-          success: true, 
-          source: 'cache', 
-          videos: cached,
-          count: cached.length 
-        });
-      }
-
-      const videos = await fetchFromYouTube(query);
-      await saveToCache(videos, query, 'search');
+      console.log(`🔍 [API] SEARCH MODE: query="${query}"`);
       
+      // Skip database cache entirely for search - always fetch fresh from YouTube
+      const videos = await fetchFromYouTube(query, 30);
+      
+      // Return videos immediately - don't wait for cache save
+      console.log(`✅ [API] Search complete: ${videos.length} videos`);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       return NextResponse.json({ 
         success: true, 
         source: 'api', 
         videos,
-        count: videos.length 
+        count: videos.length,
+        searchTerm: query
       });
     }
 
     // Handle single category
     if (category && CATEGORIES[category]) {
-      const cached = await prisma.youTubeVideo.findMany({
-        where: {
-          category: category,
-          expiresAt: { gt: new Date() },
-        },
-        take: 50,
-      });
-
-      if (cached.length > 0 && !fresh) {
+      console.log(`📁 [API] CATEGORY MODE: ${category}`);
+      
+      // Try cache first with optimized query
+      const cached = await getCachedVideosWithFallback(category, 30);
+      
+      if (cached && !fresh) {
+        console.log(`✅ [API] Category cache HIT: ${cached.length} videos for ${category}`);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         return NextResponse.json({ 
           success: true, 
           source: 'cache', 
           videos: cached,
-          count: cached.length 
+          count: cached.length,
+          duration: `${Date.now() - startTime}ms`,
         });
       }
 
-      const videos = await fetchFromYouTube(CATEGORIES[category].query, CATEGORIES[category].maxResults, CATEGORIES[category].duration);
-      await saveToCache(videos, category, 'category');
+      console.log(`🔄 [API] Category cache MISS, fetching from YouTube for ${category}`);
+      const videos = await fetchFromYouTube(CATEGORIES[category].query, CATEGORIES[category].maxResults);
+      await batchSaveVideos(videos, category, 'category');
       
+      console.log(`✅ [API] Category complete: ${videos.length} videos for ${category}`);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       return NextResponse.json({ 
         success: true, 
         source: 'api', 
         videos,
-        count: videos.length 
+        count: videos.length,
+        duration: `${Date.now() - startTime}ms`,
       });
     }
 
-    // DEFAULT: Mixed genre feed (TikTok style)
+    // Default: Mixed genre feed
+    console.log(`🎲 [API] MIXED MODE (no category specified)`);
     const mixedVideos = await getMixedGenreFeed(fresh, userId);
+    
+    console.log(`✅ [API] Mixed feed complete: ${mixedVideos.length} videos`);
+    console.log(`⏱️ [API] Total duration: ${Date.now() - startTime}ms`);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     
     return NextResponse.json({ 
       success: true, 
       source: fresh ? 'fresh' : 'mixed',
       videos: mixedVideos,
-      count: mixedVideos.length
+      count: mixedVideos.length,
+      duration: `${Date.now() - startTime}ms`,
     });
     
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('❌ [API] ERROR:', error);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     return NextResponse.json(
       { error: 'Failed to fetch videos' },
       { status: 500 }
@@ -194,78 +168,58 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// ──────────────────────────────────────────────────────────────────────────
-// POST handler - Handles both watch history AND cache refresh
-// ──────────────────────────────────────────────────────────────────────────
-
+// 🆕 Batch watch recording endpoint
 export async function POST(request: NextRequest) {
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('📝 [API] POST /api/youtube/cache CALLED');
+  
   try {
-    let body;
-    try {
-      body = await request.json();
-    } catch (e) {
-      console.error('Failed to parse JSON body:', e);
-      return NextResponse.json(
-        { error: 'Invalid JSON body' },
-        { status: 400 }
+    const body = await request.json();
+    const { userId, videoId, videos, action, category } = body;
+
+    console.log('📊 [API] POST body:', { userId, videoId, action, category, batchSize: videos?.length });
+
+    // Batch watch recording
+    if (action === 'batchWatch' && userId && videos) {
+      console.log(`📊 [API] Batch watch recording: ${videos.length} videos for user ${userId}`);
+      await prisma.$transaction(
+        videos.map((videoId: string) =>
+          prisma.userWatchHistory.upsert({
+            where: { userId_videoId: { userId, videoId } },
+            update: { watchedAt: new Date() },
+            create: { userId, videoId, watchedAt: new Date() },
+          })
+        )
       );
-    }
-    
-    const { userId, videoId, action, category } = body;
-
-    // 👇 CASE 1: Record watch history
-    if (action === 'watch' && userId && videoId) {
-      console.log(`📝 Recording watch: user=${userId}, video=${videoId}`);
       
-      await prisma.userWatchHistory.upsert({
-        where: { 
-          userId_videoId: { userId, videoId } 
-        },
-        update: { 
-          watchedAt: new Date() 
-        },
-        create: {
-          userId,
-          videoId,
-          watchedAt: new Date(),
-        },
-      });
-      
-      return NextResponse.json({ success: true, message: 'Watch recorded' });
-    }
-
-    // 👇 CASE 2: Also handle watch history from the old format
-    if (userId && videoId && !action) {
-      console.log(`📝 Recording watch (legacy): user=${userId}, video=${videoId}`);
-      
-      await prisma.userWatchHistory.upsert({
-        where: { 
-          userId_videoId: { userId, videoId } 
-        },
-        update: { 
-          watchedAt: new Date() 
-        },
-        create: {
-          userId,
-          videoId,
-          watchedAt: new Date(),
-        },
-      });
-      
+      console.log(`✅ [API] Batch watch recorded successfully`);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       return NextResponse.json({ success: true });
     }
 
-    // 👇 CASE 3: Cache refresh functionality
-    if (category && CATEGORIES[category]) {
-      console.log(`🔄 Refreshing cache for category: ${category}`);
-      
-      await prisma.youTubeVideo.deleteMany({
-        where: { category: category }
+    // Single watch record
+    if (userId && videoId) {
+      console.log(`📊 [API] Single watch recording: user=${userId}, video=${videoId}`);
+      await prisma.userWatchHistory.upsert({
+        where: { userId_videoId: { userId, videoId } },
+        update: { watchedAt: new Date() },
+        create: { userId, videoId, watchedAt: new Date() },
       });
+      
+      console.log(`✅ [API] Watch recorded successfully`);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      return NextResponse.json({ success: true });
+    }
 
-      const videos = await fetchFromYouTube(CATEGORIES[category].query, CATEGORIES[category].maxResults, CATEGORIES[category].duration);
-      await saveToCache(videos, category, 'category');
-
+    // Cache refresh
+    if (category && CATEGORIES[category]) {
+      console.log(`🔄 [API] Cache refresh for category: ${category}`);
+      await prisma.youTubeVideo.deleteMany({ where: { category } });
+      const videos = await fetchFromYouTube(CATEGORIES[category].query, CATEGORIES[category].maxResults);
+      await batchSaveVideos(videos, category, 'category');
+      
+      console.log(`✅ [API] Cache refreshed: ${videos.length} videos for ${category}`);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       return NextResponse.json({ 
         success: true, 
         message: `Cache refreshed for ${category}`,
@@ -273,13 +227,16 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    console.log('❌ [API] Invalid request - missing required fields');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     return NextResponse.json(
       { error: 'Invalid request. Provide userId+videoId or category' },
       { status: 400 }
     );
     
   } catch (error) {
-    console.error('POST Error:', error);
+    console.error('❌ [API] POST Error:', error);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     return NextResponse.json(
       { error: 'Failed to process request' },
       { status: 500 }
@@ -287,38 +244,38 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// ──────────────────────────────────────────────────────────────────────────
-// YOUTUBE API FUNCTIONS
-// ──────────────────────────────────────────────────────────────────────────
-
-async function fetchFromYouTube(query: string, maxResults: number = 25, duration?: string) {
+// YouTube API functions
+async function fetchFromYouTube(query: string, maxResults: number = 25) {
   const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
   
+  console.log(`📺 [YouTube] Fetching: "${query}" (max: ${maxResults})`);
+  
   if (!apiKey) {
+    console.error('❌ [YouTube] API key not configured');
     throw new Error('YouTube API key is not configured');
   }
 
-  let url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=${maxResults}&q=${encodeURIComponent(query)}&type=video&videoCategoryId=10&key=${apiKey}`;
+  const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=${maxResults}&q=${encodeURIComponent(query)}&type=video&videoCategoryId=10&key=${apiKey}`;
   
-  if (duration && ['short', 'medium', 'long'].includes(duration)) {
-    url += `&videoDuration=${duration}`;
-  }
-  
-  const response = await fetch(url);
+  const response = await fetch(url, {
+    headers: { 'Cache-Control': 'no-cache' }
+  });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error('YouTube API Error:', response.status, errorText);
+    console.error(`❌ [YouTube] API error: ${response.status}`);
     throw new Error(`YouTube API error: ${response.status}`);
   }
 
   const data = await response.json();
   
-  if (!data.items) {
+  if (!data.items || data.items.length === 0) {
+    console.log(`⚠️ [YouTube] No results for "${query}"`);
     return [];
   }
 
-  // Fetch video durations
+  console.log(`📺 [YouTube] Got ${data.items.length} results, fetching durations...`);
+
+  // Fetch durations
   const videoIds = data.items.map((item: any) => item.id.videoId).join(',');
   const detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${videoIds}&key=${apiKey}`;
   const detailsResponse = await fetch(detailsUrl);
@@ -329,7 +286,7 @@ async function fetchFromYouTube(query: string, maxResults: number = 25, duration
     durationMap.set(item.id, item.contentDetails.duration);
   });
 
-  return data.items.map((item: any) => ({
+  const videos = data.items.map((item: any) => ({
     videoId: item.id.videoId,
     title: item.snippet.title,
     thumbnail: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url,
@@ -337,52 +294,7 @@ async function fetchFromYouTube(query: string, maxResults: number = 25, duration
     publishedAt: item.snippet.publishedAt,
     duration: durationMap.get(item.id.videoId) || null,
   }));
-}
 
-async function saveToCache(videos: any[], categoryOrQuery: string, type: string) {
-  const expiresAt = new Date();
-  expiresAt.setHours(expiresAt.getHours() + CACHE_EXPIRY_HOURS);
-
-  for (const video of videos) {
-    try {
-      const existingVideo = await prisma.youTubeVideo.findUnique({
-        where: { videoId: video.videoId }
-      });
-
-      if (existingVideo) {
-        await prisma.youTubeVideo.update({
-          where: { videoId: video.videoId },
-          data: {
-            title: video.title,
-            thumbnail: video.thumbnail,
-            channelTitle: video.channelTitle,
-            category: type === 'category' ? categoryOrQuery : existingVideo.category,
-            searchQuery: type === 'search' ? categoryOrQuery : existingVideo.searchQuery,
-            expiresAt,
-            lastAccessed: new Date(),
-            accessCount: { increment: 1 },
-          },
-        });
-      } else {
-        await prisma.youTubeVideo.create({
-          data: {
-            videoId: video.videoId,
-            title: video.title,
-            thumbnail: video.thumbnail,
-            channelTitle: video.channelTitle,
-            category: type === 'category' ? categoryOrQuery : null,
-            searchQuery: type === 'search' ? categoryOrQuery : null,
-            publishedAt: video.publishedAt ? new Date(video.publishedAt) : null,
-            cachedAt: new Date(),
-            expiresAt,
-            lastAccessed: new Date(),
-            accessCount: 1,
-          },
-        });
-        console.log(`✅ Saved new video: ${video.title}`);
-      }
-    } catch (error) {
-      console.error('Error saving video:', error);
-    }
-  }
+  console.log(`✅ [YouTube] Successfully fetched ${videos.length} videos`);
+  return videos;
 }
