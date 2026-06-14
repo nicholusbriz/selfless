@@ -48,13 +48,13 @@ export default function SettingsPage() {
     >
       {/* Header Section */}
       <motion.div 
-        className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 backdrop-blur-lg rounded-2xl p-8 border border-white/20"
+        className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 backdrop-blur-lg rounded-2xl p-6 sm:p-8 border border-white/20"
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
       >
         <motion.h1 
-          className="text-3xl font-bold text-white mb-2"
+          className="text-2xl sm:text-3xl font-bold text-white mb-2"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
@@ -62,7 +62,7 @@ export default function SettingsPage() {
           Settings
         </motion.h1>
         <motion.p 
-          className="text-gray-300"
+          className="text-gray-300 text-sm sm:text-base"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
@@ -73,13 +73,13 @@ export default function SettingsPage() {
 
       {/* Account Settings */}
       <motion.div
-        className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20"
+        className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 sm:p-6 border border-white/20"
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.5 }}
       >
         <motion.h3 
-          className="text-xl font-semibold text-white mb-6 flex items-center"
+          className="text-lg sm:text-xl font-semibold text-white mb-4 sm:mb-6 flex items-center"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, delay: 0.6 }}
@@ -150,13 +150,13 @@ export default function SettingsPage() {
 
       {/* Preferences */}
       <motion.div
-        className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20"
+        className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 sm:p-6 border border-white/20"
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 1.0 }}
       >
         <motion.h3 
-          className="text-xl font-semibold text-white mb-6 flex items-center"
+          className="text-lg sm:text-xl font-semibold text-white mb-4 sm:mb-6 flex items-center"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, delay: 1.1 }}
@@ -209,13 +209,13 @@ export default function SettingsPage() {
 
       {/* Danger Zone */}
       <motion.div
-        className="bg-red-500/10 backdrop-blur-lg rounded-2xl p-6 border border-red-500/20"
+        className="bg-red-500/10 backdrop-blur-lg rounded-2xl p-4 sm:p-6 border border-red-500/20"
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 1.4 }}
       >
         <motion.h3 
-          className="text-xl font-semibold text-red-400 mb-4 flex items-center"
+          className="text-lg sm:text-xl font-semibold text-red-400 mb-4 flex items-center"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, delay: 1.5 }}

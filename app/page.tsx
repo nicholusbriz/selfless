@@ -357,46 +357,78 @@ export default function HomePage() {
         </div>
       </motion.nav>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu Overlay */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="md:hidden fixed top-16 left-0 right-0 bg-black/95 backdrop-blur-xl border-t border-white/10 z-40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setMobileMenuOpen(false)}
+            className="md:hidden fixed inset-0 bg-black/50 z-40"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Mobile Sliding Sidebar */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.aside
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="md:hidden fixed inset-y-0 left-0 z-50 w-72 bg-black/95 backdrop-blur-xl border-r border-white/10"
           >
-            <div className="px-4 py-6 space-y-2">
-              {navLinks.map((link) => (
-                <motion.button
-                  key={link.id}
-                  onClick={() => scrollToSection(link.ref, link.id)}
-                  className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg transition-all duration-300 ${
-                    activeSection === link.id
-                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                      : 'text-gray-300 hover:text-white hover:bg-white/10'
-                  }`}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  {link.icon}
-                  <span className="text-sm font-medium">{link.name}</span>
-                </motion.button>
-              ))}
-              
-              <div className="h-px bg-white/10 my-3"></div>
-              
-              {user && isAuthenticated ? (
-                <>
-                  <div className="px-4 py-2">
-                    <p className="text-white text-sm">Signed in as</p>
-                    <p className="text-purple-300 text-sm font-medium">{user.firstName} {user.lastName}</p>
+            <div className="flex flex-col h-full">
+              {/* Sidebar Header */}
+              <div className="flex items-center justify-between p-6 border-b border-white/10">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                    <img src="/freedom.png" alt="Logo" className="w-8 h-8 object-contain" />
                   </div>
-                  <button
-                    onClick={handleDashboard}
-                    className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-center font-medium"
+                  <span className="text-white font-bold text-lg">Freedom City Tech</span>
+                </div>
+                <button
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="p-2 rounded-lg text-gray-300 hover:bg-white/10"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              {/* Navigation Links */}
+              <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+                {navLinks.map((link) => (
+                  <motion.button
+                    key={link.id}
+                    onClick={() => scrollToSection(link.ref, link.id)}
+                    className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg transition-all duration-300 ${
+                      activeSection === link.id
+                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                        : 'text-gray-300 hover:text-white hover:bg-white/10'
+                    }`}
+                    whileTap={{ scale: 0.98 }}
                   >
-                    Dashboard
-                  </button>
+                    {link.icon}
+                    <span className="text-sm font-medium">{link.name}</span>
+                  </motion.button>
+                ))}
+                
+                <div className="h-px bg-white/10 my-3"></div>
+                
+                {user && isAuthenticated ? (
+                  <>
+                    <div className="px-4 py-2">
+                      <p className="text-white text-sm">Signed in as</p>
+                      <p className="text-purple-300 text-sm font-medium">{user.firstName} {user.lastName}</p>
+                    </div>
+                    <button
+                      onClick={handleDashboard}
+                      className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-center font-medium"
+                    >
+                      Dashboard
+                    </button>
                   <button
                     onClick={handleLogout}
                     className="w-full px-4 py-3 bg-red-500/20 text-red-300 rounded-lg text-center font-medium"
@@ -420,8 +452,9 @@ export default function HomePage() {
                   </button>
                 </>
               )}
+              </nav>
             </div>
-          </motion.div>
+          </motion.aside>
         )}
       </AnimatePresence>
 

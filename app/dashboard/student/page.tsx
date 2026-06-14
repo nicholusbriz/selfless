@@ -114,7 +114,7 @@ export default function StudentDashboard() {
   // Loading state with skeletons
   if (loading) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col min-h-0">
         <TabSkeleton />
         <div className="flex-1 overflow-y-auto">
           <div className="space-y-6">
@@ -122,11 +122,11 @@ export default function StudentDashboard() {
               <div className="animate-shimmer bg-gradient-to-r from-white/5 via-white/10 to-white/5 bg-[length:200%_100%] rounded h-10 w-64 mb-2"></div>
               <div className="animate-shimmer bg-gradient-to-r from-white/5 via-white/10 to-white/5 bg-[length:200%_100%] rounded h-5 w-96"></div>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
               <div className="bg-white/5 rounded-xl p-6 animate-pulse h-48"></div>
               <div className="bg-white/5 rounded-xl p-6 animate-pulse h-48"></div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
               {[1, 2, 3, 4].map(i => <StatsCardSkeleton key={i} />)}
             </div>
             <div className="bg-white/5 rounded-xl p-6 animate-pulse h-96"></div>
@@ -141,7 +141,7 @@ export default function StudentDashboard() {
 
   return (
     <motion.div 
-      className="flex flex-col h-full"
+      className="flex flex-col min-h-0"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
@@ -162,8 +162,8 @@ export default function StudentDashboard() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
             >
-              <h1 className="text-3xl font-bold text-white mb-2">Student Dashboard</h1>
-              <p className="text-gray-400">Track your academic progress and stay on top of your grades</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Student Dashboard</h1>
+              <p className="text-gray-400 text-sm sm:text-base">Track your academic progress and stay on top of your grades</p>
             </motion.div>
 
             <motion.div 
@@ -245,8 +245,8 @@ export default function StudentDashboard() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
             >
-              <h1 className="text-3xl font-bold text-white mb-2">My Courses</h1>
-              <p className="text-gray-400">Add, edit, or remove your enrolled courses</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">My Courses</h1>
+              <p className="text-gray-400 text-sm sm:text-base">Add, edit, or remove your enrolled courses</p>
             </motion.div>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -277,8 +277,8 @@ export default function StudentDashboard() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
             >
-              <h1 className="text-3xl font-bold text-white mb-2">My Grades</h1>
-              <p className="text-gray-400">View your grades by week</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">My Grades</h1>
+              <p className="text-gray-400 text-sm sm:text-base">View your grades by week</p>
             </motion.div>
 
             <motion.div 

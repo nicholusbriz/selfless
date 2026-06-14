@@ -118,7 +118,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="h-screen bg-black flex overflow-hidden">
+    <div className="min-h-screen bg-black flex flex-col md:flex-row overflow-hidden">
       {/* Mobile Overlay */}
       {mobileMenuOpen && (
         <div
@@ -130,14 +130,14 @@ export default function DashboardLayout({
       {/* Sidebar - Desktop: Fixed, Mobile: Sliding */}
       <aside
         className={cn(
-          "fixed md:static inset-y-0 left-0 z-50 w-64 bg-black/90 backdrop-blur-lg border-r border-white/10 transform transition-transform duration-300 ease-in-out flex-shrink-0",
+          "fixed md:static inset-y-0 left-0 z-50 w-64 bg-black/90 backdrop-blur-lg border-r border-white/10 transform transition-transform duration-300 ease-in-out flex-shrink-0 md:h-screen",
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-between p-6 border-b border-white/10 flex-shrink-0">
-            <Link href="/dashboard/overview" className="text-white font-bold text-xl">
+          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/10 flex-shrink-0">
+            <Link href="/dashboard/overview" className="text-white font-bold text-lg sm:text-xl">
               Dashboard
             </Link>
             <button
@@ -151,7 +151,7 @@ export default function DashboardLayout({
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+          <nav className="flex-1 px-4 py-4 sm:py-6 space-y-2 overflow-y-auto">
             <Link
               href="/"
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
@@ -161,10 +161,10 @@ export default function DashboardLayout({
               }`}
               onClick={() => setMobileMenuOpen(false)}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
-              <span className="text-sm font-medium">Back to Home</span>
+              <span className="text-sm sm:text-sm font-medium">Back to Home</span>
             </Link>
             
             {navItems.map((item) => (
@@ -179,7 +179,7 @@ export default function DashboardLayout({
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {item.icon}
-                <span className="text-sm font-medium">{item.label}</span>
+                <span className="text-sm sm:text-sm font-medium">{item.label}</span>
               </Link>
             ))}
           </nav>
@@ -187,15 +187,15 @@ export default function DashboardLayout({
           {/* User Info & Logout */}
           <div className="p-4 border-t border-white/10 flex-shrink-0">
             <div className="mb-4">
-              <p className="text-white text-sm font-medium">
+              <p className="text-white text-sm sm:text-sm font-medium">
                 {user?.firstName} {user?.lastName}
               </p>
-              <p className="text-gray-400 text-xs">{user?.email}</p>
-              <p className="text-gray-500 text-xs capitalize mt-1">Role: {user?.role?.name || 'N/A'}</p>
+              <p className="text-gray-400 text-xs sm:text-xs">{user?.email}</p>
+              <p className="text-gray-500 text-xs sm:text-xs capitalize mt-1">Role: {user?.role?.name || 'N/A'}</p>
             </div>
             <button
               onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors text-sm"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 sm:py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors text-sm sm:text-sm"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -207,7 +207,7 @@ export default function DashboardLayout({
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Mobile Header */}
         <header className="md:hidden flex items-center justify-between p-4 border-b border-white/10 bg-black/80 backdrop-blur-lg flex-shrink-0">
           <button
@@ -218,12 +218,12 @@ export default function DashboardLayout({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <span className="text-white font-semibold">Dashboard</span>
+          <span className="text-white font-semibold text-lg">Dashboard</span>
           <div className="w-10" />
         </header>
 
         {/* Content Area */}
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+        <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
           <div className="max-w-6xl mx-auto">
             {children}
           </div>

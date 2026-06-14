@@ -90,7 +90,7 @@ export default function TeachersPage() {
   // Loading state with skeletons
   if (isLoading) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col min-h-0">
         <TabSkeleton />
         <div className="flex-1 overflow-y-auto">
           <div className="space-y-6">
@@ -98,12 +98,12 @@ export default function TeachersPage() {
               <div className="animate-shimmer bg-gradient-to-r from-white/5 via-white/10 to-white/5 bg-[length:200%_100%] rounded h-10 w-64 mb-2"></div>
               <div className="animate-shimmer bg-gradient-to-r from-white/5 via-white/10 to-white/5 bg-[length:200%_100%] rounded h-5 w-96"></div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
               {[1, 2, 3].map(i => <StatsCardSkeleton key={i} />)}
             </div>
             <div className="bg-white/5 rounded-xl p-6">
               <div className="animate-shimmer bg-gradient-to-r from-white/5 via-white/10 to-white/5 bg-[length:200%_100%] rounded h-6 w-48 mb-4"></div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="animate-shimmer bg-gradient-to-r from-white/5 via-white/10 to-white/5 bg-[length:200%_100%] rounded h-24"></div>
                 <div className="animate-shimmer bg-gradient-to-r from-white/5 via-white/10 to-white/5 bg-[length:200%_100%] rounded h-24"></div>
               </div>
@@ -118,7 +118,7 @@ export default function TeachersPage() {
 
   return (
     <motion.div 
-      className="flex flex-col h-full"
+      className="flex flex-col min-h-0"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
@@ -139,8 +139,8 @@ export default function TeachersPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
             >
-              <h1 className="text-3xl font-bold text-white mb-2">Teacher Dashboard</h1>
-              <p className="text-gray-400">Welcome back, {user?.firstName}! Manage your students and grades.</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Teacher Dashboard</h1>
+              <p className="text-gray-400 text-sm sm:text-base">Welcome back, {user?.firstName}! Manage your students and grades.</p>
             </motion.div>
 
             <motion.div
@@ -161,8 +161,8 @@ export default function TeachersPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
             >
-              <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <h2 className="text-lg sm:text-xl font-semibold text-white mb-4">Quick Actions</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <motion.button
                   onClick={() => setActiveTab('students')}
                   className="flex items-center gap-3 p-4 bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/30 rounded-lg transition-colors"
@@ -199,8 +199,8 @@ export default function TeachersPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
             >
-              <h1 className="text-3xl font-bold text-white mb-2">Students & Grades</h1>
-              <p className="text-gray-400">View and assign grades for your students</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Students & Grades</h1>
+              <p className="text-gray-400 text-sm sm:text-base">View and assign grades for your students</p>
             </motion.div>
 
             <motion.div 
@@ -251,8 +251,8 @@ export default function TeachersPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
             >
-              <h1 className="text-3xl font-bold text-white mb-2">My Assigned Students</h1>
-              <p className="text-gray-400">View and manage students assigned to you</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">My Assigned Students</h1>
+              <p className="text-gray-400 text-sm sm:text-base">View and manage students assigned to you</p>
             </motion.div>
 
             <motion.div

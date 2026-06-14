@@ -30,13 +30,13 @@ export default function ProfilePage() {
     >
       {/* Header Section */}
       <motion.div 
-        className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 backdrop-blur-lg rounded-2xl p-8 border border-white/20"
+        className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 backdrop-blur-lg rounded-2xl p-6 sm:p-8 border border-white/20"
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
       >
         <motion.h1 
-          className="text-3xl font-bold text-white mb-2"
+          className="text-2xl sm:text-3xl font-bold text-white mb-2"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
@@ -44,7 +44,7 @@ export default function ProfilePage() {
           Profile
         </motion.h1>
         <motion.p 
-          className="text-gray-300"
+          className="text-gray-300 text-sm sm:text-base"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
@@ -57,19 +57,19 @@ export default function ProfilePage() {
         <>
           {/* Profile Card */}
           <motion.div
-            className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20"
+            className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 sm:p-8 border border-white/20"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.5 }}
           >
-            <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-4 sm:gap-6">
               {/* Avatar */}
               <motion.div 
                 className="relative"
                 whileHover={{ scale: 1.05 }}
                 transition={{ duration: 0.3 }}
               >
-                <div className="w-24 h-24 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-2xl sm:text-3xl font-bold shadow-lg">
                   {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
                 </div>
                 <motion.button 
@@ -84,7 +84,7 @@ export default function ProfilePage() {
               {/* User Info */}
               <div className="flex-1 text-center md:text-left">
                 <motion.h2 
-                  className="text-2xl font-bold text-white mb-1"
+                  className="text-xl sm:text-2xl font-bold text-white mb-1"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.6, delay: 0.6 }}
@@ -92,7 +92,7 @@ export default function ProfilePage() {
                   {user.firstName} {user.lastName}
                 </motion.h2>
                 <motion.p 
-                  className="text-gray-400 mb-4"
+                  className="text-gray-400 text-sm sm:text-base mb-4"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.6, delay: 0.7 }}
@@ -116,7 +116,7 @@ export default function ProfilePage() {
 
               {/* Edit Button */}
               <motion.button
-                className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-medium flex items-center space-x-2"
+                className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-medium flex items-center space-x-2 text-sm sm:text-base"
                 whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(168, 85, 247, 0.5)" }}
                 whileTap={{ scale: 0.95 }}
                 initial={{ opacity: 0, x: 20 }}
@@ -131,16 +131,16 @@ export default function ProfilePage() {
 
           {/* User Details */}
           <motion.div
-            className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20"
+            className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 sm:p-6 border border-white/20"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1.0 }}
           >
-            <h3 className="text-xl font-semibold text-white mb-6 flex items-center">
+            <h3 className="text-lg sm:text-xl font-semibold text-white mb-4 sm:mb-6 flex items-center">
               <User className="w-5 h-5 mr-2 text-purple-400" />
               User Information
             </h3>
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
               {[
                 { icon: User, label: "Full Name", value: `${user.firstName} ${user.lastName}` },
                 { icon: Mail, label: "Email Address", value: user.email },
@@ -167,12 +167,12 @@ export default function ProfilePage() {
 
           {/* Settings Section */}
           <motion.div
-            className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20"
+            className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 sm:p-6 border border-white/20"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1.5 }}
           >
-            <h3 className="text-xl font-semibold text-white mb-6 flex items-center">
+            <h3 className="text-lg sm:text-xl font-semibold text-white mb-4 sm:mb-6 flex items-center">
               <Settings className="w-5 h-5 mr-2 text-purple-400" />
               Profile Settings
             </h3>
