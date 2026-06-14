@@ -22,7 +22,7 @@ const protectedApiRoutes = {
 const publicRoutes = ['/login', '/register'];
 const publicApiRoutes = ['/api/auth/login', '/api/auth/register', '/api/auth/logout', '/api/contact', '/api/debug', '/api/youtube'];
 
-export default async function middleware(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // Allow home page immediately (no checks)
