@@ -131,13 +131,13 @@ export default function RegisterPage() {
       />
 
       <motion.div 
-        className="w-full max-w-md relative z-10"
+        className="w-full max-w-md relative z-10 px-2"
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
       >
         <motion.div 
-          className="rounded-3xl p-8 border border-white/20 bg-white/10 backdrop-blur-lg"
+          className="rounded-3xl p-6 sm:p-8 border border-white/20 bg-white/10 backdrop-blur-lg"
           whileHover={{ scale: 1.02 }}
           transition={{ duration: 0.3 }}
         >
@@ -162,7 +162,7 @@ export default function RegisterPage() {
               <img src="/freedom.png" alt="Freedom City Tech Center Logo" className="w-full h-full object-contain" />
             </motion.div>
             <motion.h1 
-              className="text-5xl font-bold bg-gradient-to-r from-violet-300 via-purple-300 to-indigo-300 bg-clip-text text-transparent mb-3"
+              className="text-5xl sm:text-5xl font-bold bg-gradient-to-r from-violet-300 via-purple-300 to-indigo-300 bg-clip-text text-transparent mb-3"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
@@ -170,7 +170,7 @@ export default function RegisterPage() {
               Create Account
             </motion.h1>
             <motion.p 
-              className="text-cyan-300 text-xl mb-4 font-medium"
+              className="text-cyan-300 text-xl sm:text-xl mb-4 font-medium"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
@@ -212,7 +212,7 @@ export default function RegisterPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.6 }}
             >
-              <label htmlFor="firstName" className="block text-sm font-medium text-violet-200 mb-2 flex items-center">
+              <label htmlFor="firstName" className="block text-base font-medium text-violet-200 mb-2 flex items-center">
                 <User className="w-4 h-4 mr-2" />
                 First Name (Real Name Required)
               </label>
@@ -223,7 +223,7 @@ export default function RegisterPage() {
                 value={formData.firstName}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-4 bg-white/10 backdrop-blur-sm border border-violet-400/30 rounded-2xl focus:ring-4 focus:ring-violet-400/50 focus:border-violet-300 outline-none transition-all duration-300 text-white placeholder-violet-300/70 hover:bg-white/15"
+                className="w-full px-4 py-4 bg-white/10 backdrop-blur-sm border border-violet-400/30 rounded-2xl focus:ring-4 focus:ring-violet-400/50 focus:border-violet-300 outline-none transition-all duration-300 text-white placeholder-violet-300/70 hover:bg-white/15 text-base"
                 placeholder="Enter your real first name"
                 whileFocus={{ scale: 1.02 }}
                 transition={{ duration: 0.2 }}
@@ -235,7 +235,7 @@ export default function RegisterPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.7 }}
             >
-              <label htmlFor="lastName" className="block text-sm font-medium text-violet-200 mb-2 flex items-center">
+              <label htmlFor="lastName" className="block text-base font-medium text-violet-200 mb-2 flex items-center">
                 <User className="w-4 h-4 mr-2" />
                 Last Name (Real Name Required)
               </label>
@@ -246,7 +246,7 @@ export default function RegisterPage() {
                 value={formData.lastName}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-4 bg-white/10 backdrop-blur-sm border border-violet-400/30 rounded-2xl focus:ring-4 focus:ring-violet-400/50 focus:border-violet-300 outline-none transition-all duration-300 text-white placeholder-violet-300/70 hover:bg-white/15"
+                className="w-full px-4 py-4 bg-white/10 backdrop-blur-sm border border-violet-400/30 rounded-2xl focus:ring-4 focus:ring-violet-400/50 focus:border-violet-300 outline-none transition-all duration-300 text-white placeholder-violet-300/70 hover:bg-white/15 text-base"
                 placeholder="Enter your real last name"
                 whileFocus={{ scale: 1.02 }}
                 transition={{ duration: 0.2 }}
@@ -258,7 +258,7 @@ export default function RegisterPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.8 }}
             >
-              <label htmlFor="email" className="block text-sm font-medium text-violet-200 mb-2 flex items-center">
+              <label htmlFor="email" className="block text-base font-medium text-violet-200 mb-2 flex items-center">
                 <Mail className="w-4 h-4 mr-2" />
                 Email Address (BYU or Personal Email)
               </label>
@@ -269,7 +269,7 @@ export default function RegisterPage() {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-4 bg-white/10 backdrop-blur-sm border border-violet-400/30 rounded-2xl focus:ring-4 focus:ring-violet-400/50 focus:border-violet-300 outline-none transition-all duration-300 text-white placeholder-violet-300/70 hover:bg-white/15"
+                className="w-full px-4 py-4 bg-white/10 backdrop-blur-sm border border-violet-400/30 rounded-2xl focus:ring-4 focus:ring-violet-400/50 focus:border-violet-300 outline-none transition-all duration-300 text-white placeholder-violet-300/70 hover:bg-white/15 text-base"
                 placeholder="your.email@byu.edu or personal@email.com"
                 whileFocus={{ scale: 1.02 }}
                 transition={{ duration: 0.2 }}
@@ -281,7 +281,7 @@ export default function RegisterPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.9 }}
             >
-              <label htmlFor="phoneNumber" className="block text-sm font-medium text-violet-200 mb-2 flex items-center">
+              <label htmlFor="phoneNumber" className="block text-base font-medium text-violet-200 mb-2 flex items-center">
                 <Phone className="w-4 h-4 mr-2" />
                 Phone Number
               </label>
@@ -292,7 +292,7 @@ export default function RegisterPage() {
                 value={formData.phoneNumber}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-4 bg-white/10 backdrop-blur-sm border border-violet-400/30 rounded-2xl focus:ring-4 focus:ring-violet-400/50 focus:border-violet-300 outline-none transition-all duration-300 text-white placeholder-violet-300/70 hover:bg-white/15"
+                className="w-full px-4 py-4 bg-white/10 backdrop-blur-sm border border-violet-400/30 rounded-2xl focus:ring-4 focus:ring-violet-400/50 focus:border-violet-300 outline-none transition-all duration-300 text-white placeholder-violet-300/70 hover:bg-white/15 text-base"
                 placeholder="+256 123 456 789 *"
                 whileFocus={{ scale: 1.02 }}
                 transition={{ duration: 0.2 }}
@@ -304,7 +304,7 @@ export default function RegisterPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 1.0 }}
             >
-              <label htmlFor="password" className="block text-sm font-medium text-violet-200 mb-2 flex items-center">
+              <label htmlFor="password" className="block text-base font-medium text-violet-200 mb-2 flex items-center">
                 <Lock className="w-4 h-4 mr-2" />
                 Password (Min. 6 Characters)
               </label>
@@ -341,7 +341,7 @@ export default function RegisterPage() {
               <motion.button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-2xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-purple-500/50 hover:shadow-purple-500/70"
+                className="w-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 text-white font-bold py-4 sm:py-4 px-6 rounded-2xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-purple-500/50 hover:shadow-purple-500/70 text-base"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -367,7 +367,7 @@ export default function RegisterPage() {
             transition={{ duration: 0.6, delay: 1.2 }}
           >
             <div className="text-center">
-              <p className="text-violet-200 text-sm mb-4">
+              <p className="text-violet-200 text-base sm:text-base mb-4">
                 Already have an account?{' '}
                 <button
                   onClick={() => router.push('/login')}
@@ -394,7 +394,7 @@ export default function RegisterPage() {
 
           <button
             onClick={() => router.push('/')}
-            className="mt-4 text-cyan-300 hover:text-white font-medium text-sm transition-colors duration-300 flex items-center justify-center mx-auto"
+            className="mt-4 text-cyan-300 hover:text-white font-medium text-base sm:text-base transition-colors duration-300 flex items-center justify-center mx-auto"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Home

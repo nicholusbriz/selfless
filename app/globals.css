@@ -9,6 +9,10 @@
     html {
         scroll-behavior: smooth;
         overflow-x: hidden;
+        /* Improve text rendering on mobile */
+        -webkit-text-size-adjust: 100%;
+        -moz-text-size-adjust: 100%;
+        text-size-adjust: 100%;
     }
 
     body {
@@ -18,10 +22,26 @@
         /* Enable smooth scrolling with hardware acceleration */
         -webkit-overflow-scrolling: touch;
         scroll-behavior: smooth;
+        /* Better mobile font rendering */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
     }
 
     * {
         box-sizing: border-box;
+    }
+
+    /* Mobile-specific improvements */
+    @media (max-width: 640px) {
+        html {
+            font-size: 18px;
+        }
+        
+        body {
+            /* Ensure minimum readable font size on mobile */
+            font-size: 18px;
+            line-height: 1.6;
+        }
     }
 
     /* Custom scrollbar styling for better visibility and performance */
