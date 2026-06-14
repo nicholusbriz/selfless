@@ -20,7 +20,7 @@ export default function RegisterPage() {
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, fetchUser } = useAuthStore();
 
   // Redirect when authenticated
   useEffect(() => {
@@ -63,7 +63,8 @@ export default function RegisterPage() {
     setMessage('');
 
     try {
-      const response = await axios.post('/auth/register', {
+      // ✅ FIXED: Changed from '/auth/register' to '/api/auth/register'
+      const response = await axios.post('/api/auth/register', {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
@@ -76,15 +77,20 @@ export default function RegisterPage() {
       if (data.success) {
         setMessage('Registration successful! Redirecting to dashboard...');
         setMessageType('success');
-        // The useEffect will handle redirect when user becomes authenticated
+        
+        // ✅ FIXED: Fetch user data after registration to update auth state
+        await fetchUser();
+        
+        // Small delay to ensure auth state is updated
         setTimeout(() => {
-          window.location.href = '/dashboard/overview';
+          router.push('/dashboard/overview');
         }, 1500);
       } else {
         setMessage(data.message || 'Registration failed');
         setMessageType('error');
       }
     } catch (error: any) {
+      console.error('Registration error:', error);
       setMessage(error.response?.data?.message || error.message || 'Network error. Please try again.');
       setMessageType('error');
     } finally {

@@ -12,6 +12,7 @@ import TutorSchedule from '@/components/overview/TutorSchedule';
 import { Users, BookOpen, Award, GraduationCap, TrendingUp, Sparkles } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import axios from '@/lib/axios';
 
 type Tab = 'overview' | 'students' | 'cleaning';
 
@@ -26,16 +27,12 @@ export default function OverviewPage() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch overview data using TanStack Query
+  // Fetch overview data using TanStack Query and axios
   const { data: overviewData, isLoading, error, refetch } = useQuery({
     queryKey: ['overview'],
     queryFn: async () => {
-      const response = await fetch('/api/overview');
-      if (!response.ok) {
-        throw new Error('Failed to fetch overview data');
-      }
-      const data = await response.json();
-      return data;
+      const response = await axios.get('/api/overview');
+      return response.data;
     },
     staleTime: 30 * 1000,
     refetchInterval: 60 * 1000,

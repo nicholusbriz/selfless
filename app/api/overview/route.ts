@@ -4,11 +4,11 @@ import { prisma } from '@/lib/prisma';
 // GET /api/overview - Get overview data (requires authentication only)
 export async function GET(request: NextRequest) {
   try {
-    // Get user info from proxy headers
+    // Get user info from middleware headers
     const userId = request.headers.get('x-user-id');
     const userRole = request.headers.get('x-user-role');
     
-    // Check if user is authenticated
+    // Middleware already verified authentication, just check if userId exists
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

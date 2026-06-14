@@ -56,7 +56,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (email: string) => {
     set({ isLoading: true });
     try {
-      const response = await axios.post('/auth/login', { email });
+      const response = await axios.post('/api/auth/login', { email });
       const data = response.data;
       
       if (data.success) {
@@ -69,7 +69,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         throw new Error(data.message || 'Login failed');
       }
     } catch (error: any) {
-      set({ isLoading: false });
+      set({ isLoading: false, isAuthenticated: false, user: null });
       throw error;
     }
   },
@@ -77,7 +77,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     set({ isLoading: true });
     try {
-      await axios.post('/auth/logout');
+      await axios.post('/api/auth/logout');
       set({ user: null, isAuthenticated: false, isLoading: false });
     } catch (error) {
       console.error('Logout error:', error);
@@ -88,13 +88,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   
   fetchUser: async () => {
+    // Don't fetch if already have user
     if (get().user) {
       return;
     }
     
     set({ isLoading: true });
     try {
-      const response = await axios.get('/auth/me');
+      const response = await axios.get('/api/auth/me');
       const data = response.data;
       
       if (data.success && data.user) {

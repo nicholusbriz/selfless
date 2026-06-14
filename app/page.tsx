@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { 
   Menu, X, Sparkles, Users, Calendar, Award, ChevronRight,
   Star, Heart, Shield, Clock, MapPin, Phone, Mail, ArrowUp,
-  Cpu, Globe, Code, Home, Info, Briefcase, Contact, Send, CheckCircle, AlertCircle
+  Cpu, Globe, Code, Home, Info, Briefcase, Contact, Send, CheckCircle, AlertCircle,
+  Music, Headphones, Radio, PlayCircle
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
@@ -13,7 +14,7 @@ import axios from '@/lib/axios';
 
 export default function HomePage() {
   const router = useRouter();
-  const { user, logout, clearAuth, isAuthenticated } = useAuthStore();
+  const { user, logout, clearAuth, isAuthenticated, fetchUser } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -42,34 +43,22 @@ export default function HomePage() {
   const heroScale = useTransform(scrollY, [0, 300], [1, 0.95]);
   const navBackground = useTransform(scrollY, [0, 50], ['rgba(0,0,0,0)', 'rgba(0,0,0,0.95)']);
 
-  // Check auth status on page load
+  // ✅ FIXED: Use the store's fetchUser method instead of direct axios call
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch('/api/auth/me');
-        if (!response.ok && response.status === 401) {
-          clearAuth();
-          await fetch('/api/auth/logout', { method: 'POST' });
-        } else if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.user) {
-            useAuthStore.getState().setAuth(data.user);
-          } else {
-            clearAuth();
-            await fetch('/api/auth/logout', { method: 'POST' });
-          }
-        }
+        // Use the store's fetchUser method which handles cookies automatically
+        await fetchUser();
       } catch (error) {
         console.error('Auth check failed:', error);
         clearAuth();
-        await fetch('/api/auth/logout', { method: 'POST' });
       } finally {
         setIsAuthChecked(true);
       }
     };
     
     checkAuth();
-  }, [clearAuth]);
+  }, [fetchUser, clearAuth]);
 
   // Track active section based on scroll position
   useEffect(() => {
@@ -155,6 +144,14 @@ export default function HomePage() {
     router.push('/dashboard/overview');
   };
 
+  const handleOpenMusicPlayer = () => {
+    // Find and click the global music button
+    const musicButton = document.querySelector('.global-music-button');
+    if (musicButton) {
+      (musicButton as HTMLButtonElement).click();
+    }
+  };
+
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -165,20 +162,17 @@ export default function HomePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
     if (!formData.name || !formData.email || !formData.phone || !formData.message) {
       setSubmitStatus({ type: 'error', message: 'Please fill in all fields' });
       return;
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       setSubmitStatus({ type: 'error', message: 'Please enter a valid email address' });
       return;
     }
 
-    // Phone validation (basic)
     const phoneRegex = /^[\d\s\-\+\(\)]{10,}$/;
     if (!phoneRegex.test(formData.phone.replace(/\s/g, ''))) {
       setSubmitStatus({ type: 'error', message: 'Please enter a valid phone number' });
@@ -189,8 +183,8 @@ export default function HomePage() {
     setSubmitStatus({ type: null, message: '' });
 
     try {
-      // Send to API endpoint
-      const response = await axios.post('/contact', {
+      // ✅ FIXED: Use full API path with /api prefix
+      const response = await axios.post('/api/contact', {
         name: formData.name,
         email: formData.email,
         phoneNumber: formData.phone,
@@ -199,7 +193,6 @@ export default function HomePage() {
       
       if (response.data.success) {
         setSubmitStatus({ type: 'success', message: 'Message sent successfully! We\'ll get back to you soon.' });
-        // Reset form
         setFormData({ name: '', email: '', phone: '', message: '' });
       } else {
         setSubmitStatus({ type: 'error', message: response.data.message || 'Failed to send message. Please try again.' });
@@ -219,10 +212,14 @@ export default function HomePage() {
     { id: 'contact', name: 'Contact', ref: contactRef, icon: <Contact className="w-4 h-4" /> },
   ];
 
+  // ✅ FIXED: Better loading state
   if (!isAuthChecked) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p className="text-purple-300">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -450,7 +447,7 @@ export default function HomePage() {
               hands-on experience, and community collaboration.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               {user && isAuthenticated ? (
                 <motion.button
                   onClick={handleDashboard}
@@ -480,7 +477,57 @@ export default function HomePage() {
                   </motion.button>
                 </>
               )}
+              
+              {/* Relax Button - Beautiful Design */}
+              <motion.button
+                onClick={handleOpenMusicPlayer}
+                className="relative px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-semibold text-lg cursor-pointer transition-all duration-300 flex items-center gap-3 overflow-hidden group"
+                whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
+                whileTap={{ scale: 0.95 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <motion.div
+                  animate={{ rotate: [0, 10, -10, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                  className="relative z-10"
+                >
+                  <Headphones className="w-5 h-5" />
+                </motion.div>
+                <span className="relative z-10">Relax & Unwind</span>
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-green-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                />
+                <motion.div
+                  className="absolute inset-0 bg-white/20"
+                  initial={{ x: '-100%' }}
+                  whileHover={{ x: '100%' }}
+                  transition={{ duration: 0.5 }}
+                />
+              </motion.button>
             </div>
+
+            {/* Music Features Badges */}
+            <motion.div
+              className="flex flex-wrap items-center justify-center gap-3 mt-8"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+            >
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full backdrop-blur-sm border border-white/10">
+                <Radio className="w-3 h-3 text-green-400" />
+                <span className="text-xs text-gray-300">Trending Music</span>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full backdrop-blur-sm border border-white/10">
+                <PlayCircle className="w-3 h-3 text-green-400" />
+                <span className="text-xs text-gray-300">Play in Background</span>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full backdrop-blur-sm border border-white/10">
+                <Music className="w-3 h-3 text-green-400" />
+                <span className="text-xs text-gray-300">Unlimited Access</span>
+              </div>
+            </motion.div>
 
             <motion.div
               className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
@@ -732,7 +779,6 @@ export default function HomePage() {
               transition={{ duration: 0.8 }}
             >
               <form onSubmit={handleSubmit} className="space-y-4 p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10">
-                {/* Success/Error Message */}
                 <AnimatePresence>
                   {submitStatus.type && (
                     <motion.div
@@ -755,7 +801,6 @@ export default function HomePage() {
                   )}
                 </AnimatePresence>
 
-                {/* Name Field */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Full Name *</label>
                   <input
@@ -769,7 +814,6 @@ export default function HomePage() {
                   />
                 </div>
 
-                {/* Email Field */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Email Address *</label>
                   <input
@@ -783,7 +827,6 @@ export default function HomePage() {
                   />
                 </div>
 
-                {/* Phone Field */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Phone Number *</label>
                   <input
@@ -797,7 +840,6 @@ export default function HomePage() {
                   />
                 </div>
 
-                {/* Message Field */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Message *</label>
                   <textarea
@@ -811,7 +853,6 @@ export default function HomePage() {
                   />
                 </div>
 
-                {/* Submit Button */}
                 <motion.button
                   type="submit"
                   disabled={isSubmitting}
@@ -895,7 +936,7 @@ export default function HomePage() {
         {showScrollTop && (
           <motion.button
             onClick={scrollToTop}
-            className="fixed bottom-8 right-8 z-50 w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg group"
+            className="fixed bottom-24 right-8 z-50 w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg group"
             initial={{ opacity: 0, scale: 0, y: 100 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0, y: 100 }}

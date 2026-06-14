@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -17,6 +17,9 @@ export default function DashboardLayout({
   const router = useRouter();
 
   const handleLogout = () => {
+    // ✅ Clear session flags on logout
+    sessionStorage.removeItem('pending_login');
+    sessionStorage.removeItem('login_timestamp');
     logout();
     router.push('/');
   };
@@ -109,9 +112,7 @@ export default function DashboardLayout({
 
   const navItems = getNavItems();
 
-
   // Proxy handles authentication - if not authenticated, it will redirect
-  // This is just a safety check
   if (!isAuthenticated || !user) {
     return null;
   }

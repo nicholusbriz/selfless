@@ -5,7 +5,6 @@ import { verifyToken } from '@/lib/jwt';
 
 // Define protected routes and their required roles
 const protectedRoutes = {
-  '/dashboard': ['student', 'teacher', 'admin'],
   '/dashboard/overview': ['student', 'teacher', 'admin'],
   '/dashboard/profile': ['student', 'teacher', 'admin'],
   '/dashboard/settings': ['student', 'teacher', 'admin'],
@@ -20,11 +19,10 @@ const protectedApiRoutes = {
   '/api/teacher': ['teacher', 'admin'],
   '/api/admin/students': ['student', 'teacher', 'admin'],
   '/api/student': ['student', 'teacher', 'admin'],
-  '/api/auth/me': ['student', 'teacher', 'admin'],
 };
 
 const publicRoutes = ['/login', '/register'];
-const publicApiRoutes = ['/api/auth/login','/api/debug', '/api/auth/register', '/api/auth/logout'];
+const publicApiRoutes = ['/api/auth/login', '/api/auth/register', '/api/auth/logout', '/api/auth/me', '/api/contact', '/api/debug', '/api/youtube'];
 
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -104,7 +102,7 @@ export default async function proxy(request: NextRequest) {
   
   if (isPublicRoute) {
     if (token && (pathname === '/login' || pathname === '/register')) {
-      return NextResponse.redirect(new URL('/dashboard/overview', request.url));
+      return NextResponse.redirect(new URL('/', request.url));
     }
     return NextResponse.next();
   }
@@ -115,17 +113,14 @@ export default async function proxy(request: NextRequest) {
   
   if (protectedRoute) {
     if (!token) {
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('callbackUrl', pathname);
-      return NextResponse.redirect(loginUrl);
+      return NextResponse.redirect(new URL('/', request.url));
     }
 
     // Verify token is valid and check role for page routes
     try {
       const decoded = verifyToken(token);
       if (!decoded || !decoded.userId) {
-        const loginUrl = new URL('/login', request.url);
-        return NextResponse.redirect(loginUrl);
+        return NextResponse.redirect(new URL('/', request.url));
       }
 
       // Get role from token for page access check
@@ -133,12 +128,11 @@ export default async function proxy(request: NextRequest) {
       const allowedRoles = protectedRoutes[protectedRoute as keyof typeof protectedRoutes];
       
       if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
-        // User doesn't have permission for this page
-        return NextResponse.redirect(new URL('/dashboard/overview', request.url));
+        // User doesn't have permission for this page - redirect to home instead to avoid loops
+        return NextResponse.redirect(new URL('/', request.url));
       }
     } catch (error) {
-      const loginUrl = new URL('/login', request.url);
-      return NextResponse.redirect(loginUrl);
+      return NextResponse.redirect(new URL('/', request.url));
     }
   }
 

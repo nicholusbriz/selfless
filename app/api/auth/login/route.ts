@@ -1,7 +1,6 @@
-// app/api/auth/login/route.ts (UPDATED)
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { generateToken } from '@/lib/jwt';
+import { generateTokenEdge } from '@/lib/jwt-edge';
 import { loginSchema } from '@/lib/validations/auth';
 import { rateLimit, getIdentifier } from '@/lib/rateLimit';
 
@@ -52,16 +51,28 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate JWT token with userId AND role (recommended for better performance)
-    const token = generateToken({ 
+    // ✅ FIXED: Ensure role is always present
+    const userRole = user.role?.name || null;
+    
+    // If user has no role, this is a database issue
+    if (!userRole) {
+      console.error(`User ${user.id} has no role assigned!`);
+      return NextResponse.json(
+        { success: false, message: 'User account configuration error. Contact support.' },
+        { status: 500 }
+      );
+    }
+
+    // Generate JWT token with userId AND role using edge-compatible function
+    const token = await generateTokenEdge({ 
       userId: user.id, 
-      role: user.role?.name || 'student'  // Include role in token
+      role: userRole
     });
 
     // Remove password from response
     const { password, ...userWithoutPassword } = user;
 
-    // Set HTTP-only cookie
+    // ✅ FIXED: Set cookie with proper options
     const response = NextResponse.json({
       success: true,
       message: 'Login successful',
@@ -70,12 +81,15 @@ export async function POST(request: Request) {
 
     response.cookies.set('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: false, // ✅ Set to false for localhost
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7, // 7 days
-      path: '/'
+      path: '/', // ✅ Important for all routes
     });
 
+    console.log('✅ Login successful for email:', email, 'userId:', user.id, 'role:', userRole);
+    console.log('✅ Cookie set with token length:', token.length);
+    console.log('✅ Response cookies:', response.cookies.get('token'));
     return response;
 
   } catch (error) {

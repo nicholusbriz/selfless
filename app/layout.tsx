@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import QueryProvider from '@/components/QueryProvider';
 import PWAInstall from '@/components/PWAInstall';
+import MusicButton from '@/components/MusicButton';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -164,6 +165,7 @@ export default function RootLayout({
           <main className="flex-1">
             {children}
           </main>
+          <MusicButton />
         </QueryProvider>
       </body>
     </html>

@@ -1,16 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { verifyToken } from '@/lib/jwt';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get user ID from middleware headers
-    const userId = request.headers.get('x-user-id');
+    // Try to get user ID from middleware headers first
+    let userId = request.headers.get('x-user-id');
     
+    // If no headers, fall back to cookie verification
     if (!userId) {
-      return NextResponse.json(
-        { success: false, message: 'Not authenticated' },
-        { status: 401 }
-      );
+      const token = request.cookies.get('token')?.value;
+      if (!token) {
+        return NextResponse.json(
+          { success: false, message: 'Not authenticated' },
+          { status: 401 }
+        );
+      }
+      
+      const decoded = verifyToken(token);
+      if (!decoded || !decoded.userId) {
+        return NextResponse.json(
+          { success: false, message: 'Invalid token' },
+          { status: 401 }
+        );
+      }
+      
+      userId = decoded.userId;
     }
 
     const user = await prisma.user.findUnique({

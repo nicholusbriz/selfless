@@ -10,16 +10,40 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
+  const [isChecking, setIsChecking] = useState(true);
   
   const router = useRouter();
-  const { login, isLoading, isAuthenticated, user } = useAuthStore();
+  const { login, isLoading, isAuthenticated, user, fetchUser } = useAuthStore();
 
-  // Redirect when authenticated
+  // Check auth without causing redirect loop
   useEffect(() => {
-    if (isAuthenticated && user) {
+    const checkAuth = async () => {
+      try {
+        await fetchUser();
+        setIsChecking(false);
+      } catch (error) {
+        setIsChecking(false);
+      }
+    };
+    
+    checkAuth();
+  }, [fetchUser]);
+
+  // ✅ Only redirect after initial check is complete
+  useEffect(() => {
+    if (!isChecking && isAuthenticated && user) {
       router.push('/dashboard/overview');
     }
-  }, [isAuthenticated, user, router]);
+  }, [isChecking, isAuthenticated, user, router]);
+
+  // Show loading while checking auth
+  if (isChecking) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +68,8 @@ export default function LoginPage() {
       await login(email);
       setMessage('Login successful! Redirecting...');
       setMessageType('success');
-      // The useEffect will handle redirect
+      // Use Next.js router for client-side navigation
+      router.push('/dashboard/overview');
     } catch (error: any) {
       setMessage(error.response?.data?.message || 'Login failed. Please try again.');
       setMessageType('error');
@@ -58,6 +83,7 @@ export default function LoginPage() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
     >
+      {/* Rest of your JSX - keep the same */}
       <div className="absolute inset-0">
         <motion.div 
           className="absolute top-20 left-20 w-72 h-72 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20"

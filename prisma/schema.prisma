@@ -167,3 +167,70 @@ model ContactMessage {
   @@index([createdAt])
   @@map("contact_messages")
 }
+
+// YOUTUBE VIDEOS CACHE - Store video metadata from YouTube API
+model YouTubeVideo {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId  // ✅ FIXED: Added @default(auto())
+  videoId      String   @unique  // YouTube's actual video ID
+  title        String
+  thumbnail    String
+  channelTitle String
+  category     String?  // Made optional (?) since search results might not have category
+  duration     String?  // Optional: video duration
+  views        String?  // Optional: view count
+  publishedAt  DateTime?
+  searchQuery  String?  // Made optional (?) since category videos might not have searchQuery
+  cachedAt     DateTime @default(now())
+  expiresAt    DateTime // When this cache expires (e.g., 24 hours)
+  lastAccessed DateTime @default(now())
+  accessCount  Int      @default(0)
+  
+  @@index([category])
+  @@index([searchQuery])
+  @@index([expiresAt])
+  @@index([cachedAt])
+  @@map("youtube_videos")
+}
+
+// YOUTUBE PLAYLISTS CACHE - Store playlist data
+model YouTubePlaylist {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId  // ✅ FIXED: Added @default(auto())
+  playlistId   String   @unique
+  name         String
+  description  String?
+  coverImage   String
+  category     String
+  songCount    Int
+  videos       String[] // Array of videoIds
+  cachedAt     DateTime @default(now())
+  expiresAt    DateTime
+  
+  @@index([category])
+  @@map("youtube_playlists")
+}
+
+// YOUTUBE CACHE STATS - Track cache performance
+model YouTubeCacheStats {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId  // ✅ FIXED: Added @default(auto())
+  totalRequests Int      @default(0)
+  cacheHits     Int      @default(0)
+  cacheMisses   Int      @default(0)
+  apiCalls      Int      @default(0)
+  lastCleaned   DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@map("youtube_cache_stats")
+}
+
+// User Watch History - Track what users have watched for personalized feeds
+model UserWatchHistory {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String
+  videoId   String
+  watchedAt DateTime @default(now())
+  
+  @@unique([userId, videoId])
+  @@index([userId])
+  @@index([watchedAt])
+  @@map("user_watch_history")
+}
