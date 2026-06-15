@@ -25,6 +25,8 @@ export default function PWAInstall() {
       navigator.serviceWorker.register('/sw.js')
         .then((registration) => {
           console.log('[SW] Service Worker registered:', registration);
+          // Force update the service worker
+          registration.update();
         })
         .catch((error) => {
           console.log('[SW] Service Worker registration failed:', error);
@@ -62,7 +64,7 @@ export default function PWAInstall() {
     }
 
     return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, [isHomePage, lastShown]);
+  }, [isHomePage, lastShown, deferredPrompt]);
 
   const handleInstall = async () => {
     if (deferredPrompt) {
