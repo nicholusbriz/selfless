@@ -337,3 +337,50 @@ model UserSession {
   @@index([lastActiveAt])
   @@map("user_sessions")
 }
+
+// ============================================
+// MUSIC PLAYER ANALYTICS
+// ============================================
+
+// MUSIC PLAYER SESSION - Track when users open the music player
+model MusicPlayerSession {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  anonymousId  String   // Anonymous ID from local storage
+  sessionId    String   @unique
+  deviceInfo   String?
+  ipAddress    String?
+  userAgent    String?
+  location     String?  // City, Country
+  latitude     Float?
+  longitude    Float?
+  startedAt    DateTime @default(now())
+  endedAt      DateTime?
+  duration     Int?     // Session duration in seconds
+  playEvents   MusicPlayEvent[]
+  
+  @@index([anonymousId])
+  @@index([startedAt])
+  @@index([location])
+  @@map("music_player_sessions")
+}
+
+// MUSIC PLAY EVENT - Track individual song plays
+model MusicPlayEvent {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionId    String   @db.ObjectId
+  session      MusicPlayerSession @relation(fields: [sessionId], references: [id])
+  anonymousId  String   // Anonymous ID from local storage
+  videoId      String
+  videoTitle   String
+  channelTitle String
+  category     String?
+  playedAt     DateTime @default(now())
+  duration     Int?     // Watch duration in seconds
+  completed    Boolean  @default(false)
+  
+  @@index([anonymousId])
+  @@index([videoId])
+  @@index([playedAt])
+  @@index([category])
+  @@map("music_play_events")
+}

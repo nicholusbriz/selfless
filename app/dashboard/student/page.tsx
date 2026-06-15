@@ -18,6 +18,7 @@ import { BookOpen, TrendingUp, Award } from 'lucide-react';
 import { calculateGPA, calculateWeeklyGPAs } from '@/lib/gpa-calculator';
 import { useStudentCourses, useStudentGrades, useSubmitCourses, useUpdateCourse, useDeleteCourse, useStudentProfile, useUpdateReligion, useUpdateTuition } from '@/hooks/queries/student';
 import { motion } from 'framer-motion';
+import { createPortal } from 'react-dom';
 
 type Tab = 'overview' | 'courses' | 'grades';
 
@@ -35,6 +36,15 @@ export default function StudentDashboard() {
   const [tuition, setTuition] = useState<number | null>(null);
   const [tuitionPaid, setTuitionPaid] = useState<boolean>(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [tabsContainer, setTabsContainer] = useState<HTMLElement | null>(null);
+
+  // Move tabs to fixed header
+  useEffect(() => {
+    const container = document.getElementById('dashboard-tabs-container');
+    if (container) {
+      setTabsContainer(container);
+    }
+  }, []);
 
   const { data: coursesData, isLoading: coursesLoading, error: coursesError, refetch: refetchCourses } = useStudentCourses();
   const { data: gradesData, isLoading: gradesLoading, error: gradesError, refetch: refetchGrades } = useStudentGrades();
@@ -140,15 +150,19 @@ export default function StudentDashboard() {
   if (error) return <ErrorState message="Failed to load your data" onRetry={() => refetchCourses()} />;
 
   return (
-    <motion.div 
-      className="flex flex-col min-h-0"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.8 }}
-    >
-      <DashboardTabs tabs={TABS} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as Tab)} />
+    <>
+      {/* Render tabs in fixed header using portal */}
+      {tabsContainer && createPortal(
+        <DashboardTabs tabs={TABS} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as Tab)} />,
+        tabsContainer
+      )}
 
-      <div className="flex-1 overflow-y-auto">
+      <motion.div 
+        className="flex flex-col min-h-0"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+      >
         {activeTab === 'overview' && (
           <motion.div 
             className="space-y-6"
@@ -335,7 +349,7 @@ export default function StudentDashboard() {
             </motion.div>
           </motion.div>
         )}
-      </div>
-    </motion.div>
+      </motion.div>
+    </>
   );
 }

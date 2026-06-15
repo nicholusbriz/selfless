@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import DashboardTabs from '@/components/shared/DashboardTabs';
 import LoadingState, { TabSkeleton } from '@/components/shared/LoadingState';
@@ -13,6 +13,7 @@ import { Users, BookOpen, Award, GraduationCap, TrendingUp, Sparkles } from 'luc
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import axios from '@/lib/axios';
+import { createPortal } from 'react-dom';
 
 type Tab = 'overview' | 'students' | 'cleaning';
 
@@ -26,6 +27,15 @@ export default function OverviewPage() {
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [searchTerm, setSearchTerm] = useState('');
+  const [tabsContainer, setTabsContainer] = useState<HTMLElement | null>(null);
+
+  // Move tabs to fixed header
+  useEffect(() => {
+    const container = document.getElementById('dashboard-tabs-container');
+    if (container) {
+      setTabsContainer(container);
+    }
+  }, []);
 
   // Fetch overview data using TanStack Query and axios
   const { data: overviewData, isLoading, error, refetch } = useQuery({
@@ -119,15 +129,19 @@ export default function OverviewPage() {
   if (error) return <ErrorState message="Failed to load data" onRetry={() => refetch()} />;
 
   return (
-    <motion.div 
-      className="flex flex-col min-h-0"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.8 }}
-    >
-      <DashboardTabs tabs={TABS} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as Tab)} />
+    <>
+      {/* Render tabs in fixed header using portal */}
+      {tabsContainer && createPortal(
+        <DashboardTabs tabs={TABS} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as Tab)} />,
+        tabsContainer
+      )}
 
-      <div className="flex-1 overflow-y-auto">
+      <motion.div 
+        className="flex flex-col min-h-0"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+      >
         {activeTab === 'overview' && (
           <motion.div 
             className="space-y-6"
@@ -220,7 +234,7 @@ export default function OverviewPage() {
             </motion.div>
           </motion.div>
         )}
-      </div>
-    </motion.div>
+      </motion.div>
+    </>
   );
 }

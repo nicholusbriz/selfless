@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import DashboardTabs from '@/components/shared/DashboardTabs';
 import LoadingState, { StatsCardSkeleton, TabSkeleton } from '@/components/shared/LoadingState';
@@ -13,13 +13,15 @@ import AdminStudentTable from '@/components/admin/AdminStudentTable';
 import AdminTuitionList from '@/components/admin/AdminTuitionList';
 import AdminAssignmentManager from '@/components/admin/AdminAssignmentManager';
 import ApplicationsTab from '@/components/admin/ApplicationsTab';
-import { Users, Award, DollarSign, UserPlus, TrendingUp, FileText, BarChart3, MessageSquare } from 'lucide-react';
+import MusicAnalyticsTab from '@/components/admin/MusicAnalyticsTab';
+import { Users, Award, DollarSign, UserPlus, TrendingUp, FileText, BarChart3, MessageSquare, Music } from 'lucide-react';
 import { useAdminStudents, useGPADistribution, useWeeklyProgress, useUpdateTuitionStatus, useUpdateUserRole, useRoles, useDeleteStudent } from '@/hooks/queries/admin';
 import { useAssignGrade } from '@/hooks/queries/teacher';
 import { useAssignments, useTeachers, useCreateBulkAssignments, useDeleteBulkAssignments, useUpdateAssignment } from '@/hooks/queries/assignments';
 import { motion } from 'framer-motion';
+import { createPortal } from 'react-dom';
 
-type Tab = 'overview' | 'students' | 'grades' | 'tuition' | 'assignments' | 'reports' | 'applications';
+type Tab = 'overview' | 'students' | 'grades' | 'tuition' | 'assignments' | 'reports' | 'applications' | 'music-analytics';
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
@@ -29,6 +31,7 @@ const TABS = [
   { id: 'assignments', label: 'Assignments', icon: UserPlus },
   { id: 'reports', label: 'Reports', icon: FileText },
   { id: 'applications', label: 'Applications', icon: MessageSquare },
+  { id: 'music-analytics', label: 'Music Analytics', icon: Music },
 ];
 
 export default function AdminDashboard() {
@@ -38,6 +41,15 @@ export default function AdminDashboard() {
   const [filters, setFilters] = useState<any>({});
   const [gpaFilter, setGpaFilter] = useState<{ min: number; max: number } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [tabsContainer, setTabsContainer] = useState<HTMLElement | null>(null);
+
+  // Move tabs to fixed header
+  useEffect(() => {
+    const container = document.getElementById('dashboard-tabs-container');
+    if (container) {
+      setTabsContainer(container);
+    }
+  }, []);
 
   // Data hooks
   const { data: studentsData, isLoading: studentsLoading, error: studentsError, refetch } = useAdminStudents();
@@ -245,15 +257,19 @@ export default function AdminDashboard() {
   if (error) return <ErrorState message="Failed to load data" onRetry={() => refetch()} />;
 
   return (
-    <motion.div 
-      className="flex flex-col min-h-0"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.8 }}
-    >
-      <DashboardTabs tabs={TABS} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as Tab)} />
+    <>
+      {/* Render tabs in fixed header using portal */}
+      {tabsContainer && createPortal(
+        <DashboardTabs tabs={TABS} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as Tab)} />,
+        tabsContainer
+      )}
 
-      <div className="flex-1 overflow-y-auto">
+      <motion.div 
+        className="flex flex-col min-h-0"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+      >
         {activeTab === 'overview' && (
           <motion.div 
             className="space-y-6"
@@ -511,7 +527,17 @@ export default function AdminDashboard() {
             <ApplicationsTab searchTerm={searchTerm} onSearchChange={setSearchTerm} />
           </motion.div>
         )}
-      </div>
-    </motion.div>
+
+        {activeTab === 'music-analytics' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <MusicAnalyticsTab />
+          </motion.div>
+        )}
+      </motion.div>
+    </>
   );
 }

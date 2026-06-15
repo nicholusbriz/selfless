@@ -248,14 +248,21 @@ export async function POST(request: NextRequest) {
 async function fetchFromYouTube(query: string, maxResults: number = 25) {
   const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
   
-  console.log(`📺 [YouTube] Fetching: "${query}" (max: ${maxResults})`);
+  // Add randomization to query to get different results each time
+  const randomSuffixes = ['official video', 'music video', 'audio', 'lyrics', 'live', 'remix', 'cover'];
+  const randomSuffix = randomSuffixes[Math.floor(Math.random() * randomSuffixes.length)];
+  const randomizedQuery = Math.random() > 0.5 ? `${query} ${randomSuffix}` : query;
+  
+  console.log(`📺 [YouTube] Fetching: "${randomizedQuery}" (max: ${maxResults})`);
   
   if (!apiKey) {
     console.error('❌ [YouTube] API key not configured');
     throw new Error('YouTube API key is not configured');
   }
 
-  const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=${maxResults}&q=${encodeURIComponent(query)}&type=video&videoCategoryId=10&key=${apiKey}`;
+  // Add random order parameter to get different results
+  const order = Math.random() > 0.5 ? 'relevance' : 'date';
+  const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=${maxResults}&q=${encodeURIComponent(randomizedQuery)}&type=video&videoCategoryId=10&order=${order}&key=${apiKey}`;
   
   const response = await fetch(url, {
     headers: { 'Cache-Control': 'no-cache' }
@@ -269,7 +276,7 @@ async function fetchFromYouTube(query: string, maxResults: number = 25) {
   const data = await response.json();
   
   if (!data.items || data.items.length === 0) {
-    console.log(`⚠️ [YouTube] No results for "${query}"`);
+    console.log(`⚠️ [YouTube] No results for "${randomizedQuery}"`);
     return [];
   }
 

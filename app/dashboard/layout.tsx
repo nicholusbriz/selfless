@@ -127,7 +127,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-black flex flex-col md:flex-row overflow-hidden">
+    <div className="h-screen w-screen bg-black flex flex-col md:flex-row overflow-hidden">
       {/* Mobile Overlay */}
       {mobileMenuOpen && (
         <div
@@ -240,12 +240,22 @@ export default function DashboardLayout({
           <div className="w-10" />
         </header>
 
-        {/* Content Area */}
-        <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
-          <div className="max-w-6xl mx-auto">
-            {children}
+        {/* Content Area with Fixed Header */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          {/* Fixed Header for Tabs */}
+          <div className="flex-shrink-0 p-4 sm:p-6 md:p-8 pb-0 bg-black/50 backdrop-blur-sm border-b border-white/5">
+            <div className="max-w-6xl mx-auto" id="dashboard-tabs-container">
+              {/* Tabs will be rendered here by child components */}
+            </div>
           </div>
-        </main>
+
+          {/* Scrollable Content Area */}
+          <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto overflow-x-hidden">
+            <div className="max-w-6xl mx-auto">
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
     </div>
   );

@@ -62,13 +62,14 @@ export async function fetchWithPrefetch(category: string, userId: string): Promi
   }
   
   const promise = (async () => {
-    // Try IndexedDB first (instant)
+    // Try IndexedDB first with 5-minute cache to prevent YouTube API rate limiting
     const cached = await indexedDBCache.getVideos(category)
+    
     if (cached && cached.length > 0) {
-      // Return cached instantly, then refresh in background
+      // Return cached data instantly, refresh in background after 5 minutes
       setTimeout(() => {
         fetchFromAPI(category, userId).catch(() => {})
-      }, 0)
+      }, 5 * 60 * 1000) // 5 minutes
       // Map cached videos to ensure they have the required id field
       return cached.map((v: any) => ({
         ...v,
@@ -76,7 +77,7 @@ export async function fetchWithPrefetch(category: string, userId: string): Promi
       })) as YouTubeVideo[]
     }
     
-    // Fall back to API
+    // Fetch fresh data if cache is missing
     return fetchFromAPI(category, userId)
   })()
   
@@ -94,7 +95,7 @@ async function fetchFromAPI(category: string, userId: string): Promise<YouTubeVi
   const response = await axios.get(endpoint);
   if (response.data.success) {
     const videos = response.data.videos;
-    // Save to IndexedDB for next time
+    // Save to IndexedDB for caching
     await indexedDBCache.saveVideos(category, videos);
     return videos;
   }
@@ -173,8 +174,8 @@ export function useYouTubeMusic() {
   } = useQuery({
     queryKey: ['youtube-videos', activeCategory],
     queryFn: () => fetchWithPrefetch(activeCategory, userId),
-    staleTime: 30 * 60 * 1000,
-    gcTime: 60 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes - prevents excessive YouTube API calls
+    gcTime: 30 * 60 * 1000, // Keep in memory for 30 minutes
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     retry: 2,
@@ -195,7 +196,7 @@ export function useYouTubeMusic() {
           console.error(`Failed to refresh category ${category.id}:`, error);
         }
       }
-    }, 30 * 60 * 1000); // Refresh every 30 minutes
+    }, 60 * 60 * 1000); // Refresh every hour to prevent YouTube API rate limiting
 
     return () => clearInterval(refreshInterval);
   }, [queryClient, userId]);
