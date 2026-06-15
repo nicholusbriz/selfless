@@ -112,3 +112,62 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to create bulk assignments' }, { status: 500 });
   }
 }
+
+// DELETE /api/admin/assignments/bulk - Bulk delete assignments
+export async function DELETE(request: NextRequest) {
+  try {
+    // Get user info from proxy headers
+    const userId = request.headers.get('x-user-id');
+    const userRole = request.headers.get('x-user-role');
+    
+    // Proxy already verified authentication, just check if userId exists
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    // Check for admin role
+    if (userRole !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden', message: 'Admin access required' }, { status: 403 });
+    }
+
+    const { assignmentIds } = await request.json();
+
+    if (!assignmentIds || !Array.isArray(assignmentIds) || assignmentIds.length === 0) {
+      return NextResponse.json({ error: 'Missing required fields: assignmentIds array' }, { status: 400 });
+    }
+
+    const results = [];
+    const errors = [];
+
+    for (const assignmentId of assignmentIds) {
+      try {
+        const assignment = await prisma.teacherStudentAssignment.findUnique({
+          where: { id: assignmentId }
+        });
+
+        if (!assignment) {
+          errors.push({ assignmentId, error: 'Assignment not found' });
+          continue;
+        }
+
+        await prisma.teacherStudentAssignment.delete({
+          where: { id: assignmentId }
+        });
+
+        results.push({ assignmentId, deleted: true });
+      } catch (error) {
+        console.error(`Error deleting assignment ${assignmentId}:`, error);
+        errors.push({ assignmentId, error: 'Failed to delete assignment' });
+      }
+    }
+
+    return NextResponse.json({
+      results,
+      errors,
+      message: `Successfully deleted ${results.length} assignments, ${errors.length} failed`
+    });
+  } catch (error) {
+    console.error('Error deleting bulk assignments:', error);
+    return NextResponse.json({ error: 'Failed to delete bulk assignments' }, { status: 500 });
+  }
+}

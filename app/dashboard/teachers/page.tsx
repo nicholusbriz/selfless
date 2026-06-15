@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import DashboardTabs from '@/components/shared/DashboardTabs';
 import LoadingState, { StatsCardSkeleton, StudentListItemSkeleton, TabSkeleton } from '@/components/shared/LoadingState';
@@ -14,6 +14,7 @@ import { Users, BookOpen, Award, TrendingUp, UserCheck } from 'lucide-react';
 import { useTeacherStudents, useAssignGrade } from '@/hooks/queries/teacher';
 import { useTeacherAssignments, useUpdateTeacherAssignmentStatus } from '@/hooks/queries/teacher-assignments';
 import { motion } from 'framer-motion';
+import { createPortal } from 'react-dom';
 
 type Tab = 'overview' | 'students' | 'assignments';
 
@@ -28,6 +29,15 @@ export default function TeachersPage() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [selectedWeek, setSelectedWeek] = useState(1);
   const [filters, setFilters] = useState<any>({});
+  const [tabsContainer, setTabsContainer] = useState<HTMLElement | null>(null);
+
+  // Move tabs to fixed header
+  useEffect(() => {
+    const container = document.getElementById('dashboard-tabs-container');
+    if (container) {
+      setTabsContainer(container);
+    }
+  }, []);
 
   const { data: studentsData, isLoading: studentsLoading, error: studentsError, refetch } = useTeacherStudents();
   const assignGradeMutation = useAssignGrade();
@@ -117,15 +127,19 @@ export default function TeachersPage() {
   if (error) return <ErrorState message="Failed to load data" onRetry={() => refetch()} />;
 
   return (
-    <motion.div 
-      className="flex flex-col min-h-0"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.8 }}
-    >
-      <DashboardTabs tabs={TABS} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as Tab)} />
+    <>
+      {/* Render tabs in fixed header using portal */}
+      {tabsContainer && createPortal(
+        <DashboardTabs tabs={TABS} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as Tab)} />,
+        tabsContainer
+      )}
 
-      <div className="flex-1 overflow-y-auto">
+      <motion.div 
+        className="flex flex-col min-h-0"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+      >
         {activeTab === 'overview' && (
           <motion.div 
             className="space-y-6"
@@ -267,7 +281,7 @@ export default function TeachersPage() {
             </motion.div>
           </motion.div>
         )}
-      </div>
-    </motion.div>
+      </motion.div>
+    </>
   );
 }

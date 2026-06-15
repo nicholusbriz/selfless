@@ -59,6 +59,7 @@ export default function MusicPlayer({ isOpen, onClose }: MusicPlayerProps) {
   const [selectedSearchVideo, setSelectedSearchVideo] = useState<YouTubeVideo | null>(null);
   const [showScrollHint, setShowScrollHint] = useState(true);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isSeeking, setIsSeeking] = useState(false);
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
@@ -71,6 +72,158 @@ export default function MusicPlayer({ isOpen, onClose }: MusicPlayerProps) {
   const [hasRecordedWatch, setHasRecordedWatch] = useState(false);
   const currentVideoIdRef = useRef<string | null>(null);
   const previousCategoryRef = useRef<string>('');
+  
+  // Analytics tracking
+  const analyticsSessionIdRef = useRef<string | null>(null);
+  const analyticsTrackingRef = useRef(false);
+  const anonymousIdRef = useRef<string | null>(null);
+
+  // Generate or get anonymous ID from local storage
+  useEffect(() => {
+    let anonymousId = localStorage.getItem('music_anonymous_id');
+    if (!anonymousId) {
+      anonymousId = `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem('music_anonymous_id', anonymousId);
+    }
+    anonymousIdRef.current = anonymousId;
+  }, []);
+
+  // Get user location (IP-based fallback if GPS denied)
+  const getUserLocation = useCallback(async (): Promise<{ location: string; latitude: number; longitude: number } | null> => {
+    try {
+      // Try GPS first (requires permission)
+      if (navigator.geolocation) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: false,
+              timeout: 5000,
+              maximumAge: 300000 // 5 minutes cache
+            });
+          });
+
+          const { latitude, longitude } = position.coords;
+          
+          // Get location name using reverse geocoding
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+          );
+          const data = await response.json();
+          
+          const location = data.address?.city || data.address?.town || data.address?.village || data.address?.county || 'Unknown';
+          const country = data.address?.country || '';
+          
+          return {
+            location: `${location}, ${country}`,
+            latitude,
+            longitude
+          };
+        } catch (geoError: any) {
+          console.log('GPS location denied or unavailable, falling back to IP-based location:', geoError.message || geoError.code);
+        }
+      }
+      
+      // Fallback to IP-based geolocation (no permission required, less accurate)
+      const ipResponse = await fetch('https://ipapi.co/json/');
+      const ipData = await ipResponse.json();
+      
+      if (ipData.city && ipData.country_name) {
+        return {
+          location: `${ipData.city}, ${ipData.country_name}`,
+          latitude: ipData.latitude || 0,
+          longitude: ipData.longitude || 0
+        };
+      }
+      
+      return null;
+    } catch (error: any) {
+      console.error('Error getting location:', error.message || error);
+      return null;
+    }
+  }, []);
+
+  // Create analytics session
+  const createAnalyticsSession = useCallback(async () => {
+    if (analyticsTrackingRef.current || !anonymousIdRef.current) return;
+    
+    try {
+      const locationData = await getUserLocation();
+      
+      const deviceInfo = `${navigator.userAgent}`;
+      const response = await fetch('/api/music-analytics/session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          anonymousId: anonymousIdRef.current,
+          deviceInfo,
+          ipAddress: null, // IP will be captured server-side
+          userAgent: navigator.userAgent,
+          location: locationData?.location || null,
+          latitude: locationData?.latitude || null,
+          longitude: locationData?.longitude || null
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        analyticsSessionIdRef.current = data.sessionId;
+        analyticsTrackingRef.current = true;
+      }
+    } catch (error) {
+      console.error('Error creating analytics session:', error);
+    }
+  }, [getUserLocation]);
+
+  // End analytics session
+  const endAnalyticsSession = useCallback(async () => {
+    if (!analyticsSessionIdRef.current || !anonymousIdRef.current) return;
+    
+    try {
+      await fetch('/api/music-analytics/session', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          sessionId: analyticsSessionIdRef.current,
+          anonymousId: anonymousIdRef.current
+        })
+      });
+      
+      analyticsSessionIdRef.current = null;
+      analyticsTrackingRef.current = false;
+    } catch (error) {
+      console.error('Error ending analytics session:', error);
+    }
+  }, []);
+
+  // Track play event
+  const trackPlayEvent = useCallback(async (video: YouTubeVideo, duration?: number, completed?: boolean) => {
+    if (!analyticsSessionIdRef.current || !anonymousIdRef.current) return;
+    
+    try {
+      await fetch('/api/music-analytics/play-event', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          sessionId: analyticsSessionIdRef.current,
+          anonymousId: anonymousIdRef.current,
+          videoId: video.videoId,
+          videoTitle: video.title,
+          channelTitle: video.channelTitle,
+          category: activeCategory,
+          duration,
+          completed
+        })
+      });
+    } catch (error) {
+      console.error('Error tracking play event:', error);
+    }
+  }, [activeCategory]);
 
   // Filter videos by duration
   const feedVideos = useMemo(
@@ -132,6 +285,8 @@ export default function MusicPlayer({ isOpen, onClose }: MusicPlayerProps) {
     
     if (isNewVideo && playerReady && !isPaused && !hasRecordedWatch) {
       recordWatch(currentVideo.videoId);
+      // Track analytics play event
+      trackPlayEvent(currentVideo);
       setHasRecordedWatch(true);
       currentVideoIdRef.current = currentVideo.videoId;
     }
@@ -139,7 +294,7 @@ export default function MusicPlayer({ isOpen, onClose }: MusicPlayerProps) {
     if (isNewVideo && hasRecordedWatch) {
       setHasRecordedWatch(false);
     }
-  }, [currentIndex, playerFeed, playerReady, isPaused, hasRecordedWatch]);
+  }, [currentIndex, playerFeed, playerReady, isPaused, hasRecordedWatch, trackPlayEvent]);
 
   // YouTube IFrame API
   useEffect(() => {
@@ -286,6 +441,18 @@ export default function MusicPlayer({ isOpen, onClose }: MusicPlayerProps) {
     };
   }, [isOpen, playerFeed, initPlayer]);
 
+  // Create analytics session when player opens
+  useEffect(() => {
+    if (isOpen) {
+      createAnalyticsSession();
+    }
+    return () => {
+      if (analyticsSessionIdRef.current) {
+        endAnalyticsSession();
+      }
+    };
+  }, [isOpen, createAnalyticsSession, endAnalyticsSession]);
+
   // Scroll handler with smooth transition - improved for mobile
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -370,7 +537,7 @@ export default function MusicPlayer({ isOpen, onClose }: MusicPlayerProps) {
   // Seek on progress bar
   const handleSeek = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
     e.stopPropagation();
-    if (isTransitioning) return;
+    if (isTransitioning || !playerReady) return;
     
     const rect = e.currentTarget.getBoundingClientRect();
     let clientX: number;
@@ -382,11 +549,46 @@ export default function MusicPlayer({ isOpen, onClose }: MusicPlayerProps) {
     }
     
     const pct = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
-    if (playerRef.current?.seekTo) {
+    if (playerRef.current?.seekTo && duration > 0) {
       const seekTime = (pct / 100) * duration;
       playerRef.current.seekTo(seekTime, true);
       setProgress(pct);
     }
+  };
+
+  // Start seeking (mouse down / touch start)
+  const handleSeekStart = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    if (isTransitioning || !playerReady) return;
+    setIsSeeking(true);
+    handleSeek(e);
+  };
+
+  // Update seeking (mouse move / touch move)
+  const handleSeekMove = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    if (!isSeeking || isTransitioning || !playerReady) return;
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    let clientX: number;
+    
+    if ('touches' in e) {
+      clientX = e.touches[0].clientX;
+    } else {
+      clientX = e.clientX;
+    }
+    
+    const pct = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+    if (playerRef.current?.seekTo && duration > 0) {
+      const seekTime = (pct / 100) * duration;
+      playerRef.current.seekTo(seekTime, true);
+      setProgress(pct);
+    }
+  };
+
+  // Stop seeking (mouse up / touch end)
+  const handleSeekEnd = () => {
+    setIsSeeking(false);
   };
 
   // Handle search result click - Play selected video immediately
@@ -613,7 +815,16 @@ export default function MusicPlayer({ isOpen, onClose }: MusicPlayerProps) {
 
 
       {/* Progress Bar - Fixed at bottom */}
-      <div onClick={handleSeek} onTouchStart={handleSeek} style={styles.progressBarContainer}>
+      <div 
+        onMouseDown={handleSeekStart}
+        onMouseMove={handleSeekMove}
+        onMouseUp={handleSeekEnd}
+        onMouseLeave={handleSeekEnd}
+        onTouchStart={handleSeekStart}
+        onTouchMove={handleSeekMove}
+        onTouchEnd={handleSeekEnd}
+        style={styles.progressBarContainer}
+      >
         <div style={{ ...styles.progressBarFill, width: `${progress}%` }} />
         <div style={{ ...styles.progressBarThumb, left: `${progress}%` }} />
       </div>
@@ -1204,10 +1415,10 @@ const styles = {
     bottom: 60,
     left: 20,
     right: 20,
-    height: 4,
+    height: 8,
     background: 'rgba(255,255,255,0.2)',
-    borderRadius: 2,
-    zIndex: 15,
+    borderRadius: 4,
+    zIndex: 50,
     cursor: 'pointer',
   },
   progressBarFill: {

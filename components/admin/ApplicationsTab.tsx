@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Phone, User, Clock, CheckCircle, X, Trash2, Eye, MessageSquare } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuthStore } from '@/stores/authStore';
 
 interface ContactMessage {
   id: string;
@@ -23,12 +24,18 @@ interface ApplicationsTabProps {
 
 export default function ApplicationsTab({ searchTerm, onSearchChange }: ApplicationsTabProps) {
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
 
   const { data: messagesData, isLoading, error, refetch } = useQuery({
     queryKey: ['contact-messages'],
     queryFn: async () => {
-      const response = await fetch('/api/contact');
+      const response = await fetch('/api/contact', {
+        headers: {
+          'x-user-id': user?.id || '',
+          'x-user-role': user?.role?.name || ''
+        }
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch messages');
       }
@@ -43,7 +50,11 @@ export default function ApplicationsTab({ searchTerm, onSearchChange }: Applicat
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const response = await fetch(`/api/contact/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-user-id': user?.id || '',
+          'x-user-role': user?.role?.name || ''
+        },
         body: JSON.stringify({ status }),
       });
       if (!response.ok) throw new Error('Failed to update status');
@@ -58,6 +69,10 @@ export default function ApplicationsTab({ searchTerm, onSearchChange }: Applicat
     mutationFn: async (id: string) => {
       const response = await fetch(`/api/contact/${id}`, {
         method: 'DELETE',
+        headers: {
+          'x-user-id': user?.id || '',
+          'x-user-role': user?.role?.name || ''
+        }
       });
       if (!response.ok) throw new Error('Failed to delete message');
       return response.json();
