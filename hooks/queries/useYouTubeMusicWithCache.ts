@@ -180,6 +180,26 @@ export function useYouTubeMusic() {
     retry: 2,
   });
 
+  // 🆕 Periodically refresh all genres in background to keep content fresh
+  useEffect(() => {
+    const refreshInterval = setInterval(async () => {
+      // Refresh all categories in background
+      for (const category of categories) {
+        try {
+          await queryClient.prefetchQuery({
+            queryKey: ['youtube-videos', category.id],
+            queryFn: () => fetchWithPrefetch(category.id, userId),
+            staleTime: 30 * 60 * 1000,
+          });
+        } catch (error) {
+          console.error(`Failed to refresh category ${category.id}:`, error);
+        }
+      }
+    }, 30 * 60 * 1000); // Refresh every 30 minutes
+
+    return () => clearInterval(refreshInterval);
+  }, [queryClient, userId]);
+
   // 🆕 Prefetch next category immediately
   const prefetchCategory = useCallback(async (categoryId: string) => {
     await queryClient.prefetchQuery({

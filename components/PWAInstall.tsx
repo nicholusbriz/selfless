@@ -20,6 +20,17 @@ export default function PWAInstall() {
     
     if (isInstalled) return;
 
+    // Register service worker for PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((registration) => {
+          console.log('[SW] Service Worker registered:', registration);
+        })
+        .catch((error) => {
+          console.log('[SW] Service Worker registration failed:', error);
+        });
+    }
+
     // Check if we showed it in last 5 minutes
     const now = Date.now();
     if (lastShown && (now - lastShown) < 5 * 60 * 1000) return;
@@ -45,7 +56,7 @@ export default function PWAInstall() {
       return () => clearTimeout(timer);
     }
 
-    if (!iOS && isHomePage) {
+    if (!iOS && isHomePage && deferredPrompt) {
       setShowInstall(true);
       setLastShown(Date.now());
     }
@@ -79,9 +90,9 @@ export default function PWAInstall() {
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: -100, opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className="fixed top-20 left-4 z-50"
+          className="fixed top-16 left-2 sm:top-20 sm:left-4 z-50"
         >
-          <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl shadow-2xl px-4 py-3 flex items-center gap-4 border border-white/20">
+          <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl shadow-2xl px-3 py-2 sm:px-4 sm:py-3 flex items-center gap-2 sm:gap-4 border border-white/20">
             {!/iPad|iPhone|iPod/.test(navigator.userAgent) ? (
               <>
                 <button

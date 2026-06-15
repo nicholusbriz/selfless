@@ -71,7 +71,7 @@ class IndexedDBCache {
     const transaction = this.db!.transaction([VIDEO_STORE], 'readwrite')
     const store = transaction.objectStore(VIDEO_STORE)
     const now = Date.now()
-    const expiresAt = now + 24 * 60 * 60 * 1000 // 24 hours
+    const expiresAt = now + 5 * 60 * 60 * 1000 // 5 hours
     
     videos.forEach(video => {
       store.put({

@@ -27,7 +27,7 @@ export type WeeklyProgress = z.infer<typeof WeeklyProgressSchema>;
 export const teacherApi = {
   // Get all students with their courses and grades
   getStudents: async () => {
-    const response = await axios.get('/teacher/students');
+    const response = await axios.get('/api/teacher/students');
     return z.object({ students: z.array(StudentWithCoursesSchema) }).parse(response.data);
   },
 
@@ -38,14 +38,14 @@ export const teacherApi = {
     week: number;
     gradeLetter: string;
   }) => {
-    const response = await axios.post('/teacher/grades', data);
+    const response = await axios.post('/api/teacher/grades', data);
     return response.data;
   },
 
   // Get grading progress by week
   getGradingProgress: async (week?: number) => {
     const params = week ? { week } : {};
-    const response = await axios.get('/teacher/grades', { params });
+    const response = await axios.get('/api/teacher/grades', { params });
     return z.object({ weeklyProgress: z.array(WeeklyProgressSchema) }).parse(response.data);
   },
 };

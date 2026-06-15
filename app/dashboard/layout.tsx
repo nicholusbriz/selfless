@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
+import { Headphones } from 'lucide-react';
 
 export default function DashboardLayout({
   children,
@@ -22,6 +23,14 @@ export default function DashboardLayout({
     sessionStorage.removeItem('login_timestamp');
     logout();
     router.push('/');
+  };
+
+  const handleOpenMusicPlayer = () => {
+    // Find and click the global music button
+    const musicButton = document.querySelector('.global-music-button');
+    if (musicButton) {
+      (musicButton as HTMLButtonElement).click();
+    }
   };
 
   // Navigation items based on user role
@@ -130,7 +139,7 @@ export default function DashboardLayout({
       {/* Sidebar - Desktop: Fixed, Mobile: Sliding */}
       <aside
         className={cn(
-          "fixed md:static inset-y-0 left-0 z-50 w-64 bg-black/90 backdrop-blur-lg border-r border-white/10 transform transition-transform duration-300 ease-in-out flex-shrink-0 md:h-screen",
+          "fixed md:static inset-y-0 left-0 z-50 w-72 md:w-64 max-w-[85vw] md:max-w-none bg-black/90 backdrop-blur-lg border-r border-white/10 transform transition-transform duration-300 ease-in-out flex-shrink-0 md:h-screen",
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}
       >
@@ -166,6 +175,15 @@ export default function DashboardLayout({
               </svg>
               <span className="text-sm sm:text-sm font-medium">Back to Home</span>
             </Link>
+            
+            {/* Music Button in Dashboard Nav */}
+            <button
+              onClick={handleOpenMusicPlayer}
+              className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-medium hover:shadow-lg transition"
+            >
+              <Headphones className="w-5 h-5" />
+              <span className="text-sm font-medium">Play Music</span>
+            </button>
             
             {navItems.map((item) => (
               <Link

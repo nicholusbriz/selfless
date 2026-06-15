@@ -22,12 +22,12 @@ export default function StatsCard({
   valueClassName = 'text-white'
 }: StatsCardProps) {
   return (
-    <div className={`bg-gradient-to-br ${gradient} backdrop-blur-lg border border-white/10 rounded-xl p-6`}>
-      <div className="flex items-center gap-3 mb-2">
-        <Icon className={`w-5 h-5 ${iconColor}`} />
-        <h3 className="text-gray-400 text-sm font-medium">{title}</h3>
+    <div className={`bg-gradient-to-br ${gradient} backdrop-blur-lg border border-white/10 rounded-xl p-4 sm:p-6`}>
+      <div className="flex items-center gap-2 sm:gap-3 mb-2">
+        <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${iconColor}`} />
+        <h3 className="text-gray-400 text-xs sm:text-sm font-medium">{title}</h3>
       </div>
-      <p className={`text-3xl font-bold ${valueClassName}`}>{value}</p>
+      <p className={`text-2xl sm:text-3xl font-bold ${valueClassName}`}>{value}</p>
       {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
     </div>
   );

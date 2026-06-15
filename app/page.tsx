@@ -302,6 +302,19 @@ export default function HomePage() {
               
               <div className="w-px h-6 bg-white/20 mx-2"></div>
               
+              {/* Music Button in Nav */}
+              <motion.button
+                onClick={handleOpenMusicPlayer}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg text-sm font-medium cursor-pointer hover:shadow-lg transition"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Headphones className="w-4 h-4" />
+                <span className="hidden sm:inline">Music</span>
+              </motion.button>
+              
+              <div className="w-px h-6 bg-white/20 mx-2"></div>
+              
               {user && isAuthenticated ? (
                 <div className="flex items-center space-x-3 ml-2">
                   <motion.span className="text-white text-sm px-2 py-1 bg-white/10 rounded-full">
@@ -378,7 +391,7 @@ export default function HomePage() {
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="md:hidden fixed inset-y-0 left-0 z-50 w-72 bg-black/95 backdrop-blur-xl border-r border-white/10"
+            className="md:hidden fixed inset-y-0 left-0 z-50 w-80 max-w-[85vw] bg-black/95 backdrop-blur-xl border-r border-white/10"
           >
             <div className="flex flex-col h-full">
               {/* Sidebar Header */}
@@ -414,6 +427,17 @@ export default function HomePage() {
                     <span className="text-sm font-medium">{link.name}</span>
                   </motion.button>
                 ))}
+                
+                <div className="h-px bg-white/10 my-3"></div>
+                
+                {/* Music Button in Mobile Nav */}
+                <button
+                  onClick={handleOpenMusicPlayer}
+                  className="flex items-center gap-3 w-full px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-medium"
+                >
+                  <Headphones className="w-5 h-5" />
+                  <span>Play Music</span>
+                </button>
                 
                 <div className="h-px bg-white/10 my-3"></div>
                 
@@ -999,7 +1023,7 @@ export default function HomePage() {
         {showScrollTop && (
           <motion.button
             onClick={scrollToTop}
-            className="fixed bottom-24 right-8 z-50 w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg group"
+            className="fixed bottom-20 right-4 sm:bottom-24 sm:right-8 z-50 w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg group"
             initial={{ opacity: 0, scale: 0, y: 100 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0, y: 100 }}
