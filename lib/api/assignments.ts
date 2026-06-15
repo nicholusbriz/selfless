@@ -24,13 +24,13 @@ interface Assignment {
 export const assignmentsApi = {
   // Get all assignments
   getAssignments: async (params?: { teacherId?: string; studentId?: string; status?: string }) => {
-    const response = await axios.get('/admin/assignments', { params });
+    const response = await axios.get('/api/admin/assignments', { params });
     return response.data;
   },
 
   // Get all teachers
   getTeachers: async () => {
-    const response = await axios.get('/admin/teachers');
+    const response = await axios.get('/api/admin/teachers');
     return response.data;
   },
 
@@ -41,7 +41,7 @@ export const assignmentsApi = {
     status?: string;
     notes?: string;
   }) => {
-    const response = await axios.post('/admin/assignments/bulk', data);
+    const response = await axios.post('/api/admin/assignments/bulk', data);
     return response.data;
   },
 
@@ -51,25 +51,25 @@ export const assignmentsApi = {
     studentId: string;
     notes?: string;
   }) => {
-    const response = await axios.post('/admin/assignments', data);
+    const response = await axios.post('/api/admin/assignments', data);
     return response.data;
   },
 
   // Bulk delete assignments
   deleteBulkAssignments: async (assignmentIds: string[]) => {
-    const response = await axios.delete('/admin/assignments/bulk', { data: { assignmentIds } });
+    const response = await axios.delete('/api/admin/assignments/bulk', { data: { assignmentIds } });
     return response.data;
   },
 
   // Single delete (for backward compatibility)
   deleteAssignment: async (id: string) => {
-    const response = await axios.delete(`/admin/assignments/${id}`);
+    const response = await axios.delete(`/api/admin/assignments/${id}`);
     return response.data;
   },
 
   // Update assignment
   updateAssignment: async (id: string, data: { status?: string; notes?: string }) => {
-    const response = await axios.patch(`/admin/assignments/${id}`, data);
+    const response = await axios.patch(`/api/admin/assignments/${id}`, data);
     return response.data;
   },
 };

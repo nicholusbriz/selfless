@@ -65,14 +65,14 @@ export type AdminWeeklyProgress = z.infer<typeof WeeklyProgressSchema>;
 export const adminApi = {
   // Get all students with optional filters
   getStudents: async (params?: { gpaMin?: number; gpaMax?: number; search?: string; role?: string }) => {
-    const response = await axios.get('/admin/students', { params });
+    const response = await axios.get('/api/admin/students', { params });
     // Remove the zod parsing temporarily to debug
     return response.data;
   },
 
   // Get student details by ID
   getStudentById: async (id: string) => {
-    const response = await axios.get(`/admin/students/${id}`);
+    const response = await axios.get(`/api/admin/students/${id}`);
     return response.data;
   },
 
@@ -83,43 +83,43 @@ export const adminApi = {
     email: string;
     phoneNumber?: string;
   }) => {
-    const response = await axios.put(`/admin/students/${id}`, data);
+    const response = await axios.put(`/api/admin/students/${id}`, data);
     return response.data;
   },
 
   // Delete student
   deleteStudent: async (id: string) => {
-    const response = await axios.delete(`/admin/students/${id}`);
+    const response = await axios.delete('/api/admin/students', { params: { id } });
     return response.data;
   },
 
   // Get GPA distribution report
   getGPADistribution: async () => {
-    const response = await axios.get('/admin/reports/gpa-distribution');
+    const response = await axios.get('/api/admin/reports/gpa-distribution');
     return response.data;
   },
 
   // Get weekly progress report
   getWeeklyProgress: async () => {
-    const response = await axios.get('/admin/reports/weekly-progress');
+    const response = await axios.get('/api/admin/reports/weekly-progress');
     return response.data;
   },
 
   // Update student tuition status
   updateTuitionStatus: async (studentId: string, tuitionPaid: boolean) => {
-    const response = await axios.put(`/admin/students/${studentId}/tuition`, { tuitionPaid });
+    const response = await axios.put(`/api/admin/students/${studentId}/tuition`, { tuitionPaid });
     return response.data;
   },
 
   // Get all roles
   getRoles: async () => {
-    const response = await axios.get('/admin/roles');
+    const response = await axios.get('/api/admin/roles');
     return response.data;
   },
 
   // Update user role (with automatic profile creation/deletion)
   updateUserRole: async (userId: string, roleId: string) => {
-    const response = await axios.put(`/admin/users/${userId}/role`, { roleId });
+    const response = await axios.put(`/api/admin/users/${userId}/role`, { roleId });
     return response.data;
   },
 };

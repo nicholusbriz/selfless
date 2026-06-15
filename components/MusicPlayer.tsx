@@ -107,6 +107,7 @@ export default function MusicPlayer({ isOpen, onClose }: MusicPlayerProps) {
       setHasRecordedWatch(false);
       currentVideoIdRef.current = null;
       if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = 0;
+      setShowScrollHint(true); // Show scroll hint when category changes
       previousCategoryRef.current = activeCategory;
     }
   }, [activeCategory, feedVideos]);
@@ -285,37 +286,61 @@ export default function MusicPlayer({ isOpen, onClose }: MusicPlayerProps) {
     };
   }, [isOpen, playerFeed, initPlayer]);
 
-  // Scroll handler with smooth transition
+  // Scroll handler with smooth transition - improved for mobile
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
+
+    let lastScrollTop = 0;
+    let scrollDirection: 'up' | 'down' | null = null;
+    let scrollEndTimeout: NodeJS.Timeout | null = null;
 
     const handleScroll = () => {
       isScrollingRef.current = true;
       if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
       scrollTimeoutRef.current = setTimeout(() => {
         isScrollingRef.current = false;
-      }, 200);
+        scrollDirection = null;
+      }, 300); // Increased timeout for mobile momentum
 
-      const scrollPosition = container.scrollTop;
-      const itemHeight = container.clientHeight;
-      const newIndex = Math.floor((scrollPosition + itemHeight * 0.45) / itemHeight);
-
-      if (newIndex !== currentIndexRef.current && newIndex >= 0 && newIndex < playerFeedRef.current.length && !isTransitioning) {
-        const vid = playerFeedRef.current[newIndex];
-        if (vid && playerRef.current) {
-          setCurrentIndex(newIndex);
-          smoothVideoTransition(vid.videoId);
-          setProgress(0);
-          setDuration(0);
-          setIsPaused(false);
-          setHasRecordedWatch(false);
-        }
+      const scrollTop = container.scrollTop;
+      const scrollDiff = scrollTop - lastScrollTop;
+      
+      // Determine scroll direction
+      if (Math.abs(scrollDiff) > 5) {
+        scrollDirection = scrollDiff > 0 ? 'down' : 'up';
       }
+      
+      lastScrollTop = scrollTop;
+
+      // Clear previous timeout
+      if (scrollEndTimeout) clearTimeout(scrollEndTimeout);
+      
+      // Wait for scroll to settle before changing video (better for mobile)
+      scrollEndTimeout = setTimeout(() => {
+        const scrollPosition = container.scrollTop;
+        const itemHeight = container.clientHeight;
+        const newIndex = Math.round(scrollPosition / itemHeight);
+
+        if (newIndex !== currentIndexRef.current && newIndex >= 0 && newIndex < playerFeedRef.current.length && !isTransitioning) {
+          const vid = playerFeedRef.current[newIndex];
+          if (vid && playerRef.current) {
+            setCurrentIndex(newIndex);
+            smoothVideoTransition(vid.videoId);
+            setProgress(0);
+            setDuration(0);
+            setIsPaused(false);
+            setHasRecordedWatch(false);
+          }
+        }
+      }, 150); // Wait 150ms for scroll to settle
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      if (scrollEndTimeout) clearTimeout(scrollEndTimeout);
+    };
   }, [isTransitioning, smoothVideoTransition]);
 
   // Tap to play/pause - FIXED: Check if tap target is not an input or button
@@ -400,7 +425,10 @@ export default function MusicPlayer({ isOpen, onClose }: MusicPlayerProps) {
       scrollContainerRef.current.scrollTop = 0;
     }
     
-    // 6. Play the selected video with smooth transition
+    // 6. Show scroll hint after search
+    setShowScrollHint(true);
+    
+    // 7. Play the selected video with smooth transition
     setTimeout(() => {
       if (window.YT?.Player) {
         smoothVideoTransition(video.videoId);
@@ -417,34 +445,6 @@ export default function MusicPlayer({ isOpen, onClose }: MusicPlayerProps) {
     }
   };
 
-  // Pull down to close
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (isTransitioning) return;
-    
-    const touch = e.touches[0];
-    const startY = touch.clientY;
-    let isClosing = false;
-    
-    const handleTouchMove = (moveEvent: TouchEvent) => {
-      const currentY = moveEvent.touches[0].clientY;
-      const diff = currentY - startY;
-      
-      if (diff > 80 && currentIndex === 0 && !isScrollingRef.current && !isClosing) {
-        isClosing = true;
-        onClose();
-        document.removeEventListener('touchmove', handleTouchMove);
-        document.removeEventListener('touchend', handleTouchEnd);
-      }
-    };
-    
-    const handleTouchEnd = () => {
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
-    };
-    
-    document.addEventListener('touchmove', handleTouchMove);
-    document.addEventListener('touchend', handleTouchEnd);
-  }, [currentIndex, onClose, isTransitioning]);
 
   const currentTime = (progress / 100) * duration;
   const currentVideo = playerFeed[currentIndex];
@@ -471,10 +471,13 @@ export default function MusicPlayer({ isOpen, onClose }: MusicPlayerProps) {
   }
 
   return (
-    <div
+    <motion.div
       style={styles.container}
       onClick={handleScreenTap}
-      onTouchStart={handleTouchStart}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
     >
       {/* YouTube Player - Full background */}
       <div ref={playerContainerRef} style={styles.playerContainer} />
@@ -487,6 +490,7 @@ export default function MusicPlayer({ isOpen, onClose }: MusicPlayerProps) {
         <div style={styles.topBar}>
           <div style={styles.brandContainer}>
             <div style={styles.brand}>The Vibe Room</div>
+            <div style={styles.brandSub}>Presented by Atbriz DJ</div>
             <div style={styles.brandSub}>Freedom City Tech Center</div>
             <div style={styles.announcement}>Students on duty & all tech center announcements will be announced here</div>
             <div style={styles.downloadNotice}>Soon: Download music to your phone</div>
@@ -583,8 +587,6 @@ export default function MusicPlayer({ isOpen, onClose }: MusicPlayerProps) {
           className="categories-container"
           style={styles.categoriesContainer}
           onClick={(e) => e.stopPropagation()} // Prevent tap from pausing video
-          animate={{ x: [0, -200, 0] }}
-          transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
         >
           {categories.map((cat: Category, index) => (
             <motion.span
@@ -628,47 +630,56 @@ export default function MusicPlayer({ isOpen, onClose }: MusicPlayerProps) {
       {/* Scroll hint - shows on first load */}
       <AnimatePresence>
         {showScrollHint && playerFeed.length > 1 && (
-          <motion.button
+          <motion.div
             initial={{ opacity: 0, y: 20, scale: 0.8 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.8 }}
-            style={styles.scrollHint}
-            onClick={() => {
-              if (currentIndex < playerFeed.length - 1) {
-                const nextIndex = currentIndex + 1;
-                const nextVideo = playerFeed[nextIndex];
-                setCurrentIndex(nextIndex);
-                smoothVideoTransition(nextVideo.videoId);
-                setProgress(0);
-                setDuration(0);
-                setIsPaused(false);
-                setHasRecordedWatch(false);
-              }
-            }}
-            whileTap={{ scale: 0.85, rotate: 180 }}
-            whileHover={{ scale: 1.15, boxShadow: '0 0 40px rgba(255,107,53,0.8)' }}
-            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+            style={{ ...styles.scrollHint, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}
           >
-            <motion.div
-              animate={{ 
-                y: [0, 12, 0],
-                scale: [1, 1.1, 1]
+            <motion.button
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+              onClick={() => {
+                if (currentIndex < playerFeed.length - 1) {
+                  const nextIndex = currentIndex + 1;
+                  const nextVideo = playerFeed[nextIndex];
+                  setCurrentIndex(nextIndex);
+                  smoothVideoTransition(nextVideo.videoId);
+                  setProgress(0);
+                  setDuration(0);
+                  setIsPaused(false);
+                  setHasRecordedWatch(false);
+                }
               }}
-              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+              whileTap={{ scale: 0.85, rotate: 180 }}
+              whileHover={{ scale: 1.15, boxShadow: '0 0 40px rgba(255,107,53,0.8)' }}
+              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
             >
-              <ChevronDown size={40} color="rgba(255,255,255,1)" />
-            </motion.div>
-          </motion.button>
+              <motion.div
+                animate={{ 
+                  y: [0, 12, 0],
+                  scale: [1, 1.1, 1]
+                }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <ChevronDown size={40} color="rgba(255,255,255,1)" />
+              </motion.div>
+            </motion.button>
+            <motion.span
+              style={{
+                color: 'rgba(255,255,255,0.7)',
+                fontSize: 11,
+                fontWeight: 500,
+                textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                letterSpacing: 0.5
+              }}
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            >
+              Click for next
+            </motion.span>
+          </motion.div>
         )}
       </AnimatePresence>
-
-
-      {/* Pull down indicator */}
-      {currentIndex === 0 && (
-        <div style={styles.pullDownIndicator}>
-          <div style={styles.pullDownBar} />
-        </div>
-      )}
 
       {/* Transition overlay for smooth video changes */}
       {isTransitioning && (
@@ -744,7 +755,7 @@ export default function MusicPlayer({ isOpen, onClose }: MusicPlayerProps) {
           object-fit: cover !important;
         }
       `}</style>
-    </div>
+    </motion.div>
   );
 }
 
@@ -1245,7 +1256,7 @@ const styles = {
   },
   scrollHint: {
     position: 'absolute' as const,
-    bottom: 100,
+    bottom: 30,
     left: '50%',
     transform: 'translateX(-50%)',
     display: 'flex',
