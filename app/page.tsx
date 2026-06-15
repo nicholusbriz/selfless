@@ -348,10 +348,10 @@ export default function HomePage() {
 
             <motion.button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden text-white p-3 rounded-lg hover:bg-white/10 transition"
+              className="md:hidden text-white p-3 sm:p-4 rounded-lg hover:bg-white/10 transition"
               whileTap={{ scale: 0.9 }}
             >
-              {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+              {mobileMenuOpen ? <X size={32} /> : <Menu size={32} />}
             </motion.button>
           </div>
         </div>

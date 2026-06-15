@@ -7,7 +7,6 @@
   "display_override": ["standalone", "window-controls-overlay"],
   "background_color": "#0f0f23",
   "theme_color": "#8b5cf6",
-  "orientation": "portrait-primary",
   "scope": "/",
   "categories": [
     "education",
