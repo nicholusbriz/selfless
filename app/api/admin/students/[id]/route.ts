@@ -29,11 +29,7 @@ export async function GET(
             grades: true
           }
         },
-        grades: {
-          include: {
-            course: true
-          }
-        }
+        grades: true
       }
     });
 

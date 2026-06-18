@@ -12,11 +12,9 @@ export async function GET(request: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
-    // Check for admin role
-    if (userRole !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden', message: 'Admin access required' }, { status: 403 });
-    }
+
+    // Proxy middleware already handles role-based access control
+    // This endpoint is accessible by students, teachers, and admins
 
     const { searchParams } = new URL(request.url);
     const gpaMin = searchParams.get('gpaMin');
@@ -65,20 +63,25 @@ export async function GET(request: NextRequest) {
 
     const formattedStudents = users.map((user: any) => {
       const profile = user.studentProfile;
+      const enrolledCourses = profile?.enrolledCourses || [];
+      const grades = profile?.grades || [];
+
       return {
         id: user.id,
         name: `${user.firstName} ${user.lastName}`,
         studentId: profile?.studentId || '',
+        studentProfileId: profile?.id || '',
         email: user.email,
+        phoneNumber: user.phoneNumber,
         roleId: user.roleId,
         role: user.role,
         currentGPA: profile?.currentGPA || 0,
         totalCredits: profile?.totalCredits || 0,
-        coursesCount: profile?.enrolledCourses?.length || 0,
+        coursesCount: enrolledCourses.length,
         tuition: profile?.tuition || null,
         tuitionPaid: profile?.tuitionPaid || false,
-        enrolledCourses: profile?.enrolledCourses || [],
-        grades: profile?.grades || []
+        enrolledCourses: enrolledCourses,
+        existingGrades: grades
       };
     });
 

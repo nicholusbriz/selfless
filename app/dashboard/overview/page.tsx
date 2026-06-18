@@ -9,6 +9,9 @@ import StudentCoursesTab from '@/components/overview/StudentCoursesTab';
 import CleaningTab from '@/components/overview/CleaningTab';
 import OverviewStatsCards from '@/components/overview/OverviewStatsCards';
 import TutorSchedule from '@/components/overview/TutorSchedule';
+import EnhancedStatistics from '@/components/overview/EnhancedStatistics';
+import TutorAssignments from '@/components/overview/TutorAssignments';
+import RoleBasedQuickLinks from '@/components/overview/RoleBasedQuickLinks';
 import { Users, BookOpen, Award, GraduationCap, TrendingUp, Sparkles } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -49,8 +52,9 @@ export default function OverviewPage() {
     enabled: !!user,
   });
 
-  // Extract students from the single data source
+  // Extract students and statistics from the single data source
   const students = overviewData?.students || [];
+  const statistics = overviewData?.statistics;
   
   // Calculate statistics from REAL data
   const totalStudents = students.length;
@@ -105,6 +109,21 @@ export default function OverviewPage() {
     }
   ];
 
+  // Get role-specific welcome message
+  const getWelcomeMessage = () => {
+    const role = user?.role?.name || 'User';
+    switch (role) {
+      case 'ADMIN':
+        return 'Admin Dashboard - System-wide overview and management';
+      case 'TEACHER':
+        return 'Teacher Dashboard - Your assigned students and performance metrics';
+      case 'STUDENT':
+        return 'Student Dashboard - Your academic progress and center information';
+      default:
+        return 'Welcome back! Here\'s an overview of the tech center';
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col min-h-0">
@@ -156,9 +175,22 @@ export default function OverviewPage() {
               transition={{ duration: 0.6, delay: 0.2 }}
             >
               <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Overview Dashboard</h1>
-              <p className="text-gray-400 text-sm sm:text-base">Welcome back, {user?.firstName}! Here's an overview of all students and courses.</p>
+              <p className="text-gray-400 text-sm sm:text-base">Welcome back, {user?.firstName}! {getWelcomeMessage()}</p>
             </motion.div>
 
+            {/* Role-based Quick Links */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.25 }}
+            >
+              <RoleBasedQuickLinks 
+                userRole={user?.role?.name}
+                userId={user?.id}
+              />
+            </motion.div>
+
+            {/* Basic Stats Cards */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -167,10 +199,37 @@ export default function OverviewPage() {
               <OverviewStatsCards stats={stats} />
             </motion.div>
 
+            {/* Enhanced Statistics with Charts */}
+            {statistics && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.35 }}
+              >
+                <EnhancedStatistics statistics={statistics} />
+              </motion.div>
+            )}
+
+            {/* Tutor Assignments - Shows all tutors and their students */}
+            {statistics?.tutorGroups && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+              >
+                <TutorAssignments 
+                  tutorGroups={statistics.tutorGroups}
+                  currentUserId={user?.id}
+                  currentUserRole={user?.role?.name}
+                />
+              </motion.div>
+            )}
+
+            {/* Tutor Schedule */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
+              transition={{ duration: 0.6, delay: 0.45 }}
             >
               <TutorSchedule />
             </motion.div>
@@ -203,6 +262,7 @@ export default function OverviewPage() {
                 searchTerm={searchTerm} 
                 onSearchChange={setSearchTerm}
                 students={students}
+                currentUserId={user?.role?.name === 'STUDENT' ? user?.id : undefined}
               />
             </motion.div>
           </motion.div>

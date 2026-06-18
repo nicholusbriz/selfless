@@ -1,34 +1,32 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import DashboardTabs from '@/components/shared/DashboardTabs';
-import LoadingState, { StatsCardSkeleton, StudentListItemSkeleton, TabSkeleton } from '@/components/shared/LoadingState';
+import LoadingState, { StatsCardSkeleton, TabSkeleton } from '@/components/shared/LoadingState';
 import ErrorState from '@/components/shared/ErrorState';
-import WeekSelector from '@/components/ui/WeekSelector';
-import GradeFilterBar from '@/components/ui/GradeFilterBar';
-import StudentsAndGrades from '@/components/shared/StudentsAndGrades';
 import TeacherStatsCards from '@/components/teacher/TeacherStatsCards';
 import TeacherAssignmentList from '@/components/teacher/TeacherAssignmentList';
-import { Users, BookOpen, Award, TrendingUp, UserCheck } from 'lucide-react';
-import { useTeacherStudents, useAssignGrade } from '@/hooks/queries/teacher';
+import TeacherCleaningManagement from '@/components/teacher/TeacherCleaningManagement';
+import SharedGradesTab from '@/components/shared/SharedGradesTab';
+import { Users, Award, TrendingUp, UserCheck, Sparkles } from 'lucide-react';
+import { useSharedGradesStudents, useSharedAssignGrade } from '@/hooks/queries/shared-grades';
 import { useTeacherAssignments, useUpdateTeacherAssignmentStatus } from '@/hooks/queries/teacher-assignments';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 
-type Tab = 'overview' | 'students' | 'assignments';
+type Tab = 'overview' | 'students' | 'assignments' | 'cleaning';
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: TrendingUp },
-  { id: 'students', label: 'Students & Grades', icon: Users },
+  { id: 'students', label: 'Grades', icon: Award },
   { id: 'assignments', label: 'My Students', icon: UserCheck },
+  { id: 'cleaning', label: 'Cleaning', icon: Sparkles },
 ];
 
 export default function TeachersPage() {
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const [selectedWeek, setSelectedWeek] = useState(1);
-  const [filters, setFilters] = useState<any>({});
   const [tabsContainer, setTabsContainer] = useState<HTMLElement | null>(null);
 
   // Move tabs to fixed header
@@ -39,43 +37,8 @@ export default function TeachersPage() {
     }
   }, []);
 
-  const { data: studentsData, isLoading: studentsLoading, error: studentsError, refetch } = useTeacherStudents();
-  const assignGradeMutation = useAssignGrade();
   const { data: assignmentsData, isLoading: assignmentsLoading, refetch: refetchAssignments } = useTeacherAssignments();
   const updateAssignmentStatusMutation = useUpdateTeacherAssignmentStatus();
-
-  const students = studentsData?.students || [];
-
-  const filteredStudents = useMemo(() => {
-    let filtered = [...students];
-    if (filters.search) {
-      const search = filters.search.toLowerCase();
-      filtered = filtered.filter((s: any) =>
-        s.name.toLowerCase().includes(search) || s.studentId.toLowerCase().includes(search)
-      );
-    }
-    if (filters.status === 'graded') {
-      filtered = filtered.filter((s: any) =>
-        s.existingGrades.some((g: any) => g.week === selectedWeek)
-      );
-    } else if (filters.status === 'not-graded') {
-      filtered = filtered.filter((s: any) =>
-        !s.existingGrades.some((g: any) => g.week === selectedWeek)
-      );
-    }
-    return filtered;
-  }, [students, filters, selectedWeek]);
-
-  const handleGradeAssign = async (studentId: string, courseId: string, gradeLetter: string) => {
-    try {
-      await assignGradeMutation.mutateAsync({ studentId, courseId, week: selectedWeek, gradeLetter });
-      refetch();
-    } catch (error) {
-      console.error('Error assigning grade:', error);
-    }
-  };
-
-  const handleFilterChange = (newFilters: any) => setFilters(newFilters);
 
   const handleUpdateAssignmentStatus = async (assignmentId: string, status: string) => {
     try {
@@ -86,16 +49,13 @@ export default function TeachersPage() {
     }
   };
 
-  const totalStudents = students.length;
-  const totalCourses = students.reduce((sum: number, s: any) => sum + s.enrolledCourses.length, 0);
-  const pendingGrades = students.reduce((sum: number, s: any) => {
-    return sum + s.enrolledCourses.filter((c: any) =>
-      !s.existingGrades.some((g: any) => g.courseId === c.id && g.week === selectedWeek)
-    ).length;
-  }, 0);
+  const isLoading = assignmentsLoading;
 
-  const isLoading = studentsLoading || assignmentsLoading;
-  const error = studentsError;
+  // Calculate stats from assignments
+  const assignments = assignmentsData?.assignments || [];
+  const assignedStudents = assignments.length;
+  const verifiedStudents = assignments.filter((a: any) => a.status === 'verified').length;
+  const notVerifiedStudents = assignments.filter((a: any) => a.status === 'not_verified').length;
 
   // Loading state with skeletons
   if (isLoading) {
@@ -123,8 +83,6 @@ export default function TeachersPage() {
       </div>
     );
   }
-  
-  if (error) return <ErrorState message="Failed to load data" onRetry={() => refetch()} />;
 
   return (
     <>
@@ -147,7 +105,7 @@ export default function TeachersPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <motion.div 
+            <motion.div
               className="mb-8"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -163,13 +121,16 @@ export default function TeachersPage() {
               transition={{ duration: 0.6, delay: 0.3 }}
             >
               <TeacherStatsCards
-                totalStudents={totalStudents}
-                totalCourses={totalCourses}
-                pendingGrades={pendingGrades}
+                totalStudents={0}
+                totalCourses={0}
+                pendingGrades={0}
+                assignedStudents={assignedStudents}
+                verifiedStudents={verifiedStudents}
+                notVerifiedStudents={notVerifiedStudents}
               />
             </motion.div>
 
-            <motion.div 
+            <motion.div
               className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-6"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -201,55 +162,10 @@ export default function TeachersPage() {
         )}
 
         {activeTab === 'students' && (
-          <motion.div 
-            className="space-y-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <motion.div 
-              className="mb-8"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Students & Grades</h1>
-              <p className="text-gray-400 text-sm sm:text-base">View and assign grades for your students</p>
-            </motion.div>
-
-            <motion.div 
-              className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-4"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-            >
-              <WeekSelector selectedWeek={selectedWeek} onWeekChange={setSelectedWeek} />
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-            >
-              <GradeFilterBar onFilterChange={handleFilterChange} showStatusFilter={true} showWeekFilter={false} />
-            </motion.div>
-
-            <motion.div 
-              className="max-h-[600px] overflow-y-auto"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
-            >
-              <StudentsAndGrades
-                students={filteredStudents}
-                selectedWeek={selectedWeek}
-                isLoading={studentsLoading}
-                isEditable={true}
-                onGradeAssign={handleGradeAssign}
-                mode="teacher"
-              />
-            </motion.div>
-          </motion.div>
+          <SharedGradesTab
+            title="Manage Grades"
+            description="Assign and manage grades for your students"
+          />
         )}
 
         {activeTab === 'assignments' && (
@@ -279,6 +195,16 @@ export default function TeachersPage() {
                 onStatusChange={handleUpdateAssignmentStatus}
               />
             </motion.div>
+          </motion.div>
+        )}
+
+        {activeTab === 'cleaning' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <TeacherCleaningManagement />
           </motion.div>
         )}
       </motion.div>

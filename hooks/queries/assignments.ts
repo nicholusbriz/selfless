@@ -35,9 +35,13 @@ export const useCreateBulkAssignments = () => {
 
   return useMutation({
     mutationFn: assignmentsApi.createBulkAssignments,
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: assignmentKeys.list() });
       queryClient.invalidateQueries({ queryKey: assignmentKeys.teachers() });
+      // Invalidate student profiles for affected students
+      variables.studentIds.forEach((studentId: string) => {
+        queryClient.invalidateQueries({ queryKey: ['student', studentId, 'profile'] });
+      });
     },
     onError: (error: any) => {
       console.error('Create bulk assignments error:', error.response?.data || error.message);
@@ -51,9 +55,12 @@ export const useDeleteBulkAssignments = () => {
 
   return useMutation({
     mutationFn: assignmentsApi.deleteBulkAssignments,
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: assignmentKeys.list() });
       queryClient.invalidateQueries({ queryKey: assignmentKeys.teachers() });
+      // Invalidate all student profiles since we don't have student IDs from assignment IDs
+      // This ensures all affected students get their stats updated
+      queryClient.invalidateQueries({ queryKey: ['student'] });
     },
   });
 };
@@ -67,6 +74,8 @@ export const useUpdateAssignment = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: assignmentKeys.list() });
       queryClient.invalidateQueries({ queryKey: assignmentKeys.teachers() });
+      // Invalidate all student profiles since status changes affect tutor display
+      queryClient.invalidateQueries({ queryKey: ['student'] });
     },
   });
 };

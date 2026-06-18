@@ -124,7 +124,10 @@ export default function AdminAssignmentManager({
               </tr>
             </thead>
             <tbody>
-              {assignments.map((assignment, index) => (
+              {assignments.map((assignment, index) => {
+                const teacher = teachers.find(t => t.id === assignment.teacherId);
+                const student = students.find(s => s.id === assignment.studentId);
+                return (
                 <motion.tr
                   key={assignment.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -133,10 +136,10 @@ export default function AdminAssignmentManager({
                   className="border-b border-white/5 hover:bg-white/5"
                 >
                   <td className="p-4 text-white">
-                    {assignment.teacher?.name || 'Unknown Teacher'}
+                    {teacher?.name || 'Unknown Teacher'}
                   </td>
                   <td className="p-4 text-white">
-                    {assignment.student?.name || 'Unknown Student'}
+                    {student?.name || 'Unknown Student'}
                   </td>
                   <td className="p-4">
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${getStatusColor(assignment.status)}`}>
@@ -155,7 +158,8 @@ export default function AdminAssignmentManager({
                     </motion.button>
                   </td>
                 </motion.tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

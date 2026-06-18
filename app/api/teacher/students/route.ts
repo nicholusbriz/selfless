@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
             firstName: true,
             lastName: true,
             email: true,
+            phoneNumber: true,
             studentProfile: {
               include: {
                 enrolledCourses: true,
@@ -44,12 +45,14 @@ export async function GET(request: NextRequest) {
     const students = assignments.map(assignment => {
       const student = assignment.student;
       const profile = student.studentProfile;
-      
+
       return {
         id: student.id,
         name: `${student.firstName} ${student.lastName}`,
         studentId: profile?.studentId || 'N/A',
+        studentProfileId: profile?.id || '',
         email: student.email,
+        phoneNumber: student.phoneNumber,
         currentGPA: profile?.currentGPA || 0,
         totalCredits: profile?.totalCredits || 0,
         coursesCount: profile?.enrolledCourses?.length || 0,

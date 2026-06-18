@@ -19,11 +19,7 @@ export async function GET(request: NextRequest) {
         role: true,
         studentProfile: {
           include: {
-            grades: {
-              include: {
-                course: true
-              }
-            }
+            grades: true
           }
         }
       }

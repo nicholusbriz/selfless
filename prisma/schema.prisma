@@ -40,6 +40,10 @@ model User {
   // Assignments where this user is a student
   studentAssignments TeacherStudentAssignment[] @relation("StudentAssignments")
   
+  // Cleaning Management
+  cleaningRegistration CleaningRegistration?
+  attendanceRecords    AttendanceRecord[]
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -383,4 +387,88 @@ model MusicPlayEvent {
   @@index([playedAt])
   @@index([category])
   @@map("music_play_events")
+}
+
+// ============================================
+// CLEANING MANAGEMENT SYSTEM
+// ============================================
+
+// WEEK - Container for cleaning days (Mon-Fri)
+model Week {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  startDate             DateTime
+  endDate               DateTime
+  weekLabel             String?
+  isActive              Boolean  @default(true)
+  registrationEnabled   Boolean  @default(true)
+  registrationDeadline  DateTime
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  days                  CleaningDay[]
+  
+  @@index([isActive])
+  @@map("weeks")
+}
+
+// CLEANING DAY - Individual cleaning day
+model CleaningDay {
+  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
+  weekId              String   @db.ObjectId
+  week                Week     @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  dayOfWeek           String   // Monday, Tuesday, Wednesday, Thursday, Friday
+  cleaningDate        DateTime
+  capacityLimit       Int      @default(0)
+  currentRegistrations Int     @default(0)
+  isOpen              Boolean  @default(true)
+  isFull              Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  registrations       CleaningRegistration[]
+  attendanceRecords   AttendanceRecord[]
+  
+  @@index([cleaningDate])
+  @@map("cleaning_days")
+}
+
+// CLEANING REGISTRATION - Links student to cleaning day (ONE student = ONE day globally)
+model CleaningRegistration {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @unique  // One student = One day globally
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cleaningDayId String   @db.ObjectId
+  cleaningDay   CleaningDay @relation(fields: [cleaningDayId], references: [id], onDelete: Cascade)
+  registeredAt  DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([cleaningDayId])
+  @@map("cleaning_registrations")
+}
+
+// ATTENDANCE RECORD - Tracks attendance status
+model AttendanceRecord {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cleaningDayId String   @db.ObjectId
+  cleaningDay   CleaningDay @relation(fields: [cleaningDayId], references: [id], onDelete: Cascade)
+  status        AttendanceStatus @default(PENDING)
+  markedBy      String?  @db.ObjectId
+  markedAt      DateTime @default(now())
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@unique([userId, cleaningDayId])
+  @@index([cleaningDayId])
+  @@index([status])
+  @@map("attendance_records")
+}
+
+// ATTENDANCE STATUS ENUM
+enum AttendanceStatus {
+  PENDING
+  ATTENDED
+  NO_SHOW
 }

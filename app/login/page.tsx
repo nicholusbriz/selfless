@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,40 +10,9 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
-  const [isChecking, setIsChecking] = useState(true);
-  
+
   const router = useRouter();
-  const { login, isLoading, isAuthenticated, user, fetchUser } = useAuthStore();
-
-  // Check auth without causing redirect loop
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        await fetchUser();
-        setIsChecking(false);
-      } catch (error) {
-        setIsChecking(false);
-      }
-    };
-    
-    checkAuth();
-  }, [fetchUser]);
-
-  // ✅ Only redirect after initial check is complete
-  useEffect(() => {
-    if (!isChecking && isAuthenticated && user) {
-      router.push('/dashboard/overview');
-    }
-  }, [isChecking, isAuthenticated, user, router]);
-
-  // Show loading while checking auth
-  if (isChecking) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
-      </div>
-    );
-  }
+  const { login, isLoading } = useAuthStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -5,8 +5,6 @@ import { useAuthStore } from '@/stores/authStore';
 import DashboardTabs from '@/components/shared/DashboardTabs';
 import LoadingState, { StatsCardSkeleton, TabSkeleton } from '@/components/shared/LoadingState';
 import ErrorState from '@/components/shared/ErrorState';
-import WeekSelector from '@/components/ui/WeekSelector';
-import GradeAssignmentCard from '@/components/ui/GradeAssignmentCard';
 import GradeFilterBar from '@/components/ui/GradeFilterBar';
 import AdminStatsCards from '@/components/admin/AdminStatsCards';
 import AdminStudentTable from '@/components/admin/AdminStudentTable';
@@ -14,14 +12,15 @@ import AdminTuitionList from '@/components/admin/AdminTuitionList';
 import AdminAssignmentManager from '@/components/admin/AdminAssignmentManager';
 import ApplicationsTab from '@/components/admin/ApplicationsTab';
 import MusicAnalyticsTab from '@/components/admin/MusicAnalyticsTab';
-import { Users, Award, DollarSign, UserPlus, TrendingUp, FileText, BarChart3, MessageSquare, Music } from 'lucide-react';
+import AdminCleaningManagement from '@/components/admin/AdminCleaningManagement';
+import SharedGradesTab from '@/components/shared/SharedGradesTab';
+import { Users, Award, DollarSign, UserPlus, TrendingUp, FileText, BarChart3, MessageSquare, Music, Sparkles } from 'lucide-react';
 import { useAdminStudents, useGPADistribution, useWeeklyProgress, useUpdateTuitionStatus, useUpdateUserRole, useRoles, useDeleteStudent } from '@/hooks/queries/admin';
-import { useAssignGrade } from '@/hooks/queries/teacher';
 import { useAssignments, useTeachers, useCreateBulkAssignments, useDeleteBulkAssignments, useUpdateAssignment } from '@/hooks/queries/assignments';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 
-type Tab = 'overview' | 'students' | 'grades' | 'tuition' | 'assignments' | 'reports' | 'applications' | 'music-analytics';
+type Tab = 'overview' | 'students' | 'grades' | 'tuition' | 'assignments' | 'reports' | 'applications' | 'music-analytics' | 'cleaning';
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
@@ -32,12 +31,12 @@ const TABS = [
   { id: 'reports', label: 'Reports', icon: FileText },
   { id: 'applications', label: 'Applications', icon: MessageSquare },
   { id: 'music-analytics', label: 'Music Analytics', icon: Music },
+  { id: 'cleaning', label: 'Cleaning', icon: Sparkles },
 ];
 
 export default function AdminDashboard() {
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const [selectedWeek, setSelectedWeek] = useState(1);
   const [filters, setFilters] = useState<any>({});
   const [gpaFilter, setGpaFilter] = useState<{ min: number; max: number } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -60,7 +59,6 @@ export default function AdminDashboard() {
   const { data: assignmentsData, isLoading: assignmentsLoading, refetch: refetchAssignments } = useAssignments();
 
   // Mutation hooks
-  const assignGradeMutation = useAssignGrade();
   const updateTuitionMutation = useUpdateTuitionStatus();
   const updateRoleMutation = useUpdateUserRole();
   const deleteStudentMutation = useDeleteStudent();
@@ -78,6 +76,7 @@ export default function AdminDashboard() {
       name: student.name,
       studentId: student.studentId,
       email: student.email,
+      phoneNumber: student.phoneNumber,
       roleId: student.roleId,
       role: student.role,
       currentGPA: student.currentGPA,
@@ -99,7 +98,9 @@ export default function AdminDashboard() {
     if (filters.search) {
       const search = filters.search.toLowerCase();
       filtered = filtered.filter((s: any) =>
-        s.name.toLowerCase().includes(search) || s.studentId.toLowerCase().includes(search)
+        s.name.toLowerCase().includes(search) ||
+        s.studentId.toLowerCase().includes(search) ||
+        s.email.toLowerCase().includes(search)
       );
     }
     if (gpaFilter) {
@@ -107,15 +108,6 @@ export default function AdminDashboard() {
     }
     return filtered;
   }, [students, filters, gpaFilter]);
-
-  const handleGradeAssign = async (studentId: string, courseId: string, gradeLetter: string) => {
-    try {
-      await assignGradeMutation.mutateAsync({ studentId, courseId, week: selectedWeek, gradeLetter });
-      refetch();
-    } catch (error) {
-      console.error('Error assigning grade:', error);
-    }
-  };
 
   const handleGpaFilter = (min: number, max: number) => {
     if (min === 0 && max === 4.0) {
@@ -374,7 +366,17 @@ export default function AdminDashboard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
+            className="space-y-4"
           >
+            <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-4">
+              <input
+                type="text"
+                placeholder="Search by name, email, or student ID..."
+                value={filters.search || ''}
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
             <AdminStudentTable
               students={filteredStudents}
               onDelete={handleDeleteStudent}
@@ -385,64 +387,10 @@ export default function AdminDashboard() {
         )}
 
         {activeTab === 'grades' && (
-          <motion.div 
-            className="space-y-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <motion.div 
-              className="flex justify-between items-center"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-white">Manage Grades</h1>
-                <p className="text-gray-400 text-sm sm:text-base">Assign and manage grades for all students</p>
-              </div>
-              <motion.button 
-                onClick={() => refetch()} 
-                className="px-4 py-2 bg-violet-500/20 text-violet-400 rounded-lg"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Refresh
-              </motion.button>
-            </motion.div>
-
-            <motion.div 
-              className="bg-white/5 rounded-xl p-4"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-            >
-              <WeekSelector selectedWeek={selectedWeek} onWeekChange={setSelectedWeek} />
-            </motion.div>
-
-            <motion.div 
-              className="space-y-4 max-h-[600px] overflow-y-auto"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-            >
-              {students.map((student: any, index: number) => (
-                <motion.div
-                  key={student.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.5 + index * 0.05 }}
-                >
-                  <GradeAssignmentCard
-                    student={student}
-                    weekNumber={selectedWeek}
-                    onGradeAssign={(courseId, grade) => handleGradeAssign(student.id, courseId, grade)}
-                    isEditable={true}
-                  />
-                </motion.div>
-              ))}
-            </motion.div>
-          </motion.div>
+          <SharedGradesTab
+            title="Manage Grades"
+            description="Assign and manage grades for all students"
+          />
         )}
 
         {activeTab === 'tuition' && (
@@ -535,6 +483,16 @@ export default function AdminDashboard() {
             transition={{ duration: 0.6 }}
           >
             <MusicAnalyticsTab />
+          </motion.div>
+        )}
+
+        {activeTab === 'cleaning' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <AdminCleaningManagement />
           </motion.div>
         )}
       </motion.div>

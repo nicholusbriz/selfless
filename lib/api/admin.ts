@@ -8,6 +8,7 @@ const StudentSummarySchema = z.object({
   name: z.string(),
   studentId: z.string(),
   email: z.string(),
+  phoneNumber: z.string().nullable().optional(),
   roleId: z.string().nullable(),
   role: z.object({
     id: z.string(),
