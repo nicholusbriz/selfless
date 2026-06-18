@@ -194,21 +194,21 @@ export default function StudentsAndGrades({
                         {isEditable && (
                           <select
                             value={currentGrade || ''}
-                            onChange={(e) => handleGradeChange(student.id, course.id, e.target.value)}
+                            onChange={(e) => handleGradeChange(student.studentProfileId || student.id, course.id, e.target.value)}
                             disabled={saving === savingKey}
                             className={`
                               px-3 py-2 rounded-lg text-sm font-medium transition-all
-                              bg-gray-800/50 border border-gray-600/50
+                              bg-slate-900/80 border border-slate-600/50
                               text-white focus:outline-none focus:ring-2 focus:ring-violet-500
                               disabled:opacity-50 disabled:cursor-not-allowed
-                              ${currentGrade ? 'border-green-500/50 bg-green-500/10' : 'border-gray-600/50'}
+                              ${currentGrade ? 'border-green-500/50 bg-green-500/10' : 'border-slate-600/50'}
                             `}
                           >
-                            <option value="" className="bg-gray-900 text-gray-400">
+                            <option value="" className="bg-slate-900 text-gray-400">
                               Select Grade
                             </option>
                             {GRADE_LETTERS.map((letter) => (
-                              <option key={letter} value={letter} className="bg-gray-900 text-white">
+                              <option key={letter} value={letter} className="bg-slate-900 text-white hover:bg-slate-800">
                                 {letter}
                               </option>
                             ))}

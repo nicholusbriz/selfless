@@ -14,18 +14,20 @@ import StudentGPATimeline from '@/components/student/StudentGPATimeline';
 import StudentCourseList from '@/components/student/StudentCourseList';
 import StudentsAndGrades from '@/components/shared/StudentsAndGrades';
 import StudentGradeLegend from '@/components/student/StudentGradeLegend';
-import { BookOpen, TrendingUp, Award } from 'lucide-react';
+import StudentCleaningForm from '@/components/student/StudentCleaningForm';
+import { BookOpen, TrendingUp, Award, Sparkles, User } from 'lucide-react';
 import { calculateGPA, calculateWeeklyGPAs } from '@/lib/gpa-calculator';
 import { useStudentCourses, useStudentGrades, useSubmitCourses, useUpdateCourse, useDeleteCourse, useStudentProfile, useUpdateReligion, useUpdateTuition } from '@/hooks/queries/student';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 
-type Tab = 'overview' | 'courses' | 'grades';
+type Tab = 'overview' | 'courses' | 'grades' | 'cleaning';
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: TrendingUp },
   { id: 'courses', label: 'My Courses', icon: BookOpen },
   { id: 'grades', label: 'My Grades', icon: Award },
+  { id: 'cleaning', label: 'Cleaning Form', icon: Sparkles },
 ];
 
 export default function StudentDashboard() {
@@ -223,8 +225,20 @@ export default function StudentDashboard() {
                     subtitle: `${totalGradedCourses}/${totalAssignments} assignments`,
                     iconColor: 'text-blue-400',
                     gradient: 'from-blue-600/20 to-cyan-600/20'
+                  },
+                  {
+                    id: 'tutor',
+                    icon: User,
+                    title: 'Assigned Tutor',
+                    value: profileData?.profile?.tutor 
+                      ? `${profileData.profile.tutor.firstName} ${profileData.profile.tutor.lastName}`
+                      : 'Not assigned',
+                    subtitle: profileData?.profile?.tutor?.teacherId || 'No tutor assigned',
+                    iconColor: profileData?.profile?.tutor ? 'text-purple-400' : 'text-gray-400',
+                    gradient: profileData?.profile?.tutor ? 'from-purple-600/20 to-pink-600/20' : 'from-gray-600/20 to-gray-600/20'
                   }
                 ]}
+                columns={4}
               />
             </motion.div>
 
@@ -346,6 +360,33 @@ export default function StudentDashboard() {
               transition={{ duration: 0.6, delay: 0.6 }}
             >
               <StudentGradeLegend />
+            </motion.div>
+          </motion.div>
+        )}
+
+        {activeTab === 'cleaning' && (
+          <motion.div 
+            className="space-y-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <motion.div 
+              className="mb-8"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Cleaning Registration</h1>
+              <p className="text-gray-400 text-sm sm:text-base">Register for your assigned cleaning day</p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+            >
+              <StudentCleaningForm />
             </motion.div>
           </motion.div>
         )}

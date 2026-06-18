@@ -16,6 +16,15 @@ interface Student {
     credits: number;
     status: string;
   }[];
+  tutor?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    teacherId?: string;
+    department?: string;
+  } | null;
+  hasTutor?: boolean;
 }
 
 interface StudentCoursesTabProps {
@@ -119,6 +128,16 @@ export default function StudentCoursesTab({
                     <h3 className="text-base font-bold text-white truncate">{student.name}</h3>
                   </div>
                   <p className="text-purple-300 text-xs">ID: {student.studentId}</p>
+                  {/* Tutor Assignment */}
+                  <div className="mt-1">
+                    {student.tutor ? (
+                      <p className="text-green-400 text-xs">
+                        Tutor: {student.tutor.firstName} {student.tutor.lastName}
+                      </p>
+                    ) : (
+                      <p className="text-gray-400 text-xs">No tutor assigned</p>
+                    )}
+                  </div>
                 </div>
                 
                 {/* ✅ Display Religion Status (Read-only) */}
@@ -166,6 +185,7 @@ export default function StudentCoursesTab({
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Student</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase">ID</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Tutor</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Religion</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Courses</th>
                 </tr>
@@ -185,6 +205,15 @@ export default function StudentCoursesTab({
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-gray-400 text-sm">{student.studentId}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {student.tutor ? (
+                        <span className="text-green-400 text-sm">
+                          {student.tutor.firstName} {student.tutor.lastName}
+                        </span>
+                      ) : (
+                        <span className="text-gray-500 text-sm">Not assigned</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full ${

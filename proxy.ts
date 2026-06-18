@@ -12,11 +12,13 @@ const protectedRoutes = {
 };
 
 // Define protected API routes and their required roles
+// Note: More specific routes must come before general routes
 const protectedApiRoutes = {
+  '/api/admin/students': ['student', 'teacher', 'admin'],
   '/api/admin': ['admin'],
   '/api/teacher': ['teacher', 'admin'],
-  '/api/admin/students': ['student', 'teacher', 'admin'],
   '/api/student': ['student', 'teacher', 'admin'],
+  '/api/cleaning': ['student', 'teacher', 'admin'],
 };
 
 const publicRoutes = ['/login', '/register'];
@@ -32,7 +34,6 @@ export default async function proxy(request: NextRequest) {
   
   // Get token from cookies
   const token = request.cookies.get('token')?.value;
-  console.log('🔍 Middleware: Token present:', !!token, 'Token length:', token?.length);
 
   // Handle API routes
   if (pathname.startsWith('/api')) {
@@ -106,23 +107,19 @@ export default async function proxy(request: NextRequest) {
   // For public routes (login/register), check if user is already authenticated
   if (isPublicRoute) {
     if (token) {
-      console.log('🔒 Middleware: User on public route with token, verifying...');
       // Verify if token is still valid
       try {
         const decoded = await verifyTokenEdge(token);
         if (decoded && decoded.userId) {
-          console.log('✅ Middleware: Valid token, redirecting to dashboard');
           // Valid token, redirect to dashboard
           return NextResponse.redirect(new URL('/dashboard/overview', request.url));
         } else {
-          console.log('❌ Middleware: Invalid token, clearing it');
           // Invalid token, clear it and allow access to login
           const response = NextResponse.next();
           response.cookies.delete('token');
           return response;
         }
       } catch (error) {
-        console.log('❌ Middleware: Token verification error, clearing it');
         // Invalid token, clear it and allow access to login
         const response = NextResponse.next();
         response.cookies.delete('token');
@@ -139,17 +136,13 @@ export default async function proxy(request: NextRequest) {
   
   if (protectedRoute) {
     if (!token) {
-      console.log('❌ Middleware: No token on protected route, redirecting to login');
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
     // Verify token is valid using edge-compatible function
     try {
-      console.log('🔍 Middleware: Attempting to verify token...');
       const decoded = await verifyTokenEdge(token);
-      console.log('🔍 Middleware: Decoded token:', decoded);
       if (!decoded || !decoded.userId) {
-        console.log('❌ Middleware: Invalid token on protected route, redirecting to login');
         // Invalid token, clear it and redirect to login
         const response = NextResponse.redirect(new URL('/login', request.url));
         response.cookies.delete('token');
@@ -160,18 +153,13 @@ export default async function proxy(request: NextRequest) {
       const allowedRoles = protectedRoutes[protectedRoute as keyof typeof protectedRoutes];
       
       if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
-        console.log('❌ Middleware: User role', userRole, 'not allowed for', protectedRoute);
         // User doesn't have permission, redirect to home
         return NextResponse.redirect(new URL('/', request.url));
       }
-
-      console.log('🔍 JWT_SECRET loaded:', process.env.JWT_SECRET ? 'Yes (length: ' + process.env.JWT_SECRET.length + ')' : 'NO!');
       
-      console.log('✅ Middleware: Valid token for protected route, allowing access');
       // Valid token, allow access
       return NextResponse.next();
     } catch (error) {
-      console.log('❌ Middleware: Token verification error on protected route:', error);
       // Error verifying token, clear it and redirect to login
       const response = NextResponse.redirect(new URL('/login', request.url));
       response.cookies.delete('token');

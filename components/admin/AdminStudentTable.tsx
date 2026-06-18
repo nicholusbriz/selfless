@@ -8,6 +8,7 @@ interface Student {
   name: string;
   studentId: string;
   email: string;
+  phoneNumber?: string;
   roleId: string;
   role: { name: string };
   currentGPA: number;
@@ -44,6 +45,7 @@ export default function AdminStudentTable({
               <th className="text-left p-4 text-gray-400 font-medium">Student ID</th>
               <th className="text-left p-4 text-gray-400 font-medium">Name</th>
               <th className="text-left p-4 text-gray-400 font-medium">Email</th>
+              <th className="text-left p-4 text-gray-400 font-medium">Phone</th>
               <th className="text-left p-4 text-gray-400 font-medium">Role</th>
               <th className="text-left p-4 text-gray-400 font-medium">GPA</th>
               <th className="text-left p-4 text-gray-400 font-medium">Credits</th>
@@ -63,6 +65,7 @@ export default function AdminStudentTable({
                 <td className="p-4 text-white">{student.studentId}</td>
                 <td className="p-4 text-white">{student.name}</td>
                 <td className="p-4 text-gray-400">{student.email}</td>
+                <td className="p-4 text-gray-400">{student.phoneNumber || 'N/A'}</td>
                 <td className="p-4">
                   {roles && (
                     <select

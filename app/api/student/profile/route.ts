@@ -20,6 +20,15 @@ export async function GET(request: NextRequest) {
             enrolledCourses: true,
             grades: true
           }
+        },
+        studentAssignments: {
+          include: {
+            teacher: {
+              include: {
+                teacherProfile: true
+              }
+            }
+          }
         }
       }
     });
@@ -28,9 +37,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Student profile not found' }, { status: 404 });
     }
 
+    // Get the first tutor assignment (regardless of verification status)
+    const tutorAssignment = userWithProfile.studentAssignments[0] || null;
+    const tutor = tutorAssignment?.teacher || null;
+
     return NextResponse.json({ 
       success: true, 
-      profile: userWithProfile.studentProfile 
+      profile: {
+        ...userWithProfile.studentProfile,
+        tutor: tutor ? {
+          id: tutor.id,
+          firstName: tutor.firstName,
+          lastName: tutor.lastName,
+          email: tutor.email,
+          teacherId: tutor.teacherProfile?.teacherId,
+          department: tutor.teacherProfile?.department
+        } : null,
+        hasTutor: !!tutor
+      }
     });
   } catch (error) {
     console.error('Error fetching student profile:', error);

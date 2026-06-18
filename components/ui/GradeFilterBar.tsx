@@ -70,11 +70,11 @@ export default function GradeFilterBar({
           <select
             value={week === undefined ? 'all' : week}
             onChange={(e) => handleWeekChange(e.target.value)}
-            className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+            className="bg-slate-900/80 border border-slate-600/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
           >
-            <option value="all">All Weeks</option>
+            <option value="all" className="bg-slate-900 text-gray-300">All Weeks</option>
             {WEEKS.map((w) => (
-              <option key={w} value={w}>
+              <option key={w} value={w} className="bg-slate-900 text-white hover:bg-slate-800">
                 Week {w}
               </option>
             ))}
@@ -85,12 +85,12 @@ export default function GradeFilterBar({
           <select
             value={status}
             onChange={(e) => handleStatusChange(e.target.value)}
-            className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+            className="bg-slate-900/80 border border-slate-600/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
           >
-            <option value="all">All Status</option>
-            <option value="graded">Graded</option>
-            <option value="not-graded">Not Graded</option>
-            <option value="partial">Partial</option>
+            <option value="all" className="bg-slate-900 text-gray-300">All Status</option>
+            <option value="graded" className="bg-slate-900 text-white hover:bg-slate-800">Graded</option>
+            <option value="not-graded" className="bg-slate-900 text-white hover:bg-slate-800">Not Graded</option>
+            <option value="partial" className="bg-slate-900 text-white hover:bg-slate-800">Partial</option>
           </select>
         )}
 
@@ -98,11 +98,11 @@ export default function GradeFilterBar({
           <select
             value={course}
             onChange={(e) => handleCourseChange(e.target.value)}
-            className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+            className="bg-slate-900/80 border border-slate-600/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
           >
-            <option value="all">All Courses</option>
+            <option value="all" className="bg-slate-900 text-gray-300">All Courses</option>
             {courses.map((c) => (
-              <option key={c} value={c}>
+              <option key={c} value={c} className="bg-slate-900 text-white hover:bg-slate-800">
                 {c}
               </option>
             ))}

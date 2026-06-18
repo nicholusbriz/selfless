@@ -6,13 +6,17 @@ import {
   Menu, X, Sparkles, Users, Calendar, Award, ChevronRight,
   Star, Heart, Shield, Clock, MapPin, Phone, Mail, ArrowUp,
   Cpu, Globe, Code, Home, Info, Briefcase, Contact, Send, CheckCircle, AlertCircle,
-  Music, Headphones, Radio, PlayCircle
+  TrendingUp, BookOpen, GraduationCap, Zap, Flame, Target
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { motion, useScroll, useTransform, AnimatePresence, useSpring, useMotionValue } from 'framer-motion';
 import axios from '@/lib/axios';
 import { useQueryClient } from '@tanstack/react-query';
-import { fetchWithPrefetch } from '@/hooks/queries/useYouTubeMusicWithCache';
+import { generateLandingMockData, Statistic, Testimonial, Feature, Course } from '@/lib/landingMockData';
+import InteractiveCounterDemo from '@/components/landing/InteractiveCounterDemo';
+import ProgressTrackerDemo from '@/components/landing/ProgressTrackerDemo';
+// Music player functionality disabled - fetchWithPrefetch not used
+// import { fetchWithPrefetch } from '@/hooks/queries/useYouTubeMusicWithCache';
 
 export default function HomePage() {
   const router = useRouter();
@@ -22,8 +26,54 @@ export default function HomePage() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [videoLoaded, setVideoLoaded] = useState(false);
-  const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
+
+  // Check for active token on page load
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
+
+  // Load mock data
+  const mockData = generateLandingMockData();
+  const [animatedStats, setAnimatedStats] = useState<{ [key: string]: number }>({});
+  
+  // Animate statistics on scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            mockData.statistics.forEach((stat) => {
+              const duration = 2000;
+              const steps = 60;
+              const increment = stat.value / steps;
+              let current = 0;
+              
+              const timer = setInterval(() => {
+                current += increment;
+                if (current >= stat.value) {
+                  current = stat.value;
+                  clearInterval(timer);
+                }
+                setAnimatedStats((prev) => ({
+                  ...prev,
+                  [stat.id]: Math.floor(current)
+                }));
+              }, duration / steps);
+            });
+          }
+        });
+      },
+      { threshold: 0.5 }
+    );
+    
+    const statsSection = document.getElementById('stats-section');
+    if (statsSection) {
+      observer.observe(statsSection);
+    }
+    
+    return () => observer.disconnect();
+  }, [mockData.statistics]);
   
   // Contact form state
   const [formData, setFormData] = useState({
@@ -46,49 +96,32 @@ export default function HomePage() {
   const heroScale = useTransform(scrollY, [0, 300], [1, 0.95]);
   const navBackground = useTransform(scrollY, [0, 50], ['rgba(0,0,0,0)', 'rgba(0,0,0,0.95)']);
 
-  // ✅ FIXED: Use the store's fetchUser method instead of direct axios call
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        // Use the store's fetchUser method which handles cookies automatically
-        await fetchUser();
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        clearAuth();
-      } finally {
-        setIsAuthChecked(true);
-      }
-    };
-    
-    checkAuth();
-  }, [fetchUser, clearAuth]);
+  // Music player functionality disabled - video prefetch commented out
+  // useEffect(() => {
+  //   const prefetchVideos = async () => {
+  //     const userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+  //     try {
+  //       // Prefetch the default 'all' category
+  //       await queryClient.prefetchQuery({
+  //         queryKey: ['youtube-videos', 'all'],
+  //         queryFn: () => fetchWithPrefetch('all', userId),
+  //         staleTime: 30 * 60 * 1000, // 30 minutes
+  //       });
+  //       // Prefetch trending category as well
+  //       await queryClient.prefetchQuery({
+  //         queryKey: ['youtube-videos', 'trending'],
+  //         queryFn: () => fetchWithPrefetch('trending', userId),
+  //         staleTime: 30 * 60 * 1000,
+  //       });
+  //     } catch (error) {
+  //       console.log('Video prefetch failed (non-critical):', error);
+  //     }
+  //   };
 
-  // Prefetch music videos on page load for instant playback
-  useEffect(() => {
-    const prefetchVideos = async () => {
-      const userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-      try {
-        // Prefetch the default 'all' category
-        await queryClient.prefetchQuery({
-          queryKey: ['youtube-videos', 'all'],
-          queryFn: () => fetchWithPrefetch('all', userId),
-          staleTime: 30 * 60 * 1000, // 30 minutes
-        });
-        // Prefetch trending category as well
-        await queryClient.prefetchQuery({
-          queryKey: ['youtube-videos', 'trending'],
-          queryFn: () => fetchWithPrefetch('trending', userId),
-          staleTime: 30 * 60 * 1000,
-        });
-      } catch (error) {
-        console.log('Video prefetch failed (non-critical):', error);
-      }
-    };
-
-    // Prefetch after a short delay to not block initial render
-    const timer = setTimeout(prefetchVideos, 1000);
-    return () => clearTimeout(timer);
-  }, [queryClient]);
+  //   // Prefetch after a short delay to not block initial render
+  //   const timer = setTimeout(prefetchVideos, 1000);
+  //   return () => clearTimeout(timer);
+  // }, [queryClient]);
 
   // Track active section based on scroll position
   useEffect(() => {
@@ -174,13 +207,7 @@ export default function HomePage() {
     router.push('/dashboard/overview');
   };
 
-  const handleOpenMusicPlayer = () => {
-    // Find and click the global music button
-    const musicButton = document.querySelector('.global-music-button');
-    if (musicButton) {
-      (musicButton as HTMLButtonElement).click();
-    }
-  };
+  // Music player functionality disabled - handleOpenMusicPlayer removed
 
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -242,18 +269,6 @@ export default function HomePage() {
     { id: 'contact', name: 'Contact', ref: contactRef, icon: <Contact className="w-4 h-4" /> },
   ];
 
-  // ✅ FIXED: Better loading state
-  if (!isAuthChecked) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <p className="text-purple-300">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
       <motion.div 
@@ -302,16 +317,7 @@ export default function HomePage() {
               
               <div className="w-px h-6 bg-white/20 mx-2"></div>
               
-              {/* Music Button in Nav */}
-              <motion.button
-                onClick={handleOpenMusicPlayer}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg text-sm font-medium cursor-pointer hover:shadow-lg transition"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Headphones className="w-4 h-4" />
-                <span className="hidden sm:inline">Music</span>
-              </motion.button>
+              {/* Research Button disabled - music player removed */}
               
               <div className="w-px h-6 bg-white/20 mx-2"></div>
               
@@ -430,14 +436,7 @@ export default function HomePage() {
                 
                 <div className="h-px bg-white/10 my-3"></div>
                 
-                {/* Music Button in Mobile Nav */}
-                <button
-                  onClick={handleOpenMusicPlayer}
-                  className="flex items-center gap-3 w-full px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-medium"
-                >
-                  <Headphones className="w-5 h-5" />
-                  <span>Play Music</span>
-                </button>
+                {/* Research Button disabled - music player removed */}
                 
                 <div className="h-px bg-white/10 my-3"></div>
                 
@@ -513,107 +512,127 @@ export default function HomePage() {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-2 mb-6"
+              className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-2 mb-6 backdrop-blur-sm"
             >
-              <Sparkles className="w-4 h-4 text-purple-400" />
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              >
+                <Sparkles className="w-4 h-4 text-purple-400" />
+              </motion.div>
               <span className="text-purple-300 text-base sm:text-base">Welcome to Selfless CE</span>
             </motion.div>
 
-            <h1 className="text-5xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6">
-              <span className="bg-gradient-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent">
+            <motion.h1 
+              className="text-5xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+            >
+              <motion.span 
+                className="bg-gradient-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent block"
+                initial={{ opacity: 0, x: -50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+              >
                 Freedom City
-              </span>
-              <br />
-              <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+              </motion.span>
+              <motion.span 
+                className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent block"
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, delay: 0.5 }}
+              >
                 Tech Center
-              </span>
-            </h1>
+              </motion.span>
+            </motion.h1>
             
-            <p className="text-lg sm:text-lg md:text-xl lg:text-2xl text-gray-300 mb-6 sm:mb-8 max-w-3xl mx-auto leading-relaxed">
+            <motion.p 
+              className="text-lg sm:text-lg md:text-xl lg:text-2xl text-gray-300 mb-6 sm:mb-8 max-w-3xl mx-auto leading-relaxed"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.6 }}
+            >
               Empowering the next generation of tech leaders through innovative education, 
               hands-on experience, and community collaboration.
-            </p>
+            </motion.p>
             
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-4">
+            <motion.div 
+              className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.7 }}
+            >
               {user && isAuthenticated ? (
                 <motion.button
                   onClick={handleDashboard}
-                  className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold text-base sm:text-lg cursor-pointer hover:shadow-xl transition"
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold text-base sm:text-lg cursor-pointer hover:shadow-xl transition relative overflow-hidden"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  Go to Dashboard
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-pink-500 to-purple-500 opacity-0"
+                    whileHover={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                  />
+                  <span className="relative z-10">Go to Dashboard</span>
                 </motion.button>
               ) : (
                 <>
                   <motion.button
                     onClick={handleSignIn}
-                    className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold text-base sm:text-lg cursor-pointer hover:shadow-xl transition"
+                    className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold text-base sm:text-lg cursor-pointer hover:shadow-xl transition relative overflow-hidden"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    Sign In
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-pink-500 to-purple-500 opacity-0"
+                      whileHover={{ opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                    />
+                    <span className="relative z-10">Sign In</span>
                   </motion.button>
                   <motion.button
                     onClick={handleGetStarted}
-                    className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white/10 backdrop-blur-sm text-white rounded-xl font-semibold text-base sm:text-lg border border-white/20 cursor-pointer hover:bg-white/20 transition"
+                    className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white/10 backdrop-blur-sm text-white rounded-xl font-semibold text-base sm:text-lg border border-white/20 cursor-pointer hover:bg-white/20 transition relative overflow-hidden"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    Get Started
+                    <motion.div
+                      className="absolute inset-0 bg-white/20 opacity-0"
+                      whileHover={{ opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                    />
+                    <span className="relative z-10">Get Started</span>
                   </motion.button>
                 </>
               )}
-              
-              {/* Relax Button - Beautiful Design */}
-              <motion.button
-                onClick={handleOpenMusicPlayer}
-                className="relative w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-semibold text-base sm:text-lg cursor-pointer transition-all duration-300 flex items-center justify-center gap-3 overflow-hidden group"
-                whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
-                whileTap={{ scale: 0.95 }}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <motion.div
-                  animate={{ rotate: [0, 10, -10, 0] }}
-                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                  className="relative z-10"
-                >
-                  <Headphones className="w-5 h-5" />
-                </motion.div>
-                <span className="relative z-10">Relax & Unwind</span>
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-green-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                />
-                <motion.div
-                  className="absolute inset-0 bg-white/20"
-                  initial={{ x: '-100%' }}
-                  whileHover={{ x: '100%' }}
-                  transition={{ duration: 0.5 }}
-                />
-              </motion.button>
-            </div>
+            </motion.div>
 
-            {/* Music Features Badges */}
-            <motion.div
-              className="flex flex-wrap items-center justify-center gap-3 mt-8"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
+            {/* Floating badges */}
+            <motion.div 
+              className="flex flex-wrap justify-center gap-4 mt-8"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.8 }}
             >
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full backdrop-blur-sm border border-white/10">
-                <Radio className="w-3 h-3 text-green-400" />
-                <span className="text-xs text-gray-300">Trending Music</span>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full backdrop-blur-sm border border-white/10">
-                <PlayCircle className="w-3 h-3 text-green-400" />
-                <span className="text-xs text-gray-300">Play in Background</span>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full backdrop-blur-sm border border-white/10">
-                <Music className="w-3 h-3 text-green-400" />
-                <span className="text-xs text-gray-300">Unlimited Access</span>
-              </div>
+              {[
+                { icon: Users, text: "2,847+ Students", color: "purple" },
+                { icon: Award, text: "156+ Courses", color: "blue" },
+                { icon: Star, text: "94% Success Rate", color: "green" }
+              ].map((badge, index) => (
+                <motion.div
+                  key={index}
+                  className="flex items-center gap-2 bg-white/5 backdrop-blur-sm rounded-full px-4 py-2 border border-white/10"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: 0.9 + index * 0.1 }}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                >
+                  <badge.icon className={`w-4 h-4 text-${badge.color}-400`} />
+                  <span className="text-white text-sm">{badge.text}</span>
+                </motion.div>
+              ))}
             </motion.div>
 
             <motion.div
@@ -630,6 +649,89 @@ export default function HomePage() {
               </div>
             </motion.div>
           </motion.div>
+        </div>
+      </section>
+
+      {/* Interactive Statistics Section */}
+      <section id="stats-section" className="relative py-20 bg-gradient-to-b from-transparent to-black/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div 
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              whileInView={{ scale: 1 }}
+              viewport={{ once: true }}
+              className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-1 mb-4"
+            >
+              <TrendingUp className="w-4 h-4 text-purple-400" />
+              <span className="text-purple-300 text-sm">Our Impact</span>
+            </motion.div>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Numbers That Speak</h2>
+            <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto" />
+          </motion.div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+            {mockData.statistics.map((stat, index) => {
+              const iconMap: { [key: string]: any } = {
+                users: Users,
+                book: BookOpen,
+                award: Award,
+                star: Star,
+                clock: Clock,
+                globe: Globe
+              };
+              const Icon = iconMap[stat.icon] || TrendingUp;
+              const colorMap: { [key: string]: string } = {
+                purple: 'from-purple-500 to-pink-500',
+                blue: 'from-blue-500 to-cyan-500',
+                green: 'from-green-500 to-emerald-500',
+                orange: 'from-orange-500 to-red-500',
+                pink: 'from-pink-500 to-rose-500',
+                cyan: 'from-cyan-500 to-blue-500'
+              };
+              
+              return (
+                <motion.div
+                  key={stat.id}
+                  className="group relative bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:border-white/20 transition-all duration-300"
+                  initial={{ opacity: 0, y: 60 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  whileHover={{ y: -10, scale: 1.05 }}
+                >
+                  <motion.div 
+                    className={`w-14 h-14 bg-gradient-to-r ${colorMap[stat.color]} rounded-xl flex items-center justify-center mb-4 text-white shadow-lg mx-auto`}
+                    whileHover={{ rotate: 360, scale: 1.1 }}
+                    transition={{ duration: 0.6 }}
+                  >
+                    <Icon className="w-7 h-7" />
+                  </motion.div>
+                  <p className="text-3xl md:text-4xl font-bold text-white mb-2 text-center">
+                    {stat.prefix || ''}{animatedStats[stat.id] || 0}{stat.suffix || ''}
+                  </p>
+                  <p className="text-gray-400 text-sm text-center mb-2">{stat.label}</p>
+                  {stat.trend && (
+                    <div className="flex items-center justify-center gap-1 text-green-400 text-xs">
+                      <TrendingUp className="w-3 h-3" />
+                      <span>+{stat.trend}%</span>
+                    </div>
+                  )}
+                  <motion.div 
+                    className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-b-2xl"
+                    initial={{ width: 0 }}
+                    whileHover={{ width: "100%" }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </motion.div>
+              );
+            })}
+          </div>
         </div>
       </section>
 
@@ -709,6 +811,7 @@ export default function HomePage() {
                 src="/freedomcity.jpeg"
                 alt="Freedom City Tech Center"
                 className="rounded-2xl shadow-2xl relative z-10 w-full h-auto"
+                loading="lazy"
               />
             </motion.div>
           </div>
@@ -796,6 +899,314 @@ export default function HomePage() {
                 />
               </motion.div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="relative py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div 
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              whileInView={{ scale: 1 }}
+              viewport={{ once: true }}
+              className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-1 mb-4"
+            >
+              <Star className="w-4 h-4 text-purple-400" />
+              <span className="text-purple-300 text-sm">Testimonials</span>
+            </motion.div>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">What Our Students Say</h2>
+            <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto" />
+          </motion.div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {mockData.testimonials.map((testimonial, index) => (
+              <motion.div
+                key={testimonial.id}
+                className="group relative bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:border-white/20 transition-all duration-300"
+                initial={{ opacity: 0, y: 60 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                whileHover={{ y: -10, scale: 1.02 }}
+              >
+                <div className="flex items-start gap-4 mb-4">
+                  <img
+                    src={testimonial.avatar}
+                    alt={testimonial.name}
+                    className="w-14 h-14 rounded-full border-2 border-purple-500/30"
+                    loading="lazy"
+                  />
+                  <div className="flex-1">
+                    <h3 className="text-white font-semibold text-lg">{testimonial.name}</h3>
+                    <p className="text-purple-400 text-sm">{testimonial.role}</p>
+                    <div className="flex gap-1 mt-2">
+                      {[...Array(testimonial.rating)].map((_, i) => (
+                        <Star key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <p className="text-gray-300 text-sm leading-relaxed mb-4">"{testimonial.content}"</p>
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>{new Date(testimonial.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                  <motion.div
+                    className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center"
+                    whileHover={{ scale: 1.2, rotate: 180 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <ChevronRight className="w-4 h-4 text-purple-400" />
+                  </motion.div>
+                </div>
+                <motion.div 
+                  className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-b-2xl"
+                  initial={{ width: 0 }}
+                  whileHover={{ width: "100%" }}
+                  transition={{ duration: 0.3 }}
+                />
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Interactive Features Showcase */}
+      <section className="relative py-24 bg-black/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div 
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              whileInView={{ scale: 1 }}
+              viewport={{ once: true }}
+              className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-1 mb-4"
+            >
+              <Zap className="w-4 h-4 text-purple-400" />
+              <span className="text-purple-300 text-sm">Features</span>
+            </motion.div>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Why Choose Us</h2>
+            <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto" />
+          </motion.div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {mockData.features.map((feature, index) => {
+              const iconMap: { [key: string]: any } = {
+                cpu: Cpu,
+                'graduation-cap': GraduationCap,
+                clock: Clock,
+                briefcase: Briefcase,
+                users: Users,
+                award: Award
+              };
+              const Icon = iconMap[feature.icon] || Zap;
+              const colorMap: { [key: string]: string } = {
+                purple: 'from-purple-500 to-pink-500',
+                blue: 'from-blue-500 to-cyan-500',
+                green: 'from-green-500 to-emerald-500',
+                orange: 'from-orange-500 to-red-500',
+                pink: 'from-pink-500 to-rose-500',
+                cyan: 'from-cyan-500 to-blue-500'
+              };
+              
+              return (
+                <motion.div
+                  key={feature.id}
+                  className="group relative bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 hover:border-white/20 transition-all duration-300"
+                  initial={{ opacity: 0, y: 60 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  whileHover={{ y: -10, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
+                >
+                  <motion.div 
+                    className={`w-16 h-16 bg-gradient-to-r ${colorMap[feature.color]} rounded-xl flex items-center justify-center mb-6 text-white shadow-lg`}
+                    whileHover={{ rotate: 360, scale: 1.1 }}
+                    transition={{ duration: 0.6 }}
+                  >
+                    <Icon className="w-8 h-8" />
+                  </motion.div>
+                  <h3 className="text-xl font-bold text-white mb-3">{feature.title}</h3>
+                  <p className="text-gray-400 mb-6">{feature.description}</p>
+                  {feature.stats && (
+                    <div className="grid grid-cols-2 gap-4">
+                      {feature.stats.map((stat, i) => (
+                        <div key={i} className="bg-white/5 rounded-lg p-3 text-center">
+                          <p className="text-white font-bold text-lg">{stat.value}</p>
+                          <p className="text-gray-500 text-xs">{stat.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <motion.div 
+                    className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-b-2xl"
+                    initial={{ width: 0 }}
+                    whileHover={{ width: "100%" }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Courses Preview Section */}
+      <section className="relative py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div 
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              whileInView={{ scale: 1 }}
+              viewport={{ once: true }}
+              className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-1 mb-4"
+            >
+              <BookOpen className="w-4 h-4 text-purple-400" />
+              <span className="text-purple-300 text-sm">Courses</span>
+            </motion.div>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Popular Courses</h2>
+            <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto" />
+          </motion.div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {mockData.courses.slice(0, 3).map((course, index) => (
+              <motion.div
+                key={course.id}
+                className="group relative bg-white/5 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 hover:border-white/20 transition-all duration-300"
+                initial={{ opacity: 0, y: 60 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                whileHover={{ y: -10, scale: 1.02 }}
+              >
+                <div className="relative h-48 overflow-hidden">
+                  <img
+                    src={course.image}
+                    alt={course.title}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                  <div className="absolute top-4 right-4 bg-purple-500/90 backdrop-blur-sm px-3 py-1 rounded-full">
+                    <span className="text-white text-xs font-medium">{course.level}</span>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-purple-400 text-xs font-medium">{course.category}</span>
+                    <span className="text-gray-500 text-xs">•</span>
+                    <span className="text-gray-400 text-xs">{course.duration}</span>
+                  </div>
+                  <h3 className="text-white font-bold text-lg mb-2">{course.title}</h3>
+                  <p className="text-gray-400 text-sm mb-4 line-clamp-2">{course.description}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-gray-400" />
+                      <span className="text-gray-400 text-xs">{course.students} students</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                      <span className="text-white text-sm font-medium">{course.rating}</span>
+                    </div>
+                  </div>
+                </div>
+                <motion.div 
+                  className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-purple-500 to-pink-500"
+                  initial={{ width: 0 }}
+                  whileHover={{ width: "100%" }}
+                  transition={{ duration: 0.3 }}
+                />
+              </motion.div>
+            ))}
+          </div>
+          
+          <motion.div 
+            className="text-center mt-12"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            <motion.button
+              onClick={handleGetStarted}
+              className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold hover:shadow-xl transition-all"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              View All Courses
+            </motion.button>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Interactive Demo Section */}
+      <section className="relative py-24 bg-black/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div 
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              whileInView={{ scale: 1 }}
+              viewport={{ once: true }}
+              className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-1 mb-4"
+            >
+              <Code className="w-4 h-4 text-purple-400" />
+              <span className="text-purple-300 text-sm">Live Demo</span>
+            </motion.div>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Experience Our Platform</h2>
+            <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto" />
+          </motion.div>
+          
+          <div className="grid lg:grid-cols-2 gap-8">
+            {/* Interactive Counter Demo */}
+            <motion.div
+              className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10"
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+            >
+              <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                <Target className="w-6 h-6 text-purple-400" />
+                Interactive Counter
+              </h3>
+              <InteractiveCounterDemo />
+            </motion.div>
+
+            {/* Theme Toggle Demo */}
+            <motion.div
+              className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10"
+              initial={{ opacity: 0, x: 50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+            >
+              <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                <Flame className="w-6 h-6 text-orange-400" />
+                Progress Tracker
+              </h3>
+              <ProgressTrackerDemo />
+            </motion.div>
           </div>
         </div>
       </section>

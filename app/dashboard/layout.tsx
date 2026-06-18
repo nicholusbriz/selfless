@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -12,10 +12,19 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, logout, isAuthenticated } = useAuthStore();
+  const { user, logout, isAuthenticated, fetchUser, isLoading } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const hasFetchedUser = useRef(false);
+
+  // Fetch user data on mount to hydrate auth store after hard refresh
+  useEffect(() => {
+    if (!user && !isLoading && !hasFetchedUser.current) {
+      hasFetchedUser.current = true;
+      fetchUser();
+    }
+  }, [user, isLoading, fetchUser]);
 
   const handleLogout = () => {
     // ✅ Clear session flags on logout
@@ -105,7 +114,7 @@ export default function DashboardLayout({
     if (role === 'teacher' || role === 'admin') {
       roleSpecificItems.push({
         id: 'teacher-dashboard',
-        label: 'Teacher Dashboard',
+        label: 'Tutor Dashboard',
         path: '/dashboard/teachers',
         icon: (
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -176,13 +185,13 @@ export default function DashboardLayout({
               <span className="text-sm sm:text-sm font-medium">Back to Home</span>
             </Link>
             
-            {/* Music Button in Dashboard Nav */}
+            {/* Research Button in Dashboard Nav */}
             <button
               onClick={handleOpenMusicPlayer}
               className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-medium hover:shadow-lg transition"
             >
               <Headphones className="w-5 h-5" />
-              <span className="text-sm font-medium">Play Music</span>
+              <span className="text-sm font-medium">Research Live</span>
             </button>
             
             {navItems.map((item) => (

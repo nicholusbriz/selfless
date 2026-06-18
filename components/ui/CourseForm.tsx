@@ -51,8 +51,6 @@ export default function CourseForm({
       return;
     }
 
-    console.log('Submitting courses:', validCourses);
-    
     try {
       await onSubmit(validCourses);
       setCourses([]);

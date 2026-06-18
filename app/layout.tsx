@@ -154,7 +154,8 @@ export default function RootLayout({
           <main className="flex-1">
             {children}
           </main>
-          <MusicButton />
+          {/* MusicButton disabled - music player functionality removed */}
+          {/* <MusicButton /> */}
         </QueryProvider>
       </body>
     </html>

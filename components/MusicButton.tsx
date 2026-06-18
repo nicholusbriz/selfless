@@ -4,7 +4,8 @@
 import { useState } from 'react';
 import { Headphones } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import MusicPlayer from './MusicPlayer';
+// Music player functionality disabled - component not imported
+// import MusicPlayer from './MusicPlayer';
 
 export default function MusicButton() {
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
@@ -12,7 +13,10 @@ export default function MusicButton() {
   return (
     <>
       <motion.button
-        onClick={() => setIsPlayerOpen(true)}
+        onClick={() => {
+          // Music player is disabled - button does nothing
+          return;
+        }}
         className="global-music-button fixed bottom-6 right-4 sm:bottom-8 sm:right-8 z-50 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center gap-2 shadow-lg group cursor-pointer px-4 py-3"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
@@ -25,14 +29,15 @@ export default function MusicButton() {
         >
           <Headphones className="w-6 h-6 text-white" />
         </motion.div>
-        <span className="text-white font-bold text-sm hidden sm:block">Play Music</span>
+        <span className="text-white font-bold text-sm hidden sm:block">Research Live</span>
       </motion.button>
 
-      <AnimatePresence mode="wait">
+      {/* MusicPlayer component disabled - not rendered */}
+      {/* <AnimatePresence mode="wait">
         {isPlayerOpen && (
           <MusicPlayer isOpen={isPlayerOpen} onClose={() => setIsPlayerOpen(false)} />
         )}
-      </AnimatePresence>
+      </AnimatePresence> */}
     </>
   );
 }

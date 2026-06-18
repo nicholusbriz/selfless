@@ -8,7 +8,7 @@ export const useTeacherAssignments = (status?: string, teacherId?: string) => {
       const params: any = {};
       if (status) params.status = status;
       if (teacherId) params.teacherId = teacherId;
-      const response = await axios.get('/teacher/assignments', { params });
+      const response = await axios.get('/api/teacher/assignments', { params });
       return response.data;
     },
     staleTime: 2 * 60 * 1000,
@@ -20,7 +20,7 @@ export const useUpdateTeacherAssignmentStatus = () => {
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: { status: string } }) =>
-      axios.patch(`/teacher/assignments/${id}`, data),
+      axios.patch(`/api/teacher/assignments/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teacher-assignments'] });
     },
