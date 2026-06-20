@@ -11,16 +11,15 @@ import AdminStudentTable from '@/components/admin/AdminStudentTable';
 import AdminTuitionList from '@/components/admin/AdminTuitionList';
 import AdminAssignmentManager from '@/components/admin/AdminAssignmentManager';
 import ApplicationsTab from '@/components/admin/ApplicationsTab';
-import MusicAnalyticsTab from '@/components/admin/MusicAnalyticsTab';
 import AdminCleaningManagement from '@/components/admin/AdminCleaningManagement';
 import SharedGradesTab from '@/components/shared/SharedGradesTab';
-import { Users, Award, DollarSign, UserPlus, TrendingUp, FileText, BarChart3, MessageSquare, Music, Sparkles } from 'lucide-react';
+import { Users, Award, DollarSign, UserPlus, TrendingUp, FileText, BarChart3, MessageSquare, Sparkles } from 'lucide-react';
 import { useAdminStudents, useGPADistribution, useWeeklyProgress, useUpdateTuitionStatus, useUpdateUserRole, useRoles, useDeleteStudent } from '@/hooks/queries/admin';
 import { useAssignments, useTeachers, useCreateBulkAssignments, useDeleteBulkAssignments, useUpdateAssignment } from '@/hooks/queries/assignments';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 
-type Tab = 'overview' | 'students' | 'grades' | 'tuition' | 'assignments' | 'reports' | 'applications' | 'music-analytics' | 'cleaning';
+type Tab = 'overview' | 'students' | 'grades' | 'tuition' | 'assignments' | 'reports' | 'applications' | 'cleaning';
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
@@ -30,7 +29,6 @@ const TABS = [
   { id: 'assignments', label: 'Assignments', icon: UserPlus },
   { id: 'reports', label: 'Reports', icon: FileText },
   { id: 'applications', label: 'Applications', icon: MessageSquare },
-  { id: 'music-analytics', label: 'Music Analytics', icon: Music },
   { id: 'cleaning', label: 'Cleaning', icon: Sparkles },
 ];
 
@@ -473,16 +471,6 @@ export default function AdminDashboard() {
             transition={{ duration: 0.6 }}
           >
             <ApplicationsTab searchTerm={searchTerm} onSearchChange={setSearchTerm} />
-          </motion.div>
-        )}
-
-        {activeTab === 'music-analytics' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <MusicAnalyticsTab />
           </motion.div>
         )}
 
