@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Search, LayoutGrid, List, BookOpen, User, GraduationCap } from 'lucide-react';
+import { Search, LayoutGrid, List, BookOpen, User, GraduationCap, AlertTriangle, Clock, DollarSign, GraduationCap as GraduationCapIcon } from 'lucide-react';
 
 interface Student {
   id: string;

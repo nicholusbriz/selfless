@@ -7,23 +7,25 @@ import LoadingState, { TabSkeleton } from '@/components/shared/LoadingState';
 import ErrorState from '@/components/shared/ErrorState';
 import StudentCoursesTab from '@/components/overview/StudentCoursesTab';
 import CleaningTab from '@/components/overview/CleaningTab';
+import PoliciesTab from '@/components/overview/PoliciesTab';
 import OverviewStatsCards from '@/components/overview/OverviewStatsCards';
 import TutorSchedule from '@/components/overview/TutorSchedule';
 import EnhancedStatistics from '@/components/overview/EnhancedStatistics';
 import TutorAssignments from '@/components/overview/TutorAssignments';
 import RoleBasedQuickLinks from '@/components/overview/RoleBasedQuickLinks';
-import { Users, BookOpen, Award, GraduationCap, TrendingUp, Sparkles } from 'lucide-react';
+import { Users, BookOpen, Award, GraduationCap, TrendingUp, Sparkles, Shield } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import axios from '@/lib/axios';
 import { createPortal } from 'react-dom';
 
-type Tab = 'overview' | 'students' | 'cleaning';
+type Tab = 'overview' | 'students' | 'cleaning' | 'policies';
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: TrendingUp },
   { id: 'students', label: 'Students & Courses', icon: Users },
   { id: 'cleaning', label: 'Cleaning', icon: Sparkles },
+  { id: 'policies', label: 'Policies', icon: Shield },
 ];
 
 export default function OverviewPage() {
@@ -291,6 +293,23 @@ export default function OverviewPage() {
               transition={{ duration: 0.6, delay: 0.3 }}
             >
               <CleaningTab />
+            </motion.div>
+          </motion.div>
+        )}
+
+        {activeTab === 'policies' && (
+          <motion.div 
+            className="space-y-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+            >
+              <PoliciesTab />
             </motion.div>
           </motion.div>
         )}

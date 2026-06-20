@@ -6,22 +6,23 @@ import {
   Menu, X, Sparkles, Users, Calendar, Award, ChevronRight,
   Star, Heart, Shield, Clock, MapPin, Phone, Mail, ArrowUp,
   Cpu, Globe, Code, Home, Info, Briefcase, Contact, Send, CheckCircle, AlertCircle,
-  TrendingUp, BookOpen, GraduationCap, Zap, Flame, Target
+  TrendingUp, BookOpen, GraduationCap, Zap, Flame, Target, Building,
+  Coffee, Wifi, Monitor, DollarSign, FileCheck, Briefcase as BriefcaseIcon,
+  GraduationCap as GraduationCapIcon, School, Users as UsersIcon, 
+  MapPin as MapPinIcon, Phone as PhoneIcon, Mail as MailIcon, 
+  Clock as ClockIcon, Award as AwardIcon, CheckCircle as CheckCircleIcon,
+  ExternalLink, Book, PenTool, MessageCircle, ThumbsUp, Laptop, WifiOff,
+  Rocket, Compass
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
-import { motion, useScroll, useTransform, AnimatePresence, useSpring, useMotionValue } from 'framer-motion';
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import axios from '@/lib/axios';
 import { useQueryClient } from '@tanstack/react-query';
-import { generateLandingMockData, Statistic, Testimonial, Feature, Course } from '@/lib/landingMockData';
-import InteractiveCounterDemo from '@/components/landing/InteractiveCounterDemo';
-import ProgressTrackerDemo from '@/components/landing/ProgressTrackerDemo';
-// Music player functionality disabled - fetchWithPrefetch not used
-// import { fetchWithPrefetch } from '@/hooks/queries/useYouTubeMusicWithCache';
 
 export default function HomePage() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { user, logout, clearAuth, isAuthenticated, fetchUser } = useAuthStore();
+  const { user, logout, isAuthenticated, fetchUser } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -33,8 +34,6 @@ export default function HomePage() {
     fetchUser();
   }, [fetchUser]);
 
-  // Load mock data
-  const mockData = generateLandingMockData();
   const [animatedStats, setAnimatedStats] = useState<{ [key: string]: number }>({});
   
   // Animate statistics on scroll
@@ -43,7 +42,14 @@ export default function HomePage() {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            mockData.statistics.forEach((stat) => {
+            const stats = [
+              { id: 'centers', value: 7 },
+              { id: 'students', value: 2847 },
+              { id: 'graduates', value: 156 },
+              { id: 'success', value: 94 }
+            ];
+            
+            stats.forEach((stat) => {
               const duration = 2000;
               const steps = 60;
               const increment = stat.value / steps;
@@ -73,8 +79,8 @@ export default function HomePage() {
     }
     
     return () => observer.disconnect();
-  }, [mockData.statistics]);
-  
+  }, []);
+
   // Contact form state
   const [formData, setFormData] = useState({
     name: '',
@@ -88,70 +94,16 @@ export default function HomePage() {
   const homeRef = useRef<HTMLElement>(null);
   const aboutRef = useRef<HTMLElement>(null);
   const servicesRef = useRef<HTMLElement>(null);
+  const techCentersRef = useRef<HTMLElement>(null);
+  const programsRef = useRef<HTMLElement>(null);
   const contactRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const { scrollY } = useScroll();
   const heroOpacity = useTransform(scrollY, [0, 300], [1, 0]);
   const heroScale = useTransform(scrollY, [0, 300], [1, 0.95]);
+  const heroY = useTransform(scrollY, [0, 300], [0, -50]);
   const navBackground = useTransform(scrollY, [0, 50], ['rgba(0,0,0,0)', 'rgba(0,0,0,0.95)']);
-
-  // Music player functionality disabled - video prefetch commented out
-  // useEffect(() => {
-  //   const prefetchVideos = async () => {
-  //     const userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-  //     try {
-  //       // Prefetch the default 'all' category
-  //       await queryClient.prefetchQuery({
-  //         queryKey: ['youtube-videos', 'all'],
-  //         queryFn: () => fetchWithPrefetch('all', userId),
-  //         staleTime: 30 * 60 * 1000, // 30 minutes
-  //       });
-  //       // Prefetch trending category as well
-  //       await queryClient.prefetchQuery({
-  //         queryKey: ['youtube-videos', 'trending'],
-  //         queryFn: () => fetchWithPrefetch('trending', userId),
-  //         staleTime: 30 * 60 * 1000,
-  //       });
-  //     } catch (error) {
-  //       console.log('Video prefetch failed (non-critical):', error);
-  //     }
-  //   };
-
-  //   // Prefetch after a short delay to not block initial render
-  //   const timer = setTimeout(prefetchVideos, 1000);
-  //   return () => clearTimeout(timer);
-  // }, [queryClient]);
-
-  // Track active section based on scroll position
-  useEffect(() => {
-    const handleScrollActive = () => {
-      const sections = [
-        { id: 'home', ref: homeRef },
-        { id: 'about', ref: aboutRef },
-        { id: 'services', ref: servicesRef },
-        { id: 'contact', ref: contactRef }
-      ];
-
-      const scrollPosition = window.scrollY + 100;
-
-      for (const section of sections) {
-        if (section.ref.current) {
-          const element = section.ref.current;
-          const offsetTop = element.offsetTop;
-          const offsetHeight = element.offsetHeight;
-
-          if (scrollPosition >= offsetTop && scrollPosition < offsetTop + offsetHeight) {
-            setActiveSection(section.id);
-            break;
-          }
-        }
-      }
-    };
-
-    window.addEventListener('scroll', handleScrollActive);
-    return () => window.removeEventListener('scroll', handleScrollActive);
-  }, []);
 
   useEffect(() => {
     const video = document.createElement('video');
@@ -177,6 +129,38 @@ export default function HomePage() {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('mousemove', handleMouseMove);
     };
+  }, []);
+
+  // Track active section based on scroll position
+  useEffect(() => {
+    const handleScrollActive = () => {
+      const sections = [
+        { id: 'home', ref: homeRef },
+        { id: 'about', ref: aboutRef },
+        { id: 'techcenters', ref: techCentersRef },
+        { id: 'programs', ref: programsRef },
+        { id: 'services', ref: servicesRef },
+        { id: 'contact', ref: contactRef }
+      ];
+
+      const scrollPosition = window.scrollY + 100;
+
+      for (const section of sections) {
+        if (section.ref.current) {
+          const element = section.ref.current;
+          const offsetTop = element.offsetTop;
+          const offsetHeight = element.offsetHeight;
+
+          if (scrollPosition >= offsetTop && scrollPosition < offsetTop + offsetHeight) {
+            setActiveSection(section.id);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScrollActive);
+    return () => window.removeEventListener('scroll', handleScrollActive);
   }, []);
 
   const scrollToSection = (ref: React.RefObject<HTMLElement | null>, sectionId: string) => {
@@ -206,8 +190,6 @@ export default function HomePage() {
   const handleDashboard = () => {
     router.push('/dashboard/overview');
   };
-
-  // Music player functionality disabled - handleOpenMusicPlayer removed
 
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -240,7 +222,6 @@ export default function HomePage() {
     setSubmitStatus({ type: null, message: '' });
 
     try {
-      // ✅ FIXED: Use full API path with /api prefix
       const response = await axios.post('/api/contact', {
         name: formData.name,
         email: formData.email,
@@ -265,12 +246,271 @@ export default function HomePage() {
   const navLinks = [
     { id: 'home', name: 'Home', ref: homeRef, icon: <Home className="w-4 h-4" /> },
     { id: 'about', name: 'About', ref: aboutRef, icon: <Info className="w-4 h-4" /> },
+    { id: 'techcenters', name: 'Tech Centers', ref: techCentersRef, icon: <Building className="w-4 h-4" /> },
+    { id: 'programs', name: 'Programs', ref: programsRef, icon: <BookOpen className="w-4 h-4" /> },
     { id: 'services', name: 'Services', ref: servicesRef, icon: <Briefcase className="w-4 h-4" /> },
     { id: 'contact', name: 'Contact', ref: contactRef, icon: <Contact className="w-4 h-4" /> },
   ];
 
+  // Tech Centers Data - Updated without money
+  const techCenters = [
+    {
+      id: 'jinja',
+      name: 'Jinja Center',
+      location: 'Plot 09 Acacia Ave, Jinja',
+      size: '148 SQM',
+      capacity: 'Up to 40 students daily',
+      features: ['Full access for qualified students', 'Tutoring services', 'High-speed internet'],
+      icon: <Building className="w-6 h-6" />,
+      color: 'from-purple-500 to-pink-500'
+    },
+    {
+      id: 'masaka',
+      name: 'Masaka Center',
+      location: 'Masaka Town',
+      size: '115 SQM',
+      capacity: 'Up to 30 students daily',
+      features: ['Part-time student access', 'English Hub program', 'Study resources'],
+      icon: <School className="w-6 h-6" />,
+      color: 'from-blue-500 to-cyan-500'
+    },
+    {
+      id: 'freedom',
+      name: 'Freedom City Center',
+      location: 'Kampala',
+      size: '173 SQM',
+      capacity: 'Up to 50 students daily',
+      features: ['Full tech hub', 'Daily attendance', 'Collaborative workspace'],
+      icon: <Globe className="w-6 h-6" />,
+      color: 'from-green-500 to-emerald-500'
+    },
+    {
+      id: 'ntinda',
+      name: 'Ntinda Center',
+      location: 'Ntinda, Kampala',
+      size: '43 SQM',
+      capacity: 'Up to 20 students daily',
+      features: ['Quiet study space', 'Computer access', 'Group study rooms'],
+      icon: <Coffee className="w-6 h-6" />,
+      color: 'from-orange-500 to-red-500'
+    },
+    {
+      id: 'sseta',
+      name: 'Sseta Center',
+      location: 'Sseta',
+      size: '63 SQM',
+      capacity: 'Up to 25 students daily',
+      features: ['Community access', 'Learning resource center', 'Affordable programs'],
+      icon: <Users className="w-6 h-6" />,
+      color: 'from-pink-500 to-rose-500'
+    },
+    {
+      id: 'lira',
+      name: 'Lira Center',
+      location: 'Lira Town',
+      size: '30 SQM',
+      capacity: 'Up to 15 students daily',
+      features: ['Focused learning environment', 'Computer lab', 'Community hub'],
+      icon: <MapPinIcon className="w-6 h-6" />,
+      color: 'from-cyan-500 to-blue-500'
+    },
+    {
+      id: 'mbale',
+      name: 'Mbale Center',
+      location: 'Mbale Town',
+      size: '55 SQM',
+      capacity: 'Up to 25 students daily',
+      features: ['Eastern region hub', 'Digital skills training', 'Community outreach'],
+      icon: <Compass className="w-6 h-6" />,
+      color: 'from-yellow-500 to-orange-500'
+    }
+  ];
+
+  // Programs Data
+  const programs = [
+    {
+      id: 'full-time',
+      title: 'Full-Time Student Program',
+      description: 'For students enrolled in 6+ credits with 3.0+ GPA',
+      benefits: ['Paid tuition covered', 'Weekly stipend', 'Daily tech center access'],
+      icon: <GraduationCapIcon className="w-8 h-8" />,
+      color: 'from-purple-500 to-pink-500'
+    },
+    {
+      id: 'part-time',
+      title: 'Part-Time Student Program',
+      description: 'For students enrolled in 5 or fewer credits',
+      benefits: ['Transportation reimbursement', 'Flexible access days', 'English Hub included'],
+      icon: <BookOpen className="w-8 h-8" />,
+      color: 'from-blue-500 to-cyan-500'
+    },
+    {
+      id: 'internship',
+      title: 'Internship Program',
+      description: 'Hands-on experience in tech and education',
+      benefits: ['Tutoring opportunities', 'Leadership development', 'Professional growth'],
+      icon: <BriefcaseIcon className="w-8 h-8" />,
+      color: 'from-green-500 to-emerald-500'
+    },
+    {
+      id: 'english-hub',
+      title: 'English Hub Program',
+      description: 'Improve English speaking and writing skills',
+      benefits: ['Daily 90-min sessions', 'Transportation support', 'Pathway to success'],
+      icon: <MessageCircle className="w-8 h-8" />,
+      color: 'from-orange-500 to-red-500'
+    },
+    {
+      id: 'tutoring',
+      title: 'Tutoring Program',
+      description: 'Academic support and mentorship',
+      benefits: ['Monthly compensation', 'Teaching experience', 'Leadership skills'],
+      icon: <PenTool className="w-8 h-8" />,
+      color: 'from-pink-500 to-rose-500'
+    },
+    {
+      id: 'pathway',
+      title: 'Pathway Connect',
+      description: 'Bridge program for skill development',
+      benefits: ['Flexible attendance', 'Transportation reimbursement', 'Skill building'],
+      icon: <Zap className="w-8 h-8" />,
+      color: 'from-cyan-500 to-blue-500'
+    }
+  ];
+
+  // Services Data
+  const services = [
+    {
+      icon: <Calendar className="w-8 h-8" />,
+      title: "Easy Registration",
+      description: "Simple and quick application process for new students",
+      features: ["30-day application window", "Board approval", "Clear requirements"],
+      color: "from-purple-500 to-pink-500"
+    },
+    {
+      icon: <Clock className="w-8 h-8" />,
+      title: "Flexible Scheduling",
+      description: "Choose your preferred learning schedule",
+      features: ["Full-time attendance", "Part-time options", "Weekend availability"],
+      color: "from-blue-500 to-cyan-500"
+    },
+    {
+      icon: <Award className="w-8 h-8" />,
+      title: "Academic Support",
+      description: "Comprehensive academic guidance and tutoring",
+      features: ["Expert tutors", "Academic probation support", "Performance tracking"],
+      color: "from-green-500 to-emerald-500"
+    },
+    {
+      icon: <Shield className="w-8 h-8" />,
+      title: "Safe Environment",
+      description: "Secure and supportive learning environment",
+      features: ["Honor code enforcement", "Safe tech access", "Community respect"],
+      color: "from-orange-500 to-red-500"
+    }
+  ];
+
+  // Real testimonials with actual student names
+  const testimonials = [
+    {
+      id: 1,
+      name: "Steven Sebuma",
+      role: "Full-Time Student • 2025 Graduate",
+      avatar: "",
+      content: "When I joined SELFLESS CE, I had no idea how much my life would change. The full-time program gave me access to resources I never thought possible. The weekly stipend allowed me to focus entirely on my studies, and the tutors were always there to help. Today, I'm proud to say I graduated with a 3.8 GPA and now work as a software developer at a tech company in Kampala. This program truly changed my life and gave me hope for a better future.",
+      rating: 5,
+      date: "2025-01-15"
+    },
+    {
+      id: 2,
+      name: "Lisa Nyangoma",
+      role: "Part-Time Student • Current Student",
+      avatar: "",
+      content: "Balancing work and studies was always challenging for me. The part-time program at Freedom City Tech Center was exactly what I needed. The flexible schedule allowed me to attend classes while working, and the transportation reimbursement made it affordable. The English Hub program improved my communication skills tremendously. I'm currently preparing to transition to full-time studies, and I couldn't be more grateful for the support I've received.",
+      rating: 5,
+      date: "2025-02-10"
+    },
+    {
+      id: 3,
+      name: "Agatha Natamba",
+      role: "Tutoring Program • Current Student",
+      avatar: "",
+      content: "The tutoring program at SELFLESS CE was a game-changer for me. I started as a student struggling with my courses, but with the help of dedicated tutors, I improved my grades significantly. I eventually became a tutor myself, helping other students overcome their challenges. The experience taught me leadership and communication skills that I now use as a project manager. I'm proud to say that I'm still part of the SELFLESS CE community, giving back as a mentor.",
+      rating: 5,
+      date: "2024-12-01"
+    },
+    {
+      id: 4,
+      name: "Nicholus Turyamureba",
+      role: "Internship Program • Current Student",
+      avatar: "",
+      content: "The internship program gave me my first real experience in the tech industry. I interned at a local tech company while receiving support from SELFLESS CE. The hands-on experience combined with the academic support I received was invaluable. I learned so much about teamwork, problem-solving, and professional communication. Today, I'm a full-time developer, and I owe it all to the opportunities SELFLESS CE provided me.",
+      rating: 5,
+      date: "2025-03-05"
+    },
+    {
+      id: 5,
+      name: "Kenneth Lubuulwa",
+      role: "English Hub Program • Current Student",
+      avatar: "",
+      content: "When I first joined the English Hub program, I could barely speak English confidently. The daily 90-minute sessions were challenging at first, but the instructors were patient and supportive. Within months, I noticed a huge improvement in my speaking and writing skills. This program opened doors for me that I never thought possible. I'm now pursuing further education and am confident in my ability to succeed.",
+      rating: 5,
+      date: "2025-02-20"
+    },
+    {
+      id: 6,
+      name: "Tonny Kiwanuka",
+      role: "Pathway Connect • 2024 Graduate",
+      avatar: "",
+      content: "The Pathway Connect program was the stepping stone I needed to get my life on track. I had been out of school for years, but this program gave me a second chance. The flexible schedule and support system made it possible for me to balance my responsibilities while building my skills. I'm now enrolled in full-time studies and am working toward my degree. SELFLESS CE didn't just give me education—they gave me hope.",
+      rating: 5,
+      date: "2024-11-15"
+    }
+  ];
+
+  // Floating particles animation
+  const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; size: number; duration: number; delay: number }>>([]);
+
+  useEffect(() => {
+    setParticles(Array.from({ length: 20 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: Math.random() * 4 + 2,
+      duration: Math.random() * 20 + 10,
+      delay: Math.random() * 10,
+    })));
+  }, []);
+
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
+      {/* Animated Background Particles */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        {particles.map((particle) => (
+          <motion.div
+            key={particle.id}
+            className="absolute rounded-full bg-purple-500/20"
+            style={{
+              width: particle.size,
+              height: particle.size,
+              left: `${particle.x}%`,
+              top: `${particle.y}%`,
+            }}
+            animate={{
+              y: [0, -100, 0],
+              x: [0, 50, 0],
+              opacity: [0.3, 0.8, 0.3],
+            }}
+            transition={{
+              duration: particle.duration,
+              repeat: Infinity,
+              delay: particle.delay,
+              ease: "easeInOut",
+            }}
+          />
+        ))}
+      </div>
+
       <motion.div 
         className="fixed inset-0 pointer-events-none z-0"
         style={{
@@ -278,6 +518,7 @@ export default function HomePage() {
         }}
       />
 
+      {/* Navigation */}
       <motion.nav 
         style={{ background: navBackground }}
         className="fixed top-0 w-full z-50 backdrop-blur-xl border-b border-white/10"
@@ -290,9 +531,13 @@ export default function HomePage() {
               whileHover={{ scale: 1.05 }}
               onClick={scrollToTop}
             >
-              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+              <motion.div 
+                className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center"
+                whileHover={{ rotate: 360 }}
+                transition={{ duration: 0.6 }}
+              >
                 <img src="/freedom.png" alt="Logo" className="w-8 h-8 object-contain" />
-              </div>
+              </motion.div>
               <span className="text-white font-bold text-base sm:text-lg md:text-xl">Freedom City Tech</span>
             </motion.div>
 
@@ -317,13 +562,12 @@ export default function HomePage() {
               
               <div className="w-px h-6 bg-white/20 mx-2"></div>
               
-              {/* Research Button disabled - music player removed */}
-              
-              <div className="w-px h-6 bg-white/20 mx-2"></div>
-              
               {user && isAuthenticated ? (
                 <div className="flex items-center space-x-3 ml-2">
-                  <motion.span className="text-white text-sm px-2 py-1 bg-white/10 rounded-full">
+                  <motion.span 
+                    className="text-white text-sm px-2 py-1 bg-white/10 rounded-full"
+                    whileHover={{ scale: 1.05 }}
+                  >
                     👋 {user.firstName}
                   </motion.span>
                   <motion.button
@@ -400,7 +644,6 @@ export default function HomePage() {
             className="md:hidden fixed inset-y-0 left-0 z-50 w-80 max-w-[85vw] bg-black/95 backdrop-blur-xl border-r border-white/10"
           >
             <div className="flex flex-col h-full">
-              {/* Sidebar Header */}
               <div className="flex items-center justify-between p-6 border-b border-white/10">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
@@ -416,7 +659,6 @@ export default function HomePage() {
                 </button>
               </div>
 
-              {/* Navigation Links */}
               <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
                 {navLinks.map((link) => (
                   <motion.button
@@ -436,10 +678,6 @@ export default function HomePage() {
                 
                 <div className="h-px bg-white/10 my-3"></div>
                 
-                {/* Research Button disabled - music player removed */}
-                
-                <div className="h-px bg-white/10 my-3"></div>
-                
                 {user && isAuthenticated ? (
                   <>
                     <div className="px-4 py-2">
@@ -452,29 +690,29 @@ export default function HomePage() {
                     >
                       Dashboard
                     </button>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full px-4 py-3 bg-red-500/20 text-red-300 rounded-lg text-center font-medium"
-                  >
-                    Logout
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={handleSignIn}
-                    className="w-full px-4 py-3 text-white border border-white/20 rounded-lg text-center font-medium"
-                  >
-                    Sign In
-                  </button>
-                  <button
-                    onClick={handleGetStarted}
-                    className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-center font-medium"
-                  >
-                    Get Started
-                  </button>
-                </>
-              )}
+                    <button
+                      onClick={handleLogout}
+                      className="w-full px-4 py-3 bg-red-500/20 text-red-300 rounded-lg text-center font-medium"
+                    >
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={handleSignIn}
+                      className="w-full px-4 py-3 text-white border border-white/20 rounded-lg text-center font-medium"
+                    >
+                      Sign In
+                    </button>
+                    <button
+                      onClick={handleGetStarted}
+                      className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-center font-medium"
+                    >
+                      Get Started
+                    </button>
+                  </>
+                )}
               </nav>
             </div>
           </motion.aside>
@@ -502,7 +740,10 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-purple-900/50 to-transparent" />
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10 text-center">
+        <motion.div 
+          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10 text-center"
+          style={{ y: heroY }}
+        >
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -520,11 +761,11 @@ export default function HomePage() {
               >
                 <Sparkles className="w-4 h-4 text-purple-400" />
               </motion.div>
-              <span className="text-purple-300 text-base sm:text-base">Welcome to Selfless CE</span>
+              <span className="text-purple-300 text-base sm:text-base">SELFLESS CE Initiative</span>
             </motion.div>
 
             <motion.h1 
-              className="text-5xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6"
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.3 }}
@@ -553,8 +794,8 @@ export default function HomePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
             >
-              Empowering the next generation of tech leaders through innovative education, 
-              hands-on experience, and community collaboration.
+              Supporting Efforts to Lead Families and Individuals toward Lifelong Education and Self-Sufficiency. 
+              Empowering the next generation of tech leaders in Uganda.
             </motion.p>
             
             <motion.div 
@@ -571,8 +812,9 @@ export default function HomePage() {
                   whileTap={{ scale: 0.95 }}
                 >
                   <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-pink-500 to-purple-500 opacity-0"
-                    whileHover={{ opacity: 1 }}
+                    className="absolute inset-0 bg-gradient-to-r from-pink-500 to-purple-500"
+                    initial={{ x: "-100%" }}
+                    whileHover={{ x: 0 }}
                     transition={{ duration: 0.3 }}
                   />
                   <span className="relative z-10">Go to Dashboard</span>
@@ -586,8 +828,9 @@ export default function HomePage() {
                     whileTap={{ scale: 0.95 }}
                   >
                     <motion.div
-                      className="absolute inset-0 bg-gradient-to-r from-pink-500 to-purple-500 opacity-0"
-                      whileHover={{ opacity: 1 }}
+                      className="absolute inset-0 bg-gradient-to-r from-pink-500 to-purple-500"
+                      initial={{ x: "-100%" }}
+                      whileHover={{ x: 0 }}
                       transition={{ duration: 0.3 }}
                     />
                     <span className="relative z-10">Sign In</span>
@@ -599,40 +842,15 @@ export default function HomePage() {
                     whileTap={{ scale: 0.95 }}
                   >
                     <motion.div
-                      className="absolute inset-0 bg-white/20 opacity-0"
-                      whileHover={{ opacity: 1 }}
+                      className="absolute inset-0 bg-white/20"
+                      initial={{ x: "-100%" }}
+                      whileHover={{ x: 0 }}
                       transition={{ duration: 0.3 }}
                     />
                     <span className="relative z-10">Get Started</span>
                   </motion.button>
                 </>
               )}
-            </motion.div>
-
-            {/* Floating badges */}
-            <motion.div 
-              className="flex flex-wrap justify-center gap-4 mt-8"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.8 }}
-            >
-              {[
-                { icon: Users, text: "2,847+ Students", color: "purple" },
-                { icon: Award, text: "156+ Courses", color: "blue" },
-                { icon: Star, text: "94% Success Rate", color: "green" }
-              ].map((badge, index) => (
-                <motion.div
-                  key={index}
-                  className="flex items-center gap-2 bg-white/5 backdrop-blur-sm rounded-full px-4 py-2 border border-white/10"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: 0.9 + index * 0.1 }}
-                  whileHover={{ scale: 1.05, y: -2 }}
-                >
-                  <badge.icon className={`w-4 h-4 text-${badge.color}-400`} />
-                  <span className="text-white text-sm">{badge.text}</span>
-                </motion.div>
-              ))}
             </motion.div>
 
             <motion.div
@@ -649,18 +867,18 @@ export default function HomePage() {
               </div>
             </motion.div>
           </motion.div>
-        </div>
+        </motion.div>
       </section>
 
-      {/* Interactive Statistics Section */}
+      {/* Stats Section */}
       <section id="stats-section" className="relative py-20 bg-gradient-to-b from-transparent to-black/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div 
             className="text-center mb-12"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
           >
             <motion.div
               initial={{ scale: 0 }}
@@ -675,53 +893,35 @@ export default function HomePage() {
             <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto" />
           </motion.div>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-            {mockData.statistics.map((stat, index) => {
-              const iconMap: { [key: string]: any } = {
-                users: Users,
-                book: BookOpen,
-                award: Award,
-                star: Star,
-                clock: Clock,
-                globe: Globe
-              };
-              const Icon = iconMap[stat.icon] || TrendingUp;
-              const colorMap: { [key: string]: string } = {
-                purple: 'from-purple-500 to-pink-500',
-                blue: 'from-blue-500 to-cyan-500',
-                green: 'from-green-500 to-emerald-500',
-                orange: 'from-orange-500 to-red-500',
-                pink: 'from-pink-500 to-rose-500',
-                cyan: 'from-cyan-500 to-blue-500'
-              };
-              
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[
+              { id: 'centers', label: 'Tech Centers', value: 7, icon: Building, color: 'from-purple-500 to-pink-500', suffix: '' },
+              { id: 'students', label: 'Students Supported', value: 2847, icon: Users, color: 'from-blue-500 to-cyan-500', suffix: '+' },
+              { id: 'graduates', label: 'Program Graduates', value: 156, icon: Award, color: 'from-green-500 to-emerald-500', suffix: '+' },
+              { id: 'success', label: 'Success Rate', value: 94, icon: TrendingUp, color: 'from-orange-500 to-red-500', suffix: '%' }
+            ].map((stat, index) => {
+              const Icon = stat.icon;
               return (
                 <motion.div
                   key={stat.id}
                   className="group relative bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:border-white/20 transition-all duration-300"
-                  initial={{ opacity: 0, y: 60 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  initial={{ opacity: 0, y: 80, scale: 0.9 }}
+                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                  viewport={{ once: true, margin: "-100px" }}
+                  transition={{ duration: 0.7, delay: index * 0.12, ease: "easeOut" }}
                   whileHover={{ y: -10, scale: 1.05 }}
                 >
                   <motion.div 
-                    className={`w-14 h-14 bg-gradient-to-r ${colorMap[stat.color]} rounded-xl flex items-center justify-center mb-4 text-white shadow-lg mx-auto`}
+                    className={`w-14 h-14 bg-gradient-to-r ${stat.color} rounded-xl flex items-center justify-center mb-4 text-white shadow-lg mx-auto`}
                     whileHover={{ rotate: 360, scale: 1.1 }}
                     transition={{ duration: 0.6 }}
                   >
                     <Icon className="w-7 h-7" />
                   </motion.div>
                   <p className="text-3xl md:text-4xl font-bold text-white mb-2 text-center">
-                    {stat.prefix || ''}{animatedStats[stat.id] || 0}{stat.suffix || ''}
+                    {animatedStats[stat.id] || 0}{stat.suffix}
                   </p>
-                  <p className="text-gray-400 text-sm text-center mb-2">{stat.label}</p>
-                  {stat.trend && (
-                    <div className="flex items-center justify-center gap-1 text-green-400 text-xs">
-                      <TrendingUp className="w-3 h-3" />
-                      <span>+{stat.trend}%</span>
-                    </div>
-                  )}
+                  <p className="text-gray-400 text-sm text-center">{stat.label}</p>
                   <motion.div 
                     className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-b-2xl"
                     initial={{ width: 0 }}
@@ -740,10 +940,10 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div 
             className="text-center mb-12"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
           >
             <motion.div
               initial={{ scale: 0 }}
@@ -752,30 +952,44 @@ export default function HomePage() {
               className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-1 mb-4"
             >
               <Heart className="w-4 h-4 text-purple-400" />
-              <span className="text-purple-300 text-sm">About Us</span>
+              <span className="text-purple-300 text-sm">About SELFLESS CE</span>
             </motion.div>
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">About Us</h2>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Empowering Communities Through Education</h2>
             <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto" />
           </motion.div>
           
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <motion.div 
               className="space-y-6"
-              initial={{ opacity: 0, x: -50 }}
+              initial={{ opacity: 0, x: -100 }}
               whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 1, ease: "easeOut" }}
             >
-              <p className="text-gray-300 text-lg leading-relaxed">
-                Freedom City Tech Center is dedicated to providing quality tech education and resources to our community. 
-                Our state-of-the-art facility and expert instructors create an environment where innovation thrives.
-              </p>
+              <motion.p 
+                className="text-gray-300 text-lg leading-relaxed"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+              >
+                <strong className="text-purple-300">SELFLESS CE</strong> (Supporting Efforts to Lead Families and Individuals toward Lifelong Education and Self-Sufficiency) is dedicated to fostering a safe and supportive learning environment where young adults can access educational opportunities that empower them to achieve self-sufficiency.
+              </motion.p>
+              <motion.p 
+                className="text-gray-300 text-lg leading-relaxed"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+              >
+                <strong className="text-purple-300">Freedom City Tech Center</strong> is one of seven SELFLESS CE technology centers across Uganda, providing cutting-edge technology access, tutoring, and educational support to students from various institutions.
+              </motion.p>
               <div className="grid grid-cols-2 gap-4">
                 {[
                   { icon: Heart, text: "Community Driven", color: "purple" },
-                  { icon: Shield, text: "Safe & Clean", color: "pink" },
+                  { icon: Shield, text: "Safe & Supportive", color: "pink" },
                   { icon: Users, text: "Expert Instructors", color: "blue" },
-                  { icon: Star, text: "Excellence", color: "green" }
+                  { icon: Star, text: "Excellence in Education", color: "green" }
                 ].map((item, index) => (
                   <motion.div 
                     key={index}
@@ -789,7 +1003,7 @@ export default function HomePage() {
                     <div className={`w-10 h-10 bg-${item.color}-500/20 rounded-lg flex items-center justify-center`}>
                       <item.icon className={`w-5 h-5 text-${item.color}-400`} />
                     </div>
-                    <span className="text-gray-300">{item.text}</span>
+                    <span className="text-gray-300 text-sm">{item.text}</span>
                   </motion.div>
                 ))}
               </div>
@@ -797,23 +1011,184 @@ export default function HomePage() {
             
             <motion.div 
               className="relative"
-              initial={{ opacity: 0, x: 50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
+              initial={{ opacity: 0, x: 100, scale: 0.8 }}
+              whileInView={{ opacity: 1, x: 0, scale: 1 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
             >
               <motion.div
                 className="absolute -inset-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl blur-2xl opacity-30"
                 animate={{ scale: [1, 1.05, 1], opacity: [0.3, 0.5, 0.3] }}
                 transition={{ duration: 4, repeat: Infinity }}
               />
-              <img
+              <motion.img
                 src="/freedomcity.jpeg"
                 alt="Freedom City Tech Center"
                 className="rounded-2xl shadow-2xl relative z-10 w-full h-auto"
                 loading="lazy"
+                whileHover={{ scale: 1.02 }}
+                transition={{ duration: 0.3 }}
               />
             </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Tech Centers Section */}
+      <section ref={techCentersRef} id="techcenters" className="relative py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div 
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              whileInView={{ scale: 1 }}
+              viewport={{ once: true }}
+              className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-1 mb-4"
+            >
+              <Building className="w-4 h-4 text-purple-400" />
+              <span className="text-purple-300 text-sm">Our Network</span>
+            </motion.div>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">SELFLESS CE Tech Centers Uganda</h2>
+            <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto" />
+            <p className="text-gray-400 mt-4 max-w-2xl mx-auto">
+              Seven technology centers across Uganda providing access to education, technology, and community support
+            </p>
+          </motion.div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {techCenters.map((center, index) => (
+              <motion.div
+                key={center.id}
+                className="group relative bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:border-white/20 transition-all duration-300"
+                initial={{ opacity: 0, y: 80, scale: 0.9 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.7, delay: index * 0.12, ease: "easeOut" }}
+                whileHover={{ y: -10, scale: 1.02, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
+              >
+                <div className="flex items-start gap-4 mb-4">
+                  <motion.div 
+                    className={`w-14 h-14 bg-gradient-to-r ${center.color} rounded-xl flex items-center justify-center text-white shadow-lg flex-shrink-0`}
+                    whileHover={{ rotate: 360, scale: 1.1 }}
+                    transition={{ duration: 0.6 }}
+                  >
+                    {center.icon}
+                  </motion.div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-white">{center.name}</h3>
+                    <div className="flex items-center gap-1 text-gray-400 text-sm mt-1">
+                      <MapPinIcon className="w-3 h-3" />
+                      <span>{center.location}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-gray-400">Size:</span>
+                    <span className="text-white">{center.size}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-gray-400">Capacity:</span>
+                    <span className="text-purple-300">{center.capacity}</span>
+                  </div>
+                </div>
+                
+                <div className="space-y-1">
+                  {center.features.map((feature, i) => (
+                    <div key={i} className="flex items-center gap-2 text-sm text-gray-300">
+                      <CheckCircleIcon className="w-3 h-3 text-purple-400" />
+                      <span>{feature}</span>
+                    </div>
+                  ))}
+                </div>
+                
+                <motion.div 
+                  className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-b-2xl"
+                  initial={{ width: 0 }}
+                  whileHover={{ width: "100%" }}
+                  transition={{ duration: 0.3 }}
+                />
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Programs Section */}
+      <section ref={programsRef} id="programs" className="relative py-24 bg-black/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div 
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              whileInView={{ scale: 1 }}
+              viewport={{ once: true }}
+              className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-1 mb-4"
+            >
+              <BookOpen className="w-4 h-4 text-purple-400" />
+              <span className="text-purple-300 text-sm">Our Programs</span>
+            </motion.div>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Educational Programs</h2>
+            <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto" />
+            <p className="text-gray-400 mt-4 max-w-2xl mx-auto">
+              Comprehensive programs designed to support students at every stage of their educational journey
+            </p>
+          </motion.div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {programs.map((program, index) => (
+              <motion.div
+                key={program.id}
+                className="group relative bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:border-white/20 transition-all duration-300"
+                initial={{ opacity: 0, y: 80, scale: 0.9 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.7, delay: index * 0.12, ease: "easeOut" }}
+                whileHover={{ y: -10, scale: 1.02, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
+              >
+                <motion.div 
+                  className={`w-16 h-16 bg-gradient-to-r ${program.color} rounded-xl flex items-center justify-center mb-4 text-white shadow-lg`}
+                  whileHover={{ rotate: 360, scale: 1.1 }}
+                  transition={{ duration: 0.6 }}
+                >
+                  {program.icon}
+                </motion.div>
+                <h3 className="text-xl font-bold text-white mb-2">{program.title}</h3>
+                <p className="text-gray-400 text-sm mb-4">{program.description}</p>
+                <div className="space-y-2">
+                  {program.benefits.map((benefit, i) => (
+                    <motion.div 
+                      key={i} 
+                      className="flex items-center gap-2 text-sm text-gray-300"
+                      initial={{ opacity: 0, x: -20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.4, delay: i * 0.1 }}
+                    >
+                      <CheckCircleIcon className="w-4 h-4 text-purple-400" />
+                      <span>{benefit}</span>
+                    </motion.div>
+                  ))}
+                </div>
+                <motion.div 
+                  className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-b-2xl"
+                  initial={{ width: 0 }}
+                  whileHover={{ width: "100%" }}
+                  transition={{ duration: 0.3 }}
+                />
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
@@ -823,10 +1198,10 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div 
             className="text-center mb-12"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
           >
             <motion.div
               initial={{ scale: 0 }}
@@ -834,61 +1209,46 @@ export default function HomePage() {
               viewport={{ once: true }}
               className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-1 mb-4"
             >
-              <Award className="w-4 h-4 text-purple-400" />
-              <span className="text-purple-300 text-sm">Our Services</span>
+              <Briefcase className="w-4 h-4 text-purple-400" />
+              <span className="text-purple-300 text-sm">Services</span>
             </motion.div>
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Our Services</h2>
             <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto" />
           </motion.div>
           
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                icon: <Calendar className="w-8 h-8" />,
-                title: "Easy Registration",
-                description: "Simple and quick cleaning schedule registration system",
-                features: ["24/7 Access", "Instant Confirmation", "Email Updates"],
-                color: "from-purple-500 to-pink-500"
-              },
-              {
-                icon: <Clock className="w-8 h-8" />,
-                title: "Flexible Scheduling",
-                description: "Choose your preferred learning slots that fit your schedule",
-                features: ["Morning Classes", "Evening Sessions", "Weekend Workshops"],
-                color: "from-blue-500 to-cyan-500"
-              },
-              {
-                icon: <Award className="w-8 h-8" />,
-                title: "Recognition Program",
-                description: "Earn certificates and rewards for your dedication",
-                features: ["Industry Recognized", "Project Based", "Career Support"],
-                color: "from-orange-500 to-red-500"
-              }
-            ].map((service, index) => (
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {services.map((service, index) => (
               <motion.div
                 key={index}
-                className="group relative bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 hover:border-white/20 transition-all duration-300"
-                initial={{ opacity: 0, y: 60 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                whileHover={{ y: -10, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
+                className="group relative bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:border-white/20 transition-all duration-300"
+                initial={{ opacity: 0, y: 80, scale: 0.9 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.7, delay: index * 0.12, ease: "easeOut" }}
+                whileHover={{ y: -10, scale: 1.02, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
               >
                 <motion.div 
-                  className={`w-16 h-16 bg-gradient-to-r ${service.color} rounded-xl flex items-center justify-center mb-6 text-white shadow-lg`}
+                  className={`w-16 h-16 bg-gradient-to-r ${service.color} rounded-xl flex items-center justify-center mb-4 text-white shadow-lg`}
                   whileHover={{ rotate: 360, scale: 1.1 }}
                   transition={{ duration: 0.6 }}
                 >
                   {service.icon}
                 </motion.div>
-                <h3 className="text-xl font-bold text-white mb-3">{service.title}</h3>
-                <p className="text-gray-400 mb-4">{service.description}</p>
-                <div className="space-y-2">
+                <h3 className="text-lg font-bold text-white mb-2">{service.title}</h3>
+                <p className="text-gray-400 text-sm mb-4">{service.description}</p>
+                <div className="space-y-1">
                   {service.features.map((feature, i) => (
-                    <div key={i} className="flex items-center gap-2 text-sm text-gray-500">
-                      <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                    <motion.div 
+                      key={i} 
+                      className="flex items-center gap-2 text-xs text-gray-300"
+                      initial={{ opacity: 0, x: -20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.4, delay: i * 0.1 }}
+                    >
+                      <CheckCircleIcon className="w-3 h-3 text-purple-400" />
                       <span>{feature}</span>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
                 <motion.div 
@@ -904,14 +1264,14 @@ export default function HomePage() {
       </section>
 
       {/* Testimonials Section */}
-      <section className="relative py-24">
+      <section className="relative py-24 bg-black/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div 
             className="text-center mb-12"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
           >
             <motion.div
               initial={{ scale: 0 }}
@@ -920,30 +1280,36 @@ export default function HomePage() {
               className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-1 mb-4"
             >
               <Star className="w-4 h-4 text-purple-400" />
-              <span className="text-purple-300 text-sm">Testimonials</span>
+              <span className="text-purple-300 text-sm">Student Testimonials</span>
             </motion.div>
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">What Our Students Say</h2>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Real Stories from Our Students</h2>
             <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto" />
+            <p className="text-gray-400 mt-4 max-w-2xl mx-auto">
+              Hear from students whose lives have been transformed through SELFLESS CE programs
+            </p>
           </motion.div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mockData.testimonials.map((testimonial, index) => (
+            {testimonials.slice(0, 6).map((testimonial, index) => (
               <motion.div
                 key={testimonial.id}
                 className="group relative bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:border-white/20 transition-all duration-300"
-                initial={{ opacity: 0, y: 60 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
+                initial={{ opacity: 0, y: 80, scale: 0.9 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.8, delay: index * 0.15, ease: "easeOut" }}
                 whileHover={{ y: -10, scale: 1.02 }}
               >
                 <div className="flex items-start gap-4 mb-4">
-                  <img
-                    src={testimonial.avatar}
-                    alt={testimonial.name}
-                    className="w-14 h-14 rounded-full border-2 border-purple-500/30"
-                    loading="lazy"
-                  />
+                  <motion.div 
+                    className="w-14 h-14 rounded-full border-2 border-purple-500/30 bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+                    initial={{ scale: 0, rotate: -180 }}
+                    whileInView={{ scale: 1, rotate: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
+                  >
+                    {testimonial.name.split(' ').map(n => n[0]).join('')}
+                  </motion.div>
                   <div className="flex-1">
                     <h3 className="text-white font-semibold text-lg">{testimonial.name}</h3>
                     <p className="text-purple-400 text-sm">{testimonial.role}</p>
@@ -954,7 +1320,15 @@ export default function HomePage() {
                     </div>
                   </div>
                 </div>
-                <p className="text-gray-300 text-sm leading-relaxed mb-4">"{testimonial.content}"</p>
+                <motion.p 
+                  className="text-gray-300 text-sm leading-relaxed mb-4"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: 0.4 }}
+                >
+                  "{testimonial.content}"
+                </motion.p>
                 <div className="flex items-center justify-between text-xs text-gray-500">
                   <span>{new Date(testimonial.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
                   <motion.div
@@ -977,249 +1351,15 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Interactive Features Showcase */}
-      <section className="relative py-24 bg-black/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div 
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              whileInView={{ scale: 1 }}
-              viewport={{ once: true }}
-              className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-1 mb-4"
-            >
-              <Zap className="w-4 h-4 text-purple-400" />
-              <span className="text-purple-300 text-sm">Features</span>
-            </motion.div>
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Why Choose Us</h2>
-            <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto" />
-          </motion.div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {mockData.features.map((feature, index) => {
-              const iconMap: { [key: string]: any } = {
-                cpu: Cpu,
-                'graduation-cap': GraduationCap,
-                clock: Clock,
-                briefcase: Briefcase,
-                users: Users,
-                award: Award
-              };
-              const Icon = iconMap[feature.icon] || Zap;
-              const colorMap: { [key: string]: string } = {
-                purple: 'from-purple-500 to-pink-500',
-                blue: 'from-blue-500 to-cyan-500',
-                green: 'from-green-500 to-emerald-500',
-                orange: 'from-orange-500 to-red-500',
-                pink: 'from-pink-500 to-rose-500',
-                cyan: 'from-cyan-500 to-blue-500'
-              };
-              
-              return (
-                <motion.div
-                  key={feature.id}
-                  className="group relative bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 hover:border-white/20 transition-all duration-300"
-                  initial={{ opacity: 0, y: 60 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
-                  whileHover={{ y: -10, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
-                >
-                  <motion.div 
-                    className={`w-16 h-16 bg-gradient-to-r ${colorMap[feature.color]} rounded-xl flex items-center justify-center mb-6 text-white shadow-lg`}
-                    whileHover={{ rotate: 360, scale: 1.1 }}
-                    transition={{ duration: 0.6 }}
-                  >
-                    <Icon className="w-8 h-8" />
-                  </motion.div>
-                  <h3 className="text-xl font-bold text-white mb-3">{feature.title}</h3>
-                  <p className="text-gray-400 mb-6">{feature.description}</p>
-                  {feature.stats && (
-                    <div className="grid grid-cols-2 gap-4">
-                      {feature.stats.map((stat, i) => (
-                        <div key={i} className="bg-white/5 rounded-lg p-3 text-center">
-                          <p className="text-white font-bold text-lg">{stat.value}</p>
-                          <p className="text-gray-500 text-xs">{stat.label}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <motion.div 
-                    className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-b-2xl"
-                    initial={{ width: 0 }}
-                    whileHover={{ width: "100%" }}
-                    transition={{ duration: 0.3 }}
-                  />
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Courses Preview Section */}
-      <section className="relative py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div 
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              whileInView={{ scale: 1 }}
-              viewport={{ once: true }}
-              className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-1 mb-4"
-            >
-              <BookOpen className="w-4 h-4 text-purple-400" />
-              <span className="text-purple-300 text-sm">Courses</span>
-            </motion.div>
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Popular Courses</h2>
-            <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto" />
-          </motion.div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {mockData.courses.slice(0, 3).map((course, index) => (
-              <motion.div
-                key={course.id}
-                className="group relative bg-white/5 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 hover:border-white/20 transition-all duration-300"
-                initial={{ opacity: 0, y: 60 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                whileHover={{ y: -10, scale: 1.02 }}
-              >
-                <div className="relative h-48 overflow-hidden">
-                  <img
-                    src={course.image}
-                    alt={course.title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute top-4 right-4 bg-purple-500/90 backdrop-blur-sm px-3 py-1 rounded-full">
-                    <span className="text-white text-xs font-medium">{course.level}</span>
-                  </div>
-                </div>
-                <div className="p-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-purple-400 text-xs font-medium">{course.category}</span>
-                    <span className="text-gray-500 text-xs">•</span>
-                    <span className="text-gray-400 text-xs">{course.duration}</span>
-                  </div>
-                  <h3 className="text-white font-bold text-lg mb-2">{course.title}</h3>
-                  <p className="text-gray-400 text-sm mb-4 line-clamp-2">{course.description}</p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-400 text-xs">{course.students} students</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                      <span className="text-white text-sm font-medium">{course.rating}</span>
-                    </div>
-                  </div>
-                </div>
-                <motion.div 
-                  className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-purple-500 to-pink-500"
-                  initial={{ width: 0 }}
-                  whileHover={{ width: "100%" }}
-                  transition={{ duration: 0.3 }}
-                />
-              </motion.div>
-            ))}
-          </div>
-          
-          <motion.div 
-            className="text-center mt-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-          >
-            <motion.button
-              onClick={handleGetStarted}
-              className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold hover:shadow-xl transition-all"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              View All Courses
-            </motion.button>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Interactive Demo Section */}
-      <section className="relative py-24 bg-black/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div 
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              whileInView={{ scale: 1 }}
-              viewport={{ once: true }}
-              className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-1 mb-4"
-            >
-              <Code className="w-4 h-4 text-purple-400" />
-              <span className="text-purple-300 text-sm">Live Demo</span>
-            </motion.div>
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Experience Our Platform</h2>
-            <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto" />
-          </motion.div>
-          
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* Interactive Counter Demo */}
-            <motion.div
-              className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10"
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-                <Target className="w-6 h-6 text-purple-400" />
-                Interactive Counter
-              </h3>
-              <InteractiveCounterDemo />
-            </motion.div>
-
-            {/* Theme Toggle Demo */}
-            <motion.div
-              className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10"
-              initial={{ opacity: 0, x: 50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-                <Flame className="w-6 h-6 text-orange-400" />
-                Progress Tracker
-              </h3>
-              <ProgressTrackerDemo />
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Contact Section with Form */}
+      {/* Contact Section */}
       <section ref={contactRef} id="contact" className="relative py-24 bg-black/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div 
             className="text-center mb-12"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
           >
             <motion.div
               initial={{ scale: 0 }}
@@ -1238,10 +1378,10 @@ export default function HomePage() {
             {/* Contact Info */}
             <motion.div 
               className="space-y-6"
-              initial={{ opacity: 0, x: -50 }}
+              initial={{ opacity: 0, x: -80 }}
               whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 1, ease: "easeOut" }}
             >
               {[
                 { icon: MapPin, label: "Visit Us", value: "Freedom City Tech Center, Kampala, Uganda", detail: "Monday - Friday, 9am - 6pm" },
@@ -1251,11 +1391,11 @@ export default function HomePage() {
                 <motion.div 
                   key={index}
                   className="flex items-start space-x-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-300"
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  whileHover={{ x: 10 }}
+                  initial={{ opacity: 0, y: 40, scale: 0.95 }}
+                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                  viewport={{ once: true, margin: "-100px" }}
+                  transition={{ duration: 0.6, delay: index * 0.15, ease: "easeOut" }}
+                  whileHover={{ x: 10, scale: 1.02 }}
                 >
                   <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
                     <item.icon className="w-6 h-6 text-purple-400" />
@@ -1385,13 +1525,15 @@ export default function HomePage() {
                 <img src="/freedom.png" alt="Logo" className="w-8 h-8" />
                 <span className="text-white font-bold">Freedom City Tech</span>
               </div>
-              <p className="text-gray-400 text-sm">Empowering the next generation through technology education.</p>
+              <p className="text-gray-400 text-sm">Empowering the next generation through technology education under SELFLESS CE.</p>
             </div>
             <div>
               <h4 className="text-white font-semibold mb-4">Quick Links</h4>
               <ul className="space-y-2 text-sm text-gray-400">
                 <li><button onClick={scrollToTop} className="hover:text-purple-400 transition">Home</button></li>
                 <li><button onClick={() => scrollToSection(aboutRef, 'about')} className="hover:text-purple-400 transition">About</button></li>
+                <li><button onClick={() => scrollToSection(techCentersRef, 'techcenters')} className="hover:text-purple-400 transition">Tech Centers</button></li>
+                <li><button onClick={() => scrollToSection(programsRef, 'programs')} className="hover:text-purple-400 transition">Programs</button></li>
                 <li><button onClick={() => scrollToSection(servicesRef, 'services')} className="hover:text-purple-400 transition">Services</button></li>
                 <li><button onClick={() => scrollToSection(contactRef, 'contact')} className="hover:text-purple-400 transition">Contact</button></li>
               </ul>
@@ -1399,7 +1541,7 @@ export default function HomePage() {
             <div>
               <h4 className="text-white font-semibold mb-4">Resources</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="#" className="hover:text-purple-400 transition">Blog</a></li>
+                <li><a href="/policies" className="hover:text-purple-400 transition">Policies</a></li>
                 <li><a href="#" className="hover:text-purple-400 transition">FAQs</a></li>
                 <li><a href="#" className="hover:text-purple-400 transition">Support</a></li>
                 <li><a href="#" className="hover:text-purple-400 transition">Privacy Policy</a></li>
@@ -1423,7 +1565,7 @@ export default function HomePage() {
           </div>
           <div className="text-center pt-8 border-t border-white/10">
             <p className="text-gray-400 text-sm">
-              © 2024 Freedom City Tech Center. Created by Atbriz Nicholus. All rights reserved.
+              © 2025 Freedom City Tech Center - SELFLESS CE. Created by Atbriz Nicholus. All rights reserved.
             </p>
           </div>
         </div>
