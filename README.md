@@ -251,9 +251,9 @@ This project is private and proprietary. All rights reserved.
 
 ## 👥 Team
 
-- **Development Team**: [Contact Information]
-- **Project Manager**: [Contact Information]
-- **System Administrator**: [Contact Information]
+- **Development Team**: [turyamurebanicholus@gmail.com]
+- **Project Manager**: [+256 761996296]
+- **System Administrator**: [Nicholus Turyamureba]
 
 ## 🆘 Support
 
@@ -290,9 +290,9 @@ For support and questions:
 ## 📞 Contact
 
 For inquiries and support:
-- **Email**: [contact@example.com]
-- **Website**: [https://freedomtech.example.com]
-- **Address**: [Physical Address]
+- **Email**: [turyamurebanicholus@gmail.com]
+- **Website**: [https://selfless-henna.vercel.app/]
+- **Address**: [Kampala Uganda]
 
 ---
 
