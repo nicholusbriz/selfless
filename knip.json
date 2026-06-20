@@ -1,14 +1,18 @@
 {
   "entry": [
     "app/**/*.{ts,tsx}",
-    "components/**/*.{ts,tsx}"
+    "components/**/*.{ts,tsx}",
+    "hooks/**/*.{ts,tsx}",
+    "lib/**/*.{ts,tsx}",
+    "stores/**/*.{ts,tsx}"
   ],
   "project": [
-    "**/*.{ts,tsx,js,jsx}",
+    "**/*.{ts,tsx,js,jsx,mjs,cjs}",
     "!**/*.d.ts",
     "!**/node_modules/**",
     "!**/.next/**",
     "!**/dist/**",
-    "!**/build/**"
+    "!**/build/**",
+    "!**/public/**"
   ]
 }

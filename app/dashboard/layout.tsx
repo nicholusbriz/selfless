@@ -34,14 +34,6 @@ export default function DashboardLayout({
     router.push('/');
   };
 
-  const handleOpenMusicPlayer = () => {
-    // Find and click the global music button
-    const musicButton = document.querySelector('.global-music-button');
-    if (musicButton) {
-      (musicButton as HTMLButtonElement).click();
-    }
-  };
-
   // Navigation items based on user role
   const getNavItems = () => {
     const role = user?.role?.name;
@@ -184,15 +176,6 @@ export default function DashboardLayout({
               </svg>
               <span className="text-sm sm:text-sm font-medium">Back to Home</span>
             </Link>
-            
-            {/* Research Button in Dashboard Nav */}
-            <button
-              onClick={handleOpenMusicPlayer}
-              className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-medium hover:shadow-lg transition"
-            >
-              <Headphones className="w-5 h-5" />
-              <span className="text-sm font-medium">Research Live</span>
-            </button>
             
             {navItems.map((item) => (
               <Link
