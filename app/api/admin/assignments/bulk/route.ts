@@ -24,18 +24,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields: teacherId and studentIds array' }, { status: 400 });
     }
 
-    // Verify teacher exists and has teacher role
-    const teacher = await prisma.user.findUnique({
+    // Verify tutor exists and has teacher or admin role
+    const tutor = await prisma.user.findUnique({
       where: { id: teacherId },
       include: { role: true }
     });
 
-    if (!teacher) {
-      return NextResponse.json({ error: 'Teacher not found' }, { status: 404 });
+    if (!tutor) {
+      return NextResponse.json({ error: 'Tutor not found' }, { status: 404 });
     }
 
-    if (teacher.role?.name !== 'teacher') {
-      return NextResponse.json({ error: 'Selected user is not a teacher' }, { status: 400 });
+    // Allow both teachers and admins to be tutors
+    if (tutor.role?.name !== 'teacher' && tutor.role?.name !== 'admin') {
+      return NextResponse.json({ error: 'Selected user must be a teacher or admin' }, { status: 400 });
     }
 
     const assignments = [];

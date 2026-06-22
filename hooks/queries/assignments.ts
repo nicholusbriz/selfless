@@ -38,6 +38,8 @@ export const useCreateBulkAssignments = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: assignmentKeys.list() });
       queryClient.invalidateQueries({ queryKey: assignmentKeys.teachers() });
+      queryClient.invalidateQueries({ queryKey: ['teacher-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['all-teachers'] });
       // Invalidate student profiles for affected students
       variables.studentIds.forEach((studentId: string) => {
         queryClient.invalidateQueries({ queryKey: ['student', studentId, 'profile'] });
@@ -58,6 +60,8 @@ export const useDeleteBulkAssignments = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: assignmentKeys.list() });
       queryClient.invalidateQueries({ queryKey: assignmentKeys.teachers() });
+      queryClient.invalidateQueries({ queryKey: ['teacher-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['all-teachers'] });
       // Invalidate all student profiles since we don't have student IDs from assignment IDs
       // This ensures all affected students get their stats updated
       queryClient.invalidateQueries({ queryKey: ['student'] });
@@ -74,6 +78,8 @@ export const useUpdateAssignment = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: assignmentKeys.list() });
       queryClient.invalidateQueries({ queryKey: assignmentKeys.teachers() });
+      queryClient.invalidateQueries({ queryKey: ['teacher-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['all-teachers'] });
       // Invalidate all student profiles since status changes affect tutor display
       queryClient.invalidateQueries({ queryKey: ['student'] });
     },

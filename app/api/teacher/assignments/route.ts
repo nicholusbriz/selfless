@@ -21,11 +21,15 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const teacherUserId = searchParams.get('teacherId');
+    const fetchAll = searchParams.get('all');
 
     const where: any = {};
     
     // Use User ID directly (not teacherProfile.id)
-    if (teacherUserId) {
+    if (fetchAll === 'true') {
+      // Fetch all assignments for all teachers
+      // Don't filter by teacherId
+    } else if (teacherUserId) {
       where.teacherId = teacherUserId;
     } else {
       where.teacherId = userId;  // Use User ID directly

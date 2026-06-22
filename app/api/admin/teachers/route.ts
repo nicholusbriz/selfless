@@ -17,11 +17,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden', message: 'Admin access required' }, { status: 403 });
     }
 
-    // Get all users with teacher role
-    const teachers = await prisma.user.findMany({
+    // Get all users with teacher OR admin role (admins can also be tutors)
+    const tutors = await prisma.user.findMany({
       where: {
         role: {
-          name: 'teacher'
+          name: {
+            in: ['teacher', 'admin']
+          }
         }
       },
       select: {
@@ -29,29 +31,35 @@ export async function GET(request: NextRequest) {
         firstName: true,
         lastName: true,
         email: true,
+        role: {
+          select: {
+            name: true
+          }
+        },
         teacherProfile: true
       }
     });
 
     // Get assignment counts
-    const teachersWithCounts = await Promise.all(teachers.map(async (teacher) => {
+    const tutorsWithCounts = await Promise.all(tutors.map(async (tutor) => {
       const assignments = await prisma.teacherStudentAssignment.findMany({
-        where: { teacherId: teacher.id }
+        where: { teacherId: tutor.id }
       });
       
       return {
-        id: teacher.id,
-        name: `${teacher.firstName} ${teacher.lastName}`,
-        email: teacher.email,
-        teacherId: teacher.teacherProfile?.teacherId || null,
-        profileId: teacher.teacherProfile?.id || null,
+        id: tutor.id,
+        name: `${tutor.firstName} ${tutor.lastName}`,
+        email: tutor.email,
+        role: tutor.role?.name || 'unknown',
+        teacherId: tutor.teacherProfile?.teacherId || null,
+        profileId: tutor.teacherProfile?.id || null,
         totalStudents: assignments.length,
         verifiedCount: assignments.filter(a => a.status === 'verified').length,
         notVerifiedCount: assignments.filter(a => a.status === 'not_verified').length
       };
     }));
 
-    return NextResponse.json({ teachers: teachersWithCounts });
+    return NextResponse.json({ teachers: tutorsWithCounts });
   } catch (error) {
     console.error('Error fetching teachers:', error);
     return NextResponse.json({ error: 'Failed to fetch teachers' }, { status: 500 });
