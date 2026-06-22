@@ -78,6 +78,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true });
     try {
       await axios.post('/api/auth/logout');
+      
+      // Clear service worker cache to prevent cached data from allowing re-login
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'CLEAR_CACHE'
+        });
+      }
+      
       set({ user: null, isAuthenticated: false, isLoading: false });
     } catch (error) {
       console.error('Logout error:', error);

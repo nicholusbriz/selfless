@@ -1,11 +1,11 @@
 // public/sw.js - Service Worker for PWA with icon caching
-const CACHE_NAME = 'freedom-tech-v2';
-const STATIC_CACHE = 'freedom-tech-static-v1';
+// Cache version - increment this to force cache invalidation on deployment
+const CACHE_VERSION = 'v4';
+const CACHE_NAME = `freedom-tech-${CACHE_VERSION}`;
+const STATIC_CACHE = `freedom-tech-static-${CACHE_VERSION}`;
 
-// Assets to cache for PWA installation
+// Assets to cache for PWA installation (static assets only - not HTML pages)
 const ASSETS_TO_CACHE = [
-  '/',
-  '/dashboard/overview',
   '/manifest.json',
   '/freedom.png',
   '/icon-72x72.png',
@@ -60,40 +60,113 @@ self.addEventListener('fetch', (event) => {
   // Skip cross-origin requests
   if (!event.request.url.startsWith(self.location.origin)) return;
 
-  event.respondWith(
-    caches.match(event.request)
-      .then((cachedResponse) => {
-        // Return cached version if available
-        if (cachedResponse) {
-          return cachedResponse;
-        }
+  const url = new URL(event.request.url);
+  const isHTMLRequest = event.request.headers.get('accept')?.includes('text/html');
+  const isAPIRoute = url.pathname.startsWith('/api');
+  const isStaticAsset = url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|webp|svg|ico|woff|woff2|ttf|eot)$/);
 
-        // Otherwise, fetch from network
-        return fetch(event.request)
-          .then((response) => {
-            // Don't cache if response is not valid
-            if (!response || response.status !== 200 || response.type !== 'basic') {
+  // NEVER cache API routes - always fetch fresh data
+  if (isAPIRoute) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // Don't cache API responses
+          return response;
+        })
+        .catch((error) => {
+          console.log('[SW] API fetch failed:', error);
+          throw error;
+        })
+    );
+    return;
+  }
+
+  // Network-first for HTML pages (always get fresh content)
+  if (isHTMLRequest) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // Don't cache HTML responses - always serve fresh
+          return response;
+        })
+        .catch((error) => {
+          console.log('[SW] Network failed for HTML, trying cache:', error);
+          // Fallback to cache if network fails
+          return caches.match(event.request);
+        })
+    );
+    return;
+  }
+
+  // Cache-first for static assets (icons, images, etc.) ONLY
+  if (isStaticAsset) {
+    event.respondWith(
+      caches.match(event.request)
+        .then((cachedResponse) => {
+          // Return cached version if available
+          if (cachedResponse) {
+            // Optionally update cache in background
+            fetch(event.request).then((response) => {
+              if (response && response.status === 200) {
+                caches.open(STATIC_CACHE).then((cache) => {
+                  cache.put(event.request, response);
+                });
+              }
+            });
+            return cachedResponse;
+          }
+
+          // Otherwise, fetch from network and cache
+          return fetch(event.request)
+            .then((response) => {
+              // Don't cache if response is not valid
+              if (!response || response.status !== 200) {
+                return response;
+              }
+
+              // Clone the response since it can only be consumed once
+              const responseToCache = response.clone();
+
+              // Cache the fetched response for future
+              caches.open(STATIC_CACHE)
+                .then((cache) => {
+                  cache.put(event.request, responseToCache);
+                });
+
               return response;
-            }
+            })
+            .catch((error) => {
+              console.log('[SW] Fetch failed:', error);
+            });
+        })
+    );
+    return;
+  }
 
-            // Clone the response since it can only be consumed once
-            const responseToCache = response.clone();
-
-            // Cache the fetched response for future
-            caches.open(STATIC_CACHE)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-
-            return response;
-          })
-          .catch((error) => {
-            console.log('[SW] Fetch failed:', error);
-            // If both cache and network fail, return a basic offline page for HTML requests
-            if (event.request.headers.get('accept')?.includes('text/html')) {
-              return caches.match('/dashboard/overview');
-            }
-          });
+  // For all other requests, use network-first (no caching)
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        return response;
+      })
+      .catch((error) => {
+        console.log('[SW] Fetch failed for:', url.pathname, error);
+        throw error;
       })
   );
+});
+
+// Listen for messages from client (e.g., to clear cache on logout)
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'CLEAR_CACHE') {
+    console.log('[SW] Clearing all caches on logout');
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          console.log('[SW] Deleting cache:', cacheName);
+          return caches.delete(cacheName);
+        })
+      );
+    });
+  }
 });
