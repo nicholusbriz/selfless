@@ -23,8 +23,8 @@ export default function AdminTuitionList({
 }: AdminTuitionListProps) {
   // Calculate total tuition (handling null values)
   const totalTuition = students.reduce((sum, student) => sum + (student.tuition || 0), 0);
-  const paidCount = students.filter(s => s.tuitionPaid).length;
-  const pendingCount = students.filter(s => !s.tuitionPaid).length;
+  const paidCount = students.filter(s => s.tuitionPaid && s.tuition).length;
+  const pendingCount = students.filter(s => s.tuition && !s.tuitionPaid).length;
 
   return (
     <div className="space-y-6">
@@ -81,37 +81,47 @@ export default function AdminTuitionList({
                     )}
                   </td>
                   <td className="p-4">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${
-                      student.tuitionPaid
-                        ? 'bg-green-500/20 text-green-400'
-                        : 'bg-red-500/20 text-red-400'
-                    }`}>
-                      {student.tuitionPaid ? (
-                        <>
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          Paid
-                        </>
-                      ) : (
-                        <>
-                          <XCircle className="w-4 h-4 mr-1" />
-                          Pending
-                        </>
-                      )}
-                    </span>
+                    {!student.tuition ? (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-500/20 text-gray-400">
+                        Not Submitted
+                      </span>
+                    ) : (
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${
+                        student.tuitionPaid
+                          ? 'bg-green-500/20 text-green-400'
+                          : 'bg-red-500/20 text-red-400'
+                      }`}>
+                        {student.tuitionPaid ? (
+                          <>
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Paid
+                          </>
+                        ) : (
+                          <>
+                            <XCircle className="w-4 h-4 mr-1" />
+                            Pending
+                          </>
+                        )}
+                      </span>
+                    )}
                   </td>
                   <td className="p-4">
-                    <motion.button
-                      onClick={() => onTogglePayment(student.id, student.tuitionPaid)}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        student.tuitionPaid
-                          ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                          : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                      }`}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      {student.tuitionPaid ? 'Mark Unpaid' : 'Mark Paid'}
-                    </motion.button>
+                    {student.tuition ? (
+                      <motion.button
+                        onClick={() => onTogglePayment(student.id, student.tuitionPaid)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          student.tuitionPaid
+                            ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                            : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                        }`}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        {student.tuitionPaid ? 'Mark Unpaid' : 'Mark Paid'}
+                      </motion.button>
+                    ) : (
+                      <span className="text-gray-500 text-sm">No tuition set</span>
+                    )}
                   </td>
                 </motion.tr>
               ))}

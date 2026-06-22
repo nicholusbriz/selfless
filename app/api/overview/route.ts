@@ -36,7 +36,8 @@ export async function GET(request: NextRequest) {
           include: {
             teacher: {
               include: {
-                teacherProfile: true
+                teacherProfile: true,
+                role: true
               }
             }
           },
@@ -78,6 +79,7 @@ export async function GET(request: NextRequest) {
           firstName: tutor.firstName,
           lastName: tutor.lastName,
           email: tutor.email,
+          role: tutor.role?.name || 'teacher',
           teacherId: tutor.teacherProfile?.teacherId,
           department: tutor.teacherProfile?.department
         } : null,

@@ -6,12 +6,12 @@ import DashboardTabs from '@/components/shared/DashboardTabs';
 import LoadingState, { StatsCardSkeleton, TabSkeleton } from '@/components/shared/LoadingState';
 import ErrorState from '@/components/shared/ErrorState';
 import TeacherStatsCards from '@/components/teacher/TeacherStatsCards';
-import TeacherAssignmentList from '@/components/teacher/TeacherAssignmentList';
+import EnhancedTutorAssignments from '@/components/teacher/EnhancedTutorAssignments';
 import TeacherCleaningManagement from '@/components/teacher/TeacherCleaningManagement';
 import SharedGradesTab from '@/components/shared/SharedGradesTab';
 import { Users, Award, TrendingUp, UserCheck, Sparkles } from 'lucide-react';
 import { useSharedGradesStudents, useSharedAssignGrade } from '@/hooks/queries/shared-grades';
-import { useTeacherAssignments, useUpdateTeacherAssignmentStatus } from '@/hooks/queries/teacher-assignments';
+import { useTeacherAssignments, useUpdateTeacherAssignmentStatus, useAllTeachers } from '@/hooks/queries/teacher-assignments';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 
@@ -37,7 +37,8 @@ export default function TeachersPage() {
     }
   }, []);
 
-  const { data: assignmentsData, isLoading: assignmentsLoading, refetch: refetchAssignments } = useTeacherAssignments();
+  const { data: assignmentsData, isLoading: assignmentsLoading, refetch: refetchAssignments } = useTeacherAssignments(undefined, undefined, true);
+  const { data: teachersData } = useAllTeachers();
   const updateAssignmentStatusMutation = useUpdateTeacherAssignmentStatus();
 
   const handleUpdateAssignmentStatus = async (assignmentId: string, status: string) => {
@@ -181,8 +182,8 @@ export default function TeachersPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
             >
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">My Assigned Students</h1>
-              <p className="text-gray-400 text-sm sm:text-base">View and manage students assigned to you</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Tutor Assignments</h1>
+              <p className="text-gray-400 text-sm sm:text-base">View all tutors and their assigned students</p>
             </motion.div>
 
             <motion.div
@@ -190,8 +191,11 @@ export default function TeachersPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
             >
-              <TeacherAssignmentList
+              <EnhancedTutorAssignments
                 assignments={assignmentsData?.assignments || []}
+                teachers={teachersData?.teachers || []}
+                currentUserId={user?.id || ''}
+                currentUserRole={user?.role?.name || ''}
                 onStatusChange={handleUpdateAssignmentStatus}
               />
             </motion.div>
