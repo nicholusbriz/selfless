@@ -241,8 +241,9 @@ export default function HomePage() {
           </div>
           <div className="border-t border-white/5 pt-4 mt-4">
             <p className="text-gray-400 text-sm">Developed By</p>
-            <p className="text-white font-medium">Nicholus Turyamureba</p>
+            <p className="text-white font-medium">Atbriz</p>
             <p className="text-gray-400 text-sm">Software Developer</p>
+            <p className="text-gray-400 text-sm">+256 761 996 296</p>
             <p className="text-gray-400 text-sm">Zana, Kampala, Uganda</p>
             <p className="text-purple-300 text-sm">Student at BYU–Idaho</p>
           </div>
