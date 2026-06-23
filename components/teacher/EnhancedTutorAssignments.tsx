@@ -2,16 +2,15 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  User, 
-  ChevronDown, 
-  ChevronUp, 
-  CheckCircle, 
-  Clock, 
+import {
+  User,
+  ChevronDown,
+  ChevronUp,
+  CheckCircle,
+  Clock,
   X,
   Users,
   GraduationCap,
-  Mail,
   Hash,
   AlertCircle,
   Search
@@ -172,6 +171,7 @@ export default function EnhancedTutorAssignments({
     if (newExpanded.has(teacherId)) {
       newExpanded.delete(teacherId);
     } else {
+   
       newExpanded.add(teacherId);
     }
     setExpandedTutors(newExpanded);
@@ -186,26 +186,6 @@ export default function EnhancedTutorAssignments({
   };
 
   const tutorArray = Object.entries(filteredTutorGroups);
-
-  if (tutorArray.length === 0) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white/5 backdrop-blur-lg rounded-xl p-8 text-center border border-white/10"
-      >
-        <AlertCircle className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-white mb-2">
-          {searchQuery ? 'No Results Found' : 'No Tutor Assignments'}
-        </h3>
-        <p className="text-gray-400">
-          {searchQuery 
-            ? `No students or tutors matching "${searchQuery}"`
-            : 'No tutors have been assigned to students yet.'}
-        </p>
-      </motion.div>
-    );
-  }
 
   return (
     <motion.div
@@ -260,6 +240,25 @@ export default function EnhancedTutorAssignments({
           </button>
         )}
       </div>
+
+      {/* Empty State */}
+      {tutorArray.length === 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white/5 backdrop-blur-lg rounded-xl p-8 text-center border border-white/10"
+        >
+          <AlertCircle className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-white mb-2">
+            {searchQuery ? 'No Results Found' : 'No Tutor Assignments'}
+          </h3>
+          <p className="text-gray-400">
+            {searchQuery 
+              ? `No students or tutors matching "${searchQuery}"`
+              : 'No tutors have been assigned to students yet.'}
+          </p>
+        </motion.div>
+      )}
 
       {/* Tutor List */}
       <div className="space-y-3">
@@ -381,10 +380,6 @@ export default function EnhancedTutorAssignments({
                                     <Hash className="w-3 h-3" />
                                     {student.studentId || 'N/A'}
                                   </span>
-                                  <span className="flex items-center gap-1 truncate">
-                                    <Mail className="w-3 h-3 flex-shrink-0" />
-                                    <span className="truncate">{student.email}</span>
-                                  </span>
                                   {student.gpa !== undefined && (
                                     <span className={`font-medium flex-shrink-0 ${
                                       student.gpa >= 3.0 ? 'text-green-400' : 
@@ -398,21 +393,15 @@ export default function EnhancedTutorAssignments({
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
                               {assignment?.status && (
-                                <span className={`text-xs px-2 py-1 rounded flex items-center gap-1 ${
-                                  assignment.status === 'verified' 
-                                    ? 'bg-green-500/20 text-green-400' 
+                                <span className={`text-xs px-2 py-1 rounded ${
+                                  assignment.status === 'verified'
+                                    ? 'bg-green-500/20 text-green-400'
                                     : assignment.status === 'not_verified'
                                     ? 'bg-yellow-500/20 text-yellow-400'
                                     : 'bg-red-500/20 text-red-400'
                                 }`}>
-                                  {assignment.status === 'verified' && <CheckCircle className="w-3 h-3" />}
-                                  {assignment.status === 'not_verified' && <Clock className="w-3 h-3" />}
-                                  {assignment.status === 'rejected' && <X className="w-3 h-3" />}
-                                  <span className="hidden sm:inline">{assignment.status.replace('_', ' ')}</span>
-                                  <span className="sm:hidden">
-                                    {assignment.status === 'verified' ? '✓' : 
-                                     assignment.status === 'not_verified' ? '⏳' : '✗'}
-                                  </span>
+                                  {assignment.status === 'verified' ? 'verified' :
+                                   assignment.status === 'not_verified' ? 'not verified' : 'rejected'}
                                 </span>
                               )}
                               {onStatusChange && canEdit && assignment && (

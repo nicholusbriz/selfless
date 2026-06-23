@@ -15,7 +15,9 @@ const protectedRoutes = {
 // Note: More specific routes must come before general routes
 const protectedApiRoutes = {
   '/api/admin/students': ['student', 'teacher', 'admin'],
+  '/api/admin/teachers': ['student', 'teacher', 'admin'], // Allow all authenticated users to view teachers
   '/api/admin': ['admin'],
+  '/api/teacher/assignments': ['student', 'teacher', 'admin'], // Allow all authenticated users to view assignments
   '/api/teacher': ['teacher', 'admin'],
   '/api/student': ['student', 'teacher', 'admin'],
   '/api/cleaning': ['student', 'teacher', 'admin'],

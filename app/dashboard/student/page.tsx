@@ -230,10 +230,12 @@ export default function StudentDashboard() {
                     id: 'tutor',
                     icon: User,
                     title: 'Assigned Tutor',
-                    value: profileData?.profile?.tutor 
+                    value: profileData?.profile?.tutor
                       ? `${profileData.profile.tutor.firstName} ${profileData.profile.tutor.lastName}`
                       : 'Not assigned',
-                    subtitle: profileData?.profile?.tutor?.teacherId || 'No tutor assigned',
+                    subtitle: profileData?.profile?.tutor
+                      ? (profileData.profile.tutor.teacherId || 'Teacher ID ')
+                      : 'No tutor assigned',
                     iconColor: profileData?.profile?.tutor ? 'text-purple-400' : 'text-gray-400',
                     gradient: profileData?.profile?.tutor ? 'from-purple-600/20 to-pink-600/20' : 'from-gray-600/20 to-gray-600/20'
                   }
