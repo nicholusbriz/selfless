@@ -12,10 +12,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Check for admin role
-    if (userRole !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden', message: 'Admin access required' }, { status: 403 });
-    }
+    // Allow all authenticated users to view teachers (not just admins)
+    // This is needed for the overview page which is accessible to all roles
 
     // Get all users with teacher OR admin role (admins can also be tutors)
     const tutors = await prisma.user.findMany({

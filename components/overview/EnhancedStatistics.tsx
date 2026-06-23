@@ -37,13 +37,13 @@ export default function EnhancedStatistics({ statistics }: StatisticsProps) {
   }));
 
   // Calculate percentages
-  const tutorCoverage = statistics.totalStudents > 0 
+  const tutorCoverage = statistics.totalStudents > 0
     ? ((statistics.studentsWithTutor / statistics.totalStudents) * 100).toFixed(1)
-    : '0';
+    : '0.0';
 
   const tuitionPaymentRate = statistics.totalStudents > 0
     ? ((statistics.tuitionPaidCount / statistics.totalStudents) * 100).toFixed(1)
-    : '0';
+    : '0.0';
 
   return (
     <div className="space-y-6">
