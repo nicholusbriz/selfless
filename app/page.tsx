@@ -5,6 +5,17 @@ import { useRouter } from 'next/navigation';
 import { Menu, X, ChevronUp } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import AuthDialog from '@/components/auth/AuthDialog';
+import RotatingEarth from '@/components/ui/wireframe-dotted-globe';
+import { useScrollAnimation } from '@/hooks/useScrollAnimation';
+
+function ScrollSection({ children }: { children: React.ReactNode }) {
+  const [ref, isVisible] = useScrollAnimation();
+  return (
+    <div ref={ref} className={`scroll-hidden ${isVisible ? 'scroll-visible' : ''}`}>
+      {children}
+    </div>
+  );
+}
 
 export default function HomePage() {
   const router = useRouter();
@@ -142,120 +153,226 @@ export default function HomePage() {
       )}
 
       {/* HERO */}
-      <section className="relative min-h-screen flex items-center pt-20 pb-12 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="slide-up">
-            <div className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-1.5 mb-5 border border-purple-500/10">
-              <span className="text-purple-300 text-xs font-medium tracking-wider">STUDENT MANAGEMENT SYSTEM</span>
-            </div>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-4 leading-tight">
-              <span className="text-white">Freedom City Tech Center</span><br />
-              <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Student Learning &amp; Progress Portal</span>
-            </h1>
-            <p className="text-gray-400 text-lg max-w-2xl mb-8 leading-relaxed">
-              Manage your learning journey at Freedom City Tech Center. Submit courses, register for participation days with the team, monitor progress, view reports, and achieve your educational goals through one centralized platform.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              {isAuthenticated ? (
-                <button onClick={handleDashboard} className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl font-medium text-white shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transition hover:scale-[1.02]">Go to Dashboard</button>
-              ) : (
-                <>
-                  <button onClick={handleSignIn} className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl font-medium text-white shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transition hover:scale-[1.02]">Student Login</button>
-                  <button onClick={handleGetStarted} className="px-6 py-3 glass rounded-xl font-medium text-white border border-white/10 hover:bg-white/5 transition">Student Registration</button>
-                </>
-              )}
-            </div>
-          </div>
+      <section className="relative min-h-screen flex items-center pt-20 pb-12 z-10 overflow-hidden">
+        {/* Rotating Earth Background - Fixed for entire page */}
+        <div className="fixed inset-0 flex items-center justify-center opacity-40 pointer-events-none">
+          <RotatingEarth width={1920} height={1080} className="w-full h-full" />
+        </div>
 
-          {/* Quick Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-12 slide-up delay-1">
-            <div className="glass rounded-xl p-5 hover-lift transition">
-              <p className="text-gray-400 text-xs uppercase tracking-wider">My Courses</p>
-              <p className="text-2xl font-bold text-white mt-1">12 Active</p>
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0618]/80 via-[#0a0618]/70 to-[#0a0618]" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="slide-up">
+              <div className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-1.5 mb-5 border border-purple-500/10 backdrop-blur-sm">
+                <span className="text-purple-300 text-xs font-medium tracking-wider">STUDENT MANAGEMENT SYSTEM</span>
+              </div>
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-4 leading-tight">
+                <span className="text-white">Freedom City Tech Center</span><br />
+                <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Student Learning &amp; Progress Portal</span>
+              </h1>
+              <p className="text-gray-400 text-lg max-w-2xl mb-8 leading-relaxed">
+                Manage your learning journey at Freedom City Tech Center. Submit courses, register for participation days with the team, monitor progress, view reports, and achieve your educational goals through one centralized platform.
+              </p>
+              <div className="flex flex-wrap gap-4">
+                {isAuthenticated ? (
+                  <button onClick={handleDashboard} className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl font-medium text-white shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transition hover:scale-[1.02]">Go to Dashboard</button>
+                ) : (
+                  <>
+                    <button onClick={handleSignIn} className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl font-medium text-white shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transition hover:scale-[1.02]">Student Login</button>
+                    <button onClick={handleGetStarted} className="px-6 py-3 glass rounded-xl font-medium text-white border border-white/10 hover:bg-white/5 transition">Student Registration</button>
+                  </>
+                )}
+              </div>
             </div>
-            <div className="glass rounded-xl p-5 hover-lift transition">
-              <p className="text-gray-400 text-xs uppercase tracking-wider">Participation Days</p>
-              <p className="text-2xl font-bold text-white mt-1">2 Scheduled</p>
-            </div>
-            <div className="glass rounded-xl p-5 hover-lift transition">
-              <p className="text-gray-400 text-xs uppercase tracking-wider">Progress</p>
-              <p className="text-2xl font-bold text-white mt-1">78% Complete</p>
-            </div>
-            <div className="glass rounded-xl p-5 hover-lift transition">
-              <p className="text-gray-400 text-xs uppercase tracking-wider">Certificates</p>
-              <p className="text-2xl font-bold text-white mt-1">3 Earned</p>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-2 gap-4 slide-up delay-1">
+              <div className="glass rounded-xl p-5 hover-lift transition backdrop-blur-sm">
+                <p className="text-gray-400 text-xs uppercase tracking-wider">My Courses</p>
+                <p className="text-2xl font-bold text-white mt-1">12 Active</p>
+              </div>
+              <div className="glass rounded-xl p-5 hover-lift transition backdrop-blur-sm">
+                <p className="text-gray-400 text-xs uppercase tracking-wider">Participation Days</p>
+                <p className="text-2xl font-bold text-white mt-1">2 Scheduled</p>
+              </div>
+              <div className="glass rounded-xl p-5 hover-lift transition backdrop-blur-sm">
+                <p className="text-gray-400 text-xs uppercase tracking-wider">Progress</p>
+                <p className="text-2xl font-bold text-white mt-1">78% Complete</p>
+              </div>
+              <div className="glass rounded-xl p-5 hover-lift transition backdrop-blur-sm">
+                <p className="text-gray-400 text-xs uppercase tracking-wider">Certificates</p>
+                <p className="text-2xl font-bold text-white mt-1">3 Earned</p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* STUDENT LEARNING */}
-      <section className="relative py-16 z-10">
+      <section className="relative py-20 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="slide-up">
-            <h2 className="text-2xl font-bold text-white flex items-center gap-3">📚 Student Learning</h2>
-            <p className="text-gray-400 text-sm mt-1">Submit courses, register for participation days, and monitor academic growth.</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-5 mt-6">
-            <div className="glass rounded-xl p-5 slide-up delay-1 hover-lift transition">
-              <div className="flex items-center gap-3"><span className="text-2xl">📖</span><div><p className="text-white font-medium">My Courses</p><p className="text-gray-400 text-xs">Access learning materials</p></div></div>
+          <ScrollSection>
+            <div className="mb-8">
+              <div className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-1.5 mb-4 border border-purple-500/10">
+                <span className="text-purple-300 text-xs font-medium tracking-wider">LEARNING RESOURCES</span>
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-2">Student Learning</h2>
+              <p className="text-gray-400 text-base">Submit courses, register for participation days, and monitor academic growth.</p>
             </div>
-            <div className="glass rounded-xl p-5 slide-up delay-2 hover-lift transition">
-              <div className="flex items-center gap-3"><span className="text-2xl">�</span><div><p className="text-white font-medium">Participation Days</p><p className="text-gray-400 text-xs">Register for team sessions</p></div></div>
-            </div>
-            <div className="glass rounded-xl p-5 slide-up delay-3 hover-lift transition">
-              <div className="flex items-center gap-3"><span className="text-2xl">📈</span><div><p className="text-white font-medium">Learning Progress</p><p className="text-gray-400 text-xs">Monitor academic growth</p></div></div>
-            </div>
+          </ScrollSection>
+          <div className="grid md:grid-cols-3 gap-6">
+            <ScrollSection>
+              <div className="glass rounded-2xl p-6 hover-lift transition backdrop-blur-sm border border-white/10 group cursor-pointer">
+                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <span className="text-2xl">📖</span>
+                </div>
+                <h3 className="text-white font-semibold text-lg mb-2">My Courses</h3>
+                <p className="text-gray-400 text-sm">Access learning materials and track your course progress</p>
+              </div>
+            </ScrollSection>
+            <ScrollSection>
+              <div className="glass rounded-2xl p-6 hover-lift transition backdrop-blur-sm border border-white/10 group cursor-pointer">
+                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <span className="text-2xl">🎯</span>
+                </div>
+                <h3 className="text-white font-semibold text-lg mb-2">Participation Days</h3>
+                <p className="text-gray-400 text-sm">Register for team sessions and cleaning activities</p>
+              </div>
+            </ScrollSection>
+            <ScrollSection>
+              <div className="glass rounded-2xl p-6 hover-lift transition backdrop-blur-sm border border-white/10 group cursor-pointer">
+                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <span className="text-2xl">📈</span>
+                </div>
+                <h3 className="text-white font-semibold text-lg mb-2">Learning Progress</h3>
+                <p className="text-gray-400 text-sm">Monitor academic growth and achievements</p>
+              </div>
+            </ScrollSection>
           </div>
         </div>
       </section>
 
       {/* ACADEMIC ACTIVITIES + REPORTS */}
-      <section className="relative py-16 z-10">
+      <section className="relative py-20 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-2 gap-8">
-            <div className="slide-up">
-              <h2 className="text-2xl font-bold text-white flex items-center gap-3">📚 Academic Activities</h2>
-              <p className="text-gray-400 text-sm mt-1">Stay informed about upcoming lessons, deadlines, and learning activities.</p>
-              <div className="glass rounded-xl p-5 mt-4 hover-lift transition">
-                <div className="flex justify-between items-center border-b border-white/5 pb-3"><span className="text-white font-medium">Upcoming Classes</span><span className="text-purple-300 text-sm">Available</span></div>
-                <div className="flex justify-between items-center border-b border-white/5 py-3"><span className="text-white font-medium">Participation Days</span><span className="text-purple-300 text-sm">Open</span></div>
-                <div className="flex justify-between items-center pt-3"><span className="text-white font-medium">Learning Milestones</span><span className="text-purple-300 text-sm">Active</span></div>
+            <ScrollSection>
+              <div>
+                <div className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-1.5 mb-4 border border-purple-500/10">
+                  <span className="text-purple-300 text-xs font-medium tracking-wider">ACTIVITIES</span>
+                </div>
+                <h2 className="text-3xl font-bold text-white mb-2">Academic Activities</h2>
+                <p className="text-gray-400 text-base mb-6">Stay informed about upcoming lessons, deadlines, and learning activities.</p>
+                <div className="glass rounded-2xl p-6 hover-lift transition backdrop-blur-sm border border-white/10">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center border-b border-white/5 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                        <span className="text-white font-medium">Upcoming Classes</span>
+                      </div>
+                      <span className="text-purple-300 text-sm bg-purple-500/20 px-3 py-1 rounded-full">Available</span>
+                    </div>
+                    <div className="flex justify-between items-center border-b border-white/5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                        <span className="text-white font-medium">Participation Days</span>
+                      </div>
+                      <span className="text-purple-300 text-sm bg-purple-500/20 px-3 py-1 rounded-full">Open</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                        <span className="text-white font-medium">Learning Milestones</span>
+                      </div>
+                      <span className="text-purple-300 text-sm bg-purple-500/20 px-3 py-1 rounded-full">Active</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="slide-up delay-2">
-              <h2 className="text-2xl font-bold text-white flex items-center gap-3">📈 Reports</h2>
-              <p className="text-gray-400 text-sm mt-1">Track academic performance, learning achievements, and certificate completion.</p>
-              <div className="glass rounded-xl p-5 mt-4 hover-lift transition">
-                <div className="flex items-center gap-3"><span className="text-2xl">📊</span><div><p className="text-white font-medium">Performance Reports</p><p className="text-gray-400 text-xs">View report</p></div></div>
-                <div className="flex items-center gap-3 mt-3"><span className="text-2xl">🏆</span><div><p className="text-white font-medium">Course Progress</p><p className="text-gray-400 text-xs">Track progress</p></div></div>
-                <div className="flex items-center gap-3 mt-3"><span className="text-2xl">📜</span><div><p className="text-white font-medium">Certificate Records</p><p className="text-gray-400 text-xs">View details</p></div></div>
+            </ScrollSection>
+            <ScrollSection>
+              <div>
+                <div className="inline-flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-1.5 mb-4 border border-purple-500/10">
+                  <span className="text-purple-300 text-xs font-medium tracking-wider">ANALYTICS</span>
+                </div>
+                <h2 className="text-3xl font-bold text-white mb-2">Reports</h2>
+                <p className="text-gray-400 text-base mb-6">Track academic performance, learning achievements, and certificate completion.</p>
+                <div className="glass rounded-2xl p-6 hover-lift transition backdrop-blur-sm border border-white/10">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition cursor-pointer">
+                      <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                        <span className="text-xl">📊</span>
+                      </div>
+                      <div>
+                        <p className="text-white font-medium">Performance Reports</p>
+                        <p className="text-gray-400 text-xs">View detailed analytics</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition cursor-pointer">
+                      <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                        <span className="text-xl">🏆</span>
+                      </div>
+                      <div>
+                        <p className="text-white font-medium">Course Progress</p>
+                        <p className="text-gray-400 text-xs">Track your achievements</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition cursor-pointer">
+                      <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                        <span className="text-xl">📜</span>
+                      </div>
+                      <div>
+                        <p className="text-white font-medium">Certificate Records</p>
+                        <p className="text-gray-400 text-xs">View earned certificates</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
+            </ScrollSection>
           </div>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer className="relative z-10 border-t border-white/5 py-8 mt-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="mb-4">
-            <p className="text-white font-semibold text-lg">Freedom City Tech Center</p>
-            <p className="text-gray-400 text-sm">Student Management System</p>
-            <p className="text-gray-500 text-sm mt-1">Empowering students through technology education.</p>
-          </div>
-          <div className="border-t border-white/5 pt-4 mt-4">
-            <p className="text-gray-400 text-sm">Developed By</p>
-            <p className="text-white font-medium">Atbriz</p>
-            <p className="text-gray-400 text-sm">Software Developer</p>
-            <p className="text-gray-400 text-sm">+256 761 996 296</p>
-            <p className="text-gray-400 text-sm">Zana, Kampala, Uganda</p>
-            <p className="text-purple-300 text-sm">Student at BYU–Idaho</p>
-          </div>
-          <div className="border-t border-white/5 pt-4 mt-4">
-            <p className="text-gray-500 text-sm">© 2026 Freedom City Tech Center</p>
-            <p className="text-gray-500 text-sm">All Rights Reserved.</p>
-          </div>
+      <footer className="relative z-10 border-t border-white/5 py-16 mt-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <ScrollSection>
+            <div className="grid md:grid-cols-3 gap-8 mb-12">
+              <div className="text-center md:text-left">
+                <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
+                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/20">
+                    <span className="text-white font-bold">F</span>
+                  </div>
+                  <span className="text-white font-semibold text-lg">Freedom City Tech Center</span>
+                </div>
+                <p className="text-gray-400 text-sm mb-2">Student Management System</p>
+                <p className="text-gray-500 text-sm">Empowering students through technology education.</p>
+              </div>
+              <div className="text-center">
+                <h3 className="text-white font-semibold mb-4">Developer</h3>
+                <p className="text-purple-300 font-medium mb-1">Atbriz</p>
+                <p className="text-gray-400 text-sm">Software Developer</p>
+                <p className="text-gray-400 text-sm">+256 761 996 296</p>
+                <p className="text-gray-400 text-sm">Zana, Kampala, Uganda</p>
+                <p className="text-purple-300 text-sm mt-2">Student at BYU–Idaho</p>
+              </div>
+              <div className="text-center md:text-right">
+                <h3 className="text-white font-semibold mb-4">Quick Links</h3>
+                <div className="space-y-2">
+                  <button onClick={handleDashboard} className="block text-gray-400 hover:text-purple-300 text-sm transition">Dashboard</button>
+                  <button onClick={handleCourses} className="block text-gray-400 hover:text-purple-300 text-sm transition">Courses</button>
+                  <button onClick={handleProgress} className="block text-gray-400 hover:text-purple-300 text-sm transition">Progress</button>
+                  <button onClick={handleProfile} className="block text-gray-400 hover:text-purple-300 text-sm transition">Profile</button>
+                </div>
+              </div>
+            </div>
+            <div className="border-t border-white/5 pt-8 text-center">
+              <p className="text-gray-500 text-sm">© 2026 Freedom City Tech Center. All Rights Reserved.</p>
+            </div>
+          </ScrollSection>
         </div>
       </footer>
 
