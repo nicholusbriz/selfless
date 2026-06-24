@@ -152,6 +152,30 @@ export default function AdminCleaningManagement() {
     }
   };
 
+  const handleToggleWeekRegistration = async (weekId: string, enabled: boolean) => {
+    try {
+      await updateWeekMutation.mutateAsync({
+        weekId,
+        data: { registrationEnabled: enabled },
+      });
+      await refetch();
+    } catch (error) {
+      console.error('Error toggling week registration:', error);
+    }
+  };
+
+  const handleToggleDayOpen = async (dayId: string, isOpen: boolean) => {
+    try {
+      await updateDayMutation.mutateAsync({
+        dayId,
+        data: { isOpen },
+      });
+      await refetch();
+    } catch (error) {
+      console.error('Error toggling day:', error);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -349,17 +373,24 @@ export default function AdminCleaningManagement() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {week.registrationEnabled ? (
-                      <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/20 border border-green-500/30">
-                        <CheckCircle className="w-3 h-3 text-green-400" />
-                        <span className="text-xs font-medium text-green-400">Open</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 border border-red-500/30">
-                        <XCircle className="w-3 h-3 text-red-400" />
-                        <span className="text-xs font-medium text-red-400">Closed</span>
-                      </div>
-                    )}
+                    <button
+                      onClick={() => handleToggleWeekRegistration(week.id, !week.registrationEnabled)}
+                      className={`flex items-center gap-1 px-2 py-0.5 rounded-full border transition-colors ${
+                        week.registrationEnabled
+                          ? 'bg-green-500/20 border-green-500/30 text-green-400 hover:bg-green-500/30'
+                          : 'bg-red-500/20 border-red-500/30 text-red-400 hover:bg-red-500/30'
+                      }`}
+                      title={week.registrationEnabled ? 'Close registration' : 'Open registration'}
+                    >
+                      {week.registrationEnabled ? (
+                        <CheckCircle className="w-3 h-3" />
+                      ) : (
+                        <XCircle className="w-3 h-3" />
+                      )}
+                      <span className="text-xs font-medium">
+                        {week.registrationEnabled ? 'Open' : 'Closed'}
+                      </span>
+                    </button>
                     <button
                       onClick={() => handleDeleteWeek(week.id)}
                       className="p-1.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 transition-colors"
@@ -397,6 +428,17 @@ export default function AdminCleaningManagement() {
                                     {day.registrations?.length || 0} / {day.capacityLimit}
                                   </span>
                                 </div>
+                                <button
+                                  onClick={() => handleToggleDayOpen(day.id, !day.isOpen)}
+                                  className={`p-1.5 rounded-lg border transition-colors ${
+                                    day.isOpen
+                                      ? 'bg-green-500/20 border-green-500/30 text-green-400 hover:bg-green-500/30'
+                                      : 'bg-red-500/20 border-red-500/30 text-red-400 hover:bg-red-500/30'
+                                  }`}
+                                  title={day.isOpen ? 'Close day' : 'Open day'}
+                                >
+                                  {day.isOpen ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                                </button>
                                 <button
                                   onClick={() => {
                                     setSelectedDayForCapacity(day);

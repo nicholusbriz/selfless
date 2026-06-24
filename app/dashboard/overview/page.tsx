@@ -18,7 +18,7 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import axios from '@/lib/axios';
 import { createPortal } from 'react-dom';
-import { useTeacherAssignments, useUpdateTeacherAssignmentStatus, useAllTeachers } from '@/hooks/queries/teacher-assignments';
+import { useTeacherAssignments, useAllTeachers } from '@/hooks/queries/teacher-assignments';
 
 type Tab = 'overview' | 'students' | 'cleaning' | 'policies';
 
@@ -58,15 +58,6 @@ export default function OverviewPage() {
   // Fetch assignments and teachers data for EnhancedTutorAssignments
   const { data: assignmentsData } = useTeacherAssignments(undefined, undefined, true);
   const { data: teachersData } = useAllTeachers();
-  const updateAssignmentStatusMutation = useUpdateTeacherAssignmentStatus();
-
-  const handleUpdateAssignmentStatus = async (assignmentId: string, status: string) => {
-    try {
-      await updateAssignmentStatusMutation.mutateAsync({ id: assignmentId, data: { status } });
-    } catch (error) {
-      console.error('Error updating assignment status:', error);
-    }
-  };
 
   // Extract students and statistics from the single data source
   const students = overviewData?.students || [];
@@ -237,7 +228,6 @@ export default function OverviewPage() {
                 teachers={teachersData?.teachers || []}
                 currentUserId={user?.id || ''}
                 currentUserRole={user?.role?.name || ''}
-                onStatusChange={handleUpdateAssignmentStatus}
               />
             </motion.div>
 
