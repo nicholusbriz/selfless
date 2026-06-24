@@ -141,7 +141,6 @@ export default function HomePage() {
               <button onClick={() => { handleDashboard(); setMobileMenuOpen(false); }} className="text-white hover:text-purple-400 py-2 border-b border-white/5 text-left">Dashboard</button>
               <button onClick={() => { handleCourses(); setMobileMenuOpen(false); }} className="text-white hover:text-purple-400 py-2 border-b border-white/5 text-left">Courses</button>
               <button onClick={() => { handleProgress(); setMobileMenuOpen(false); }} className="text-white hover:text-purple-400 py-2 border-b border-white/5 text-left">Progress</button>
-              <button onClick={() => { handleReports(); setMobileMenuOpen(false); }} className="text-white hover:text-purple-400 py-2 border-b border-white/5 text-left">Reports</button>
               <button onClick={() => { handleProfile(); setMobileMenuOpen(false); }} className="text-white hover:text-purple-400 py-2 border-b border-white/5 text-left">Profile</button>
               <div className="pt-4 flex flex-col gap-3">
                 {isAuthenticated ? (
