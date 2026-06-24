@@ -6,7 +6,7 @@ import PWAInstall from '@/components/PWAInstall';
 export const metadata: Metadata = {
   metadataBase: new URL('https://selfless-henna.vercel.app'),
   title: "Freedom City Tech Center - Selfless CE | Academic Management System",
-  description: "Freedom City Tech Center, Seeta Tech Center, Ntinda Teach Center, Masaka Teach Center, Jinja Tech Center, Mbale Tech Center, Kololo Stake Center, Kaboowa Tech Center - Academic management system by Selfless CE. Track students, courses, and academic progress. Developed by Nicholus Turyamureba (Atbriz) and Cyber Touch.",
+  description: "Freedom City Tech Center, Seeta Tech Center, Ntinda Teach Center, Masaka Teach Center, Jinja Tech Center, Mbale Tech Center - Academic management system by Freedom city Tech Center. Track students, courses, and academic progress. Developer Nicholus Turyamureba student byu idaho",
   keywords: "Freedom City Tech Center, Seeta Tech Center, Ntinda Teach Center, Masaka Teach Center, Jinja Tech Center, Mbale Tech Center, Kololo Stake Center, Kaboowa Tech Center, Selfless CE, Nicholus Turyamureba, Atbriz, Cyber Touch, academic management, student tracking, course management, tech education, Uganda tech centers",
   authors: [{ name: "Nicholus Turyamureba", url: "https://selfless-henna.vercel.app" }],
   creator: "Atbriz",
