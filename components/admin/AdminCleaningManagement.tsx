@@ -14,7 +14,8 @@ import {
   useUpdateDay,
   useDeleteDay,
   useManualAssign,
-  useMarkAttendance
+  useMarkAttendance,
+  useRemoveStudent
 } from '@/hooks/useCleaning';
 import LoadingState, { StatsCardSkeleton } from '@/components/shared/LoadingState';
 import ErrorState from '@/components/shared/ErrorState';
@@ -28,12 +29,16 @@ export default function AdminCleaningManagement() {
   const deleteDayMutation = useDeleteDay();
   const manualAssignMutation = useManualAssign();
   const markAttendanceMutation = useMarkAttendance();
+  const removeStudentMutation = useRemoveStudent();
   
   const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
   const [showCreateWeek, setShowCreateWeek] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showCapacityModal, setShowCapacityModal] = useState(false);
   const [selectedDayForAssignment, setSelectedDayForAssignment] = useState<any>(null);
+  const [selectedDayForCapacity, setSelectedDayForCapacity] = useState<any>(null);
   const [selectedStudentForAssignment, setSelectedStudentForAssignment] = useState('');
+  const [newCapacityLimit, setNewCapacityLimit] = useState<number>(0);
 
   const toggleWeek = (weekId: string) => {
     const newExpanded = new Set(expandedWeeks);
@@ -113,6 +118,61 @@ export default function AdminCleaningManagement() {
       await refetch();
     } catch (error) {
       console.error('Error marking attendance:', error);
+    }
+  };
+
+  const handleRemoveStudent = async (studentUserId: string, studentName: string) => {
+    if (confirm(`Are you sure you want to remove ${studentName} from this cleaning day? The student account will remain active but they will no longer be registered for this day.`)) {
+      try {
+        await removeStudentMutation.mutateAsync(studentUserId);
+        await refetch();
+      } catch (error) {
+        console.error('Error removing student:', error);
+      }
+    }
+  };
+
+  const handleUpdateCapacity = async () => {
+    if (!selectedDayForCapacity || newCapacityLimit < 1) {
+      alert('Please enter a valid capacity limit (minimum 1)');
+      return;
+    }
+
+    try {
+      await updateDayMutation.mutateAsync({
+        dayId: selectedDayForCapacity.id,
+        data: { capacityLimit: newCapacityLimit },
+      });
+      setShowCapacityModal(false);
+      setSelectedDayForCapacity(null);
+      await refetch();
+    } catch (error) {
+      console.error('Error updating capacity:', error);
+      alert('Failed to update capacity limit');
+    }
+  };
+
+  const handleToggleWeekRegistration = async (weekId: string, enabled: boolean) => {
+    try {
+      await updateWeekMutation.mutateAsync({
+        weekId,
+        data: { registrationEnabled: enabled },
+      });
+      await refetch();
+    } catch (error) {
+      console.error('Error toggling week registration:', error);
+    }
+  };
+
+  const handleToggleDayOpen = async (dayId: string, isOpen: boolean) => {
+    try {
+      await updateDayMutation.mutateAsync({
+        dayId,
+        data: { isOpen },
+      });
+      await refetch();
+    } catch (error) {
+      console.error('Error toggling day:', error);
     }
   };
 
@@ -313,17 +373,24 @@ export default function AdminCleaningManagement() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {week.registrationEnabled ? (
-                      <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/20 border border-green-500/30">
-                        <CheckCircle className="w-3 h-3 text-green-400" />
-                        <span className="text-xs font-medium text-green-400">Open</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 border border-red-500/30">
-                        <XCircle className="w-3 h-3 text-red-400" />
-                        <span className="text-xs font-medium text-red-400">Closed</span>
-                      </div>
-                    )}
+                    <button
+                      onClick={() => handleToggleWeekRegistration(week.id, !week.registrationEnabled)}
+                      className={`flex items-center gap-1 px-2 py-0.5 rounded-full border transition-colors ${
+                        week.registrationEnabled
+                          ? 'bg-green-500/20 border-green-500/30 text-green-400 hover:bg-green-500/30'
+                          : 'bg-red-500/20 border-red-500/30 text-red-400 hover:bg-red-500/30'
+                      }`}
+                      title={week.registrationEnabled ? 'Close registration' : 'Open registration'}
+                    >
+                      {week.registrationEnabled ? (
+                        <CheckCircle className="w-3 h-3" />
+                      ) : (
+                        <XCircle className="w-3 h-3" />
+                      )}
+                      <span className="text-xs font-medium">
+                        {week.registrationEnabled ? 'Open' : 'Closed'}
+                      </span>
+                    </button>
                     <button
                       onClick={() => handleDeleteWeek(week.id)}
                       className="p-1.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 transition-colors"
@@ -361,6 +428,28 @@ export default function AdminCleaningManagement() {
                                     {day.registrations?.length || 0} / {day.capacityLimit}
                                   </span>
                                 </div>
+                                <button
+                                  onClick={() => handleToggleDayOpen(day.id, !day.isOpen)}
+                                  className={`p-1.5 rounded-lg border transition-colors ${
+                                    day.isOpen
+                                      ? 'bg-green-500/20 border-green-500/30 text-green-400 hover:bg-green-500/30'
+                                      : 'bg-red-500/20 border-red-500/30 text-red-400 hover:bg-red-500/30'
+                                  }`}
+                                  title={day.isOpen ? 'Close day' : 'Open day'}
+                                >
+                                  {day.isOpen ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSelectedDayForCapacity(day);
+                                    setNewCapacityLimit(day.capacityLimit);
+                                    setShowCapacityModal(true);
+                                  }}
+                                  className="p-1.5 rounded-lg bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-colors"
+                                  title="Edit capacity limit"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
                                 <button
                                   onClick={() => {
                                     setSelectedDayForAssignment(day);
@@ -432,6 +521,13 @@ export default function AdminCleaningManagement() {
                                           title="Mark as pending"
                                         >
                                           <Clock className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                          onClick={() => handleRemoveStudent(reg.userId, `${reg.user.firstName} ${reg.user.lastName}`)}
+                                          className="p-1 rounded bg-orange-500/20 text-orange-400 hover:bg-orange-500/30"
+                                          title="Remove student from day"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
                                         </button>
                                       </div>
                                     </div>
@@ -589,6 +685,65 @@ export default function AdminCleaningManagement() {
                     className="flex-1 px-4 py-2 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-400 hover:bg-purple-500/30 transition-colors disabled:opacity-50"
                   >
                     {manualAssignMutation.isPending ? 'Assigning...' : 'Assign'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Update Capacity Modal */}
+      <AnimatePresence>
+        {showCapacityModal && selectedDayForCapacity && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowCapacityModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-gray-900 rounded-xl p-6 w-full max-w-md border border-white/10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-bold text-white mb-4">Update Capacity Limit</h3>
+              <p className="text-gray-400 text-sm mb-4">
+                Update capacity for {selectedDayForCapacity.dayOfWeek} ({formatDate(selectedDayForCapacity.cleaningDate)})
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-gray-400 text-sm mb-1">New Capacity Limit</label>
+                  <input
+                    type="number"
+                    value={newCapacityLimit}
+                    onChange={(e) => setNewCapacityLimit(parseInt(e.target.value) || 0)}
+                    min={1}
+                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:border-purple-500 focus:outline-none"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Current registrations: {selectedDayForCapacity.registrations?.length || 0}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Day will {newCapacityLimit > (selectedDayForCapacity.registrations?.length || 0) ? 'reopen' : 'close'} if capacity is {newCapacityLimit > (selectedDayForCapacity.registrations?.length || 0) ? 'increased' : 'decreased'}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowCapacityModal(false)}
+                    className="flex-1 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleUpdateCapacity}
+                    disabled={newCapacityLimit < 1 || updateDayMutation.isPending}
+                    className="flex-1 px-4 py-2 rounded-lg bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-colors disabled:opacity-50"
+                  >
+                    {updateDayMutation.isPending ? 'Updating...' : 'Update'}
                   </button>
                 </div>
               </div>
