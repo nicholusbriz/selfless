@@ -4,12 +4,15 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Menu, X, ChevronUp } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
+import AuthDialog from '@/components/auth/AuthDialog';
 
 export default function HomePage() {
   const router = useRouter();
   const { user, isAuthenticated, fetchUser, isLoading } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [authTab, setAuthTab] = useState<'login' | 'register'>('login');
   const hasFetchedUser = useRef(false);
 
   // Fetch user data on mount to hydrate auth store after hard refresh
@@ -34,11 +37,13 @@ export default function HomePage() {
   };
 
   const handleSignIn = () => {
-    router.push('/login');
+    setAuthTab('login');
+    setShowAuthDialog(true);
   };
 
   const handleGetStarted = () => {
-    router.push('/register');
+    setAuthTab('register');
+    setShowAuthDialog(true);
   };
 
   const handleDashboard = () => {
@@ -126,8 +131,8 @@ export default function HomePage() {
                   </>
                 ) : (
                   <>
-                    <button onClick={() => { handleSignIn(); setMobileMenuOpen(false); }} className="w-full py-3 border border-white/10 rounded-lg text-white">Student Login</button>
-                    <button onClick={() => { handleGetStarted(); setMobileMenuOpen(false); }} className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold">Student Registration</button>
+                    <button onClick={() => { setAuthTab('login'); setShowAuthDialog(true); setMobileMenuOpen(false); }} className="w-full py-3 border border-white/10 rounded-lg text-white">Student Login</button>
+                    <button onClick={() => { setAuthTab('register'); setShowAuthDialog(true); setMobileMenuOpen(false); }} className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold">Student Registration</button>
                   </>
                 )}
               </div>
@@ -260,6 +265,13 @@ export default function HomePage() {
           <ChevronUp size={20} className="text-white" />
         </button>
       )}
+
+      {/* Auth Dialog */}
+      <AuthDialog 
+        isOpen={showAuthDialog} 
+        onClose={() => setShowAuthDialog(false)} 
+        defaultTab={authTab}
+      />
     </div>
   );
 }
