@@ -287,3 +287,28 @@
         transform: rotate(360deg);
     }
 }
+
+@keyframes pulse-slow {
+    0%, 100% {
+        opacity: 0.2;
+    }
+    50% {
+        opacity: 0.4;
+    }
+}
+
+.animate-pulse-slow {
+    animation: pulse-slow 8s ease-in-out infinite;
+}
+
+/* Scroll-triggered animations */
+.scroll-hidden {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+
+.scroll-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
