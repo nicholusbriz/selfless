@@ -280,11 +280,6 @@ export default function HomePage() {
                 <p className="text-white text-sm mb-4">Namasuba, Stella, Kabowa</p>
                 <p className="text-white text-sm">Kampala, Uganda</p>
                 <div className="mt-4 rounded-xl overflow-hidden border border-white/10 relative">
-                  <style>{`
-                    .gmnoprint a[href^="https://maps.google.com/maps"] {
-                      display: none !important;
-                    }
-                  `}</style>
                   <iframe
                     src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d31918.08877867205!2d32.525365583003335!3d0.3068647019174247!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x177dbb06c47502b1%3A0xaf67246fe5cb34bb!2sFreedom%20city!5e0!3m2!1sen!2sug!4v1782328514193!5m2!1sen!2sug&output=embed&z=15"
                     width="100%"
