@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-import { generateToken } from '@/lib/jwt';
+import { generateTokenEdge } from '@/lib/jwt-edge';
 import { registerSchema } from '@/lib/validations/auth';
 import { rateLimit, getIdentifier } from '@/lib/rateLimit';
 
@@ -64,95 +64,87 @@ export async function POST(request: Request) {
       });
     }
 
-    // Generate a unique student ID (Format: STU2024001)
-    const generateStudentId = async () => {
-      const year = new Date().getFullYear();
-      const lastStudent = await prisma.studentProfile.findFirst({
-        orderBy: { studentId: 'desc' }
-      });
-      
-      let nextNumber = 1;
-      if (lastStudent && lastStudent.studentId) {
-        const match = lastStudent.studentId.match(/\d+$/);
-        if (match) {
-          nextNumber = parseInt(match[0]) + 1;
-        }
+    // Generate simple unique student ID using timestamp + random
+    const year = new Date().getFullYear();
+    const randomSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    const studentId = `STU${year}${randomSuffix}`;
+
+    // Create user first (sequential, no transaction)
+    const newUser = await prisma.user.create({
+      data: {
+        firstName,
+        lastName,
+        email,
+        password: hashedPassword,
+        phoneNumber,
+        roleId: userRole.id
       }
-      
-      return `STU${year}${nextNumber.toString().padStart(4, '0')}`;
-    };
-
-    // Create new user with student profile in a transaction
-    const result = await prisma.$transaction(async (tx) => {
-      // Create the user
-      const newUser = await tx.user.create({
-        data: {
-          firstName,
-          lastName,
-          email,
-          password: hashedPassword,
-          phoneNumber,
-          roleId: userRole.id
-        }
-      });
-
-      // Generate student ID
-      const studentId = await generateStudentId();
-
-      // Create the student profile with ONLY fields that exist in your schema
-      const studentProfile = await tx.studentProfile.create({
-        data: {
-          userId: newUser.id,
-          studentId: studentId,
-          takesReligion: false,     // Default value
-          tuition: null,            // No tuition set yet
-          tuitionPaid: false,       // Default false
-          currentGPA: 0,            // Starting GPA
-          totalCredits: 0           // Starting credits
-        }
-      });
-
-      // Get the complete user with profiles
-      const userWithProfiles = await tx.user.findUnique({
-        where: { id: newUser.id },
-        include: {
-          role: true,
-          studentProfile: true,
-          teacherProfile: true
-        }
-      });
-
-      return userWithProfiles;
     });
 
-    // ✅ UPDATED: Generate JWT token with userId AND role
-    const token = generateToken({ 
-      userId: result!.id, 
-      role: 'student'  // New registrations are always students
+    // Create student profile separately
+    const studentProfile = await prisma.studentProfile.create({
+      data: {
+        userId: newUser.id,
+        studentId: studentId,
+        takesReligion: false,
+        tuitionPaid: false,
+        currentGPA: 0,
+        totalCredits: 0
+      }
     });
 
-    // Set HTTP-only cookie
+    // Fetch complete user with profiles
+    const userWithProfiles = await prisma.user.findUnique({
+      where: { id: newUser.id },
+      include: {
+        role: true,
+        studentProfile: true,
+        teacherProfile: true
+      }
+    });
+
+    if (!userWithProfiles) {
+      throw new Error('Failed to retrieve created user');
+    }
+
+    // Generate JWT token using edge-compatible function
+    const token = await generateTokenEdge({ 
+      userId: userWithProfiles.id, 
+      role: 'student'
+    });
+
+    // Remove password from response
+    const { password: _, ...userWithoutPassword } = userWithProfiles;
+
+    // Set cookie with same options as login
     const response = NextResponse.json({
       success: true,
       message: 'Registration successful',
-      user: result
+      user: userWithoutPassword
     });
 
     response.cookies.set('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: false, // Match login: false for localhost
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/'
     });
 
+    console.log('✅ Registration successful for email:', email, 'userId:', userWithProfiles.id);
     return response;
 
   } catch (error) {
     console.error('Registration error:', error);
+    
+    // Return actual error message in development
+    const errorMessage = process.env.NODE_ENV === 'development' 
+      ? (error instanceof Error ? error.message : 'Unknown error')
+      : 'Server error during registration';
+    
     return NextResponse.json({
       success: false,
-      message: 'Server error during registration',
+      message: errorMessage,
     }, { status: 500 });
   }
 }

@@ -21,7 +21,7 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error(`[Axios Error] ${error.response?.status} ${error.config?.url}`);
+    // Silent error handling - no console logging
     return Promise.reject(error);
   }
 );
