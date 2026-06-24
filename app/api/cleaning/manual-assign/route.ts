@@ -101,11 +101,13 @@ export async function POST(request: NextRequest) {
         });
 
         if (oldDay) {
+          const isOldDayFull = oldCount >= oldDay.capacityLimit;
           await prisma.cleaningDay.update({
             where: { id: oldCleaningDayId },
             data: {
               currentRegistrations: oldCount,
-              isFull: oldCount >= oldDay.capacityLimit,
+              isFull: isOldDayFull,
+              isOpen: !isOldDayFull, // Auto-reopen when capacity becomes available
             },
           });
         }
@@ -135,12 +137,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Update new day's count
+    // Update new day's count and auto-close if full
+    const newRegistrationCount = currentRegistrations + 1;
+    const isNowFull = newRegistrationCount >= cleaningDay.capacityLimit;
+
     await prisma.cleaningDay.update({
       where: { id: cleaningDayId },
       data: {
-        currentRegistrations: currentRegistrations + 1,
-        isFull: currentRegistrations + 1 >= cleaningDay.capacityLimit,
+        currentRegistrations: newRegistrationCount,
+        isFull: isNowFull,
+        isOpen: !isNowFull, // Auto-close when capacity is reached
       },
     });
 

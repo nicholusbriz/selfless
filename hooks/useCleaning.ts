@@ -311,27 +311,31 @@ export function useMarkAttendance() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cleaning'] });
+      queryClient.invalidateQueries({ queryKey: ['cleaning', 'weeks'] });
+      queryClient.invalidateQueries({ queryKey: ['cleaning', 'admin'] });
+      queryClient.invalidateQueries({ queryKey: ['cleaning', 'teacher'] });
+      queryClient.invalidateQueries({ queryKey: ['cleaning', 'student'] });
     },
   });
 }
 
-// Remove student from day hook (for teachers/admins)
+// Remove student from day hook (for admins/teachers)
 export function useRemoveStudent() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (studentUserId: string) => {
-      // Use manual assign to remove by assigning to null or delete registration
-      // For now, we'll use the manual assign logic to move them
-      const response = await axios.delete(`${API_BASE}/register`, {
-        headers: {
-          'x-user-id': studentUserId,
-        },
+      const response = await axios.delete(`${API_BASE}/remove-student`, {
+        data: { studentUserId },
       });
       return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cleaning'] });
+      queryClient.invalidateQueries({ queryKey: ['cleaning', 'weeks'] });
+      queryClient.invalidateQueries({ queryKey: ['cleaning', 'admin'] });
+      queryClient.invalidateQueries({ queryKey: ['cleaning', 'teacher'] });
+      queryClient.invalidateQueries({ queryKey: ['cleaning', 'student'] });
     },
   });
 }

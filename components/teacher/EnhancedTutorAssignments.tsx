@@ -48,15 +48,13 @@ interface EnhancedTutorAssignmentsProps {
   teachers: Teacher[];
   currentUserId: string;
   currentUserRole: string;
-  onStatusChange?: (assignmentId: string, status: string) => void;
 }
 
 export default function EnhancedTutorAssignments({
   assignments,
   teachers,
   currentUserId,
-  currentUserRole,
-  onStatusChange
+  currentUserRole
 }: EnhancedTutorAssignmentsProps) {
   const [expandedTutors, setExpandedTutors] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
@@ -67,7 +65,6 @@ export default function EnhancedTutorAssignments({
       teacher: Teacher;
       students: Student[];
       studentCount: number;
-      verifiedCount: number;
       averageGPA: number;
     }} = {};
 
@@ -77,7 +74,6 @@ export default function EnhancedTutorAssignments({
         teacher,
         students: [],
         studentCount: 0,
-        verifiedCount: 0,
         averageGPA: 0
       };
     });
@@ -93,7 +89,6 @@ export default function EnhancedTutorAssignments({
           teacher,
           students: [],
           studentCount: 0,
-          verifiedCount: 0,
           averageGPA: 0
         };
       }
@@ -101,9 +96,6 @@ export default function EnhancedTutorAssignments({
       if (assignment.student) {
         groups[teacherKey].students.push(assignment.student);
         groups[teacherKey].studentCount++;
-        if (assignment.status === 'verified') {
-          groups[teacherKey].verifiedCount++;
-        }
       }
     });
 
@@ -116,11 +108,6 @@ export default function EnhancedTutorAssignments({
 
     return groups;
   }, [assignments, teachers]);
-
-  // Check if assignment belongs to current user
-  const isAssignmentOwned = (assignment: Assignment) => {
-    return assignment.teacherId === currentUserId;
-  };
 
   // Filter tutor groups based on search query
   const filteredTutorGroups = useMemo(() => {
@@ -315,10 +302,6 @@ export default function EnhancedTutorAssignments({
                     <p className="text-lg font-bold text-white">{group.averageGPA.toFixed(2)}</p>
                     <p className="text-gray-400 text-xs">Avg GPA</p>
                   </div>
-                  <div className="text-right hidden sm:block">
-                    <p className="text-lg font-bold text-green-400">{group.verifiedCount}</p>
-                    <p className="text-gray-400 text-xs">Verified</p>
-                  </div>
                   {isExpanded ? (
                     <ChevronUp className="w-5 h-5 text-gray-400 flex-shrink-0" />
                   ) : (
@@ -337,11 +320,6 @@ export default function EnhancedTutorAssignments({
                 >
                   <div className="space-y-2">
                     {group.students.map((student: Student, studentIndex: number) => {
-                      const assignment = assignments.find(
-                        a => a.studentId === student.id && a.teacherId === teacherId
-                      );
-                      const canEdit = isAssignmentOwned(assignment!);
-                      
                       // Check if student matches search query
                       const isMatch = searchQuery.trim() && (
                         `${student.firstName} ${student.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -358,62 +336,23 @@ export default function EnhancedTutorAssignments({
                           className={`p-3 rounded-lg border ${
                             isMatch 
                               ? 'bg-purple-500/20 border-purple-500/50 ring-1 ring-purple-500/30' 
-                              : canEdit 
-                              ? 'bg-white/5 border-white/10 hover:bg-white/10' 
-                              : 'bg-gray-500/5 border-gray-500/20'
+                              : 'bg-white/5 border-white/10 hover:bg-white/10'
                           }`}
                         >
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
-                                <User className="w-4 h-4 text-gray-400" />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="text-white font-medium text-sm">
-                                  {student.firstName} {student.lastName}
-                                  {!canEdit && (
-                                    <span className="ml-2 text-xs text-gray-500">(Read-only)</span>
-                                  )}
-                                </p>
-                                <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-gray-400 mt-1">
-                                  <span className="flex items-center gap-1">
-                                    <Hash className="w-3 h-3" />
-                                    {student.studentId || 'N/A'}
-                                  </span>
-                                  {student.gpa !== undefined && (
-                                    <span className={`font-medium flex-shrink-0 ${
-                                      student.gpa >= 3.0 ? 'text-green-400' : 
-                                      student.gpa >= 2.0 ? 'text-yellow-400' : 'text-red-400'
-                                    }`}>
-                                      GPA: {student.gpa.toFixed(2)}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+                              <User className="w-4 h-4 text-gray-400" />
                             </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                              {assignment?.status && (
-                                <span className={`text-xs px-2 py-1 rounded ${
-                                  assignment.status === 'verified'
-                                    ? 'bg-green-500/20 text-green-400'
-                                    : assignment.status === 'not_verified'
-                                    ? 'bg-yellow-500/20 text-yellow-400'
-                                    : 'bg-red-500/20 text-red-400'
-                                }`}>
-                                  {assignment.status === 'verified' ? 'verified' :
-                                   assignment.status === 'not_verified' ? 'not verified' : 'rejected'}
+                            <div className="min-w-0 flex-1">
+                              <p className="text-white font-medium text-sm">
+                                {student.firstName} {student.lastName}
+                              </p>
+                              <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-gray-400 mt-1">
+                                <span className="flex items-center gap-1">
+                                  <Hash className="w-3 h-3" />
+                                  {student.studentId || 'N/A'}
                                 </span>
-                              )}
-                              {onStatusChange && canEdit && assignment && (
-                                <select
-                                  value={assignment.status}
-                                  onChange={(e) => onStatusChange(assignment.id, e.target.value)}
-                                  className="bg-black/50 border border-white/20 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                >
-                                  <option value="not_verified">Pending</option>
-                                  <option value="verified">Verified</option>
-                                </select>
-                              )}
+                              </div>
                             </div>
                           </div>
                         </motion.div>

@@ -22,25 +22,34 @@ export async function PUT(
     const body = await request.json();
     const { capacityLimit, isOpen } = body;
 
+    // Get current registrations before updating
+    const currentRegistrations = await prisma.cleaningRegistration.count({
+      where: { cleaningDayId: dayId },
+    });
+
     const day = await prisma.cleaningDay.update({
       where: { id: dayId },
       data: {
         ...(capacityLimit !== undefined && { capacityLimit }),
         ...(isOpen !== undefined && { isOpen }),
+        currentRegistrations,
       },
     });
 
-    // Update isFull status based on capacity
+    // Update isFull and isOpen status based on capacity changes
     if (capacityLimit !== undefined) {
-      const currentRegistrations = await prisma.cleaningRegistration.count({
-        where: { cleaningDayId: dayId },
-      });
-
+      const isNowFull = currentRegistrations >= capacityLimit;
+      
+      // Auto-open if capacity increased above current registrations
+      // Auto-close if capacity decreased below current registrations
+      const shouldAutoOpen = !isNowFull;
+      
       await prisma.cleaningDay.update({
         where: { id: dayId },
         data: {
-          isFull: currentRegistrations >= capacityLimit,
-          currentRegistrations,
+          isFull: isNowFull,
+          // Only auto-set isOpen if it wasn't explicitly provided in the request
+          ...(isOpen === undefined && { isOpen: shouldAutoOpen }),
         },
       });
     }
