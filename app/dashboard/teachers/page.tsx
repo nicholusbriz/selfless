@@ -11,7 +11,7 @@ import TeacherCleaningManagement from '@/components/teacher/TeacherCleaningManag
 import SharedGradesTab from '@/components/shared/SharedGradesTab';
 import { Users, Award, TrendingUp, UserCheck, Sparkles } from 'lucide-react';
 import { useSharedGradesStudents, useSharedAssignGrade } from '@/hooks/queries/shared-grades';
-import { useTeacherAssignments, useUpdateTeacherAssignmentStatus, useAllTeachers } from '@/hooks/queries/teacher-assignments';
+import { useTeacherAssignments, useAllTeachers } from '@/hooks/queries/teacher-assignments';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 
@@ -39,16 +39,6 @@ export default function TeachersPage() {
 
   const { data: assignmentsData, isLoading: assignmentsLoading, refetch: refetchAssignments } = useTeacherAssignments(undefined, undefined, true);
   const { data: teachersData } = useAllTeachers();
-  const updateAssignmentStatusMutation = useUpdateTeacherAssignmentStatus();
-
-  const handleUpdateAssignmentStatus = async (assignmentId: string, status: string) => {
-    try {
-      await updateAssignmentStatusMutation.mutateAsync({ id: assignmentId, data: { status } });
-      refetchAssignments();
-    } catch (error) {
-      console.error('Error updating assignment status:', error);
-    }
-  };
 
   const isLoading = assignmentsLoading;
 
@@ -196,7 +186,6 @@ export default function TeachersPage() {
                 teachers={teachersData?.teachers || []}
                 currentUserId={user?.id || ''}
                 currentUserRole={user?.role?.name || ''}
-                onStatusChange={handleUpdateAssignmentStatus}
               />
             </motion.div>
           </motion.div>
