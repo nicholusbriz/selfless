@@ -286,6 +286,7 @@ export default function StudentCleaningForm() {
                               {week.days.map((day: any) => {
                                 const disabled = isRegistrationDisabled(day);
                                 const isCurrentDay = registration?.cleaningDayId === day.id;
+                                const isFullOnly = day.isFull && day.isOpen && day.week?.registrationEnabled && new Date() <= new Date(day.week.registrationDeadline);
 
                                 return (
                                   <motion.div
@@ -295,6 +296,8 @@ export default function StudentCleaningForm() {
                                     className={`p-4 rounded-lg border transition-all ${
                                       isCurrentDay
                                         ? 'bg-purple-500/20 border-purple-500/30'
+                                        : isFullOnly
+                                        ? 'bg-white/5 border-white/10'
                                         : disabled
                                         ? 'bg-white/5 border-white/10 opacity-50'
                                         : 'bg-white/5 border-white/10 hover:border-purple-500/30 hover:bg-white/10'
@@ -323,8 +326,11 @@ export default function StudentCleaningForm() {
                                         </div>
                                       )}
                                     </div>
-                                    {disabled && (
+                                    {disabled && !isFullOnly && (
                                       <p className="text-xs text-gray-500 mb-3">{getRegistrationDisabledReason(day)}</p>
+                                    )}
+                                    {isFullOnly && (
+                                      <p className="text-xs text-red-400 mb-3">Day is full - check back later</p>
                                     )}
                                     {registration ? (
                                       <button

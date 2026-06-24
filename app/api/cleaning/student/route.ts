@@ -54,10 +54,6 @@ export async function GET(request: NextRequest) {
       },
       include: {
         days: {
-          where: {
-            isOpen: true,
-            isFull: false,
-          },
           include: {
             week: true,
           },
