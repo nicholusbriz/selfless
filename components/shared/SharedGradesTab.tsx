@@ -32,13 +32,8 @@ export default function SharedGradesTab({
     return s.name.toLowerCase().includes(search) || s.studentId.toLowerCase().includes(search);
   });
 
-  const handleGradeAssign = async (studentId: string, courseId: string, gradeLetter: string) => {
-    try {
-      await assignGradeMutation.mutateAsync({ studentId, courseId, week: selectedWeek, gradeLetter });
-      refetch();
-    } catch (error) {
-      console.error('Error assigning grade:', error);
-    }
+  const handleGradeAssign = (studentId: string, courseId: string, gradeLetter: string) => {
+    assignGradeMutation.mutate({ studentId, courseId, week: selectedWeek, gradeLetter });
   };
 
   if (isLoading) {

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Award, Edit2 } from 'lucide-react';
 import { GRADE_LETTERS } from '@/lib/constants';
 import Toast from '@/components/shared/Toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface GradeAssignmentCardProps {
   student: {
@@ -24,12 +25,16 @@ export default function GradeAssignmentCard({
   onGradeAssign,
   isEditable
 }: GradeAssignmentCardProps) {
+  const queryClient = useQueryClient();
   const [saving, setSaving] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
 
   const enrolledCourses = student?.enrolledCourses || [];
-  const existingGrades = student?.existingGrades || [];
+  // Read grades from cache for instant optimistic updates
+  const cacheData = queryClient.getQueryData(['shared', 'grades', 'students']) as any;
+  const cachedStudent = cacheData?.students?.find((s: any) => s.id === student.id);
+  const existingGrades = cachedStudent?.grades || student?.existingGrades || [];
 
   const handleGradeChange = async (courseId: string, gradeLetter: string) => {
     if (!isEditable) return;
