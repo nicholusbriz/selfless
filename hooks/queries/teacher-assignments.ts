@@ -22,6 +22,29 @@ export const useUpdateTeacherAssignmentStatus = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: { status: string } }) =>
       axios.patch(`/api/teacher/assignments/${id}`, data),
+    onMutate: async ({ id, data }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['teacher-assignments'] });
+
+      // Snapshot previous value
+      const previousAssignments = queryClient.getQueryData(['teacher-assignments']);
+
+      // Optimistically update the assignment status
+      queryClient.setQueryData(['teacher-assignments'], (old: any) => {
+        const existingAssignments = old || [];
+        return existingAssignments.map((assignment: any) =>
+          assignment.id === id ? { ...assignment, status: data.status } : assignment
+        );
+      });
+
+      return { previousAssignments };
+    },
+    onError: (error, variables, context) => {
+      // Rollback to previous value on error
+      if (context?.previousAssignments) {
+        queryClient.setQueryData(['teacher-assignments'], context.previousAssignments);
+      }
+    },
     onSuccess: () => {
       // Invalidate all teacher-assignments queries regardless of parameters
       queryClient.invalidateQueries({ queryKey: ['teacher-assignments'] });

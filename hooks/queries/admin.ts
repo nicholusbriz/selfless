@@ -43,6 +43,29 @@ export const useUpdateTuitionStatus = () => {
   return useMutation({
     mutationFn: ({ studentId, tuitionPaid }: { studentId: string; tuitionPaid: boolean }) =>
       adminApi.updateTuitionStatus(studentId, tuitionPaid),
+    onMutate: async ({ studentId, tuitionPaid }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: adminKeys.students() });
+
+      // Snapshot previous value
+      const previousStudents = queryClient.getQueryData(adminKeys.students());
+
+      // Optimistically update the student's tuition status
+      queryClient.setQueryData(adminKeys.students(), (old: any) => {
+        const students = old || [];
+        return students.map((student: any) =>
+          student.id === studentId ? { ...student, tuitionPaid } : student
+        );
+      });
+
+      return { previousStudents };
+    },
+    onError: (error, variables, context) => {
+      // Rollback to previous value on error
+      if (context?.previousStudents) {
+        queryClient.setQueryData(adminKeys.students(), context.previousStudents);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminKeys.students() });
     },
@@ -55,6 +78,64 @@ export const useUpdateUserRole = () => {
   return useMutation({
     mutationFn: ({ userId, roleId }: { userId: string; roleId: string }) =>
       adminApi.updateUserRole(userId, roleId),
+    onMutate: async ({ userId, roleId }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: adminKeys.students() });
+
+      // Snapshot previous value
+      const previousStudents = queryClient.getQueryData(adminKeys.students());
+
+      // Optimistically update the user's role
+      queryClient.setQueryData(adminKeys.students(), (old: any) => {
+        const students = old || [];
+        return students.map((student: any) =>
+          student.id === userId ? { ...student, roleId } : student
+        );
+      });
+
+      return { previousStudents };
+    },
+    onError: (error, variables, context) => {
+      // Rollback to previous value on error
+      if (context?.previousStudents) {
+        queryClient.setQueryData(adminKeys.students(), context.previousStudents);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.students() });
+    },
+  });
+};
+
+export const useUpdateStudent = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { firstName: string; lastName: string; email: string; phoneNumber?: string } }) =>
+      adminApi.updateStudent(id, data),
+    onMutate: async ({ id, data }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: adminKeys.students() });
+
+      // Snapshot previous value
+      const previousStudents = queryClient.getQueryData(adminKeys.students());
+
+      // Optimistically update the student details
+      queryClient.setQueryData(adminKeys.students(), (old: any) => {
+        const students = old || [];
+        return students.map((student: any) =>
+          student.id === id ? { ...student, ...data } : student
+        );
+      });
+
+      return { previousStudents };
+    },
+    onError: (error, variables, context) => {
+      // Rollback to previous value on error
+      if (context?.previousStudents) {
+        queryClient.setQueryData(adminKeys.students(), context.previousStudents);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminKeys.students() });
     },
@@ -66,6 +147,27 @@ export const useDeleteStudent = () => {
 
   return useMutation({
     mutationFn: (id: string) => adminApi.deleteStudent(id),
+    onMutate: async (id) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: adminKeys.students() });
+
+      // Snapshot previous value
+      const previousStudents = queryClient.getQueryData(adminKeys.students());
+
+      // Optimistically remove the student
+      queryClient.setQueryData(adminKeys.students(), (old: any) => {
+        const students = old || [];
+        return students.filter((student: any) => student.id !== id);
+      });
+
+      return { previousStudents };
+    },
+    onError: (error, id, context) => {
+      // Rollback to previous value on error
+      if (context?.previousStudents) {
+        queryClient.setQueryData(adminKeys.students(), context.previousStudents);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminKeys.students() });
     },

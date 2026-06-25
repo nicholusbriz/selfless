@@ -35,6 +35,37 @@ export const useCreateBulkAssignments = () => {
 
   return useMutation({
     mutationFn: assignmentsApi.createBulkAssignments,
+    onMutate: async (variables) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: assignmentKeys.list() });
+
+      // Snapshot previous value
+      const previousAssignments = queryClient.getQueryData(assignmentKeys.list());
+
+      // Optimistically add assignments
+      queryClient.setQueryData(assignmentKeys.list(), (old: any) => {
+        const existingAssignments = old || [];
+        const newAssignments = variables.studentIds.map((studentId: string) => ({
+          id: `temp-${Date.now()}-${Math.random()}`,
+          teacherId: variables.teacherId,
+          studentId,
+          status: variables.status || 'active',
+          notes: variables.notes,
+          assignedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }));
+        return [...existingAssignments, ...newAssignments];
+      });
+
+      return { previousAssignments };
+    },
+    onError: (error, variables, context) => {
+      // Rollback to previous value on error
+      if (context?.previousAssignments) {
+        queryClient.setQueryData(assignmentKeys.list(), context.previousAssignments);
+      }
+      console.error('Create bulk assignments error:', error);
+    },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: assignmentKeys.list() });
       queryClient.invalidateQueries({ queryKey: assignmentKeys.teachers() });
@@ -45,9 +76,6 @@ export const useCreateBulkAssignments = () => {
         queryClient.invalidateQueries({ queryKey: ['student', studentId, 'profile'] });
       });
     },
-    onError: (error: any) => {
-      console.error('Create bulk assignments error:', error.response?.data || error.message);
-    },
   });
 };
 
@@ -57,7 +85,30 @@ export const useDeleteBulkAssignments = () => {
 
   return useMutation({
     mutationFn: assignmentsApi.deleteBulkAssignments,
-    onSuccess: (_, variables) => {
+    onMutate: async (assignmentIds: string[]) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: assignmentKeys.list() });
+
+      // Snapshot previous value
+      const previousAssignments = queryClient.getQueryData(assignmentKeys.list());
+
+      // Optimistically remove assignments
+      queryClient.setQueryData(assignmentKeys.list(), (old: any) => {
+        const existingAssignments = old || [];
+        return existingAssignments.filter((assignment: any) => 
+          !assignmentIds.includes(assignment.id)
+        );
+      });
+
+      return { previousAssignments };
+    },
+    onError: (error, assignmentIds, context) => {
+      // Rollback to previous value on error
+      if (context?.previousAssignments) {
+        queryClient.setQueryData(assignmentKeys.list(), context.previousAssignments);
+      }
+    },
+    onSuccess: (_, assignmentIds) => {
       queryClient.invalidateQueries({ queryKey: assignmentKeys.list() });
       queryClient.invalidateQueries({ queryKey: assignmentKeys.teachers() });
       queryClient.invalidateQueries({ queryKey: ['teacher-assignments'] });
@@ -75,6 +126,29 @@ export const useUpdateAssignment = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: { status?: string; notes?: string } }) =>
       assignmentsApi.updateAssignment(id, data),
+    onMutate: async ({ id, data }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: assignmentKeys.list() });
+
+      // Snapshot previous value
+      const previousAssignments = queryClient.getQueryData(assignmentKeys.list());
+
+      // Optimistically update the assignment
+      queryClient.setQueryData(assignmentKeys.list(), (old: any) => {
+        const existingAssignments = old || [];
+        return existingAssignments.map((assignment: any) =>
+          assignment.id === id ? { ...assignment, ...data } : assignment
+        );
+      });
+
+      return { previousAssignments };
+    },
+    onError: (error, variables, context) => {
+      // Rollback to previous value on error
+      if (context?.previousAssignments) {
+        queryClient.setQueryData(assignmentKeys.list(), context.previousAssignments);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: assignmentKeys.list() });
       queryClient.invalidateQueries({ queryKey: assignmentKeys.teachers() });
