@@ -107,17 +107,14 @@ export default function StudentDashboard() {
 
   const handleCourseSubmit = async (courseData: any[]) => {
     await submitCoursesMutation.mutateAsync(courseData);
-    await refetchCourses();
   };
 
   const handleDeleteCourse = async (courseId: string) => {
     await deleteCourseMutation.mutateAsync(courseId);
-    await refetchCourses();
   };
 
   const handleUpdateCourse = async (courseId: string, data: Partial<any>) => {
     await updateCourseMutation.mutateAsync({ id: courseId, data });
-    await refetchCourses();
   };
 
   const selectedWeekGrades = grades.filter((g: any) => g.week === selectedWeek);
