@@ -1,12 +1,17 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { Menu, X, ChevronUp } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import AuthDialog from '@/components/auth/AuthDialog';
-import RotatingEarth from '@/components/ui/wireframe-dotted-globe';
+import dynamic from 'next/dynamic';
 import { useScrollAnimation } from '@/hooks/useScrollAnimation';
+
+const RotatingEarth = dynamic(() => import('@/components/ui/wireframe-dotted-globe'), {
+  loading: () => null,
+  ssr: false
+});
 
 function ScrollSection({ children }: { children: React.ReactNode }) {
   const [ref, isVisible] = useScrollAnimation();

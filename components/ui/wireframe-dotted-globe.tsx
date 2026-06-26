@@ -203,20 +203,36 @@ export default function RotatingEarth({ width = 800, height = 600, className = "
 
         landFeatures = await response.json()
 
-        // Generate dots for all land features
+        // Generate dots for all land features using chunking to prevent blocking
         let totalDots = 0
-        landFeatures.features.forEach((feature: any) => {
-          const dots = generateDotsInPolygon(feature, 16)
-          dots.forEach(([lng, lat]) => {
-            allDots.push({ lng, lat, visible: true })
-            totalDots++
-          })
-        })
+        const chunkSize = 5
+        let currentIndex = 0
 
-        console.log(`[v0] Total dots generated: ${totalDots} across ${landFeatures.features.length} land features`)
+        const processChunk = () => {
+          const endIndex = Math.min(currentIndex + chunkSize, landFeatures.features.length)
+          
+          for (let i = currentIndex; i < endIndex; i++) {
+            const dots = generateDotsInPolygon(landFeatures.features[i], 16)
+            dots.forEach(([lng, lat]) => {
+              allDots.push({ lng, lat, visible: true })
+              totalDots++
+            })
+          }
 
-        render()
-        setIsLoading(false)
+          currentIndex = endIndex
+
+          if (currentIndex < landFeatures.features.length) {
+            // Schedule next chunk on next frame
+            requestAnimationFrame(processChunk)
+          } else {
+            console.log(`[v0] Total dots generated: ${totalDots} across ${landFeatures.features.length} land features`)
+            render()
+            setIsLoading(false)
+          }
+        }
+
+        // Start processing chunks
+        processChunk()
       } catch (err) {
         setError("Failed to load land map data")
         setIsLoading(false)
