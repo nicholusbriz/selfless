@@ -1,10 +1,12 @@
 import { motion } from 'framer-motion';
 import { Filter } from 'lucide-react';
+import UserAvatar from '@/components/shared/UserAvatar';
 
 interface CleaningStudent {
   id: string;
   name: string;
   status: 'attended' | 'pending' | 'no-show';
+  user?: any; // User object for avatar
 }
 
 interface StudentListProps {
@@ -50,9 +52,12 @@ export default function StudentList({ students, filter = 'all' }: StudentListPro
                 transition={{ duration: 0.2, delay: idx * 0.01 }}
                 className={`flex items-center justify-between p-2 rounded-lg bg-white/5 border ${border} hover:bg-white/10 transition-all group`}
               >
-                <span className="text-white text-xs truncate flex-1 mr-2" title={student.name}>
-                  {student.name}
-                </span>
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <UserAvatar user={student.user} size="sm" />
+                  <span className="text-white text-xs truncate" title={student.name}>
+                    {student.name}
+                  </span>
+                </div>
                 <span className="text-sm">{emoji}</span>
               </motion.div>
             );

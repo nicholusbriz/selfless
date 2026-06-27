@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Search, LayoutGrid, List, BookOpen, User, GraduationCap, AlertTriangle, Clock, DollarSign, GraduationCap as GraduationCapIcon } from 'lucide-react';
+import UserAvatar from '@/components/shared/UserAvatar';
 
 interface Student {
   id: string;
@@ -122,21 +123,21 @@ export default function StudentCoursesTab({
             >
               {/* Student Header */}
               <div className="flex items-start justify-between mb-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <User className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <UserAvatar user={{ firstName: student.name.split(' ')[0], lastName: student.name.split(' ').slice(1).join(' ') }} size="sm" />
+                  <div className="flex-1 min-w-0">
                     <h3 className="text-base font-bold text-white truncate">{student.name}</h3>
-                  </div>
-                  <p className="text-purple-300 text-xs">ID: {student.studentId}</p>
-                  {/* Tutor Assignment */}
-                  <div className="mt-1">
-                    {student.tutor ? (
-                      <p className="text-green-400 text-xs">
-                        Tutor: {student.tutor.firstName} {student.tutor.lastName}
-                      </p>
-                    ) : (
-                      <p className="text-gray-400 text-xs">No tutor assigned</p>
-                    )}
+                    <p className="text-purple-300 text-xs">ID: {student.studentId}</p>
+                    {/* Tutor Assignment */}
+                    <div className="mt-1">
+                      {student.tutor ? (
+                        <p className="text-green-400 text-xs">
+                          Tutor: {student.tutor.firstName} {student.tutor.lastName}
+                        </p>
+                      ) : (
+                        <p className="text-gray-400 text-xs">No tutor assigned</p>
+                      )}
+                    </div>
                   </div>
                 </div>
                 

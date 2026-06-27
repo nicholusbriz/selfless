@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { broadcastToAll, broadcastToUser } from '@/lib/websocket-server';
 
 // POST - Mark attendance (Teacher/Admin only)
 export async function POST(request: NextRequest) {
@@ -84,6 +85,7 @@ export async function POST(request: NextRequest) {
             firstName: true,
             lastName: true,
             email: true,
+            profileImageUrl: true,
           },
         },
         cleaningDay: {
@@ -93,6 +95,11 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Broadcast attendance update to all connected clients
+    broadcastToAll('cleaning:attendance:updated', attendanceRecord);
+    // Also notify the specific student
+    broadcastToUser(studentUserId, 'cleaning:attendance:updated', attendanceRecord);
 
     return NextResponse.json(attendanceRecord);
   } catch (error) {

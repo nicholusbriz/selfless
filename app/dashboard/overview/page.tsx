@@ -1,39 +1,72 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import DashboardTabs from '@/components/shared/DashboardTabs';
 import LoadingState, { TabSkeleton } from '@/components/shared/LoadingState';
 import ErrorState from '@/components/shared/ErrorState';
-import StudentCoursesTab from '@/components/overview/StudentCoursesTab';
+import StudentDirectory from '@/components/overview/StudentDirectory';
 import CleaningTab from '@/components/overview/CleaningTab';
 import PoliciesTab from '@/components/overview/PoliciesTab';
+import MessagingTab from '@/components/overview/MessagingTab';
+import AnnouncementsTab from '@/components/overview/AnnouncementsTab';
 import OverviewStatsCards from '@/components/overview/OverviewStatsCards';
+import WelcomeBanner from '@/components/overview/WelcomeBanner';
 import TutorSchedule from '@/components/overview/TutorSchedule';
 import EnhancedStatistics from '@/components/overview/EnhancedStatistics';
 import EnhancedTutorAssignments from '@/components/teacher/EnhancedTutorAssignments';
 import RoleBasedQuickLinks from '@/components/overview/RoleBasedQuickLinks';
-import { Users, BookOpen, Award, GraduationCap, TrendingUp, Sparkles, Shield } from 'lucide-react';
+import { Users, BookOpen, Award, GraduationCap } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import axios from '@/lib/axios';
 import { createPortal } from 'react-dom';
 import { useTeacherAssignments, useAllTeachers } from '@/hooks/queries/teacher-assignments';
 
-type Tab = 'overview' | 'students' | 'cleaning' | 'policies';
+type Tab = 'overview' | 'students' | 'cleaning' | 'messages' | 'policies' | 'announcements';
 
 const TABS = [
-  { id: 'overview', label: 'Overview', icon: TrendingUp },
-  { id: 'students', label: 'Students & Courses', icon: Users },
-  { id: 'cleaning', label: 'Cleaning', icon: Sparkles },
-  { id: 'policies', label: 'Policies', icon: Shield },
+  { id: 'overview', label: 'Overview' },
+  { id: 'students', label: 'Students & Courses' },
+  { id: 'cleaning', label: 'Cleaning' },
+  { id: 'messages', label: 'Messages' },
+  { id: 'announcements', label: 'Announcements' },
+  { id: 'policies', label: 'Policies' },
 ];
 
 export default function OverviewPage() {
-  const { user } = useAuthStore();
+  const { user, fetchUser } = useAuthStore();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [tabsContainer, setTabsContainer] = useState<HTMLElement | null>(null);
+
+  // Fetch fresh user data on mount to ensure profileImageUrl is current
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
+
+  // Set active tab from URL parameter on mount and URL changes
+  useEffect(() => {
+    const tabParam = searchParams.get('tab') as Tab;
+    if (tabParam && TABS.some(tab => tab.id === tabParam)) {
+      setActiveTab(tabParam);
+    } else if (!tabParam) {
+      setActiveTab('overview');
+    }
+  }, [searchParams]);
+
+  // Handle tab change with URL update
+  const handleTabChange = (tabId: string) => {
+    const tab = tabId as Tab;
+    setActiveTab(tab);
+    const url = tab === 'overview' 
+      ? '/dashboard/overview' 
+      : `/dashboard/overview?tab=${tab}`;
+    router.push(url);
+  };
 
   // Move tabs to fixed header
   useEffect(() => {
@@ -51,7 +84,7 @@ export default function OverviewPage() {
       return response.data;
     },
     staleTime: 30 * 1000,
-    refetchInterval: 60 * 1000,
+    // Removed refetchInterval - using WebSocket for real-time updates
     enabled: !!user,
   });
 
@@ -77,7 +110,7 @@ export default function OverviewPage() {
     student.takesReligion === true
   ).length;
 
-  const stats = [
+  const stats = useMemo(() => [
     {
       id: 'students',
       icon: Users,
@@ -85,7 +118,10 @@ export default function OverviewPage() {
       value: totalStudents,
       subtitle: 'Enrolled',
       iconColor: 'text-purple-400',
-      gradient: 'from-purple-600/20 to-indigo-600/20'
+      gradient: 'from-purple-600/20 to-indigo-600/20',
+      trend: { value: 12, isPositive: true, period: 'month' },
+      progress: totalStudents,
+      capacity: 100
     },
     {
       id: 'courses',
@@ -94,7 +130,10 @@ export default function OverviewPage() {
       value: totalCourses,
       subtitle: 'Enrollments',
       iconColor: 'text-blue-400',
-      gradient: 'from-blue-600/20 to-cyan-600/20'
+      gradient: 'from-blue-600/20 to-cyan-600/20',
+      trend: { value: 8, isPositive: true, period: 'month' },
+      progress: totalCourses,
+      capacity: 50
     },
     {
       id: 'credits',
@@ -103,7 +142,8 @@ export default function OverviewPage() {
       value: totalCredits,
       subtitle: 'Accumulated',
       iconColor: 'text-green-400',
-      gradient: 'from-green-600/20 to-emerald-600/20'
+      gradient: 'from-green-600/20 to-emerald-600/20',
+      trend: { value: 15, isPositive: true, period: 'month' }
     },
     {
       id: 'religion',
@@ -112,9 +152,10 @@ export default function OverviewPage() {
       value: religionStudents,
       subtitle: 'Taking religion',
       iconColor: 'text-orange-400',
-      gradient: 'from-orange-600/20 to-amber-600/20'
+      gradient: 'from-orange-600/20 to-amber-600/20',
+      trend: { value: 5, isPositive: false, period: 'month' }
     }
-  ];
+  ], [totalStudents, totalCourses, totalCredits, religionStudents]);
 
   // Get role-specific welcome message
   const getWelcomeMessage = () => {
@@ -158,7 +199,11 @@ export default function OverviewPage() {
     <>
       {/* Render tabs in fixed header using portal */}
       {tabsContainer && createPortal(
-        <DashboardTabs tabs={TABS} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as Tab)} />,
+        <DashboardTabs 
+          tabs={TABS} 
+          activeTab={activeTab} 
+          onTabChange={handleTabChange}
+        />,
         tabsContainer
       )}
 
@@ -170,72 +215,72 @@ export default function OverviewPage() {
       >
         {activeTab === 'overview' && (
           <motion.div 
-            className="space-y-6"
+            className="space-y-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <motion.div 
-              className="mb-8"
+            {/* Welcome Banner */}
+            <WelcomeBanner
+              userName={user?.firstName || user?.email?.split('@')[0] || 'User'}
+              userRole={user?.role?.name || 'User'}
+              lastUpdated={new Date()}
+              onRefresh={() => refetch()}
+              onExport={() => console.log('Export clicked')}
+              onAnnouncementsClick={() => handleTabChange('announcements')}
+            />
+
+            {/* Section Header: Quick Overview */}
+            <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="flex items-center justify-between"
             >
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Overview Dashboard</h1>
-              <p className="text-gray-400 text-sm sm:text-base">Welcome back, {user?.firstName}! {getWelcomeMessage()}</p>
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                📊 Quick Overview
+              </h2>
+              <button className="text-sm text-purple-400 hover:text-purple-300 transition-colors">
+                View All
+              </button>
             </motion.div>
 
-            {/* Role-based Quick Links */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.25 }}
-            >
-              <RoleBasedQuickLinks 
-                userRole={user?.role?.name}
-                userId={user?.id}
-              />
-            </motion.div>
+            {/* Stats Cards */}
+            <OverviewStatsCards stats={stats} />
 
-            {/* Basic Stats Cards */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-            >
-              <OverviewStatsCards stats={stats} />
-            </motion.div>
+            {/* Responsive Layout */}
+            <div className="grid grid-cols-1 gap-4">
+              {/* Enhanced Statistics with Charts */}
+              {statistics && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.3 }}
+                >
+                  <EnhancedStatistics statistics={statistics} />
+                </motion.div>
+              )}
 
-            {/* Enhanced Statistics with Charts */}
-            {statistics && (
+              {/* Tutor Assignments - Shows all tutors and their students */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.35 }}
               >
-                <EnhancedStatistics statistics={statistics} />
+                <EnhancedTutorAssignments
+                  assignments={assignmentsData?.assignments || []}
+                  teachers={teachersData?.teachers || []}
+                  currentUserId={user?.id || ''}
+                  currentUserRole={user?.role?.name || ''}
+                />
               </motion.div>
-            )}
-
-            {/* Tutor Assignments - Shows all tutors and their students */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-            >
-              <EnhancedTutorAssignments
-                assignments={assignmentsData?.assignments || []}
-                teachers={teachersData?.teachers || []}
-                currentUserId={user?.id || ''}
-                currentUserRole={user?.role?.name || ''}
-              />
-            </motion.div>
+            </div>
 
             {/* Tutor Schedule */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.45 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
             >
               <TutorSchedule />
             </motion.div>
@@ -255,8 +300,8 @@ export default function OverviewPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
             >
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Students & Courses</h1>
-              <p className="text-gray-400 text-sm sm:text-base">View all students and their enrolled courses with search functionality</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Students Directory</h1>
+              <p className="text-gray-400 text-sm sm:text-base">View all students, their assignments, and connect with them</p>
             </motion.div>
 
             <motion.div
@@ -264,11 +309,9 @@ export default function OverviewPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
             >
-              <StudentCoursesTab 
-                searchTerm={searchTerm} 
-                onSearchChange={setSearchTerm}
+              <StudentDirectory 
                 students={students}
-                currentUserId={user?.role?.name === 'STUDENT' ? user?.id : undefined}
+                currentUserId={user?.id}
               />
             </motion.div>
           </motion.div>
@@ -276,13 +319,13 @@ export default function OverviewPage() {
 
         {activeTab === 'cleaning' && (
           <motion.div 
-            className="space-y-6"
+            className="space-y-2"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
             <motion.div 
-              className="mb-8"
+              className="mb-4"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
@@ -298,6 +341,26 @@ export default function OverviewPage() {
             >
               <CleaningTab />
             </motion.div>
+          </motion.div>
+        )}
+
+        {activeTab === 'messages' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            <MessagingTab />
+          </motion.div>
+        )}
+
+        {activeTab === 'announcements' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            <AnnouncementsTab />
           </motion.div>
         )}
 

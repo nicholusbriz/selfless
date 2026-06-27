@@ -13,37 +13,67 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch all students with their courses and religion status
+    // Fetch all students with their courses and religion status (optimized)
     const users = await prisma.user.findMany({
       where: {
         studentProfile: {
           isNot: null
         }
       },
-      include: {
-        role: true,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        roleId: true,
+        role: {
+          select: {
+            name: true
+          }
+        },
         studentProfile: {
-          include: {
+          select: {
+            studentId: true,
+            currentGPA: true,
+            tuition: true,
+            tuitionPaid: true,
+            takesReligion: true,
             enrolledCourses: {
-              include: {
-                grades: true
+              select: {
+                id: true,
+                courseName: true,
+                credits: true
               }
-            },
-            grades: true
+            }
           }
         },
         studentAssignments: {
-          include: {
+          select: {
+            status: true,
             teacher: {
-              include: {
-                teacherProfile: true,
-                role: true
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                role: {
+                  select: {
+                    name: true
+                  }
+                },
+                teacherProfile: {
+                  select: {
+                    teacherId: true,
+                    department: true
+                  }
+                }
               }
             }
           },
           where: {
             status: 'verified'
-          }
+          },
+          take: 1
         }
       }
     });
@@ -61,11 +91,13 @@ export async function GET(request: NextRequest) {
 
       return {
         id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
         name: `${user.firstName} ${user.lastName}`,
         studentId: profile?.studentId || '',
         email: user.email,
         roleId: user.roleId,
-        role: user.role,
+        role: user.role?.name || 'Student',
         currentGPA: profile?.currentGPA || 0,
         totalCredits: calculatedTotalCredits,
         coursesCount: profile?.enrolledCourses?.length || 0,
@@ -74,6 +106,11 @@ export async function GET(request: NextRequest) {
         takesReligion: profile?.takesReligion || false,
         enrolledCourses: profile?.enrolledCourses || [],
         grades: profile?.grades || [],
+        assignedTutor: tutor ? {
+          id: tutor.id,
+          firstName: tutor.firstName,
+          lastName: tutor.lastName
+        } : null,
         tutor: tutor ? {
           id: tutor.id,
           firstName: tutor.firstName,
@@ -142,17 +179,18 @@ export async function GET(request: NextRequest) {
       ? students.reduce((sum: number, s: any) => sum + s.currentGPA, 0) / students.length 
       : 0;
 
-    // Fetch real attendance data from cleaning system
-    const attendanceRecords = await prisma.attendanceRecord.findMany({
-      where: {
-        status: 'ATTENDED'
-      }
-    });
+    // Fetch attendance data in parallel (optimized)
+    const [totalRegistrations, attendanceCount] = await Promise.all([
+      prisma.cleaningRegistration.count(),
+      prisma.attendanceRecord.count({
+        where: {
+          status: 'ATTENDED'
+        }
+      })
+    ]);
 
-    const totalRegistrations = await prisma.cleaningRegistration.count();
-    const totalAttended = attendanceRecords.length;
     const attendanceRate = totalRegistrations > 0 
-      ? ((totalAttended / totalRegistrations) * 100).toFixed(1)
+      ? ((attendanceCount / totalRegistrations) * 100).toFixed(1)
       : '0';
 
     const statistics = {
@@ -167,7 +205,7 @@ export async function GET(request: NextRequest) {
       averageGPA: averageGPA.toFixed(2),
       attendanceRate,
       totalRegistrations,
-      totalAttended
+      totalAttended: attendanceCount
     };
 
     return NextResponse.json({ students, statistics });
