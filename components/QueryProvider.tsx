@@ -9,7 +9,7 @@ export default function QueryProvider({ children }: { children: React.ReactNode 
       queries: {
         staleTime: 5 * 60 * 1000, // 5 minutes - data considered fresh for 5 minutes
         gcTime: 10 * 60 * 1000, // 10 minutes - garbage collect after 10 minutes
-        refetchOnWindowFocus: true, // Refetch when window regains focus
+        refetchOnWindowFocus: false, // Disabled for real-time data to avoid conflicts with WebSocket
         refetchOnReconnect: true, // Refetch when network reconnects
         retry: 3, // Retry failed requests 3 times
         retryDelay: 1000, // Wait 1 second between retries

@@ -43,6 +43,13 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
+      user: {
+        id: userWithProfile.id,
+        firstName: userWithProfile.firstName,
+        lastName: userWithProfile.lastName,
+        email: userWithProfile.email,
+        profileImageUrl: userWithProfile.profileImageUrl
+      },
       profile: {
         ...userWithProfile.studentProfile,
         tutor: tutor ? {
@@ -50,6 +57,7 @@ export async function GET(request: NextRequest) {
           firstName: tutor.firstName,
           lastName: tutor.lastName,
           email: tutor.email,
+          profileImageUrl: tutor.profileImageUrl,
           teacherId: tutor.teacherProfile?.teacherId,
           department: tutor.teacherProfile?.department
         } : null,

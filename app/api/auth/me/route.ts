@@ -30,7 +30,23 @@ export async function GET(request: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: {
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phoneNumber: true,
+        profileImageUrl: true,
+        country: true,
+        city: true,
+        town: true,
+        street: true,
+        generalCourse: true,
+        techCenter: true,
+        linkedinUrl: true,
+        githubUrl: true,
+        projectUrls: true,
+        roleId: true,
         role: true,
         studentProfile: true,
         teacherProfile: true
@@ -44,12 +60,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Remove password from response
-    const { password, ...userWithoutPassword } = user;
-
     return NextResponse.json({
       success: true,
-      user: userWithoutPassword
+      user
     });
   } catch (error) {
     console.error('Auth me error:', error);

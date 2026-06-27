@@ -30,8 +30,15 @@ export async function GET(request: NextRequest) {
             lastName: true,
             email: true,
             phoneNumber: true,
+            profileImageUrl: true,
             studentProfile: {
-              include: {
+              select: {
+                id: true,
+                studentId: true,
+                currentGPA: true,
+                totalCredits: true,
+                tuition: true,
+                tuitionPaid: true,
                 enrolledCourses: true,
                 grades: true
               }
@@ -48,11 +55,14 @@ export async function GET(request: NextRequest) {
 
       return {
         id: student.id,
+        firstName: student.firstName,
+        lastName: student.lastName,
         name: `${student.firstName} ${student.lastName}`,
         studentId: profile?.studentId || 'N/A',
         studentProfileId: profile?.id || '',
         email: student.email,
         phoneNumber: student.phoneNumber,
+        profileImageUrl: student.profileImageUrl,
         currentGPA: profile?.currentGPA || 0,
         totalCredits: profile?.totalCredits || 0,
         coursesCount: profile?.enrolledCourses?.length || 0,

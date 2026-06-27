@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Calendar, Users, CheckCircle, XCircle, Clock, ChevronDown, 
@@ -19,7 +19,11 @@ interface CleaningStudent {
   id: string;
   name: string;
   status: 'attended' | 'pending' | 'no-show';
-  user?: any; // User object for avatar
+  user?: {
+    firstName?: string;
+    lastName?: string;
+    profileImageUrl?: string;
+  };
 }
 
 interface CleaningDay {
@@ -85,10 +89,12 @@ export default function CleaningTab() {
   const [searchResult, setSearchResult] = useState<{ student: CleaningStudent; day: CleaningDay } | null>(null);
 
   // Listen for attendance updates via WebSocket
-  useWebSocketEvent('cleaning:attendance:updated', (attendanceUpdate) => {
+  const handleAttendanceUpdate = useCallback(() => {
     // Refetch cleaning data when attendance is updated
     refetch();
-  });
+  }, [refetch]);
+
+  useWebSocketEvent('cleaning:attendance:updated', handleAttendanceUpdate);
 
   // Transform weeks data into cleaning days format
   const cleaningData: CleaningDay[] = weeks?.flatMap((week: any) => 

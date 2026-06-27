@@ -59,7 +59,13 @@ export async function GET(request: NextRequest) {
             email: true,
             profileImageUrl: true,
             studentProfile: {
-              include: {
+              select: {
+                id: true,
+                studentId: true,
+                currentGPA: true,
+                totalCredits: true,
+                tuition: true,
+                tuitionPaid: true,
                 enrolledCourses: true,
                 grades: true
               }
@@ -108,7 +114,8 @@ export async function GET(request: NextRequest) {
         notes: assignment.notes,
         assignedAt: assignment.assignedAt,
         updatedAt: assignment.updatedAt,
-        teacher: assignment.teacher,
+        teprofileImageUrl: assignment.student.profileImageUrl,
+          acher: assignment.teacher,
         student: {
           id: assignment.student.id,
           firstName: assignment.student.firstName,

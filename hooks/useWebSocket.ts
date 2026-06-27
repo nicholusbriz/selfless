@@ -40,6 +40,14 @@ export const useWebSocket = (): WebSocketHookReturn => {
     newSocket.on('disconnect', () => {
       console.log('WebSocket disconnected');
       setIsConnected(false);
+      
+      // Attempt reconnection after delay
+      setTimeout(() => {
+        if (!socketRef.current?.connected) {
+          console.log('Attempting to reconnect WebSocket...');
+          newSocket.connect();
+        }
+      }, 5000);
     });
 
     newSocket.on('connect_error', (err) => {
@@ -76,5 +84,5 @@ export const useWebSocketEvent = <T = any>(
     return () => {
       socket.off(event, handler);
     };
-  }, [socket, event, callback, ...dependencies]);
+  }, [socket, event, ...dependencies]);
 };
