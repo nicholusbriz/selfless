@@ -77,7 +77,8 @@ export async function POST(request: Request) {
         email,
         password: hashedPassword,
         phoneNumber,
-        roleId: userRole.id
+        roleId: userRole.id,
+        profileImageUrl: null // Initialize profile image field
       }
     });
 

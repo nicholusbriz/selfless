@@ -15,19 +15,21 @@ import StudentCourseList from '@/components/student/StudentCourseList';
 import StudentsAndGrades from '@/components/shared/StudentsAndGrades';
 import StudentGradeLegend from '@/components/student/StudentGradeLegend';
 import StudentCleaningForm from '@/components/student/StudentCleaningForm';
+import StudentAnnouncements from '@/components/student/StudentAnnouncements';
 import { BookOpen, TrendingUp, Award, Sparkles, User } from 'lucide-react';
 import { calculateGPA, calculateWeeklyGPAs } from '@/lib/gpa-calculator';
 import { useStudentCourses, useStudentGrades, useSubmitCourses, useUpdateCourse, useDeleteCourse, useStudentProfile, useUpdateReligion, useUpdateTuition } from '@/hooks/queries/student';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 
-type Tab = 'overview' | 'courses' | 'grades' | 'cleaning';
+type Tab = 'overview' | 'courses' | 'grades' | 'cleaning' | 'announcements';
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: TrendingUp },
   { id: 'courses', label: 'My Courses', icon: BookOpen },
   { id: 'grades', label: 'My Grades', icon: Award },
   { id: 'cleaning', label: 'Cleaning Form', icon: Sparkles },
+  { id: 'announcements', label: 'Announcements', icon: User },
 ];
 
 export default function StudentDashboard() {
@@ -387,6 +389,16 @@ export default function StudentDashboard() {
             >
               <StudentCleaningForm />
             </motion.div>
+          </motion.div>
+        )}
+
+        {activeTab === 'announcements' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            <StudentAnnouncements />
           </motion.div>
         )}
       </motion.div>

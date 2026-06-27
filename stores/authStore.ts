@@ -7,6 +7,16 @@ interface User {
   lastName: string;
   email: string;
   phoneNumber?: string;
+  profileImageUrl?: string;
+  country?: string;
+  city?: string;
+  town?: string;
+  street?: string;
+  generalCourse?: string;
+  techCenter?: string;
+  linkedinUrl?: string;
+  githubUrl?: string;
+  projectUrls?: string[];
   role?: {
     id: string;
     name: string;

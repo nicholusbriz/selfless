@@ -19,6 +19,7 @@ import {
 } from '@/hooks/useCleaning';
 import LoadingState, { StatsCardSkeleton } from '@/components/shared/LoadingState';
 import ErrorState from '@/components/shared/ErrorState';
+import UserAvatar from '@/components/shared/UserAvatar';
 
 export default function AdminCleaningManagement() {
   const { data, isLoading, error, refetch } = useAdminCleaning();
@@ -481,6 +482,7 @@ export default function AdminCleaningManagement() {
                                       className="flex items-center justify-between p-2 rounded bg-white/5"
                                     >
                                       <div className="flex items-center gap-2">
+                                        <UserAvatar user={reg.user} size="sm" />
                                         <span className="text-white text-sm">
                                           {reg.user.firstName} {reg.user.lastName}
                                         </span>

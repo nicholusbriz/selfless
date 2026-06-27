@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { broadcastToAll, broadcastToUser } from '@/lib/websocket-server';
 
 // PATCH /api/teacher/assignments/[id] - Update assignment status
 export async function PATCH(
@@ -31,7 +32,10 @@ export async function PATCH(
     // Find the assignment
     const assignment = await prisma.teacherStudentAssignment.findUnique({
       where: { id: assignmentId },
-      include: { teacher: true }
+      include: { 
+        teacher: true,
+        student: true
+      }
     });
 
     if (!assignment) {
@@ -46,8 +50,35 @@ export async function PATCH(
     // Update the assignment status
     const updatedAssignment = await prisma.teacherStudentAssignment.update({
       where: { id: assignmentId },
-      data: { status }
+      data: { status },
+      include: {
+        teacher: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            profileImageUrl: true
+          }
+        },
+        student: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            profileImageUrl: true
+          }
+        }
+      }
     });
+
+    // Broadcast assignment update to all connected clients
+    broadcastToAll('assignment:updated', updatedAssignment);
+    // Notify the specific student
+    broadcastToUser(assignment.studentId, 'assignment:updated', updatedAssignment);
+    // Notify the teacher
+    broadcastToUser(assignment.teacherId, 'assignment:updated', updatedAssignment);
 
     return NextResponse.json({ assignment: updatedAssignment });
   } catch (error: any) {

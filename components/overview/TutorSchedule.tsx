@@ -171,7 +171,8 @@ export default function TutorSchedule() {
           </div>
           <button
             onClick={() => setShowConduct(!showConduct)}
-            className="px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg text-purple-300 text-sm font-medium transition"
+            className="px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg text-purple-300 text-sm font-medium transition cursor-pointer pointer-events-auto"
+            type="button"
           >
             {showConduct ? 'Hide Rules' : 'View All Rules'}
           </button>
@@ -181,8 +182,9 @@ export default function TutorSchedule() {
           <p className="text-lg font-semibold text-purple-300">English Class Tutor: Sister Betty</p>
         </div>
 
-        <div className="space-y-4">
-          {conductRules.map((rule, index) => (
+        {showConduct && (
+          <div className="space-y-4">
+            {conductRules.map((rule, index) => (
             <motion.div
               key={rule.id}
               initial={{ opacity: 0, x: -20 }}
@@ -207,26 +209,27 @@ export default function TutorSchedule() {
               </div>
             </motion.div>
           ))}
-        </div>
 
-        {/* Final Reminder */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 1.0 }}
-          className="mt-6 p-4 bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-lg border border-orange-500/20"
-        >
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-orange-400 flex-shrink-0 mt-1" />
-            <div>
-              <h3 className="text-white font-semibold mb-2">Final Reminder</h3>
-              <p className="text-gray-300 text-sm leading-relaxed">
-                These rules are designed to create a focused, respectful, and professional learning environment for everyone. 
-                Not knowing these policies will not be accepted as an excuse. By remaining in the English Hub, you agree to abide by all regulations listed above.
-              </p>
+          {/* Final Reminder */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 1.0 }}
+            className="mt-6 p-4 bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-lg border border-orange-500/20"
+          >
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-orange-400 flex-shrink-0 mt-1" />
+              <div>
+                <h3 className="text-white font-semibold mb-2">Final Reminder</h3>
+                <p className="text-gray-300 text-sm leading-relaxed">
+                  These rules are designed to create a focused, respectful, and professional learning environment for everyone. 
+                  Not knowing these policies will not be accepted as an excuse. By remaining in the English Hub, you agree to abide by all regulations listed above.
+                </p>
+              </div>
             </div>
+          </motion.div>
           </div>
-        </motion.div>
+        )}
       </motion.div>
     </div>
   );

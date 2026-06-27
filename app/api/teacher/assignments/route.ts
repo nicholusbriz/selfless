@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { broadcastToAll, broadcastToUser } from '@/lib/websocket-server';
 
 // GET /api/teacher/assignments - Get assignments for the current teacher
 export async function GET(request: NextRequest) {
@@ -46,7 +47,8 @@ export async function GET(request: NextRequest) {
             id: true,
             firstName: true,
             lastName: true,
-            email: true
+            email: true,
+            profileImageUrl: true
           }
         },
         student: {
@@ -55,6 +57,7 @@ export async function GET(request: NextRequest) {
             firstName: true,
             lastName: true,
             email: true,
+            profileImageUrl: true,
             studentProfile: {
               include: {
                 enrolledCourses: true,

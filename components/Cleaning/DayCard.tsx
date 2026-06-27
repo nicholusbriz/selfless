@@ -7,6 +7,7 @@ interface CleaningStudent {
   id: string;
   name: string;
   status: 'attended' | 'pending' | 'no-show';
+  user?: any; // User object for avatar
 }
 
 interface CleaningDay {
