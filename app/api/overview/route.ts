@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
         firstName: true,
         lastName: true,
         email: true,
+        profileImageUrl: true,
         roleId: true,
         role: {
           select: {
@@ -56,6 +57,7 @@ export async function GET(request: NextRequest) {
                 firstName: true,
                 lastName: true,
                 email: true,
+                profileImageUrl: true,
                 role: {
                   select: {
                     name: true
@@ -96,6 +98,7 @@ export async function GET(request: NextRequest) {
         name: `${user.firstName} ${user.lastName}`,
         studentId: profile?.studentId || '',
         email: user.email,
+        profileImageUrl: user.profileImageUrl,
         roleId: user.roleId,
         role: user.role?.name || 'Student',
         currentGPA: profile?.currentGPA || 0,
@@ -109,13 +112,15 @@ export async function GET(request: NextRequest) {
         assignedTutor: tutor ? {
           id: tutor.id,
           firstName: tutor.firstName,
-          lastName: tutor.lastName
+          lastName: tutor.lastName,
+          profileImageUrl: tutor.profileImageUrl
         } : null,
         tutor: tutor ? {
           id: tutor.id,
           firstName: tutor.firstName,
           lastName: tutor.lastName,
           email: tutor.email,
+          profileImageUrl: tutor.profileImageUrl,
           role: tutor.role?.name || 'teacher',
           teacherId: tutor.teacherProfile?.teacherId,
           department: tutor.teacherProfile?.department

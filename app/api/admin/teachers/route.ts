@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
         firstName: true,
         lastName: true,
         email: true,
+        profileImageUrl: true,
         role: {
           select: {
             name: true
@@ -46,8 +47,11 @@ export async function GET(request: NextRequest) {
       
       return {
         id: tutor.id,
+        firstName: tutor.firstName,
+        lastName: tutor.lastName,
         name: `${tutor.firstName} ${tutor.lastName}`,
         email: tutor.email,
+        profileImageUrl: tutor.profileImageUrl,
         role: tutor.role?.name || 'unknown',
         teacherId: tutor.teacherProfile?.teacherId || null,
         profileId: tutor.teacherProfile?.id || null,

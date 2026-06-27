@@ -14,9 +14,12 @@ import {
 } from '@/hooks/useCleaning';
 import LoadingState from '@/components/shared/LoadingState';
 import ErrorState from '@/components/shared/ErrorState';
+import UserAvatar from '@/components/shared/UserAvatar';
+import { useAuthStore } from '@/stores/authStore';
 
 export default function StudentCleaningForm() {
   const { data, isLoading, error, refetch } = useStudentCleaning();
+  const { user } = useAuthStore();
   const registerMutation = useRegisterDay();
   const unregisterMutation = useUnregisterDay();
   const switchMutation = useSwitchDay();
@@ -121,9 +124,15 @@ export default function StudentCleaningForm() {
     >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-white" />
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full blur-md opacity-50" />
+            <UserAvatar user={user || undefined} size="md" />
+            {!user?.profileImageUrl && (
+              <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[8px] px-1.5 py-0.5 rounded-full whitespace-nowrap font-bold shadow-lg">
+                Update
+              </div>
+            )}
           </div>
           <div>
             <h2 className="text-xl font-bold text-white">Cleaning Registration</h2>

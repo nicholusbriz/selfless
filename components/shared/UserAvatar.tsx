@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { User } from 'lucide-react';
 
 interface UserAvatarProps {
@@ -12,7 +13,7 @@ interface UserAvatarProps {
   className?: string;
 }
 
-export default function UserAvatar({ user, size = 'md', className = '' }: UserAvatarProps) {
+function UserAvatar({ user, size = 'md', className = '' }: UserAvatarProps) {
   const sizeClasses = {
     sm: 'w-8 h-8 text-sm',
     md: 'w-12 h-12 text-lg',
@@ -37,3 +38,5 @@ export default function UserAvatar({ user, size = 'md', className = '' }: UserAv
     </div>
   );
 }
+
+export default memo(UserAvatar);

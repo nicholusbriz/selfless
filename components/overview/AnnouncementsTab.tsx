@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Calendar, User, Plus } from 'lucide-react';
@@ -39,14 +39,16 @@ export default function AnnouncementsTab() {
   });
 
   // Listen for new announcements via WebSocket
-  useWebSocketEvent<Announcement>('announcement:created', (newAnnouncement) => {
+  const handleNewAnnouncement = useCallback((newAnnouncement: Announcement) => {
     queryClient.setQueryData(['announcements'], (oldData: any) => {
       if (!oldData) return { announcements: [newAnnouncement] };
       return {
         announcements: [newAnnouncement, ...oldData.announcements]
       };
     });
-  });
+  }, [queryClient]);
+
+  useWebSocketEvent<Announcement>('announcement:created', handleNewAnnouncement);
 
   const announcements = announcementsData?.announcements || [];
 

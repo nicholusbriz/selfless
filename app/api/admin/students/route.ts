@@ -48,10 +48,23 @@ export async function GET(request: NextRequest) {
     // Fetch all users (not just students) as potential students for assignment
     const users = await prisma.user.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phoneNumber: true,
+        profileImageUrl: true,
+        roleId: true,
         role: true,
         studentProfile: {
-          include: {
+          select: {
+            id: true,
+            studentId: true,
+            currentGPA: true,
+            totalCredits: true,
+            tuition: true,
+            tuitionPaid: true,
             enrolledCourses: true,
             grades: true
           }
@@ -68,11 +81,14 @@ export async function GET(request: NextRequest) {
 
       return {
         id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
         name: `${user.firstName} ${user.lastName}`,
         studentId: profile?.studentId || '',
         studentProfileId: profile?.id || '',
         email: user.email,
         phoneNumber: user.phoneNumber,
+        profileImageUrl: user.profileImageUrl,
         roleId: user.roleId,
         role: user.role,
         currentGPA: profile?.currentGPA || 0,

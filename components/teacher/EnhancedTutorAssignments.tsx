@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -75,11 +75,13 @@ export default function EnhancedTutorAssignments({
   const [searchQuery, setSearchQuery] = useState('');
 
   // Listen for assignment updates via WebSocket
-  useWebSocketEvent('assignment:updated', (updatedAssignment) => {
+  const handleAssignmentUpdate = useCallback(() => {
     // Invalidate relevant queries to refresh data
     queryClient.invalidateQueries({ queryKey: ['teacher-assignments'] });
     queryClient.invalidateQueries({ queryKey: ['all-teachers'] });
-  });
+  }, [queryClient]);
+
+  useWebSocketEvent('assignment:updated', handleAssignmentUpdate);
 
   // Group assignments by teacher using the teachers prop
   const tutorGroups = useMemo(() => {
