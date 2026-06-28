@@ -27,11 +27,8 @@ interface Announcement {
 
 export default function AnnouncementsTab() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [isCreateButtonSticky, setIsCreateButtonSticky] = useState(false);
   const router = useRouter();
   const queryClient = useQueryClient();
-  const buttonRef = useRef<HTMLDivElement>(null);
-  const headerRef = useRef<HTMLDivElement>(null);
 
   const { data: announcementsData, isLoading, error } = useQuery({
     queryKey: ['announcements'],
@@ -58,19 +55,6 @@ export default function AnnouncementsTab() {
   const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
   };
-
-  // Handle sticky button on scroll
-  useEffect(() => {
-    const handleScroll = () => {
-      if (headerRef.current) {
-        const rect = headerRef.current.getBoundingClientRect();
-        setIsCreateButtonSticky(rect.top < 0);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   if (isLoading) return <LoadingState type="students" />;
 
@@ -103,7 +87,7 @@ export default function AnnouncementsTab() {
   return (
     <div className="space-y-4">
       {/* Header with responsive design */}
-      <div ref={headerRef} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-purple-500/10 rounded-lg">
             <Megaphone className="w-6 h-6 text-purple-400" />
@@ -114,38 +98,15 @@ export default function AnnouncementsTab() {
           </div>
         </div>
 
-        {/* Desktop Create Button */}
-        <div className="hidden sm:block">
-          <button
-            onClick={() => router.push('/dashboard/student')}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 rounded-lg text-white font-medium transition-all duration-200 shadow-lg hover:shadow-purple-500/25"
-          >
-            <Plus className="w-4 h-4" />
-            Create Announcement
-          </button>
-        </div>
+        {/* Create Button - Always Visible */}
+        <button
+          onClick={() => router.push('/dashboard/student')}
+          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 rounded-lg text-white font-medium transition-all duration-200 shadow-lg hover:shadow-purple-500/25 whitespace-nowrap"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Create Announcement</span>
+        </button>
       </div>
-
-      {/* Mobile Sticky Create Button */}
-      <AnimatePresence>
-        {isCreateButtonSticky && (
-          <motion.div
-            ref={buttonRef}
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -20, opacity: 0 }}
-            className="fixed top-0 left-0 right-0 z-50 px-4 py-3 bg-gray-900/95 backdrop-blur-lg border-b border-white/10 sm:hidden"
-          >
-            <button
-              onClick={() => router.push('/dashboard/student')}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 rounded-lg text-white font-medium transition-all duration-200 shadow-lg"
-            >
-              <Plus className="w-4 h-4" />
-              Create Announcement
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Announcements List */}
       <div className="space-y-3">
