@@ -1,66 +1,28 @@
-import { Server as HTTPServer } from 'http';
-import { Server as SocketIOServer } from 'socket.io';
-import { NextApiRequest } from 'next';
+import { pusherServer, getUserChannel, getRoleChannel } from './pusher';
 
-export type NextApiResponseWithSocket = NextApiRequest & {
-  socket: {
-    server: HTTPServer & {
-      io?: SocketIOServer;
-    };
-  };
-};
-
-let io: SocketIOServer | null = null;
-
-export const getSocketServer = (server: HTTPServer): SocketIOServer => {
-  if (!io) {
-    io = new SocketIOServer(server, {
-      path: '/api/socket',
-      addTrailingSlash: false,
-      cors: {
-        origin: '*',
-        methods: ['GET', 'POST']
-      }
-    });
-
-    io.on('connection', (socket) => {
-      console.log('Client connected:', socket.id);
-
-      // Join user-specific room
-      const userId = socket.handshake.query.userId as string;
-      if (userId) {
-        socket.join(`user:${userId}`);
-      }
-
-      // Join role-specific rooms
-      const userRole = socket.handshake.query.role as string;
-      if (userRole) {
-        socket.join(`role:${userRole}`);
-      }
-
-      socket.on('disconnect', () => {
-        console.log('Client disconnected:', socket.id);
-      });
-    });
-  }
-
-  return io;
-};
-
-export const broadcastToUser = (userId: string, event: string, data: any) => {
-  if (io) {
-    io.to(`user:${userId}`).emit(event, data);
+// Broadcast to a specific user
+export const broadcastToUser = async (userId: string, event: string, data: any) => {
+  try {
+    await pusherServer.trigger(getUserChannel(userId), event, data);
+  } catch (error) {
+    console.error('Error broadcasting to user:', error);
   }
 };
 
-export const broadcastToRole = (role: string, event: string, data: any) => {
-  if (io) {
-    io.to(`role:${role}`).emit(event, data);
+// Broadcast to all users with a specific role
+export const broadcastToRole = async (role: string, event: string, data: any) => {
+  try {
+    await pusherServer.trigger(getRoleChannel(role), event, data);
+  } catch (error) {
+    console.error('Error broadcasting to role:', error);
   }
 };
 
-export const broadcastToAll = (event: string, data: any) => {
-  if (io) {
-    io.emit(event, data);
+// Broadcast to all users (requires a public channel)
+export const broadcastToAll = async (event: string, data: any) => {
+  try {
+    await pusherServer.trigger('public-channel', event, data);
+  } catch (error) {
+    console.error('Error broadcasting to all:', error);
   }
 };

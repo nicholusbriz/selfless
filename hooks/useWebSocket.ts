@@ -1,16 +1,19 @@
-import { useEffect, useRef, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
+import { pusherClient, subscribeToUser, subscribeToRole, unsubscribeFromUser, unsubscribeFromRole } from '@/lib/pusher-client';
+import type { Channel } from 'pusher-js';
 
 interface WebSocketHookReturn {
-  socket: Socket | null;
+  socket: Channel | null;
   isConnected: boolean;
   error: Error | null;
 }
 
-// Singleton socket instance
-let globalSocket: Socket | null = null;
-let globalSocketUser: string | null = null;
+// Singleton channel instances
+let userChannel: Channel | null = null;
+let roleChannel: Channel | null = null;
+let currentUserId: string | null = null;
+let currentRole: string | null = null;
 
 export const useWebSocket = (): WebSocketHookReturn => {
   const [isConnected, setIsConnected] = useState(false);
@@ -20,90 +23,75 @@ export const useWebSocket = (): WebSocketHookReturn => {
   useEffect(() => {
     if (!user) {
       // Disconnect if user logs out
-      if (globalSocket) {
-        globalSocket.disconnect();
-        globalSocket = null;
-        globalSocketUser = null;
+      if (userChannel) {
+        unsubscribeFromUser(currentUserId || '');
+        userChannel = null;
       }
+      if (roleChannel) {
+        unsubscribeFromRole(currentRole || '');
+        roleChannel = null;
+      }
+      currentUserId = null;
+      currentRole = null;
       setIsConnected(false);
       return;
     }
 
-    // Check if we need to create a new socket
     const userId = user.id;
-    const shouldCreateSocket = !globalSocket || globalSocketUser !== userId;
+    const role = user.role?.name || 'student';
+    const shouldReconnect = currentUserId !== userId || currentRole !== role;
 
-    if (shouldCreateSocket) {
-      // Disconnect existing socket if user changed
-      if (globalSocket) {
-        globalSocket.disconnect();
+    if (shouldReconnect) {
+      // Unsubscribe from old channels
+      if (userChannel && currentUserId) {
+        unsubscribeFromUser(currentUserId);
+      }
+      if (roleChannel && currentRole) {
+        unsubscribeFromRole(currentRole);
       }
 
-      // Create new socket connection
-      const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3000', {
-        path: '/api/socket',
-        query: {
-          userId: user.id,
-          role: user.role?.name || 'student'
-        },
-        transports: ['websocket', 'polling'],
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000
-      });
+      // Subscribe to new channels
+      try {
+        userChannel = subscribeToUser(userId);
+        roleChannel = subscribeToRole(role);
 
-      globalSocket = newSocket;
-      globalSocketUser = userId;
+        currentUserId = userId;
+        currentRole = role;
 
-      newSocket.on('connect', () => {
-        console.log('WebSocket connected:', newSocket.id);
-        setIsConnected(true);
-        setError(null);
-      });
+        // Listen for connection state
+        pusherClient.connection.bind('connected', () => {
+          console.log('Pusher connected');
+          setIsConnected(true);
+          setError(null);
+        });
 
-      newSocket.on('disconnect', () => {
-        console.log('WebSocket disconnected');
+        pusherClient.connection.bind('disconnected', () => {
+          console.log('Pusher disconnected');
+          setIsConnected(false);
+        });
+
+        pusherClient.connection.bind('error', (err: any) => {
+          console.error('Pusher connection error:', err);
+          setError(err);
+          setIsConnected(false);
+        });
+      } catch (err) {
+        console.error('Error subscribing to Pusher channels:', err);
+        setError(err as Error);
         setIsConnected(false);
-      });
-
-      newSocket.on('connect_error', (err) => {
-        console.error('WebSocket connection error:', err);
-        setError(err);
-        setIsConnected(false);
-      });
+      }
     }
 
-    // Set up listeners for the existing socket
-    const socket = globalSocket;
-    if (socket) {
-      const handleConnect = () => {
-        setIsConnected(true);
-        setError(null);
-      };
-
-      const handleDisconnect = () => {
-        setIsConnected(false);
-      };
-
-      const handleError = (err: Error) => {
-        setError(err);
-        setIsConnected(false);
-      };
-
-      socket.on('connect', handleConnect);
-      socket.on('disconnect', handleDisconnect);
-      socket.on('connect_error', handleError);
-
-      return () => {
-        socket.off('connect', handleConnect);
-        socket.off('disconnect', handleDisconnect);
-        socket.off('connect_error', handleError);
-      };
-    }
+    return () => {
+      // Cleanup connection listeners
+      pusherClient.connection.unbind('connected');
+      pusherClient.connection.unbind('disconnected');
+      pusherClient.connection.unbind('error');
+    };
   }, [user]);
 
-  return { socket: globalSocket, isConnected, error };
+  // Return the user channel as the primary socket
+  return { socket: userChannel, isConnected, error };
 };
 
 export const useWebSocketEvent = <T = any>(
@@ -120,10 +108,10 @@ export const useWebSocketEvent = <T = any>(
       callback(data);
     };
 
-    socket.on(event, handler);
+    socket.bind(event, handler);
 
     return () => {
-      socket.off(event, handler);
+      socket.unbind(event, handler);
     };
   }, [socket, event, ...dependencies]);
 };
