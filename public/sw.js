@@ -1,6 +1,6 @@
 // public/sw.js - Service Worker for PWA with icon caching
 // Cache version - increment this to force cache invalidation on deployment
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const CACHE_NAME = `freedom-tech-${CACHE_VERSION}`;
 const STATIC_CACHE = `freedom-tech-static-${CACHE_VERSION}`;
 
@@ -151,7 +151,8 @@ self.addEventListener('fetch', (event) => {
       })
       .catch((error) => {
         console.log('[SW] Fetch failed for:', url.pathname, error);
-        throw error;
+        // Don't throw - let browser handle the error naturally
+        return new Response('Network error', { status: 503 });
       })
   );
 });

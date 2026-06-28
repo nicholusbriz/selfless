@@ -1,68 +1,97 @@
-import { useEffect, useRef, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
+import { pusherClient, subscribeToUser, subscribeToRole, unsubscribeFromUser, unsubscribeFromRole } from '@/lib/pusher-client';
+import type { Channel } from 'pusher-js';
 
 interface WebSocketHookReturn {
-  socket: Socket | null;
+  socket: Channel | null;
   isConnected: boolean;
   error: Error | null;
 }
 
+// Singleton channel instances
+let userChannel: Channel | null = null;
+let roleChannel: Channel | null = null;
+let currentUserId: string | null = null;
+let currentRole: string | null = null;
+
 export const useWebSocket = (): WebSocketHookReturn => {
-  const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const { user } = useAuthStore();
-  const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    if (!user) return;
-
-    // Create socket connection
-    const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3000', {
-      path: '/api/socket',
-      query: {
-        userId: user.id,
-        role: user.role?.name || 'student'
-      },
-      transports: ['websocket', 'polling']
-    });
-
-    socketRef.current = newSocket;
-    setSocket(newSocket);
-
-    newSocket.on('connect', () => {
-      console.log('WebSocket connected:', newSocket.id);
-      setIsConnected(true);
-      setError(null);
-    });
-
-    newSocket.on('disconnect', () => {
-      console.log('WebSocket disconnected');
+    if (!user) {
+      // Disconnect if user logs out
+      if (userChannel) {
+        unsubscribeFromUser(currentUserId || '');
+        userChannel = null;
+      }
+      if (roleChannel) {
+        unsubscribeFromRole(currentRole || '');
+        roleChannel = null;
+      }
+      currentUserId = null;
+      currentRole = null;
       setIsConnected(false);
-      
-      // Attempt reconnection after delay
-      setTimeout(() => {
-        if (!socketRef.current?.connected) {
-          console.log('Attempting to reconnect WebSocket...');
-          newSocket.connect();
-        }
-      }, 5000);
-    });
+      return;
+    }
 
-    newSocket.on('connect_error', (err) => {
-      console.error('WebSocket connection error:', err);
-      setError(err);
-      setIsConnected(false);
-    });
+    const userId = user.id;
+    const role = user.role?.name || 'student';
+    const shouldReconnect = currentUserId !== userId || currentRole !== role;
+
+    if (shouldReconnect) {
+      // Unsubscribe from old channels
+      if (userChannel && currentUserId) {
+        unsubscribeFromUser(currentUserId);
+      }
+      if (roleChannel && currentRole) {
+        unsubscribeFromRole(currentRole);
+      }
+
+      // Subscribe to new channels
+      try {
+        userChannel = subscribeToUser(userId);
+        roleChannel = subscribeToRole(role);
+
+        currentUserId = userId;
+        currentRole = role;
+
+        // Listen for connection state
+        pusherClient.connection.bind('connected', () => {
+          console.log('Pusher connected');
+          setIsConnected(true);
+          setError(null);
+        });
+
+        pusherClient.connection.bind('disconnected', () => {
+          console.log('Pusher disconnected');
+          setIsConnected(false);
+        });
+
+        pusherClient.connection.bind('error', (err: any) => {
+          console.error('Pusher connection error:', err);
+          setError(err);
+          setIsConnected(false);
+        });
+      } catch (err) {
+        console.error('Error subscribing to Pusher channels:', err);
+        setError(err as Error);
+        setIsConnected(false);
+      }
+    }
 
     return () => {
-      newSocket.disconnect();
-      socketRef.current = null;
+      // Cleanup connection listeners
+      pusherClient.connection.unbind('connected');
+      pusherClient.connection.unbind('disconnected');
+      pusherClient.connection.unbind('error');
     };
   }, [user]);
 
-  return { socket, isConnected, error };
+  // Return the user channel as the primary socket
+  return { socket: userChannel, isConnected, error };
 };
 
 export const useWebSocketEvent = <T = any>(
@@ -79,10 +108,10 @@ export const useWebSocketEvent = <T = any>(
       callback(data);
     };
 
-    socket.on(event, handler);
+    socket.bind(event, handler);
 
     return () => {
-      socket.off(event, handler);
+      socket.unbind(event, handler);
     };
   }, [socket, event, ...dependencies]);
 };
