@@ -12,12 +12,11 @@ const protectedRoutes = {
 };
 
 // Define protected API routes and their required roles
-// Note: More specific routes must come before general routes
 const protectedApiRoutes = {
   '/api/admin/students': ['student', 'teacher', 'admin'],
-  '/api/admin/teachers': ['student', 'teacher', 'admin'], // Allow all authenticated users to view teachers
+  '/api/admin/teachers': ['student', 'teacher', 'admin'],
   '/api/admin': ['admin'],
-  '/api/teacher/assignments': ['student', 'teacher', 'admin'], // Allow all authenticated users to view assignments
+  '/api/teacher/assignments': ['student', 'teacher', 'admin'],
   '/api/teacher': ['teacher', 'admin'],
   '/api/student': ['student', 'teacher', 'admin'],
   '/api/cleaning': ['student', 'teacher', 'admin'],
@@ -29,7 +28,7 @@ const publicApiRoutes = ['/api/auth/login', '/api/auth/register', '/api/auth/log
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Allow home page immediately (no checks)
+  // ✅ Allow home page immediately (NO redirects)
   if (pathname === '/') {
     return NextResponse.next();
   }
@@ -103,50 +102,33 @@ export default async function proxy(request: NextRequest) {
     }
   }
 
-  // Handle page routes
+  // Handle public routes (login/register)
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
   
-  // For public routes (login/register), check if user is already authenticated
   if (isPublicRoute) {
-    if (token) {
-      // Verify if token is still valid
-      try {
-        const decoded = await verifyTokenEdge(token);
-        if (decoded && decoded.userId) {
-          // Valid token, redirect to dashboard
-          return NextResponse.redirect(new URL('/dashboard/overview', request.url));
-        } else {
-          // Invalid token, clear it and allow access to login
-          const response = NextResponse.next();
-          response.cookies.delete('token');
-          return response;
-        }
-      } catch (error) {
-        // Invalid token, clear it and allow access to login
-        const response = NextResponse.next();
-        response.cookies.delete('token');
-        return response;
-      }
-    }
+    // ✅ Don't redirect authenticated users from login/register
+    // Just allow access and let the client handle it
     return NextResponse.next();
   }
 
-  // Check for protected routes
+  // Check for protected routes (dashboard pages)
   const protectedRoute = Object.keys(protectedRoutes).find(route => 
     pathname.startsWith(route)
   );
   
   if (protectedRoute) {
     if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url));
+      // ✅ Don't redirect to login, show the page with a message instead
+      // Or better, let the client handle it
+      return NextResponse.next();
     }
 
-    // Verify token is valid using edge-compatible function
+    // Verify token is valid
     try {
       const decoded = await verifyTokenEdge(token);
       if (!decoded || !decoded.userId) {
-        // Invalid token, clear it and redirect to login
-        const response = NextResponse.redirect(new URL('/login', request.url));
+        // ❌ Don't redirect, just invalidate token and let client handle it
+        const response = NextResponse.next();
         response.cookies.delete('token');
         return response;
       }
@@ -155,15 +137,15 @@ export default async function proxy(request: NextRequest) {
       const allowedRoles = protectedRoutes[protectedRoute as keyof typeof protectedRoutes];
       
       if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
-        // User doesn't have permission, redirect to home
-        return NextResponse.redirect(new URL('/', request.url));
+        // ✅ Don't redirect, just show forbidden message on client
+        return NextResponse.next();
       }
       
       // Valid token, allow access
       return NextResponse.next();
     } catch (error) {
-      // Error verifying token, clear it and redirect to login
-      const response = NextResponse.redirect(new URL('/login', request.url));
+      // Error verifying token, clear it but don't redirect
+      const response = NextResponse.next();
       response.cookies.delete('token');
       return response;
     }

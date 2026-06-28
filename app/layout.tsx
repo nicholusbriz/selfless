@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import QueryProvider from '@/components/QueryProvider';
 import PWAInstall from '@/components/PWAInstall';
+import WebSocketProvider from '@/components/WebSocketProvider';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://selfless-henna.vercel.app'),
@@ -149,10 +150,12 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         <QueryProvider>
-          <PWAInstall />
-          <main className="flex-1">
-            {children}
-          </main>
+          <WebSocketProvider>
+            <PWAInstall />
+            <main className="flex-1">
+              {children}
+            </main>
+          </WebSocketProvider>
         </QueryProvider>
       </body>
     </html>

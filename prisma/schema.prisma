@@ -24,47 +24,55 @@ model User {
   phoneNumber String?
   role        Role?    @relation(fields: [roleId], references: [id])
   roleId      String?  @db.ObjectId
-  
+
+  // Online Status
+  status      String   @default("OFFLINE") // ONLINE, OFFLINE, AWAY
+  lastSeen    DateTime? // Nullable for existing users
+
   // Location Information
   country     String?  @default("Uganda") // Uganda or Liberia
   city        String?
   town        String?
   street      String?
-  
+
   // Academic Information
   generalCourse String? // General course being taken
   techCenter    String? @default("Freedom City Tech Center") // Tech center name
-  
+
   // Social Links (displayed as text, not clickable)
   linkedinUrl String?
   githubUrl   String?
   projectUrls String[] // Array of project links
-  
+
   // Profile Image (stored in Supabase Storage)
   profileImageUrl String? // Public URL from Supabase Storage
-  
+
   // Student specific
   studentProfile StudentProfile?
-  
-  // Teacher specific  
+
+  // Teacher specific
   teacherProfile TeacherProfile?
-  
+
   // Admin specific
   adminProfile AdminProfile?
-  
+
   // Assignments where this user is a teacher
   teachingAssignments TeacherStudentAssignment[] @relation("TeacherAssignments")
-  
+
   // Assignments where this user is a student
   studentAssignments TeacherStudentAssignment[] @relation("StudentAssignments")
-  
+
   // Cleaning Management
   cleaningRegistration CleaningRegistration?
   attendanceRecords    AttendanceRecord[]
-  
+
   // Announcements
   announcements         Announcement[]
-  
+
+  // Messaging
+  sentMessages          Message[] @relation("MessageSender")
+  receivedMessages      Message[] @relation("MessageReceiver")
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -304,4 +312,39 @@ enum AttendanceStatus {
   PENDING
   ATTENDED
   NO_SHOW
+}
+
+// ============================================
+// MESSAGING SYSTEM
+// ============================================
+
+// CONVERSATION - Chat conversation between users
+model Conversation {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  participantIds  String[]
+  lastMessageId   String?  @db.ObjectId
+  messages        Message[]
+  unreadCount     Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("conversations")
+}
+
+// MESSAGE - Individual message in a conversation
+model Message {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  content         String
+  senderId        String   @db.ObjectId
+  sender          User     @relation("MessageSender", fields: [senderId], references: [id])
+  receiverId      String   @db.ObjectId
+  receiver        User     @relation("MessageReceiver", fields: [receiverId], references: [id])
+  conversationId  String   @db.ObjectId
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  isRead          Boolean  @default(false)
+  readAt          DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("messages")
 }

@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
+'use client';
+
+import { useEffect, ReactNode } from 'react';
 import { useAuthStore } from '@/stores/authStore';
+import { useMessagingStore } from '@/stores/messagingStore';
 import { pusherClient, subscribeToUser, subscribeToRole, subscribeToOnlineUsers, unsubscribeFromUser, unsubscribeFromRole, unsubscribeFromOnlineUsers } from '@/lib/pusher-client';
 import type { PresenceChannel } from 'pusher-js';
+import type { Message } from '@/types/messaging';
 
-interface WebSocketHookReturn {
-  socket: PresenceChannel | null;
-  isConnected: boolean;
-  error: Error | null;
+interface WebSocketProviderProps {
+  children: ReactNode;
 }
 
 // Singleton channel instances
@@ -16,10 +18,10 @@ let onlineUsersChannel: PresenceChannel | null = null;
 let currentUserId: string | null = null;
 let currentRole: string | null = null;
 
-export const useWebSocket = (): WebSocketHookReturn => {
-  const [isConnected, setIsConnected] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+export default function WebSocketProvider({ children }: WebSocketProviderProps) {
   const { user } = useAuthStore();
+  const { addOnlineUser, removeOnlineUser, addMessage } = useMessagingStore();
+  const { activeConversationId } = useMessagingStore();
 
   useEffect(() => {
     if (!user) {
@@ -38,7 +40,6 @@ export const useWebSocket = (): WebSocketHookReturn => {
       }
       currentUserId = null;
       currentRole = null;
-      setIsConnected(false);
       return;
     }
 
@@ -67,48 +68,53 @@ export const useWebSocket = (): WebSocketHookReturn => {
         currentUserId = userId;
         currentRole = role;
 
+        // Listen for user-specific events (messages, notifications)
+        userChannel.bind('new-message', (data: { message: Message; conversationId: string }) => {
+          console.log('New message received:', data);
+          if (data.conversationId === activeConversationId) {
+            addMessage(data.message, data.conversationId);
+          }
+        });
+
         // Listen for presence channel events to track online users
         onlineUsersChannel.bind('pusher:subscription_succeeded', (members: any) => {
           console.log('Online users presence channel subscription succeeded', members);
           // Initialize online users from presence channel members
-          const onlineUserIds = new Set<string>();
           members.each((member: any) => {
-            onlineUserIds.add(member.id);
+            if (member.id !== userId) {
+              addOnlineUser(member.id);
+            }
           });
-          console.log('Initial online users:', onlineUserIds);
         });
 
         onlineUsersChannel.bind('pusher:member_added', (member: any) => {
           console.log('User came online:', member.id);
-          // This will be handled by the useSocket hook's onUserOnline callback
+          if (member.id !== userId) {
+            addOnlineUser(member.id);
+          }
         });
 
         onlineUsersChannel.bind('pusher:member_removed', (member: any) => {
           console.log('User went offline:', member.id);
-          // This will be handled by the useSocket hook's onUserOffline callback
+          if (member.id !== userId) {
+            removeOnlineUser(member.id);
+          }
         });
 
         // Listen for connection state
         pusherClient.connection.bind('connected', () => {
           console.log('Pusher connected');
-          setIsConnected(true);
-          setError(null);
         });
 
         pusherClient.connection.bind('disconnected', () => {
           console.log('Pusher disconnected');
-          setIsConnected(false);
         });
 
         pusherClient.connection.bind('error', (err: any) => {
           console.error('Pusher connection error:', err);
-          setError(err);
-          setIsConnected(false);
         });
       } catch (err) {
         console.error('Error subscribing to Pusher channels:', err);
-        setError(err as Error);
-        setIsConnected(false);
       }
     }
 
@@ -118,30 +124,7 @@ export const useWebSocket = (): WebSocketHookReturn => {
       pusherClient.connection.unbind('disconnected');
       pusherClient.connection.unbind('error');
     };
-  }, [user]);
+  }, [user, addOnlineUser, removeOnlineUser, addMessage, activeConversationId]);
 
-  // Return the online users channel as the primary socket for presence events
-  return { socket: onlineUsersChannel, isConnected, error };
-};
-
-export const useWebSocketEvent = <T = any>(
-  event: string,
-  callback: (data: T) => void,
-  dependencies: any[] = []
-) => {
-  const { socket } = useWebSocket();
-
-  useEffect(() => {
-    if (!socket) return;
-
-    const handler = (data: T) => {
-      callback(data);
-    };
-
-    socket.bind(event, handler);
-
-    return () => {
-      socket.unbind(event, handler);
-    };
-  }, [socket, event, ...dependencies]);
-};
+  return <>{children}</>;
+}
