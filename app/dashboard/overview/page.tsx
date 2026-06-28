@@ -172,6 +172,17 @@ export default function OverviewPage() {
     }
   };
 
+  // Safe function to get user display name
+  const getUserDisplayName = () => {
+    if (user?.firstName) {
+      return user.firstName;
+    }
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    return 'User';
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col min-h-0">
@@ -222,7 +233,7 @@ export default function OverviewPage() {
           >
             {/* Welcome Banner */}
             <WelcomeBanner
-              userName={user?.firstName || user?.email?.split('@')[0] || 'User'}
+              userName={getUserDisplayName()}
               userRole={user?.role?.name || 'User'}
               lastUpdated={new Date()}
               onRefresh={() => refetch()}
