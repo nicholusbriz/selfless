@@ -151,7 +151,8 @@ self.addEventListener('fetch', (event) => {
       })
       .catch((error) => {
         console.log('[SW] Fetch failed for:', url.pathname, error);
-        throw error;
+        // Don't throw - let browser handle the error naturally
+        return new Response('Network error', { status: 503 });
       })
   );
 });
