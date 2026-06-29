@@ -81,10 +81,10 @@ export async function POST(request: Request) {
 
     response.cookies.set('token', token, {
       httpOnly: true,
-      secure: false, // ✅ Set to false for localhost
+      secure: process.env.NODE_ENV === 'production', // true for production (Vercel), false for localhost
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7, // 7 days
-      path: '/', // ✅ Important for all routes
+      path: '/', // Important for all routes
     });
 
     console.log('✅ Login successful for email:', email, 'userId:', user.id, 'role:', userRole);
