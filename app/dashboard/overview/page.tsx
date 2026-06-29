@@ -178,7 +178,7 @@ export default function OverviewPage() {
       return user.firstName;
     }
     if (user?.email) {
-      return user.email.split('@')[0];
+      return user.email?.split('@')[0] || 'User';
     }
     return 'User';
   };

@@ -29,7 +29,8 @@ const publicApiRoutes = ['/api/auth/login', '/api/auth/register', '/api/auth/log
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Allow home page immediately (no checks)
+  // Allow home page immediately without any authentication checks or redirects
+  // Users can navigate manually using the dashboard button
   if (pathname === '/') {
     return NextResponse.next();
   }
@@ -128,6 +129,11 @@ export default async function proxy(request: NextRequest) {
         return response;
       }
     }
+    return NextResponse.next();
+  }
+
+  // Allow home page access without redirect - user can navigate manually
+  if (pathname === '/') {
     return NextResponse.next();
   }
 
