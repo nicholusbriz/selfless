@@ -61,87 +61,50 @@ self.addEventListener('fetch', (event) => {
   if (!event.request.url.startsWith(self.location.origin)) return;
 
   const url = new URL(event.request.url);
-  const isHTMLRequest = event.request.headers.get('accept')?.includes('text/html');
-  const isAPIRoute = url.pathname.startsWith('/api');
   const isStaticAsset = url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|webp|svg|ico|woff|woff2|ttf|eot)$/);
 
-  // NEVER cache API routes - always fetch fresh data
-  if (isAPIRoute) {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          // Don't cache API responses
-          return response;
-        })
-        .catch((error) => {
-          console.log('[SW] API fetch failed:', error);
-          throw error;
-        })
-    );
-    return;
-  }
-
-  // Network-first for HTML pages (always get fresh content)
-  if (isHTMLRequest) {
-    // Don't intercept HTML requests at all - let browser handle them directly
-    return;
-  }
+  // Only handle static assets - let browser handle everything else
+  if (!isStaticAsset) return;
 
   // Cache-first for static assets (icons, images, etc.) ONLY
-  if (isStaticAsset) {
-    event.respondWith(
-      caches.match(event.request)
-        .then((cachedResponse) => {
-          // Return cached version if available
-          if (cachedResponse) {
-            // Optionally update cache in background
-            fetch(event.request).then((response) => {
-              if (response && response.status === 200) {
-                caches.open(STATIC_CACHE).then((cache) => {
-                  cache.put(event.request, response);
-                });
-              }
-            });
-            return cachedResponse;
-          }
-
-          // Otherwise, fetch from network and cache
-          return fetch(event.request)
-            .then((response) => {
-              // Don't cache if response is not valid
-              if (!response || response.status !== 200) {
-                return response;
-              }
-
-              // Clone the response since it can only be consumed once
-              const responseToCache = response.clone();
-
-              // Cache the fetched response for future
-              caches.open(STATIC_CACHE)
-                .then((cache) => {
-                  cache.put(event.request, responseToCache);
-                });
-
-              return response;
-            })
-            .catch((error) => {
-              console.log('[SW] Fetch failed:', error);
-            });
-        })
-    );
-    return;
-  }
-
-  // For all other requests, use network-first (no caching)
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        return response;
-      })
-      .catch((error) => {
-        console.log('[SW] Fetch failed for:', url.pathname, error);
-        // Throw error to let browser handle it naturally
-        throw error;
+    caches.match(event.request)
+      .then((cachedResponse) => {
+        // Return cached version if available
+        if (cachedResponse) {
+          // Optionally update cache in background
+          fetch(event.request).then((response) => {
+            if (response && response.status === 200) {
+              caches.open(STATIC_CACHE).then((cache) => {
+                cache.put(event.request, response);
+              });
+            }
+          });
+          return cachedResponse;
+        }
+
+        // Otherwise, fetch from network and cache
+        return fetch(event.request)
+          .then((response) => {
+            // Don't cache if response is not valid
+            if (!response || response.status !== 200) {
+              return response;
+            }
+
+            // Clone the response since it can only be consumed once
+            const responseToCache = response.clone();
+
+            // Cache the fetched response for future
+            caches.open(STATIC_CACHE)
+              .then((cache) => {
+                cache.put(event.request, responseToCache);
+              });
+
+            return response;
+          })
+          .catch((error) => {
+            console.log('[SW] Fetch failed for static asset:', error);
+          });
       })
   );
 });
