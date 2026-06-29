@@ -111,7 +111,7 @@ self.addEventListener('fetch', (event) => {
           // Otherwise, fetch from network and cache
           return fetch(event.request)
             .then((response) => {
-              // Don't cache if response is not valid
+              // Don't cache if response is not vali
               if (!response || response.status !== 200) {
                 return response;
               }
