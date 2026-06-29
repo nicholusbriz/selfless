@@ -130,7 +130,7 @@ export default function AnnouncementsTab() {
                 className="w-full p-4 text-left hover:bg-white/5 transition-colors group"
               >
                 <div className="flex items-start gap-3">
-                  <UserAvatar user={announcement.author} size="sm" />
+                  <UserAvatar user={announcement.author || undefined} size="sm" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <h3 className="font-semibold text-white text-sm sm:text-base line-clamp-2">

@@ -70,7 +70,7 @@ export default function StudentList({ students, filter = 'all' }: StudentListPro
                 <div className="relative flex items-center gap-2.5 flex-1 min-w-0">
                   <div className="relative">
                     <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full blur-sm opacity-30" />
-                    <UserAvatar user={student.user} size="sm" />
+                    <UserAvatar user={student.user || undefined} size="sm" />
                     {!student.user?.profileImageUrl && (
                       <div className="absolute -bottom-0.5 -right-0.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[6px] px-1 py-0.5 rounded-full whitespace-nowrap font-bold">
                         Update

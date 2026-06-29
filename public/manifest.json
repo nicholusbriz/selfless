@@ -2,7 +2,7 @@
   "name": "Freedom City Tech Center - Academic Dashboard",
   "short_name": "Freedom Tech",
   "description": "Academic management system for Freedom City Tech Center - Track students, courses, and academic progress",
-  "start_url": "/dashboard/overview",
+  "start_url": "/",
   "display": "standalone",
   "display_override": ["standalone", "window-controls-overlay"],
   "background_color": "#0f0f23",

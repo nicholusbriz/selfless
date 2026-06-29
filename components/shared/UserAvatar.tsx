@@ -24,7 +24,7 @@ function UserAvatar({ user, size = 'md', className = '' }: UserAvatarProps) {
     return (
       <img 
         src={user.profileImageUrl} 
-        alt={`${user.firstName} ${user.lastName}`}
+        alt={`${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User'}
         className={`${sizeClasses[size]} rounded-full object-cover shadow-lg ${className}`}
       />
     );

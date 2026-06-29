@@ -133,7 +133,7 @@ export default function StudentCoursesTab({
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="relative">
                     <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full blur-md opacity-50" />
-                    <UserAvatar user={{ firstName: student.name.split(' ')[0], lastName: student.name.split(' ').slice(1).join(' '), profileImageUrl: student.profileImageUrl }} size="sm" />
+                    <UserAvatar user={{ firstName: student.name?.split(' ')[0] || '', lastName: student.name?.split(' ')?.slice(1)?.join(' ') || '', profileImageUrl: student.profileImageUrl }} size="sm" />
                     {!student.profileImageUrl && (
                       <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[8px] px-1.5 py-0.5 rounded-full whitespace-nowrap font-bold shadow-lg">
                         Update
@@ -261,7 +261,7 @@ export default function StudentCoursesTab({
                       <div className="flex items-center gap-3">
                         <div className="relative">
                           <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full blur-sm opacity-30" />
-                          <UserAvatar user={{ firstName: student.name.split(' ')[0], lastName: student.name.split(' ').slice(1).join(' '), profileImageUrl: student.profileImageUrl }} size="sm" />
+                          <UserAvatar user={{ firstName: student.name?.split(' ')[0] || '', lastName: student.name?.split(' ')?.slice(1)?.join(' ') || '', profileImageUrl: student.profileImageUrl }} size="sm" />
                           {!student.profileImageUrl && (
                             <div className="absolute -bottom-0.5 -right-0.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[6px] px-1 py-0.5 rounded-full whitespace-nowrap font-bold">
                               Update
