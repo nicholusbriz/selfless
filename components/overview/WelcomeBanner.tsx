@@ -39,7 +39,9 @@ export default function WelcomeBanner({
     // Removed refetchInterval - using WebSocket for real-time updates
   });
 
-  const notificationCount = announcementsData?.announcements?.length || 0;
+  const notificationCount = announcementsData?.announcements?.filter(
+    (ann: any) => ann && ann.id
+  ).length || 0;
 
   useEffect(() => {
     const updateGreeting = () => {

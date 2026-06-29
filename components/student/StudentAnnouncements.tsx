@@ -37,8 +37,18 @@ export default function StudentAnnouncements() {
   const { data: announcementsData, isLoading, error } = useQuery({
     queryKey: ['announcements'],
     queryFn: async () => {
-      const response = await axios.get('/api/announcements');
-      return response.data;
+      try {
+        const response = await axios.get('/api/announcements');
+        // Validate the response structure
+        if (!response.data || !Array.isArray(response.data.announcements)) {
+          console.error('Invalid announcements data structure:', response.data);
+          return { announcements: [] };
+        }
+        return response.data;
+      } catch (err) {
+        console.error('Error fetching announcements:', err);
+        throw err;
+      }
     }
   });
 
