@@ -114,8 +114,8 @@ export default async function proxy(request: NextRequest) {
       try {
         const decoded = await verifyTokenEdge(token);
         if (decoded && decoded.userId) {
-          // Valid token, redirect to dashboard
-          return NextResponse.redirect(new URL('/dashboard/overview', request.url));
+          // Valid token, but NO redirect - let user navigate manually
+          return NextResponse.next();
         } else {
           // Invalid token, clear it and allow access to login
           const response = NextResponse.next();

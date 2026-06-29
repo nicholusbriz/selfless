@@ -28,6 +28,9 @@ export async function GET(request: NextRequest) {
       }
     });
 
+    // Filter out announcements with null/un: validAnnouncementsdefined authors to prevent split errors
+    const validAnnouncements = announcements.filter(ann => ann.author !== null && ann.author !== undefined);
+
     return NextResponse.json({ announcements });
   } catch (error) {
     console.error('Error fetching announcements:', error);

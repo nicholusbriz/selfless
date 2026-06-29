@@ -105,8 +105,8 @@ export default function CleaningTab() {
       const students: CleaningStudent[] = registrations.map((reg: any) => {
         const attendance = attendanceRecords.find((a: any) => a.userId === reg.userId);
         return {
-          id: reg.user.id,
-          name: `${reg.user.firstName} ${reg.user.lastName}`,
+          id: reg.user?.id || reg.userId,
+          name: `${reg.user?.firstName || ''} ${reg.user?.lastName || ''}`.trim() || 'Unknown',
           status: attendance?.status?.toLowerCase() as 'attended' | 'pending' | 'no-show' || 'pending',
           user: reg.user, // Add user object for avatar
         };
