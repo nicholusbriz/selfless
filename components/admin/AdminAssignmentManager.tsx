@@ -21,12 +21,14 @@ import {
   Hash,
   AlertCircle
 } from 'lucide-react';
+import UserAvatar from '@/components/shared/UserAvatar';
 
 interface Teacher {
   id: string;
   name: string;
   email: string;
   role?: string;
+  profileImageUrl?: string;
 }
 
 interface Student {
@@ -36,6 +38,7 @@ interface Student {
   email: string;
   currentGPA?: number;
   takesReligion?: boolean;
+  profileImageUrl?: string;
 }
 
 interface Assignment {
@@ -291,9 +294,11 @@ export default function AdminAssignmentManager({
                   >
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
-                          <User className="w-6 h-6 text-purple-400" />
-                        </div>
+                        <UserAvatar user={{ 
+                          firstName: teacher.name?.split(' ')?.[0] || '', 
+                          lastName: teacher.name?.split(' ')?.slice(1)?.join(' ') || '',
+                          profileImageUrl: teacher.profileImageUrl 
+                        }} size="md" />
                         <div>
                           <h3 className="text-lg font-bold text-white">{teacher.name}</h3>
                           <p className="text-gray-400 text-sm flex items-center gap-1">
@@ -464,13 +469,11 @@ export default function AdminAssignmentManager({
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                            selectedAvailableStudents.has(student.id)
-                              ? 'bg-purple-500/30'
-                              : 'bg-white/10'
-                          }`}>
-                            <User className="w-4 h-4 text-gray-400" />
-                          </div>
+                          <UserAvatar user={{ 
+                            firstName: student.name?.split(' ')?.[0] || '', 
+                            lastName: student.name?.split(' ')?.slice(1)?.join(' ') || '',
+                            profileImageUrl: student.profileImageUrl 
+                          }} size="sm" />
                           <div>
                             <p className="text-white font-medium">{student.name}</p>
                             <div className="flex items-center gap-3 text-xs text-gray-400">
@@ -563,13 +566,11 @@ export default function AdminAssignmentManager({
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                              selectedAssignedStudents.has(student.id)
-                                ? 'bg-red-500/30'
-                                : 'bg-white/10'
-                            }`}>
-                              <User className="w-4 h-4 text-gray-400" />
-                            </div>
+                            <UserAvatar user={{ 
+                              firstName: student.name?.split(' ')?.[0] || '', 
+                              lastName: student.name?.split(' ')?.slice(1)?.join(' ') || '',
+                              profileImageUrl: student.profileImageUrl 
+                            }} size="sm" />
                             <div>
                               <p className="text-white font-medium">{student.name}</p>
                               <div className="flex items-center gap-3 text-xs text-gray-400">

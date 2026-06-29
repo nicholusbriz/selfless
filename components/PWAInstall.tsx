@@ -18,7 +18,13 @@ export default function PWAInstall() {
     const isInstalled = window.matchMedia('(display-mode: standalone)').matches ||
                         (window.navigator as any).standalone === true;
     
-    if (isInstalled) return;
+    if (isInstalled) {
+      // Force redirect to home page when opening PWA
+      if (pathname !== '/') {
+        window.location.href = '/';
+      }
+      return;
+    }
 
     // Register service worker for PWA
     if ('serviceWorker' in navigator) {

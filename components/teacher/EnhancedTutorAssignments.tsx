@@ -45,6 +45,7 @@ interface Student {
   studentId?: string;
   gpa?: number;
   role?: string;
+  profileImageUrl?: string;
 }
 
 interface Assignment {
@@ -451,7 +452,11 @@ export default function EnhancedTutorAssignments({
                         >
                           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                             <div className="flex items-center gap-3 flex-1 min-w-0">
-                              <UserAvatar user={student} size="sm" />
+                              <UserAvatar user={{ 
+                                firstName: student.firstName, 
+                                lastName: student.lastName,
+                                profileImageUrl: student.profileImageUrl 
+                              }} size="sm" />
                               <div className="min-w-0 flex-1">
                                 <p className="text-white font-medium text-sm">
                                   {student.firstName} {student.lastName}
