@@ -21,7 +21,17 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Silent error handling - no console logging
+    // Log errors for debugging
+    console.error('[Axios] Response error:', error);
+    
+    // Handle 401 unauthorized - redirect to login
+    if (error.response?.status === 401) {
+      console.log('[Axios] Unauthorized, redirecting to home');
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
+    }
+    
     return Promise.reject(error);
   }
 );
