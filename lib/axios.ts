@@ -21,7 +21,12 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Silent error handling - no console logging
+    // Log errors for debugging
+    console.error('[Axios] Response error:', error);
+    
+    // Don't auto-redirect on 401 - let components handle it
+    // Auto-redirect was causing infinite loop on home page
+    
     return Promise.reject(error);
   }
 );

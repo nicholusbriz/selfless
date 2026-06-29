@@ -89,12 +89,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       await axios.post('/api/auth/logout');
       
-      // Clear service worker cache to prevent cached data from allowing re-login
-      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({
-          type: 'CLEAR_CACHE'
-        });
-      }
+      // No cache clearing needed - service worker doesn't cache anything
       
       set({ user: null, isAuthenticated: false, isLoading: false });
     } catch (error) {
@@ -106,8 +101,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   
   fetchUser: async () => {
-    // Don't fetch if already have user
-    if (get().user) {
+    // Don't fetch if already have user or already loading
+    if (get().user || get().isLoading) {
       return;
     }
     

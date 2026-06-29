@@ -35,7 +35,10 @@ export default function HomePage() {
   useEffect(() => {
     if (!user && !isLoading && !hasFetchedUser.current) {
       hasFetchedUser.current = true;
-      fetchUser();
+      fetchUser().catch(() => {
+        // Silently handle auth errors - user is not logged in
+        console.log('User not authenticated');
+      });
     }
   }, [user, isLoading, fetchUser]);
 

@@ -122,8 +122,21 @@ export default function DashboardLayout({
 
   const navItems = getNavItems();
 
-  // Proxy handles authentication - if not authenticated, it will redirect
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="h-screen w-screen bg-black flex items-center justify-center">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to home if not authenticated
   if (!isAuthenticated || !user) {
+    router.push('/');
     return null;
   }
 
