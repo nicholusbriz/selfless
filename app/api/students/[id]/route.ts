@@ -69,6 +69,16 @@ export async function GET(
         lastName: student.lastName,
         email: student.email,
         phoneNumber: student.phoneNumber,
+        profileImageUrl: student.profileImageUrl,
+        country: student.country,
+        city: student.city,
+        town: student.town,
+        street: student.street,
+        generalCourse: student.generalCourse,
+        techCenter: student.techCenter,
+        linkedinUrl: student.linkedinUrl,
+        githubUrl: student.githubUrl,
+        projectUrls: student.projectUrls,
         role: student.role,
         studentProfile: student.studentProfile
       }
