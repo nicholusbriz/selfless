@@ -23,7 +23,11 @@ export async function GET(
     const student = await prisma.studentProfile.findUnique({
       where: { id },
       include: {
-        user: true,
+        user: {
+          include: {
+            role: true
+          }
+        },
         enrolledCourses: {
           include: {
             grades: true
