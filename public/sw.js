@@ -83,18 +83,7 @@ self.addEventListener('fetch', (event) => {
 
   // Network-first for HTML pages (always get fresh content)
   if (isHTMLRequest) {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          // Don't cache HTML responses - always serve fresh
-          return response;
-        })
-        .catch((error) => {
-          console.log('[SW] Network failed for HTML:', error);
-          // Don't throw - let browser handle the error naturally
-          throw error;
-        })
-    );
+    // Don't intercept HTML requests at all - let browser handle them directly
     return;
   }
 
@@ -151,8 +140,8 @@ self.addEventListener('fetch', (event) => {
       })
       .catch((error) => {
         console.log('[SW] Fetch failed for:', url.pathname, error);
-        // Don't throw - let browser handle the error naturally
-        return new Response('Network error', { status: 503 });
+        // Throw error to let browser handle it naturally
+        throw error;
       })
   );
 });
