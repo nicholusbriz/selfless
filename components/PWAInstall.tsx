@@ -18,16 +18,17 @@ export default function PWAInstall() {
     const isInstalled = window.matchMedia('(display-mode: standalone)').matches ||
                         (window.navigator as any).standalone === true;
 
-    // Force redirect to home page on PWA initial launch only (use sessionStorage to prevent loops)
-    if (isInstalled && pathname !== '/') {
-      const hasRedirected = sessionStorage.getItem('pwa_redirected_to_home');
-      
-      if (!hasRedirected) {
-        console.log('[PWA] Initial launch detected, redirecting to home');
-        sessionStorage.setItem('pwa_redirected_to_home', 'true');
-        window.location.href = '/';
-      }
-    }
+    // Remove forced redirect - let users navigate naturally
+    // The redirect was causing "failed to reload" issues on mobile
+    // if (isInstalled && pathname !== '/') {
+    //   const hasRedirected = sessionStorage.getItem('pwa_redirected_to_home');
+    //   
+    //   if (!hasRedirected) {
+    //     console.log('[PWA] Initial launch detected, redirecting to home');
+    //     sessionStorage.setItem('pwa_redirected_to_home', 'true');
+    //     window.location.href = '/';
+    //   }
+    // }
 
     // Register service worker for PWA
     if ('serviceWorker' in navigator) {
