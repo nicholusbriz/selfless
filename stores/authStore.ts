@@ -101,8 +101,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   
   fetchUser: async () => {
-    // Don't fetch if already have user
-    if (get().user) {
+    // Don't fetch if already have user or already loading
+    if (get().user || get().isLoading) {
       return;
     }
     

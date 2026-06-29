@@ -24,13 +24,8 @@ axiosInstance.interceptors.response.use(
     // Log errors for debugging
     console.error('[Axios] Response error:', error);
     
-    // Handle 401 unauthorized - redirect to login
-    if (error.response?.status === 401) {
-      console.log('[Axios] Unauthorized, redirecting to home');
-      if (typeof window !== 'undefined') {
-        window.location.href = '/';
-      }
-    }
+    // Don't auto-redirect on 401 - let components handle it
+    // Auto-redirect was causing infinite loop on home page
     
     return Promise.reject(error);
   }
