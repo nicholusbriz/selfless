@@ -114,6 +114,9 @@ export default function AnnouncementsTab() {
           const isExpanded = expandedId === announcement.id;
           const isRecent = Date.now() - new Date(announcement.createdAt).getTime() < 86400000; // 24 hours
           
+          // Safely get author data
+          const author = announcement.author || { firstName: '', lastName: '', email: '', id: '' };
+          
           return (
             <motion.div
               key={announcement.id}
@@ -130,7 +133,7 @@ export default function AnnouncementsTab() {
                 className="w-full p-4 text-left hover:bg-white/5 transition-colors group"
               >
                 <div className="flex items-start gap-3">
-                  <UserAvatar user={announcement.author || { firstName: '', lastName: '' }} size="sm" />
+                  <UserAvatar user={author} size="sm" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <h3 className="font-semibold text-white text-sm sm:text-base line-clamp-2">
@@ -146,7 +149,7 @@ export default function AnnouncementsTab() {
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400">
                       <span className="flex items-center gap-1">
                         <User className="w-3 h-3" />
-                        {announcement.author.firstName} {announcement.author.lastName}
+                        {author.firstName || ''} {author.lastName || ''}
                       </span>
                       <span className="flex items-center gap-1">
                         <Calendar className="w-3 h-3" />

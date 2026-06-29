@@ -194,7 +194,11 @@ export default function StudentAnnouncements() {
           </div>
         )}
 
-        {announcements.map((announcement: Announcement) => (
+        {announcements.map((announcement: Announcement) => {
+          // Safely get author data
+          const author = announcement.author || { firstName: '', lastName: '', email: '', id: '' };
+          
+          return (
           <motion.div
             key={announcement.id}
             initial={{ opacity: 0, y: 10 }}
@@ -204,13 +208,13 @@ export default function StudentAnnouncements() {
             <div className="p-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3 flex-1">
-                  <UserAvatar user={announcement.author || { firstName: '', lastName: '' }} size="sm" />
+                  <UserAvatar user={author} size="sm" />
                   <div className="flex-1">
                     <h3 className="font-semibold text-white mb-2">{announcement.title}</h3>
                     
                     <div className="flex items-center gap-3 text-xs text-gray-400 mb-2">
                       <span className="flex items-center gap-1">
-                        {announcement.author?.firstName || ''} {announcement.author?.lastName || ''}
+                        {author.firstName || ''} {author.lastName || ''}
                       </span>
                       <span className="flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
@@ -239,7 +243,8 @@ export default function StudentAnnouncements() {
               </div>
             </div>
           </motion.div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
