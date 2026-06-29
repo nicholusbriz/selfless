@@ -14,10 +14,12 @@ interface Student {
   studentId?: string;
   gpa?: number;
   role?: string;
+  profileImageUrl?: string;
   assignedTutor?: {
     id: string;
     firstName: string;
     lastName: string;
+    profileImageUrl?: string;
   } | null;
   enrolledCourses?: Array<{
     id?: string;

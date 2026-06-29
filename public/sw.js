@@ -1,6 +1,6 @@
 // public/sw.js - Service Worker for PWA with icon caching
 // Cache version - increment this to force cache invalidation on deployment
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v6';
 const CACHE_NAME = `freedom-tech-${CACHE_VERSION}`;
 const STATIC_CACHE = `freedom-tech-static-${CACHE_VERSION}`;
 
@@ -83,18 +83,7 @@ self.addEventListener('fetch', (event) => {
 
   // Network-first for HTML pages (always get fresh content)
   if (isHTMLRequest) {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          // Don't cache HTML responses - always serve fresh
-          return response;
-        })
-        .catch((error) => {
-          console.log('[SW] Network failed for HTML, trying cache:', error);
-          // Fallback to cache if network fails
-          return caches.match(event.request);
-        })
-    );
+    // Don't intercept HTML requests at all - let browser handle them directly
     return;
   }
 
@@ -151,8 +140,8 @@ self.addEventListener('fetch', (event) => {
       })
       .catch((error) => {
         console.log('[SW] Fetch failed for:', url.pathname, error);
-        // Don't throw - let browser handle the error naturally
-        return new Response('Network error', { status: 503 });
+        // Throw error to let browser handle it naturally
+        throw error;
       })
   );
 });

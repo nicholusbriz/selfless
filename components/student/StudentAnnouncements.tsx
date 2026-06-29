@@ -77,7 +77,7 @@ export default function StudentAnnouncements() {
   });
 
   const announcements = announcementsData?.announcements?.filter(
-    (announcement: Announcement) => announcement.author.id === user?.id
+    (announcement: Announcement) => announcement.author?.id === user?.id
   ) || [];
 
   const handleCreate = () => {
@@ -204,13 +204,13 @@ export default function StudentAnnouncements() {
             <div className="p-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3 flex-1">
-                  <UserAvatar user={announcement.author} size="sm" />
+                  <UserAvatar user={announcement.author || { firstName: '', lastName: '' }} size="sm" />
                   <div className="flex-1">
                     <h3 className="font-semibold text-white mb-2">{announcement.title}</h3>
                     
                     <div className="flex items-center gap-3 text-xs text-gray-400 mb-2">
                       <span className="flex items-center gap-1">
-                        {announcement.author.firstName} {announcement.author.lastName}
+                        {announcement.author?.firstName || ''} {announcement.author?.lastName || ''}
                       </span>
                       <span className="flex items-center gap-1">
                         <Calendar className="w-3 h-3" />

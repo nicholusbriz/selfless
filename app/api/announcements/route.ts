@@ -28,10 +28,10 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Filter out announcements with null/un: validAnnouncementsdefined authors to prevent split errors
+    // Filter out announcements with null/undefined authors to prevent split errors
     const validAnnouncements = announcements.filter(ann => ann.author !== null && ann.author !== undefined);
 
-    return NextResponse.json({ announcements });
+    return NextResponse.json({ announcements: validAnnouncements });
   } catch (error) {
     console.error('Error fetching announcements:', error);
     return NextResponse.json({ error: 'Failed to fetch announcements' }, { status: 500 });

@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Trash2, Shield } from 'lucide-react';
+import UserAvatar from '@/components/shared/UserAvatar';
 
 interface Student {
   id: string;
@@ -16,6 +17,7 @@ interface Student {
   coursesCount: number;
   tuition: number;
   tuitionPaid: boolean;
+  profileImageUrl?: string;
 }
 
 interface Role {
@@ -63,7 +65,16 @@ export default function AdminStudentTable({
                 className="border-b border-white/5 hover:bg-white/5"
               >
                 <td className="p-4 text-white">{student.studentId}</td>
-                <td className="p-4 text-white">{student.name}</td>
+                <td className="p-4">
+                  <div className="flex items-center gap-3">
+                    <UserAvatar user={{ 
+                      firstName: student.name?.split(' ')?.[0] || '', 
+                      lastName: student.name?.split(' ')?.slice(1)?.join(' ') || '',
+                      profileImageUrl: student.profileImageUrl 
+                    }} size="sm" />
+                    <span className="text-white">{student.name}</span>
+                  </div>
+                </td>
                 <td className="p-4 text-gray-400">{student.email}</td>
                 <td className="p-4 text-gray-400">{student.phoneNumber || 'N/A'}</td>
                 <td className="p-4">

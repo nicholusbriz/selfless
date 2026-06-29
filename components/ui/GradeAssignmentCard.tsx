@@ -5,6 +5,7 @@ import { Award, Edit2 } from 'lucide-react';
 import { GRADE_LETTERS } from '@/lib/constants';
 import Toast from '@/components/shared/Toast';
 import { useQueryClient } from '@tanstack/react-query';
+import UserAvatar from '@/components/shared/UserAvatar';
 
 interface GradeAssignmentCardProps {
   student: {
@@ -13,6 +14,7 @@ interface GradeAssignmentCardProps {
     studentId: string;
     enrolledCourses: any[];
     existingGrades: any[];
+    profileImageUrl?: string;
   };
   weekNumber: number;
   onGradeAssign: (courseId: string, gradeLetter: string) => void;
@@ -87,12 +89,21 @@ export default function GradeAssignmentCard({
       <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl overflow-hidden">
         {/* Student Header */}
         <div className="bg-gradient-to-r from-violet-600/20 to-indigo-600/20 border-b border-white/10 p-4">
-          <h3 className="text-white font-semibold text-lg">
-            {student.name}
-          </h3>
-          <p className="text-gray-400 text-sm">
-            {student.studentId} • {enrolledCourses.length} courses
-          </p>
+          <div className="flex items-center gap-3">
+            <UserAvatar user={{ 
+              firstName: student.name?.split(' ')?.[0] || '', 
+              lastName: student.name?.split(' ')?.slice(1)?.join(' ') || '',
+              profileImageUrl: student.profileImageUrl 
+            }} size="sm" />
+            <div>
+              <h3 className="text-white font-semibold text-lg">
+                {student.name}
+              </h3>
+              <p className="text-gray-400 text-sm">
+                {student.studentId} • {enrolledCourses.length} courses
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Courses List */}
