@@ -30,7 +30,10 @@ function UserAvatar({ user, size = 'md', className = '' }: UserAvatarProps) {
     );
   }
 
-  const initials = `${user?.firstName?.charAt(0) || ''}${user?.lastName?.charAt(0) || ''}`;
+  // Safely get initials
+  const firstName = user?.firstName || '';
+  const lastName = user?.lastName || '';
+  const initials = `${firstName.charAt(0) || ''}${lastName.charAt(0) || ''}`;
 
   return (
     <div className={`${sizeClasses[size]} bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg ${className}`}>

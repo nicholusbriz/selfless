@@ -43,10 +43,14 @@ export default function StudentDirectory({ students, currentUserId }: StudentDir
 
   const filteredStudents = useMemo(() => {
     return students.filter((student) => {
+      const firstName = student.firstName || '';
+      const lastName = student.lastName || '';
+      const studentId = student.studentId || '';
+      
       const matchesSearch = 
-        student.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.studentId?.toLowerCase().includes(searchTerm.toLowerCase());
+        firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        studentId.toLowerCase().includes(searchTerm.toLowerCase());
       
       return matchesSearch;
     });
@@ -117,14 +121,17 @@ export default function StudentDirectory({ students, currentUserId }: StudentDir
               </div>
               {student.enrolledCourses && student.enrolledCourses.length > 0 && (
                 <div className="flex flex-wrap gap-1">
-                  {student.enrolledCourses.map((course, idx) => (
-                    <span
-                      key={course.id || course.courseName || idx}
-                      className="px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded text-xs"
-                    >
-                      {course.courseName || course.name || course.code || course.subject || 'Course'}
-                    </span>
-                  ))}
+                  {student.enrolledCourses.map((course, idx) => {
+                    const courseName = course?.courseName || course?.name || course?.code || course?.subject || 'Course';
+                    return (
+                      <span
+                        key={course?.id || courseName || idx}
+                        className="px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded text-xs"
+                      >
+                        {courseName}
+                      </span>
+                    );
+                  })}
                 </div>
               )}
               {student.takesReligion !== undefined && (

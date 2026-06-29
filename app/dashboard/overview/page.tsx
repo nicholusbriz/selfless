@@ -177,8 +177,9 @@ export default function OverviewPage() {
     if (user?.firstName) {
       return user.firstName;
     }
-    if (user?.email) {
-      return (user.email || '').split('@')[0] || 'User';
+    if (user?.email && typeof user.email === 'string') {
+      const emailParts = user.email.split('@');
+      return emailParts[0] || 'User';
     }
     return 'User';
   };

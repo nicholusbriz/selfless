@@ -33,17 +33,33 @@ export default function AnnouncementsTab() {
   const { data: announcementsData, isLoading, error } = useQuery({
     queryKey: ['announcements'],
     queryFn: async () => {
-      const response = await axios.get('/api/announcements');
-      return response.data;
+      try {
+        const response = await axios.get('/api/announcements');
+        // Validate the response structure
+        if (!response.data || !Array.isArray(response.data.announcements)) {
+          console.error('Invalid announcements data structure:', response.data);
+          return { announcements: [] };
+        }
+        return response.data;
+      } catch (err) {
+        console.error('Error fetching announcements:', err);
+        throw err;
+      }
     }
   });
 
   // Listen for new announcements via WebSocket
-  const handleNewAnnouncement = useCallback((newAnnouncement: Announcement) => {
+  const handleNewAnnouncement = useCallback((newAnnouncement: any) => {
+    // Ensure the announcement has a valid author object
+    const safeAnnouncement = {
+      ...newAnnouncement,
+      author: newAnnouncement.author || { firstName: '', lastName: '', email: '', id: '', profileImageUrl: '' }
+    };
+    
     queryClient.setQueryData(['announcements'], (oldData: any) => {
-      if (!oldData) return { announcements: [newAnnouncement] };
+      if (!oldData) return { announcements: [safeAnnouncement] };
       return {
-        announcements: [newAnnouncement, ...oldData.announcements]
+        announcements: [safeAnnouncement, ...oldData.announcements]
       };
     });
   }, [queryClient]);
@@ -110,72 +126,77 @@ export default function AnnouncementsTab() {
 
       {/* Announcements List */}
       <div className="space-y-3">
-        {announcements.map((announcement: Announcement) => {
-          const isExpanded = expandedId === announcement.id;
-          const isRecent = Date.now() - new Date(announcement.createdAt).getTime() < 86400000; // 24 hours
-          
-          return (
-            <motion.div
-              key={announcement.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`border rounded-xl overflow-hidden transition-all duration-300 ${
-                isExpanded 
-                  ? 'border-purple-500/30 bg-gradient-to-b from-purple-500/5 to-transparent shadow-lg shadow-purple-500/10' 
-                  : 'border-white/10 bg-white/5 hover:bg-white/10'
-              }`}
-            >
-              <button
-                onClick={() => toggleExpand(announcement.id)}
-                className="w-full p-4 text-left hover:bg-white/5 transition-colors group"
+        {announcements.map((announcement: Announcement, index: number) => {
+          try {
+            const isExpanded = expandedId === announcement.id;
+            const createdAt = announcement.createdAt ? new Date(announcement.createdAt) : new Date();
+            const isRecent = Date.now() - createdAt.getTime() < 86400000; // 24 hours
+            
+            // Safely get author data
+            const author = announcement.author || { firstName: '', lastName: '', email: '', id: '' };
+            
+            return (
+              <motion.div
+                key={announcement.id || index}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`border rounded-xl overflow-hidden transition-all duration-300 ${
+                  isExpanded 
+                    ? 'border-purple-500/30 bg-gradient-to-b from-purple-500/5 to-transparent shadow-lg shadow-purple-500/10' 
+                    : 'border-white/10 bg-white/5 hover:bg-white/10'
+                }`}
               >
-                <div className="flex items-start gap-3">
-                  <UserAvatar user={announcement.author || { firstName: '', lastName: '' }} size="sm" />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <h3 className="font-semibold text-white text-sm sm:text-base line-clamp-2">
-                        {announcement.title}
-                      </h3>
-                      {isRecent && (
-                        <span className="flex-shrink-0 px-2 py-0.5 text-xs font-medium bg-purple-500/20 text-purple-300 rounded-full">
-                          New
+                <button
+                  onClick={() => toggleExpand(announcement.id || '')}
+                  className="w-full p-4 text-left hover:bg-white/5 transition-colors group"
+                >
+                  <div className="flex items-start gap-3">
+                    <UserAvatar user={author} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <h3 className="font-semibold text-white text-sm sm:text-base line-clamp-2">
+                          {announcement.title || 'Untitled'}
+                        </h3>
+                        {isRecent && (
+                          <span className="flex-shrink-0 px-2 py-0.5 text-xs font-medium bg-purple-500/20 text-purple-300 rounded-full">
+                            New
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400">
+                        <span className="flex items-center gap-1">
+                          <User className="w-3 h-3" />
+                          {author.firstName || ''} {author.lastName || ''}
                         </span>
-                      )}
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {createdAt.toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          {createdAt.toLocaleTimeString('en-US', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
                     </div>
-                    
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400">
-                      <span className="flex items-center gap-1">
-                        <User className="w-3 h-3" />
-                        {announcement.author.firstName} {announcement.author.lastName}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {new Date(announcement.createdAt).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric'
-                        })}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        {new Date(announcement.createdAt).toLocaleTimeString('en-US', {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </span>
-                    </div>
-                  </div>
 
-                  <div className="flex-shrink-0 ml-2">
-                    <motion.div
-                      animate={{ rotate: isExpanded ? 180 : 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="p-1 rounded-full group-hover:bg-white/10 transition-colors"
-                    >
-                      <ChevronDown className={`w-5 h-5 ${isExpanded ? 'text-purple-400' : 'text-gray-400'}`} />
-                    </motion.div>
+                    <div className="flex-shrink-0 ml-2">
+                      <motion.div
+                        animate={{ rotate: isExpanded ? 180 : 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="p-1 rounded-full group-hover:bg-white/10 transition-colors"
+                      >
+                        <ChevronDown className={`w-5 h-5 ${isExpanded ? 'text-purple-400' : 'text-gray-400'}`} />
+                      </motion.div>
+                    </div>
                   </div>
-                </div>
-              </button>
+                </button>
 
               <AnimatePresence>
                 {isExpanded && (
@@ -190,7 +211,7 @@ export default function AnnouncementsTab() {
                       <div className="pt-4 border-t border-white/10">
                         <div className="prose prose-invert prose-sm max-w-none">
                           <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">
-                            {announcement.content}
+                            {announcement.content || 'No content'}
                           </p>
                         </div>
                       </div>
@@ -199,7 +220,11 @@ export default function AnnouncementsTab() {
                 )}
               </AnimatePresence>
             </motion.div>
-          );
+            );
+          } catch (err) {
+            console.error('Error rendering announcement:', err, announcement);
+            return null;
+          }
         })}
       </div>
 

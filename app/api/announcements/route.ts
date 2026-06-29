@@ -29,8 +29,29 @@ export async function GET(request: NextRequest) {
     });
 
     // Filter out announcements with null/undefined authors to prevent split errors
-    const validAnnouncements = announcements.filter(ann => ann.author !== null && ann.author !== undefined);
+    const validAnnouncements = announcements
+      .filter(ann => ann.author !== null && ann.author !== undefined)
+      .map(ann => {
+        // Log each announcement for debugging
+        console.log('Processing announcement:', {
+          id: ann.id,
+          author: ann.author,
+          title: ann.title
+        });
+        
+        return {
+          ...ann,
+          author: {
+            id: ann.author.id || '',
+            firstName: ann.author.firstName || '',
+            lastName: ann.author.lastName || '',
+            email: ann.author.email || '',
+            profileImageUrl: ann.author.profileImageUrl || null
+          }
+        };
+      });
 
+    console.log('Returning announcements:', validAnnouncements.length);
     return NextResponse.json({ announcements: validAnnouncements });
   } catch (error) {
     console.error('Error fetching announcements:', error);
