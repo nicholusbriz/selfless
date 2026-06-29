@@ -90,9 +90,9 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch((error) => {
-          console.log('[SW] Network failed for HTML, trying cache:', error);
-          // Fallback to cache if network fails
-          return caches.match(event.request);
+          console.log('[SW] Network failed for HTML:', error);
+          // Don't throw - let browser handle the error naturally
+          throw error;
         })
     );
     return;
