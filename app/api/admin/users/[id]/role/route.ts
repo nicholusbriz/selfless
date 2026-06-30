@@ -92,6 +92,12 @@ export async function PUT(
     await prisma.$transaction(async (tx) => {
       // Delete TeacherProfile if changing away from teacher role
       if (oldRoleName === 'teacher' && role.name !== 'teacher' && currentUser.teacherProfile) {
+        // Delete all teacher-student assignments for this teacher
+        await tx.teacherStudentAssignment.deleteMany({
+          where: { teacherId: targetUserId }
+        });
+
+        // Delete the teacher profile
         await tx.teacherProfile.delete({
           where: { id: currentUser.teacherProfile.id }
         });
@@ -109,6 +115,34 @@ export async function PUT(
         where: { id: targetUserId },
         data: { roleId }
       });
+
+      // Create StudentProfile if changing to student role and doesn't exist
+      if (role.name === 'student' && !currentUser.studentProfile) {
+        const generateStudentId = async () => {
+          const year = new Date().getFullYear();
+          const lastStudent = await tx.studentProfile.findFirst({
+            orderBy: { studentId: 'desc' }
+          });
+
+          let nextNumber = 1;
+          if (lastStudent && lastStudent.studentId) {
+            const match = lastStudent.studentId.match(/\d+$/);
+            if (match) {
+              nextNumber = parseInt(match[0]) + 1;
+            }
+          }
+
+          return `STU${year}${nextNumber.toString().padStart(4, '0')}`;
+        };
+
+        const studentId = await generateStudentId();
+        await tx.studentProfile.create({
+          data: {
+            userId: targetUserId,
+            studentId: studentId
+          }
+        });
+      }
 
       // Create TeacherProfile if promoting to teacher and doesn't exist
       if (role.name === 'teacher' && !currentUser.teacherProfile) {

@@ -87,7 +87,8 @@ export const useUpdateUserRole = () => {
 
       // Optimistically update the user's role
       queryClient.setQueryData(adminKeys.students(), (old: any) => {
-        const students = old || [];
+        const students = old?.students || old || [];
+        if (!Array.isArray(students)) return old;
         return students.map((student: any) =>
           student.id === userId ? { ...student, roleId } : student
         );
