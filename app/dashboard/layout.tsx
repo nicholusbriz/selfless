@@ -26,6 +26,13 @@ export default function DashboardLayout({
     }
   }, [user, isLoading, fetchUser]);
 
+  // Redirect to home if not authenticated
+  useEffect(() => {
+    if (!isLoading && (!isAuthenticated || !user)) {
+      router.push('/');
+    }
+  }, [isAuthenticated, user, isLoading, router]);
+
   const handleLogout = () => {
     // ✅ Clear session flags on logout
     sessionStorage.removeItem('pending_login');
@@ -134,9 +141,8 @@ export default function DashboardLayout({
     );
   }
 
-  // Redirect to home if not authenticated
+  // Don't render if not authenticated (redirect happens in useEffect)
   if (!isAuthenticated || !user) {
-    router.push('/');
     return null;
   }
 

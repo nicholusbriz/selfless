@@ -309,7 +309,7 @@ export default function EnhancedTutorAssignments({
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
                   <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                    <UserAvatar user={{ firstName: group.teacher.name.split(' ')[0], lastName: group.teacher.name.split(' ').slice(1).join(' ') }} size="md" />
+                    <UserAvatar user={{ firstName: group.teacher.name.split(' ')[0], lastName: group.teacher.name.split(' ').slice(1).join(' '), profileImageUrl: group.teacher.profileImageUrl }} size="md" />
                     <div className="text-left flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="text-base sm:text-lg font-bold text-white truncate">

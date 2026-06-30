@@ -10,11 +10,13 @@ import LoadingState from '@/components/shared/LoadingState';
 import ErrorState from '@/components/shared/ErrorState';
 import { uploadProfileImage, deleteProfileImage } from '@/lib/supabase';
 import UserAvatar from '@/components/shared/UserAvatar';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function ProfilePage() {
   const { user, fetchUser, setAuth } = useAuthStore();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [viewedUser, setViewedUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -97,6 +99,11 @@ export default function ProfilePage() {
         setAuth(response.data.user);
         // Refresh user data to ensure profileImageUrl is loaded
         await fetchUser();
+        // Invalidate teacher-assignments and all-teachers queries to refresh assigned students tab
+        queryClient.invalidateQueries({ queryKey: ['teacher-assignments'] });
+        queryClient.invalidateQueries({ queryKey: ['all-teachers'] });
+        // Invalidate student profile queries
+        queryClient.invalidateQueries({ queryKey: ['student'] });
         setIsEditing(false);
         setImageFile(null);
         setImagePreview(null);
