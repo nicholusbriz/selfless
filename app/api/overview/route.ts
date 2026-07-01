@@ -43,7 +43,8 @@ export async function GET(request: NextRequest) {
               select: {
                 id: true,
                 courseName: true,
-                credits: true
+                credits: true,
+                status: true
               }
             }
           }

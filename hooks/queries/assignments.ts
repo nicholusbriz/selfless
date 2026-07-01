@@ -44,7 +44,7 @@ export const useCreateBulkAssignments = () => {
 
       // Optimistically add assignments
       queryClient.setQueryData(assignmentKeys.list(), (old: any) => {
-        const existingAssignments = old || [];
+        const existingAssignments = Array.isArray(old) ? old : (old?.assignments || []);
         const newAssignments = variables.studentIds.map((studentId: string) => ({
           id: `temp-${Date.now()}-${Math.random()}`,
           teacherId: variables.teacherId,
@@ -94,7 +94,7 @@ export const useDeleteBulkAssignments = () => {
 
       // Optimistically remove assignments
       queryClient.setQueryData(assignmentKeys.list(), (old: any) => {
-        const existingAssignments = old || [];
+        const existingAssignments = Array.isArray(old) ? old : (old?.assignments || []);
         return existingAssignments.filter((assignment: any) => 
           !assignmentIds.includes(assignment.id)
         );
@@ -135,7 +135,7 @@ export const useUpdateAssignment = () => {
 
       // Optimistically update the assignment
       queryClient.setQueryData(assignmentKeys.list(), (old: any) => {
-        const existingAssignments = old || [];
+        const existingAssignments = Array.isArray(old) ? old : (old?.assignments || []);
         return existingAssignments.map((assignment: any) =>
           assignment.id === id ? { ...assignment, ...data } : assignment
         );
