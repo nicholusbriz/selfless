@@ -70,6 +70,9 @@ const weekData = {
         date: 'July 6, 2026',
         users: [
           { name: 'Babriye Badria' },
+          { name: 'Brendah Ainembabazi' },
+          { name: 'Hyla Nalwadda' },
+          { name: 'Masaazi Faswiiha Was...' },
         ]
       },
       {
