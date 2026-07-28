@@ -76,7 +76,6 @@ interface LoginFormProps {
 function LoginForm({ onClose, onSwitchToRegister }: LoginFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -88,7 +87,6 @@ function LoginForm({ onClose, onSwitchToRegister }: LoginFormProps) {
     try {
       const result = await signIn('credentials', {
         email,
-        password,
         redirect: false,
       });
 
@@ -145,19 +143,6 @@ function LoginForm({ onClose, onSwitchToRegister }: LoginFormProps) {
             />
           </div>
 
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-[#A79C8C] flex items-center gap-2">
-              <Lock className="w-4 h-4 text-[#6B6358]" />
-              Password
-            </label>
-            <PasswordInput
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              required
-            />
-          </div>
-
           <AnimatePresence>
             {error && (
               <motion.div
@@ -186,7 +171,7 @@ function LoginForm({ onClose, onSwitchToRegister }: LoginFormProps) {
               </>
             ) : (
               <>
-                <span>Sign In</span>
+                <span>Sign In with Email</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}

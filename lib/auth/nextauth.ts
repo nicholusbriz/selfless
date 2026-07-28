@@ -40,13 +40,12 @@ export const authOptions: AuthOptions = {
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
-        email: { label: 'Email', type: 'email', placeholder: 'your@email.com' },
-        password: { label: 'Password', type: 'password' }
+        email: { label: 'Email', type: 'email', placeholder: 'your@email.com' }
       },
       async authorize(credentials) {
-        // 1. Validate credentials exist
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error('Email and password required');
+        // 1. Validate email exists
+        if (!credentials?.email) {
+          throw new Error('Email required');
         }
 
         // 2. Find user in database
@@ -60,24 +59,13 @@ export const authOptions: AuthOptions = {
           throw new Error('No user found with this email');
         }
 
-        // 4. Check if user has a password (OAuth users don't)
-        if (!user.password) {
-          throw new Error('Please sign in with your social account');
-        }
-
-        // 5. Verify password
-        const isValid = await bcrypt.compare(credentials.password, user.password);
-        if (!isValid) {
-          throw new Error('Invalid password');
-        }
-
-        // 6. Update last login
+        // 4. Update last login
         await prisma.user.update({
           where: { id: user.id },
           data: { lastLoginAt: new Date() }
         });
 
-        // 7. Return user object
+        // 5. Return user object
         return {
           id: user.id,
           email: user.email,
