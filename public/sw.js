@@ -22,5 +22,20 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// No fetch handler - let browser handle all requests normally
-// This ensures all content loads from network without caching
+// Fetch handler to handle navigation requests
+// This fixes the "page not found" issue when launching PWA
+self.addEventListener('fetch', (event) => {
+  // For navigation requests, always go to network
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        // If network fails, return cached index or offline page
+        return caches.match('/') || new Response('Offline', { status: 503 });
+      })
+    );
+  }
+  // For all other requests, let browser handle normally (no caching)
+  else {
+    event.respondWith(fetch(event.request));
+  }
+});
