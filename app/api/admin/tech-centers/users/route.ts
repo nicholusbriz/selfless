@@ -76,10 +76,40 @@ export async function GET(request: NextRequest) {
     // Get total count for pagination
     const total = await prisma.user.count({ where });
 
+    // Get status counts for all users in tech center
+    const baseWhere = {
+      techCenterId: techCenterId,
+      role: {
+        NOT: {
+          name: 'super_admin'
+        }
+      }
+    };
+
+    const [activeCount, inactiveCount, suspendedCount] = await Promise.all([
+      prisma.user.count({ where: { ...baseWhere, status: 'ACTIVE' } }),
+      prisma.user.count({ where: { ...baseWhere, status: 'INACTIVE' } }),
+      prisma.user.count({ where: { ...baseWhere, status: 'SUSPENDED' } }),
+    ]);
+
     // Fetch users with relations
     const users = await prisma.user.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phoneNumber: true,
+        country: true,
+        city: true,
+        status: true,
+        isActive: true,
+        lastLoginAt: true,
+        createdAt: true,
+        updatedAt: true,
+        roleId: true,
+        profileImageUrl: true,
         role: {
           select: {
             id: true,
@@ -133,6 +163,11 @@ export async function GET(request: NextRequest) {
       filters: {
         roles,
         statuses,
+      },
+      stats: {
+        active: activeCount,
+        inactive: inactiveCount,
+        suspended: suspendedCount,
       },
       techCenter: adminUser.techCenter
     });

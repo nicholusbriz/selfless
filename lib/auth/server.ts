@@ -62,9 +62,8 @@ export async function registerUser(data: {
   lastName: string;
   email: string;
   password: string;
-  phoneNumber?: string;
-  country?: string;
-  techCenterId?: string;
+  phoneNumber: string;
+  techCenterId: string;
 }) {
   try {
     // Check if user already exists
@@ -85,22 +84,50 @@ export async function registerUser(data: {
       return { error: 'Student role not found' };
     }
 
+    // Fetch tech center to get country
+    const techCenter = await prisma.techCenter.findUnique({
+      where: { id: data.techCenterId },
+      include: { country: true }
+    });
+
+    if (!techCenter) {
+      return { error: 'Tech center not found' };
+    }
+
+    if (!techCenter.country) {
+      return { error: 'Tech center has no country assigned' };
+    }
+
     // Hash password
     const hashedPassword = await hashPassword(data.password);
 
-    // Create user - fixed field names
+    // Create user with all fields set to defaults/null
     const user = await prisma.user.create({
       data: {
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
         password: hashedPassword,
-        phoneNumber: data.phoneNumber, // ✅ This exists in your schema
-        country: data.country || 'Uganda',
+        phoneNumber: data.phoneNumber,
+        country: techCenter.country.name,
+        city: null,
+        town: null,
+        street: null,
+        generalCourse: null,
+        linkedinUrl: null,
+        githubUrl: null,
+        projectUrls: [],
+        profileImageUrl: null,
         techCenterId: data.techCenterId,
         roleId: studentRole.id,
         status: 'ACTIVE',
         isActive: true,
+        emailVerified: null,
+        resetToken: null,
+        resetTokenExpiry: null,
+        teacherId: null,
+        createdTechCenterIds: [],
+        updatedTechCenterIds: [],
       },
       include: {
         role: {

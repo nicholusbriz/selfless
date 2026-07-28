@@ -8,12 +8,12 @@ import { generateToken } from '@/lib/auth/server';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { firstName, lastName, email, password, phoneNumber, country, techCenterId } = body;
+    const { firstName, lastName, email, password, phoneNumber, techCenterId } = body;
 
     // Validate required fields
-    if (!firstName || !lastName || !email || !password) {
+    if (!firstName || !lastName || !email || !password || !phoneNumber || !techCenterId) {
       return NextResponse.json(
-        { error: 'Name, email, and password are required' },
+        { error: 'Name, email, password, phone number, and tech center are required' },
         { status: 400 }
       );
     }
@@ -33,7 +33,6 @@ export async function POST(req: NextRequest) {
       email,
       password,
       phoneNumber,
-      country,
       techCenterId,
     });
 

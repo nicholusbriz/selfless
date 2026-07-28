@@ -4,12 +4,12 @@ import { useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, 
-  Mail, 
+import {
+  X,
+  Mail,
   Lock,
-  User, 
-  Phone, 
+  User,
+  Phone,
   Building2,
   ArrowRight,
   CheckCircle,

@@ -148,14 +148,6 @@ function TopBar({
           </Link>
 
           <Link
-            href="/dashboard/profile"
-            className="p-2 rounded-xl text-[#8A8278] hover:text-white hover:bg-[#1A1228] transition-all duration-300 hover:scale-110 group"
-            aria-label="Profile"
-          >
-            <User className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
-          </Link>
-
-          <Link
             href="/dashboard/settings"
             className="p-2 rounded-xl text-[#8A8278] hover:text-white hover:bg-[#1A1228] transition-all duration-300 hover:scale-110 group"
             aria-label="Settings"
@@ -163,33 +155,44 @@ function TopBar({
             <Settings className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
           </Link>
 
-          <button
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className="p-2 rounded-xl text-[#8A8278] hover:text-white hover:bg-[#1A1228] transition-all duration-300 hover:scale-110 hover:rotate-12"
+          <Link
+            href="/dashboard/profile"
+            className="flex items-center gap-3 ml-2 pl-3 border-l border-[#1A1228] hover:bg-[#1A1228]/30 rounded-lg px-3 py-2 transition-all duration-300 group"
           >
-            {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </button>
-
-          {!isMobile && (
-            <div className="flex items-center gap-3 ml-2 pl-3 border-l border-[#1A1228]">
-              <div className="relative group">
-                <div className="absolute inset-0 bg-gradient-to-r from-[#E8A33D] to-[#14B8A6] rounded-full blur-xl opacity-30 group-hover:opacity-50 transition-opacity duration-500"></div>
-                <div className="relative w-9 h-9 rounded-full bg-gradient-to-br from-[#E8A33D] to-[#14B8A6] flex items-center justify-center text-[#0F0A1A] font-bold text-sm shadow-xl shadow-[#E8A33D]/20 transition-transform duration-300 group-hover:scale-110">
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-[#E8A33D] to-[#14B8A6] rounded-full blur-xl opacity-30 group-hover:opacity-50 transition-opacity duration-500"></div>
+              {user?.profileImageUrl ? (
+                <img
+                  src={user.profileImageUrl}
+                  alt={`${user?.firstName} ${user?.lastName}`}
+                  className="relative w-11 h-11 rounded-full object-cover shadow-xl shadow-[#E8A33D]/20 transition-transform duration-300 group-hover:scale-110"
+                />
+              ) : (
+                <div className="relative w-11 h-11 rounded-full bg-gradient-to-br from-[#E8A33D] to-[#14B8A6] flex items-center justify-center text-[#0F0A1A] font-bold text-sm shadow-xl shadow-[#E8A33D]/20 transition-transform duration-300 group-hover:scale-110">
                   {user?.firstName?.charAt(0).toUpperCase() || 'U'}
                   {user?.lastName?.charAt(0).toUpperCase() || ''}
                 </div>
-              </div>
-              <div className="hidden lg:block">
-                <p className="text-white text-sm font-medium leading-tight">
-                  {user?.firstName} {user?.lastName}
-                </p>
-                <p className="text-[#8A8278] text-xs capitalize flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#14B8A6] inline-block"></span>
-                  {userRole}
-                </p>
-              </div>
+              )}
             </div>
-          )}
+            <div className="block lg:hidden">
+              <p className="text-white text-xs font-medium leading-tight truncate max-w-[80px]">
+                {user?.firstName}
+              </p>
+              <p className="text-[#8A8278] text-[10px] capitalize flex items-center gap-1">
+                <span className="w-1 h-1 rounded-full bg-[#14B8A6] inline-block"></span>
+                {userRole}
+              </p>
+            </div>
+            <div className="hidden lg:block">
+              <p className="text-white text-sm font-medium leading-tight">
+                {user?.firstName} {user?.lastName}
+              </p>
+              <p className="text-[#8A8278] text-xs capitalize flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#14B8A6] inline-block"></span>
+                {userRole}
+              </p>
+            </div>
+          </Link>
         </div>
       </div>
     </header>
@@ -867,10 +870,18 @@ function Sidebar({
           <div className="flex items-center gap-3">
             <div className="relative group">
               <div className="absolute inset-0 bg-gradient-to-r from-[#E8A33D] to-[#14B8A6] rounded-full blur-xl opacity-30 group-hover:opacity-50 transition-opacity duration-500"></div>
-              <div className="relative w-10 h-10 rounded-full bg-gradient-to-br from-[#E8A33D] to-[#14B8A6] flex items-center justify-center text-[#0F0A1A] font-bold text-sm shadow-xl shadow-[#E8A33D]/20 transition-transform duration-300 group-hover:scale-110">
-                {user?.firstName?.charAt(0).toUpperCase() || 'U'}
-                {user?.lastName?.charAt(0).toUpperCase() || ''}
-              </div>
+              {user?.profileImageUrl ? (
+                <img
+                  src={user.profileImageUrl}
+                  alt={`${user?.firstName} ${user?.lastName}`}
+                  className="relative w-10 h-10 rounded-full object-cover shadow-xl shadow-[#E8A33D]/20 transition-transform duration-300 group-hover:scale-110"
+                />
+              ) : (
+                <div className="relative w-10 h-10 rounded-full bg-gradient-to-br from-[#E8A33D] to-[#14B8A6] flex items-center justify-center text-[#0F0A1A] font-bold text-sm shadow-xl shadow-[#E8A33D]/20 transition-transform duration-300 group-hover:scale-110">
+                  {user?.firstName?.charAt(0).toUpperCase() || 'U'}
+                  {user?.lastName?.charAt(0).toUpperCase() || ''}
+                </div>
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-white font-bold text-sm truncate">

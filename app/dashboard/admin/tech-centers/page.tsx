@@ -179,7 +179,7 @@ export default function AdminTechCenterPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          onClick={() => router.push('/dashboard/admin/students')}
+          onClick={() => router.push('/dashboard/admin/users')}
           className="bg-[#150F20] border border-[#2A2438] rounded-xl p-6 hover:border-[#6366F1]/30 transition-all duration-300 text-left group"
         >
           <div className="flex items-center justify-between">
@@ -187,8 +187,8 @@ export default function AdminTechCenterPage() {
               <div className="w-12 h-12 rounded-xl bg-[#6366F1]/10 flex items-center justify-center mb-3">
                 <Users className="w-6 h-6 text-[#6366F1]" />
               </div>
-              <h3 className="text-[#F5F0E8] font-semibold">Students</h3>
-              <p className="text-sm text-[#6B6358] mt-1">Manage students in your center</p>
+              <h3 className="text-[#F5F0E8] font-semibold">Users</h3>
+              <p className="text-sm text-[#6B6358] mt-1">Manage users in your center</p>
             </div>
             <ChevronRight className="w-5 h-5 text-[#6B6358] group-hover:text-[#E8A33D] group-hover:translate-x-1 transition-all duration-200" />
           </div>
@@ -198,16 +198,16 @@ export default function AdminTechCenterPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          onClick={() => router.push('/dashboard/admin/courses')}
+          onClick={() => router.push('/dashboard/admin/teachers')}
           className="bg-[#150F20] border border-[#2A2438] rounded-xl p-6 hover:border-[#34D399]/30 transition-all duration-300 text-left group"
         >
           <div className="flex items-center justify-between">
             <div>
               <div className="w-12 h-12 rounded-xl bg-[#34D399]/10 flex items-center justify-center mb-3">
-                <BookOpen className="w-6 h-6 text-[#34D399]" />
+                <School className="w-6 h-6 text-[#34D399]" />
               </div>
-              <h3 className="text-[#F5F0E8] font-semibold">Courses</h3>
-              <p className="text-sm text-[#6B6358] mt-1">View courses in your center</p>
+              <h3 className="text-[#F5F0E8] font-semibold">Teachers</h3>
+              <p className="text-sm text-[#6B6358] mt-1">Manage teachers in your center</p>
             </div>
             <ChevronRight className="w-5 h-5 text-[#6B6358] group-hover:text-[#E8A33D] group-hover:translate-x-1 transition-all duration-200" />
           </div>

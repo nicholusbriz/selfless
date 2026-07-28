@@ -46,6 +46,11 @@ export interface UsersResponse {
     roles: Array<{ id: string; name: string; displayName: string }>;
     statuses: string[];
   };
+  stats: {
+    active: number;
+    inactive: number;
+    suspended: number;
+  };
   techCenter: {
     id: string;
     name: string;
