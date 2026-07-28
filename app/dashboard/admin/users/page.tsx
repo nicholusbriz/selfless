@@ -1,7 +1,7 @@
 // app/dashboard/admin/users/page.tsx
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -131,6 +131,7 @@ export default function AdminUsersPage() {
   
   // State
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
@@ -155,18 +156,24 @@ export default function AdminUsersPage() {
   
   const [showFilters, setShowFilters] = useState(false);
 
-  // Fetch users using custom hook
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Fetch all users on page load (no pagination)
   const {
     data: usersData,
     isLoading,
     error,
     refetch,
   } = useAdminUsers({
-    page,
-    limit,
-    search: searchTerm || undefined,
-    role: filters.role || undefined,
-    status: filters.status || undefined,
+    page: 1,
+    limit: 1000, // Fetch all users at once
   });
 
   // Mutations using custom hooks
@@ -282,17 +289,47 @@ export default function AdminUsersPage() {
     });
   };
 
-  // Get stats
+  // Client-side filtering
+  const filteredUsers = useMemo(() => {
+    if (!usersData) return [];
+    
+    return usersData.users.filter(user => {
+      // Search filter
+      const searchLower = debouncedSearchTerm.toLowerCase();
+      const matchesSearch = !debouncedSearchTerm || 
+        user.firstName.toLowerCase().includes(searchLower) ||
+        user.lastName.toLowerCase().includes(searchLower) ||
+        user.email.toLowerCase().includes(searchLower) ||
+        (user.phoneNumber && user.phoneNumber.toLowerCase().includes(searchLower));
+      
+      // Role filter
+      const matchesRole = !filters.role || user.role?.name === filters.role;
+      
+      // Status filter
+      const matchesStatus = !filters.status || user.status === filters.status;
+      
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }, [usersData, debouncedSearchTerm, filters]);
+
+  // Get stats from filtered data
   const stats = useMemo(() => {
     if (!usersData) return null;
-    const users = usersData.users;
     return {
       total: usersData.pagination.total,
-      active: users.filter(u => u.status === 'ACTIVE').length,
-      inactive: users.filter(u => u.status === 'INACTIVE').length,
-      suspended: users.filter(u => u.status === 'SUSPENDED').length,
+      active: usersData.stats.active,
+      inactive: usersData.stats.inactive,
+      suspended: usersData.stats.suspended,
     };
   }, [usersData]);
+
+  // Pagination for filtered results
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (page - 1) * limit;
+    return filteredUsers.slice(startIndex, startIndex + limit);
+  }, [filteredUsers, page, limit]);
+
+  const totalPages = Math.ceil(filteredUsers.length / limit);
 
   // Loading state with skeleton
   if (isLoading && !usersData) {
@@ -552,7 +589,7 @@ export default function AdminUsersPage() {
       {/* Users Table */}
       {usersData && (
         <>
-          {usersData.users.length === 0 ? (
+          {filteredUsers.length === 0 ? (
             <div className="bg-[#150F20] border border-[#2A2438] rounded-2xl p-12 text-center">
               <div className="w-20 h-20 rounded-2xl bg-[#E8A33D]/10 border border-[#E8A33D]/20 flex items-center justify-center mx-auto mb-4">
                 <UsersIcon className="w-10 h-10 text-[#E8A33D] opacity-60" />
@@ -568,15 +605,23 @@ export default function AdminUsersPage() {
             <>
               {/* Table - Desktop */}
               <div className="hidden lg:block">
-                {usersData.users.map((user) => (
+                {paginatedUsers.map((user) => (
                   <div key={user.id} className="mb-4">
                     <div className="bg-[#150F20] border border-[#2A2438] rounded-2xl overflow-hidden hover:border-[#E8A33D]/30 transition-all duration-300">
                       <div className="flex items-center justify-between p-4">
                         <div className="flex items-center gap-4 flex-1">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#E8A33D] to-[#C97F1F] flex items-center justify-center text-[#0B0912] font-semibold text-sm flex-shrink-0">
-                            {user.firstName.charAt(0).toUpperCase()}
-                            {user.lastName.charAt(0).toUpperCase()}
-                          </div>
+                          {user.profileImageUrl ? (
+                            <img
+                              src={user.profileImageUrl}
+                              alt={`${user.firstName} ${user.lastName}`}
+                              className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#E8A33D] to-[#C97F1F] flex items-center justify-center text-[#0B0912] font-semibold text-sm flex-shrink-0">
+                              {user.firstName.charAt(0).toUpperCase()}
+                              {user.lastName.charAt(0).toUpperCase()}
+                            </div>
+                          )}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 flex-wrap">
                               <p className="text-sm font-medium text-[#F5F0E8]">
@@ -822,15 +867,23 @@ export default function AdminUsersPage() {
 
               {/* Mobile Cards */}
               <div className="lg:hidden space-y-4">
-                {usersData.users.map((user) => (
+                {paginatedUsers.map((user) => (
                   <div key={user.id} className="bg-[#150F20] border border-[#2A2438] rounded-2xl overflow-hidden hover:border-[#E8A33D]/30 transition-all duration-300">
                     <div className="p-4">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#E8A33D] to-[#C97F1F] flex items-center justify-center text-[#0B0912] font-semibold">
-                            {user.firstName.charAt(0).toUpperCase()}
-                            {user.lastName.charAt(0).toUpperCase()}
-                          </div>
+                          {user.profileImageUrl ? (
+                            <img
+                              src={user.profileImageUrl}
+                              alt={`${user.firstName} ${user.lastName}`}
+                              className="w-12 h-12 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#E8A33D] to-[#C97F1F] flex items-center justify-center text-[#0B0912] font-semibold">
+                              {user.firstName.charAt(0).toUpperCase()}
+                              {user.lastName.charAt(0).toUpperCase()}
+                            </div>
+                          )}
                           <div>
                             <p className="text-sm font-medium text-[#F5F0E8]">
                               {user.firstName} {user.lastName}
@@ -995,10 +1048,10 @@ export default function AdminUsersPage() {
               </div>
 
               {/* Pagination */}
-              {usersData.pagination.totalPages > 1 && (
+              {totalPages > 1 && (
                 <div className="flex items-center justify-between mt-6 pt-6 border-t border-[#2A2438]">
                   <p className="text-sm text-[#A79C8C]">
-                    Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, usersData.pagination.total)} of {usersData.pagination.total} users
+                    Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, filteredUsers.length)} of {filteredUsers.length} users
                   </p>
                   <div className="flex items-center gap-2">
                     <button
@@ -1009,11 +1062,11 @@ export default function AdminUsersPage() {
                       <ChevronLeft className="w-4 h-4" />
                     </button>
                     <span className="px-4 py-2 bg-[#150F20] text-[#F5F0E8] rounded-lg">
-                      Page {page} of {usersData.pagination.totalPages}
+                      Page {page} of {totalPages}
                     </span>
                     <button
                       onClick={() => handlePageChange(page + 1)}
-                      disabled={page === usersData.pagination.totalPages}
+                      disabled={page === totalPages}
                       className="px-3 py-2 bg-[#2A2438] text-[#A79C8C] rounded-lg hover:bg-[#3A3448] hover:text-[#F5F0E8] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       <ChevronRight className="w-4 h-4" />
