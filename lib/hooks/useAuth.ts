@@ -20,9 +20,6 @@ export function useAuth() {
     return result;
   };
 
-  const loginWithGoogle = () => signIn('google', { callbackUrl: '/dashboard' });
-  const loginWithGitHub = () => signIn('github', { callbackUrl: '/dashboard' });
-
   const logout = async () => {
     await signOut({ redirect: false });
     router.push('/');
@@ -33,8 +30,6 @@ export function useAuth() {
     isLoading,
     isAuthenticated,
     login,
-    loginWithGoogle,
-    loginWithGitHub,
     logout,
     isSuperAdmin: () => user?.role === 'super_admin',
     isAdmin: () => user?.role === 'admin',

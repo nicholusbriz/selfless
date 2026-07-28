@@ -1,8 +1,6 @@
 // lib/auth/nextauth.ts
 import NextAuth, { AuthOptions, Session, User as NextAuthUser } from 'next-auth';
 import { PrismaAdapter } from '@auth/prisma-adapter';
-import GitHubProvider from 'next-auth/providers/github';
-import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { JWT } from 'next-auth/jwt';
 import { prisma } from '@/lib/prisma/client';
@@ -36,22 +34,6 @@ export const authOptions: AuthOptions = {
   adapter: adapter,
   
   providers: [
-    // ============================================
-    // GITHUB PROVIDER
-    // ============================================
-    GitHubProvider({
-      clientId: process.env.GITHUB_ID!,
-      clientSecret: process.env.GITHUB_SECRET!,
-    }),
-    
-    // ============================================
-    // GOOGLE PROVIDER
-    // ============================================
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-    
     // ============================================
     // CREDENTIALS PROVIDER (Email/Password)
     // ============================================
@@ -159,15 +141,6 @@ export const authOptions: AuthOptions = {
     async signIn({ user, account }: { user: NextAuthUser; account: any }) {
       // Allow credentials provider
       if (account?.provider === 'credentials') return true;
-      
-      // For OAuth providers, check if user exists
-      if (user.email) {
-        const existingUser = await prisma.user.findUnique({
-          where: { email: user.email }
-        });
-        // If user exists, allow sign in
-        if (existingUser) return true;
-      }
       return true;
     },
 
