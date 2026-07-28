@@ -5,7 +5,7 @@ import { Calendar, Users, Clock, BookOpen, BarChart3, User, Megaphone, Settings 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 
-// Exact user data matching your screenshots
+// Exact user data 
 const weekData = {
   'First Week': {
     days: [
