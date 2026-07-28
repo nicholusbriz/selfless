@@ -68,10 +68,7 @@ function TopBar({
   userRole,
   handleLogout
 }: any) {
-  const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
-
-  const goHome = () => router.push('/');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -125,18 +122,46 @@ function TopBar({
 
         {/* Right - Actions */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={goHome}
-            className="p-2 rounded-xl text-[#8A8278] hover:text-white hover:bg-[#1A1228] transition-all duration-300 hover:scale-110 group"
-            aria-label="Back to home"
+          <Link
+            href="/dashboard/notifications"
+            className="p-2 rounded-xl text-[#8A8278] hover:text-white hover:bg-[#1A1228] transition-all duration-300 relative hover:scale-110 group"
+            aria-label="Notifications"
           >
-            <Home className="w-5 h-5 group-hover:rotate-[-5deg] transition-transform duration-300" />
-          </button>
-
-          <button className="p-2 rounded-xl text-[#8A8278] hover:text-white hover:bg-[#1A1228] transition-all duration-300 relative hover:scale-110">
-            <Bell className="w-5 h-5" />
+            <Bell className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
             <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-[#FB7185] rounded-full animate-pulse ring-2 ring-[#0F0A1A]" />
-          </button>
+          </Link>
+
+          <Link
+            href="/dashboard/announcements"
+            className="p-2 rounded-xl text-[#8A8278] hover:text-white hover:bg-[#1A1228] transition-all duration-300 hover:scale-110 group"
+            aria-label="Announcements"
+          >
+            <Megaphone className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+          </Link>
+
+          <Link
+            href="/dashboard/courses"
+            className="p-2 rounded-xl text-[#8A8278] hover:text-white hover:bg-[#1A1228] transition-all duration-300 hover:scale-110 group"
+            aria-label="Courses"
+          >
+            <BookOpen className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+          </Link>
+
+          <Link
+            href="/dashboard/profile"
+            className="p-2 rounded-xl text-[#8A8278] hover:text-white hover:bg-[#1A1228] transition-all duration-300 hover:scale-110 group"
+            aria-label="Profile"
+          >
+            <User className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+          </Link>
+
+          <Link
+            href="/dashboard/settings"
+            className="p-2 rounded-xl text-[#8A8278] hover:text-white hover:bg-[#1A1228] transition-all duration-300 hover:scale-110 group"
+            aria-label="Settings"
+          >
+            <Settings className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
+          </Link>
 
           <button
             onClick={() => setIsDarkMode(!isDarkMode)}
