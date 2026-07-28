@@ -11,71 +11,127 @@ datasource db {
 }
 
 // ============================================
-// AUTH & USER MANAGEMENT
+// ENUMS
 // ============================================
 
-// MAIN USER - Everyone has one account
+enum AttendanceStatus {
+  PENDING
+  ATTENDED
+  NO_SHOW
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  DROPPED
+}
+
+enum CleaningDayStatus {
+  OPEN
+  CLOSED
+  FULL
+}
+
+// ============================================
+// CORE MODELS
+// ============================================
+
+// MAIN USER - Updated for NextAuth
 model User {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   firstName   String
   lastName    String
   email       String   @unique
-  password    String
+  password    String?  // Optional for OAuth users
   phoneNumber String?
-  role        Role?    @relation(fields: [roleId], references: [id])
-  roleId      String?  @db.ObjectId
   
-  // Location Information
-  country     String?  @default("Uganda") // Uganda or Liberia
+  // OAuth Fields (NextAuth)
+  emailVerified DateTime?
+  image        String?  // Profile image from OAuth provider
+  
+  // Role & Status - One Role Field
+  roleId      String?  @db.ObjectId
+  role        Role?    @relation(fields: [roleId], references: [id])
+  status      UserStatus @default(ACTIVE)
+  isActive    Boolean  @default(true)
+  
+  // Tech Center Association
+  techCenterId String? @db.ObjectId
+  techCenter   TechCenter? @relation("UserTechCenter", fields: [techCenterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  
+  // Location - Not in registration, set by default
+  country     String?  @default("Uganda")
   city        String?
   town        String?
   street      String?
   
-  // Academic Information
-  generalCourse String? // General course being taken
-  techCenter    String? @default("Freedom City Tech Center") // Tech center name
+  // Academic
+  generalCourse String?
   
-  // Social Links (displayed as text, not clickable)
+  // Social
   linkedinUrl String?
   githubUrl   String?
-  projectUrls String[] // Array of project links
+  projectUrls String[]
+  profileImageUrl String?
   
-  // Profile Image (stored in Supabase Storage)
-  profileImageUrl String? // Public URL from Supabase Storage
+  // Password Reset
+  resetToken     String?
+  resetTokenExpiry DateTime?
   
-  // Student specific
-  studentProfile StudentProfile?
+  // Tracking
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
   
-  // Teacher specific  
-  teacherProfile TeacherProfile?
+  // Teacher-Student Assignment
+  teacherId    String?  @db.ObjectId
+  teacher      User?    @relation("TeacherStudents", fields: [teacherId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  assignedStudents User[] @relation("TeacherStudents")
   
-  // Admin specific
-  adminProfile AdminProfile?
+  // Courses
+  submittedCourses StudentCourse[]
+  grades    Grade[] @relation("StudentGrades")
+  gradesGiven      Grade[] @relation("GradesGiven")
   
-  // Assignments where this user is a teacher
-  teachingAssignments TeacherStudentAssignment[] @relation("TeacherAssignments")
-  
-  // Assignments where this user is a student
-  studentAssignments TeacherStudentAssignment[] @relation("StudentAssignments")
-  
-  // Cleaning Management
+  // Cleaning
   cleaningRegistration CleaningRegistration?
   attendanceRecords    AttendanceRecord[]
   
-  // Announcements
+  // Communication
   announcements         Announcement[]
+  notifications         Notification[]
+  activityLogs          ActivityLog[]
   
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
+  // Simple tracking fields
+  createdTechCenterIds String[]
+  updatedTechCenterIds String[]
+  
+  // NextAuth Relations
+  accounts Account[]
+  sessions Session[]
+  
+  @@index([techCenterId])
+  @@index([roleId])
+  @@index([teacherId])
+  @@index([status])
+  @@index([country])
   @@map("users")
 }
 
-// ROLES - Simple role-based access control
+// ROLES
 model Role {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  name        String   @unique  // "admin", "teacher", "student"
+  name        String   @unique  // "super_admin", "admin", "teacher", "student"
+  displayName String
+  description String?
   permissions String[]
+  
   users       User[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -83,195 +139,242 @@ model Role {
   @@map("roles")
 }
 
-// ============================================
-// USER PROFILES
-// ============================================
-
-// STUDENT PROFILE - Academic tracking (every user has one)
-model StudentProfile {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId       String   @unique @db.ObjectId
-  user         User     @relation(fields: [userId], references: [id])
-  studentId    String   @unique  // Format: STU2024001
-  takesReligion Boolean @default(false)
-  tuition      Float?
-  tuitionPaid  Boolean  @default(false)
-  currentGPA   Float    @default(0)
-  totalCredits Int      @default(0)
-  enrolledCourses EnrolledCourse[]
-  grades       Grade[]
-
-  @@map("student_profiles")
-}
-
-// TEACHER PROFILE - Teaching capabilities (only for teachers)
-model TeacherProfile {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId     String   @unique @db.ObjectId
-  user       User     @relation(fields: [userId], references: [id])
-  teacherId  String   @unique  // Format: TCH2024001
-  department String?
-  assignedAt DateTime @default(now())
-  
-  @@map("teacher_profiles")
-}
-
-// ADMIN PROFILE - Admin capabilities (only for admins)
-model AdminProfile {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String   @unique @db.ObjectId
-  user      User     @relation(fields: [userId], references: [id])
-  adminId   String   @unique  // Format: ADM2024001
-  promotedAt DateTime @default(now())
-  notes     String?
-  
-  @@map("admin_profiles")
-}
-
-// ============================================
-// ACADEMIC TRACKING
-// ============================================
-
-// ENROLLED COURSES - Every student's courses
-model EnrolledCourse {
+// COUNTRIES
+model Country {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String   @unique
+  code        String   @unique
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  techCenters TechCenter[]
+
+  @@map("countries")
+}
+
+// TECH CENTER
+model TechCenter {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String   @unique
+  code        String   @unique
+  description String?
+  countryId   String?  @db.ObjectId
+  country     Country? @relation(fields: [countryId], references: [id])
+  city        String?
+  address     String?
+  phone       String?
+  email       String?
+  isActive    Boolean  @default(true)
+  
+  // Simple tracking fields (no relations)
+  createdById String?  @db.ObjectId
+  updatedById String?  @db.ObjectId
+  
+  // Relationships - all with NoAction
+  users       User[]   @relation("UserTechCenter")
+  studentCourses StudentCourse[]
+  weeks       Week[]
+  cleaningDays CleaningDay[]
+  announcements Announcement[]
+  activityLogs ActivityLog[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([countryId])
+  @@map("tech_centers")
+}
+
+// ============================================
+// NEXT-AUTH MODELS
+// ============================================
+
+// ACCOUNT - For OAuth providers (GitHub, Google)
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.String
+  access_token      String? @db.String
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.String
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+// SESSION - For NextAuth sessions
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// VERIFICATION TOKEN - For email verification
+model VerificationToken {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ============================================
+// COURSES (SUBMITTED BY STUDENTS)
+// ============================================
+
+// STUDENT COURSE
+model StudentCourse {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  code        String
+  credits     Int      @default(3)
+  
+  // Relationships with NoAction
   studentId   String   @db.ObjectId
-  student     StudentProfile @relation(fields: [studentId], references: [id])
-  courseName  String
-  credits     Int
-  status      String   @default("active")
+  student     User     @relation(fields: [studentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  
+  techCenterId String   @db.ObjectId
+  techCenter   TechCenter @relation(fields: [techCenterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  
+  // Status
+  status      EnrollmentStatus @default(ACTIVE)
   submittedAt DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  dropDate    DateTime?
   
+  // Grades - One-to-Many relation
   grades      Grade[]
   
-  @@map("enrolled_courses")
+  @@unique([studentId, code])
+  @@index([studentId])
+  @@index([techCenterId])
+  @@index([status])
+  @@map("student_courses")
 }
 
-// GRADES - Academic performance tracking
+// GRADES
 model Grade {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Link to student course
+  studentCourseId String @db.ObjectId
+  studentCourse   StudentCourse @relation(fields: [studentCourseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  
+  // Student and teacher relations
   studentId   String   @db.ObjectId
-  student     StudentProfile @relation(fields: [studentId], references: [id])
-  courseId    String   @db.ObjectId
-  course      EnrolledCourse @relation(fields: [courseId], references: [id])
-  week        Int
+  student     User     @relation("StudentGrades", fields: [studentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  
+  assignedBy  String   @db.ObjectId
+  teacher     User     @relation("GradesGiven", fields: [assignedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  
+  // Grade details
   gradeLetter String
   gradePoints Float
-  assignedBy  String   @db.ObjectId
+  score       Float?
   assignedAt  DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  notes       String?
   
-  @@unique([studentId, courseId, week])
-  @@index([week, gradeLetter])
+  @@index([studentCourseId])
+  @@index([studentId])
+  @@index([assignedBy])
+  @@index([gradeLetter])
   @@map("grades")
 }
 
-// TEACHER-STUDENT ASSIGNMENT
-model TeacherStudentAssignment {
+// GRADE SCALE
+model GradeScale {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  teacherId   String   @db.ObjectId
-  studentId   String   @db.ObjectId
-  status      String   @default("not_verified")
-  notes       String?
-  assignedAt  DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  teacher     User     @relation("TeacherAssignments", fields: [teacherId], references: [id])
-  student     User     @relation("StudentAssignments", fields: [studentId], references: [id])
-  
-  @@unique([teacherId, studentId])
-  @@index([teacherId])
-  @@index([studentId])
-  @@index([status])
-  @@map("teacher_student_assignments")
-}
-
-// ============================================
-// CONTACT & MESSAGING
-// ============================================
-
-// CONTACT MESSAGES
-model ContactMessage {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  name        String
-  email       String
-  phoneNumber String?
-  message     String
-  status      String   @default("unread")
+  gradeLetter String   @unique
+  minScore    Float
+  maxScore    Float
+  gradePoints Float
+  description String?
+  isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
-  @@index([status])
-  @@index([createdAt])
-  @@map("contact_messages")
-}
 
-// ANNOUNCEMENTS - Student announcements
-model Announcement {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  title       String
-  content     String
-  authorId    String   @db.ObjectId
-  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  @@index([authorId])
-  @@index([createdAt])
-  @@map("announcements")
+  @@map("grade_scales")
 }
 
 // ============================================
-// CLEANING MANAGEMENT SYSTEM
+// CLEANING MANAGEMENT
 // ============================================
 
-// WEEK - Container for cleaning days (Mon-Fri)
+// WEEKS
 model Week {
   id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  weekLabel             String
   startDate             DateTime
   endDate               DateTime
-  weekLabel             String?
   isActive              Boolean  @default(true)
-  registrationEnabled   Boolean  @default(true)
   registrationDeadline  DateTime
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
   
-  days                  CleaningDay[]
+  techCenterId String   @db.ObjectId
+  techCenter   TechCenter @relation(fields: [techCenterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  
+  createdById String?   @db.ObjectId
+  updatedById String?   @db.ObjectId
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  days        CleaningDay[]
   
   @@index([isActive])
+  @@index([techCenterId])
+  @@index([registrationDeadline])
   @@map("weeks")
 }
 
-// CLEANING DAY - Individual cleaning day
+// CLEANING DAYS
 model CleaningDay {
   id                  String   @id @default(auto()) @map("_id") @db.ObjectId
   weekId              String   @db.ObjectId
-  week                Week     @relation(fields: [weekId], references: [id], onDelete: Cascade)
-  dayOfWeek           String   // Monday, Tuesday, Wednesday, Thursday, Friday
+  week                Week     @relation(fields: [weekId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  dayOfWeek           String
   cleaningDate        DateTime
   capacityLimit       Int      @default(0)
   currentRegistrations Int     @default(0)
-  isOpen              Boolean  @default(true)
-  isFull              Boolean  @default(false)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  status              CleaningDayStatus @default(OPEN)
+  
+  techCenterId String   @db.ObjectId
+  techCenter   TechCenter @relation(fields: [techCenterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   
   registrations       CleaningRegistration[]
   attendanceRecords   AttendanceRecord[]
   
   @@index([cleaningDate])
+  @@index([techCenterId])
+  @@index([status])
   @@map("cleaning_days")
 }
 
-// CLEANING REGISTRATION - Links student to cleaning day (ONE student = ONE day globally)
+// CLEANING REGISTRATION
 model CleaningRegistration {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId        String   @unique  // One student = One day globally
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   cleaningDayId String   @db.ObjectId
-  cleaningDay   CleaningDay @relation(fields: [cleaningDayId], references: [id], onDelete: Cascade)
+  cleaningDay   CleaningDay @relation(fields: [cleaningDayId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   registeredAt  DateTime @default(now())
   updatedAt     DateTime @updatedAt
   
@@ -279,13 +382,13 @@ model CleaningRegistration {
   @@map("cleaning_registrations")
 }
 
-// ATTENDANCE RECORD - Tracks attendance status
+// ATTENDANCE RECORD
 model AttendanceRecord {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
   userId        String   @db.ObjectId
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   cleaningDayId String   @db.ObjectId
-  cleaningDay   CleaningDay @relation(fields: [cleaningDayId], references: [id], onDelete: Cascade)
+  cleaningDay   CleaningDay @relation(fields: [cleaningDayId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   status        AttendanceStatus @default(PENDING)
   markedBy      String?  @db.ObjectId
   markedAt      DateTime @default(now())
@@ -299,9 +402,89 @@ model AttendanceRecord {
   @@map("attendance_records")
 }
 
-// ATTENDANCE STATUS ENUM
-enum AttendanceStatus {
-  PENDING
-  ATTENDED
-  NO_SHOW
+// ============================================
+// COMMUNICATION
+// ============================================
+
+// ANNOUNCEMENTS
+model Announcement {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  content     String
+  
+  authorId    String   @db.ObjectId
+  author      User     @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  
+  isGlobal    Boolean  @default(false)
+  techCenterId String? @db.ObjectId
+  techCenter   TechCenter? @relation(fields: [techCenterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  
+  scheduledPublishDate DateTime?
+  publishedAt  DateTime @default(now())
+  expiryDate   DateTime?
+  isActive     Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([authorId])
+  @@index([techCenterId])
+  @@index([isGlobal])
+  @@index([publishedAt])
+  @@map("announcements")
+}
+
+// NOTIFICATIONS
+model Notification {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  
+  title       String
+  message     String
+  type        String
+  isRead      Boolean  @default(false)
+  link        String?
+  readAt      DateTime?
+  
+  generatedBy String?
+  entityType  String?
+  entityId    String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ============================================
+// ACTIVITY LOG
+// ============================================
+
+model ActivityLog {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String?  @db.ObjectId
+  user        User?    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  
+  action      String
+  entityType  String
+  entityId    String?
+  details     Json?
+  ipAddress   String?
+  userAgent   String?
+  location    String?
+  
+  techCenterId String? @db.ObjectId
+  techCenter   TechCenter? @relation(fields: [techCenterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([techCenterId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("activity_logs")
 }

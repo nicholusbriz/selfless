@@ -1,34 +1,29 @@
+// C:\Selfless\my-app\app\api\auth\logout\route.ts
+/**
+ * LOGOUT API ROUTE
+ * 
+ * Handles user logout.
+ * Clears the HTTP-only cookie.
+ * 
+ * Endpoint: POST /api/auth/logout
+ * Response: { success: true }
+ */
+
 import { NextResponse } from 'next/server';
+import { AUTH_CONSTANTS } from '@/lib/auth/types';
+import { cookies } from 'next/headers';
 
 export async function POST() {
   try {
-    const response = NextResponse.json({
-      success: true,
-      message: 'Logged out successfully'
-    });
+    // Delete the auth cookie
+    const cookieStore = await cookies();
+    cookieStore.delete(AUTH_CONSTANTS.TOKEN_NAME);
 
-    // Clear the token cookie
-    response.cookies.set('token', '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 0, // Expire immediately
-      path: '/' // Important: must match the path used in login
-    });
-
-    // Clear all auth-related cookies
-    response.cookies.delete('token');
-
-    // Set headers to prevent caching
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    response.headers.set('Pragma', 'no-cache');
-    response.headers.set('Expires', '0');
-
-    return response;
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Logout error:', error);
+    console.error('Logout API error:', error);
     return NextResponse.json(
-      { success: false, message: 'Server error during logout' },
+      { error: 'Logout failed' },
       { status: 500 }
     );
   }

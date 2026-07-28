@@ -1,22 +1,71 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth/nextauth';
+import { prisma } from '@/lib/prisma/client';
 
-// GET - Student view data
-export async function GET(request: NextRequest) {
+// GET - Get student's cleaning data
+export async function GET() {
   try {
-    const userId = request.headers.get('x-user-id');
+    const session = await getServerSession(authOptions);
     
-    if (!userId) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get student's registration
-    const registration = await prisma.cleaningRegistration.findUnique({
-      where: { userId },
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { 
+        role: true,
+        techCenter: true
+      }
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Get user's registration
+    const userRegistration = await prisma.cleaningRegistration.findUnique({
+      where: { userId: user.id },
       include: {
         cleaningDay: {
           include: {
-            week: true,
+            week: true
+          }
+        }
+      }
+    });
+
+    // Get user's attendance records
+    const userAttendance = await prisma.attendanceRecord.findMany({
+      where: { userId: user.id },
+      include: {
+        cleaningDay: {
+          include: {
+            week: true
+          }
+        }
+      },
+      orderBy: {
+        markedAt: 'desc'
+      }
+    });
+
+    // Get available weeks with days for the user's tech center
+    // Remove deadline filter so users can see all weeks/days even after deadline
+    const weeks = await prisma.week.findMany({
+      where: {
+        techCenterId: user.techCenterId || undefined,
+        isActive: true
+      },
+      include: {
+        days: {
+          where: {
+            cleaningDate: {
+              gte: new Date()
+            }
+          },
+          include: {
             registrations: {
               include: {
                 user: {
@@ -25,10 +74,9 @@ export async function GET(request: NextRequest) {
                     firstName: true,
                     lastName: true,
                     email: true,
-                    profileImageUrl: true,
-                  },
-                },
-              },
+                  }
+                }
+              }
             },
             attendanceRecords: {
               include: {
@@ -38,47 +86,37 @@ export async function GET(request: NextRequest) {
                     firstName: true,
                     lastName: true,
                     email: true,
-                    profileImageUrl: true,
-                  },
-                },
-              },
-            },
+                  }
+                }
+              }
+            }
           },
-        },
+          orderBy: {
+            cleaningDate: 'asc'
+          }
+        }
       },
-    });
-
-    // Get all available days
-    const weeks = await prisma.week.findMany({
-      where: { 
-        isActive: true,
-        registrationEnabled: true,
-      },
-      include: {
-        days: {
-          include: {
-            week: true,
-          },
-          orderBy: { cleaningDate: 'asc' },
-        },
-      },
-      orderBy: { startDate: 'asc' },
-    });
-
-    // Filter out days that have passed their registration deadline
-    const availableWeeks = weeks.filter(week => {
-      const deadline = new Date(week.registrationDeadline);
-      return deadline > new Date();
+      orderBy: {
+        startDate: 'asc'
+      }
     });
 
     return NextResponse.json({
-      registration: registration || null,
-      availableWeeks,
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role?.name || 'student'
+      },
+      registration: userRegistration,
+      userAttendance,
+      weeks
     });
   } catch (error) {
-    console.error('Error fetching student data:', error);
+    console.error('Error fetching student cleaning data:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch student data' },
+      { error: 'Failed to fetch cleaning data' },
       { status: 500 }
     );
   }
