@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
   Mail, 
-  Lock, 
+  Lock,
   User, 
   Phone, 
   Building2,
@@ -76,7 +76,6 @@ interface LoginFormProps {
 function LoginForm({ onClose, onSwitchToRegister }: LoginFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -88,7 +87,6 @@ function LoginForm({ onClose, onSwitchToRegister }: LoginFormProps) {
     try {
       const result = await signIn('credentials', {
         email,
-        password,
         redirect: false,
       });
 
@@ -128,7 +126,7 @@ function LoginForm({ onClose, onSwitchToRegister }: LoginFormProps) {
           <p className="text-[#A79C8C] text-sm mt-1">Sign in to continue to your dashboard</p>
         </div>
 
-        {/* Email/Password Form */}
+        {/* Email Only Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
             <label className="text-sm font-medium text-[#A79C8C] flex items-center gap-2">
@@ -141,19 +139,6 @@ function LoginForm({ onClose, onSwitchToRegister }: LoginFormProps) {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
               className="w-full px-4 py-3 bg-[#0B0912]/60 border border-[#2A2438] rounded-xl text-[#F5F0E8] placeholder-[#6B6358] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-all duration-200"
-              required
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-[#A79C8C] flex items-center gap-2">
-              <Lock className="w-4 h-4 text-[#6B6358]" />
-              Password
-            </label>
-            <PasswordInput
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
               required
             />
           </div>
@@ -186,7 +171,7 @@ function LoginForm({ onClose, onSwitchToRegister }: LoginFormProps) {
               </>
             ) : (
               <>
-                <span>Sign In</span>
+                <span>Sign In with Email</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
