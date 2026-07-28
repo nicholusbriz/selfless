@@ -1,151 +1,102 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import bcrypt from 'bcryptjs';
-import { generateTokenEdge } from '@/lib/jwt-edge';
-import { registerSchema } from '@/lib/validations/auth';
-import { rateLimit, getIdentifier } from '@/lib/rateLimit';
+// app/api/auth/register/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { registerUser } from '@/lib/auth/server';
+import { AUTH_CONSTANTS } from '@/lib/auth/types';
+import { cookies } from 'next/headers';
+import { generateToken } from '@/lib/auth/server';
 
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await req.json();
+    const { firstName, lastName, email, password, phoneNumber, country, techCenterId } = body;
 
-    // Validate input using Zod
-    const validationResult = registerSchema.safeParse(body);
-    if (!validationResult.success) {
+    // Validate required fields
+    if (!firstName || !lastName || !email || !password) {
       return NextResponse.json(
-        { success: false, message: validationResult.error.issues[0].message },
+        { error: 'Name, email, and password are required' },
         { status: 400 }
       );
     }
 
-    const { firstName, lastName, email, password, phoneNumber } = validationResult.data;
-
-    // Rate limiting
-    const identifier = getIdentifier(request, email);
-    const rateLimitResult = rateLimit(identifier, 5, 60 * 1000);
-
-    if (!rateLimitResult.success) {
+    // Validate password strength
+    if (password.length < 6) {
       return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Too many registration attempts. Please try again later.',
-          resetTime: rateLimitResult.resetTime 
-        },
-        { status: 429 }
-      );
-    }
-
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
-    });
-
-    if (existingUser) {
-      return NextResponse.json(
-        { success: false, message: 'User with this email already exists' },
+        { error: 'Password must be at least 6 characters long' },
         { status: 400 }
       );
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Find or create the student role
-    let userRole = await prisma.role.findUnique({
-      where: { name: 'student' }
+    // Register user
+    const result = await registerUser({
+      firstName,
+      lastName,
+      email,
+      password,
+      phoneNumber,
+      country,
+      techCenterId,
     });
 
-    if (!userRole) {
-      userRole = await prisma.role.create({
-        data: {
-          name: 'student',
-          permissions: ['read', 'submit_assignments', 'view_grades']
-        }
-      });
+    // ✅ Handle registration failure - user already exists
+    if (result.error) {
+      // Check if user already exists
+      if (result.error === 'Email already registered') {
+        return NextResponse.json(
+          { error: 'This email is already registered. Please log in instead.' },
+          { status: 409 } // 409 Conflict
+        );
+      }
+      return NextResponse.json(
+        { error: result.error },
+        { status: 400 }
+      );
     }
 
-    // Generate simple unique student ID using timestamp + random
-    const year = new Date().getFullYear();
-    const randomSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-    const studentId = `STU${year}${randomSuffix}`;
-
-    // Create user first (sequential, no transaction)
-    const newUser = await prisma.user.create({
-      data: {
-        firstName,
-        lastName,
-        email,
-        password: hashedPassword,
-        phoneNumber,
-        roleId: userRole.id,
-        profileImageUrl: null // Initialize profile image field
-      }
-    });
-
-    // Create student profile separately
-    const studentProfile = await prisma.studentProfile.create({
-      data: {
-        userId: newUser.id,
-        studentId: studentId,
-        takesReligion: false,
-        tuitionPaid: false,
-        currentGPA: 0,
-        totalCredits: 0
-      }
-    });
-
-    // Fetch complete user with profiles
-    const userWithProfiles = await prisma.user.findUnique({
-      where: { id: newUser.id },
-      include: {
-        role: true,
-        studentProfile: true,
-        teacherProfile: true
-      }
-    });
-
-    if (!userWithProfiles) {
-      throw new Error('Failed to retrieve created user');
+    if (!result.user) {
+      return NextResponse.json(
+        { error: 'Registration failed' },
+        { status: 400 }
+      );
     }
 
-    // Generate JWT token using edge-compatible function
-    const token = await generateTokenEdge({ 
-      userId: userWithProfiles.id, 
-      role: 'student'
-    });
+    // Generate token for auto-login
+    const token = generateToken(
+      result.user.id,
+      result.user.email,
+      result.user.role?.name || 'student'
+    );
 
-    // Remove password from response
-    const { password: _, ...userWithoutPassword } = userWithProfiles;
-
-    // Set cookie with same options as login
-    const response = NextResponse.json({
-      success: true,
-      message: 'Registration successful',
-      user: userWithoutPassword
-    });
-
-    response.cookies.set('token', token, {
+    // Set HTTP-only cookie with JWT
+    const cookieStore = await cookies();
+    cookieStore.set(AUTH_CONSTANTS.TOKEN_NAME, token, {
       httpOnly: true,
-      secure: false, // Match login: false for localhost
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      path: '/'
+      maxAge: AUTH_CONSTANTS.COOKIE_MAX_AGE,
+      path: '/',
     });
 
-    console.log('✅ Registration successful for email:', email, 'userId:', userWithProfiles.id);
-    return response;
-
+    // ✅ Return 201 Created for successful registration
+    return NextResponse.json(
+      {
+        user: {
+          id: result.user.id,
+          email: result.user.email,
+          firstName: result.user.firstName,
+          lastName: result.user.lastName,
+          role: result.user.role?.name || 'student',
+          techCenterId: result.user.techCenterId,
+        },
+        token,
+        message: 'Registration successful!',
+      },
+      { status: 201 }
+    );
   } catch (error) {
-    console.error('Registration error:', error);
-    
-    // Return actual error message in development
-    const errorMessage = process.env.NODE_ENV === 'development' 
-      ? (error instanceof Error ? error.message : 'Unknown error')
-      : 'Server error during registration';
-    
-    return NextResponse.json({
-      success: false,
-      message: errorMessage,
-    }, { status: 500 });
+    console.error('Register API error:', error);
+    return NextResponse.json(
+      { error: 'Registration failed' },
+      { status: 500 }
+    );
   }
 }

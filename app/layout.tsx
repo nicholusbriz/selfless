@@ -1,6 +1,7 @@
+// app/layout.tsx
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import QueryProvider from '@/components/QueryProvider';
+import { Providers } from './providers';
 import PWAInstall from '@/components/PWAInstall';
 
 export const metadata: Metadata = {
@@ -148,12 +149,12 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col">
-        <QueryProvider>
+        <Providers>
           <PWAInstall />
           <main className="flex-1">
             {children}
           </main>
-        </QueryProvider>
+        </Providers>
       </body>
     </html>
   );

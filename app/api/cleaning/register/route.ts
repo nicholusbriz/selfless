@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth/nextauth';
+import { prisma } from '@/lib/prisma/client';
 
 // POST - Register student for a day
 export async function POST(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id');
+    const session = await getServerSession(authOptions);
     
-    if (!userId) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: session.user.id },
       include: { role: true }
     });
     
@@ -47,7 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if registration is enabled
-    if (!cleaningDay.week.registrationEnabled) {
+    if (!cleaningDay.week.isActive) {
       return NextResponse.json(
         { error: 'Registration is currently disabled for this week' },
         { status: 400 }
@@ -63,62 +65,57 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if day is open
-    if (!cleaningDay.isOpen) {
+    if (cleaningDay.status !== 'OPEN') {
       return NextResponse.json(
-        { error: 'This cleaning day is closed' },
+        { error: 'This cleaning day is not open for registration' },
         { status: 400 }
       );
     }
 
-    // Check if day is full
-    if (cleaningDay.isFull) {
-      return NextResponse.json(
-        { error: 'This cleaning day is full' },
-        { status: 400 }
-      );
-    }
+    // Use transaction to prevent race conditions
+    const result = await prisma.$transaction(async (tx: any) => {
+      // Check capacity within transaction
+      const currentRegistrations = await tx.cleaningRegistration.count({
+        where: { cleaningDayId },
+      });
 
-    // Check capacity
-    const currentRegistrations = await prisma.cleaningRegistration.count({
-      where: { cleaningDayId },
-    });
+      if (currentRegistrations >= cleaningDay.capacityLimit) {
+        throw new Error('This cleaning day is at capacity');
+      }
 
-    if (currentRegistrations >= cleaningDay.capacityLimit) {
-      return NextResponse.json(
-        { error: 'This cleaning day is at capacity' },
-        { status: 400 }
-      );
-    }
-
-    // Create registration
-    const registration = await prisma.cleaningRegistration.create({
-      data: {
-        userId: user.id,
-        cleaningDayId,
-      },
-      include: {
-        cleaningDay: {
-          include: {
-            week: true,
+      // Create registration
+      const registration = await tx.cleaningRegistration.create({
+        data: {
+          userId: user.id,
+          cleaningDayId,
+        },
+        include: {
+          cleaningDay: {
+            include: {
+              week: true,
+            },
           },
         },
-      },
+      });
+
+      // Update day's current registration count and auto-close if full
+      const newRegistrationCount = currentRegistrations + 1;
+      const isNowFull = newRegistrationCount >= cleaningDay.capacityLimit;
+
+      await tx.cleaningDay.update({
+        where: { id: cleaningDayId },
+        data: {
+          currentRegistrations: newRegistrationCount,
+          status: isNowFull ? 'FULL' : 'OPEN',
+        },
+      });
+
+      return registration;
+    }, {
+      timeout: 15000 // 15 seconds timeout
     });
 
-    // Update day's current registration count and auto-close if full
-    const newRegistrationCount = currentRegistrations + 1;
-    const isNowFull = newRegistrationCount >= cleaningDay.capacityLimit;
-
-    await prisma.cleaningDay.update({
-      where: { id: cleaningDayId },
-      data: {
-        currentRegistrations: newRegistrationCount,
-        isFull: isNowFull,
-        isOpen: !isNowFull, // Auto-close when capacity is reached
-      },
-    });
-
-    return NextResponse.json(registration, { status: 201 });
+    return NextResponse.json(result, { status: 201 });
   } catch (error) {
     console.error('Error registering for cleaning day:', error);
     return NextResponse.json(
@@ -131,14 +128,14 @@ export async function POST(request: NextRequest) {
 // DELETE - Unregister student from day
 export async function DELETE(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id');
+    const session = await getServerSession(authOptions);
     
-    if (!userId) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: session.user.id },
       include: { role: true }
     });
     
@@ -180,8 +177,7 @@ export async function DELETE(request: NextRequest) {
         where: { id: cleaningDayId },
         data: {
           currentRegistrations,
-          isFull: isNowFull,
-          isOpen: !isNowFull, // Auto-reopen when capacity becomes available
+          status: isNowFull ? 'FULL' : 'OPEN',
         },
       });
     }

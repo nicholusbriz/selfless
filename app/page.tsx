@@ -1,37 +1,21 @@
+// app/page.tsx
 'use client';
+
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sora, Inter } from 'next/font/google';
 import {
-  Menu, X, ChevronUp, Sparkles, LogIn, UserPlus, Home,
-  GraduationCap, MessageSquare, Heart, MapPin, Phone, Mail,
-  User, ChevronDown
+  Menu, X, ChevronUp, Sparkles, Home,
+  GraduationCap, MessageSquare, User, ChevronDown,
+  MapPin, Globe, Code, Heart, Star, Award, Zap
 } from 'lucide-react';
-import { useAuthStore } from '@/stores/authStore';
-import AuthDialog from '@/components/auth/AuthDialog';
+import { useAuth } from '@/lib/hooks/useAuth';
+import Link from 'next/link';
+import AuthModal from '@/components/auth/AuthModal';
 
-/* ============================================================
-   DESIGN TOKENS
-   Warm, plum-black atmosphere · marigold primary · jade secondary
-   · coral accent. Replaces the generic navy/blue "SaaS dark mode".
-   ============================================================ */
 const sora = Sora({ subsets: ['latin'], weight: ['600', '700', '800'], variable: '--font-display' });
 const inter = Inter({ subsets: ['latin'], variable: '--font-body' });
-
-// --bg-base:      #0B0912   deep plum-black
-// --bg-mid:       #150F20   panel base
-// --panel:        #1B1526   card surface
-// --border:       #2A2438   hairline
-// --accent:       #E8A33D   marigold (primary)
-// --accent-dark:  #C97F1F
-// --accent-light: #F2C879
-// --teal:         #2FA88A   jade (success / positive)
-// --teal-light:   #45C7A6
-// --coral:        #E8735C   rare third accent
-// --text:         #F5F0E8   warm white
-// --text-dim:     #A79C8C   warm gray
-// --text-mute:    #6B6358
 
 function useScrollAnimation() {
   const [ref, setRef] = useState<HTMLElement | null>(null);
@@ -55,7 +39,6 @@ function useScrollAnimation() {
   return { ref: setRef, isVisible };
 }
 
-// Animates a number from 0 up to `target` once `start` becomes true.
 function useCountUp(target: number, start: boolean, duration = 1400) {
   const [value, setValue] = useState(0);
   const startedRef = useRef(false);
@@ -67,7 +50,7 @@ function useCountUp(target: number, start: boolean, duration = 1400) {
 
     const tick = (now: number) => {
       const progress = Math.min((now - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3); // ease-out-cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
       setValue(Math.round(eased * target));
       if (progress < 1) requestAnimationFrame(tick);
     };
@@ -79,27 +62,36 @@ function useCountUp(target: number, start: boolean, duration = 1400) {
 
 export default function RedesignedHomePage() {
   const router = useRouter();
-  const { user, isAuthenticated, fetchUser, isLoading } = useAuthStore();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const [showAuthDialog, setShowAuthDialog] = useState(false);
-  const [authTab, setAuthTab] = useState<'login' | 'register'>('login');
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalType, setAuthModalType] = useState<'login' | 'register'>('login');
   const [activeSection, setActiveSection] = useState('hero');
   const [isScrolled, setIsScrolled] = useState(false);
   const [scrollY, setScrollY] = useState(0);
   const [heroGlow, setHeroGlow] = useState({ x: 50, y: 50 });
   const [viewportHeight, setViewportHeight] = useState(800);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const hasFetchedUser = useRef(false);
+  const [isClient, setIsClient] = useState(false);
   const sectionRefs = useRef<{ [key: string]: HTMLElement | null }>({});
   const rafRef = useRef<number | null>(null);
 
-  // Cover intro dissolves as the user scrolls through it; the header
-  // stays hidden until the cover is mostly scrolled past, then eases in.
+  // Set isClient to true once component mounts on client
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const coverProgress = Math.min(scrollY / (viewportHeight * 0.85 || 700), 1);
   const coverOpacity = Math.max(1 - coverProgress * 1.15, 0);
   const coverTranslate = scrollY * 0.35;
   const showHeader = coverProgress > 0.55;
+
+  const userRole = user?.role || 'student';
+  const roleDisplayName = userRole
+    .split('_')
+    .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 
   useEffect(() => {
     const updateViewport = () => setViewportHeight(window.innerHeight);
@@ -107,15 +99,6 @@ export default function RedesignedHomePage() {
     window.addEventListener('resize', updateViewport);
     return () => window.removeEventListener('resize', updateViewport);
   }, []);
-
-  useEffect(() => {
-    if (!user && !isLoading && !hasFetchedUser.current) {
-      hasFetchedUser.current = true;
-      fetchUser().catch(() => {
-        console.log('User not authenticated');
-      });
-    }
-  }, [user, isLoading, fetchUser]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -126,7 +109,7 @@ export default function RedesignedHomePage() {
       const scrollable = document.documentElement.scrollHeight - window.innerHeight;
       setScrollProgress(scrollable > 0 ? Math.min(window.scrollY / scrollable, 1) : 0);
 
-      const sections = ['cover', 'hero', 'features', 'ecosystem', 'testimonials'];
+      const sections = ['cover', 'hero', 'features', 'ecosystem', 'testimonials', 'footer-section'];
       let current = 'hero';
       sections.forEach(id => {
         const el = sectionRefs.current[id];
@@ -142,7 +125,6 @@ export default function RedesignedHomePage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Subtle cursor-reactive glow for the hero only — light-touch interactivity
   const handleHeroMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     const rect = e.currentTarget.getBoundingClientRect();
@@ -164,9 +146,21 @@ export default function RedesignedHomePage() {
     setMobileMenuOpen(false);
   };
 
-  const handleSignIn = () => { setAuthTab('login'); setShowAuthDialog(true); };
-  const handleRegister = () => { setAuthTab('register'); setShowAuthDialog(true); };
-  const handleDashboard = () => router.push('/dashboard/overview');
+  const handleSignIn = () => {
+    setAuthModalType('login');
+    setShowAuthModal(true);
+  };
+
+  const handleRegister = () => {
+    setAuthModalType('register');
+    setShowAuthModal(true);
+  };
+
+  const closeAuthModal = () => {
+    setShowAuthModal(false);
+  };
+
+  const handleDashboard = () => router.push('/dashboard');
 
   const navItems = [
     { id: 'hero', label: 'Home', icon: Home },
@@ -182,6 +176,7 @@ export default function RedesignedHomePage() {
   const countersAnim = useScrollAnimation();
   const testimonialsAnim = useScrollAnimation();
   const contactAnim = useScrollAnimation();
+  const footerAnim = useScrollAnimation();
 
   const coursesCount = useCountUp(24, countersAnim.isVisible);
   const studentsCount = useCountUp(156, countersAnim.isVisible);
@@ -190,16 +185,9 @@ export default function RedesignedHomePage() {
 
   return (
     <div className={`${sora.variable} ${inter.variable} min-h-screen bg-[#0B0912] text-[#F5F0E8] overflow-x-hidden font-sans relative`}>
-
-      {/* ========== CONTINUOUS BACKGROUND ATMOSPHERE ==========
-          One fixed layer behind every section: grain + drifting
-          amber/teal blobs + a faint constellation field. This is
-          what replaces the old per-section solid colors + hard
-          divider lines, so the page reads as one place. */}
+      {/* Background */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-10%,#1B1526_0%,#0B0912_55%)]" />
-
-        {/* drifting color blobs, tied to scroll for gentle parallax */}
         <div
           className="absolute w-[600px] h-[600px] rounded-full bg-[#E8A33D]/[0.07] blur-[130px] animate-drift-slow"
           style={{ top: '5%', left: '10%', transform: `translateY(${scrollY * 0.08}px)` }}
@@ -216,8 +204,6 @@ export default function RedesignedHomePage() {
           className="absolute w-[480px] h-[480px] rounded-full bg-[#E8A33D]/[0.05] blur-[130px] animate-drift-slower"
           style={{ top: '160%', right: '15%', transform: `translateY(${scrollY * -0.04}px)` }}
         />
-
-        {/* faint star / constellation field */}
         <svg className="absolute inset-0 w-full h-full opacity-40" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <pattern id="stars" x="0" y="0" width="120" height="120" patternUnits="userSpaceOnUse">
@@ -230,8 +216,6 @@ export default function RedesignedHomePage() {
           </defs>
           <rect width="100%" height="100%" fill="url(#stars)" />
         </svg>
-
-        {/* grain overlay for texture, avoids the "flat gradient" look */}
         <svg className="absolute inset-0 w-full h-full mix-blend-overlay opacity-[0.05]">
           <filter id="grain">
             <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" />
@@ -240,11 +224,7 @@ export default function RedesignedHomePage() {
         </svg>
       </div>
 
-      {/* ========== COVER INTRO ==========
-          Full-screen title screen the visitor scrolls through. It sits
-          in normal document flow (so scrolling it away is real scroll,
-          not a fixed overlay hack) and dissolves + drifts upward as it
-          goes, while the header stays hidden until it's mostly gone. */}
+      {/* Cover Section */}
       <section
         id="cover"
         ref={(el) => { sectionRefs.current.cover = el; }}
@@ -259,7 +239,6 @@ export default function RedesignedHomePage() {
           <span className="w-2 h-2 bg-[#E8A33D] rounded-full animate-pulse" />
           <span className="text-[#F2C879] text-[10px] font-medium tracking-widest uppercase">Welcome to</span>
         </div>
-
         <h1
           className="text-5xl sm:text-7xl md:text-8xl font-bold leading-[1.05] tracking-tight"
           style={{ fontFamily: 'var(--font-display)' }}
@@ -275,14 +254,12 @@ export default function RedesignedHomePage() {
             <span className="text-[#F5F0E8]">Center</span>
           </span>
         </h1>
-
         <p
           className="mt-8 text-[#A79C8C] text-sm sm:text-base max-w-md opacity-0 animate-cover-in"
           style={{ animationDelay: '0.8s' }}
         >
           Scroll to step inside the community — courses, mentors, and projects, all in one place.
         </p>
-
         <button
           onClick={() => scrollToSection('hero')}
           aria-label="Scroll to explore"
@@ -294,16 +271,9 @@ export default function RedesignedHomePage() {
             <span className="w-1 h-1.5 rounded-full bg-[#E8A33D] animate-scroll-cue" />
           </span>
         </button>
-
-        <p
-          className="absolute bottom-6 sm:bottom-8 text-[10px] sm:text-xs text-[#6B6358] tracking-wide opacity-0 animate-cover-in"
-          style={{ animationDelay: '1.15s' }}
-        >
-          Built by <span className="text-[#A79C8C] font-medium">Atbriz</span> · Software Engineering student, BYU–Idaho
-        </p>
       </section>
 
-      {/* ========== HEADER ========== */}
+      {/* Header */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         showHeader ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3 pointer-events-none'
       } ${
@@ -313,6 +283,7 @@ export default function RedesignedHomePage() {
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 md:h-20">
+            {/* Logo */}
             <div className="flex items-center gap-2 sm:gap-3 group cursor-pointer flex-shrink-0" onClick={() => scrollToSection('hero')}>
               <div className="relative">
                 <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-[#E8A33D] to-[#C97F1F] p-[2px] shadow-lg shadow-[#E8A33D]/20 group-hover:shadow-[#E8A33D]/40 transition-all duration-300">
@@ -334,6 +305,7 @@ export default function RedesignedHomePage() {
               </div>
             </div>
 
+            {/* Navigation */}
             <div className="hidden lg:flex items-center gap-1 bg-[#150F20]/60 backdrop-blur-sm rounded-full px-2 py-1 border border-[#2A2438]">
               {navItems.map((item) => (
                 <button
@@ -351,14 +323,20 @@ export default function RedesignedHomePage() {
               ))}
             </div>
 
+            {/* Auth Buttons */}
             <div className="flex items-center gap-1 sm:gap-2 md:gap-3 flex-shrink-0">
-              {isAuthenticated ? (
+              {isAuthenticated && user ? (
                 <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
                   <div className="hidden sm:flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 bg-[#150F20] rounded-full border border-[#2A2438]">
                     <div className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 bg-gradient-to-br from-[#E8A33D] to-[#C97F1F] rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold text-[#0B0912] shadow-lg shadow-[#E8A33D]/20">
                       {user?.firstName?.charAt(0).toUpperCase() || 'U'}
                     </div>
-                    <span className="text-[#F5F0E8] text-xs sm:text-sm font-medium hidden md:inline">{user?.firstName || 'User'}</span>
+                    <span className="text-[#F5F0E8] text-xs sm:text-sm font-medium hidden md:inline">
+                      {user?.firstName || 'User'}
+                    </span>
+                    <span className="text-[#6B6358] text-xs hidden lg:inline">
+                      • {roleDisplayName}
+                    </span>
                   </div>
                   <button
                     onClick={handleDashboard}
@@ -393,6 +371,7 @@ export default function RedesignedHomePage() {
             </div>
           </div>
 
+          {/* Mobile Menu */}
           {mobileMenuOpen && (
             <div className="lg:hidden py-3 sm:py-4 border-t border-[#2A2438] space-y-1 animate-in slide-in-from-top-2 duration-300">
               <div className="bg-[#150F20]/60 backdrop-blur-sm rounded-2xl p-2 border border-[#2A2438]">
@@ -410,7 +389,7 @@ export default function RedesignedHomePage() {
                     {item.label}
                   </button>
                 ))}
-                {isAuthenticated && (
+                {isAuthenticated && user ? (
                   <div className="border-t border-[#2A2438] pt-2 mt-2">
                     <button
                       onClick={handleDashboard}
@@ -419,20 +398,37 @@ export default function RedesignedHomePage() {
                       <User className="w-4 h-4 sm:w-5 sm:h-5" />
                       Dashboard
                     </button>
+                    <div className="mt-2 px-3 py-1.5 text-xs text-[#6B6358] bg-[#2A2438]/30 rounded-lg">
+                      Role: {roleDisplayName}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="border-t border-[#2A2438] pt-2 mt-2 flex flex-col gap-2">
+                    <button
+                      onClick={() => { handleSignIn(); setMobileMenuOpen(false); }}
+                      className="w-full py-2.5 text-sm text-[#A79C8C] hover:text-[#F5F0E8] hover:bg-[#2A2438]/50 rounded-xl transition-all duration-300"
+                    >
+                      Login
+                    </button>
+                    <button
+                      onClick={() => { handleRegister(); setMobileMenuOpen(false); }}
+                      className="w-full py-2.5 text-sm bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] text-[#0B0912] rounded-xl font-semibold"
+                    >
+                      Register
+                    </button>
                   </div>
                 )}
               </div>
             </div>
           )}
         </div>
-        {/* scroll progress bar */}
         <div
           className="h-[2px] bg-gradient-to-r from-[#E8A33D] via-[#F2C879] to-[#E8735C] transition-[width] duration-150 ease-out"
           style={{ width: `${scrollProgress * 100}%` }}
         />
       </header>
 
-      {/* ========== HERO ========== */}
+      {/* Hero Section */}
       <section
         id="hero"
         ref={(el) => { sectionRefs.current.hero = el; heroAnim.ref(el); }}
@@ -441,7 +437,6 @@ export default function RedesignedHomePage() {
           heroAnim.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
         }`}
       >
-        {/* cursor-reactive glow — the one interactive flourish in the hero */}
         <div
           className="absolute inset-0 pointer-events-none transition-[background] duration-300 ease-out"
           style={{
@@ -463,7 +458,7 @@ export default function RedesignedHomePage() {
           <div className="space-y-6">
             <div className="inline-flex items-center gap-2 bg-[#E8A33D]/10 rounded-full px-4 py-1.5 border border-[#E8A33D]/20">
               <span className="w-2 h-2 bg-[#E8A33D] rounded-full animate-pulse" />
-              <span className="text-[#F2C879] text-[10px] font-medium tracking-widest uppercase">Live · 156 students active</span>
+              <span className="text-[#F2C879] text-[10px] font-medium tracking-widest uppercase">Student Self Service Portal</span>
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold leading-[1.1]" style={{ fontFamily: 'var(--font-display)' }}>
               <span className="text-[#F5F0E8]/90">Build.</span><br />
@@ -472,10 +467,10 @@ export default function RedesignedHomePage() {
               <span className="bg-gradient-to-r from-[#E8A33D] via-[#F2C879] to-[#E8735C] bg-clip-text text-transparent">Graduate.</span>
             </h1>
             <p className="text-[#A79C8C] text-base md:text-lg max-w-lg leading-relaxed">
-              One intelligent platform for the entire Freedom City community. Real-time attendance, mentorship, projects & more.
+              Your self-service portal for students from various tech centers under Selfless CE. Track your academic journey at BYU University — attendance, courses, mentorship, and more.
             </p>
             <div className="flex flex-wrap gap-3">
-              {isAuthenticated ? (
+              {isAuthenticated && user ? (
                 <button
                   onClick={handleDashboard}
                   className="group bg-gradient-to-r from-[#2FA88A] to-[#45C7A6] hover:from-[#45C7A6] hover:to-[#2FA88A] text-[#0B0912] px-6 sm:px-8 py-2.5 sm:py-3 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 shadow-lg shadow-[#2FA88A]/20 hover:shadow-[#2FA88A]/40 hover:scale-105 flex items-center gap-2"
@@ -500,11 +495,6 @@ export default function RedesignedHomePage() {
                   </button>
                 </>
               )}
-            </div>
-            <div className="flex flex-wrap gap-6 text-xs text-[#6B6358]">
-              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-[#E8A33D] rounded-full" /> 24+ Courses</span>
-              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-[#2FA88A] rounded-full" /> 156 Students</span>
-              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-[#E8735C] rounded-full" /> 94% Success</span>
             </div>
           </div>
 
@@ -539,7 +529,7 @@ export default function RedesignedHomePage() {
         </div>
       </section>
 
-      {/* ========== FEATURES ========== */}
+      {/* Features Section */}
       <section
         id="features"
         ref={(el) => { sectionRefs.current.features = el; featuresAnim.ref(el); }}
@@ -582,7 +572,7 @@ export default function RedesignedHomePage() {
         </div>
       </section>
 
-      {/* ========== STICKY STORYTELLING ========== */}
+      {/* Storytelling Section */}
       <section
         ref={(el) => { storytellingAnim.ref(el); }}
         className={`relative z-10 py-20 border-t border-[#2A2438]/60 transition-all duration-1000 delay-300 ${
@@ -615,7 +605,7 @@ export default function RedesignedHomePage() {
         </div>
       </section>
 
-      {/* ========== ECOSYSTEM ========== */}
+      {/* Ecosystem Section */}
       <section
         id="ecosystem"
         ref={(el) => { sectionRefs.current.ecosystem = el; ecosystemAnim.ref(el); }}
@@ -630,9 +620,9 @@ export default function RedesignedHomePage() {
               <h2 className="text-3xl sm:text-4xl font-bold text-[#F5F0E8]" style={{ fontFamily: 'var(--font-display)' }}>Connected community</h2>
               <p className="text-[#A79C8C]">Mentors, students, tutors, projects — all linked in real time.</p>
               <div className="flex flex-wrap gap-3 text-sm">
-                <span className="bg-[#150F20]/50 backdrop-blur-sm px-3 py-1 rounded-full border border-[#E8A33D]/20 hover:border-[#E8A33D]/50 transition-all duration-300 hover:scale-105">👨‍🏫 12 Mentors</span>
-                <span className="bg-[#150F20]/50 backdrop-blur-sm px-3 py-1 rounded-full border border-[#E8735C]/20 hover:border-[#E8735C]/50 transition-all duration-300 hover:scale-105">👥 156 Students</span>
-                <span className="bg-[#150F20]/50 backdrop-blur-sm px-3 py-1 rounded-full border border-[#2FA88A]/20 hover:border-[#2FA88A]/50 transition-all duration-300 hover:scale-105">📁 48 Projects</span>
+                <span className="bg-[#150F20]/50 backdrop-blur-sm px-3 py-1 rounded-full border border-[#E8A33D]/20 hover:border-[#E8A33D]/50 transition-all duration-300 hover:scale-105">👨‍🏫 Mentors</span>
+                <span className="bg-[#150F20]/50 backdrop-blur-sm px-3 py-1 rounded-full border border-[#E8735C]/20 hover:border-[#E8735C]/50 transition-all duration-300 hover:scale-105">👥 Students</span>
+                <span className="bg-[#150F20]/50 backdrop-blur-sm px-3 py-1 rounded-full border border-[#2FA88A]/20 hover:border-[#2FA88A]/50 transition-all duration-300 hover:scale-105">📁 Projects</span>
               </div>
             </div>
             <div className="relative flex justify-center h-64">
@@ -668,60 +658,7 @@ export default function RedesignedHomePage() {
         </div>
       </section>
 
-      {/* ========== ANIMATED COUNTERS ========== */}
-      <section
-        ref={(el) => { countersAnim.ref(el); }}
-        className={`relative z-10 py-20 border-t border-[#2A2438]/60 transition-all duration-1000 delay-500 ${
-          countersAnim.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
-        }`}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
-            <span className="text-[#E8A33D] text-xs font-semibold tracking-widest uppercase">✦ impact</span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-[#F5F0E8] mt-2" style={{ fontFamily: 'var(--font-display)' }}>Numbers that move</h2>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
-            <div
-              className={`bg-[#150F20]/50 backdrop-blur-sm p-6 rounded-2xl border border-[#E8A33D]/10 text-center hover:border-[#E8A33D]/40 transition-all duration-500 hover:scale-105 hover:shadow-xl hover:shadow-[#E8A33D]/10 ${
-                countersAnim.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-              }`}
-              style={{ transitionDelay: countersAnim.isVisible ? '0ms' : '0ms' }}
-            >
-              <span className="text-4xl font-bold text-[#E8A33D]" style={{ fontFamily: 'var(--font-display)' }}>{coursesCount}</span>
-              <p className="text-[#A79C8C] text-sm">Courses</p>
-            </div>
-            <div
-              className={`bg-[#150F20]/50 backdrop-blur-sm p-6 rounded-2xl border border-[#E8A33D]/10 text-center hover:border-[#E8A33D]/40 transition-all duration-500 hover:scale-105 hover:shadow-xl hover:shadow-[#E8A33D]/10 ${
-                countersAnim.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-              }`}
-              style={{ transitionDelay: countersAnim.isVisible ? '100ms' : '0ms' }}
-            >
-              <span className="text-4xl font-bold text-[#F2C879]" style={{ fontFamily: 'var(--font-display)' }}>{studentsCount}</span>
-              <p className="text-[#A79C8C] text-sm">Students</p>
-            </div>
-            <div
-              className={`bg-[#150F20]/50 backdrop-blur-sm p-6 rounded-2xl border border-[#E8A33D]/10 text-center hover:border-[#E8A33D]/40 transition-all duration-500 hover:scale-105 hover:shadow-xl hover:shadow-[#E8A33D]/10 ${
-                countersAnim.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-              }`}
-              style={{ transitionDelay: countersAnim.isVisible ? '200ms' : '0ms' }}
-            >
-              <span className="text-4xl font-bold text-[#E8735C]" style={{ fontFamily: 'var(--font-display)' }}>{tutorsCount}</span>
-              <p className="text-[#A79C8C] text-sm">Tutors</p>
-            </div>
-            <div
-              className={`bg-[#150F20]/50 backdrop-blur-sm p-6 rounded-2xl border border-[#E8A33D]/10 text-center hover:border-[#E8A33D]/40 transition-all duration-500 hover:scale-105 hover:shadow-xl hover:shadow-[#E8A33D]/10 ${
-                countersAnim.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-              }`}
-              style={{ transitionDelay: countersAnim.isVisible ? '300ms' : '0ms' }}
-            >
-              <span className="text-4xl font-bold text-[#2FA88A]" style={{ fontFamily: 'var(--font-display)' }}>{projectsCount}</span>
-              <p className="text-[#A79C8C] text-sm">Projects</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ========== TESTIMONIALS ========== */}
+      {/* Testimonials Section */}
       <section
         id="testimonials"
         ref={(el) => { sectionRefs.current.testimonials = el; testimonialsAnim.ref(el); }}
@@ -742,7 +679,7 @@ export default function RedesignedHomePage() {
               style={{ transitionDelay: testimonialsAnim.isVisible ? '0ms' : '0ms' }}
             >
               <p className="text-[#A79C8C] text-sm">"Freedom City gave me mentorship and a community. I grew from student to mentor."</p>
-              <p className="text-[#F5F0E8] font-semibold mt-3">— Aisha, CS</p>
+              <p className="text-[#F5F0E8] font-semibold mt-3">— Nicholus Turyamureba</p>
             </div>
             <div
               className={`bg-[#150F20]/50 backdrop-blur-sm p-6 rounded-2xl border border-[#E8A33D]/10 hover:border-[#E8A33D]/40 transition-all duration-500 hover:scale-105 hover:shadow-xl hover:shadow-[#E8A33D]/10 ${
@@ -751,7 +688,7 @@ export default function RedesignedHomePage() {
               style={{ transitionDelay: testimonialsAnim.isVisible ? '150ms' : '0ms' }}
             >
               <p className="text-[#A79C8C] text-sm">"The live dashboard and attendance tracking helped me stay on top of everything."</p>
-              <p className="text-[#F5F0E8] font-semibold mt-3">— James, Engineering</p>
+              <p className="text-[#F5F0E8] font-semibold mt-3">— Tonny Kiwanuka</p>
             </div>
             <div
               className={`bg-[#150F20]/50 backdrop-blur-sm p-6 rounded-2xl border border-[#E8A33D]/10 hover:border-[#E8A33D]/40 transition-all duration-500 hover:scale-105 hover:shadow-xl hover:shadow-[#E8A33D]/10 ${
@@ -760,13 +697,13 @@ export default function RedesignedHomePage() {
               style={{ transitionDelay: testimonialsAnim.isVisible ? '300ms' : '0ms' }}
             >
               <p className="text-[#A79C8C] text-sm">"I landed my first internship through the ecosystem. It's more than a school."</p>
-              <p className="text-[#F5F0E8] font-semibold mt-3">— Grace, Design</p>
+              <p className="text-[#F5F0E8] font-semibold mt-3">— Amah Maria</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ========== CONTACT ========== */}
+      {/* Contact Section */}
       <section
         ref={(el) => { contactAnim.ref(el); }}
         className={`relative z-10 py-20 border-t border-[#2A2438]/60 transition-all duration-1000 delay-700 ${
@@ -800,45 +737,280 @@ export default function RedesignedHomePage() {
         </div>
       </section>
 
-      {/* ========== FOOTER ========== */}
-      <footer className="relative z-10 border-t border-[#2A2438]/60 py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-2 sm:grid-cols-4 gap-8 text-sm">
-          <div>
-            <h4 className="text-[#F5F0E8] font-semibold mb-2">Freedom City</h4>
-            <p className="text-[#6B6358] text-xs">Selfless CE · BYU</p>
-          </div>
-          <div>
-            <h4 className="text-[#F5F0E8] font-semibold mb-2">Products</h4>
-            <ul className="text-[#6B6358] text-xs space-y-1">
-              <li className="hover:text-[#F5F0E8] transition-colors duration-300 cursor-pointer">Courses</li>
-              <li className="hover:text-[#F5F0E8] transition-colors duration-300 cursor-pointer">Mentorship</li>
-              <li className="hover:text-[#F5F0E8] transition-colors duration-300 cursor-pointer">Dashboard</li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-[#F5F0E8] font-semibold mb-2">Community</h4>
-            <ul className="text-[#6B6358] text-xs space-y-1">
-              <li className="hover:text-[#F5F0E8] transition-colors duration-300 cursor-pointer">Students</li>
-              <li className="hover:text-[#F5F0E8] transition-colors duration-300 cursor-pointer">Alumni</li>
-              <li className="hover:text-[#F5F0E8] transition-colors duration-300 cursor-pointer">Events</li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-[#F5F0E8] font-semibold mb-2">Support</h4>
-            <ul className="text-[#6B6358] text-xs space-y-1">
-              <li className="hover:text-[#F5F0E8] transition-colors duration-300 cursor-pointer">FAQ</li>
-              <li className="hover:text-[#F5F0E8] transition-colors duration-300 cursor-pointer">Contact</li>
-              <li className="hover:text-[#F5F0E8] transition-colors duration-300 cursor-pointer">Newsletter</li>
-            </ul>
+      {/* ============================================
+          ENHANCED FOOTER WITH AFRICA MAP & DEVELOPER CREDIT
+          ============================================ */}
+      <section
+        id="footer-section"
+        ref={(el) => { sectionRefs.current['footer-section'] = el; footerAnim.ref(el); }}
+        className={`relative z-10 min-h-screen w-full overflow-hidden transition-all duration-1000 ${
+          footerAnim.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
+        }`}
+      >
+        {/* Animated Africa Map Background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0B0912] via-[#1A1228] to-[#0B0912]">
+          <div className="absolute inset-0 opacity-[0.08]">
+            <svg viewBox="0 0 800 600" className="w-full h-full">
+              <defs>
+                <linearGradient id="mapGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#E8A33D" />
+                  <stop offset="50%" stopColor="#E8735C" />
+                  <stop offset="100%" stopColor="#2FA88A" />
+                </linearGradient>
+              </defs>
+              {/* Africa outline - simplified SVG path */}
+              <path
+                d="M400,50 C380,50 360,60 350,80 C340,95 335,110 340,130 C345,150 360,165 380,175 C400,185 420,180 440,170 C460,160 470,140 475,120 C480,100 475,80 460,65 C445,52 420,50 400,50 Z M380,185 C370,190 355,200 345,215 C335,230 330,250 335,270 C340,290 350,305 365,315 C380,325 395,328 410,325 C425,322 435,312 440,295 C445,278 442,260 435,245 C428,230 415,220 400,215 C390,212 385,200 380,185 Z M340,280 C330,290 320,310 315,335 C310,360 315,390 325,420 C335,450 350,470 370,480 C390,490 410,490 425,480 C440,470 450,450 455,425 C460,400 458,375 450,355 C442,335 430,320 415,310 C400,300 385,295 370,295 C355,295 345,285 340,280 Z"
+                fill="none"
+                stroke="url(#mapGlow)"
+                strokeWidth="1.5"
+                className="animate-pulse"
+              >
+                <animate attributeName="stroke-dashoffset" from="1000" to="0" dur="20s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.3;0.8;0.3" dur="4s" repeatCount="indefinite" />
+              </path>
+              {/* Pulsing markers on Africa */}
+              {[
+                { x: 380, y: 120, label: '🌍' },
+                { x: 350, y: 280, label: '📍' },
+                { x: 420, y: 200, label: '✨' },
+                { x: 390, y: 350, label: '🌟' },
+                { x: 360, y: 420, label: '💫' },
+                { x: 430, y: 380, label: '⭐' },
+              ].map((marker, i) => (
+                <g key={i}>
+                  <circle
+                    cx={marker.x}
+                    cy={marker.y}
+                    r="4"
+                    fill="#E8A33D"
+                    opacity="0.6"
+                  >
+                    <animate attributeName="r" values="2;6;2" dur={`${2 + i * 0.5}s`} repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.2;0.8;0.2" dur={`${2 + i * 0.5}s`} repeatCount="indefinite" />
+                  </circle>
+                  <text
+                    x={marker.x + 10}
+                    y={marker.y + 4}
+                    fontSize="16"
+                    className="animate-float"
+                    style={{ animationDelay: `${i * 0.3}s` }}
+                  >
+                    {marker.label}
+                  </text>
+                </g>
+              ))}
+              {/* Floating particles - only render on client */}
+              {isClient && (
+                <>
+                  {[...Array(20)].map((_, i) => {
+                    const cx = Math.random() * 800;
+                    const cy = Math.random() * 600;
+                    const cyValues = `${cy};${Math.random() * 600};${Math.random() * 600}`;
+                    const duration = `${5 + Math.random() * 10}s`;
+                    const opacityDuration = `${3 + Math.random() * 5}s`;
+                    return (
+                      <circle
+                        key={`particle-${i}`}
+                        cx={cx}
+                        cy={cy}
+                        r="1"
+                        fill="#E8A33D"
+                        opacity="0.2"
+                      >
+                        <animate
+                          attributeName="cy"
+                          values={cyValues}
+                          dur={duration}
+                          repeatCount="indefinite"
+                        />
+                        <animate
+                          attributeName="opacity"
+                          values="0.1;0.4;0.1"
+                          dur={opacityDuration}
+                          repeatCount="indefinite"
+                        />
+                      </circle>
+                    );
+                  })}
+                </>
+              )}
+            </svg>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-8 pt-6 border-t border-[#2A2438]/60 flex flex-col sm:flex-row justify-between text-xs text-[#6B6358]">
-          <p>© 2026 Freedom City Tech · Developed by Nicholus Turyamureba</p>
-          <p>Powered by Tech Rise Africa</p>
-        </div>
-      </footer>
 
-      {/* ========== SCROLL TO TOP ========== */}
+        {/* Main Footer Content */}
+        <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 py-20">
+          <div className="max-w-7xl mx-auto w-full">
+            {/* Top Section: Africa Map Title */}
+            <div className="text-center mb-16">
+              <div className="inline-flex items-center gap-3 bg-[#E8A33D]/10 rounded-full px-6 py-2 border border-[#E8A33D]/20 mb-6">
+                <Globe className="w-4 h-4 text-[#E8A33D]" />
+                <span className="text-[#F2C879] text-xs font-medium tracking-widest uppercase">Powered by Africa</span>
+              </div>
+              <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold text-[#F5F0E8] leading-tight" style={{ fontFamily: 'var(--font-display)' }}>
+                Building Africa's
+                <span className="block bg-gradient-to-r from-[#E8A33D] via-[#F2C879] to-[#E8735C] bg-clip-text text-transparent mt-2">
+                  Digital Future
+                </span>
+              </h2>
+              <p className="text-[#A79C8C] text-sm sm:text-base max-w-2xl mx-auto mt-4">
+                Empowering the next generation of African tech leaders through education, mentorship, and community.
+              </p>
+            </div>
+
+            {/* Grid: Footer Links */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 mb-16">
+              <div className="col-span-1 sm:col-span-2 lg:col-span-1">
+                <h3 className="text-white font-bold text-lg mb-4" style={{ fontFamily: 'var(--font-display)' }}>
+                  Freedom City Tech
+                </h3>
+                <p className="text-[#8A8278] text-sm leading-relaxed">
+                  Nurturing resilient minds, building Africa's tech ecosystem, one student at a time.
+                </p>
+              </div>
+              <div>
+                <h4 className="text-white font-semibold text-sm mb-3">Quick Links</h4>
+                <ul className="space-y-2 text-sm text-[#8A8278]">
+                  <li><Link href="/about" className="hover:text-white transition-colors duration-300">About</Link></li>
+                  <li><Link href="/courses" className="hover:text-white transition-colors duration-300">Courses</Link></li>
+                  <li><Link href="/mentorship" className="hover:text-white transition-colors duration-300">Mentorship</Link></li>
+                  <li><Link href="/blog" className="hover:text-white transition-colors duration-300">Blog</Link></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-white font-semibold text-sm mb-3">Community</h4>
+                <ul className="space-y-2 text-sm text-[#8A8278]">
+                  <li><Link href="/students" className="hover:text-white transition-colors duration-300">Students</Link></li>
+                  <li><Link href="/alumni" className="hover:text-white transition-colors duration-300">Alumni</Link></li>
+                  <li><Link href="/events" className="hover:text-white transition-colors duration-300">Events</Link></li>
+                  <li><Link href="/partners" className="hover:text-white transition-colors duration-300">Partners</Link></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-white font-semibold text-sm mb-3">Support</h4>
+                <ul className="space-y-2 text-sm text-[#8A8278]">
+                  <li><Link href="/faq" className="hover:text-white transition-colors duration-300">FAQ</Link></li>
+                  <li><Link href="/contact" className="hover:text-white transition-colors duration-300">Contact</Link></li>
+                  <li><Link href="/help" className="hover:text-white transition-colors duration-300">Help Center</Link></li>
+                  <li><Link href="/privacy" className="hover:text-white transition-colors duration-300">Privacy Policy</Link></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-white font-semibold text-sm mb-3">Connect</h4>
+                <div className="space-y-2 text-sm text-[#8A8278]">
+                  <p className="flex items-center gap-2 hover:text-white transition-colors duration-300">
+                    <MapPin className="w-4 h-4 text-[#E8A33D]" />
+                    Kampala, Uganda
+                  </p>
+                  <p className="flex items-center gap-2 hover:text-white transition-colors duration-300">
+                    <span className="text-[#E8A33D]">📧</span>
+                    info@freedomcitytech.com
+                  </p>
+                  <p className="flex items-center gap-2 hover:text-white transition-colors duration-300">
+                    <span className="text-[#E8A33D]">📞</span>
+                    +256 761 996 296
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Developer Credit Section - Full Width Banner */}
+            <div className="relative rounded-3xl overflow-hidden border border-[#E8A33D]/20 bg-gradient-to-br from-[#1A1228] to-[#0B0912] p-8 mb-8">
+              <div className="absolute inset-0 opacity-5">
+                <svg viewBox="0 0 800 200" className="w-full h-full">
+                  <path
+                    d="M0,100 Q100,50 200,100 T400,100 T600,100 T800,100"
+                    stroke="#E8A33D"
+                    strokeWidth="2"
+                    fill="none"
+                  >
+                    <animate attributeName="d" values="M0,100 Q100,50 200,100 T400,100 T600,100 T800,100;M0,100 Q100,150 200,100 T400,100 T600,100 T800,100;M0,100 Q100,50 200,100 T400,100 T600,100 T800,100" dur="6s" repeatCount="indefinite" />
+                  </path>
+                  <text x="20" y="150" fontSize="14" fill="#E8A33D" opacity="0.3">✦</text>
+                  <text x="750" y="150" fontSize="14" fill="#E8A33D" opacity="0.3">✦</text>
+                  {/* Particles in developer section - only render on client */}
+                  {isClient && (
+                    <>
+                      {[...Array(20)].map((_, i) => (
+                        <circle
+                          key={`dev-particle-${i}`}
+                          cx={Math.random() * 800}
+                          cy={Math.random() * 200}
+                          r="1"
+                          fill="#E8A33D"
+                          opacity="0.2"
+                        >
+                          <animate attributeName="opacity" values="0.1;0.4;0.1" dur={`${2 + Math.random() * 3}s`} repeatCount="indefinite" />
+                        </circle>
+                      ))}
+                    </>
+                  )}
+                </svg>
+              </div>
+
+              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex-1 text-center md:text-left">
+                  <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
+                    <span className="text-2xl">👨‍💻</span>
+                    <h3 className="text-xl sm:text-2xl font-bold text-white" style={{ fontFamily: 'var(--font-display)' }}>
+                      Developed by <span className="bg-gradient-to-r from-[#E8A33D] to-[#F2C879] bg-clip-text text-transparent">Freedom City Software Students Hub</span>
+                    </h3>
+                  </div>
+                  <p className="text-[#A79C8C] text-sm max-w-lg">
+                    Students at BYU–Idaho • Building Africa's Tech Ecosystem • Empowering the Next Generation of Developers
+                  </p>
+                  <div className="flex flex-wrap items-center gap-4 mt-3 justify-center md:justify-start">
+                    <span className="flex items-center gap-1.5 text-xs text-[#8A8278]">
+                      <Code className="w-3.5 h-3.5 text-[#E8A33D]" />
+                      Full Stack Development
+                    </span>
+                    <span className="flex items-center gap-1.5 text-xs text-[#8A8278]">
+                      <Heart className="w-3.5 h-3.5 text-[#E8735C]" />
+                      Tech Education
+                    </span>
+                    <span className="flex items-center gap-1.5 text-xs text-[#8A8278]">
+                      <Star className="w-3.5 h-3.5 text-[#F2C879]" />
+                      Open Source
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center gap-3">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 text-xs text-[#8A8278]">
+                      <Award className="w-4 h-4 text-[#E8A33D]" />
+                      <span>Resilient Mind</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-[#8A8278]">
+                      <Zap className="w-4 h-4 text-[#E8A33D]" />
+                      <span>Innovator</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-[#8A8278]">
+                    <span className="w-2 h-2 rounded-full bg-[#E8A33D] animate-pulse" />
+                    <span>Freedom City Tech • BYU University</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Bar */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-[#2A2438]/60 text-xs text-[#6B6358]">
+              <p>
+                © {new Date().getFullYear()} Freedom City Tech Center. All rights reserved.
+              </p>
+              <div className="flex items-center gap-4">
+                <span>Nurturing Resilient Minds</span>
+                <span className="w-1 h-1 rounded-full bg-[#2A2438]" />
+                <span className="text-[#E8A33D]">✦</span>
+                <span>Built with ❤️ in Africa</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {showScrollTop && (
         <button
           onClick={scrollToTop}
@@ -848,14 +1020,13 @@ export default function RedesignedHomePage() {
         </button>
       )}
 
-      {/* ========== AUTH DIALOG ========== */}
-      <AuthDialog
-        isOpen={showAuthDialog}
-        onClose={() => setShowAuthDialog(false)}
-        defaultTab={authTab}
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={closeAuthModal}
+        defaultType={authModalType}
       />
 
-      {/* ========== CUSTOM ANIMATIONS ========== */}
       <style jsx>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
@@ -866,10 +1037,6 @@ export default function RedesignedHomePage() {
         @keyframes drift-slow {
           0%, 100% { transform: translate(0, 0) scale(1); }
           50% { transform: translate(30px, -20px) scale(1.08); }
-        }
-        @keyframes drift-slower {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(-25px, 25px) scale(1.05); }
         }
         .animate-drift-slow { animation: drift-slow 18s ease-in-out infinite; }
         .animate-drift-slower { animation: drift-slower 24s ease-in-out infinite; }

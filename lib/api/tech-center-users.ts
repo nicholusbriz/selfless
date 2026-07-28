@@ -1,0 +1,141 @@
+// lib/api/admin-tech-center-users.ts
+export interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber?: string;
+  country?: string;
+  city?: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+  isActive: boolean;
+  lastLoginAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  roleId?: string;
+  role?: {
+    id: string;
+    name: string;
+    displayName: string;
+    permissions?: string[];
+  };
+  techCenterId?: string;
+  techCenter?: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  _count?: {
+    submittedCourses: number;
+    announcements: number;
+    activityLogs: number;
+  };
+}
+
+export interface UsersResponse {
+  users: User[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  filters: {
+    roles: Array<{ id: string; name: string; displayName: string }>;
+    statuses: string[];
+  };
+  techCenter: {
+    id: string;
+    name: string;
+    code: string;
+  };
+}
+
+export interface UpdateUserData {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phoneNumber?: string;
+  country?: string;
+  city?: string;
+}
+
+export const adminTechCenterUsersApi = {
+  // Get users in admin's tech center
+  getUsers: async (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    role?: string;
+    status?: string;
+    sortBy?: string;
+    sortOrder?: string;
+  }): Promise<UsersResponse> => {
+    const queryParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value) queryParams.append(key, value.toString());
+      });
+    }
+    const response = await fetch(`/api/admin/tech-centers/users?${queryParams.toString()}`);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to fetch users');
+    }
+    return response.json();
+  },
+
+  // Get single user
+  getUser: async (userId: string): Promise<User> => {
+    const response = await fetch(`/api/admin/tech-centers/users/${userId}`);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to fetch user');
+    }
+    return response.json();
+  },
+
+  // Update user
+  updateUser: async (userId: string, data: UpdateUserData): Promise<{ message: string; user: User }> => {
+    const response = await fetch(`/api/admin/tech-centers/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to update user');
+    }
+    return response.json();
+  },
+
+  // Update user role
+  updateUserRole: async (userId: string, roleId: string): Promise<{ message: string; user: User }> => {
+    const response = await fetch(`/api/admin/tech-centers/users/${userId}/role`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roleId }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('Error response:', error);
+      throw new Error(error.message || 'Failed to update user role');
+    }
+    return response.json();
+  },
+
+  // Update user status
+  updateUserStatus: async (userId: string, status: string): Promise<{ message: string; user: User }> => {
+    const response = await fetch(`/api/admin/tech-centers/users/${userId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('Error response:', error);
+      throw new Error(error.message || 'Failed to update user status');
+    }
+    return response.json();
+  },
+};
