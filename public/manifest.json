@@ -77,8 +77,8 @@
     {
       "name": "Dashboard",
       "short_name": "Dashboard",
-      "description": "Go to main dashboard",
-      "url": "/dashboard/overview",
+      "description": "Go to home page",
+      "url": "/",
       "icons": [
         {
           "src": "/icon-96x96.png",
@@ -89,8 +89,8 @@
     {
       "name": "Students",
       "short_name": "Students",
-      "description": "View all students and their courses",
-      "url": "/dashboard/overview?tab=students",
+      "description": "Go to home page",
+      "url": "/",
       "icons": [
         {
           "src": "/icon-96x96.png",
@@ -101,8 +101,8 @@
     {
       "name": "Profile",
       "short_name": "Profile",
-      "description": "View your profile",
-      "url": "/dashboard/profile",
+      "description": "Go to home page",
+      "url": "/",
       "icons": [
         {
           "src": "/icon-96x96.png",
