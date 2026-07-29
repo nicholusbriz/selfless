@@ -1,14 +1,15 @@
 // app/page.tsx
 'use client';
 
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sora, Inter } from 'next/font/google';
 import {
   Menu, X, ChevronUp, Sparkles, Home,
   GraduationCap, MessageSquare, User, ChevronDown,
-  MapPin, Globe, Code, Heart, Star, Award, Zap
+  MapPin, Globe, Code, Heart, Star, Award, Zap,
+  BookOpen, CreditCard, Users, Calendar, Megaphone, FileText,
+  Phone, Mail
 } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import Link from 'next/link';
@@ -39,26 +40,128 @@ function useScrollAnimation() {
   return { ref: setRef, isVisible };
 }
 
-function useCountUp(target: number, start: boolean, duration = 1400) {
-  const [value, setValue] = useState(0);
-  const startedRef = useRef(false);
+// Floating Shape Component
+const FloatingShape = ({ className, delay = 0, type = 'diamond' }: { className?: string; delay?: number; type?: 'diamond' | 'circle' | 'triangle' }) => {
+  const shapes: Record<string, React.ReactNode> = {
+    diamond: (
+      <polygon points="30,0 60,30 30,60 0,30" fill="none" stroke="rgba(232,163,61,0.15)" strokeWidth="1" />
+    ),
+    circle: (
+      <circle cx="30" cy="30" r="25" fill="none" stroke="rgba(47,168,138,0.12)" strokeWidth="1" />
+    ),
+    triangle: (
+      <polygon points="30,0 60,60 0,60" fill="none" stroke="rgba(232,115,92,0.12)" strokeWidth="1" />
+    ),
+  };
 
-  useEffect(() => {
-    if (!start || startedRef.current) return;
-    startedRef.current = true;
-    const startTime = performance.now();
+  return (
+    <div 
+      className={`absolute ${className} animate-float-slow`}
+      style={{ animationDelay: `${delay}s` }}
+    >
+      <svg width="60" height="60" viewBox="0 0 60 60">
+        {shapes[type]}
+      </svg>
+    </div>
+  );
+};
 
-    const tick = (now: number) => {
-      const progress = Math.min((now - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setValue(Math.round(eased * target));
-      if (progress < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  }, [start, target, duration]);
+// 3D Card Component
+const Card3D = ({ children, className = '', style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) => {
+  const [rotation, setRotation] = useState({ x: 0, y: 0 });
+  
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    setRotation({ x: y * 8, y: x * 8 });
+  };
+  
+  return (
+    <div
+      className={`perspective-1000 ${className}`}
+      style={style}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => setRotation({ x: 0, y: 0 })}
+    >
+      <div
+        className="transform-gpu transition-transform duration-300 ease-out"
+        style={{
+          transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`,
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+};
 
-  return value;
-}
+// Feature Card Component
+const FeatureCard = ({ icon: Icon, title, desc, index, isVisible }: { icon: any; title: string; desc: string; index: number; isVisible: boolean }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  
+  return (
+    <div 
+      className="relative group cursor-pointer"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* Animated gradient border */}
+      <div className="absolute -inset-px bg-gradient-to-r from-[#E8A33D] via-[#2FA88A] to-[#E8735C] rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-sm" />
+      
+      <div className="relative bg-[#150F20]/80 backdrop-blur-sm p-6 rounded-2xl border border-[#2A2438] group-hover:border-transparent transition-all duration-500">
+        <div className="relative">
+          {/* Icon with floating animation */}
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#E8A33D]/20 to-[#E8A33D]/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+            <Icon className="w-6 h-6 text-[#E8A33D]" />
+          </div>
+          
+          {/* Animated underline */}
+          <div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-[#E8A33D] to-[#F2C879] group-hover:w-full transition-all duration-700" />
+          
+          <h3 className="text-[#F5F0E8] font-semibold text-lg mt-4">{title}</h3>
+          <p className="text-[#A79C8C] text-sm mt-2 leading-relaxed">{desc}</p>
+          
+          {/* Reveal more info on hover */}
+          <div className={`overflow-hidden transition-all duration-500 ${isHovered ? 'max-h-20 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
+            <span className="text-xs text-[#E8A33D] flex items-center gap-2">
+              Learn more →
+              <span className="w-1.5 h-1.5 rounded-full bg-[#E8A33D] animate-pulse" />
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Decorative Heading Component
+const DecorativeHeading = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
+  <div className={`relative inline-block ${className}`}>
+    <span className="relative z-10 text-3xl sm:text-4xl font-bold text-[#F5F0E8]" style={{ fontFamily: 'var(--font-display)' }}>
+      {children}
+    </span>
+    {/* Decorative underline */}
+    <svg className="absolute -bottom-3 left-0 w-full h-4" viewBox="0 0 200 16">
+      <defs>
+        <linearGradient id={`underlineGradient-${children}`}>
+          <stop offset="0%" stopColor="#E8A33D" />
+          <stop offset="50%" stopColor="#2FA88A" />
+          <stop offset="100%" stopColor="#E8735C" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M0,8 Q50,2 100,8 T200,8"
+        stroke={`url(#underlineGradient-${children})`}
+        strokeWidth="2.5"
+        fill="none"
+        className="animate-draw-line"
+        strokeDasharray="200"
+        strokeDashoffset="200"
+      />
+    </svg>
+  </div>
+);
 
 export default function RedesignedHomePage() {
   const router = useRouter();
@@ -77,7 +180,6 @@ export default function RedesignedHomePage() {
   const sectionRefs = useRef<{ [key: string]: HTMLElement | null }>({});
   const rafRef = useRef<number | null>(null);
 
-  // Set isClient to true once component mounts on client
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -173,15 +275,8 @@ export default function RedesignedHomePage() {
   const featuresAnim = useScrollAnimation();
   const storytellingAnim = useScrollAnimation();
   const ecosystemAnim = useScrollAnimation();
-  const countersAnim = useScrollAnimation();
   const testimonialsAnim = useScrollAnimation();
-  const contactAnim = useScrollAnimation();
   const footerAnim = useScrollAnimation();
-
-  const coursesCount = useCountUp(24, countersAnim.isVisible);
-  const studentsCount = useCountUp(156, countersAnim.isVisible);
-  const tutorsCount = useCountUp(12, countersAnim.isVisible);
-  const projectsCount = useCountUp(48, countersAnim.isVisible);
 
   return (
     <div className={`${sora.variable} ${inter.variable} min-h-screen bg-[#0B0912] text-[#F5F0E8] overflow-x-hidden font-sans relative`}>
@@ -204,6 +299,26 @@ export default function RedesignedHomePage() {
           className="absolute w-[480px] h-[480px] rounded-full bg-[#E8A33D]/[0.05] blur-[130px] animate-drift-slower"
           style={{ top: '160%', right: '15%', transform: `translateY(${scrollY * -0.04}px)` }}
         />
+        {/* Animated Background Pattern */}
+        <div className="absolute inset-0 opacity-[0.03]">
+          <svg className="absolute -bottom-20 left-0 w-full" viewBox="0 0 1440 320">
+            <path
+              fill="#E8A33D"
+              d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,112C672,96,768,96,864,112C960,128,1056,160,1152,160C1248,160,1344,128,1392,112L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"
+            >
+              <animate
+                attributeName="d"
+                dur="20s"
+                repeatCount="indefinite"
+                values="
+                  M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,112C672,96,768,96,864,112C960,128,1056,160,1152,160C1248,160,1344,128,1392,112L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z;
+                  M0,160L48,144C96,128,192,96,288,96C384,96,480,128,576,144C672,160,768,160,864,144C960,128,1056,96,1152,96C1248,96,1344,128,1392,144L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z;
+                  M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,112C672,96,768,96,864,112C960,128,1056,160,1152,160C1248,160,1344,128,1392,112L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z
+                "
+              />
+            </path>
+          </svg>
+        </div>
         <svg className="absolute inset-0 w-full h-full opacity-40" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <pattern id="stars" x="0" y="0" width="120" height="120" patternUnits="userSpaceOnUse">
@@ -235,6 +350,13 @@ export default function RedesignedHomePage() {
           pointerEvents: coverOpacity < 0.05 ? 'none' : 'auto',
         }}
       >
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <FloatingShape className="top-10 left-[10%]" delay={0} type="diamond" />
+          <FloatingShape className="bottom-20 right-[15%]" delay={2} type="circle" />
+          <FloatingShape className="top-1/2 left-[5%]" delay={4} type="triangle" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle_at_center,rgba(232,163,61,0.08),transparent_70%)] animate-pulse-slow" />
+        </div>
+
         <div className="inline-flex items-center gap-2 bg-[#E8A33D]/10 rounded-full px-4 py-1.5 border border-[#E8A33D]/20 mb-8 opacity-0 animate-cover-in" style={{ animationDelay: '0.1s' }}>
           <span className="w-2 h-2 bg-[#E8A33D] rounded-full animate-pulse" />
           <span className="text-[#F2C879] text-[10px] font-medium tracking-widest uppercase">Welcome to</span>
@@ -244,21 +366,21 @@ export default function RedesignedHomePage() {
           style={{ fontFamily: 'var(--font-display)' }}
         >
           <span className="block opacity-0 animate-cover-in" style={{ animationDelay: '0.25s' }}>
-            <span className="text-[#F5F0E8]">Freedom</span>
+            <span className="text-[#F5F0E8]">Centralized Tech Center</span>
           </span>
           <span className="block opacity-0 animate-cover-in" style={{ animationDelay: '0.42s' }}>
-            <span className="text-[#F5F0E8]">City</span>{' '}
-            <span className="bg-gradient-to-r from-[#E8A33D] via-[#F2C879] to-[#E8735C] bg-clip-text text-transparent">Tech</span>
+            <span className="text-[#F5F0E8]">Student</span>{' '}
+            <span className="bg-gradient-to-r from-[#E8A33D] via-[#F2C879] to-[#E8735C] bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient-shift">Self Service</span>
           </span>
           <span className="block opacity-0 animate-cover-in" style={{ animationDelay: '0.6s' }}>
-            <span className="text-[#F5F0E8]">Center</span>
+            <span className="text-[#F5F0E8]">Portal</span>
           </span>
         </h1>
         <p
           className="mt-8 text-[#A79C8C] text-sm sm:text-base max-w-md opacity-0 animate-cover-in"
           style={{ animationDelay: '0.8s' }}
         >
-          Scroll to step inside the community — courses, mentors, and projects, all in one place.
+          Your academic journey starts here. Track BYU-Idaho courses, connect with study partners, and manage your Tech Center participation in one secure workspace.
         </p>
         <button
           onClick={() => scrollToSection('hero')}
@@ -295,12 +417,12 @@ export default function RedesignedHomePage() {
               </div>
               <div className="flex flex-col min-w-0">
                 <h1 className="text-[#F5F0E8] font-bold text-sm sm:text-base md:text-lg tracking-tight leading-tight truncate" style={{ fontFamily: 'var(--font-display)' }}>
-                  Freedom City Tech
+                  Selfless CE Students Portal
                 </h1>
                 <div className="flex items-center gap-1 sm:gap-2">
-                  <span className="text-[#E8A33D] text-[8px] sm:text-[10px] md:text-xs font-medium tracking-wider uppercase">Selfless CE</span>
+                  <span className="text-[#E8A33D] text-[8px] sm:text-[10px] md:text-xs font-medium tracking-wider uppercase">Multi-Tenant</span>
                   <span className="w-0.5 h-0.5 sm:w-1 sm:h-1 bg-[#2A2438] rounded-full" />
-                  <span className="text-[#6B6358] text-[8px] sm:text-[10px] md:text-xs truncate">BYU University</span>
+                  <span className="text-[#6B6358] text-[8px] sm:text-[10px] md:text-xs truncate">BYU Idaho</span>
                 </div>
               </div>
             </div>
@@ -454,20 +576,26 @@ export default function RedesignedHomePage() {
           </svg>
         </div>
 
+        {/* Floating Shapes */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <FloatingShape className="top-20 left-[5%]" delay={1} type="diamond" />
+          <FloatingShape className="bottom-32 right-[8%]" delay={3} type="circle" />
+          <FloatingShape className="top-1/3 right-[20%]" delay={5} type="triangle" />
+        </div>
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full relative z-10 grid lg:grid-cols-2 gap-10 items-center">
           <div className="space-y-6">
             <div className="inline-flex items-center gap-2 bg-[#E8A33D]/10 rounded-full px-4 py-1.5 border border-[#E8A33D]/20">
               <span className="w-2 h-2 bg-[#E8A33D] rounded-full animate-pulse" />
-              <span className="text-[#F2C879] text-[10px] font-medium tracking-widest uppercase">Student Self Service Portal</span>
+              <span className="text-[#F2C879] text-[10px] font-medium tracking-widest uppercase">Your Academic Journey Starts Here</span>
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold leading-[1.1]" style={{ fontFamily: 'var(--font-display)' }}>
-              <span className="text-[#F5F0E8]/90">Build.</span><br />
-              <span className="text-[#F5F0E8]/90">Learn.</span><br />
-              <span className="text-[#F5F0E8]/90">Collaborate.</span><br />
-              <span className="bg-gradient-to-r from-[#E8A33D] via-[#F2C879] to-[#E8735C] bg-clip-text text-transparent">Graduate.</span>
+              <span className="text-[#F5F0E8]/90">Manage Your</span><br />
+              <span className="text-[#F5F0E8]/90">Academic Journey</span><br />
+              <span className="bg-gradient-to-r from-[#E8A33D] via-[#F2C879] to-[#E8735C] bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient-shift">& Connect With Peers</span>
             </h1>
             <p className="text-[#A79C8C] text-base md:text-lg max-w-lg leading-relaxed">
-              Your self-service portal for students from various tech centers under Selfless CE. Track your academic journey at BYU University — attendance, courses, mentorship, and more.
+              The Selfless CE Student Self Service Portal brings your courses, academic progress, tutor guidance, student collaboration, announcements, daily participation, and organizational resources together in one secure workspace.
             </p>
             <div className="flex flex-wrap gap-3">
               {isAuthenticated && user ? (
@@ -517,142 +645,123 @@ export default function RedesignedHomePage() {
               📌 Student joined · 2 min ago
             </div>
             <div className="absolute bottom-12 -left-6 sm:bottom-16 sm:left-0 bg-[#150F20]/80 backdrop-blur-sm px-3 py-1.5 rounded-full text-[10px] sm:text-xs text-[#F5F0E8]/80 border border-[#2FA88A]/20 shadow-xl">
-              ✅ Assignment submitted
+              ✅ Course registered
             </div>
             <div className="absolute top-1/2 -translate-y-1/2 -left-10 sm:left-0 bg-[#150F20]/80 backdrop-blur-sm px-3 py-1.5 rounded-full text-[10px] sm:text-xs text-[#F5F0E8]/80 border border-[#E8735C]/20 shadow-xl">
-              📊 Attendance 98%
+              📊 Credits tracked
             </div>
             <div className="absolute bottom-20 right-0 bg-[#150F20]/80 backdrop-blur-sm px-3 py-1.5 rounded-full text-[10px] sm:text-xs text-[#F5F0E8]/80 border border-[#E8A33D]/20 shadow-xl">
-              🤖 AI Assistant active
+              🤝 Study partner found
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section
-        id="features"
-        ref={(el) => { sectionRefs.current.features = el; featuresAnim.ref(el); }}
-        className={`relative z-10 py-20 transition-all duration-1000 delay-200 ${
-          featuresAnim.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
-        }`}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full">
-          <div className="grid md:grid-cols-2 gap-8 items-center">
-            <div className="space-y-4">
-              <span className="text-[#E8A33D] text-xs font-semibold tracking-widest uppercase">✦ ecosystem features</span>
-              <h2 className="text-3xl sm:text-4xl font-bold text-[#F5F0E8]" style={{ fontFamily: 'var(--font-display)' }}>Everything connected.</h2>
-              <p className="text-[#A79C8C]">Live attendance · course tracking · AI mentorship · community feed · all in one.</p>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-[#150F20]/50 backdrop-blur-sm p-4 rounded-xl border border-[#E8A33D]/10 hover:border-[#E8A33D]/30 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-[#E8A33D]/10">
-                  <span className="text-2xl">📚</span>
-                  <p className="text-sm font-medium mt-1 text-[#F5F0E8]">Course Mgmt</p>
-                  <p className="text-[10px] text-[#A79C8C]">97% completion</p>
-                </div>
-                <div className="bg-[#150F20]/50 backdrop-blur-sm p-4 rounded-xl border border-[#E8A33D]/10 hover:border-[#E8A33D]/30 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-[#E8A33D]/10">
-                  <span className="text-2xl">📅</span>
-                  <p className="text-sm font-medium mt-1 text-[#F5F0E8]">Attendance</p>
-                  <p className="text-[10px] text-[#A79C8C]">98% this month</p>
-                </div>
-              </div>
-            </div>
-            <div className="relative flex justify-center">
-              <div className="w-64 h-64 bg-[#150F20]/50 backdrop-blur-sm rounded-3xl border border-[#E8A33D]/20 p-4 flex items-center justify-center hover:border-[#E8A33D]/40 transition-all duration-500 hover:scale-105 hover:shadow-2xl hover:shadow-[#E8A33D]/10">
-                <div className="text-center">
-                  <span className="text-6xl block">📊</span>
-                  <p className="text-[#F5F0E8]/70 text-sm mt-2">Live dashboard</p>
-                  <div className="flex gap-2 mt-2 text-xs text-[#A79C8C]">
-                    <span>● 24 courses</span>
-                    <span>● 156 students</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Storytelling Section */}
+      {/* Platform Features Section */}
       <section
         ref={(el) => { storytellingAnim.ref(el); }}
         className={`relative z-10 py-20 border-t border-[#2A2438]/60 transition-all duration-1000 delay-300 ${
           storytellingAnim.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full flex flex-col md:flex-row items-center gap-10">
-          <div className="md:w-1/2 space-y-6">
-            <span className="text-[#E8A33D] text-xs font-semibold tracking-widest uppercase">✦ journey</span>
-            <div className="space-y-4 text-2xl sm:text-3xl font-bold text-[#F5F0E8]" style={{ fontFamily: 'var(--font-display)' }}>
-              <p className="border-l-4 border-[#E8A33D] pl-4 transition-all duration-300 hover:pl-6 hover:border-l-8">Track Attendance</p>
-              <p className="border-l-4 border-[#E8735C] pl-4 transition-all duration-300 hover:pl-6 hover:border-l-8">Manage Tuition</p>
-              <p className="border-l-4 border-[#2FA88A] pl-4 transition-all duration-300 hover:pl-6 hover:border-l-8">Join Communities</p>
-              <p className="border-l-4 border-[#F2C879] pl-4 transition-all duration-300 hover:pl-6 hover:border-l-8">Monitor Performance</p>
-              <p className="border-l-4 border-[#E8A33D] pl-4 transition-all duration-300 hover:pl-6 hover:border-l-8">Graduate 🎓</p>
-            </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full">
+          <div className="text-center mb-12">
+            <span className="text-[#E8A33D] text-xs font-semibold tracking-widest uppercase">✦ built around your academic journey</span>
+            <DecorativeHeading>Everything You Need to Succeed</DecorativeHeading>
+            <p className="text-[#A79C8C] max-w-2xl mx-auto mt-6">
+              This is where Selfless CE students manage their academic journey and connect with one another.
+            </p>
           </div>
-          <div className="md:w-1/2 flex justify-center">
-            <div className="relative w-48 h-80 sm:w-56 sm:h-96 bg-[#150F20]/70 rounded-3xl border border-[#2A2438] shadow-2xl shadow-[#E8A33D]/10 p-3 flex items-center justify-center hover:shadow-[#E8A33D]/30 transition-all duration-500 hover:scale-105">
-              <div className="w-full h-full bg-[#0B0912] rounded-2xl flex flex-col items-center justify-center gap-2 text-[#F5F0E8]/70 text-xs">
-                <span className="text-3xl">📱</span>
-                <span className="font-semibold text-[#F5F0E8]">Dashboard</span>
-                <div className="w-3/4 h-1 bg-[#E8A33D]/30 rounded-full" />
-                <div className="w-3/4 h-1 bg-[#E8A33D]/20 rounded-full" />
-                <div className="w-1/2 h-1 bg-[#E8735C]/30 rounded-full" />
-                <span className="text-[10px] text-[#A79C8C]">Attendance 98%</span>
-              </div>
-            </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { icon: BookOpen, title: 'BYU–Idaho Course Tracking', desc: 'Register the courses you\'re taking each block, keep track of your academic journey, and make it easier for tutors to monitor your progress throughout your studies.' },
+              { icon: CreditCard, title: 'Credit Tracking', desc: 'Record the credits you\'re taking each block and build a clear overview of your academic progress.' },
+              { icon: Users, title: 'Find Study Partners', desc: 'Search for students taking the same BYU–Idaho courses, connect with them, and build meaningful study partnerships.' },
+              { icon: Calendar, title: 'Daily Participation', desc: 'Choose your preferred participation days and stay organized with your responsibilities within your Tech Center.' },
+              { icon: MessageSquare, title: 'Tutor Support', desc: 'Tutors can monitor your academic journey and provide guidance to help you stay on track throughout your studies.' },
+              { icon: Megaphone, title: 'Announcements', desc: 'Stay informed with updates, notices, and important communication shared within your Tech Center.' },
+              { icon: FileText, title: 'Policy Handbook', desc: 'Access the complete Selfless CE policy handbook anytime to stay informed about organizational expectations and guidelines.' },
+            ].map((feature, i) => (
+              <Card3D key={feature.title} className={`${
+                storytellingAnim.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+              }`} style={{ transitionDelay: storytellingAnim.isVisible ? `${i * 100}ms` : '0ms' }}>
+                <FeatureCard
+                  icon={feature.icon}
+                  title={feature.title}
+                  desc={feature.desc}
+                  index={i}
+                  isVisible={storytellingAnim.isVisible}
+                />
+              </Card3D>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Ecosystem Section */}
+      {/* Learn Together Section */}
       <section
-        id="ecosystem"
-        ref={(el) => { sectionRefs.current.ecosystem = el; ecosystemAnim.ref(el); }}
+        ref={(el) => { ecosystemAnim.ref(el); }}
         className={`relative z-10 py-20 border-t border-[#2A2438]/60 transition-all duration-1000 delay-400 ${
           ecosystemAnim.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full">
-          <div className="grid md:grid-cols-2 gap-8 items-center">
-            <div className="space-y-4">
-              <span className="text-[#E8A33D] text-xs font-semibold tracking-widest uppercase">✦ live ecosystem</span>
-              <h2 className="text-3xl sm:text-4xl font-bold text-[#F5F0E8]" style={{ fontFamily: 'var(--font-display)' }}>Connected community</h2>
-              <p className="text-[#A79C8C]">Mentors, students, tutors, projects — all linked in real time.</p>
-              <div className="flex flex-wrap gap-3 text-sm">
-                <span className="bg-[#150F20]/50 backdrop-blur-sm px-3 py-1 rounded-full border border-[#E8A33D]/20 hover:border-[#E8A33D]/50 transition-all duration-300 hover:scale-105">👨‍🏫 Mentors</span>
-                <span className="bg-[#150F20]/50 backdrop-blur-sm px-3 py-1 rounded-full border border-[#E8735C]/20 hover:border-[#E8735C]/50 transition-all duration-300 hover:scale-105">👥 Students</span>
-                <span className="bg-[#150F20]/50 backdrop-blur-sm px-3 py-1 rounded-full border border-[#2FA88A]/20 hover:border-[#2FA88A]/50 transition-all duration-300 hover:scale-105">📁 Projects</span>
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div className="space-y-6">
+              <span className="text-[#E8A33D] text-xs font-semibold tracking-widest uppercase">✦ learn together</span>
+              <DecorativeHeading>Find Students Taking the Same Course</DecorativeHeading>
+              <p className="text-[#A79C8C] text-lg">Learning is easier together.</p>
+              <p className="text-[#A79C8C]">
+                Search for students enrolled in the same BYU–Idaho courses, connect with them, exchange ideas, and support one another throughout each academic block.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <span className="bg-[#150F20]/50 backdrop-blur-sm px-4 py-2 rounded-full text-sm border border-[#E8A33D]/20 hover:border-[#E8A33D]/50 transition-all duration-300 hover:scale-105 cursor-default">
+                  👥 Find Study Partners
+                </span>
+                <span className="bg-[#150F20]/50 backdrop-blur-sm px-4 py-2 rounded-full text-sm border border-[#2FA88A]/20 hover:border-[#2FA88A]/50 transition-all duration-300 hover:scale-105 cursor-default">
+                  💬 Direct Messaging
+                </span>
+                <span className="bg-[#150F20]/50 backdrop-blur-sm px-4 py-2 rounded-full text-sm border border-[#E8735C]/20 hover:border-[#E8735C]/50 transition-all duration-300 hover:scale-105 cursor-default">
+                  📚 Course Groups
+                </span>
               </div>
             </div>
-            <div className="relative flex justify-center h-64">
-              <svg viewBox="0 0 300 200" className="w-full max-w-xs">
-                <circle cx="80" cy="100" r="24" fill="none" stroke="#E8A33D" strokeWidth="2" strokeDasharray="4 4" className="animate-pulse">
-                  <animate attributeName="r" values="20;26;20" dur="3s" repeatCount="indefinite" />
-                </circle>
-                <circle cx="200" cy="60" r="20" fill="none" stroke="#F2C879" strokeWidth="2" strokeDasharray="4 4" className="animate-pulse">
-                  <animate attributeName="r" values="16;22;16" dur="3.5s" repeatCount="indefinite" />
-                </circle>
-                <circle cx="220" cy="140" r="18" fill="none" stroke="#E8735C" strokeWidth="2" strokeDasharray="4 4" className="animate-pulse">
-                  <animate attributeName="r" values="14;20;14" dur="4s" repeatCount="indefinite" />
-                </circle>
-                <circle cx="140" cy="160" r="22" fill="none" stroke="#2FA88A" strokeWidth="2" strokeDasharray="4 4" className="animate-pulse">
-                  <animate attributeName="r" values="18;24;18" dur="3.8s" repeatCount="indefinite" />
-                </circle>
-                <line x1="80" y1="100" x2="200" y2="60" stroke="#E8A33D" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6">
-                  <animate attributeName="stroke-dashoffset" from="0" to="100" dur="3s" repeatCount="indefinite" />
-                </line>
-                <line x1="80" y1="100" x2="220" y2="140" stroke="#E8A33D" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6">
-                  <animate attributeName="stroke-dashoffset" from="0" to="100" dur="4s" repeatCount="indefinite" />
-                </line>
-                <line x1="200" y1="60" x2="140" y2="160" stroke="#F2C879" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6">
-                  <animate attributeName="stroke-dashoffset" from="0" to="100" dur="3.5s" repeatCount="indefinite" />
-                </line>
-                <text x="70" y="105" fontSize="8" fill="#A79C8C">Student</text>
-                <text x="190" y="65" fontSize="8" fill="#A79C8C">Mentor</text>
-                <text x="210" y="145" fontSize="8" fill="#A79C8C">Tutor</text>
-                <text x="130" y="165" fontSize="8" fill="#A79C8C">Projects</text>
-              </svg>
+            <div className="relative flex justify-center">
+              <div className="relative w-64 h-64 sm:w-80 sm:h-80">
+                <svg viewBox="0 0 300 300" className="w-full h-full">
+                  <circle cx="150" cy="150" r="100" fill="none" stroke="#E8A33D" strokeWidth="1" strokeDasharray="4 6" opacity="0.3" />
+                  <circle cx="150" cy="150" r="70" fill="none" stroke="#E8A33D" strokeWidth="1" strokeDasharray="3 5" opacity="0.2" />
+                  <circle cx="150" cy="150" r="40" fill="none" stroke="#E8A33D" strokeWidth="1" strokeDasharray="2 4" opacity="0.15" />
+                  <circle cx="150" cy="60" r="12" fill="#E8A33D" className="animate-pulse" />
+                  <circle cx="80" cy="120" r="10" fill="#F2C879" className="animate-pulse [animation-delay:0.5s]" />
+                  <circle cx="220" cy="120" r="10" fill="#2FA88A" className="animate-pulse [animation-delay:1s]" />
+                  <circle cx="80" cy="200" r="10" fill="#E8735C" className="animate-pulse [animation-delay:1.5s]" />
+                  <circle cx="220" cy="200" r="10" fill="#F2C879" className="animate-pulse [animation-delay:2s]" />
+                  <circle cx="150" cy="240" r="12" fill="#E8A33D" className="animate-pulse [animation-delay:2.5s]" />
+                  <line x1="150" y1="60" x2="80" y2="120" stroke="#E8A33D" strokeWidth="1.5" opacity="0.3">
+                    <animate attributeName="stroke-dashoffset" from="0" to="100" dur="3s" repeatCount="indefinite" />
+                  </line>
+                  <line x1="150" y1="60" x2="220" y2="120" stroke="#E8A33D" strokeWidth="1.5" opacity="0.3">
+                    <animate attributeName="stroke-dashoffset" from="0" to="100" dur="3.5s" repeatCount="indefinite" />
+                  </line>
+                  <line x1="80" y1="120" x2="80" y2="200" stroke="#F2C879" strokeWidth="1.5" opacity="0.3">
+                    <animate attributeName="stroke-dashoffset" from="0" to="100" dur="4s" repeatCount="indefinite" />
+                  </line>
+                  <line x1="220" y1="120" x2="220" y2="200" stroke="#2FA88A" strokeWidth="1.5" opacity="0.3">
+                    <animate attributeName="stroke-dashoffset" from="0" to="100" dur="4.5s" repeatCount="indefinite" />
+                  </line>
+                  <line x1="80" y1="200" x2="150" y2="240" stroke="#E8735C" strokeWidth="1.5" opacity="0.3">
+                    <animate attributeName="stroke-dashoffset" from="0" to="100" dur="5s" repeatCount="indefinite" />
+                  </line>
+                  <line x1="220" y1="200" x2="150" y2="240" stroke="#F2C879" strokeWidth="1.5" opacity="0.3">
+                    <animate attributeName="stroke-dashoffset" from="0" to="100" dur="5.5s" repeatCount="indefinite" />
+                  </line>
+                  <text x="140" y="55" fontSize="10" fill="#A79C8C">You</text>
+                  <text x="50" y="125" fontSize="10" fill="#A79C8C">Peer</text>
+                  <text x="210" y="125" fontSize="10" fill="#A79C8C">Peer</text>
+                </svg>
+              </div>
             </div>
           </div>
         </div>
@@ -669,77 +778,38 @@ export default function RedesignedHomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <span className="text-[#E8A33D] text-xs font-semibold tracking-widest uppercase">✦ voices</span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-[#F5F0E8] mt-2" style={{ fontFamily: 'var(--font-display)' }}>What students say</h2>
+            <DecorativeHeading>What students say</DecorativeHeading>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
-            <div
-              className={`bg-[#150F20]/50 backdrop-blur-sm p-6 rounded-2xl border border-[#E8A33D]/10 hover:border-[#E8A33D]/40 transition-all duration-500 hover:scale-105 hover:shadow-xl hover:shadow-[#E8A33D]/10 ${
+            <Card3D>
+              <div className={`bg-[#150F20]/50 backdrop-blur-sm p-6 rounded-2xl border border-[#E8A33D]/10 hover:border-[#E8A33D]/40 transition-all duration-500 hover:shadow-xl hover:shadow-[#E8A33D]/10 ${
                 testimonialsAnim.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-              }`}
-              style={{ transitionDelay: testimonialsAnim.isVisible ? '0ms' : '0ms' }}
-            >
-              <p className="text-[#A79C8C] text-sm">"Freedom City gave me mentorship and a community. I grew from student to mentor."</p>
-              <p className="text-[#F5F0E8] font-semibold mt-3">— Nicholus Turyamureba</p>
-            </div>
-            <div
-              className={`bg-[#150F20]/50 backdrop-blur-sm p-6 rounded-2xl border border-[#E8A33D]/10 hover:border-[#E8A33D]/40 transition-all duration-500 hover:scale-105 hover:shadow-xl hover:shadow-[#E8A33D]/10 ${
-                testimonialsAnim.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-              }`}
-              style={{ transitionDelay: testimonialsAnim.isVisible ? '150ms' : '0ms' }}
-            >
-              <p className="text-[#A79C8C] text-sm">"The live dashboard and attendance tracking helped me stay on top of everything."</p>
-              <p className="text-[#F5F0E8] font-semibold mt-3">— Tonny Kiwanuka</p>
-            </div>
-            <div
-              className={`bg-[#150F20]/50 backdrop-blur-sm p-6 rounded-2xl border border-[#E8A33D]/10 hover:border-[#E8A33D]/40 transition-all duration-500 hover:scale-105 hover:shadow-xl hover:shadow-[#E8A33D]/10 ${
-                testimonialsAnim.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-              }`}
-              style={{ transitionDelay: testimonialsAnim.isVisible ? '300ms' : '0ms' }}
-            >
-              <p className="text-[#A79C8C] text-sm">"I landed my first internship through the ecosystem. It's more than a school."</p>
-              <p className="text-[#F5F0E8] font-semibold mt-3">— Amah Maria</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Contact Section */}
-      <section
-        ref={(el) => { contactAnim.ref(el); }}
-        className={`relative z-10 py-20 border-t border-[#2A2438]/60 transition-all duration-1000 delay-700 ${
-          contactAnim.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
-        }`}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid md:grid-cols-2 gap-10">
-          <div>
-            <span className="text-[#E8A33D] text-xs font-semibold tracking-widest uppercase">✦ connect</span>
-            <h2 className="text-3xl font-bold text-[#F5F0E8] mt-2" style={{ fontFamily: 'var(--font-display)' }}>Get in touch</h2>
-            <div className="space-y-4 mt-6 text-[#A79C8C]">
-              <p className="hover:text-[#F5F0E8] transition-colors duration-300"><span className="inline-block w-8">📍</span> Namasuba, Stella, Kabowa, Kampala</p>
-              <p className="hover:text-[#F5F0E8] transition-colors duration-300"><span className="inline-block w-8">📞</span> 0761996296</p>
-              <p className="hover:text-[#F5F0E8] transition-colors duration-300"><span className="inline-block w-8">✉️</span> turyamurebanicholus@gmail.com</p>
-              <div className="flex gap-4 mt-4">
-                <span className="bg-[#150F20]/50 backdrop-blur-sm px-3 py-1 rounded-full text-xs border border-[#E8A33D]/20 hover:border-[#E8A33D]/60 transition-all duration-300 hover:scale-105 cursor-pointer">WhatsApp</span>
-                <span className="bg-[#150F20]/50 backdrop-blur-sm px-3 py-1 rounded-full text-xs border border-[#E8A33D]/20 hover:border-[#E8A33D]/60 transition-all duration-300 hover:scale-105 cursor-pointer">Email</span>
-                <span className="bg-[#150F20]/50 backdrop-blur-sm px-3 py-1 rounded-full text-xs border border-[#E8A33D]/20 hover:border-[#E8A33D]/60 transition-all duration-300 hover:scale-105 cursor-pointer">Office Hours</span>
+              }`} style={{ transitionDelay: testimonialsAnim.isVisible ? '0ms' : '0ms' }}>
+                <p className="text-[#A79C8C] text-sm">"Freedom City gave me mentorship and a community. I grew from student to mentor."</p>
+                <p className="text-[#F5F0E8] font-semibold mt-3">— Nicholus Turyamureba</p>
               </div>
-            </div>
-          </div>
-          <div className="h-64 rounded-2xl overflow-hidden border border-[#2A2438] bg-[#150F20] hover:border-[#E8A33D]/30 transition-all duration-500 hover:shadow-xl hover:shadow-[#E8A33D]/10">
-            <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d31918.08877867205!2d32.525365583003335!3d0.3068647019174247!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x177dbb06c47502b1%3A0xaf67246fe5cb34bb!2sFreedom%20city!5e0!3m2!1sen!2sug!4v1782328514193!5m2!1sen!2sug&output=embed&z=15"
-              className="w-full h-full"
-              style={{ border: 0 }}
-              loading="lazy"
-              title="Location Map"
-            />
+            </Card3D>
+            <Card3D>
+              <div className={`bg-[#150F20]/50 backdrop-blur-sm p-6 rounded-2xl border border-[#E8A33D]/10 hover:border-[#E8A33D]/40 transition-all duration-500 hover:shadow-xl hover:shadow-[#E8A33D]/10 ${
+                testimonialsAnim.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+              }`} style={{ transitionDelay: testimonialsAnim.isVisible ? '150ms' : '0ms' }}>
+                <p className="text-[#A79C8C] text-sm">"The course tracking and credit system helped me stay on top of everything."</p>
+                <p className="text-[#F5F0E8] font-semibold mt-3">— Tonny Kiwanuka</p>
+              </div>
+            </Card3D>
+            <Card3D>
+              <div className={`bg-[#150F20]/50 backdrop-blur-sm p-6 rounded-2xl border border-[#E8A33D]/10 hover:border-[#E8A33D]/40 transition-all duration-500 hover:shadow-xl hover:shadow-[#E8A33D]/10 ${
+                testimonialsAnim.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+              }`} style={{ transitionDelay: testimonialsAnim.isVisible ? '300ms' : '0ms' }}>
+                <p className="text-[#A79C8C] text-sm">"I found study partners through the platform. Learning together made all the difference."</p>
+                <p className="text-[#F5F0E8] font-semibold mt-3">— Amah Maria</p>
+              </div>
+            </Card3D>
           </div>
         </div>
       </section>
 
-      {/* ============================================
-          ENHANCED FOOTER WITH AFRICA MAP & DEVELOPER CREDIT
-          ============================================ */}
+      {/* Footer Section */}
       <section
         id="footer-section"
         ref={(el) => { sectionRefs.current['footer-section'] = el; footerAnim.ref(el); }}
@@ -758,7 +828,6 @@ export default function RedesignedHomePage() {
                   <stop offset="100%" stopColor="#2FA88A" />
                 </linearGradient>
               </defs>
-              {/* Africa outline - simplified SVG path */}
               <path
                 d="M400,50 C380,50 360,60 350,80 C340,95 335,110 340,130 C345,150 360,165 380,175 C400,185 420,180 440,170 C460,160 470,140 475,120 C480,100 475,80 460,65 C445,52 420,50 400,50 Z M380,185 C370,190 355,200 345,215 C335,230 330,250 335,270 C340,290 350,305 365,315 C380,325 395,328 410,325 C425,322 435,312 440,295 C445,278 442,260 435,245 C428,230 415,220 400,215 C390,212 385,200 380,185 Z M340,280 C330,290 320,310 315,335 C310,360 315,390 325,420 C335,450 350,470 370,480 C390,490 410,490 425,480 C440,470 450,450 455,425 C460,400 458,375 450,355 C442,335 430,320 415,310 C400,300 385,295 370,295 C355,295 345,285 340,280 Z"
                 fill="none"
@@ -769,7 +838,6 @@ export default function RedesignedHomePage() {
                 <animate attributeName="stroke-dashoffset" from="1000" to="0" dur="20s" repeatCount="indefinite" />
                 <animate attributeName="opacity" values="0.3;0.8;0.3" dur="4s" repeatCount="indefinite" />
               </path>
-              {/* Pulsing markers on Africa */}
               {[
                 { x: 380, y: 120, label: '🌍' },
                 { x: 350, y: 280, label: '📍' },
@@ -800,7 +868,6 @@ export default function RedesignedHomePage() {
                   </text>
                 </g>
               ))}
-              {/* Floating particles - only render on client */}
               {isClient && (
                 <>
                   {[...Array(20)].map((_, i) => {
@@ -850,7 +917,7 @@ export default function RedesignedHomePage() {
               </div>
               <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold text-[#F5F0E8] leading-tight" style={{ fontFamily: 'var(--font-display)' }}>
                 Building Africa's
-                <span className="block bg-gradient-to-r from-[#E8A33D] via-[#F2C879] to-[#E8735C] bg-clip-text text-transparent mt-2">
+                <span className="block bg-gradient-to-r from-[#E8A33D] via-[#F2C879] to-[#E8735C] bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient-shift mt-2">
                   Digital Future
                 </span>
               </h2>
@@ -863,59 +930,63 @@ export default function RedesignedHomePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 mb-16">
               <div className="col-span-1 sm:col-span-2 lg:col-span-1">
                 <h3 className="text-white font-bold text-lg mb-4" style={{ fontFamily: 'var(--font-display)' }}>
-                  Freedom City Tech
+                  Selfless CE Portal
                 </h3>
                 <p className="text-[#8A8278] text-sm leading-relaxed">
-                  Nurturing resilient minds, building Africa's tech ecosystem, one student at a time.
+                  The official centralized multi-tenant platform for all Selfless CE Tech Centers. Empowering students across Uganda with BYU-Idaho education and technical training.
                 </p>
               </div>
               <div>
                 <h4 className="text-white font-semibold text-sm mb-3">Quick Links</h4>
                 <ul className="space-y-2 text-sm text-[#8A8278]">
-                  <li><Link href="/about" className="hover:text-white transition-colors duration-300">About</Link></li>
-                  <li><Link href="/courses" className="hover:text-white transition-colors duration-300">Courses</Link></li>
-                  <li><Link href="/mentorship" className="hover:text-white transition-colors duration-300">Mentorship</Link></li>
-                  <li><Link href="/blog" className="hover:text-white transition-colors duration-300">Blog</Link></li>
+                  <li><button onClick={() => scrollToSection('hero')} className="hover:text-white transition-colors duration-300">About</button></li>
+                  <li><button onClick={() => scrollToSection('features')} className="hover:text-white transition-colors duration-300">Courses</button></li>
+                  <li><button onClick={() => scrollToSection('ecosystem')} className="hover:text-white transition-colors duration-300">Mentorship</button></li>
+                  <li><button onClick={() => scrollToSection('hero')} className="hover:text-white transition-colors duration-300">Blog</button></li>
                 </ul>
               </div>
               <div>
                 <h4 className="text-white font-semibold text-sm mb-3">Community</h4>
                 <ul className="space-y-2 text-sm text-[#8A8278]">
-                  <li><Link href="/students" className="hover:text-white transition-colors duration-300">Students</Link></li>
-                  <li><Link href="/alumni" className="hover:text-white transition-colors duration-300">Alumni</Link></li>
-                  <li><Link href="/events" className="hover:text-white transition-colors duration-300">Events</Link></li>
-                  <li><Link href="/partners" className="hover:text-white transition-colors duration-300">Partners</Link></li>
+                  <li><button onClick={() => scrollToSection('features')} className="hover:text-white transition-colors duration-300">Students</button></li>
+                  <li><button onClick={() => scrollToSection('ecosystem')} className="hover:text-white transition-colors duration-300">Alumni</button></li>
+                  <li><button onClick={() => scrollToSection('hero')} className="hover:text-white transition-colors duration-300">Events</button></li>
+                  <li><button onClick={() => scrollToSection('hero')} className="hover:text-white transition-colors duration-300">Partners</button></li>
                 </ul>
               </div>
               <div>
                 <h4 className="text-white font-semibold text-sm mb-3">Support</h4>
                 <ul className="space-y-2 text-sm text-[#8A8278]">
-                  <li><Link href="/faq" className="hover:text-white transition-colors duration-300">FAQ</Link></li>
-                  <li><Link href="/contact" className="hover:text-white transition-colors duration-300">Contact</Link></li>
-                  <li><Link href="/help" className="hover:text-white transition-colors duration-300">Help Center</Link></li>
-                  <li><Link href="/privacy" className="hover:text-white transition-colors duration-300">Privacy Policy</Link></li>
+                  <li><button onClick={() => scrollToSection('hero')} className="hover:text-white transition-colors duration-300">FAQ</button></li>
+                  <li><button onClick={() => scrollToSection('hero')} className="hover:text-white transition-colors duration-300">Contact</button></li>
+                  <li><button onClick={() => scrollToSection('hero')} className="hover:text-white transition-colors duration-300">Help Center</button></li>
+                  <li><button onClick={() => scrollToSection('hero')} className="hover:text-white transition-colors duration-300">Privacy Policy</button></li>
                 </ul>
               </div>
               <div>
                 <h4 className="text-white font-semibold text-sm mb-3">Connect</h4>
-                <div className="space-y-2 text-sm text-[#8A8278]">
-                  <p className="flex items-center gap-2 hover:text-white transition-colors duration-300">
-                    <MapPin className="w-4 h-4 text-[#E8A33D]" />
-                    Kampala, Uganda
-                  </p>
-                  <p className="flex items-center gap-2 hover:text-white transition-colors duration-300">
-                    <span className="text-[#E8A33D]">📧</span>
-                    info@freedomcitytech.com
-                  </p>
-                  <p className="flex items-center gap-2 hover:text-white transition-colors duration-300">
-                    <span className="text-[#E8A33D]">📞</span>
-                    +256 761 996 296
-                  </p>
+                <div className="flex items-center gap-4">
+                  <a
+                    href="https://wa.me/256761996296"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center w-10 h-10 rounded-full bg-[#150F20]/50 border border-[#E8A33D]/20 hover:border-[#E8A33D]/50 hover:bg-[#E8A33D]/10 transition-all duration-300 hover:scale-110"
+                    aria-label="WhatsApp"
+                  >
+                    <Phone className="w-5 h-5 text-[#E8A33D]" />
+                  </a>
+                  <a
+                    href="mailto:turyamurebanicholus@gmail.com"
+                    className="flex items-center justify-center w-10 h-10 rounded-full bg-[#150F20]/50 border border-[#E8A33D]/20 hover:border-[#E8A33D]/50 hover:bg-[#E8A33D]/10 transition-all duration-300 hover:scale-110"
+                    aria-label="Email"
+                  >
+                    <Mail className="w-5 h-5 text-[#E8A33D]" />
+                  </a>
                 </div>
               </div>
             </div>
 
-            {/* Developer Credit Section - Full Width Banner */}
+            {/* Developer Section */}
             <div className="relative rounded-3xl overflow-hidden border border-[#E8A33D]/20 bg-gradient-to-br from-[#1A1228] to-[#0B0912] p-8 mb-8">
               <div className="absolute inset-0 opacity-5">
                 <svg viewBox="0 0 800 200" className="w-full h-full">
@@ -929,7 +1000,6 @@ export default function RedesignedHomePage() {
                   </path>
                   <text x="20" y="150" fontSize="14" fill="#E8A33D" opacity="0.3">✦</text>
                   <text x="750" y="150" fontSize="14" fill="#E8A33D" opacity="0.3">✦</text>
-                  {/* Particles in developer section - only render on client */}
                   {isClient && (
                     <>
                       {[...Array(20)].map((_, i) => (
@@ -954,11 +1024,12 @@ export default function RedesignedHomePage() {
                   <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
                     <span className="text-2xl">👨‍💻</span>
                     <h3 className="text-xl sm:text-2xl font-bold text-white" style={{ fontFamily: 'var(--font-display)' }}>
-                      Developed by <span className="bg-gradient-to-r from-[#E8A33D] to-[#F2C879] bg-clip-text text-transparent">Freedom City Software Students Hub</span>
+                      <span className="bg-gradient-to-r from-[#E8A33D] to-[#F2C879] bg-clip-text text-transparent">Freedom City Tech Center</span>
+                      <span className="text-white"> Software Students</span>
                     </h3>
                   </div>
                   <p className="text-[#A79C8C] text-sm max-w-lg">
-                    Students at BYU–Idaho • Building Africa's Tech Ecosystem • Empowering the Next Generation of Developers
+                    Build. Learn. Collaborate. — A dedicated space for software students at Freedom City Tech Center to collaborate on projects, contribute to shared repositories, and grow together as developers.
                   </p>
                   <div className="flex flex-wrap items-center gap-4 mt-3 justify-center md:justify-start">
                     <span className="flex items-center gap-1.5 text-xs text-[#8A8278]">
@@ -989,7 +1060,7 @@ export default function RedesignedHomePage() {
                   </div>
                   <div className="flex items-center gap-2 text-sm text-[#8A8278]">
                     <span className="w-2 h-2 rounded-full bg-[#E8A33D] animate-pulse" />
-                    <span>Freedom City Tech • BYU University</span>
+                    <span>Selfless CE • BYU Idaho</span>
                   </div>
                 </div>
               </div>
@@ -998,7 +1069,7 @@ export default function RedesignedHomePage() {
             {/* Bottom Bar */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-[#2A2438]/60 text-xs text-[#6B6358]">
               <p>
-                © {new Date().getFullYear()} Freedom City Tech Center. All rights reserved.
+                © {new Date().getFullYear()} Selfless CE Organization. All rights reserved.
               </p>
               <div className="flex items-center gap-4">
                 <span>Nurturing Resilient Minds</span>
@@ -1063,10 +1134,50 @@ export default function RedesignedHomePage() {
         }
         .animate-scroll-cue { animation: scroll-cue 1.6s ease-in-out infinite; }
 
+        @keyframes gradient-shift {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        .animate-gradient-shift {
+          animation: gradient-shift 6s ease-in-out infinite;
+        }
+
+        @keyframes float-slow {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-20px) rotate(5deg); }
+        }
+        .animate-float-slow {
+          animation: float-slow 8s ease-in-out infinite;
+        }
+
+        @keyframes pulse-slow {
+          0%, 100% { opacity: 0.3; transform: scale(1); }
+          50% { opacity: 0.6; transform: scale(1.1); }
+        }
+        .animate-pulse-slow {
+          animation: pulse-slow 6s ease-in-out infinite;
+        }
+
+        @keyframes draw-line {
+          to { stroke-dashoffset: 0; }
+        }
+        .animate-draw-line {
+          animation: draw-line 1.5s ease-out forwards;
+        }
+
+        .perspective-1000 {
+          perspective: 1000px;
+        }
+
         @media (prefers-reduced-motion: reduce) {
           .animate-float, .animate-drift-slow, .animate-drift-slower,
           .animate-twinkle, .animate-twinkle-delay,
-          .animate-cover-in, .animate-scroll-cue { animation: none; opacity: 1; }
+          .animate-cover-in, .animate-scroll-cue,
+          .animate-float-slow, .animate-pulse-slow,
+          .animate-gradient-shift, .animate-draw-line {
+            animation: none;
+            opacity: 1;
+          }
         }
       `}</style>
     </div>
