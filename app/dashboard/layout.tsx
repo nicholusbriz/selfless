@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import Head from 'next/head';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
@@ -115,7 +116,7 @@ function TopBar({
               </div>
             </div>
             <span className="text-white font-semibold text-lg hidden sm:block tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-              Freedom Tech
+              Selfless CE
             </span>
           </div>
         </div>
@@ -1029,7 +1030,12 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className={`${sora.variable} flex min-h-screen bg-[#0F0A1A] transition-colors duration-200`}>
+    <>
+      <Head>
+        <meta name="robots" content="noindex, nofollow" />
+        <meta name="googlebot" content="noindex, nofollow" />
+      </Head>
+      <div className={`${sora.variable} flex min-h-screen bg-[#0F0A1A] transition-colors duration-200`}>
       {/* Desktop Sidebar */}
       <div className="hidden lg:flex h-screen fixed top-0 left-0 z-[100]">
         <Sidebar
@@ -1068,7 +1074,7 @@ export default function DashboardLayout({
               <div className="flex flex-col items-center justify-between gap-4 text-sm text-[#8A8278] sm:flex-row">
                 <p className="flex items-center gap-2">
                   <span className="text-[#E8A33D]">✦</span>
-                  &copy; 2026 Freedom City Tech Center
+                  &copy; 2026 Selfless CE Organization
                 </p>
                 <div className="flex flex-wrap justify-center gap-6">
                   <Link href="/about" className="transition-colors duration-300 hover:text-white hover:scale-105 transform">About</Link>
@@ -1106,7 +1112,7 @@ export default function DashboardLayout({
           <footer className="bg-gradient-to-t from-[#1A1228]/30 to-transparent w-full flex-shrink-0">
             <div className="w-full px-4 py-4">
               <div className="flex flex-col items-center justify-between gap-3 text-xs text-[#8A8278] sm:flex-row">
-                <p>&copy; 2026 Freedom City Tech Center</p>
+                <p>&copy; 2026 Selfless CE Organization</p>
                 <div className="flex flex-wrap justify-center gap-4">
                   <Link href="/about" className="transition-colors duration-300 hover:text-white">About</Link>
                   <Link href="/faq" className="transition-colors duration-300 hover:text-white">FAQ</Link>
@@ -1150,6 +1156,7 @@ export default function DashboardLayout({
           </>
         )}
       </AnimatePresence>
-    </div>
+      </div>
+    </>
   );
 }

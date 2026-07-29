@@ -1,7 +1,7 @@
 {
-  "name": "Freedom City Tech Center - Academic Dashboard",
-  "short_name": "Freedom Tech",
-  "description": "Academic management system for Freedom City Tech Center - Track students, courses, and academic progress",
+  "name": "Selfless CE Student Self Service Portal",
+  "short_name": "Selfless CE",
+  "description": "The official centralized multi-tenant platform for students across all Selfless CE Tech Centers. Track BYU-Idaho courses, receive tutor feedback, manage academic progress, and collaborate with peers.",
   "start_url": "/",
   "display": "standalone",
   "display_override": ["standalone", "window-controls-overlay"],
@@ -75,9 +75,9 @@
   ],
   "shortcuts": [
     {
-      "name": "Dashboard",
-      "short_name": "Dashboard",
-      "description": "Go to home page",
+      "name": "Student Portal",
+      "short_name": "Portal",
+      "description": "Go to student portal",
       "url": "/",
       "icons": [
         {
@@ -87,9 +87,9 @@
       ]
     },
     {
-      "name": "Students",
-      "short_name": "Students",
-      "description": "Go to home page",
+      "name": "Tech Centers",
+      "short_name": "Centers",
+      "description": "View Selfless CE Tech Centers",
       "url": "/",
       "icons": [
         {
@@ -99,9 +99,9 @@
       ]
     },
     {
-      "name": "Profile",
-      "short_name": "Profile",
-      "description": "Go to home page",
+      "name": "Login",
+      "short_name": "Login",
+      "description": "Access student portal",
       "url": "/",
       "icons": [
         {
