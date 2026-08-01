@@ -32,8 +32,13 @@ export async function GET(req: NextRequest) {
       orderBy: { name: 'asc' }
     });
 
-    // Fetch all users with their tech center info
+    // Fetch all users with tech center info
     const students = await prisma.user.findMany({
+      where: {
+        techCenterId: {
+          not: null
+        }
+      },
       select: {
         id: true,
         firstName: true,
