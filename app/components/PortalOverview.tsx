@@ -46,7 +46,7 @@ const features = [
 
 export default function PortalOverview() {
   return (
-    <section className="relative py-20 bg-[#0D1117] overflow-hidden">
+    <section className="relative py-16 bg-[#0D1117] overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(232,163,61,.06),transparent_60%)]" />
       
@@ -60,10 +60,6 @@ export default function PortalOverview() {
           transition={{ duration: 0.6 }}
           className="max-w-3xl mx-auto text-center"
         >
-          <span className="inline-flex rounded-full border border-[#E8A33D]/20 bg-[#E8A33D]/10 px-4 py-1.5 text-xs uppercase tracking-[0.25em] text-[#F2C879]">
-            Everything In One Place
-          </span>
-
           <h2 className="mt-6 text-3xl md:text-5xl font-black tracking-tight text-white">
             Designed Around
             <span className="block text-[#E8A33D]">
@@ -80,7 +76,7 @@ export default function PortalOverview() {
         </motion.div>
 
         {/* Cards */}
-        <div className="mt-14 grid gap-6 lg:grid-cols-2">
+        <div className="mt-12 grid gap-4 lg:grid-cols-2">
           {features.map((feature, index) => {
             const Icon = feature.icon;
 
@@ -94,13 +90,13 @@ export default function PortalOverview() {
                   delay: index * 0.12,
                   duration: 0.6,
                 }}
-                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl transition-all duration-500 hover:-translate-y-1.5 hover:border-[#E8A33D]/40"
+                className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-xl transition-all duration-500 hover:-translate-y-1 hover:border-[#E8A33D]/40"
               >
                 <div
                   className={`absolute inset-0 bg-gradient-to-br ${feature.color}`}
                 />
 
-                <div className="relative p-7">
+                <div className="relative p-5">
                   <div className="flex items-center justify-between">
                     <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#E8A33D]/10 text-[#E8A33D]">
                       <Icon size={24} />
@@ -111,15 +107,15 @@ export default function PortalOverview() {
                     />
                   </div>
 
-                  <h3 className="mt-5 text-xl font-bold text-white">
+                  <h3 className="mt-4 text-lg font-bold text-white">
                     {feature.title}
                   </h3>
 
-                  <p className="mt-3 leading-7 text-gray-400 text-sm">
+                  <p className="mt-2 leading-6 text-gray-400 text-sm">
                     {feature.description}
                   </p>
 
-                  <div className="mt-5 inline-flex rounded-full bg-white/5 px-3.5 py-1.5 text-xs text-[#E8A33D] border border-white/10">
+                  <div className="mt-4 inline-flex rounded-full bg-white/5 px-3 py-1 text-xs text-[#E8A33D] border border-white/10">
                     {feature.stats}
                   </div>
                 </div>
@@ -134,21 +130,21 @@ export default function PortalOverview() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="mt-16 rounded-2xl border border-[#E8A33D]/20 bg-gradient-to-r from-[#E8A33D]/10 via-white/5 to-[#E8A33D]/10 p-8"
+          className="mt-12 rounded-xl border border-[#E8A33D]/20 bg-gradient-to-r from-[#E8A33D]/10 via-white/5 to-[#E8A33D]/10 p-6"
         >
-          <div className="grid lg:grid-cols-2 gap-8 items-center">
+          <div className="grid lg:grid-cols-2 gap-6 items-center">
             <div>
               <span className="text-[#F2C879] uppercase tracking-[0.25em] text-xs">
                 Why Students Love It
               </span>
 
-              <h3 className="mt-3 text-2xl md:text-3xl font-black text-white">
+              <h3 className="mt-2 text-xl md:text-2xl font-black text-white">
                 One Login.
                 <br />
                 Every Student Service.
               </h3>
 
-              <p className="mt-3 leading-7 text-gray-400 text-sm">
+              <p className="mt-2 leading-6 text-gray-400 text-sm">
                 Forget switching between multiple systems.
                 Access your courses, academic records,
                 announcements, schedules, tutor feedback,
@@ -156,7 +152,7 @@ export default function PortalOverview() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               {[
                 "Course Registration",
                 "Academic Progress",
@@ -169,9 +165,9 @@ export default function PortalOverview() {
               ].map((item) => (
                 <div
                   key={item}
-                  className="rounded-xl border border-white/10 bg-white/5 p-3.5 text-center transition hover:border-[#E8A33D]/30 hover:bg-white/10"
+                  className="rounded-lg border border-white/10 bg-white/5 p-2.5 text-center transition hover:border-[#E8A33D]/30 hover:bg-white/10"
                 >
-                  <p className="font-medium text-white text-sm">
+                  <p className="font-medium text-white text-xs">
                     {item}
                   </p>
                 </div>

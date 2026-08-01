@@ -51,7 +51,7 @@ const journey = [
 
 export default function StudentJourney() {
   return (
-    <section className="relative py-20 bg-[#101826] overflow-hidden">
+    <section className="relative py-16 bg-[#101826] overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(232,163,61,.06),transparent_45%)]" />
 
@@ -83,11 +83,11 @@ export default function StudentJourney() {
         </motion.div>
 
         {/* Journey Timeline */}
-        <div className="relative mt-14">
+        <div className="relative mt-12">
           {/* Timeline Line */}
           <div className="absolute left-8 top-0 hidden h-full w-px bg-gradient-to-b from-[#E8A33D] via-[#E8A33D]/40 to-transparent lg:block" />
 
-          <div className="space-y-6">
+          <div className="space-y-4">
             {journey.map((item, index) => {
               const Icon = item.icon;
 
@@ -109,7 +109,7 @@ export default function StudentJourney() {
                   </div>
 
                   {/* Card */}
-                  <div className="flex-1 rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-6 transition-all duration-300 hover:border-[#E8A33D]/40 hover:-translate-y-1">
+                  <div className="flex-1 rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-5 transition-all duration-300 hover:border-[#E8A33D]/40 hover:-translate-y-1">
                     <div className="flex items-center gap-3">
                       <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E8A33D] font-bold text-black text-sm">
                         {index + 1}
@@ -118,7 +118,7 @@ export default function StudentJourney() {
                         {item.title}
                       </h3>
                     </div>
-                    <p className="mt-3 text-gray-400 leading-7 text-sm">
+                    <p className="mt-2 text-gray-400 leading-6 text-sm">
                       {item.description}
                     </p>
                   </div>

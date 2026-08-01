@@ -29,7 +29,7 @@ const testimonials = [
 
 export default function Testimonials() {
   return (
-    <section className="relative overflow-hidden bg-[#0D1117] py-20">
+    <section className="relative overflow-hidden bg-[#0D1117] py-16">
       {/* Background */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(232,163,61,.06),transparent_50%)]" />
 
@@ -61,7 +61,7 @@ export default function Testimonials() {
         </motion.div>
 
         {/* Testimonials Cards */}
-        <div className="mt-14 grid gap-6 lg:grid-cols-3">
+        <div className="mt-12 grid gap-4 lg:grid-cols-3">
           {testimonials.map((item, index) => (
             <motion.div
               key={item.name}
@@ -72,7 +72,7 @@ export default function Testimonials() {
                 delay: index * 0.1,
                 duration: 0.5,
               }}
-              className="group rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1.5 hover:border-[#E8A33D]/40"
+              className="group rounded-xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-[#E8A33D]/40"
             >
               <Quote size={32} className="text-[#E8A33D]" />
 
@@ -87,12 +87,12 @@ export default function Testimonials() {
                 ))}
               </div>
 
-              <p className="mt-5 leading-7 text-gray-300 text-sm">
+              <p className="mt-1 leading-5 text-gray-400 text-xs">
                 "{item.message}"
               </p>
 
-              <div className="mt-6 border-t border-white/10 pt-5">
-                <h3 className="text-base font-bold text-white">
+              <div className="mt-3 border-t border-white/10 pt-3">
+                <h3 className="text-sm font-bold text-white">
                   {item.name}
                 </h3>
                 <p className="mt-1 text-[#E8A33D] text-sm">
@@ -112,9 +112,9 @@ export default function Testimonials() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="mt-14 rounded-2xl border border-[#E8A33D]/20 bg-gradient-to-r from-[#E8A33D]/10 via-white/[0.04] to-[#E8A33D]/10 p-6"
+          className="mt-12 rounded-xl border border-[#E8A33D]/20 bg-gradient-to-r from-[#E8A33D]/10 via-white/[0.04] to-[#E8A33D]/10 p-5"
         >
-          <div className="grid items-center gap-6 lg:grid-cols-3">
+          <div className="grid items-center gap-4 lg:grid-cols-3">
             <Stat
               title="Academic Success"
               text="Stay focused on your educational goals."
