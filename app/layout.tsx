@@ -13,9 +13,9 @@ export const metadata: Metadata = {
   creator: "Atbriz",
   publisher: "Cyber Touch",
   icons: {
-    icon: "/freedom.png",
-    shortcut: "/freedom.png",
-    apple: "/freedom.png",
+    icon: "/icon-512x512.png",
+    shortcut: "/icon-512x512.png",
+    apple: "/icon-512x512.png",
   },
   manifest: "/manifest.json",
   appleWebApp: {
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     title: "Selfless CE Portal",
     startupImage: [
       {
-        url: "/freedom.png",
+        url: "/icon-512x512.png",
         media: "(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)",
       },
     ],
@@ -86,6 +86,8 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
     >
       <head>
+        <link rel="icon" href="/icon-512x512.png" />
+        <link rel="apple-touch-icon" href="/icon-512x512.png" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -96,7 +98,7 @@ export default function RootLayout({
                 "name": "Selfless CE",
                 "legalName": "Selfless CE Organization",
                 "url": "https://selfless-henna.vercel.app",
-                "logo": "https://selfless-henna.vercel.app/freedom.png",
+                "logo": "https://selfless-henna.vercel.app/icon-512x512.png",
                 "description": "Selfless CE is an educational organization operating multiple tech centers across Uganda, providing BYU-Idaho academic programs and technical education through a centralized student self-service portal.",
                 "foundingDate": "2020",
                 "founder": {

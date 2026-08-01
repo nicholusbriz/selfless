@@ -1,27 +1,127 @@
-import { Metadata } from 'next';
-import HomePageClient from './components/HomePageClient';
+// app/page.tsx
 
-export const metadata: Metadata = {
-  title: "Selfless CE Student Self Service Portal | Centralized Multi-Tenant Platform",
-  description: "Selfless CE Student Self Service Portal is the official centralized multi-tenant platform for students across all Selfless CE Tech Centers. Students can track BYU-Idaho courses and credits, receive tutor feedback, participate in daily chores, communicate with peers, access organizational policies, receive announcements, and manage their academic journey through one centralized student portal.",
-  keywords: "Selfless CE, Selfless CE Student Portal, Selfless CE Student Self Service Portal, Freedom City Tech Center, Mbale Tech Center, Masaka Tech Center, Jinja Tech Center, Ntinda Tech Center, Sseta Tech Center, Lira Tech Center, Seeta Tech Center, Kololo Tech Center, Kaboowa Tech Center, BYU Idaho, Student Portal, Student Management System, Academic Tracking, Student Self Service, Tutor Management, Student Collaboration, Selfless CE Organization, Uganda Student Portal, Nicholus Turyamureba, Atbriz, Cyber Touch, Tech Center Uganda, Education Uganda, Online Learning Uganda, Student Management System Uganda, Academic Portal, Multi-tenant Student Portal, Centralized Education Platform, BYU-Idaho Courses Uganda, Tech Education Africa, Digital Learning Platform, Student Collaboration Tool, Academic Progress Tracking, Tutor Feedback System, Course Registration Portal, Credit Management System, Study Partner Finder, Academic Dashboard, Student Self Service Portal Uganda, Tech Center Management, Educational Organization Uganda, BYU-Idaho Online Courses, Student Portal Africa, Academic Management System, Tech Center Network, Educational Platform Uganda, Student Success Portal, Academic Journey Management, Tech Center Students, BYU-Idaho Academic Programs, Student Portal System, Educational Technology Uganda, Digital Education Platform, Student Academic Portal, Tech Center Education, Academic Tracking System, Student Management Platform, Educational Portal Uganda, Academic Success Platform, Tech Center Learning, Student Academic Management, BYU-Idaho Student Portal, Educational Management System, Student Portal Technology, Academic Progress Portal, Tech Center Academic Platform, Student Learning Portal, Educational Tech Platform, Academic Student Portal, Tech Center Education System, Student Success Platform, Academic Management Portal, Educational Learning Platform, Student Academic System, Tech Center Portal, Academic Student System, Educational Portal System, Student Learning System, Academic Portal System, Tech Center System, Educational System Uganda, Student System Uganda, Academic System Uganda, Portal System Uganda, Learning Platform Uganda, Education Platform Uganda, Student Platform Uganda, Academic Platform Uganda, Tech Platform Uganda, Digital Platform Uganda, Online Platform Uganda, Web Platform Uganda, App Platform Uganda, Software Platform Uganda, System Platform Uganda, Management Platform Uganda, Tracking Platform Uganda, Collaboration Platform Uganda, Communication Platform Uganda, Feedback Platform Uganda, Registration Platform Uganda, Dashboard Platform Uganda, Portal Platform Uganda, Learning System Uganda, Education System Uganda, Student System Uganda, Academic System Uganda, Tech System Uganda, Digital System Uganda, Online System Uganda, Web System Uganda, App System Uganda, Software System Uganda, Management System Uganda, Tracking System Uganda, Collaboration System Uganda, Communication System Uganda, Feedback System Uganda, Registration System Uganda, Dashboard System Uganda, Portal System Uganda, Learning Application Uganda, Education Application Uganda, Student Application Uganda, Academic Application Uganda, Tech Application Uganda, Digital Application Uganda, Online Application Uganda, Web Application Uganda, App Application Uganda, Software Application Uganda, Management Application Uganda, Tracking Application Uganda, Collaboration Application Uganda, Communication Application Uganda, Feedback Application Uganda, Registration Application Uganda, Dashboard Application Uganda, Portal Application Uganda, Learning Tool Uganda, Education Tool Uganda, Student Tool Uganda, Academic Tool Uganda, Tech Tool Uganda, Digital Tool Uganda, Online Tool Uganda, Web Tool Uganda, App Tool Uganda, Software Tool Uganda, Management Tool Uganda, Tracking Tool Uganda, Collaboration Tool Uganda, Communication Tool Uganda, Feedback Tool Uganda, Registration Tool Uganda, Dashboard Tool Uganda, Portal Tool Uganda",
-  openGraph: {
-    type: "website",
-    siteName: "Selfless CE Student Self Service Portal",
-    title: "Selfless CE Student Self Service Portal | Centralized Multi-Tenant Platform",
-    description: "The official centralized multi-tenant platform for students across all Selfless CE Tech Centers. Track BYU-Idaho courses, receive tutor feedback, manage academic progress, and collaborate with peers through one unified student portal serving Freedom City, Mbale, Masaka, Jinja, Ntinda, Sseta, and Lira Tech Centers.",
-    url: "https://selfless-henna.vercel.app",
-    images: [
-      {
-        url: "/freedom.png",
-        width: 512,
-        height: 512,
-        alt: "Selfless CE Student Self Service Portal Logo",
-      },
-    ],
-  },
-};
+import CoverSection from "@/components/CoverContent";
+import TrustedSection from "@/components/TrustedSection";
+import PortalOverview from "@/components/PortalOverview";
+import StudentJourney from "@/components/StudentJourney";
+import AcademicFeatures from "@/components/AcademicFeatures";
+import CommunityFeatures from "@/components/CommunityFeatures";
+import DashboardPreview from "@/components/DashboardPreview";
+import WhyChoosePortal from "@/components/WhyChoosePortal";
+import Testimonials from "@/components/Testimonials";
+import FAQ from "@/components/FAQ";
+import CTASection from "@/components/CTASection";
+import Footer from "@/components/Footer";
+import FixedHeader from "@/components/FixedHeader";
 
 export default function HomePage() {
-  return <HomePageClient />;
+  return (
+    <main className="overflow-hidden bg-[#0D1117] text-white">
+
+      {/* ========================================================= */}
+      {/* FIXED HEADER */}
+      {/* ========================================================= */}
+
+      <FixedHeader />
+
+      {/* ========================================================= */}
+      {/* HERO */}
+      {/* ========================================================= */}
+
+      <section id="cover">
+        <CoverSection />
+      </section>
+
+      {/* ========================================================= */}
+      {/* COVER BUTTONS */}
+      {/* ========================================================= */}
+
+      {/* ========================================================= */}
+      {/* TRUSTED TECH CENTERS */}
+      {/* ========================================================= */}
+
+      <section id="trusted">
+        <TrustedSection />
+      </section>
+
+      {/* ========================================================= */}
+      {/* PLATFORM OVERVIEW */}
+      {/* ========================================================= */}
+
+      <section id="overview">
+        <PortalOverview />
+      </section>
+
+      {/* ========================================================= */}
+      {/* STUDENT JOURNEY */}
+      {/* ========================================================= */}
+
+      <section id="journey">
+        <StudentJourney />
+      </section>
+
+      {/* ========================================================= */}
+      {/* ACADEMIC FEATURES */}
+      {/* ========================================================= */}
+
+      <section id="academic">
+        <AcademicFeatures />
+      </section>
+
+      {/* ========================================================= */}
+      {/* COMMUNITY */}
+      {/* ========================================================= */}
+
+      <section id="community">
+        <CommunityFeatures />
+      </section>
+
+      {/* ========================================================= */}
+      {/* DASHBOARD PREVIEW */}
+      {/* ========================================================= */}
+
+      <section id="dashboard-preview">
+        <DashboardPreview />
+      </section>
+
+      {/* ========================================================= */}
+      {/* WHY CHOOSE THE PORTAL */}
+      {/* ========================================================= */}
+
+      <section id="why-choose">
+        <WhyChoosePortal />
+      </section>
+
+      {/* ========================================================= */}
+      {/* TESTIMONIALS */}
+      {/* ========================================================= */}
+
+      <section id="testimonials">
+        <Testimonials />
+      </section>
+
+      {/* ========================================================= */}
+      {/* FAQ */}
+      {/* ========================================================= */}
+
+      <section id="faq">
+        <FAQ />
+      </section>
+
+      {/* ========================================================= */}
+      {/* CALL TO ACTION */}
+      {/* ========================================================= */}
+
+      <section id="cta">
+        <CTASection />
+      </section>
+
+      {/* ========================================================= */}
+      {/* FOOTER */}
+      {/* ========================================================= */}
+
+      <Footer />
+
+    </main>
+  );
 }
