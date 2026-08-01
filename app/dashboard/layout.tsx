@@ -7,13 +7,12 @@ import Head from 'next/head';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
-import { Sora } from 'next/font/google';
 import { cn } from '@/lib/utils';
-import { 
-  LayoutDashboard, 
-  Home, 
-  LogOut, 
-  Menu, 
+import {
+  LayoutDashboard,
+  Home,
+  LogOut,
+  Menu,
   X,
   User,
   BookOpen,
@@ -39,10 +38,10 @@ import {
   Award,
   Zap,
   Star,
-  TrendingUp
+  TrendingUp,
+  Trophy
 } from 'lucide-react';
-
-const sora = Sora({ subsets: ['latin'], weight: ['600', '700', '800'], variable: '--font-display' });
+import { useUnreadNotificationCount } from '@/hooks/useNotifications';
 
 // ============================================
 // ENHANCED COLOR TOKENS
@@ -55,7 +54,7 @@ const sora = Sora({ subsets: ['latin'], weight: ['600', '700', '800'], variable:
 // Text: White → #FFFFFF, #F8F5F0, #C4BDB5, #8A8278
 
 // ============================================
-// TOP BAR COMPONENT
+// TOP BAR COMPONENT - FIXED NOTIFICATION BADGE
 // ============================================
 function TopBar({ 
   sidebarOpen, 
@@ -70,6 +69,7 @@ function TopBar({
   handleLogout
 }: any) {
   const [scrolled, setScrolled] = useState(false);
+  const { data: unreadCount } = useUnreadNotificationCount();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -115,7 +115,7 @@ function TopBar({
                 </div>
               </div>
             </div>
-            <span className="text-white font-semibold text-lg hidden sm:block tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+            <span className="text-white font-semibold text-lg hidden sm:block tracking-tight">
               Selfless CE
             </span>
           </div>
@@ -123,13 +123,18 @@ function TopBar({
 
         {/* Right - Actions */}
         <div className="flex items-center gap-2">
+          {/* NOTIFICATIONS WITH FIXED BADGE */}
           <Link
             href="/dashboard/notifications"
-            className="p-2 rounded-xl text-[#8A8278] hover:text-white hover:bg-[#1A1228] transition-all duration-300 relative hover:scale-110 group"
+            className="relative p-2 rounded-xl text-[#8A8278] hover:text-white hover:bg-[#1A1228] transition-all duration-300 group"
             aria-label="Notifications"
           >
             <Bell className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
-            <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-[#FB7185] rounded-full animate-pulse ring-2 ring-[#0F0A1A]" />
+            {unreadCount && unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-[20px] px-1 bg-gradient-to-r from-[#FB7185] to-[#E11D48] rounded-full text-[10px] font-bold text-white ring-2 ring-[#0F0A1A] shadow-lg shadow-[#FB7185]/50 animate-pulse z-10">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
           </Link>
 
           <Link
@@ -149,18 +154,27 @@ function TopBar({
           </Link>
 
           <Link
-            href="/dashboard/settings"
+            href="/dashboard/cleaning"
             className="p-2 rounded-xl text-[#8A8278] hover:text-white hover:bg-[#1A1228] transition-all duration-300 hover:scale-110 group"
-            aria-label="Settings"
+            aria-label="Cleaning Rota"
           >
-            <Settings className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
+            <Calendar className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
           </Link>
 
+          <Link
+            href="/dashboard/students"
+            className="p-2 rounded-xl text-[#8A8278] hover:text-white hover:bg-[#1A1228] transition-all duration-300 hover:scale-110 group"
+            aria-label="Students"
+          >
+            <Users className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+          </Link>
+
+          {/* Profile */}
           <Link
             href="/dashboard/profile"
             className="flex items-center gap-3 ml-2 pl-3 border-l border-[#1A1228] hover:bg-[#1A1228]/30 rounded-lg px-3 py-2 transition-all duration-300 group"
           >
-            <div className="relative group">
+            <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-[#E8A33D] to-[#14B8A6] rounded-full blur-xl opacity-30 group-hover:opacity-50 transition-opacity duration-500"></div>
               {user?.profileImageUrl ? (
                 <img
@@ -210,6 +224,30 @@ const getNavGroups = (userRole: string) => {
   // SUPER ADMIN ONLY LINKS
   // =====================
   if (userRole === 'super_admin') {
+    // Main section for super admin
+    groups.push({
+      id: 'main',
+      label: 'Main',
+      icon: <LayoutDashboard className="w-4 h-4" />,
+      roles: ['super_admin'],
+      items: [
+        { 
+          id: 'dashboard', 
+          label: 'Dashboard', 
+          path: '/dashboard',
+          icon: <LayoutDashboard className="w-5 h-5" />,
+          roles: ['super_admin']
+        },
+        { 
+          id: 'students', 
+          label: 'Students', 
+          path: '/dashboard/students',
+          icon: <Users className="w-5 h-5" />,
+          roles: ['super_admin']
+        },
+      ]
+    });
+
     groups.push({
       id: 'super-admin',
       label: 'Super Admin',
@@ -299,6 +337,13 @@ const getNavGroups = (userRole: string) => {
           icon: <LayoutDashboard className="w-5 h-5" />,
           roles: ['admin']
         },
+        { 
+          id: 'students', 
+          label: 'Students', 
+          path: '/dashboard/students',
+          icon: <Users className="w-5 h-5" />,
+          roles: ['admin']
+        },
       ]
     });
 
@@ -326,6 +371,22 @@ const getNavGroups = (userRole: string) => {
     });
 
     groups.push({
+      id: 'activities',
+      label: 'Activities',
+      icon: <Trophy className="w-4 h-4" />,
+      roles: ['admin'],
+      items: [
+        { 
+          id: 'football-team', 
+          label: 'Football Team', 
+          path: '/dashboard/football-team',
+          icon: <Trophy className="w-5 h-5" />,
+          roles: ['admin']
+        },
+      ]
+    });
+
+    groups.push({
       id: 'cleaning',
       label: 'Cleaning',
       icon: <Calendar className="w-4 h-4" />,
@@ -333,7 +394,7 @@ const getNavGroups = (userRole: string) => {
       items: [
         { 
           id: 'cleaning', 
-          label: 'Choose a Day', 
+          label: 'Cleaning Rota', 
           path: '/dashboard/cleaning',
           icon: <Calendar className="w-5 h-5" />,
           roles: ['admin']
@@ -454,6 +515,13 @@ const getNavGroups = (userRole: string) => {
           icon: <LayoutDashboard className="w-5 h-5" />,
           roles: ['teacher']
         },
+        { 
+          id: 'students', 
+          label: 'Students', 
+          path: '/dashboard/students',
+          icon: <Users className="w-5 h-5" />,
+          roles: ['teacher']
+        },
       ]
     });
 
@@ -477,11 +545,20 @@ const getNavGroups = (userRole: string) => {
           icon: <BarChart3 className="w-5 h-5" />,
           roles: ['teacher']
         },
+      ]
+    });
+
+    groups.push({
+      id: 'activities',
+      label: 'Activities',
+      icon: <Trophy className="w-4 h-4" />,
+      roles: ['teacher'],
+      items: [
         { 
-          id: 'students', 
-          label: 'Students', 
-          path: '/dashboard/students',
-          icon: <Users className="w-5 h-5" />,
+          id: 'football-team', 
+          label: 'Football Team', 
+          path: '/dashboard/football-team',
+          icon: <Trophy className="w-5 h-5" />,
           roles: ['teacher']
         },
       ]
@@ -495,7 +572,7 @@ const getNavGroups = (userRole: string) => {
       items: [
         { 
           id: 'cleaning', 
-          label: 'Choose a Day', 
+          label: 'Cleaning Rota', 
           path: '/dashboard/cleaning',
           icon: <Calendar className="w-5 h-5" />,
           roles: ['teacher']
@@ -608,6 +685,13 @@ const getNavGroups = (userRole: string) => {
         icon: <LayoutDashboard className="w-5 h-5" />,
         roles: ['student']
       },
+      { 
+        id: 'students', 
+        label: 'Students', 
+        path: '/dashboard/students',
+        icon: <Users className="w-5 h-5" />,
+        roles: ['student']
+      },
     ]
   });
 
@@ -642,6 +726,22 @@ const getNavGroups = (userRole: string) => {
   });
 
   groups.push({
+    id: 'activities',
+    label: 'Activities',
+    icon: <Trophy className="w-4 h-4" />,
+    roles: ['student'],
+    items: [
+      { 
+        id: 'football-team', 
+        label: 'Football Team', 
+        path: '/dashboard/football-team',
+        icon: <Trophy className="w-5 h-5" />,
+        roles: ['student']
+      },
+    ]
+  });
+
+  groups.push({
     id: 'cleaning',
     label: 'Cleaning',
     icon: <Calendar className="w-4 h-4" />,
@@ -649,7 +749,7 @@ const getNavGroups = (userRole: string) => {
     items: [
       { 
         id: 'cleaning', 
-        label: 'Choose a Day', 
+        label: 'Cleaning Rota', 
         path: '/dashboard/cleaning',
         icon: <Calendar className="w-5 h-5" />,
         roles: ['student']
@@ -708,7 +808,7 @@ const getNavGroups = (userRole: string) => {
 };
 
 // ============================================
-// SIDEBAR COMPONENT — White bold text for all links
+// SIDEBAR COMPONENT — With fixed notification badge
 // ============================================
 function Sidebar({ 
   sidebarOpen, 
@@ -720,6 +820,7 @@ function Sidebar({
 }: any) {
   const navGroups = getNavGroups(userRole);
   const [expandedGroups, setExpandedGroups] = useState<string[]>(() => navGroups.map(g => g.id));
+  const { data: unreadCount } = useUnreadNotificationCount();
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups(prev =>
@@ -756,7 +857,7 @@ function Sidebar({
           </div>
         </div>
         {sidebarOpen && (
-          <span className="text-white font-bold text-lg tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+          <span className="text-white font-bold text-lg tracking-tight">
             Dashboard
           </span>
         )}
@@ -832,6 +933,12 @@ function Sidebar({
                         {item.icon}
                       </span>
                       <span className="text-sm font-bold">{item.label}</span>
+                      {/* SIDEBAR NOTIFICATION BADGE - FIXED */}
+                      {item.id === 'notifications' && unreadCount && unreadCount > 0 && (
+                        <span className="ml-auto min-w-[20px] h-5 px-1 bg-gradient-to-r from-[#FB7185] to-[#E11D48] rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-lg shadow-[#FB7185]/30">
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </span>
+                      )}
                       {isActive && (
                         <span className="ml-auto flex items-center gap-1">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#E8A33D] animate-pulse" />
@@ -1035,7 +1142,7 @@ export default function DashboardLayout({
         <meta name="robots" content="noindex, nofollow" />
         <meta name="googlebot" content="noindex, nofollow" />
       </Head>
-      <div className={`${sora.variable} flex min-h-screen bg-[#0F0A1A] transition-colors duration-200`}>
+      <div className="flex min-h-screen bg-[#0F0A1A] transition-colors duration-200">
       {/* Desktop Sidebar */}
       <div className="hidden lg:flex h-screen fixed top-0 left-0 z-[100]">
         <Sidebar

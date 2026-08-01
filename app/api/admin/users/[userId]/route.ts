@@ -250,6 +250,8 @@ export async function DELETE(
       await tx.user.delete({
         where: { id: userId }
       });
+    }, {
+      timeout: 30000 // Increase timeout to 30 seconds
     });
 
     // Log activity

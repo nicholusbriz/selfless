@@ -2,10 +2,19 @@
 -- Supabase Storage Policies for Profile Images
 -- =====================================================
 -- Purpose: Control access to profile-images bucket
--- Security: Public read, public write (since app uses MongoDB auth)
+-- Security: Public read, public write (app-level auth via MongoDB/NextAuth)
 -- Created: 2025-06-27
--- Updated: 2025-06-27 - Simplified for MongoDB authentication
+-- Updated: 2025-07-29 - Updated for MongoDB/NextAuth authentication
 -- =====================================================
+
+-- DROP existing policies if they exist
+DROP POLICY IF EXISTS "Public read access for profile images" ON storage.objects;
+DROP POLICY IF EXISTS "Public write access for profile images" ON storage.objects;
+DROP POLICY IF EXISTS "Public update access for profile images" ON storage.objects;
+DROP POLICY IF EXISTS "Public delete access for profile images" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated upload for profile images" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated update for profile images" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated delete for profile images" ON storage.objects;
 
 -- Policy 1: Public read access
 -- Allows anyone (including anonymous users) to view profile images
@@ -18,6 +27,7 @@ USING (bucket_id = 'profile-images');
 -- Policy 2: Public insert access
 -- Allows anyone to upload images (app uses MongoDB for authentication)
 -- File naming includes user ID for organization
+-- Security is enforced at the application level (NextAuth session)
 CREATE POLICY "Public write access for profile images"
 ON storage.objects FOR INSERT
 TO public
@@ -43,6 +53,6 @@ USING (bucket_id = 'profile-images');
 -- - Images are stored with path: profile-images/{userId}-{timestamp}.{ext}
 -- - Public URLs are generated automatically by Supabase
 -- - MongoDB stores only the URL string, not the actual image
--- - MongoDB handles authentication, so Supabase policies are permissive
--- - Security is enforced at the application level (MongoDB auth)
+-- - Authentication is handled by NextAuth/MongoDB at the application level
+-- - Security is enforced in the API routes (requireAuth middleware)
 -- =====================================================

@@ -3,7 +3,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sora, Inter } from 'next/font/google';
 import {
   Menu, X, ChevronUp, Sparkles, Home,
   GraduationCap, MessageSquare, User, ChevronDown,
@@ -14,9 +13,6 @@ import {
 import { useAuth } from '@/lib/hooks/useAuth';
 import Link from 'next/link';
 import AuthModal from '@/components/auth/AuthModal';
-
-const sora = Sora({ subsets: ['latin'], weight: ['600', '700', '800'], variable: '--font-display' });
-const inter = Inter({ subsets: ['latin'], variable: '--font-body' });
 
 function useScrollAnimation() {
   const [ref, setRef] = useState<HTMLElement | null>(null);
@@ -279,7 +275,7 @@ export default function RedesignedHomePage() {
   const footerAnim = useScrollAnimation();
 
   return (
-    <div className={`${sora.variable} ${inter.variable} min-h-screen bg-[#0B0912] text-[#F5F0E8] overflow-x-hidden font-sans relative`}>
+    <div className="min-h-screen bg-[#0B0912] text-[#F5F0E8] overflow-x-hidden font-sans relative">
       {/* Background */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-10%,#1B1526_0%,#0B0912_55%)]" />
@@ -1023,7 +1019,7 @@ export default function RedesignedHomePage() {
                 <div className="flex-1 text-center md:text-left">
                   <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
                     <span className="text-2xl">👨‍💻</span>
-                    <h3 className="text-xl sm:text-2xl font-bold text-white" style={{ fontFamily: 'var(--font-display)' }}>
+                    <h3 className="text-xl sm:text-2xl font-bold text-white">
                       <span className="bg-gradient-to-r from-[#E8A33D] to-[#F2C879] bg-clip-text text-transparent">Freedom City Tech Center</span>
                       <span className="text-white"> Software Students</span>
                     </h3>

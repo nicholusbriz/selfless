@@ -17,6 +17,15 @@ export type AuthUser = {
   profileImageUrl: string | null;
   status: string;
   isActive: boolean;
+  phoneNumber?: string | null;
+  country?: string | null;
+  city?: string | null;
+  town?: string | null;
+  street?: string | null;
+  generalCourse?: string | null;
+  linkedinUrl?: string | null;
+  githubUrl?: string | null;
+  projectUrls?: string[];
 };
 
 declare module 'next-auth' {
@@ -30,6 +39,15 @@ declare module 'next-auth' {
       profileImageUrl: string | null;
       status: string;
       isActive: boolean;
+      phoneNumber?: string | null;
+      country?: string | null;
+      city?: string | null;
+      town?: string | null;
+      street?: string | null;
+      generalCourse?: string | null;
+      linkedinUrl?: string | null;
+      githubUrl?: string | null;
+      projectUrls?: string[];
     } & DefaultSession['user'];
   }
 
@@ -42,6 +60,15 @@ declare module 'next-auth' {
     profileImageUrl: string | null;
     status: string;
     isActive: boolean;
+    phoneNumber?: string | null;
+    country?: string | null;
+    city?: string | null;
+    town?: string | null;
+    street?: string | null;
+    generalCourse?: string | null;
+    linkedinUrl?: string | null;
+    githubUrl?: string | null;
+    projectUrls?: string[];
   }
 }
 
@@ -55,5 +82,14 @@ declare module 'next-auth/jwt' {
     profileImageUrl: string | null;
     status: string;
     isActive: boolean;
+    phoneNumber?: string | null;
+    country?: string | null;
+    city?: string | null;
+    town?: string | null;
+    street?: string | null;
+    generalCourse?: string | null;
+    linkedinUrl?: string | null;
+    githubUrl?: string | null;
+    projectUrls?: string[];
   }
 }
