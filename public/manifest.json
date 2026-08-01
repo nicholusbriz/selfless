@@ -5,8 +5,8 @@
   "start_url": "/",
   "display": "standalone",
   "display_override": ["standalone", "window-controls-overlay"],
-  "background_color": "#0f0f23",
-  "theme_color": "#8b5cf6",
+  "background_color": "#0D1117",
+  "theme_color": "#E8A33D",
   "scope": "/",
   "categories": [
     "education",
