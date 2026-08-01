@@ -1184,11 +1184,11 @@ export default function DashboardLayout({
                   &copy; 2026 Selfless CE Organization
                 </p>
                 <div className="flex flex-wrap justify-center gap-6">
-                  <Link href="/about" className="transition-colors duration-300 hover:text-white hover:scale-105 transform">About</Link>
-                  <Link href="/faq" className="transition-colors duration-300 hover:text-white hover:scale-105 transform">FAQ</Link>
-                  <Link href="/contact" className="transition-colors duration-300 hover:text-white hover:scale-105 transform">Contact</Link>
-                  <Link href="#" className="transition-colors duration-300 hover:text-white hover:scale-105 transform">Privacy</Link>
-                  <Link href="#" className="transition-colors duration-300 hover:text-white hover:scale-105 transform">Terms</Link>
+                  <button className="transition-colors duration-300 hover:text-white hover:scale-105 transform">About</button>
+                  <button className="transition-colors duration-300 hover:text-white hover:scale-105 transform">FAQ</button>
+                  <button className="transition-colors duration-300 hover:text-white hover:scale-105 transform">Contact</button>
+                  <button className="transition-colors duration-300 hover:text-white hover:scale-105 transform">Privacy</button>
+                  <button className="transition-colors duration-300 hover:text-white hover:scale-105 transform">Terms</button>
                 </div>
               </div>
             </div>
@@ -1221,9 +1221,11 @@ export default function DashboardLayout({
               <div className="flex flex-col items-center justify-between gap-3 text-xs text-[#8A8278] sm:flex-row">
                 <p>&copy; 2026 Selfless CE Organization</p>
                 <div className="flex flex-wrap justify-center gap-4">
-                  <Link href="/about" className="transition-colors duration-300 hover:text-white">About</Link>
-                  <Link href="/faq" className="transition-colors duration-300 hover:text-white">FAQ</Link>
-                  <Link href="/contact" className="transition-colors duration-300 hover:text-white">Contact</Link>
+                  <button className="transition-colors duration-300 hover:text-white">About</button>
+                  <button className="transition-colors duration-300 hover:text-white">FAQ</button>
+                  <button className="transition-colors duration-300 hover:text-white">Contact</button>
+                  <button className="transition-colors duration-300 hover:text-white">Privacy</button>
+                  <button className="transition-colors duration-300 hover:text-white">Terms</button>
                 </div>
               </div>
             </div>

@@ -88,23 +88,24 @@ export default function MyGradesPage() {
               </div>
             </div>
 
-            {/* Right Side - Team Badge & CTA */}
+            {/* Right Side - Video & CTA */}
             <div className="flex flex-col items-center gap-4">
               <motion.div
-                className="relative w-24 h-24 md:w-32 md:h-32"
+                className="relative w-48 h-32 md:w-64 md:h-40 rounded-xl overflow-hidden shadow-lg shadow-[#E8A33D]/20 border border-[#E8A33D]/30"
                 animate={{
-                  rotate: isHovered ? 360 : 0,
+                  scale: isHovered ? 1.05 : 1,
                 }}
-                transition={{ duration: 2, type: "spring" }}
+                transition={{ duration: 0.3 }}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-[#E8A33D] to-[#14B8A6] rounded-full opacity-20 blur-2xl" />
-                <div className="relative w-full h-full bg-gradient-to-br from-[#E8A33D] to-[#C97F1F] rounded-full flex items-center justify-center shadow-lg shadow-[#E8A33D]/20 overflow-hidden">
-                  <img
-                    src="/freedom.png"
-                    alt="Freedom City Logo"
-                    className="w-full h-full object-cover p-2"
-                  />
-                </div>
+                <video
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  className="w-full h-full object-cover"
+                >
+                  <source src="/football.mp4" type="video/mp4" />
+                </video>
               </motion.div>
 
               <motion.button
