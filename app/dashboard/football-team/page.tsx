@@ -122,6 +122,7 @@ export default function FootballTeamPage() {
           muted
           loop
           playsInline
+          preload="auto"
           className="w-full h-full object-cover"
         >
           <source src="/football-video.mp4" type="video/mp4" />
