@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { loginUser, generateToken } from '@/lib/auth/server';
 import { AUTH_CONSTANTS } from '@/lib/auth/types';
 import { cookies } from 'next/headers';
+import { logLogin, extractIpAddress, extractUserAgent } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -56,6 +57,14 @@ export async function POST(req: NextRequest) {
       maxAge: AUTH_CONSTANTS.COOKIE_MAX_AGE,
       path: '/',
     });
+
+    // Log the login activity
+    await logLogin(
+      result.user.id,
+      result.user.techCenterId || undefined,
+      extractIpAddress(req),
+      extractUserAgent(req)
+    );
 
     // Return user data (without password)
     return NextResponse.json({

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import { logUserAction } from '@/lib/logger';
 
 // GET - Fetch single user details
 export async function GET(
@@ -126,20 +127,18 @@ export async function PATCH(
       }
     });
 
-    // Log activity
-    await prisma.activityLog.create({
-      data: {
-        userId: session.user.id,
-        action: 'update_user',
-        entityType: 'user',
-        entityId: userId,
-        details: {
-          updatedFields: Object.keys(updateData),
-          targetUser: `${updatedUser.firstName} ${updatedUser.lastName}`
-        },
-        techCenterId: updatedUser.techCenterId || undefined,
-      }
-    });
+    // Log the user update activity
+    await logUserAction(
+      session.user.id,
+      'update',
+      'user',
+      userId,
+      {
+        updatedFields: Object.keys(updateData),
+        targetUser: `${updatedUser.firstName} ${updatedUser.lastName}`
+      },
+      updatedUser.techCenterId || undefined
+    );
 
     return NextResponse.json({
       message: 'User updated successfully',
@@ -254,21 +253,19 @@ export async function DELETE(
       timeout: 30000 // Increase timeout to 30 seconds
     });
 
-    // Log activity
-    await prisma.activityLog.create({
-      data: {
-        userId: session.user.id,
-        action: 'delete_user',
-        entityType: 'user',
-        entityId: userId,
-        details: {
-          deletedUser: `${user.firstName} ${user.lastName}`,
-          email: user.email,
-          role: user.role?.name
-        },
-        techCenterId: user.techCenterId || undefined,
-      }
-    });
+    // Log the user deletion activity
+    await logUserAction(
+      session.user.id,
+      'delete',
+      'user',
+      userId,
+      {
+        deletedUser: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        role: user.role?.name
+      },
+      user.techCenterId || undefined
+    );
 
     return NextResponse.json({
       message: `User ${user.firstName} ${user.lastName} deleted successfully`,

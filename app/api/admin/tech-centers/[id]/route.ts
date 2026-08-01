@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import { logUserAction } from '@/lib/logger';
 
 // PATCH - Update tech center (toggle active status)
 export async function PATCH(
@@ -59,21 +60,19 @@ export async function PATCH(
       }
     });
 
-    // Log activity
-    await prisma.activityLog.create({
-      data: {
-        userId: session.user.id,
-        action: 'update_tech_center_status',
-        entityType: 'techCenter',
-        entityId: techCenter.id,
-        details: { 
-          name: techCenter.name, 
-          code: techCenter.code,
-          isActive 
-        },
-        techCenterId: techCenter.id,
-      }
-    });
+    // Log the tech center update activity
+    await logUserAction(
+      session.user.id,
+      'update',
+      'tech_center',
+      techCenter.id,
+      { 
+        name: techCenter.name, 
+        code: techCenter.code,
+        isActive 
+      },
+      techCenter.id
+    );
 
     return NextResponse.json(techCenter);
   } catch (error) {
@@ -155,20 +154,18 @@ export async function DELETE(
       where: { id }
     });
 
-    // Log activity (this will create a new log that doesn't have techCenterId)
-    await prisma.activityLog.create({
-      data: {
-        userId: session.user.id,
-        action: 'delete_tech_center',
-        entityType: 'techCenter',
-        entityId: id,
-        details: { 
-          name: existingCenter.name, 
-          code: existingCenter.code 
-        },
-        // Note: techCenterId is intentionally omitted here since the center is deleted
+    // Log the tech center deletion activity
+    await logUserAction(
+      session.user.id,
+      'delete',
+      'tech_center',
+      id,
+      { 
+        name: existingCenter.name, 
+        code: existingCenter.code 
       }
-    });
+      // Note: techCenterId is intentionally omitted since the center is deleted
+    );
 
     return NextResponse.json({ message: 'Tech center deleted successfully' });
   } catch (error) {

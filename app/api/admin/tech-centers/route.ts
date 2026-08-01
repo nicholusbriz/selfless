@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import { logUserAction, extractIpAddress, extractUserAgent } from '@/lib/logger';
 
 // GET - Fetch all tech centers
 export async function GET() {
@@ -97,17 +98,15 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Log activity
-    await prisma.activityLog.create({
-      data: {
-        userId: session.user.id,
-        action: 'create_tech_center',
-        entityType: 'techCenter',
-        entityId: techCenter.id,
-        details: { name: techCenter.name, code: techCenter.code },
-        techCenterId: techCenter.id,
-      }
-    });
+    // Log the tech center creation activity
+    await logUserAction(
+      session.user.id,
+      'create',
+      'tech_center',
+      techCenter.id,
+      { name: techCenter.name, code: techCenter.code },
+      techCenter.id
+    );
 
     return NextResponse.json(techCenter, { status: 201 });
   } catch (error) {
