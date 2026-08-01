@@ -2,11 +2,11 @@
 /**
  * STUDENTS LIST API ROUTE
  * 
- * Fetches all students grouped by tech center.
+ * Fetches all users grouped by tech center.
  * Requires authentication.
  * 
  * Endpoint: GET /api/students
- * Response: { studentsByTechCenter: { [techCenterName]: Student[] }, techCenters: TechCenter[] }
+ * Response: { studentsByTechCenter: { [techCenterName]: User[] }, techCenters: TechCenter[] }
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -32,19 +32,19 @@ export async function GET(req: NextRequest) {
       orderBy: { name: 'asc' }
     });
 
-    // Fetch all students with their tech center info
+    // Fetch all users with their tech center info
     const students = await prisma.user.findMany({
-      where: {
-        role: {
-          name: 'student'
-        }
-      },
       select: {
         id: true,
         firstName: true,
         lastName: true,
         email: true,
         profileImageUrl: true,
+        role: {
+          select: {
+            name: true
+          }
+        },
         techCenter: {
           select: {
             id: true,
@@ -84,6 +84,7 @@ export async function GET(req: NextRequest) {
         lastName: student.lastName,
         email: student.email,
         profileImageUrl: student.profileImageUrl,
+        role: student.role,
         techCenter: student.techCenter,
         generalCourse: student.generalCourse,
         status: student.status,

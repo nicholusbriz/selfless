@@ -11,6 +11,9 @@ interface Student {
   lastName: string;
   email: string;
   profileImageUrl: string | null;
+  role: {
+    name: string;
+  };
   techCenter: {
     id: string;
     name: string;
