@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { logRegistration } from '@/lib/logger';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
 
@@ -140,17 +141,8 @@ export async function registerUser(data: {
       },
     });
 
-    // Create activity log
-    await prisma.activityLog.create({
-      data: {
-        userId: user.id,
-        action: 'register',
-        entityType: 'user',
-        entityId: user.id,
-        details: { email: user.email },
-        techCenterId: user.techCenterId,
-      },
-    });
+    // Log the registration activity
+    await logRegistration(user.id, user.techCenterId || undefined, { email: user.email });
 
     return { user };
   } catch (error) {

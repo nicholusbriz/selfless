@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import { logUserAction } from '@/lib/logger';
 
 // PATCH - Update user status
 export async function PATCH(
@@ -75,21 +76,20 @@ export async function PATCH(
       }
     });
 
-    // Log activity
-    await prisma.activityLog.create({
-      data: {
-        userId: session.user.id,
-        action: 'change_user_status',
-        entityType: 'user',
-        entityId: userId,
-        details: {
-          targetUser: `${updatedUser.firstName} ${updatedUser.lastName}`,
-          oldStatus: user.status,
-          newStatus: status
-        },
-        techCenterId: updatedUser.techCenterId,
-      }
-    });
+    // Log the user status change activity
+    await logUserAction(
+      session.user.id,
+      'update',
+      'user',
+      userId,
+      {
+        targetUser: `${updatedUser.firstName} ${updatedUser.lastName}`,
+        oldStatus: user.status,
+        newStatus: status,
+        action: 'change_status'
+      },
+      updatedUser.techCenterId || undefined
+    );
 
     return NextResponse.json({
       message: `User status changed from ${user.status} to ${status}`,
