@@ -270,7 +270,7 @@ export default function StudentProfilePage() {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             <div className="bg-[#0B0912] rounded-xl p-4 border border-[#2A2438]">
               <div className="flex items-center gap-2 text-[#6B6358] mb-2">
                 <Calendar className="w-4 h-4" />
@@ -278,18 +278,6 @@ export default function StudentProfilePage() {
               </div>
               <p className="text-lg font-semibold text-[#F5F0E8]">
                 {new Date(student.createdAt).toLocaleDateString()}
-              </p>
-            </div>
-
-            <div className="bg-[#0B0912] rounded-xl p-4 border border-[#2A2438]">
-              <div className="flex items-center gap-2 text-[#6B6358] mb-2">
-                <Clock className="w-4 h-4" />
-                <span className="text-xs uppercase tracking-wider">Last Login</span>
-              </div>
-              <p className="text-lg font-semibold text-[#F5F0E8]">
-                {student.lastLoginAt 
-                  ? new Date(student.lastLoginAt).toLocaleDateString() 
-                  : 'Never'}
               </p>
             </div>
 
