@@ -102,6 +102,7 @@ export default function MyGradesPage() {
                   muted
                   loop
                   playsInline
+                  preload="auto"
                   className="w-full h-full object-cover"
                 >
                   <source src="/football.mp4" type="video/mp4" />
