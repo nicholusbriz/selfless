@@ -88,18 +88,6 @@ export default function CoverContent() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
           >
-            {/* Badge */}
-            <motion.div
-              className="inline-flex items-center gap-3 rounded-full border border-[#E8A33D]/20 bg-[#E8A33D]/10 px-5 py-2 mb-8"
-              whileHover={{ scale: 1.03 }}
-              transition={{ type: "spring", stiffness: 400 }}
-            >
-              <div className="h-2 w-2 rounded-full bg-[#E8A33D] animate-pulse" />
-              <span className="text-sm uppercase tracking-[0.25em] text-[#F2C879]">
-                Official Selfless CE Student Platform
-              </span>
-            </motion.div>
-
             {/* Logo and Heading */}
             <div className="flex items-center gap-4 mb-4">
               <motion.div 
@@ -172,39 +160,6 @@ export default function CoverContent() {
                 }}
                 transition={{ duration: 0.5 }}
               />
-
-              {/* Floating Badge - Live Demo */}
-              <motion.div
-                className="absolute -top-4 -right-4 z-10 bg-[#E8A33D]/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-semibold text-black shadow-lg shadow-[#E8A33D]/30 flex items-center gap-1.5"
-                animate={{
-                  y: [0, -5, 0],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              >
-                <Eye size={12} />
-                Live Demo
-              </motion.div>
-
-              {/* Floating Badge - Interactive Dashboard */}
-              <motion.div
-                className="absolute -bottom-2 -left-4 z-10 bg-[#111827] backdrop-blur-sm border border-[#E8A33D]/30 px-3 py-1.5 rounded-full text-xs font-medium text-[#F2C879] shadow-lg flex items-center gap-1.5"
-                animate={{
-                  y: [0, 5, 0],
-                }}
-                transition={{
-                  duration: 2.5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: 0.5,
-                }}
-              >
-                <Sparkles size={12} />
-                Interactive Dashboard
-              </motion.div>
 
               {/* Image Container with 3D Tilt */}
               <motion.div

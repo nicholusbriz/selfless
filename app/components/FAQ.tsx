@@ -36,7 +36,7 @@ export default function FAQ() {
   const [active, setActive] = useState<number | null>(0);
 
   return (
-    <section className="relative bg-[#101826] py-20">
+    <section className="relative bg-[#101826] py-16">
       <div className="max-w-5xl mx-auto px-6">
         {/* Header */}
         <motion.div
@@ -59,17 +59,17 @@ export default function FAQ() {
         </motion.div>
 
         {/* FAQ Items */}
-        <div className="mt-14 space-y-4">
+        <div className="mt-12 space-y-3">
           {faqs.map((faq, index) => (
             <div
               key={faq.question}
-              className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] transition-all duration-300 hover:border-[#E8A33D]/20"
+              className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] transition-all duration-300 hover:border-[#E8A33D]/20"
             >
               <button
                 onClick={() => setActive(active === index ? null : index)}
-                className="flex w-full items-center justify-between px-6 py-5 text-left"
+                className="flex w-full items-center justify-between px-5 py-4 text-left"
               >
-                <h3 className="text-base font-semibold text-white">
+                <h3 className="text-sm font-semibold text-white">
                   {faq.question}
                 </h3>
 
@@ -97,7 +97,7 @@ export default function FAQ() {
                     }}
                     transition={{ duration: 0.3 }}
                   >
-                    <p className="px-6 pb-6 leading-7 text-gray-400 text-sm">
+                    <p className="px-5 pb-5 leading-6 text-gray-400 text-sm">
                       {faq.answer}
                     </p>
                   </motion.div>

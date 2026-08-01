@@ -2,6 +2,7 @@ import {
   MessageCircle,
   Share2,
   Mail,
+  Phone,
 } from "lucide-react";
 
 export default function Footer() {
@@ -73,9 +74,9 @@ export default function Footer() {
             </h4>
 
             <div className="mt-4 flex gap-3">
-              <Social icon={<MessageCircle size={18} />} />
-              <Social icon={<Share2 size={18} />} />
-              <Social icon={<Mail size={18} />} />
+              <Social icon={<MessageCircle size={18} />} href="https://wa.me/256761996296" />
+              <Social icon={<Phone size={18} />} href="tel:+256761996296" />
+              <Social icon={<Mail size={18} />} href="mailto:turyamurebanicholus@gmail.com" />
             </div>
           </div>
         </div>
@@ -97,12 +98,19 @@ export default function Footer() {
 
 function Social({
   icon,
+  href,
 }: {
   icon: React.ReactNode;
+  href: string;
 }) {
   return (
-    <button className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gray-300 transition-all duration-300 hover:border-[#E8A33D]/40 hover:text-[#E8A33D] hover:bg-[#E8A33D]/10">
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gray-300 transition-all duration-300 hover:border-[#E8A33D]/40 hover:text-[#E8A33D] hover:bg-[#E8A33D]/10"
+    >
       {icon}
-    </button>
+    </a>
   );
 }

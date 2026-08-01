@@ -52,7 +52,7 @@ const features = [
 
 export default function AcademicFeatures() {
   return (
-    <section className="relative bg-[#0D1117] py-20 overflow-hidden">
+    <section className="relative bg-[#0D1117] py-16 overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(232,163,61,.06),transparent_45%)]" />
 
@@ -62,7 +62,7 @@ export default function AcademicFeatures() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="grid lg:grid-cols-2 gap-12 items-center"
+          className="grid lg:grid-cols-2 gap-8 items-center"
         >
           {/* Left Content */}
           <div>
@@ -70,14 +70,14 @@ export default function AcademicFeatures() {
               Academic Excellence
             </span>
 
-            <h2 className="mt-5 text-3xl md:text-5xl font-black leading-tight text-white">
+            <h2 className="mt-4 text-3xl md:text-5xl font-black leading-tight text-white">
               Everything You Need
               <span className="block text-[#E8A33D]">
                 To Stay Ahead
               </span>
             </h2>
 
-            <p className="mt-4 text-gray-400 leading-7 text-base">
+            <p className="mt-3 text-gray-400 leading-6 text-base">
               Focus on learning while the portal keeps everything organized.
               From course registration to graduation tracking, every academic
               tool is available within one secure platform.
@@ -90,7 +90,7 @@ export default function AcademicFeatures() {
           </div>
 
           {/* Right Content - Features Grid */}
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 gap-3">
             {features.map((item, index) => {
               const Icon = item.icon;
 
@@ -104,17 +104,17 @@ export default function AcademicFeatures() {
                     delay: index * 0.06,
                     duration: 0.4,
                   }}
-                  className="group rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-5 transition-all duration-300 hover:-translate-y-1.5 hover:border-[#E8A33D]/40"
+                  className="group rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-4 transition-all duration-300 hover:-translate-y-1 hover:border-[#E8A33D]/40"
                 >
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#E8A33D]/10 text-[#E8A33D]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#E8A33D]/10 text-[#E8A33D]">
                     <Icon size={20} />
                   </div>
 
-                  <h3 className="mt-4 text-base font-semibold text-white">
+                  <h3 className="mt-3 text-sm font-semibold text-white">
                     {item.title}
                   </h3>
 
-                  <p className="mt-2 text-gray-400 leading-6 text-sm">
+                  <p className="mt-2 text-gray-400 leading-5 text-xs">
                     {item.description}
                   </p>
                 </motion.div>

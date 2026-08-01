@@ -27,7 +27,7 @@ export default function CTASection() {
   };
 
   return (
-    <section className="relative overflow-hidden bg-[#0D1117] py-20">
+    <section className="relative overflow-hidden bg-[#0D1117] py-16">
       {/* Background */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(232,163,61,.08),transparent_55%)]" />
 
@@ -37,7 +37,7 @@ export default function CTASection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="rounded-2xl border border-[#E8A33D]/20 bg-gradient-to-br from-[#111827] to-[#1A2233] p-10 md:p-12 text-center"
+          className="rounded-xl border border-[#E8A33D]/20 bg-gradient-to-br from-[#111827] to-[#1A2233] p-8 md:p-10 text-center"
         >
           {/* Badge */}
           <span className="inline-flex rounded-full border border-[#E8A33D]/20 bg-[#E8A33D]/10 px-4 py-1.5 text-xs uppercase tracking-[0.25em] text-[#F2C879]">
@@ -45,19 +45,19 @@ export default function CTASection() {
           </span>
 
           {/* Heading */}
-          <h2 className="mt-5 text-3xl md:text-5xl font-black text-white">
+          <h2 className="mt-4 text-3xl md:text-5xl font-black text-white">
             Ready To Start?
           </h2>
 
           {/* Description */}
-          <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-gray-400">
+          <p className="mx-auto mt-3 max-w-2xl text-base leading-6 text-gray-400">
             Access the Official Selfless Student Self Service Portal
             and manage every aspect of your academic journey from one
             intelligent platform.
           </p>
 
           {/* Buttons */}
-          <div className="mt-8 flex flex-wrap justify-center gap-4">
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
             {isAuthenticated && user ? (
               <Link
                 href="/dashboard"
@@ -78,7 +78,7 @@ export default function CTASection() {
 
                 <button
                   onClick={handleSignIn}
-                  className="rounded-xl border border-white/10 bg-white/5 px-6 py-3 font-medium text-white transition hover:border-[#E8A33D]/40 hover:bg-white/10"
+                  className="rounded-lg border border-white/10 bg-white/5 px-5 py-2.5 font-medium text-white transition hover:border-[#E8A33D]/40 hover:bg-white/10"
                 >
                   Student Login
                 </button>

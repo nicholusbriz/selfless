@@ -1,6 +1,7 @@
 // public/sw.js - Minimal Service Worker for PWA standalone mode only
 // No caching - all content loads from network
 // This service worker exists only to enable PWA installation for standalone mode
+const CACHE_VERSION = 'v2.0.0';
 
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing...');
