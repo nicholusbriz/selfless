@@ -77,6 +77,14 @@ export const authOptions: AuthOptions = {
           profileImageUrl: user.profileImageUrl,
           status: user.status,
           isActive: user.isActive,
+          phoneNumber: user.phoneNumber,
+          country: user.country,
+          city: user.city,
+          town: user.town,
+          street: user.street,
+          generalCourse: user.generalCourse,
+          linkedinUrl: user.linkedinUrl,
+          githubUrl: user.githubUrl,
         };
       }
     })
@@ -101,6 +109,15 @@ export const authOptions: AuthOptions = {
         session.user.profileImageUrl = token.profileImageUrl as string;
         session.user.status = token.status as string;
         session.user.isActive = token.isActive as boolean;
+        session.user.phoneNumber = token.phoneNumber as string | null;
+        session.user.country = token.country as string | null;
+        session.user.city = token.city as string | null;
+        session.user.town = token.town as string | null;
+        session.user.street = token.street as string | null;
+        session.user.generalCourse = token.generalCourse as string | null;
+        session.user.linkedinUrl = token.linkedinUrl as string | null;
+        session.user.githubUrl = token.githubUrl as string | null;
+        session.user.projectUrls = token.projectUrls as string[];
       }
       return session;
     },
@@ -108,8 +125,10 @@ export const authOptions: AuthOptions = {
     /**
      * JWT Callback
      * Persists custom user data in the JWT token
+     * Re-fetches user data from database on session update to ensure fresh data
      */
-    async jwt({ token, user }: JwtCallbackParams) {
+    async jwt({ token, user, trigger }: JwtCallbackParams & { trigger?: string }) {
+      // Initial sign in
       if (user) {
         token.role = user.role;
         token.firstName = user.firstName;
@@ -118,7 +137,44 @@ export const authOptions: AuthOptions = {
         token.profileImageUrl = user.profileImageUrl;
         token.status = user.status;
         token.isActive = user.isActive;
+        token.phoneNumber = user.phoneNumber;
+        token.country = user.country;
+        token.city = user.city;
+        token.town = user.town;
+        token.street = user.street;
+        token.generalCourse = user.generalCourse;
+        token.linkedinUrl = user.linkedinUrl;
+        token.githubUrl = user.githubUrl;
+        token.projectUrls = user.projectUrls;
       }
+      
+      // Re-fetch user data from database on session update
+      if (trigger === 'update' && token.sub) {
+        const freshUser = await prisma.user.findUnique({
+          where: { id: token.sub as string },
+          include: { role: true }
+        });
+        
+        if (freshUser) {
+          token.role = freshUser.role?.name || 'student';
+          token.firstName = freshUser.firstName;
+          token.lastName = freshUser.lastName;
+          token.techCenterId = freshUser.techCenterId;
+          token.profileImageUrl = freshUser.profileImageUrl;
+          token.status = freshUser.status;
+          token.isActive = freshUser.isActive;
+          token.phoneNumber = freshUser.phoneNumber;
+          token.country = freshUser.country;
+          token.city = freshUser.city;
+          token.town = freshUser.town;
+          token.street = freshUser.street;
+          token.generalCourse = freshUser.generalCourse;
+          token.linkedinUrl = freshUser.linkedinUrl;
+          token.githubUrl = freshUser.githubUrl;
+          token.projectUrls = freshUser.projectUrls;
+        }
+      }
+      
       return token;
     },
 
