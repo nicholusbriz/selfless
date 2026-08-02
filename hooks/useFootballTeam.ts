@@ -166,3 +166,67 @@ export function useLeaveFootballTeam() {
     },
   });
 }
+
+// Hook to update football team membership with optimistic updates
+export function useUpdateFootballTeamMembership() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { teamId: string; jerseyNumber?: number; position?: string }) => {
+      const response = await axios.put('/api/football-team/update', data);
+      return response.data;
+    },
+    onMutate: async (variables) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['football-team'] });
+
+      // Get all football team queries
+      const queries = queryClient.getQueriesData<FootballTeamData>({ queryKey: ['football-team'] });
+
+      // Optimistically update all queries
+      queries.forEach(([queryKey, previousData]) => {
+        if (previousData) {
+          queryClient.setQueryData<FootballTeamData>(queryKey, (old) => {
+            if (!old) return old;
+
+            return {
+              ...old,
+              teamMembers: old.teamMembers.map(member => 
+                member.id === variables.teamId 
+                  ? { 
+                      ...member, 
+                      jerseyNumber: variables.jerseyNumber !== undefined ? variables.jerseyNumber : member.jerseyNumber,
+                      position: variables.position !== undefined ? variables.position : member.position,
+                      updatedAt: new Date().toISOString()
+                    }
+                  : member
+              ),
+              currentUserMembership: old.currentUserMembership?.id === variables.teamId
+                ? {
+                    ...old.currentUserMembership,
+                    jerseyNumber: variables.jerseyNumber !== undefined ? variables.jerseyNumber : old.currentUserMembership.jerseyNumber,
+                    position: variables.position !== undefined ? variables.position : old.currentUserMembership.position,
+                    updatedAt: new Date().toISOString()
+                  }
+                : old.currentUserMembership
+            };
+          });
+        }
+      });
+
+      return { previousData: queries };
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousData) {
+        context.previousData.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+    },
+    onSettled: () => {
+      // Refetch all football team queries
+      queryClient.invalidateQueries({ queryKey: ['football-team'] });
+    },
+  });
+}
