@@ -39,7 +39,10 @@ import {
   Zap,
   Star,
   TrendingUp,
-  Trophy
+  Trophy,
+  Search,
+  Building2,
+  HeartHandshake
 } from 'lucide-react';
 import { useUnreadNotificationCount, useAnnouncementCount } from '@/hooks/useNotifications';
 
@@ -251,6 +254,34 @@ const getNavGroups = (userRole: string) => {
           icon: <Users className="w-5 h-5" />,
           roles: ['super_admin']
         },
+        { 
+          id: 'browse-internships', 
+          label: 'Browse Internships', 
+          path: '/dashboard/internships',
+          icon: <Briefcase className="w-5 h-5" />,
+          roles: ['super_admin']
+        },
+        { 
+          id: 'my-applications', 
+          label: 'My Applications', 
+          path: '/dashboard/internships/applications',
+          icon: <ClipboardList className="w-5 h-5" />,
+          roles: ['super_admin']
+        },
+        { 
+          id: 'support-groups', 
+          label: 'Support Groups', 
+          path: '/dashboard/support-groups',
+          icon: <HeartHandshake className="w-5 h-5" />,
+          roles: ['super_admin']
+        },
+        { 
+          id: 'temple-trips', 
+          label: 'Temple Trips', 
+          path: '/dashboard/temple-trips',
+          icon: <Building2 className="w-5 h-5" />,
+          roles: ['super_admin']
+        },
       ]
     });
 
@@ -348,6 +379,34 @@ const getNavGroups = (userRole: string) => {
           label: 'Students', 
           path: '/dashboard/students',
           icon: <Users className="w-5 h-5" />,
+          roles: ['admin']
+        },
+        { 
+          id: 'browse-internships', 
+          label: 'Browse Internships', 
+          path: '/dashboard/internships',
+          icon: <Briefcase className="w-5 h-5" />,
+          roles: ['admin']
+        },
+        { 
+          id: 'my-applications', 
+          label: 'My Applications', 
+          path: '/dashboard/internships/applications',
+          icon: <ClipboardList className="w-5 h-5" />,
+          roles: ['admin']
+        },
+        { 
+          id: 'support-groups', 
+          label: 'Support Groups', 
+          path: '/dashboard/support-groups',
+          icon: <HeartHandshake className="w-5 h-5" />,
+          roles: ['admin']
+        },
+        { 
+          id: 'temple-trips', 
+          label: 'Temple Trips', 
+          path: '/dashboard/temple-trips',
+          icon: <Building2 className="w-5 h-5" />,
           roles: ['admin']
         },
       ]
@@ -528,6 +587,34 @@ const getNavGroups = (userRole: string) => {
           icon: <Users className="w-5 h-5" />,
           roles: ['teacher']
         },
+        { 
+          id: 'browse-internships', 
+          label: 'Browse Internships', 
+          path: '/dashboard/internships',
+          icon: <Briefcase className="w-5 h-5" />,
+          roles: ['teacher']
+        },
+        { 
+          id: 'my-applications', 
+          label: 'My Applications', 
+          path: '/dashboard/internships/applications',
+          icon: <ClipboardList className="w-5 h-5" />,
+          roles: ['teacher']
+        },
+        { 
+          id: 'support-groups', 
+          label: 'Support Groups', 
+          path: '/dashboard/support-groups',
+          icon: <HeartHandshake className="w-5 h-5" />,
+          roles: ['teacher']
+        },
+        { 
+          id: 'temple-trips', 
+          label: 'Temple Trips', 
+          path: '/dashboard/temple-trips',
+          icon: <Building2 className="w-5 h-5" />,
+          roles: ['teacher']
+        },
       ]
     });
 
@@ -698,6 +785,34 @@ const getNavGroups = (userRole: string) => {
         icon: <Users className="w-5 h-5" />,
         roles: ['student']
       },
+      { 
+        id: 'browse-internships', 
+        label: 'Browse Internships', 
+        path: '/dashboard/internships',
+        icon: <Briefcase className="w-5 h-5" />,
+        roles: ['student']
+      },
+      { 
+        id: 'my-applications', 
+        label: 'My Applications', 
+        path: '/dashboard/internships/applications',
+        icon: <ClipboardList className="w-5 h-5" />,
+        roles: ['student']
+      },
+      { 
+        id: 'support-groups', 
+        label: 'Support Groups', 
+        path: '/dashboard/support-groups',
+        icon: <HeartHandshake className="w-5 h-5" />,
+        roles: ['student']
+      },
+      { 
+        id: 'temple-trips', 
+        label: 'Temple Trips', 
+        path: '/dashboard/temple-trips',
+        icon: <Building2 className="w-5 h-5" />,
+        roles: ['student']
+      },
     ]
   });
 
@@ -712,13 +827,6 @@ const getNavGroups = (userRole: string) => {
         label: 'My Courses', 
         path: '/dashboard/courses',
         icon: <BookOpen className="w-5 h-5" />,
-        roles: ['student']
-      },
-      { 
-        id: 'submit-courses', 
-        label: 'Submit Courses', 
-        path: '/dashboard/submit-courses',
-        icon: <ClipboardList className="w-5 h-5" />,
         roles: ['student']
       },
       { 
@@ -826,6 +934,7 @@ function Sidebar({
 }: any) {
   const navGroups = getNavGroups(userRole);
   const [expandedGroups, setExpandedGroups] = useState<string[]>(() => navGroups.map(g => g.id));
+  const [searchQuery, setSearchQuery] = useState('');
   const { data: unreadCount } = useUnreadNotificationCount();
   const { data: announcementCount } = useAnnouncementCount();
 
@@ -845,14 +954,43 @@ function Sidebar({
     }))
     .filter(group => group.items.length > 0);
 
+  // Search filtering
+  const searchFilteredNavGroups = searchQuery
+    ? filteredNavGroups
+        .map(group => ({
+          ...group,
+          items: group.items.filter(item => 
+            item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            item.id.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+        }))
+        .filter(group => group.items.length > 0)
+    : filteredNavGroups;
+
+  // Auto-expand groups when searching
+  useEffect(() => {
+    if (searchQuery) {
+      setExpandedGroups(searchFilteredNavGroups.map(g => g.id));
+    }
+  }, [searchQuery]);
+
   return (
     <aside className={cn(
-      "h-screen bg-[#0F0A1A] flex flex-col transition-all duration-300 overflow-hidden",
+      "h-screen bg-[#0F0A1A] flex flex-col transition-all duration-300 overflow-hidden relative",
       sidebarOpen ? "w-72" : "w-20"
     )}>
+      {/* Subtle geometric pattern overlay */}
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
+        backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
+        backgroundSize: '24px 24px'
+      }} />
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{
+        backgroundImage: `linear-gradient(45deg, transparent 48%, white 48%, white 52%, transparent 52%), linear-gradient(-45deg, transparent 48%, white 48%, white 52%, transparent 52%)`,
+        backgroundSize: '60px 60px'
+      }} />
       {/* Sidebar Header */}
       <div className={cn(
-        "flex items-center gap-3 p-4 flex-shrink-0",
+        "flex items-center gap-3 p-4 flex-shrink-0 relative z-10",
         !sidebarOpen && "justify-center"
       )}>
         <div className="relative group">
@@ -870,9 +1008,33 @@ function Sidebar({
         )}
       </div>
 
+      {/* Search Input */}
+      {sidebarOpen && (
+        <div className="px-4 pb-2 relative z-10">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8A8278]" />
+            <input
+              type="text"
+              placeholder="Search navigation..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-[#1A1228]/50 border border-[#1A1228] rounded-xl pl-10 pr-4 py-2 text-sm text-white placeholder-[#8A8278] focus:outline-none focus:border-[#E8A33D]/50 focus:bg-[#1A1228]/70 transition-all duration-300"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8A8278] hover:text-white transition-colors duration-300"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Navigation */}
       <nav className={cn(
-        "sidebar-nav flex-1 overflow-y-auto overflow-x-hidden scroll-smooth py-4",
+        "sidebar-nav flex-1 overflow-y-auto overflow-x-hidden scroll-smooth py-4 relative z-10",
         sidebarOpen ? "px-3" : "px-2"
       )}>
         {/* Back to Home */}
@@ -894,7 +1056,7 @@ function Sidebar({
         <div className="h-px bg-gradient-to-r from-transparent via-[#1A1228] to-transparent my-2" />
 
         {/* Navigation Groups */}
-        {filteredNavGroups.map((group) => (
+        {searchFilteredNavGroups.map((group) => (
           <div key={group.id} className="mb-2">
             <button
               onClick={() => toggleGroup(group.id)}

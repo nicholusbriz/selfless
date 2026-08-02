@@ -78,11 +78,9 @@ export default function StudentsPage() {
 
   const getAvatarColor = (firstName: string, lastName: string) => {
     const colors = [
-      'from-[#E8A33D] to-[#C97F1F]',
-      'from-[#14B8A6] to-[#0D9488]',
-      'from-[#FB7185] to-[#E11D48]',
-      'from-[#6366F1] to-[#4F46E5]',
-      'from-[#34D399] to-[#059669]',
+      'from-[#3A3448] to-[#2A2438]',
+      'from-[#4A4458] to-[#3A3448]',
+      'from-[#5A5468] to-[#4A4458]',
     ];
     const hash = firstName.charCodeAt(0) + lastName.charCodeAt(0);
     return colors[Math.abs(hash) % colors.length];
@@ -239,9 +237,19 @@ export default function StudentsPage() {
   const hasStudents = allStudents.length > 0;
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Subtle geometric pattern overlay */}
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
+        backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
+        backgroundSize: '24px 24px'
+      }} />
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{
+        backgroundImage: `linear-gradient(45deg, transparent 48%, white 48%, white 52%, transparent 52%), linear-gradient(-45deg, transparent 48%, white 48%, white 52%, transparent 52%)`,
+        backgroundSize: '60px 60px'
+      }} />
+      
       {/* Header with navigation */}
-      <div className="flex items-center gap-4 mb-8">
+      <div className="flex items-center gap-4 mb-8 relative z-10">
         <button
           onClick={() => router.back()}
           className="p-2 rounded-lg bg-[#2A2438]/50 hover:bg-[#2A2438] text-[#A79C8C] hover:text-[#F5F0E8] transition-all duration-200"
@@ -274,7 +282,7 @@ export default function StudentsPage() {
       </div>
 
       {/* Search Bar */}
-      <div className="mb-6">
+      <div className="mb-6 relative z-10">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#6B6358]" />
           <input
@@ -282,19 +290,19 @@ export default function StudentsPage() {
             placeholder="Search students by name, email, course code, or course unit..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-[#0B0912] border border-[#2A2438] rounded-xl text-[#F5F0E8] placeholder-[#6B6358] focus:outline-none focus:border-[#E8A33D] transition-all duration-200"
+            className="w-full pl-12 pr-4 py-3 bg-[#0B0912] border border-[#2A2438] rounded-xl text-[#F5F0E8] placeholder-[#6B6358] focus:outline-none focus:border-[#3A3448] transition-all duration-200"
           />
         </div>
       </div>
 
       {/* Tech Center Filter */}
-      <div className="mb-4">
+      <div className="mb-4 relative z-10">
         <div className="flex items-center gap-3">
           <Filter className="w-5 h-5 text-[#6B6358]" />
           <select
             value={selectedTechCenter}
             onChange={(e) => setSelectedTechCenter(e.target.value)}
-            className="flex-1 px-4 py-3 bg-[#0B0912] border border-[#2A2438] rounded-xl text-[#F5F0E8] focus:outline-none focus:border-[#E8A33D] transition-all duration-200 cursor-pointer"
+            className="flex-1 px-4 py-3 bg-[#0B0912] border border-[#2A2438] rounded-xl text-[#F5F0E8] focus:outline-none focus:border-[#3A3448] transition-all duration-200 cursor-pointer"
           >
             <option value="all">All Tech Centers</option>
             {techCenters.map((techCenter: TechCenter) => (
@@ -316,13 +324,13 @@ export default function StudentsPage() {
       </div>
 
       {/* Course and Religion Filters */}
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
         <div className="flex items-center gap-3">
           <BookOpen className="w-5 h-5 text-[#6B6358]" />
           <select
             value={courseFilter}
             onChange={(e) => setCourseFilter(e.target.value)}
-            className="flex-1 px-4 py-3 bg-[#0B0912] border border-[#2A2438] rounded-xl text-[#F5F0E8] focus:outline-none focus:border-[#E8A33D] transition-all duration-200 cursor-pointer"
+            className="flex-1 px-4 py-3 bg-[#0B0912] border border-[#2A2438] rounded-xl text-[#F5F0E8] focus:outline-none focus:border-[#3A3448] transition-all duration-200 cursor-pointer"
           >
             <option value="all">All Students</option>
             <option value="withCourses">With Courses</option>
@@ -334,7 +342,7 @@ export default function StudentsPage() {
           <select
             value={religionFilter}
             onChange={(e) => setReligionFilter(e.target.value)}
-            className="flex-1 px-4 py-3 bg-[#0B0912] border border-[#2A2438] rounded-xl text-[#F5F0E8] focus:outline-none focus:border-[#E8A33D] transition-all duration-200 cursor-pointer"
+            className="flex-1 px-4 py-3 bg-[#0B0912] border border-[#2A2438] rounded-xl text-[#F5F0E8] focus:outline-none focus:border-[#3A3448] transition-all duration-200 cursor-pointer"
           >
             <option value="all">All Religion Status</option>
             <option value="takesReligion">Takes Religion</option>
@@ -344,14 +352,14 @@ export default function StudentsPage() {
       </div>
 
       {/* Total Students Count */}
-      <div className="mb-6 flex items-center gap-2 text-[#A79C8C]">
+      <div className="mb-6 flex items-center gap-2 text-[#A79C8C] relative z-10">
         <Users className="w-4 h-4" />
         <span className="text-sm">Total Students: {totalStudents}</span>
       </div>
 
       {/* No Students */}
       {!hasStudents && (
-        <div className="bg-[#150F20] border border-[#2A2438] rounded-xl p-8 text-center">
+        <div className="bg-[#0B0912] border border-[#2A2438] rounded-xl p-8 text-center relative z-10">
           <User className="w-12 h-12 text-[#6B6358] mx-auto mb-4" />
           <p className="text-[#A79C8C]">No students found.</p>
         </div>
@@ -365,10 +373,10 @@ export default function StudentsPage() {
             if (filteredStudents.length === 0) return null;
 
             return (
-              <div key={techCenterName} className="mb-8">
+              <div key={techCenterName} className="mb-8 relative z-10">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-2 rounded-lg bg-[#2A2438]">
-                    <MapPin className="w-5 h-5 text-[#E8A33D]" />
+                    <MapPin className="w-5 h-5 text-[#A79C8C]" />
                   </div>
                   <div>
                     <h2 className="text-xl font-semibold text-[#F5F0E8]">{techCenterName}</h2>
@@ -381,14 +389,10 @@ export default function StudentsPage() {
                     <div
                       key={student.id}
                       onClick={() => router.push(`/dashboard/students/${student.id}`)}
-                      className="relative bg-gradient-to-br from-[#150F20] to-[#0F0A1A] border border-[#2A2438] rounded-2xl overflow-hidden hover:border-[#E8A33D]/50 cursor-pointer transition-all duration-300 group hover:shadow-xl hover:shadow-[#E8A33D]/10 hover:-translate-y-1"
+                      className="bg-[#0B0912] border border-[#2A2438] rounded-xl p-4 cursor-pointer hover:border-[#3A3448] transition-all duration-300"
                     >
-                      <div className="h-16 bg-gradient-to-r from-[#E8A33D]/20 to-[#14B8A6]/20 relative">
-                        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#150F20]" />
-                      </div>
-
-                      <div className="relative -mt-8 px-4">
-                        <div className="w-20 h-20 rounded-2xl overflow-hidden border-3 border-[#0F0A1A] shadow-xl group-hover:shadow-[#E8A33D]/20 transition-all duration-300">
+                      <div className="flex items-start gap-3">
+                        <div className="w-12 h-12 rounded-lg overflow-hidden border border-[#2A2438] flex-shrink-0">
                           {student.profileImageUrl ? (
                             <img
                               src={student.profileImageUrl}
@@ -397,108 +401,77 @@ export default function StudentsPage() {
                             />
                           ) : (
                             <div className={`w-full h-full bg-gradient-to-br ${getAvatarColor(student.firstName, student.lastName)} flex items-center justify-center`}>
-                              <span className="text-xl font-bold text-[#0B0912]">
+                              <span className="text-sm font-bold text-[#F5F0E8]">
                                 {getInitials(student.firstName, student.lastName)}
                               </span>
                             </div>
                           )}
                         </div>
-                      </div>
-
-                      <div className="px-4 pb-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-[#F5F0E8] text-lg truncate group-hover:text-[#E8A33D] transition-colors">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between mb-1">
+                            <h3 className="font-semibold text-[#F5F0E8] truncate">
                               {student.firstName} {student.lastName}
                             </h3>
-                            {student.techCenter && (
-                              <p className="text-xs text-[#A79C8C] truncate">{student.techCenter.name}</p>
-                            )}
-                          </div>
-                          <div className="flex-shrink-0 ml-2">
-                            {student.isActive ? (
-                              <div className="w-6 h-6 rounded-full bg-[#2FA88A]/20 border border-[#2FA88A] flex items-center justify-center">
-                                <CheckCircle className="w-3.5 h-3.5 text-[#2FA88A]" />
-                              </div>
-                            ) : (
-                              <div className="w-6 h-6 rounded-full bg-[#FB7185]/20 border border-[#FB7185] flex items-center justify-center">
-                                <XCircle className="w-3.5 h-3.5 text-[#FB7185]" />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {student.generalCourse && (
-                          <div className="mb-2 p-2 bg-[#2A2438]/50 rounded-lg">
-                            <p className="text-[10px] text-[#6B6358] uppercase tracking-wider mb-1">General Course</p>
-                            <p className="text-sm text-[#A79C8C] truncate font-medium">{student.generalCourse}</p>
-                          </div>
-                        )}
-
-                        {/* Course Units */}
-                        {student.studentCourses && student.studentCourses.length > 0 && (
-                          <div className="mb-2 p-2 bg-[#2A2438]/50 rounded-lg">
-                            <p className="text-[10px] text-[#6B6358] uppercase tracking-wider mb-1">Course Units ({student.studentCourses.length})</p>
-                            <div className="space-y-1">
-                              {student.studentCourses.slice(0, 3).map((course) => (
-                                <div key={course.id} className="flex items-center gap-2 text-xs">
-                                  <span className="px-2 py-1 bg-[#E8A33D]/20 border border-[#E8A33D]/30 rounded-full text-xs text-[#E8A33D] font-medium">
-                                    {course.code}
-                                  </span>
-                                  <span className="text-[#A79C8C] truncate">{course.courseUnit}</span>
-                                  <span className="text-[#6B6358]">•</span>
-                                  <span className="text-[#E8A33D]">{course.credits} credits</span>
+                            <div className="flex-shrink-0 ml-2">
+                              {student.isActive ? (
+                                <div className="w-4 h-4 rounded-full bg-[#2FA88A]/20 border border-[#2FA88A] flex items-center justify-center">
+                                  <CheckCircle className="w-2.5 h-2.5 text-[#2FA88A]" />
                                 </div>
-                              ))}
-                              {student.studentCourses.length > 3 && (
-                                <div className="text-xs text-[#6B6358] pt-1">
-                                  +{student.studentCourses.length - 3} more courses
-                                </div>
-                              )}
-                              <div className="mt-2 pt-2 border-t border-[#2A2438]">
-                                <span className="text-xs text-[#6B6358]">Total Credits: </span>
-                                <span className="text-sm font-bold text-[#E8A33D]">
-                                  {student.studentCourses.reduce((sum, course) => sum + course.credits, 0)}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Religion Status */}
-                        {student.takesReligion !== null && (
-                          <div className="mb-2 p-2 bg-[#2A2438]/50 rounded-lg">
-                            <p className="text-[10px] text-[#6B6358] uppercase tracking-wider mb-1">Religion</p>
-                            <div className="flex items-center gap-2">
-                              {student.takesReligion ? (
-                                <span className="px-2 py-1 bg-[#14B8A6]/20 border border-[#14B8A6]/30 rounded-full text-xs text-[#14B8A6]">
-                                  Yes
-                                </span>
                               ) : (
-                                <span className="px-2 py-1 bg-[#FB7185]/20 border border-[#FB7185]/30 rounded-full text-xs text-[#FB7185]">
-                                  No
-                                </span>
+                                <div className="w-4 h-4 rounded-full bg-[#FB7185]/20 border border-[#FB7185] flex items-center justify-center">
+                                  <XCircle className="w-2.5 h-2.5 text-[#FB7185]" />
+                                </div>
                               )}
                             </div>
                           </div>
-                        )}
-
-                        {student.techCenter && (
-                          <div className="flex items-center gap-2 text-xs text-[#6B6358] mb-3">
-                            <MapPin className="w-3.5 h-3.5" />
-                            <span className="truncate">{student.techCenter.country?.name}</span>
-                          </div>
-                        )}
-
-                        <div className="mt-3 pt-3 border-t border-[#2A2438]">
-                          <div className="flex items-center gap-2 text-xs text-[#E8A33D]">
-                            <User className="w-3.5 h-3.5" />
-                            <span className="font-medium">Click to view student full profile</span>
-                          </div>
+                          {student.techCenter && (
+                            <p className="text-xs text-[#A79C8C] truncate mb-1">{student.techCenter.name}</p>
+                          )}
+                          {student.generalCourse && (
+                            <p className="text-xs text-[#6B6358] truncate mb-1">{student.generalCourse}</p>
+                          )}
+                          {student.studentCourses && student.studentCourses.length > 0 && (
+                            <div className="mb-1">
+                              <div className="text-xs text-[#6B6358] mb-1">Courses ({student.studentCourses.length})</div>
+                              <div className="space-y-0.5">
+                                {student.studentCourses.slice(0, 3).map((course) => (
+                                  <div key={course.id} className="flex items-center gap-1 text-xs">
+                                    <span className="text-[#A79C8C]">{course.code}</span>
+                                    <span className="text-[#6B6358]">•</span>
+                                    <span className="text-[#A79C8C] truncate">{course.courseUnit}</span>
+                                  </div>
+                                ))}
+                                {student.studentCourses.length > 3 && (
+                                  <div className="text-xs text-[#6B6358]">+{student.studentCourses.length - 3} more</div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          {student.takesReligion !== null && (
+                            <div className="flex items-center gap-1 text-xs text-[#6B6358]">
+                              <span>Religion:</span>
+                              <span className={student.takesReligion ? 'text-[#2FA88A]' : 'text-[#FB7185]'}>
+                                {student.takesReligion ? 'Yes' : 'No'}
+                              </span>
+                            </div>
+                          )}
+                          {student.techCenter && (
+                            <div className="flex items-center gap-1 text-xs text-[#6B6358] mt-1">
+                              <MapPin className="w-3 h-3" />
+                              <span className="truncate">{student.techCenter.country?.name}</span>
+                            </div>
+                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/dashboard/students/${student.id}`);
+                            }}
+                            className="mt-3 w-full px-3 py-2 bg-[#2A2438] hover:bg-[#3A3448] text-[#F5F0E8] text-xs font-medium rounded-lg transition-colors"
+                          >
+                            View Profile
+                          </button>
                         </div>
                       </div>
-
-                      <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-[#E8A33D]/10 to-transparent rounded-bl-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </div>
                   ))}
                 </div>
@@ -516,7 +489,7 @@ export default function StudentsPage() {
             
             if (filteredStudents.length === 0) {
               return (
-                <div className="bg-[#150F20] border border-[#2A2438] rounded-xl p-8 text-center">
+                <div className="bg-[#0B0912] border border-[#2A2438] rounded-xl p-8 text-center relative z-10">
                   <User className="w-12 h-12 text-[#6B6358] mx-auto mb-4" />
                   <p className="text-[#A79C8C]">No students found matching your filters.</p>
                   <button
@@ -532,10 +505,10 @@ export default function StudentsPage() {
             const techCenterName = filteredStudents[0]?.techCenter?.name || 'Tech Center';
 
             return (
-              <div className="mb-8">
+              <div className="mb-8 relative z-10">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-2 rounded-lg bg-[#2A2438]">
-                    <MapPin className="w-5 h-5 text-[#E8A33D]" />
+                    <MapPin className="w-5 h-5 text-[#A79C8C]" />
                   </div>
                   <div>
                     <h2 className="text-xl font-semibold text-[#F5F0E8]">{techCenterName}</h2>
@@ -548,14 +521,10 @@ export default function StudentsPage() {
                     <div
                       key={student.id}
                       onClick={() => router.push(`/dashboard/students/${student.id}`)}
-                      className="relative bg-gradient-to-br from-[#150F20] to-[#0F0A1A] border border-[#2A2438] rounded-2xl overflow-hidden hover:border-[#E8A33D]/50 cursor-pointer transition-all duration-300 group hover:shadow-xl hover:shadow-[#E8A33D]/10 hover:-translate-y-1"
+                      className="bg-[#0B0912] border border-[#2A2438] rounded-xl p-4 cursor-pointer hover:border-[#3A3448] transition-all duration-300"
                     >
-                      <div className="h-16 bg-gradient-to-r from-[#E8A33D]/20 to-[#14B8A6]/20 relative">
-                        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#150F20]" />
-                      </div>
-
-                      <div className="relative -mt-8 px-4">
-                        <div className="w-20 h-20 rounded-2xl overflow-hidden border-3 border-[#0F0A1A] shadow-xl group-hover:shadow-[#E8A33D]/20 transition-all duration-300">
+                      <div className="flex items-start gap-3">
+                        <div className="w-12 h-12 rounded-lg overflow-hidden border border-[#2A2438] flex-shrink-0">
                           {student.profileImageUrl ? (
                             <img
                               src={student.profileImageUrl}
@@ -564,100 +533,77 @@ export default function StudentsPage() {
                             />
                           ) : (
                             <div className={`w-full h-full bg-gradient-to-br ${getAvatarColor(student.firstName, student.lastName)} flex items-center justify-center`}>
-                              <span className="text-xl font-bold text-[#0B0912]">
+                              <span className="text-sm font-bold text-[#F5F0E8]">
                                 {getInitials(student.firstName, student.lastName)}
                               </span>
                             </div>
                           )}
                         </div>
-                      </div>
-
-                      <div className="px-4 pb-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-[#F5F0E8] text-lg truncate group-hover:text-[#E8A33D] transition-colors">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between mb-1">
+                            <h3 className="font-semibold text-[#F5F0E8] truncate">
                               {student.firstName} {student.lastName}
                             </h3>
-                            {student.techCenter && (
-                              <p className="text-xs text-[#A79C8C] truncate">{student.techCenter.name}</p>
-                            )}
-                          </div>
-                          <div className="flex-shrink-0 ml-2">
-                            {student.isActive ? (
-                              <div className="w-6 h-6 rounded-full bg-[#2FA88A]/20 border border-[#2FA88A] flex items-center justify-center">
-                                <CheckCircle className="w-3.5 h-3.5 text-[#2FA88A]" />
-                              </div>
-                            ) : (
-                              <div className="w-6 h-6 rounded-full bg-[#FB7185]/20 border border-[#FB7185] flex items-center justify-center">
-                                <XCircle className="w-3.5 h-3.5 text-[#FB7185]" />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {student.generalCourse && (
-                          <div className="mb-2 p-2 bg-[#2A2438]/50 rounded-lg">
-                            <p className="text-[10px] text-[#6B6358] uppercase tracking-wider mb-1">General Course</p>
-                            <p className="text-sm text-[#A79C8C] truncate font-medium">{student.generalCourse}</p>
-                          </div>
-                        )}
-
-                        {/* Course Units */}
-                        {student.studentCourses && student.studentCourses.length > 0 && (
-                          <div className="mb-2 p-2 bg-[#2A2438]/50 rounded-lg">
-                            <p className="text-[10px] text-[#6B6358] uppercase tracking-wider mb-1">Course Units ({student.studentCourses.length})</p>
-                            <div className="space-y-1">
-                              {student.studentCourses.slice(0, 3).map((course) => (
-                                <div key={course.id} className="flex items-center gap-2 text-xs">
-                                  <span className="px-2 py-1 bg-[#E8A33D]/20 border border-[#E8A33D]/30 rounded-full text-xs text-[#E8A33D] font-medium">
-                                    {course.code}
-                                  </span>
-                                  <span className="text-[#A79C8C] truncate">{course.courseUnit}</span>
+                            <div className="flex-shrink-0 ml-2">
+                              {student.isActive ? (
+                                <div className="w-4 h-4 rounded-full bg-[#2FA88A]/20 border border-[#2FA88A] flex items-center justify-center">
+                                  <CheckCircle className="w-2.5 h-2.5 text-[#2FA88A]" />
                                 </div>
-                              ))}
-                              {student.studentCourses.length > 3 && (
-                                <div className="text-xs text-[#6B6358] pt-1">
-                                  +{student.studentCourses.length - 4} more courses
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Religion Status */}
-                        {student.takesReligion !== null && (
-                          <div className="mb-2 p-2 bg-[#2A2438]/50 rounded-lg">
-                            <p className="text-[10px] text-[#6B6358] uppercase tracking-wider mb-1">Religion</p>
-                            <div className="flex items-center gap-2">
-                              {student.takesReligion ? (
-                                <span className="px-2 py-1 bg-[#14B8A6]/20 border border-[#14B8A6]/30 rounded-full text-xs text-[#14B8A6]">
-                                  Yes
-                                </span>
                               ) : (
-                                <span className="px-2 py-1 bg-[#FB7185]/20 border border-[#FB7185]/30 rounded-full text-xs text-[#FB7185]">
-                                  No
-                                </span>
+                                <div className="w-4 h-4 rounded-full bg-[#FB7185]/20 border border-[#FB7185] flex items-center justify-center">
+                                  <XCircle className="w-2.5 h-2.5 text-[#FB7185]" />
+                                </div>
                               )}
                             </div>
                           </div>
-                        )}
-
-                        {student.techCenter && (
-                          <div className="flex items-center gap-2 text-xs text-[#6B6358] mb-3">
-                            <MapPin className="w-3.5 h-3.5" />
-                            <span className="truncate">{student.techCenter.country?.name}</span>
-                          </div>
-                        )}
-
-                        <div className="mt-3 pt-3 border-t border-[#2A2438]">
-                          <div className="flex items-center gap-2 text-xs text-[#E8A33D]">
-                            <User className="w-3.5 h-3.5" />
-                            <span className="font-medium">Click to view student full profile</span>
-                          </div>
+                          {student.techCenter && (
+                            <p className="text-xs text-[#A79C8C] truncate mb-1">{student.techCenter.name}</p>
+                          )}
+                          {student.generalCourse && (
+                            <p className="text-xs text-[#6B6358] truncate mb-1">{student.generalCourse}</p>
+                          )}
+                          {student.studentCourses && student.studentCourses.length > 0 && (
+                            <div className="mb-1">
+                              <div className="text-xs text-[#6B6358] mb-1">Courses ({student.studentCourses.length})</div>
+                              <div className="space-y-0.5">
+                                {student.studentCourses.slice(0, 3).map((course) => (
+                                  <div key={course.id} className="flex items-center gap-1 text-xs">
+                                    <span className="text-[#A79C8C]">{course.code}</span>
+                                    <span className="text-[#6B6358]">•</span>
+                                    <span className="text-[#A79C8C] truncate">{course.courseUnit}</span>
+                                  </div>
+                                ))}
+                                {student.studentCourses.length > 3 && (
+                                  <div className="text-xs text-[#6B6358]">+{student.studentCourses.length - 3} more</div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          {student.takesReligion !== null && (
+                            <div className="flex items-center gap-1 text-xs text-[#6B6358]">
+                              <span>Religion:</span>
+                              <span className={student.takesReligion ? 'text-[#2FA88A]' : 'text-[#FB7185]'}>
+                                {student.takesReligion ? 'Yes' : 'No'}
+                              </span>
+                            </div>
+                          )}
+                          {student.techCenter && (
+                            <div className="flex items-center gap-1 text-xs text-[#6B6358] mt-1">
+                              <MapPin className="w-3 h-3" />
+                              <span className="truncate">{student.techCenter.country?.name}</span>
+                            </div>
+                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/dashboard/students/${student.id}`);
+                            }}
+                            className="mt-3 w-full px-3 py-2 bg-[#2A2438] hover:bg-[#3A3448] text-[#F5F0E8] text-xs font-medium rounded-lg transition-colors"
+                          >
+                            View Profile
+                          </button>
                         </div>
                       </div>
-
-                      <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-[#E8A33D]/10 to-transparent rounded-bl-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </div>
                   ))}
                 </div>
