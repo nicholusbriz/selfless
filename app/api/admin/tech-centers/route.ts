@@ -26,7 +26,7 @@ export async function GET() {
             studentCourses: true,
             weeks: true,
             cleaningDays: true,
-            announcements: true
+            announcements: true,
           }
         }
       },

@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
       orderBy: { name: 'asc' }
     });
 
-    // Fetch all users with tech center info
+    // Fetch all users with tech center info and course data
     const students = await prisma.user.findMany({
       where: {
         techCenterId: {
@@ -62,9 +62,19 @@ export async function GET(req: NextRequest) {
           },
         },
         generalCourse: true,
+        takesReligion: true,
         status: true,
         isActive: true,
         createdAt: true,
+        submittedCourses: {
+          select: {
+            id: true,
+            code: true,
+            courseUnit: true,
+            credits: true,
+            status: true
+          }
+        }
       },
       orderBy: [
         { techCenter: { name: 'asc' } },
@@ -92,9 +102,11 @@ export async function GET(req: NextRequest) {
         role: student.role,
         techCenter: student.techCenter,
         generalCourse: student.generalCourse,
+        takesReligion: student.takesReligion,
         status: student.status,
         isActive: student.isActive,
         createdAt: student.createdAt,
+        studentCourses: student.submittedCourses
       });
     });
 

@@ -26,6 +26,9 @@ export type AuthUser = {
   linkedinUrl?: string | null;
   githubUrl?: string | null;
   projectUrls?: string[];
+  gender?: string | null;
+  preferredTeamType?: string | null;
+  preferredTeamRole?: string | null;
 };
 
 declare module 'next-auth' {
@@ -48,6 +51,9 @@ declare module 'next-auth' {
       linkedinUrl?: string | null;
       githubUrl?: string | null;
       projectUrls?: string[];
+      gender?: string | null;
+      preferredTeamType?: string | null;
+      preferredTeamRole?: string | null;
     } & DefaultSession['user'];
   }
 
@@ -69,6 +75,9 @@ declare module 'next-auth' {
     linkedinUrl?: string | null;
     githubUrl?: string | null;
     projectUrls?: string[];
+    gender?: string | null;
+    preferredTeamType?: string | null;
+    preferredTeamRole?: string | null;
   }
 }
 
@@ -91,5 +100,8 @@ declare module 'next-auth/jwt' {
     linkedinUrl?: string | null;
     githubUrl?: string | null;
     projectUrls?: string[];
+    gender?: string | null;
+    preferredTeamType?: string | null;
+    preferredTeamRole?: string | null;
   }
 }

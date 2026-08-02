@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, User, MapPin, Calendar, Book, CheckCircle, XCircle, Clock, Phone, Globe, Link as LinkIcon, Map } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Calendar, Book, CheckCircle, XCircle, Clock, Phone, Globe, Link as LinkIcon, Map, GitFork, Copy } from 'lucide-react';
 import axios from 'axios';
 
 interface StudentProfile {
@@ -26,6 +26,7 @@ interface StudentProfile {
   town: string | null;
   street: string | null;
   generalCourse: string | null;
+  takesReligion: boolean | null;
   linkedinUrl: string | null;
   githubUrl: string | null;
   projectUrls: string[];
@@ -34,6 +35,13 @@ interface StudentProfile {
   status: string;
   isActive: boolean;
   lastLoginAt: string | null;
+  studentCourses: Array<{
+    id: string;
+    code: string;
+    courseUnit: string;
+    credits: number;
+    status: string;
+  }>;
 }
 
 export default function StudentProfilePage() {
@@ -82,6 +90,10 @@ export default function StudentProfilePage() {
     ];
     const hash = student.firstName.charCodeAt(0) + student.lastName.charCodeAt(0);
     return colors[Math.abs(hash) % colors.length];
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
   };
 
   if (loading) {
@@ -352,14 +364,63 @@ export default function StudentProfilePage() {
               <div className="text-xs uppercase tracking-wider text-[#6B6358] mb-4">
                 Academic Information
               </div>
-              <div className="flex items-center gap-3">
-                <Book className="w-4 h-4 text-[#6B6358]" />
-                <div>
-                  <p className="text-xs text-[#6B6358]">General Course</p>
-                  <p className="text-sm text-[#F5F0E8]">{student.generalCourse || 'Not provided'}</p>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <Book className="w-4 h-4 text-[#6B6358]" />
+                  <div>
+                    <p className="text-xs text-[#6B6358]">General Course</p>
+                    <p className="text-sm text-[#F5F0E8]">{student.generalCourse || 'Not provided'}</p>
+                  </div>
                 </div>
+                
+                {/* Religion Status */}
+                {student.takesReligion !== null && (
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="w-4 h-4 text-[#6B6358]" />
+                    <div>
+                      <p className="text-xs text-[#6B6358]">Religion Status</p>
+                      {student.takesReligion ? (
+                        <span className="px-2 py-1 bg-[#14B8A6]/20 border border-[#14B8A6]/30 rounded-full text-xs text-[#14B8A6]">
+                          Takes Religion
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 bg-[#FB7185]/20 border border-[#FB7185]/30 rounded-full text-xs text-[#FB7185]">
+                          No Religion
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* Course Units */}
+            {student.studentCourses && student.studentCourses.length > 0 && (
+              <div className="bg-[#0B0912] rounded-xl p-4 border border-[#2A2438]">
+                <div className="text-xs uppercase tracking-wider text-[#6B6358] mb-4">
+                  Course Units ({student.studentCourses.length})
+                </div>
+                <div className="space-y-2">
+                  {student.studentCourses.map((course) => (
+                    <div key={course.id} className="flex items-center gap-3 p-2 bg-[#2A2438]/50 rounded-lg">
+                      <span className="px-2 py-1 bg-[#E8A33D]/20 border border-[#E8A33D]/30 rounded-full text-xs text-[#E8A33D] font-medium">
+                        {course.code}
+                      </span>
+                      <div className="flex-1">
+                        <p className="text-sm text-[#F5F0E8]">{course.courseUnit}</p>
+                        <p className="text-xs text-[#6B6358]">{course.credits} credits</p>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="mt-3 pt-3 border-t border-[#2A2438] flex items-center justify-between">
+                    <span className="text-xs text-[#6B6358]">Total Credits:</span>
+                    <span className="text-lg font-bold text-[#E8A33D]">
+                      {student.studentCourses.reduce((sum, course) => sum + course.credits, 0)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Social Links */}
             <div className="bg-[#0B0912] rounded-xl p-4 border border-[#2A2438]">
@@ -368,36 +429,40 @@ export default function StudentProfilePage() {
               </div>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-[#0077B5]">in</span>
-                  <div>
+                  <LinkIcon className="w-4 h-4 text-[#0077B5]" />
+                  <div className="flex-1 min-w-0">
                     <p className="text-xs text-[#6B6358]">LinkedIn</p>
                     {student.linkedinUrl ? (
-                      <a
-                        href={student.linkedinUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-[#F5F0E8] hover:text-[#0077B5] transition-colors"
-                      >
-                        View Profile
-                      </a>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-[#F5F0E8] truncate max-w-[200px] md:max-w-[300px]">{student.linkedinUrl}</p>
+                        <button
+                          onClick={() => student.linkedinUrl && copyToClipboard(student.linkedinUrl)}
+                          className="p-1.5 rounded hover:bg-[#2A2438] text-[#A79C8C] hover:text-[#F5F0E8] transition-colors flex-shrink-0"
+                          title="Copy link"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                      </div>
                     ) : (
                       <p className="text-sm text-[#6B6358]">Not provided</p>
                     )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-[#F5F0E8]">GH</span>
+                  <GitFork className="w-4 h-4 text-[#F5F0E8]" />
                   <div>
                     <p className="text-xs text-[#6B6358]">GitHub</p>
                     {student.githubUrl ? (
-                      <a
-                        href={student.githubUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-[#F5F0E8] hover:text-[#6366F1] transition-colors"
-                      >
-                        View Profile
-                      </a>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-[#F5F0E8] truncate max-w-[200px] md:max-w-[300px]">{student.githubUrl}</p>
+                        <button
+                          onClick={() => student.githubUrl && copyToClipboard(student.githubUrl)}
+                          className="p-1.5 rounded hover:bg-[#2A2438] text-[#A79C8C] hover:text-[#F5F0E8] transition-colors flex-shrink-0"
+                          title="Copy link"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                      </div>
                     ) : (
                       <p className="text-sm text-[#6B6358]">Not provided</p>
                     )}
@@ -414,16 +479,17 @@ export default function StudentProfilePage() {
               {student.projectUrls && student.projectUrls.length > 0 ? (
                 <div className="space-y-2">
                   {student.projectUrls.map((url, index) => (
-                    <a
-                      key={index}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-[#F5F0E8] hover:text-[#E8A33D] transition-colors"
-                    >
-                      <LinkIcon className="w-4 h-4" />
-                      <span className="truncate">{url}</span>
-                    </a>
+                    <div key={index} className="flex items-center gap-2 p-2 bg-[#2A2438]/50 rounded-lg">
+                      <LinkIcon className="w-4 h-4 text-[#E8A33D] flex-shrink-0" />
+                      <span className="text-sm text-[#F5F0E8] truncate flex-1">{url}</span>
+                      <button
+                        onClick={() => url && copyToClipboard(url)}
+                        className="p-1.5 rounded hover:bg-[#2A2438] text-[#A79C8C] hover:text-[#F5F0E8] transition-colors flex-shrink-0"
+                        title="Copy link"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                    </div>
                   ))}
                 </div>
               ) : (

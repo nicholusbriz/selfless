@@ -85,6 +85,9 @@ export const authOptions: AuthOptions = {
           generalCourse: user.generalCourse,
           linkedinUrl: user.linkedinUrl,
           githubUrl: user.githubUrl,
+          gender: user.gender,
+          preferredTeamType: user.preferredTeamType,
+          preferredTeamRole: user.preferredTeamRole,
         };
       }
     })
@@ -118,6 +121,9 @@ export const authOptions: AuthOptions = {
         session.user.linkedinUrl = token.linkedinUrl as string | null;
         session.user.githubUrl = token.githubUrl as string | null;
         session.user.projectUrls = token.projectUrls as string[];
+        session.user.gender = token.gender as string | null;
+        session.user.preferredTeamType = token.preferredTeamType as string | null;
+        session.user.preferredTeamRole = token.preferredTeamRole as string | null;
       }
       return session;
     },
@@ -146,6 +152,9 @@ export const authOptions: AuthOptions = {
         token.linkedinUrl = user.linkedinUrl;
         token.githubUrl = user.githubUrl;
         token.projectUrls = user.projectUrls;
+        token.gender = user.gender;
+        token.preferredTeamType = user.preferredTeamType;
+        token.preferredTeamRole = user.preferredTeamRole;
       }
       
       // Re-fetch user data from database on session update
@@ -172,6 +181,9 @@ export const authOptions: AuthOptions = {
           token.linkedinUrl = freshUser.linkedinUrl;
           token.githubUrl = freshUser.githubUrl;
           token.projectUrls = freshUser.projectUrls;
+          token.gender = freshUser.gender;
+          token.preferredTeamType = freshUser.preferredTeamType;
+          token.preferredTeamRole = freshUser.preferredTeamRole;
         }
       }
       

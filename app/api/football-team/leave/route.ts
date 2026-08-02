@@ -19,8 +19,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Team ID is required' }, { status: 400 });
     }
 
-    // Find the team membership
-    const teamMembership = await prisma.footballTeam.findUnique({
+    // Find the team membership using TeamMembership
+    const teamMembership = await prisma.teamMembership.findUnique({
       where: { id: teamId },
       include: {
         user: true,
@@ -40,8 +40,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'You can only remove yourself or be an admin' }, { status: 403 });
     }
 
-    // Remove from team
-    await prisma.footballTeam.delete({
+    // Remove from team using TeamMembership
+    await prisma.teamMembership.delete({
       where: { id: teamId }
     });
 

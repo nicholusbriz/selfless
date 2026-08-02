@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowLeft, Home, Users, MapPin, User, Search, CheckCircle, XCircle, Filter, X } from 'lucide-react';
+import { ArrowLeft, Home, Users, MapPin, User, Search, CheckCircle, XCircle, Filter, X, BookOpen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 
@@ -22,9 +22,17 @@ interface Student {
     };
   } | null;
   generalCourse: string | null;
+  takesReligion: boolean | null;
   status: string;
   isActive: boolean;
   createdAt: string;
+  studentCourses: Array<{
+    id: string;
+    code: string;
+    courseUnit: string;
+    credits: number;
+    status: string;
+  }>;
 }
 
 interface TechCenter {
@@ -39,6 +47,8 @@ export default function StudentsPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTechCenter, setSelectedTechCenter] = useState<string>('all');
+  const [courseFilter, setCourseFilter] = useState<string>('all'); // all, withCourses, withoutCourses
+  const [religionFilter, setReligionFilter] = useState<string>('all'); // all, takesReligion, noReligion
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['students'],
@@ -93,7 +103,36 @@ export default function StudentsPage() {
         (student) =>
           student.firstName.toLowerCase().includes(query) ||
           student.lastName.toLowerCase().includes(query) ||
-          student.email.toLowerCase().includes(query)
+          student.email.toLowerCase().includes(query) ||
+          // Search by course codes
+          student.studentCourses?.some((course) => 
+            course.code.toLowerCase().includes(query) ||
+            course.courseUnit.toLowerCase().includes(query)
+          ) ||
+          // Search by general course
+          (student.generalCourse && student.generalCourse.toLowerCase().includes(query))
+      );
+    }
+
+    // Course filter
+    if (courseFilter === 'withCourses') {
+      filtered = filtered.filter(
+        (student) => student.studentCourses && student.studentCourses.length > 0
+      );
+    } else if (courseFilter === 'withoutCourses') {
+      filtered = filtered.filter(
+        (student) => !student.studentCourses || student.studentCourses.length === 0
+      );
+    }
+
+    // Religion filter
+    if (religionFilter === 'takesReligion') {
+      filtered = filtered.filter(
+        (student) => student.takesReligion === true
+      );
+    } else if (religionFilter === 'noReligion') {
+      filtered = filtered.filter(
+        (student) => student.takesReligion === false
       );
     }
 
@@ -102,6 +141,8 @@ export default function StudentsPage() {
 
   const clearFilter = () => {
     setSelectedTechCenter('all');
+    setCourseFilter('all');
+    setReligionFilter('all');
   };
 
   if (isLoading) {
@@ -238,7 +279,7 @@ export default function StudentsPage() {
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#6B6358]" />
           <input
             type="text"
-            placeholder="Search students by name or email..."
+            placeholder="Search students by name, email, course code, or course unit..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-12 pr-4 py-3 bg-[#0B0912] border border-[#2A2438] rounded-xl text-[#F5F0E8] placeholder-[#6B6358] focus:outline-none focus:border-[#E8A33D] transition-all duration-200"
@@ -247,7 +288,7 @@ export default function StudentsPage() {
       </div>
 
       {/* Tech Center Filter */}
-      <div className="mb-6">
+      <div className="mb-4">
         <div className="flex items-center gap-3">
           <Filter className="w-5 h-5 text-[#6B6358]" />
           <select
@@ -262,15 +303,43 @@ export default function StudentsPage() {
               </option>
             ))}
           </select>
-          {selectedTechCenter !== 'all' && (
+          {(selectedTechCenter !== 'all' || courseFilter !== 'all' || religionFilter !== 'all') && (
             <button
               onClick={clearFilter}
               className="p-2 rounded-lg bg-[#2A2438] hover:bg-[#3A3448] text-[#A79C8C] hover:text-[#F5F0E8] transition-all duration-200"
-              title="Clear filter"
+              title="Clear all filters"
             >
               <X className="w-5 h-5" />
             </button>
           )}
+        </div>
+      </div>
+
+      {/* Course and Religion Filters */}
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="flex items-center gap-3">
+          <BookOpen className="w-5 h-5 text-[#6B6358]" />
+          <select
+            value={courseFilter}
+            onChange={(e) => setCourseFilter(e.target.value)}
+            className="flex-1 px-4 py-3 bg-[#0B0912] border border-[#2A2438] rounded-xl text-[#F5F0E8] focus:outline-none focus:border-[#E8A33D] transition-all duration-200 cursor-pointer"
+          >
+            <option value="all">All Students</option>
+            <option value="withCourses">With Courses</option>
+            <option value="withoutCourses">Without Courses</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-3">
+          <CheckCircle className="w-5 h-5 text-[#6B6358]" />
+          <select
+            value={religionFilter}
+            onChange={(e) => setReligionFilter(e.target.value)}
+            className="flex-1 px-4 py-3 bg-[#0B0912] border border-[#2A2438] rounded-xl text-[#F5F0E8] focus:outline-none focus:border-[#E8A33D] transition-all duration-200 cursor-pointer"
+          >
+            <option value="all">All Religion Status</option>
+            <option value="takesReligion">Takes Religion</option>
+            <option value="noReligion">No Religion</option>
+          </select>
         </div>
       </div>
 
@@ -288,8 +357,8 @@ export default function StudentsPage() {
         </div>
       )}
 
-      {/* Students by Tech Center */}
-      {hasStudents && selectedTechCenter === 'all' && (
+      {/* Students by Tech Center (when no filters are active) */}
+      {hasStudents && selectedTechCenter === 'all' && courseFilter === 'all' && religionFilter === 'all' && (
         <>
           {Object.entries(studentsByTechCenter).map(([techCenterName, students]) => {
             const filteredStudents = filterStudents(students as Student[]);
@@ -360,9 +429,57 @@ export default function StudentsPage() {
                         </div>
 
                         {student.generalCourse && (
-                          <div className="mb-3 p-2 bg-[#2A2438]/50 rounded-lg">
-                            <p className="text-[10px] text-[#6B6358] uppercase tracking-wider mb-1">Course</p>
+                          <div className="mb-2 p-2 bg-[#2A2438]/50 rounded-lg">
+                            <p className="text-[10px] text-[#6B6358] uppercase tracking-wider mb-1">General Course</p>
                             <p className="text-sm text-[#A79C8C] truncate font-medium">{student.generalCourse}</p>
+                          </div>
+                        )}
+
+                        {/* Course Units */}
+                        {student.studentCourses && student.studentCourses.length > 0 && (
+                          <div className="mb-2 p-2 bg-[#2A2438]/50 rounded-lg">
+                            <p className="text-[10px] text-[#6B6358] uppercase tracking-wider mb-1">Course Units ({student.studentCourses.length})</p>
+                            <div className="space-y-1">
+                              {student.studentCourses.slice(0, 3).map((course) => (
+                                <div key={course.id} className="flex items-center gap-2 text-xs">
+                                  <span className="px-2 py-1 bg-[#E8A33D]/20 border border-[#E8A33D]/30 rounded-full text-xs text-[#E8A33D] font-medium">
+                                    {course.code}
+                                  </span>
+                                  <span className="text-[#A79C8C] truncate">{course.courseUnit}</span>
+                                  <span className="text-[#6B6358]">•</span>
+                                  <span className="text-[#E8A33D]">{course.credits} credits</span>
+                                </div>
+                              ))}
+                              {student.studentCourses.length > 3 && (
+                                <div className="text-xs text-[#6B6358] pt-1">
+                                  +{student.studentCourses.length - 3} more courses
+                                </div>
+                              )}
+                              <div className="mt-2 pt-2 border-t border-[#2A2438]">
+                                <span className="text-xs text-[#6B6358]">Total Credits: </span>
+                                <span className="text-sm font-bold text-[#E8A33D]">
+                                  {student.studentCourses.reduce((sum, course) => sum + course.credits, 0)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Religion Status */}
+                        {student.takesReligion !== null && (
+                          <div className="mb-2 p-2 bg-[#2A2438]/50 rounded-lg">
+                            <p className="text-[10px] text-[#6B6358] uppercase tracking-wider mb-1">Religion</p>
+                            <div className="flex items-center gap-2">
+                              {student.takesReligion ? (
+                                <span className="px-2 py-1 bg-[#14B8A6]/20 border border-[#14B8A6]/30 rounded-full text-xs text-[#14B8A6]">
+                                  Yes
+                                </span>
+                              ) : (
+                                <span className="px-2 py-1 bg-[#FB7185]/20 border border-[#FB7185]/30 rounded-full text-xs text-[#FB7185]">
+                                  No
+                                </span>
+                              )}
+                            </div>
                           </div>
                         )}
 
@@ -391,8 +508,8 @@ export default function StudentsPage() {
         </>
       )}
 
-      {/* Filtered Tech Center View */}
-      {hasStudents && selectedTechCenter !== 'all' && (
+      {/* Filtered View (when any filter is active) */}
+      {hasStudents && (selectedTechCenter !== 'all' || courseFilter !== 'all' || religionFilter !== 'all' || searchQuery) && (
         <>
           {(() => {
             const filteredStudents = filterStudents(allStudents);
@@ -401,7 +518,13 @@ export default function StudentsPage() {
               return (
                 <div className="bg-[#150F20] border border-[#2A2438] rounded-xl p-8 text-center">
                   <User className="w-12 h-12 text-[#6B6358] mx-auto mb-4" />
-                  <p className="text-[#A79C8C]">No students found in this tech center.</p>
+                  <p className="text-[#A79C8C]">No students found matching your filters.</p>
+                  <button
+                    onClick={clearFilter}
+                    className="mt-4 px-4 py-2 bg-[#2A2438] text-[#F5F0E8] rounded-lg hover:bg-[#3A3448] transition-colors"
+                  >
+                    Clear Filters
+                  </button>
                 </div>
               );
             }
@@ -473,9 +596,49 @@ export default function StudentsPage() {
                         </div>
 
                         {student.generalCourse && (
-                          <div className="mb-3 p-2 bg-[#2A2438]/50 rounded-lg">
-                            <p className="text-[10px] text-[#6B6358] uppercase tracking-wider mb-1">Course</p>
+                          <div className="mb-2 p-2 bg-[#2A2438]/50 rounded-lg">
+                            <p className="text-[10px] text-[#6B6358] uppercase tracking-wider mb-1">General Course</p>
                             <p className="text-sm text-[#A79C8C] truncate font-medium">{student.generalCourse}</p>
+                          </div>
+                        )}
+
+                        {/* Course Units */}
+                        {student.studentCourses && student.studentCourses.length > 0 && (
+                          <div className="mb-2 p-2 bg-[#2A2438]/50 rounded-lg">
+                            <p className="text-[10px] text-[#6B6358] uppercase tracking-wider mb-1">Course Units ({student.studentCourses.length})</p>
+                            <div className="space-y-1">
+                              {student.studentCourses.slice(0, 3).map((course) => (
+                                <div key={course.id} className="flex items-center gap-2 text-xs">
+                                  <span className="px-2 py-1 bg-[#E8A33D]/20 border border-[#E8A33D]/30 rounded-full text-xs text-[#E8A33D] font-medium">
+                                    {course.code}
+                                  </span>
+                                  <span className="text-[#A79C8C] truncate">{course.courseUnit}</span>
+                                </div>
+                              ))}
+                              {student.studentCourses.length > 3 && (
+                                <div className="text-xs text-[#6B6358] pt-1">
+                                  +{student.studentCourses.length - 4} more courses
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Religion Status */}
+                        {student.takesReligion !== null && (
+                          <div className="mb-2 p-2 bg-[#2A2438]/50 rounded-lg">
+                            <p className="text-[10px] text-[#6B6358] uppercase tracking-wider mb-1">Religion</p>
+                            <div className="flex items-center gap-2">
+                              {student.takesReligion ? (
+                                <span className="px-2 py-1 bg-[#14B8A6]/20 border border-[#14B8A6]/30 rounded-full text-xs text-[#14B8A6]">
+                                  Yes
+                                </span>
+                              ) : (
+                                <span className="px-2 py-1 bg-[#FB7185]/20 border border-[#FB7185]/30 rounded-full text-xs text-[#FB7185]">
+                                  No
+                                </span>
+                              )}
+                            </div>
                           </div>
                         )}
 
@@ -502,18 +665,6 @@ export default function StudentsPage() {
             );
           })()}
         </>
-      )}
-
-      {/* No Results */}
-      {hasStudents && searchQuery && allStudents.filter(s => 
-        s.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.email.toLowerCase().includes(searchQuery.toLowerCase())
-      ).length === 0 && (
-        <div className="bg-[#150F20] border border-[#2A2438] rounded-xl p-8 text-center">
-          <User className="w-12 h-12 text-[#6B6358] mx-auto mb-4" />
-          <p className="text-[#A79C8C]">No students found matching your search.</p>
-        </div>
       )}
     </div>
   );

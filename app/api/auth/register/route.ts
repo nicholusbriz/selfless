@@ -8,7 +8,7 @@ import { generateToken } from '@/lib/auth/server';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { firstName, lastName, email, password, phoneNumber, techCenterId } = body;
+    const { firstName, lastName, email, password, phoneNumber, techCenterId, gender, preferredTeamType, preferredTeamRole } = body;
 
     // Validate required fields
     if (!firstName || !lastName || !email || !password || !phoneNumber || !techCenterId) {
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Register user
+    // Register user with default football team preference if not provided
     const result = await registerUser({
       firstName,
       lastName,
@@ -34,6 +34,9 @@ export async function POST(req: NextRequest) {
       password,
       phoneNumber,
       techCenterId,
+      gender,
+      preferredTeamType: preferredTeamType || 'FOOTBALL',
+      preferredTeamRole: preferredTeamRole || 'PLAYER',
     });
 
     // ✅ Handle registration failure - user already exists
@@ -62,7 +65,7 @@ export async function POST(req: NextRequest) {
     const token = generateToken(
       result.user.id,
       result.user.email,
-      result.user.role?.name || 'student'
+      'student'
     );
 
     // Set HTTP-only cookie with JWT
@@ -83,7 +86,7 @@ export async function POST(req: NextRequest) {
           email: result.user.email,
           firstName: result.user.firstName,
           lastName: result.user.lastName,
-          role: result.user.role?.name || 'student',
+          role: 'student',
           techCenterId: result.user.techCenterId,
         },
         token,

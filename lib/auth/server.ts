@@ -65,6 +65,9 @@ export async function registerUser(data: {
   password: string;
   phoneNumber: string;
   techCenterId: string;
+  gender?: string;
+  preferredTeamType?: string;
+  preferredTeamRole?: string;
 }) {
   try {
     // Check if user already exists
@@ -129,6 +132,11 @@ export async function registerUser(data: {
         teacherId: null,
         createdTechCenterIds: [],
         updatedTechCenterIds: [],
+        gender: data.gender || null,
+        preferredTeamType: (data.preferredTeamType as any) || null,
+        preferredTeamRole: (data.preferredTeamRole as any) || null,
+        takesReligion: false, // Default to false
+        tuitionAmount: null, // Default to null
       },
       include: {
         role: {
