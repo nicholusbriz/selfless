@@ -23,9 +23,6 @@ export default function NotificationsPage() {
     if (!notification.isRead) {
       await handleMarkAsRead(notification.id);
     }
-    if (notification.link) {
-      router.push(notification.link);
-    }
   };
 
   const getNotificationIcon = (type: string) => {
@@ -83,7 +80,7 @@ export default function NotificationsPage() {
           <button
             onClick={handleMarkAllAsRead}
             disabled={markAllAsReadMutation.isPending}
-            className="px-4 py-2 bg-[#14B8A6] text-[#0B0912] rounded-lg hover:bg-[#0D9488] transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2 bg-[#2A2438] hover:bg-[#3A3448] text-[#F5F0E8] text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 border border-[#2A2438]"
           >
             {markAllAsReadMutation.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -157,13 +154,6 @@ export default function NotificationsPage() {
                     <p className="text-xs text-[#6B6358]">
                       {new Date(notification.createdAt).toLocaleString()}
                     </p>
-                    
-                    {notification.link && (
-                      <div className="flex items-center gap-1 text-xs text-[#E8A33D]">
-                        <span>View</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
