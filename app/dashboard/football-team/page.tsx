@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Users, Trophy, Shirt, Plus, X, Loader2, ArrowLeft, Home, Volume2, VolumeX } from 'lucide-react';
-import { useFootballTeam, useRegisterForFootballTeam, useLeaveFootballTeam } from '@/hooks/useFootballTeam';
+import { Users, Trophy, Shirt, Plus, X, Loader2, ArrowLeft, Home, Volume2, VolumeX, Edit2, Save } from 'lucide-react';
+import { useFootballTeam, useRegisterForFootballTeam, useLeaveFootballTeam, useUpdateFootballTeamMembership } from '@/hooks/useFootballTeam';
 import { useAuth } from '@/lib/hooks/useAuth';
 
 export default function FootballTeamPage() {
@@ -14,12 +14,16 @@ export default function FootballTeamPage() {
   const [position, setPosition] = useState('');
   const [showJoinForm, setShowJoinForm] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editJerseyNumber, setEditJerseyNumber] = useState('');
+  const [editPosition, setEditPosition] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const techCenterId = user?.techCenterId || null;
   const { data, isLoading, error } = useFootballTeam(techCenterId);
   const registerMutation = useRegisterForFootballTeam();
   const leaveMutation = useLeaveFootballTeam();
+  const updateMutation = useUpdateFootballTeamMembership();
 
   // Ensure video plays and loops
   useEffect(() => {
@@ -62,6 +66,8 @@ export default function FootballTeamPage() {
       console.error('Failed to leave team:', error);
     }
   };
+
+
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
@@ -111,6 +117,36 @@ export default function FootballTeamPage() {
   const teamMembers = data?.teamMembers || [];
   const currentUserMembership = data?.currentUserMembership;
   const totalMembers = data?.totalMembers || 0;
+
+  const handleEditMembership = () => {
+    if (currentUserMembership) {
+      setEditJerseyNumber(currentUserMembership.jerseyNumber?.toString() || '');
+      setEditPosition(currentUserMembership.position || '');
+      setIsEditing(true);
+    }
+  };
+
+  const handleUpdateMembership = async () => {
+    if (!currentUserMembership) return;
+    try {
+      await updateMutation.mutateAsync({
+        teamId: currentUserMembership.id,
+        jerseyNumber: editJerseyNumber ? parseInt(editJerseyNumber) : undefined,
+        position: editPosition || undefined
+      });
+      setIsEditing(false);
+      setEditJerseyNumber('');
+      setEditPosition('');
+    } catch (error) {
+      console.error('Failed to update team membership:', error);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditJerseyNumber('');
+    setEditPosition('');
+  };
 
   return (
     <div className="min-h-screen relative">
@@ -204,32 +240,102 @@ export default function FootballTeamPage() {
         {/* Join/Leave Action - Transparent */}
         <div className="mb-8">
           {currentUserMembership ? (
-            <div className="bg-black/30 backdrop-blur-sm border border-[#14B8A6]/30 rounded-xl p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-[#14B8A6]/20 backdrop-blur-sm">
-                  <Users className="w-5 h-5 text-[#14B8A6]" />
+            <div className="bg-black/30 backdrop-blur-sm border border-[#14B8A6]/30 rounded-xl p-4">
+              {!isEditing ? (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-[#14B8A6]/20 backdrop-blur-sm">
+                      <Users className="w-5 h-5 text-[#14B8A6]" />
+                    </div>
+                    <div>
+                      <p className="text-white font-medium drop-shadow-lg">You are a team member</p>
+                      <p className="text-sm text-white/80">
+                        {currentUserMembership.jerseyNumber && `Jersey #${currentUserMembership.jerseyNumber}`}
+                        {currentUserMembership.jerseyNumber && currentUserMembership.position && ' • '}
+                        {currentUserMembership.position}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleEditMembership}
+                      className="px-4 py-2 bg-[#E8A33D] text-white rounded-lg hover:bg-[#C97F1F] transition-colors flex items-center gap-2 font-medium"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleLeaveTeam(currentUserMembership.id)}
+                      disabled={leaveMutation.isPending}
+                      className="px-4 py-2 bg-[#FB7185] text-white rounded-lg hover:bg-[#E11D48] transition-colors disabled:opacity-50 flex items-center gap-2 font-medium"
+                    >
+                      {leaveMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <X className="w-4 h-4" />
+                      )}
+                      Leave
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-white font-medium drop-shadow-lg">You are a team member</p>
-                  <p className="text-sm text-white/80">
-                    {currentUserMembership.jerseyNumber && `Jersey #${currentUserMembership.jerseyNumber}`}
-                    {currentUserMembership.jerseyNumber && currentUserMembership.position && ' • '}
-                    {currentUserMembership.position}
-                  </p>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 rounded-lg bg-[#14B8A6]/20 backdrop-blur-sm">
+                      <Edit2 className="w-5 h-5 text-[#14B8A6]" />
+                    </div>
+                    <p className="text-white font-medium drop-shadow-lg">Edit Your Team Details</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-white/80 mb-2">Jersey Number</label>
+                      <input
+                        type="number"
+                        value={editJerseyNumber}
+                        onChange={(e) => setEditJerseyNumber(e.target.value)}
+                        className="w-full px-4 py-3 bg-black/50 border border-white/20 rounded-xl text-white placeholder:text-white/50 focus:outline-none focus:border-[#E8A33D] transition-all backdrop-blur-sm"
+                        placeholder="e.g., 10"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-white/80 mb-2">Position</label>
+                      <select
+                        value={editPosition}
+                        onChange={(e) => setEditPosition(e.target.value)}
+                        className="w-full px-4 py-3 bg-black/50 border border-white/20 rounded-xl text-white focus:outline-none focus:border-[#E8A33D] transition-all backdrop-blur-sm"
+                      >
+                        <option value="">Select position</option>
+                        <option value="Goalkeeper">Goalkeeper</option>
+                        <option value="Defender">Defender</option>
+                        <option value="Midfielder">Midfielder</option>
+                        <option value="Forward">Forward</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleUpdateMembership}
+                      disabled={updateMutation.isPending}
+                      className="flex-1 px-4 py-3 bg-gradient-to-r from-[#2FA88A] to-[#45C7A6] text-white rounded-xl font-medium hover:shadow-lg hover:shadow-[#2FA88A]/30 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {updateMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4" />
+                          Save Changes
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={handleCancelEdit}
+                      className="px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-xl hover:bg-white/20 transition-all"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <button
-                onClick={() => handleLeaveTeam(currentUserMembership.id)}
-                disabled={leaveMutation.isPending}
-                className="px-4 py-2 bg-[#FB7185] text-white rounded-lg hover:bg-[#E11D48] transition-colors disabled:opacity-50 flex items-center gap-2 font-medium"
-              >
-                {leaveMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <X className="w-4 h-4" />
-                )}
-                Leave Team
-              </button>
+              )}
             </div>
           ) : (
             <button
