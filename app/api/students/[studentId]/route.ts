@@ -61,6 +61,7 @@ export async function GET(
         town: true,
         street: true,
         generalCourse: true,
+        takesReligion: true,
         linkedinUrl: true,
         githubUrl: true,
         projectUrls: true,
@@ -69,6 +70,15 @@ export async function GET(
         status: true,
         isActive: true,
         lastLoginAt: true,
+        submittedCourses: {
+          select: {
+            id: true,
+            code: true,
+            courseUnit: true,
+            credits: true,
+            status: true
+          }
+        }
       },
     });
 
@@ -95,6 +105,7 @@ export async function GET(
         town: student.town,
         street: student.street,
         generalCourse: student.generalCourse,
+        takesReligion: student.takesReligion,
         linkedinUrl: student.linkedinUrl,
         githubUrl: student.githubUrl,
         projectUrls: student.projectUrls,
@@ -103,6 +114,7 @@ export async function GET(
         status: student.status,
         isActive: student.isActive,
         lastLoginAt: student.lastLoginAt,
+        studentCourses: student.submittedCourses
       },
     });
 

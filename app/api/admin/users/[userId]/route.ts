@@ -39,7 +39,6 @@ export async function GET(
             submittedCourses: true,
             grades: true,
             gradesGiven: true,
-            announcements: true,
             notifications: true,
             activityLogs: true,
             // cleaningRegistration is a one-to-one relation, cannot count

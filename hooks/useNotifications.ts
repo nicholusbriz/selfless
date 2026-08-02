@@ -55,6 +55,24 @@ export function useUnreadNotificationCount() {
   });
 }
 
+// Hook to fetch announcement count
+export function useAnnouncementCount() {
+  return useQuery({
+    queryKey: ['announcements', 'count'],
+    queryFn: async () => {
+      try {
+        const response = await axios.get('/api/announcements');
+        return response.data.announcements?.length || 0;
+      } catch (error) {
+        console.error('Error fetching announcement count:', error);
+        return 0;
+      }
+    },
+    staleTime: 1 * 60 * 1000, // 1 minute
+    gcTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
 // Hook to mark notification as read
 export function useMarkNotificationAsRead() {
   const queryClient = useQueryClient();

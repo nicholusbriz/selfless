@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
 import { createNotificationForTechCenter } from '@/lib/notifications';
 
-// POST - Register user as football team member
+// POST - Register user as team member
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,23 +14,36 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { techCenterId, jerseyNumber, position, teamRole } = body;
+    const { techCenterId, teamType, teamRole, jerseyNumber, position } = body;
 
-    if (!techCenterId) {
-      return NextResponse.json({ error: 'Tech center ID is required' }, { status: 400 });
+    if (!techCenterId || !teamType || !teamRole || !jerseyNumber || !position) {
+      return NextResponse.json({ error: 'Tech center, team type, team role, jersey number, and position are required' }, { status: 400 });
     }
 
-    // Check if user already belongs to this tech center's football team
+    // Validate team type
+    const validTeamTypes = ['FOOTBALL', 'VOLLEYBALL', 'NETBALL', 'BASKETBALL', 'ATHLETICS'];
+    if (!validTeamTypes.includes(teamType)) {
+      return NextResponse.json({ error: 'Invalid team type' }, { status: 400 });
+    }
+
+    // Validate team role
+    const validTeamRoles = ['PLAYER', 'COACH', 'KIT_MANAGER', 'CHEERLEADER', 'TEAM_MANAGER', 'MEDICAL', 'REFEREE'];
+    if (!validTeamRoles.includes(teamRole)) {
+      return NextResponse.json({ error: 'Invalid team role' }, { status: 400 });
+    }
+
+    // Check if user already belongs to this tech center's team
     const existingMember = await prisma.teamMembership.findFirst({
       where: {
         userId: session.user.id,
         techCenterId,
-        teamType: 'FOOTBALL'
+        teamType: teamType as any,
+        teamRole: teamRole as any
       }
     });
 
     if (existingMember) {
-      return NextResponse.json({ error: 'User is already a member of this football team' }, { status: 400 });
+      return NextResponse.json({ error: 'User is already a member of this team with this role' }, { status: 400 });
     }
 
     // Check if user belongs to this tech center
@@ -48,8 +61,8 @@ export async function POST(request: NextRequest) {
       data: {
         userId: session.user.id,
         techCenterId,
-        teamType: 'FOOTBALL',
-        teamRole: teamRole || 'PLAYER',
+        teamType: teamType as any,
+        teamRole: teamRole as any,
         jerseyNumber,
         position
       },
@@ -72,18 +85,18 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Create notification for all tech center students (including the user who joined)
+    // Create notification for all tech center students
     try {
+      const teamName = teamType.charAt(0) + teamType.slice(1).toLowerCase();
       const notificationResult = await createNotificationForTechCenter({
         techCenterId,
-        title: 'New Football Team Member!',
-        message: `${teamMember.user.firstName} ${teamMember.user.lastName} has joined the ${teamMember.techCenter.name} football team!`,
-        type: 'football_team',
-        link: '/dashboard/football-team',
+        title: `New ${teamName} Team Member!`,
+        message: `${teamMember.user.firstName} ${teamMember.user.lastName} has joined the ${teamMember.techCenter.name} ${teamName} team as ${teamRole.charAt(0) + teamRole.slice(1).toLowerCase()}!`,
+        type: 'team_registration',
+        link: `/dashboard/team/${teamType.toLowerCase()}`,
         generatedBy: session.user.id,
-        entityType: 'football_team',
+        entityType: 'team_membership',
         entityId: teamMember.id
-        // Removed excludeUserIds so the user who joined also gets notified
       });
       console.log('Notification created:', notificationResult);
     } catch (notificationError) {
@@ -92,13 +105,13 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      message: 'Successfully joined football team',
+      message: 'Successfully joined team',
       teamMember
     });
   } catch (error) {
-    console.error('Error registering for football team:', error);
+    console.error('Error registering for team:', error);
     return NextResponse.json(
-      { error: 'Failed to register for football team' },
+      { error: 'Failed to register for team' },
       { status: 500 }
     );
   }

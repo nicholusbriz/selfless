@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { ArrowLeft, User, Camera, Mail, Lock, Edit2, Save, X, Check, AlertCircle, MapPin, Phone, Book } from 'lucide-react';
+import { ArrowLeft, User, Camera, Mail, Lock, Edit2, Save, X, Check, AlertCircle, MapPin, Phone, Book, Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { uploadProfileImage, deleteProfileImage } from '@/lib/supabase';
@@ -18,6 +18,11 @@ export default function ProfilePage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  // Password visibility toggles
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -289,8 +294,17 @@ export default function ProfilePage() {
             className="hidden"
           />
 
-          <p className="mt-4 text-sm text-[#A79C8C]">Click to change profile picture</p>
-          <p className="text-xs text-[#6B6358]">Max size: 5MB • JPG, PNG, GIF</p>
+          {/* Edit Profile Image Button */}
+          <button
+            onClick={handleImageClick}
+            disabled={isLoading}
+            className="mt-4 px-4 py-2 bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] text-[#0B0912] font-semibold rounded-lg hover:from-[#F2C879] hover:to-[#E8A33D] transition-all duration-300 flex items-center gap-2 shadow-lg shadow-[#E8A33D]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Camera className="w-4 h-4" />
+            <span>{isLoading ? 'Uploading...' : 'Edit Profile Image'}</span>
+          </button>
+          
+          <p className="mt-2 text-xs text-[#6B6358]">Max size: 5MB • JPG, PNG, GIF</p>
         </div>
 
         {/* Profile Information */}
@@ -367,7 +381,7 @@ export default function ProfilePage() {
               />
             </div>
 
-            {/* Email */}
+            {/* Email - Disabled and not editable */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-[#A79C8C] mb-2 flex items-center gap-2">
                 <Mail className="w-4 h-4" />
@@ -378,9 +392,10 @@ export default function ProfilePage() {
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                disabled={!isEditing}
-                className="w-full px-4 py-3 bg-[#0B0912] border border-[#2A2438] rounded-lg text-[#F5F0E8] focus:outline-none focus:border-[#E8A33D] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                disabled={true}
+                className="w-full px-4 py-3 bg-[#0B0912] border border-[#2A2438] rounded-lg text-[#6B6358] cursor-not-allowed transition-all duration-200"
               />
+              <p className="mt-1 text-xs text-[#6B6358]">Email cannot be changed</p>
             </div>
 
             {/* Phone Number */}
@@ -524,49 +539,88 @@ export default function ProfilePage() {
                   </h3>
                 </div>
 
-                {/* Current Password */}
+                {/* Current Password with Toggle */}
                 <div>
                   <label className="block text-sm font-medium text-[#A79C8C] mb-2">
                     Current Password
                   </label>
-                  <input
-                    type="password"
-                    name="currentPassword"
-                    value={formData.currentPassword}
-                    onChange={handleInputChange}
-                    placeholder="Enter current password"
-                    className="w-full px-4 py-3 bg-[#0B0912] border border-[#2A2438] rounded-lg text-[#F5F0E8] focus:outline-none focus:border-[#E8A33D] transition-all duration-200"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showCurrentPassword ? "text" : "password"}
+                      name="currentPassword"
+                      value={formData.currentPassword}
+                      onChange={handleInputChange}
+                      placeholder="Enter current password"
+                      className="w-full px-4 py-3 bg-[#0B0912] border border-[#2A2438] rounded-lg text-[#F5F0E8] focus:outline-none focus:border-[#E8A33D] transition-all duration-200 pr-12"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A79C8C] hover:text-[#F5F0E8] transition-colors duration-200"
+                    >
+                      {showCurrentPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
-                {/* New Password */}
+                {/* New Password with Toggle */}
                 <div>
                   <label className="block text-sm font-medium text-[#A79C8C] mb-2">
                     New Password
                   </label>
-                  <input
-                    type="password"
-                    name="newPassword"
-                    value={formData.newPassword}
-                    onChange={handleInputChange}
-                    placeholder="Enter new password"
-                    className="w-full px-4 py-3 bg-[#0B0912] border border-[#2A2438] rounded-lg text-[#F5F0E8] focus:outline-none focus:border-[#E8A33D] transition-all duration-200"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      name="newPassword"
+                      value={formData.newPassword}
+                      onChange={handleInputChange}
+                      placeholder="Enter new password"
+                      className="w-full px-4 py-3 bg-[#0B0912] border border-[#2A2438] rounded-lg text-[#F5F0E8] focus:outline-none focus:border-[#E8A33D] transition-all duration-200 pr-12"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A79C8C] hover:text-[#F5F0E8] transition-colors duration-200"
+                    >
+                      {showNewPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
-                {/* Confirm Password */}
+                {/* Confirm Password with Toggle */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-[#A79C8C] mb-2">
                     Confirm New Password
                   </label>
-                  <input
-                    type="password"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleInputChange}
-                    placeholder="Confirm new password"
-                    className="w-full px-4 py-3 bg-[#0B0912] border border-[#2A2438] rounded-lg text-[#F5F0E8] focus:outline-none focus:border-[#E8A33D] transition-all duration-200"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleInputChange}
+                      placeholder="Confirm new password"
+                      className="w-full px-4 py-3 bg-[#0B0912] border border-[#2A2438] rounded-lg text-[#F5F0E8] focus:outline-none focus:border-[#E8A33D] transition-all duration-200 pr-12"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A79C8C] hover:text-[#F5F0E8] transition-colors duration-200"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </>
             )}

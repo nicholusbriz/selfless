@@ -17,7 +17,8 @@ import {
   Loader2,
   Eye,
   EyeOff,
-  Sparkles
+  Sparkles,
+  Activity
 } from 'lucide-react';
 
 // ============================================
@@ -216,6 +217,7 @@ function RegisterForm({ onClose, onSwitchToLogin }: RegisterFormProps) {
     password: '',
     phoneNumber: '',
     techCenterId: '',
+    gender: '',
   });
 
   useEffect(() => {
@@ -397,6 +399,25 @@ function RegisterForm({ onClose, onSwitchToLogin }: RegisterFormProps) {
                   {center.name} ({center.code}) - {center.country?.name || 'No country'}
                 </option>
               ))}
+            </select>
+          </div>
+
+          {/* Gender Selection */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-[#A79C8C] flex items-center gap-2">
+              <User className="w-4 h-4 text-[#6B6358]" />
+              Gender
+            </label>
+            <select
+              name="gender"
+              value={formData.gender}
+              onChange={handleChange}
+              className="w-full px-4 py-3 bg-[#0B0912]/60 border border-[#2A2438] rounded-xl text-[#F5F0E8] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-all duration-200"
+              required
+            >
+              <option value="">Select Gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
             </select>
           </div>
 

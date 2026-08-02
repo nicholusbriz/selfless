@@ -41,7 +41,7 @@ import {
   TrendingUp,
   Trophy
 } from 'lucide-react';
-import { useUnreadNotificationCount } from '@/hooks/useNotifications';
+import { useUnreadNotificationCount, useAnnouncementCount } from '@/hooks/useNotifications';
 
 // ============================================
 // ENHANCED COLOR TOKENS
@@ -70,6 +70,7 @@ function TopBar({
 }: any) {
   const [scrolled, setScrolled] = useState(false);
   const { data: unreadCount } = useUnreadNotificationCount();
+  const { data: announcementCount } = useAnnouncementCount();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -139,10 +140,15 @@ function TopBar({
 
           <Link
             href="/dashboard/announcements"
-            className="p-2 rounded-xl text-[#8A8278] hover:text-white hover:bg-[#1A1228] transition-all duration-300 hover:scale-110 group"
+            className="relative p-2 rounded-xl text-[#8A8278] hover:text-white hover:bg-[#1A1228] transition-all duration-300 group"
             aria-label="Announcements"
           >
             <Megaphone className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+            {announcementCount && announcementCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-[20px] px-1 bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] rounded-full text-[10px] font-bold text-white ring-2 ring-[#0F0A1A] shadow-lg shadow-[#E8A33D]/50 animate-pulse z-10">
+                {announcementCount > 99 ? '99+' : announcementCount}
+              </span>
+            )}
           </Link>
 
           <Link
@@ -821,6 +827,7 @@ function Sidebar({
   const navGroups = getNavGroups(userRole);
   const [expandedGroups, setExpandedGroups] = useState<string[]>(() => navGroups.map(g => g.id));
   const { data: unreadCount } = useUnreadNotificationCount();
+  const { data: announcementCount } = useAnnouncementCount();
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups(prev =>
@@ -933,10 +940,16 @@ function Sidebar({
                         {item.icon}
                       </span>
                       <span className="text-sm font-bold">{item.label}</span>
-                      {/* SIDEBAR NOTIFICATION BADGE - FIXED */}
+                      {/* SIDEBAR NOTIFICATION BADGE */}
                       {item.id === 'notifications' && unreadCount && unreadCount > 0 && (
                         <span className="ml-auto min-w-[20px] h-5 px-1 bg-gradient-to-r from-[#FB7185] to-[#E11D48] rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-lg shadow-[#FB7185]/30">
                           {unreadCount > 99 ? '99+' : unreadCount}
+                        </span>
+                      )}
+                      {/* SIDEBAR ANNOUNCEMENT BADGE */}
+                      {item.id === 'announcements' && announcementCount && announcementCount > 0 && (
+                        <span className="ml-auto min-w-[20px] h-5 px-1 bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-lg shadow-[#E8A33D]/30">
+                          {announcementCount > 99 ? '99+' : announcementCount}
                         </span>
                       )}
                       {isActive && (

@@ -3,7 +3,6 @@
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import Image from "next/image";
 import { useState } from "react";
-import { Eye, Sparkles } from "lucide-react";
 
 export default function CoverContent() {
   const [isHovered, setIsHovered] = useState(false);
@@ -45,7 +44,7 @@ export default function CoverContent() {
   };
 
   return (
-    <section className="relative min-h-[90vh] flex items-center overflow-hidden">
+    <section className="relative min-h-[80vh] flex items-center overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#0D1117] via-[#111827] to-[#171F2E]" />
 
@@ -80,40 +79,16 @@ export default function CoverContent() {
       {/* Grid Pattern */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.025)_1px,transparent_1px)] bg-[size:60px_60px]" />
 
-      <div className="relative max-w-7xl mx-auto px-6 lg:px-8 py-16 md:py-20 w-full">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 w-full">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           {/* Left Content */}
           <motion.div
             initial={{ opacity: 0, y: 25 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
+            className="text-center lg:text-left"
           >
-            {/* Logo and Heading */}
-            <div className="flex items-center gap-4 mb-4">
-              <motion.div 
-                className="w-14 h-14 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br from-[#E8A33D] to-[#C97F1F] p-[3px] shadow-xl shadow-[#E8A33D]/20 flex-shrink-0"
-                whileHover={{ rotate: 5, scale: 1.05 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <div className="w-full h-full rounded-2xl bg-[#0D1117] flex items-center justify-center overflow-hidden">
-                  <Image
-                    src="/freedom.png"
-                    alt="Selfless CE Logo"
-                    width={80}
-                    height={80}
-                    className="w-full h-full object-cover p-2"
-                    priority
-                  />
-                </div>
-              </motion.div>
-              <div>
-                <span className="text-xs md:text-sm text-[#A79C8C] font-medium tracking-wider">
-                  SELFLESS CE
-                </span>
-              </div>
-            </div>
-
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.05] tracking-tight">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.1] tracking-tight mb-8">
               <span className="text-white">Student</span>
               <span className="block text-[#E8A33D] mt-1">
                 Self Service
@@ -123,14 +98,14 @@ export default function CoverContent() {
               </span>
             </h1>
 
-            <p className="mt-6 text-base md:text-lg leading-relaxed text-gray-300 max-w-xl">
+            <p className="text-base md:text-lg leading-relaxed text-gray-300 max-w-2xl mx-auto lg:mx-0 mb-4">
               Everything you need to manage your academic journey from one
               intelligent platform. Register courses, monitor your progress,
               collaborate with peers, and receive tutor feedback — all in one
               place.
             </p>
 
-            <p className="mt-4 text-sm md:text-base text-gray-400 max-w-xl leading-relaxed">
+            <p className="text-sm md:text-base text-gray-400 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
               Built exclusively for students studying through the{" "}
               <span className="text-[#E8A33D] font-semibold">
                 Selfless Tech Center Network
@@ -150,10 +125,10 @@ export default function CoverContent() {
             onMouseLeave={handleMouseLeave}
             onMouseEnter={() => setIsHovered(true)}
           >
-            <div className="relative w-full max-w-lg">
+            <div className="relative w-full max-w-md lg:max-w-lg">
               {/* Animated Glow Background */}
               <motion.div
-                className="absolute -inset-8 bg-gradient-to-r from-[#E8A33D]/20 via-[#C97F1F]/10 to-[#E8A33D]/20 rounded-3xl blur-2xl"
+                className="absolute -inset-6 bg-gradient-to-r from-[#E8A33D]/20 via-[#C97F1F]/10 to-[#E8A33D]/20 rounded-3xl blur-2xl"
                 animate={{
                   scale: isHovered ? 1.1 : 1,
                   opacity: isHovered ? 0.8 : 0.5,

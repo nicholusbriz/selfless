@@ -3,10 +3,10 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
 
-// GET - Fetch football team members by tech center
+// GET - Fetch team members by tech center and team type
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ techCenterId: string }> }
+  { params }: { params: Promise<{ techCenterId: string; teamType: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -15,13 +15,19 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { techCenterId } = await params;
+    const { techCenterId, teamType } = await params;
 
-    // Fetch all football team members for this tech center using TeamMembership
+    // Validate team type
+    const validTeamTypes = ['FOOTBALL', 'VOLLEYBALL', 'NETBALL', 'BASKETBALL', 'ATHLETICS'];
+    if (!validTeamTypes.includes(teamType)) {
+      return NextResponse.json({ error: 'Invalid team type' }, { status: 400 });
+    }
+
+    // Fetch all team members for this tech center and team type
     const teamMembers = await prisma.teamMembership.findMany({
       where: {
         techCenterId,
-        teamType: 'FOOTBALL',
+        teamType: teamType as any,
         isActive: true
       },
       include: {
@@ -57,7 +63,7 @@ export async function GET(
       where: {
         userId: session.user.id,
         techCenterId,
-        teamType: 'FOOTBALL'
+        teamType: teamType as any
       }
     });
 
@@ -67,9 +73,9 @@ export async function GET(
       totalMembers: teamMembers.length
     });
   } catch (error) {
-    console.error('Error fetching football team:', error);
+    console.error('Error fetching team:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch football team' },
+      { error: 'Failed to fetch team' },
       { status: 500 }
     );
   }

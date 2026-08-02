@@ -38,6 +38,24 @@ enum CleaningDayStatus {
   FULL
 }
 
+enum TeamType {
+  FOOTBALL
+  VOLLEYBALL
+  NETBALL
+  BASKETBALL
+  ATHLETICS
+}
+
+enum TeamRole {
+  PLAYER
+  COACH
+  KIT_MANAGER
+  CHEERLEADER
+  TEAM_MANAGER
+  MEDICAL
+  REFEREE
+}
+
 // ============================================
 // CORE MODELS
 // ============================================
@@ -72,12 +90,19 @@ model User {
   
   // Academic
   generalCourse String?
+  tuitionAmount Float?
+  takesReligion Boolean @default(false)
   
   // Social
   linkedinUrl String?
   githubUrl   String?
   projectUrls String[]
   profileImageUrl String?
+  
+  // Team Preferences
+  preferredTeamType TeamType?
+  preferredTeamRole TeamRole?
+  gender String? // "male", "female", "other"
   
   // Password Reset
   resetToken     String?
@@ -103,7 +128,7 @@ model User {
   attendanceRecords    AttendanceRecord[]
   
   // Communication
-  announcements         Announcement[]
+  authoredAnnouncements Announcement[] @relation("AnnouncementAuthor")
   notifications         Notification[]
   activityLogs          ActivityLog[]
   
@@ -117,6 +142,9 @@ model User {
   
   // Football Team Relations
   footballTeam FootballTeam[]
+  
+  // General Team Relations
+  teamMemberships TeamMembership[]
   
   @@index([techCenterId])
   @@index([roleId])
@@ -181,12 +209,14 @@ model TechCenter {
   announcements Announcement[]
   activityLogs ActivityLog[]
   footballTeam FootballTeam[]
+  teamMemberships TeamMembership[]
+  
+  @@index([countryId])
+  @@index([isActive])
+  @@map("tech_centers")
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  @@index([countryId])
-  @@map("tech_centers")
 }
 
 // ============================================
@@ -245,7 +275,10 @@ model StudentCourse {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   name        String
   code        String
+  courseUnit  String
   credits     Int      @default(3)
+  takesReligion Boolean @default(false)
+  tuition     Float?
   
   // Relationships with NoAction
   studentId   String   @db.ObjectId
@@ -414,9 +447,10 @@ model Announcement {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   title       String
   content     String
+  deadline    DateTime?
   
   authorId    String   @db.ObjectId
-  author      User     @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  author      User     @relation("AnnouncementAuthor", fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   
   isGlobal    Boolean  @default(false)
   techCenterId String? @db.ObjectId
@@ -434,6 +468,7 @@ model Announcement {
   @@index([techCenterId])
   @@index([isGlobal])
   @@index([publishedAt])
+  @@index([deadline])
   @@map("announcements")
 }
 
@@ -517,6 +552,41 @@ model FootballTeam {
   
   @@unique([userId, techCenterId])
   @@index([techCenterId])
-  @@index([isActive])
   @@map("football_teams")
+}
+
+// ============================================
+// GENERAL TEAM MEMBERSHIPS
+// ============================================
+
+model TeamMembership {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // User and Tech Center relations
+  userId      String   @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  techCenterId String  @db.ObjectId
+  techCenter   TechCenter @relation(fields: [techCenterId], references: [id], onDelete: Cascade)
+  
+  // Team type and role
+  teamType    TeamType
+  teamRole    TeamRole
+  
+  // Additional details
+  jerseyNumber Int?
+  position     String?  // specific position for players
+  experience   String?  // experience level
+  notes        String?
+  
+  // Status
+  isActive     Boolean  @default(true)
+  joinedAt     DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([techCenterId])
+  @@index([teamType])
+  @@index([teamRole])
+  @@index([userId])
+  @@map("team_memberships")
 }

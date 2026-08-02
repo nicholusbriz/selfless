@@ -6,6 +6,8 @@ export interface TeamMember {
   id: string;
   userId: string;
   techCenterId: string;
+  teamType: string;
+  teamRole: string;
   jerseyNumber: number | null;
   position: string | null;
   isActive: boolean;
@@ -55,7 +57,7 @@ export function useRegisterForFootballTeam() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { techCenterId: string; jerseyNumber?: number; position?: string }) => {
+    mutationFn: async (data: { techCenterId: string; jerseyNumber?: number; position?: string; teamRole?: string }) => {
       const response = await axios.post('/api/football-team/register', data);
       return response.data;
     },
@@ -75,6 +77,8 @@ export function useRegisterForFootballTeam() {
           id: 'temp-id',
           userId: 'current-user',
           techCenterId: variables.techCenterId,
+          teamType: 'FOOTBALL',
+          teamRole: variables.teamRole || 'PLAYER',
           jerseyNumber: variables.jerseyNumber || null,
           position: variables.position || null,
           isActive: true,
