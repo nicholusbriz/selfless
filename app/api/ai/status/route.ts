@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isRAGAvailable } from '@/lib/services/rag-service';
 
 type ProviderStatus = {
   provider: string;
@@ -10,9 +11,27 @@ type ProviderStatus = {
 };
 
 // Cache status for 5 minutes to avoid excessive API calls
-const statusCache = new Map<string, { data: ProviderStatus; timestamp: number }>();
+const statusCache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
+/**
+ * GET /api/ai/status
+ * 
+ * Check the status of all AI providers and RAG system
+ * 
+ * Query Parameters:
+ * - refresh: boolean (optional) - Force refresh of cache (default: false)
+ * 
+ * Returns:
+ * - success: boolean
+ * - cached: boolean - Whether result was from cache
+ * - data.providers: array - Status of each provider
+ * - data.summary: object - Summary of provider status
+ * - data.ragAvailable: boolean - Whether RAG is available
+ * - data.timestamp: string - When the status was checked
+ * 
+ * Authentication: Not required (public endpoint)
+ */
 async function testOpenAI(): Promise<ProviderStatus> {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   
@@ -128,6 +147,7 @@ export async function GET(request: Request) {
   if (!forceRefresh) {
     const cachedData = statusCache.get('all');
     if (cachedData && now - cachedData.timestamp < CACHE_DURATION) {
+      console.log('[StatusRoute] Returning cached status');
       return NextResponse.json({
         success: true,
         cached: true,
@@ -136,6 +156,8 @@ export async function GET(request: Request) {
       });
     }
   }
+
+  console.log('[StatusRoute] Refreshing provider status');
 
   // Test all providers
   const results = await Promise.all([
@@ -148,6 +170,15 @@ export async function GET(request: Request) {
   const quotaExceeded = results.filter(r => r.status === 'quota_exceeded');
   const notConfigured = results.filter(r => r.status === 'not_configured');
 
+  // Check RAG availability
+  let ragAvailable = false;
+  try {
+    ragAvailable = await isRAGAvailable();
+    console.log(`[StatusRoute] RAG available: ${ragAvailable}`);
+  } catch (ragError) {
+    console.error('[StatusRoute] Failed to check RAG availability:', ragError);
+  }
+
   const response = {
     providers: results,
     summary: {
@@ -157,11 +188,12 @@ export async function GET(request: Request) {
       notConfigured: notConfigured.length,
       recommended: workingProviders.length > 0 ? workingProviders[0].provider : 'none'
     },
+    ragAvailable,
     timestamp: new Date().toISOString()
   };
 
   // Cache the results
-  statusCache.set('all', { data: response as any, timestamp: now });
+  statusCache.set('all', { data: response, timestamp: now });
 
   return NextResponse.json({
     success: true,

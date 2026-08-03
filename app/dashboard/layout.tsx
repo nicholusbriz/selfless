@@ -37,7 +37,8 @@ import {
   Trophy,
   Search,
   Building2,
-  HeartHandshake
+  HeartHandshake,
+  Database
 } from 'lucide-react';
 import { useUnreadNotificationCount, useAnnouncementCount } from '@/hooks/useNotifications';
 
@@ -350,6 +351,13 @@ const getNavGroups = (userRole: string): NavGroup[] => {
           label: 'Settings', 
           path: '/dashboard/super-admin/settings',
           icon: <Settings className="w-5 h-5" />,
+          roles: ['super_admin']
+        },
+        { 
+          id: 'knowledge-base', 
+          label: 'Knowledge Base', 
+          path: '/dashboard/super-admin/knowledge-base',
+          icon: <Database className="w-5 h-5" />,
           roles: ['super_admin']
         },
         { 

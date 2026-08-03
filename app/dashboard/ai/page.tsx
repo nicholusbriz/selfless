@@ -17,6 +17,15 @@ import {
   Copy,
   Check,
   ArrowLeft,
+  BookOpen,
+  Database,
+  Zap,
+  Settings,
+  ToggleLeft,
+  ToggleRight,
+  Search,
+  Shield,
+  Clock,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
@@ -29,6 +38,18 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  sources?: Array<{
+    id: string;
+    title: string;
+    category: string;
+    subcategory: string | null;
+    similarity: number;
+    source: 'semantic' | 'keyword' | 'hybrid';
+    chunkIndex?: number;
+  }>;
+  ragEnabled?: boolean;
+  fromCache?: boolean;
+  provider?: string;
 }
 
 interface ConversationSummary {
@@ -41,6 +62,12 @@ interface ConversationSummary {
 export default function AIDashboardPage() {
   const { data: session } = useSession();
   const { userContext, profileRecommendations } = useAIUserData();
+
+  // RAG Settings - declare before use
+  const [ragEnabled, setRagEnabled] = useState(true);
+  const [strictMode, setStrictMode] = useState(false);
+  const [hybridSearch, setHybridSearch] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   // CLEAN welcome message - no duplication
   const getWelcomeMessage = useCallback(() => {
@@ -68,11 +95,17 @@ export default function AIDashboardPage() {
     welcomeMessage += `• 📖 General knowledge and research\n`;
     welcomeMessage += `• 🏢 Selfless CE organization information\n`;
     welcomeMessage += `• 👨‍💻 Developer and platform information\n\n`;
+    
+    // Add RAG info
+    if (ragEnabled) {
+      welcomeMessage += `**🔍 Smart Search Enabled:** I'll use your knowledge base to provide accurate answers with source attribution.\n\n`;
+    }
+    
     welcomeMessage += `I'm designed to learn from your interactions and provide increasingly personalized assistance. Feel free to ask me about the platform, your studies, or even who created me!\n\n`;
     welcomeMessage += `Let's start learning together! 🎉`;
 
     return welcomeMessage;
-  }, [session?.user?.firstName, profileRecommendations]);
+  }, [session?.user?.firstName, profileRecommendations, ragEnabled]);
 
   const [messages, setMessages] = useState<Message[]>(() => [
     {
@@ -227,6 +260,20 @@ export default function AIDashboardPage() {
       scrollToBottom('auto');
     }, 100);
   };
+
+  // Update welcome message when RAG settings change
+  useEffect(() => {
+    if (messages.length === 1 && messages[0].id === 'welcome') {
+      setMessages([
+        {
+          id: 'welcome',
+          role: 'assistant',
+          content: getWelcomeMessage(),
+          timestamp: new Date(),
+        },
+      ]);
+    }
+  }, [ragEnabled, strictMode, hybridSearch, getWelcomeMessage, messages.length]);
 
   const startNewChat = () => {
     if (messages.length > 1) {
@@ -497,6 +544,9 @@ export default function AIDashboardPage() {
           userContext,
           profileRecommendations,
           conversationId: activeConversationId || undefined,
+          useRAG: ragEnabled,
+          strictMode: strictMode,
+          hybridSearch: hybridSearch,
         }),
       });
 
@@ -508,6 +558,10 @@ export default function AIDashboardPage() {
           role: 'assistant',
           content: '',
           timestamp: new Date(),
+          ragEnabled: data.data.ragEnabled || false,
+          fromCache: data.data.fromCache || false,
+          provider: data.data.provider || 'unknown',
+          sources: data.data.sources || [],
         };
         setMessages((prev) => [...prev, assistantMessage]);
         if (data.data.conversationId) {
@@ -518,7 +572,27 @@ export default function AIDashboardPage() {
         streamAssistantResponse(assistantMessage.id, responseText);
         void loadConversationHistory();
 
-        if (session?.user?.id) {
+        // Log RAG metrics if available
+        if (session?.user?.id && data.data.ragEnabled) {
+          fetch('/api/ai/log-usage', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: session.user.id,
+              techCenterId: session.user.techCenterId,
+              details: { messageCount: messages.length + 1 },
+              ragMetrics: {
+                ragEnabled: data.data.ragEnabled,
+                sourcesFound: data.data.sourcesFound,
+                fromCache: data.data.fromCache,
+                provider: data.data.provider,
+                tokenUsage: data.data.tokenUsage,
+                processingTime: data.data.processingTime,
+                sources: data.data.sources,
+              },
+            }),
+          }).catch((err) => console.error('Failed to log AI message:', err));
+        } else if (session?.user?.id) {
           fetch('/api/ai/log-usage', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -618,6 +692,17 @@ export default function AIDashboardPage() {
           >
             <Plus className="h-4 w-4" />
           </button>
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className={`rounded-xl border p-2 transition-all ${
+              showSettings 
+                ? 'border-[#E8A33D] bg-[#E8A33D]/20 text-[#E8A33D]' 
+                : 'border-[#2A1F3D] bg-[#0A0615] text-[#A89F96] hover:bg-[#140E24] hover:text-white hover:border-[#E8A33D]/30'
+            }`}
+            title="AI Settings"
+          >
+            <Settings className="h-4 w-4" />
+          </button>
           <Link
             href="/dashboard"
             className="flex items-center gap-2 rounded-xl border border-[#2A1F3D] bg-[#0A0615] px-3 py-2 text-sm text-[#A89F96] transition-all hover:bg-[#140E24] hover:text-white hover:border-[#E8A33D]/30"
@@ -627,6 +712,109 @@ export default function AIDashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* ========== RAG SETTINGS PANEL ========== */}
+      <AnimatePresence>
+        {showSettings && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="border-b border-[#2A1F3D] bg-[#140E24]/50"
+          >
+            <div className="p-4 space-y-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Settings className="h-4 w-4 text-[#E8A33D]" />
+                <h3 className="text-sm font-semibold text-white">AI Response Settings</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* RAG Toggle */}
+                <div className="bg-[#0A0615] border border-[#2A1F3D] rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Database className="h-4 w-4 text-[#14B8A6]" />
+                      <span className="text-sm text-[#F0EDE8]">RAG Mode</span>
+                    </div>
+                    <button
+                      onClick={() => setRagEnabled(!ragEnabled)}
+                      className={`relative w-12 h-6 rounded-full transition-colors ${
+                        ragEnabled ? 'bg-[#14B8A6]' : 'bg-[#2A1F3D]'
+                      }`}
+                    >
+                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                        ragEnabled ? 'left-7' : 'left-1'
+                      }`} />
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-[#A89F96]">
+                    {ragEnabled ? 'Using knowledge base for better answers' : 'Standard AI responses'}
+                  </p>
+                </div>
+
+                {/* Strict Mode Toggle */}
+                <div className="bg-[#0A0615] border border-[#2A1F3D] rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-[#E8A33D]" />
+                      <span className="text-sm text-[#F0EDE8]">Strict Mode</span>
+                    </div>
+                    <button
+                      onClick={() => setStrictMode(!strictMode)}
+                      disabled={!ragEnabled}
+                      className={`relative w-12 h-6 rounded-full transition-colors ${
+                        strictMode ? 'bg-[#E8A33D]' : 'bg-[#2A1F3D]'
+                      } ${!ragEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                        strictMode ? 'left-7' : 'left-1'
+                      }`} />
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-[#A89F96]">
+                    {strictMode ? 'Only answer from knowledge base' : 'Can use general knowledge'}
+                  </p>
+                </div>
+
+                {/* Hybrid Search Toggle */}
+                <div className="bg-[#0A0615] border border-[#2A1F3D] rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Search className="h-4 w-4 text-[#8B5CF6]" />
+                      <span className="text-sm text-[#F0EDE8]">Hybrid Search</span>
+                    </div>
+                    <button
+                      onClick={() => setHybridSearch(!hybridSearch)}
+                      disabled={!ragEnabled}
+                      className={`relative w-12 h-6 rounded-full transition-colors ${
+                        hybridSearch ? 'bg-[#8B5CF6]' : 'bg-[#2A1F3D]'
+                      } ${!ragEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                        hybridSearch ? 'left-7' : 'left-1'
+                      }`} />
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-[#A89F96]">
+                    {hybridSearch ? 'Combine semantic and keyword search' : 'Semantic search only'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Info Banner */}
+              <div className="flex items-start gap-2 p-3 bg-[#0A0615] border border-[#2A1F3D] rounded-lg">
+                <Zap className="h-4 w-4 text-[#E8A33D] mt-0.5 flex-shrink-0" />
+                <div className="text-xs text-[#A89F96]">
+                  <p className="font-semibold text-[#F0EDE8] mb-1">About These Settings</p>
+                  <p><strong>RAG Mode:</strong> Uses your knowledge base to provide accurate, contextual answers with source attribution.</p>
+                  <p className="mt-1"><strong>Strict Mode:</strong> Only answers questions using information from your knowledge base.</p>
+                  <p className="mt-1"><strong>Hybrid Search:</strong> Combines semantic understanding with keyword matching for best results.</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ========== MAIN CHAT AREA - FLEXIBLE ========== */}
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
@@ -830,7 +1018,55 @@ export default function AIDashboardPage() {
                   {message.role === 'assistant' && copiedMessageId === message.id && (
                     <span className="text-[9px] text-[#14B8A6]">• Copied!</span>
                   )}
+                  {message.role === 'assistant' && message.ragEnabled && (
+                    <span className="text-[9px] text-[#E8A33D]">• RAG</span>
+                  )}
+                  {message.role === 'assistant' && message.fromCache && (
+                    <span className="text-[9px] text-[#14B8A6]">• Cached</span>
+                  )}
                 </div>
+
+                {/* RAG Sources */}
+                {message.role === 'assistant' && message.sources && message.sources.length > 0 && (
+                  <div className="mt-2 rounded-xl border border-[#2A1F3D] bg-[#140E24]/50 p-3">
+                    <div className="mb-2 flex items-center gap-2">
+                      <BookOpen className="h-3.5 w-3.5 text-[#E8A33D]" />
+                      <span className="text-xs font-semibold text-white">Sources</span>
+                      <span className="text-[10px] text-[#A89F96]">({message.sources.length})</span>
+                    </div>
+                    <div className="space-y-2">
+                      {message.sources.map((source, index) => (
+                        <div
+                          key={`${source.id}-${index}`}
+                          className="flex items-start gap-2 rounded-lg bg-[#0A0615] p-2"
+                        >
+                          <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[#E8A33D]/20 text-[10px] font-bold text-[#E8A33D]">
+                            {index + 1}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-medium text-white truncate">{source.title}</p>
+                            <div className="mt-0.5 flex items-center gap-2">
+                              <span className="text-[10px] text-[#A89F96]">
+                                {source.category}
+                                {source.subcategory && ` > ${source.subcategory}`}
+                              </span>
+                              <span className="text-[10px] text-[#A89F96]">•</span>
+                              <span className="text-[10px] text-[#A89F96]">
+                                {Math.round(source.similarity * 100)}% match
+                              </span>
+                              {source.source === 'semantic' && (
+                                <Zap className="h-3 w-3 text-[#14B8A6]" />
+                              )}
+                              {source.source === 'keyword' && (
+                                <Database className="h-3 w-3 text-[#A89F96]" />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           ))}
