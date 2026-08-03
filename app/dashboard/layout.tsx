@@ -45,6 +45,7 @@ import {
   HeartHandshake
 } from 'lucide-react';
 import { useUnreadNotificationCount, useAnnouncementCount } from '@/hooks/useNotifications';
+import AIAssistant from '@/components/AIAssistant';
 
 // ============================================
 // ENHANCED COLOR TOKENS
@@ -1440,6 +1441,9 @@ export default function DashboardLayout({
           </>
         )}
       </AnimatePresence>
+      
+      {/* AI Assistant */}
+      <AIAssistant />
       </div>
     </>
   );

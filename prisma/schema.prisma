@@ -146,6 +146,10 @@ model User {
   // General Team Relations
   teamMemberships TeamMembership[]
   
+  // AI Assistant Relations
+  aiConversations AIConversation[]
+  aiLearningProfile AILearningProfile?
+  
   @@index([techCenterId])
   @@index([roleId])
   @@index([teacherId])
@@ -589,4 +593,113 @@ model TeamMembership {
   @@index([teamRole])
   @@index([userId])
   @@map("team_memberships")
+}
+
+// ============================================
+// AI ASSISTANT MODELS
+// ============================================
+
+// AI CONVERSATION - Stores chat history
+model AIConversation {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  userId      String   @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Conversation metadata
+  title       String?  // Auto-generated from first message
+  context     String?  // Current page/context when conversation started
+  
+  // Messages stored as JSON array
+  messages    Json     // Array of {role, content, timestamp}
+  
+  // Learning insights
+  topics      String[] // Topics discussed
+  difficulty  String?  // easy, medium, hard
+  
+  // Status
+  isActive    Boolean  @default(true)
+  archivedAt  DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([isActive])
+  @@map("ai_conversations")
+}
+
+// AI LEARNING PROFILE - Tracks user's learning patterns
+model AILearningProfile {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  userId      String   @unique @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Learning preferences
+  learningStyle String[] // visual, auditory, reading, kinesthetic
+  preferredTopics String[]
+  difficultyLevel String @default("medium") // beginner, intermediate, advanced
+  
+  // Academic context
+  currentGPA Float?
+  strongSubjects String[]
+  weakSubjects String[]
+  coursesEnrolled String[] // Course codes
+  
+  // Interaction patterns
+  totalQuestionsAsked Int @default(0)
+  averageSessionLength Float? // in minutes
+  mostActiveHours Int[] // Hours of day when user is most active
+  
+  // Progress tracking
+  conceptsMastered String[]
+  conceptsInProgress String[]
+  conceptsStruggling String[]
+  
+  // AI adaptation
+  responseStyle String @default("balanced") // concise, detailed, balanced
+  languagePreference String @default("english")
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("ai_learning_profiles")
+}
+
+// AI KNOWLEDGE BASE - Custom data to feed the AI
+model AIKnowledgeBase {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Categorization
+  category    String   // e.g., "courses", "policies", "assignments", "resources"
+  subcategory String?  // e.g., "BYU-Idaho courses", "grading policies"
+  
+  // Content
+  title       String
+  content     String   // Main knowledge content
+  summary     String?  // Brief summary for quick reference
+  
+  // Metadata
+  tags        String[] // Searchable tags
+  difficulty  String?  // beginner, intermediate, advanced
+  priority    Int      @default(0) // Higher priority shown first
+  
+  // Relationships
+  relatedIds  String[] // IDs of related knowledge entries
+  
+  // Usage tracking
+  accessCount Int      @default(0)
+  helpfulRating Float? // Average user rating
+  
+  // Status
+  isActive    Boolean  @default(true)
+  lastUpdated DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  
+  @@index([category])
+  @@index([subcategory])
+  @@index([isActive])
+  @@index([priority])
+  @@map("ai_knowledge_base")
 }
