@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, X, Send, Sparkles, Minimize2, Maximize2, Bot, User, Brain, Zap, Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSession } from 'next-auth/react';
+import { useAIUserData } from '@/hooks/useAIUserData';
 
 interface Message {
   id: string;
@@ -15,6 +16,7 @@ interface Message {
 
 export default function AIAssistant() {
   const { data: session } = useSession();
+  const { userContext, profileRecommendations, isLoading: userDataLoading } = useAIUserData();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
@@ -28,6 +30,24 @@ export default function AIAssistant() {
     }
   ]);
 
+  // Log when AI chat is opened
+  useEffect(() => {
+    if (isOpen && session?.user?.id) {
+      fetch('/api/ai/log-usage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: session.user.id,
+          techCenterId: session.user.techCenterId || undefined,
+          details: {
+            messageCount: 0,
+            firstMessage: 'Chat opened'
+          }
+        })
+      }).catch(err => console.error('Failed to log AI usage:', err));
+    }
+  }, [isOpen, session]);
+
   // Update greeting when session changes
   useEffect(() => {
     const hour = new Date().getHours();
@@ -40,11 +60,44 @@ export default function AIAssistant() {
     
     const greeting = `${timeGreeting}, ${userName}!`;
     
+    // Build message with profile recommendations if available
+    let welcomeMessage = `🚀 ${greeting} Welcome to **Atbriz Ai** - Your intelligent learning companion!\n\n`;
+    
+    if (profileRecommendations) {
+      welcomeMessage += profileRecommendations + '\n\n';
+    }
+    
+    welcomeMessage += `I can help you with:\n\n• 📚 Academic guidance and assignment help\n• 🎯 Personalized learning based on your progress\n• 💡 Site navigation and platform features\n• 🔧 Coding help and debugging\n• 📖 General knowledge and research\n• 🏢 Selfless CE organization information\n• 👨‍💻 Developer and platform information\n\nI'm designed to learn from your interactions and provide increasingly personalized assistance. Feel free to ask me about the platform, your studies, or even who created me!\n\nLet's start learning together!`;
+    
     setMessages(prev => [{
       ...prev[0],
-      content: `🚀 ${greeting} Welcome to **Atbriz Ai** - Your intelligent learning companion!\n\nI can help you with:\n\n• 📚 Academic guidance and assignment help\n• 🎯 Personalized learning based on your progress\n• 💡 Site navigation and platform features\n• 🔧 Coding help and debugging\n• 📖 General knowledge and research\n• 🏢 Selfless CE organization information\n• 👨‍💻 Developer and platform information\n\nI'm designed to learn from your interactions and provide increasingly personalized assistance. Feel free to ask me about the platform, your studies, or even who created me!\n\nLet's start learning together!`
+      content: welcomeMessage
     }]);
   }, [session]);
+
+  // Update message when profile recommendations load
+  useEffect(() => {
+    if (profileRecommendations && messages.length > 0) {
+      const hour = new Date().getHours();
+      const userName = session?.user?.firstName || 'there';
+      
+      let timeGreeting;
+      if (hour >= 5 && hour < 12) timeGreeting = 'Good morning';
+      else if (hour >= 12 && hour < 17) timeGreeting = 'Good afternoon';
+      else timeGreeting = 'Good evening';
+      
+      const greeting = `${timeGreeting}, ${userName}!`;
+      
+      let welcomeMessage = `🚀 ${greeting} Welcome to **Atbriz Ai** - Your intelligent learning companion!\n\n`;
+      welcomeMessage += profileRecommendations + '\n\n';
+      welcomeMessage += `I can help you with:\n\n• 📚 Academic guidance and assignment help\n• 🎯 Personalized learning based on your progress\n• 💡 Site navigation and platform features\n• 🔧 Coding help and debugging\n• 📖 General knowledge and research\n• 🏢 Selfless CE organization information\n• 👨‍💻 Developer and platform information\n\nI'm designed to learn from your interactions and provide increasingly personalized assistance. Feel free to ask me about the platform, your studies, or even who created me!\n\nLet's start learning together!`;
+      
+      setMessages(prev => [{
+        ...prev[0],
+        content: welcomeMessage
+      }]);
+    }
+  }, [profileRecommendations, session]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -73,13 +126,16 @@ export default function AIAssistant() {
     setIsLoading(true);
 
     try {
+      // Use cached user context instead of fetching
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: input,
-          conversationHistory: messages.slice(-10), // Send last 10 messages for context
-          userId: session?.user?.id // Send user ID for personalization
+          conversationHistory: messages.slice(-5), // Reduced from 10 to 5 for speed
+          userId: session?.user?.id,
+          userContext: userContext, // Send cached context directly
+          profileRecommendations // Send profile recommendations
         })
       });
 
@@ -89,10 +145,25 @@ export default function AIAssistant() {
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: data.response,
+          content: data.data.response,
           timestamp: new Date()
         };
         setMessages(prev => [...prev, assistantMessage]);
+
+        // Log message sent
+        if (session?.user?.id) {
+          fetch('/api/ai/log-usage', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: session.user.id,
+              techCenterId: session.user.techCenterId,
+              details: {
+                messageCount: messages.length + 1
+              }
+            })
+          }).catch(err => console.error('Failed to log AI message:', err));
+        }
       } else {
         throw new Error(data.error || 'Failed to get response');
       }

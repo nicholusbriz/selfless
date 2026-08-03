@@ -106,6 +106,8 @@ export default function ActivityLogsPage() {
         return 'bg-orange-500/10 text-orange-400 border-orange-500/20';
       case 'delete':
         return 'bg-red-500/10 text-red-400 border-red-500/20';
+      case 'ai_chat_opened':
+        return 'bg-pink-500/10 text-pink-400 border-pink-500/20';
       default:
         return 'bg-gray-500/10 text-gray-400 border-gray-500/20';
     }
@@ -217,6 +219,7 @@ export default function ActivityLogsPage() {
                 <option value="create">Create</option>
                 <option value="update">Update</option>
                 <option value="delete">Delete</option>
+                <option value="ai_chat_opened">AI Chat Opened</option>
               </select>
             </div>
 
@@ -236,6 +239,7 @@ export default function ActivityLogsPage() {
                 <option value="course">Course</option>
                 <option value="grade">Grade</option>
                 <option value="cleaning">Cleaning</option>
+                <option value="ai_assistant">AI Assistant</option>
               </select>
             </div>
 

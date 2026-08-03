@@ -36,7 +36,7 @@ When answering questions:
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, conversationHistory, userId } = await request.json();
+    const { message, conversationHistory, userId, userContext: prebuiltUserContext, profileRecommendations } = await request.json();
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
@@ -45,19 +45,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user context if userId is provided
+    // Use prebuilt context if provided (from TanStack Query cache), otherwise fetch from database
     let userContext = '';
-    let learningProfile = null;
-    let conversationHistoryContext = '';
     
-    if (userId) {
+    if (prebuiltUserContext) {
+      // Use cached context from TanStack Query (already formatted)
+      userContext = prebuiltUserContext;
+    } else if (userId) {
+      // Fallback to database fetch if no cached context
       try {
-        // Fetch user's learning profile
-        learningProfile = await prisma.aILearningProfile.findUnique({
-          where: { userId }
-        });
-
-        // Fetch user's academic data
+        // Fetch user's academic data only (simplified for speed)
         const user = await prisma.user.findUnique({
           where: { id: userId },
           include: {
@@ -86,53 +83,16 @@ USER CONTEXT:
 - Recent Grades: ${recentGrades || 'No grades yet'}
 - Tech Center: ${user.techCenter?.name || 'Not assigned'}
 `;
-          
-          if (learningProfile) {
-            userContext += `
-LEARNING PROFILE:
-- Learning Style: ${learningProfile.learningStyle.join(', ') || 'Not determined'}
-- Difficulty Level: ${learningProfile.difficultyLevel}
-- Strong Subjects: ${learningProfile.strongSubjects.join(', ') || 'Being identified'}
-- Areas for Improvement: ${learningProfile.weakSubjects.join(', ') || 'Being identified'}
-- Concepts Mastered: ${learningProfile.conceptsMastered.length}
-- Response Style Preference: ${learningProfile.responseStyle}
-- Total Questions Asked: ${learningProfile.totalQuestionsAsked}
-`;
-          }
-        }
-
-        // Fetch recent conversation history for additional context
-        const recentConversations = await prisma.aIConversation.findMany({
-          where: {
-            userId,
-            isActive: true
-          },
-          orderBy: {
-            updatedAt: 'desc'
-          },
-          take: 3,
-          select: {
-            messages: true,
-            topics: true,
-            difficulty: true
-          }
-        });
-
-        if (recentConversations.length > 0) {
-          const recentTopics = recentConversations.flatMap(c => c.topics || []);
-          const recentDifficulties = recentConversations.map(c => c.difficulty).filter(Boolean);
-          
-          conversationHistoryContext = `
-RECENT CONVERSATION HISTORY:
-- Recent Topics: ${recentTopics.length > 0 ? recentTopics.join(', ') : 'None'}
-- Conversation Difficulty: ${recentDifficulties.length > 0 ? recentDifficulties.join(', ') : 'None'}
-- Total Recent Conversations: ${recentConversations.length}
-`;
         }
       } catch (dbError) {
         console.error('Database error:', dbError);
         // Continue without user context if database fails
       }
+    }
+
+    // Add profile recommendations to context if provided
+    if (profileRecommendations) {
+      userContext += profileRecommendations;
     }
 
     // Get relevant knowledge base content
@@ -163,9 +123,9 @@ ${k.tags.length > 0 ? `**Tags:** ${k.tags.join(', ')}` : ''}
     let response;
 
     if (aiService === 'groq') {
-      response = await callGroqAPI(message, conversationHistory, userContext, knowledgeBaseContext, conversationHistoryContext);
+      response = await callGroqAPI(message, conversationHistory, userContext, knowledgeBaseContext);
     } else if (aiService === 'openai') {
-      response = await callOpenAIAPI(message, conversationHistory, userContext, knowledgeBaseContext, conversationHistoryContext);
+      response = await callOpenAIAPI(message, conversationHistory, userContext, knowledgeBaseContext);
     } else {
       // Fallback to a simple response if no API is configured
       response = generateFallbackResponse(message);
@@ -175,14 +135,14 @@ ${k.tags.length > 0 ? `**Tags:** ${k.tags.join(', ')}` : ''}
     if (userId) {
       try {
         await storeConversation(userId, message, response, conversationHistory);
-        await updateLearningProfile(userId, message, learningProfile);
+        // Note: learning profile updates can be handled separately or batched
       } catch (storageError) {
         console.error('Conversation storage error:', storageError);
         // Continue even if storage fails
       }
     }
 
-    return NextResponse.json({ success: true, response });
+    return NextResponse.json({ success: true, data: { response } });
   } catch (error) {
     console.error('AI Chat Error:', error);
     return NextResponse.json(
@@ -196,7 +156,7 @@ async function getRelevantKnowledge(message: string) {
   const topics = extractTopics(message);
   const lowerMessage = message.toLowerCase();
   
-  // Find relevant knowledge base entries with broader search
+  // Find relevant knowledge base entries with broader search - limited to 5 for speed
   const knowledge = await prisma.aIKnowledgeBase.findMany({
     where: {
       isActive: true,
@@ -222,7 +182,7 @@ async function getRelevantKnowledge(message: string) {
       { priority: 'desc' },
       { accessCount: 'desc' }
     ],
-    take: 10 // Increased to get more comprehensive results
+    take: 5 // Reduced from 10 to 5 for faster responses
   });
   
   // Update access count
@@ -337,14 +297,14 @@ function assessDifficulty(message: string): string {
   return 'medium';
 }
 
-async function callOpenAIAPI(message: string, conversationHistory: any[] = [], userContext: string = '', knowledgeBaseContext: string = '', conversationHistoryContext: string = '') {
+async function callOpenAIAPI(message: string, conversationHistory: any[] = [], userContext: string = '', knowledgeBaseContext: string = '') {
   const apiKey = process.env.OPENAI_API_KEY;
   
   if (!apiKey) {
     throw new Error('OpenAI API key is not configured');
   }
 
-  const systemContent = AI_IDENTITY + userContext + knowledgeBaseContext + conversationHistoryContext;
+  const systemContent = AI_IDENTITY + userContext + knowledgeBaseContext;
 
   const messages = [
     {
@@ -384,14 +344,14 @@ async function callOpenAIAPI(message: string, conversationHistory: any[] = [], u
   return data.choices[0].message.content;
 }
 
-async function callGroqAPI(message: string, conversationHistory: any[] = [], userContext: string = '', knowledgeBaseContext: string = '', conversationHistoryContext: string = '') {
+async function callGroqAPI(message: string, conversationHistory: any[] = [], userContext: string = '', knowledgeBaseContext: string = '') {
   const apiKey = process.env.GROQ_API_KEY;
   
   if (!apiKey) {
     throw new Error('Groq API key is not configured');
   }
 
-  const systemContent = AI_IDENTITY + userContext + knowledgeBaseContext + conversationHistoryContext;
+  const systemContent = AI_IDENTITY + userContext + knowledgeBaseContext;
 
   const messages = [
     {

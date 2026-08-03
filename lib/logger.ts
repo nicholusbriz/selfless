@@ -112,6 +112,30 @@ export async function logUserAction(
 }
 
 /**
+ * Log AI chat usage
+ */
+export async function logAIChatUsage(
+  userId: string,
+  techCenterId?: string,
+  details?: {
+    messageCount?: number;
+    firstMessage?: string;
+    conversationId?: string;
+  }
+) {
+  await createActivityLog({
+    userId,
+    action: 'ai_chat_opened',
+    entityType: 'ai_assistant',
+    details: {
+      ...details,
+      timestamp: new Date().toISOString(),
+    },
+    techCenterId,
+  });
+}
+
+/**
  * Extract IP address from request
  */
 export function extractIpAddress(req: Request): string {

@@ -5,6 +5,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { JWT } from 'next-auth/jwt';
 import { prisma } from '@/lib/prisma/client';
 import bcrypt from 'bcryptjs';
+import { logLogin } from '@/lib/logger';
 
 // ============================================
 // TYPES
@@ -65,7 +66,10 @@ export const authOptions: AuthOptions = {
           data: { lastLoginAt: new Date() }
         });
 
-        // 5. Return user object
+        // 5. Log the login
+        await logLogin(user.id, user.techCenterId || undefined);
+
+        // 6. Return user object
         return {
           id: user.id,
           email: user.email,
@@ -113,6 +117,17 @@ export const authOptions: AuthOptions = {
         session.user.status = token.status as string;
         session.user.isActive = token.isActive as boolean;
         session.user.phoneNumber = token.phoneNumber as string | null;
+        session.user.country = token.country as string | null;
+        session.user.city = token.city as string | null;
+        session.user.town = token.town as string | null;
+        session.user.street = token.street as string | null;
+        session.user.generalCourse = token.generalCourse as string | null;
+        session.user.linkedinUrl = token.linkedinUrl as string | null;
+        session.user.githubUrl = token.githubUrl as string | null;
+        session.user.projectUrls = token.projectUrls as string[];
+        session.user.gender = token.gender as string | null;
+        session.user.preferredTeamType = token.preferredTeamType as string | null;
+        session.user.preferredTeamRole = token.preferredTeamRole as string | null;
         session.user.country = token.country as string | null;
         session.user.city = token.city as string | null;
         session.user.town = token.town as string | null;
