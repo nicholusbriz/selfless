@@ -4,6 +4,28 @@ import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
 import { checkProfileCompleteness, generateProfileRecommendations } from '@/lib/profile-completeness';
 
+/**
+ * GET /api/ai/user-context
+ * 
+ * Fetch comprehensive user context for AI personalization including:
+ * - User profile and academic data
+ * - Learning profile with preferences
+ * - Recent conversation history
+ * - Profile recommendations
+ * 
+ * Query Parameters:
+ * - userId: string (required) - User ID to fetch context for
+ * 
+ * Returns:
+ * - success: boolean
+ * - data.context: string - Formatted context for AI
+ * - data.profileRecommendations: string - Profile improvement recommendations
+ * - data.learningProfile: object - Learning profile data
+ * - data.recentTopics: array - Recent conversation topics
+ * - data.profileCompleteness: object - Profile completeness score
+ * 
+ * Authentication: Required (user must be authenticated)
+ */
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -98,16 +120,24 @@ RECENT CONVERSATION HISTORY:
 
     // Check profile completeness
     let profileRecommendations = '';
+    let profileCompleteness = null;
     if (user) {
-      const profileCompleteness = checkProfileCompleteness(user);
+      profileCompleteness = checkProfileCompleteness(user);
       profileRecommendations = generateProfileRecommendations(profileCompleteness);
     }
+
+    // Extract recent topics for recommendations
+    const recentTopics = recentConversations.flatMap(c => c.topics || []);
+    const uniqueTopics = Array.from(new Set(recentTopics));
 
     return NextResponse.json({
       success: true,
       data: {
         context: combinedContext,
-        profileRecommendations
+        profileRecommendations,
+        learningProfile: learningProfile || null,
+        recentTopics: uniqueTopics,
+        profileCompleteness
       }
     });
   } catch (error) {

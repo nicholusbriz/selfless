@@ -692,6 +692,12 @@ model AIKnowledgeBase {
   accessCount Int      @default(0)
   helpfulRating Float? // Average user rating
   
+  // RAG-specific fields
+  embedding   Float[] // Vector embedding for semantic search (384 dimensions for all-MiniLM-L6-v2)
+  embeddingGeneratedAt DateTime? // When the embedding was last generated
+  isChunked   Boolean  @default(false) // Whether this document has been chunked
+  chunks      AIKnowledgeChunk[] // Document chunks for better retrieval
+  
   // Status
   isActive    Boolean  @default(true)
   lastUpdated DateTime @updatedAt
@@ -701,5 +707,38 @@ model AIKnowledgeBase {
   @@index([subcategory])
   @@index([isActive])
   @@index([priority])
+  @@index([isChunked])
   @@map("ai_knowledge_base")
+}
+
+// AI KNOWLEDGE CHUNK - Chunked documents for better RAG retrieval
+model AIKnowledgeChunk {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Parent document reference
+  knowledgeBaseId String   @db.ObjectId
+  knowledgeBase   AIKnowledgeBase @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  
+  // Chunk content
+  chunkIndex  Int      // Position in the original document (0, 1, 2, ...)
+  content     String   // Chunk text content
+  title       String?  // Optional title for the chunk (e.g., section heading)
+  
+  // Embedding for semantic search
+  embedding   Float[]  // Vector embedding (384 dimensions for all-MiniLM-L6-v2)
+  
+  // Metadata
+  wordCount   Int      // Number of words in this chunk
+  tokenCount  Int?     // Estimated token count
+  
+  // Usage tracking
+  accessCount Int      @default(0)
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([knowledgeBaseId])
+  @@index([chunkIndex])
+  @@map("ai_knowledge_chunks")
 }

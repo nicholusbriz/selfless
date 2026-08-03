@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { generateRAGResponse, type RAGResponse, type RAGOptions } from '@/lib/services/rag-service';
 
 const prisma = new PrismaClient();
 
@@ -107,9 +108,46 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * POST /api/ai/chat
+ * 
+ * Main chat endpoint with RAG (Retrieval-Augmented Generation) integration
+ * 
+ * Request Body:
+ * - message: string (required) - The user's message
+ * - conversationHistory: array (optional) - Previous conversation messages
+ * - userId: string (optional) - User ID for personalization and storage
+ * - userContext: string (optional) - Pre-built user context from cache
+ * - profileRecommendations: string (optional) - Profile recommendations
+ * - conversationId: string (optional) - Existing conversation ID to continue
+ * - useRAG: boolean (optional) - Whether to use RAG (default: true)
+ * - strictMode: boolean (optional) - Strict mode for RAG (default: false)
+ * - hybridSearch: boolean (optional) - Use hybrid search (default: false)
+ * 
+ * Returns:
+ * - success: boolean
+ * - data.response: string - AI response
+ * - data.conversationId: string - Conversation ID
+ * - data.sources: array - RAG sources with relevance scores (if RAG used)
+ * - data.fromCache: boolean - Whether response was from cache (if RAG used)
+ * - data.provider: string - AI provider used
+ * - data.ragEnabled: boolean - Whether RAG was enabled
+ * 
+ * Authentication: Optional (user ID required for personalization)
+ */
 export async function POST(request: NextRequest) {
   try {
-    const { message, conversationHistory, userId, userContext: prebuiltUserContext, profileRecommendations, conversationId } = await request.json();
+    const { 
+      message, 
+      conversationHistory, 
+      userId, 
+      userContext: prebuiltUserContext, 
+      profileRecommendations, 
+      conversationId,
+      useRAG = true,
+      strictMode = false,
+      hybridSearch = false
+    } = await request.json();
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
@@ -185,13 +223,45 @@ USER CONTEXT:
 
     const relevantHistory = await getRecentConversationHistory(userId, conversationHistoryMessages);
 
-    // Get relevant knowledge base content
-    let knowledgeBaseContext = '';
-    try {
-      const relevantKnowledge = await getRelevantKnowledge(message);
-      if (relevantKnowledge.length > 0) {
-        knowledgeBaseContext = `
-        
+    let response: string = '';
+    let ragData: RAGResponse | null = null;
+    let ragEnabled = false;
+
+    // Use RAG if enabled and available
+    if (useRAG) {
+      try {
+        console.log('[ChatRoute] Attempting RAG generation...');
+        const ragOptions: RAGOptions = {
+          strictMode,
+          useCache: true,
+          maxSources: 5,
+          similarityThreshold: 0.5,
+          hybridSearch,
+          includeUserContext: true,
+          temperature: 0.7,
+          maxTokens: 1000
+        };
+
+        ragData = await generateRAGResponse(message, userContext, ragOptions);
+        response = ragData.response;
+        ragEnabled = true;
+        console.log('[ChatRoute] RAG generation successful');
+      } catch (ragError) {
+        console.error('[ChatRoute] RAG generation failed, falling back to traditional chat:', ragError);
+        // Fall back to traditional chat if RAG fails
+        ragEnabled = false;
+      }
+    }
+
+    // Fallback to traditional chat if RAG is disabled or failed
+    if (!ragEnabled) {
+      // Get relevant knowledge base content (keyword-based fallback)
+      let knowledgeBaseContext = '';
+      try {
+        const relevantKnowledge = await getRelevantKnowledge(message);
+        if (relevantKnowledge.length > 0) {
+          knowledgeBaseContext = `
+          
 RELEVANT KNOWLEDGE BASE:
 ${relevantKnowledge.map(k => `
 ## ${k.title}
@@ -201,88 +271,116 @@ ${k.summary ? `**Summary:** ${k.summary}` : ''}
 ${k.tags.length > 0 ? `**Tags:** ${k.tags.join(', ')}` : ''}
 `).join('\n---\n')}
 `;
-      }
-    } catch (kbError) {
-      console.error('Knowledge base error:', kbError);
-      // Continue without knowledge base if it fails
-    }
-
-    // Check which AI service to use. Auto mode tries Gemini first, then OpenAI, then Groq.
-    const aiService = (process.env.AI_SERVICE || 'auto').toLowerCase();
-
-    let response;
-
-    try {
-      const providerOrder =
-        aiService === 'groq'
-          ? ['groq', 'gemini', 'openai']
-          : aiService === 'openai'
-            ? ['openai', 'gemini', 'groq']
-            : aiService === 'gemini'
-              ? ['gemini', 'openai', 'groq']
-              : ['gemini', 'openai', 'groq'];
-
-      const providerMap = {
-        gemini: {
-          configured: () => Boolean(process.env.GEMINI_API_KEY?.trim()),
-          call: callGeminiAPI,
-        },
-        openai: {
-          configured: () => Boolean(process.env.OPENAI_API_KEY?.trim()),
-          call: callOpenAIAPI,
-        },
-        groq: {
-          configured: () => Boolean(process.env.GROQ_API_KEY?.trim()),
-          call: callGroqAPI,
-        },
-      } as const;
-
-      for (const providerName of providerOrder) {
-        const provider = providerMap[providerName as keyof typeof providerMap];
-
-        if (!provider?.configured()) {
-          continue;
         }
+      } catch (kbError) {
+        console.error('Knowledge base error:', kbError);
+        // Continue without knowledge base if it fails
+      }
 
-        try {
-          response = await provider.call(message, relevantHistory, userContext, knowledgeBaseContext);
-          break;
-        } catch (providerError) {
-          // Distinguish between quota errors (try next provider) and network errors (skip to fallback)
-          if (providerError instanceof QuotaExceededError) {
-            console.warn(`AI provider ${providerName} quota exceeded, trying next provider`);
-            continue; // Try next provider
-          } else if (providerError instanceof NetworkError) {
-            console.warn(`AI provider ${providerName} network error, trying next provider`);
-            continue; // Try next provider
-          } else {
-            const errorMessage = providerError instanceof Error ? providerError.message : 'Unknown error';
-            console.warn(`AI provider ${providerName} error: ${errorMessage}`);
-            continue; // Try next provider for any other error
+      // Check which AI service to use. Auto mode tries Gemini first, then OpenAI, then Groq.
+      const aiService = (process.env.AI_SERVICE || 'auto').toLowerCase();
+
+      try {
+        const providerOrder =
+          aiService === 'groq'
+            ? ['groq', 'gemini', 'openai']
+            : aiService === 'openai'
+              ? ['openai', 'gemini', 'groq']
+              : aiService === 'gemini'
+                ? ['gemini', 'openai', 'groq']
+                : ['gemini', 'openai', 'groq'];
+
+        const providerMap = {
+          gemini: {
+            configured: () => Boolean(process.env.GEMINI_API_KEY?.trim()),
+            call: callGeminiAPI,
+          },
+          openai: {
+            configured: () => Boolean(process.env.OPENAI_API_KEY?.trim()),
+            call: callOpenAIAPI,
+          },
+          groq: {
+            configured: () => Boolean(process.env.GROQ_API_KEY?.trim()),
+            call: callGroqAPI,
+          },
+        } as const;
+
+        for (const providerName of providerOrder) {
+          const provider = providerMap[providerName as keyof typeof providerMap];
+
+          if (!provider?.configured()) {
+            continue;
+          }
+
+          try {
+            response = await provider.call(message, relevantHistory, userContext, knowledgeBaseContext);
+            console.log(`[ChatRoute] Using ${providerName} provider (traditional mode)`);
+            break;;
+          } catch (providerError) {
+            // Distinguish between quota errors (try next provider) and network errors (skip to fallback)
+            if (providerError instanceof QuotaExceededError) {
+              console.warn(`AI provider ${providerName} quota exceeded, trying next provider`);
+              continue; // Try next provider
+            } else if (providerError instanceof NetworkError) {
+              console.warn(`AI provider ${providerName} network error, trying next provider`);
+              continue; // Try next provider
+            } else {
+              const errorMessage = providerError instanceof Error ? providerError.message : 'Unknown error';
+              console.warn(`AI provider ${providerName} error: ${errorMessage}`);
+              continue; // Try next provider for any other error
+            }
           }
         }
-      }
 
-      if (!response) {
+        if (!response) {
+          response = generateFallbackResponse(message);
+        }
+      } catch (error) {
+        console.error('AI request error:', error);
         response = generateFallbackResponse(message);
       }
-    } catch (error) {
-      console.error('AI request error:', error);
-      response = generateFallbackResponse(message);
     }
 
     // Store conversation if userId is provided
+    let savedConversationId = conversationId || null;
     if (userId) {
       try {
-        const savedConversationId = await storeConversation(userId, message, response, relevantHistory, conversationId);
-        return NextResponse.json({ success: true, data: { response, conversationId: savedConversationId } });
+        savedConversationId = await storeConversation(userId, message, response, relevantHistory, conversationId);
       } catch (storageError) {
         console.error('Conversation storage error:', storageError);
         // Continue even if storage fails
       }
     }
 
-    return NextResponse.json({ success: true, data: { response, conversationId: conversationId || null } });
+    // Build response data
+    const responseData: any = {
+      response,
+      conversationId: savedConversationId,
+      ragEnabled
+    };
+
+    // Add RAG metadata if RAG was used
+    if (ragEnabled && ragData) {
+      responseData.sources = ragData.sources.map(source => ({
+        id: source.id,
+        title: source.title,
+        category: source.category,
+        subcategory: source.subcategory,
+        similarity: source.similarity,
+        source: source.source,
+        chunkIndex: source.chunkIndex
+      }));
+      responseData.fromCache = ragData.fromCache;
+      responseData.provider = ragData.provider;
+      responseData.strictModeActive = ragData.strictModeActive;
+      responseData.sourcesFound = ragData.sourcesFound;
+      responseData.processingTime = ragData.processingTime;
+      if (ragData.tokenUsage) {
+        responseData.tokenUsage = ragData.tokenUsage;
+      }
+    }
+
+    return NextResponse.json({ success: true, data: responseData });
   } catch (error) {
     console.error('AI Chat Error:', error);
     return NextResponse.json(
