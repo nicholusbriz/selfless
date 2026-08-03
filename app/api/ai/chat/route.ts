@@ -3,6 +3,21 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// Custom error types for better error handling
+class QuotaExceededError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'QuotaExceededError';
+  }
+}
+
+class NetworkError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'NetworkError';
+  }
+}
+
 type ChatHistoryMessage = {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -192,17 +207,67 @@ ${k.tags.length > 0 ? `**Tags:** ${k.tags.join(', ')}` : ''}
       // Continue without knowledge base if it fails
     }
 
-    // Check which AI service to use
-    const aiService = process.env.AI_SERVICE || 'openai'; // Default to OpenAI
+    // Check which AI service to use. Auto mode tries Gemini first, then OpenAI, then Groq.
+    const aiService = (process.env.AI_SERVICE || 'auto').toLowerCase();
 
     let response;
 
-    if (aiService === 'groq') {
-      response = await callGroqAPI(message, relevantHistory, userContext, knowledgeBaseContext);
-    } else if (aiService === 'openai') {
-      response = await callOpenAIAPI(message, relevantHistory, userContext, knowledgeBaseContext);
-    } else {
-      // Fallback to a simple response if no API is configured
+    try {
+      const providerOrder =
+        aiService === 'groq'
+          ? ['groq', 'gemini', 'openai']
+          : aiService === 'openai'
+            ? ['openai', 'gemini', 'groq']
+            : aiService === 'gemini'
+              ? ['gemini', 'openai', 'groq']
+              : ['gemini', 'openai', 'groq'];
+
+      const providerMap = {
+        gemini: {
+          configured: () => Boolean(process.env.GEMINI_API_KEY?.trim()),
+          call: callGeminiAPI,
+        },
+        openai: {
+          configured: () => Boolean(process.env.OPENAI_API_KEY?.trim()),
+          call: callOpenAIAPI,
+        },
+        groq: {
+          configured: () => Boolean(process.env.GROQ_API_KEY?.trim()),
+          call: callGroqAPI,
+        },
+      } as const;
+
+      for (const providerName of providerOrder) {
+        const provider = providerMap[providerName as keyof typeof providerMap];
+
+        if (!provider?.configured()) {
+          continue;
+        }
+
+        try {
+          response = await provider.call(message, relevantHistory, userContext, knowledgeBaseContext);
+          break;
+        } catch (providerError) {
+          // Distinguish between quota errors (try next provider) and network errors (skip to fallback)
+          if (providerError instanceof QuotaExceededError) {
+            console.warn(`AI provider ${providerName} quota exceeded, trying next provider`);
+            continue; // Try next provider
+          } else if (providerError instanceof NetworkError) {
+            console.warn(`AI provider ${providerName} network error, trying next provider`);
+            continue; // Try next provider
+          } else {
+            const errorMessage = providerError instanceof Error ? providerError.message : 'Unknown error';
+            console.warn(`AI provider ${providerName} error: ${errorMessage}`);
+            continue; // Try next provider for any other error
+          }
+        }
+      }
+
+      if (!response) {
+        response = generateFallbackResponse(message);
+      }
+    } catch (error) {
+      console.error('AI request error:', error);
       response = generateFallbackResponse(message);
     }
 
@@ -472,8 +537,68 @@ function assessDifficulty(message: string): string {
   return 'medium';
 }
 
+async function callGeminiAPI(message: string, conversationHistory: ChatHistoryMessage[] = [], userContext: string = '', knowledgeBaseContext: string = '') {
+  const apiKey = process.env.GEMINI_API_KEY?.trim();
+
+  if (!apiKey) {
+    throw new Error('Gemini API key is not configured');
+  }
+
+  const systemContent = AI_IDENTITY + userContext + knowledgeBaseContext;
+  const historyPrompt = conversationHistory.length > 0
+    ? `\n\nConversation history:\n${conversationHistory.map((msg) => `${msg.role}: ${msg.content}`).join('\n')}`
+    : '';
+
+  const prompt = `${systemContent}${historyPrompt}\n\nUser message:\n${message}`;
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: prompt }],
+        },
+      ],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 1000,
+      },
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    const errorMessage = data?.error?.message || 'Gemini API request failed';
+    
+    // Check if it's a quota/limit error
+    if (errorMessage.includes('quota') || errorMessage.includes('limit') || errorMessage.includes('exceeded')) {
+      throw new QuotaExceededError(errorMessage);
+    }
+    
+    // Check if it's a network-related error
+    if (errorMessage.includes('network') || errorMessage.includes('connection') || errorMessage.includes('timeout')) {
+      throw new NetworkError(errorMessage);
+    }
+    
+    throw new Error(errorMessage);
+  }
+
+  const content = data?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text).join('') || '';
+
+  if (!content) {
+    throw new Error('Gemini returned an empty response');
+  }
+
+  return content;
+}
+
 async function callOpenAIAPI(message: string, conversationHistory: ChatHistoryMessage[] = [], userContext: string = '', knowledgeBaseContext: string = '') {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
   
   if (!apiKey) {
     throw new Error('OpenAI API key is not configured');
@@ -513,14 +638,26 @@ async function callOpenAIAPI(message: string, conversationHistory: ChatHistoryMe
   const data = await response.json();
 
   if (data.error) {
-    throw new Error(data.error.message);
+    const errorMessage = data.error.message;
+    
+    // Check if it's a quota/limit error
+    if (errorMessage.includes('quota') || errorMessage.includes('limit') || errorMessage.includes('billing') || errorMessage.includes('exceeded')) {
+      throw new QuotaExceededError(errorMessage);
+    }
+    
+    // Check if it's a network-related error
+    if (errorMessage.includes('network') || errorMessage.includes('connection') || errorMessage.includes('timeout')) {
+      throw new NetworkError(errorMessage);
+    }
+    
+    throw new Error(errorMessage);
   }
 
   return data.choices[0].message.content;
 }
 
 async function callGroqAPI(message: string, conversationHistory: ChatHistoryMessage[] = [], userContext: string = '', knowledgeBaseContext: string = '') {
-  const apiKey = process.env.GROQ_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY?.trim();
   
   if (!apiKey) {
     throw new Error('Groq API key is not configured');
@@ -560,7 +697,19 @@ async function callGroqAPI(message: string, conversationHistory: ChatHistoryMess
   const data = await response.json();
 
   if (data.error) {
-    throw new Error(data.error.message);
+    const errorMessage = data.error.message;
+    
+    // Check if it's a quota/limit error
+    if (errorMessage.includes('quota') || errorMessage.includes('limit') || errorMessage.includes('rate limit') || errorMessage.includes('exceeded')) {
+      throw new QuotaExceededError(errorMessage);
+    }
+    
+    // Check if it's a network-related error
+    if (errorMessage.includes('network') || errorMessage.includes('connection') || errorMessage.includes('timeout')) {
+      throw new NetworkError(errorMessage);
+    }
+    
+    throw new Error(errorMessage);
   }
 
   return data.choices[0].message.content;
@@ -575,12 +724,12 @@ function generateFallbackResponse(message: string): string {
   }
   
   if (lowerMessage.includes('assignment') || lowerMessage.includes('homework') || lowerMessage.includes('help')) {
-    return "I'd be happy to help you with your assignments! Currently, I'm in basic mode, but I can still provide some guidance.\n\nFor full AI assistance including:\n• Detailed explanations of concepts\n• Step-by-step problem solving\n• Code debugging and help\n• Research assistance\n\nPlease ask your administrator to configure an AI service (OpenAI or Groq) in the environment variables.\n\nIn the meantime, what specific topic or problem are you working on?";
+    return "I'd be happy to help you with your assignments! Currently, I'm experiencing high network demand, which may affect my response capabilities.\n\nFor the best experience, please wait a moment and try again. I'll be able to provide:\n• Detailed explanations of concepts\n• Step-by-step problem solving\n• Code debugging and help\n• Research assistance\n\nIn the meantime, what specific topic or problem are you working on?";
   }
   
   if (lowerMessage.includes('grade') || lowerMessage.includes('gpa')) {
     return "You can view your grades and GPA by navigating to the Grades section in the dashboard (/dashboard/grades). There you'll see:\n\n• All your course grades\n• Current GPA calculation\n• Academic progress tracking\n• Grade history\n\nIf you have questions about a specific grade or need help understanding your academic standing, feel free to ask!";
   }
   
-  return "I'm your AI assistant for Selfless CE! I can help you with:\n\n• Platform navigation and features\n• Assignment questions and explanations\n• Course information and requirements\n• General questions about any topic\n• Coding help and debugging\n\nFor full AI capabilities, please ensure an AI service (OpenAI or Groq) is configured. What would you like to know?";
+  return "I'm your AI assistant for Selfless CE! I'm currently experiencing high network demand, but I'm still here to help you with:\n\n• Platform navigation and features\n• Assignment questions and explanations\n• Course information and requirements\n• General questions about any topic\n• Coding help and debugging\n\nPlease wait a moment and try again for full AI capabilities. What would you like to know?";
 }
