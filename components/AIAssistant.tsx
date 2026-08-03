@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   MessageSquare, X, Send, Sparkles, Minimize2, Maximize2, 
   Bot, User, Brain, Zap, Copy, Check, Plus, ChevronDown,
-  Code, Terminal, FileCode, CornerDownLeft
+  Code, Terminal, FileCode, CornerDownLeft, Clipboard, ClipboardPaste,
+  FileText, Image, Link, AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSession } from 'next-auth/react';
@@ -31,6 +32,8 @@ export default function AIAssistant() {
   const [showNewChatConfirm, setShowNewChatConfirm] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isScrolling, setIsScrolling] = useState(false);
+  const [isPasting, setIsPasting] = useState(false);
+  const [pasteContent, setPasteContent] = useState<string | null>(null);
 
   // Memoize the welcome message to prevent unnecessary re-renders
   const getWelcomeMessage = useCallback(() => {
@@ -159,6 +162,7 @@ export default function AIAssistant() {
     setShowNewChatConfirm(false);
     setIsLoading(false);
     setShowScrollButton(false);
+    setPasteContent(null);
     
     setTimeout(() => {
       inputRef.current?.focus();
@@ -171,6 +175,93 @@ export default function AIAssistant() {
     setCopiedMessageId(messageId);
     setTimeout(() => setCopiedMessageId(null), 2000);
   };
+
+  // Handle paste functionality - accepts text only, blocks images/videos
+  const handlePaste = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    e.preventDefault();
+    setIsPasting(true);
+    
+    try {
+      // Check what's in the clipboard
+      const clipboardData = e.clipboardData;
+      const items = clipboardData.items;
+      
+      // Check if there are any image or video items
+      let hasImageOrVideo = false;
+      let pastedText = '';
+      
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type.startsWith('image/') || item.type.startsWith('video/')) {
+          hasImageOrVideo = true;
+          break;
+        }
+        if (item.type === 'text/plain') {
+          item.getAsString((text) => {
+            pastedText = text;
+          });
+        }
+      }
+      
+      // If there's an image or video, show a message and don't paste
+      if (hasImageOrVideo) {
+        setPasteContent('⚠️ Images and videos are not supported. Text only.');
+        setTimeout(() => setPasteContent(null), 3000);
+        setIsPasting(false);
+        return;
+      }
+      
+      // Get plain text
+      const text = clipboardData.getData('text/plain');
+      
+      if (text) {
+        const textarea = inputRef.current;
+        if (textarea) {
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          const currentValue = input;
+          
+          // If there's selected text, replace it
+          if (start !== end) {
+            const newValue = currentValue.substring(0, start) + text + currentValue.substring(end);
+            setInput(newValue);
+          } else {
+            // Insert at cursor position
+            const newValue = currentValue.substring(0, start) + text + currentValue.substring(start);
+            setInput(newValue);
+            
+            // Set cursor position after pasted content
+            setTimeout(() => {
+              if (textarea) {
+                const newPosition = start + text.length;
+                textarea.selectionStart = newPosition;
+                textarea.selectionEnd = newPosition;
+                textarea.focus();
+              }
+            }, 0);
+          }
+          
+          // Show paste indicator
+          if (text.length > 100) {
+            setPasteContent(`📄 Pasted ${text.length} characters`);
+            setTimeout(() => setPasteContent(null), 1500);
+          } else if (text.length > 0) {
+            setPasteContent('✅ Text pasted');
+            setTimeout(() => setPasteContent(null), 1000);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Paste error:', error);
+      // Fallback to default paste
+      const text = e.clipboardData.getData('text/plain');
+      if (text) {
+        setInput(prev => prev + text);
+      }
+    } finally {
+      setIsPasting(false);
+    }
+  }, [input]);
 
   // Custom markdown components with proper mobile handling
   const MarkdownComponents = useMemo(() => ({
@@ -644,13 +735,37 @@ export default function AIAssistant() {
 
                 {/* Input */}
                 <div className="px-3 py-2.5 border-t border-[#1A1228] bg-gradient-to-r from-[#1A1228] via-[#241B35] to-[#1A1228]">
+                  {/* Paste notification */}
+                  <AnimatePresence>
+                    {pasteContent && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className={`mb-1.5 px-2.5 py-1 rounded-lg border text-[9px] flex items-center gap-1.5 ${
+                          pasteContent.includes('⚠️') 
+                            ? 'bg-red-500/10 border-red-500/30 text-red-400' 
+                            : 'bg-[#1A1228] border-[#241B35] text-[#8A8278]'
+                        }`}
+                      >
+                        {pasteContent.includes('⚠️') ? (
+                          <AlertCircle className="w-3 h-3 text-red-400" />
+                        ) : (
+                          <ClipboardPaste className="w-3 h-3 text-[#E8A33D]" />
+                        )}
+                        {pasteContent}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  
                   <div className="flex gap-2">
                     <textarea
                       ref={inputRef}
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={handleKeyPress}
-                      placeholder="Ask Atbriz Ai anything..."
+                      onPaste={handlePaste}
+                      placeholder="Ask Atbriz Ai anything... (Paste supported)"
                       rows={1}
                       className="flex-1 bg-[#0F0A1A] border-2 border-[#241B35] rounded-xl px-3 py-2 text-white text-sm placeholder-[#8A8278] focus:outline-none focus:border-[#E8A33D] resize-none transition-all shadow-inner overflow-hidden"
                       style={{ minHeight: '38px', maxHeight: '100px' }}
@@ -671,9 +786,15 @@ export default function AIAssistant() {
                     </button>
                   </div>
                   <div className="flex items-center justify-between mt-1.5">
-                    <p className="text-[8px] text-[#8A8278]">
-                      <kbd className="px-1 py-0.5 bg-[#0F0A1A] rounded border border-[#241B35] text-[8px]">Shift</kbd> + <kbd className="px-1 py-0.5 bg-[#0F0A1A] rounded border border-[#241B35] text-[8px]">Enter</kbd> new line
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-[8px] text-[#8A8278]">
+                        <kbd className="px-1 py-0.5 bg-[#0F0A1A] rounded border border-[#241B35] text-[8px]">Shift</kbd> + <kbd className="px-1 py-0.5 bg-[#0F0A1A] rounded border border-[#241B35] text-[8px]">Enter</kbd> new line
+                      </p>
+                      <span className="text-[8px] text-[#8A8278]">•</span>
+                      <p className="text-[8px] text-[#8A8278]">
+                        <kbd className="px-1 py-0.5 bg-[#0F0A1A] rounded border border-[#241B35] text-[8px]">Ctrl</kbd> + <kbd className="px-1 py-0.5 bg-[#0F0A1A] rounded border border-[#241B35] text-[8px]">V</kbd> to paste
+                      </p>
+                    </div>
                     <p className="text-[8px] text-[#8A8278]">
                       <kbd className="px-1 py-0.5 bg-[#0F0A1A] rounded border border-[#241B35] text-[8px]">Ctrl</kbd> + <kbd className="px-1 py-0.5 bg-[#0F0A1A] rounded border border-[#241B35] text-[8px]">N</kbd> new chat
                     </p>
