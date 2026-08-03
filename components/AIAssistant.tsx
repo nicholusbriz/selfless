@@ -60,6 +60,23 @@ export default function AIAssistant() {
 
   // Initialize messages with welcome message
   const [messages, setMessages] = useState<Message[]>(() => {
+    // Try to load from localStorage first
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ai-chat-messages');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          // Only restore if it's from the same session
+          const savedSessionId = localStorage.getItem('ai-chat-session-id');
+          if (savedSessionId === session?.user?.id) {
+            return parsed;
+          }
+        } catch (e) {
+          console.error('Failed to parse saved messages:', e);
+        }
+      }
+    }
+    
     return [
       {
         id: '1',
@@ -87,6 +104,50 @@ export default function AIAssistant() {
       }).catch(err => console.error('Failed to log AI usage:', err));
     }
   }, [isOpen, session?.user?.id, session?.user?.techCenterId]);
+
+  // Clear localStorage when session changes (user logs out or different user logs in)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedSessionId = localStorage.getItem('ai-chat-session-id');
+      const currentSessionId = session?.user?.id;
+      
+      if (savedSessionId && currentSessionId && savedSessionId !== currentSessionId) {
+        // Different user logged in, clear previous chat
+        localStorage.removeItem('ai-chat-messages');
+        localStorage.removeItem('ai-chat-session-id');
+        // Reset to welcome message for new user
+        const hour = new Date().getHours();
+        const userName = session?.user?.firstName || 'there';
+        let timeGreeting;
+        if (hour >= 5 && hour < 12) timeGreeting = 'Good morning';
+        else if (hour >= 12 && hour < 17) timeGreeting = 'Good afternoon';
+        else timeGreeting = 'Good evening';
+        
+        const greeting = `${timeGreeting}, ${userName}!`;
+        let welcomeMessage = `🚀 ${greeting} Welcome to **Atbriz Ai** - Your intelligent learning companion!\n\n`;
+        welcomeMessage += `I can help you with:\n\n• 📚 Academic guidance and assignment help\n• 🎯 Personalized learning based on your progress\n• 💡 Site navigation and platform features\n• 🔧 Coding help and debugging\n• 📖 General knowledge and research\n• 🏢 Selfless CE organization information\n• 👨‍💻 Developer and platform information\n\nI'm designed to learn from your interactions and provide increasingly personalized assistance. Feel free to ask me about the platform, your studies, or even who created me!\n\nLet's start learning together!`;
+        
+        setMessages([{
+          id: '1',
+          role: 'assistant',
+          content: welcomeMessage,
+          timestamp: new Date()
+        }]);
+      } else if (!currentSessionId && savedSessionId) {
+        // User logged out
+        localStorage.removeItem('ai-chat-messages');
+        localStorage.removeItem('ai-chat-session-id');
+      }
+    }
+  }, [session?.user?.id, session?.user?.firstName]);
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined' && session?.user?.id) {
+      localStorage.setItem('ai-chat-messages', JSON.stringify(messages));
+      localStorage.setItem('ai-chat-session-id', session.user.id);
+    }
+  }, [messages, session?.user?.id]);
 
   // Update welcome message when session or profile recommendations change
   useEffect(() => {
@@ -163,6 +224,12 @@ export default function AIAssistant() {
     setIsLoading(false);
     setShowScrollButton(false);
     setPasteContent(null);
+    
+    // Clear localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('ai-chat-messages');
+      localStorage.removeItem('ai-chat-session-id');
+    }
     
     setTimeout(() => {
       inputRef.current?.focus();
