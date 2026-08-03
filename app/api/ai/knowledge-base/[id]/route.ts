@@ -6,14 +6,15 @@ const prisma = new PrismaClient();
 // PUT - Update knowledge base entry
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const { category, subcategory, title, content, summary, tags, difficulty, priority, relatedIds, isActive, helpfulRating } = body;
 
     const knowledge = await prisma.aIKnowledgeBase.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(category && { category }),
         ...(subcategory !== undefined && { subcategory }),
@@ -45,11 +46,12 @@ export async function PUT(
 // DELETE - Delete knowledge base entry
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     await prisma.aIKnowledgeBase.delete({
-      where: { id: params.id }
+      where: { id }
     });
 
     return NextResponse.json({
