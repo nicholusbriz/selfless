@@ -1,9 +1,10 @@
 // app/dashboard/layout.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Head from 'next/head';
+import Image from 'next/image';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
@@ -25,27 +26,20 @@ import {
   Users,
   Megaphone,
   FileText,
-  ChevronRight,
   Sparkles,
   Shield,
   UserCog,
   School,
   Briefcase,
-  Sun,
-  Moon,
   ClipboardList,
   Clock,
   Award,
-  Zap,
-  Star,
-  TrendingUp,
   Trophy,
   Search,
   Building2,
   HeartHandshake
 } from 'lucide-react';
 import { useUnreadNotificationCount, useAnnouncementCount } from '@/hooks/useNotifications';
-import AIAssistant from '@/components/AIAssistant';
 
 // ============================================
 // ENHANCED COLOR TOKENS
@@ -57,21 +51,33 @@ import AIAssistant from '@/components/AIAssistant';
 // Surface: Deep Purple-Black → #0F0A1A, #1A1228, #241B35
 // Text: White → #FFFFFF, #F8F5F0, #C4BDB5, #8A8278
 
+interface TopBarProps {
+  sidebarOpen: boolean;
+  setSidebarOpen: Dispatch<SetStateAction<boolean>>;
+  isMobile: boolean;
+  onMenuToggle?: () => void;
+  mobileMenuOpen?: boolean;
+  user: {
+    profileImageUrl?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+    email?: string | null;
+    role?: string | null;
+  } | null;
+  userRole: string;
+}
+
 // ============================================
 // TOP BAR COMPONENT - FIXED NOTIFICATION BADGE
 // ============================================
-function TopBar({ 
-  sidebarOpen, 
-  setSidebarOpen, 
-  isDarkMode, 
-  setIsDarkMode,
+function TopBar({
+  sidebarOpen,
+  setSidebarOpen,
   isMobile,
   onMenuToggle,
-  mobileMenuOpen,
   user,
   userRole,
-  handleLogout
-}: any) {
+}: TopBarProps) {
   const [scrolled, setScrolled] = useState(false);
   const { data: unreadCount } = useUnreadNotificationCount();
   const { data: announcementCount } = useAnnouncementCount();
@@ -116,7 +122,7 @@ function TopBar({
               <div className="absolute inset-0 bg-gradient-to-r from-[#E8A33D] to-[#FB7185] rounded-xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-500"></div>
               <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-[#E8A33D] to-[#FB7185] p-[2px] shadow-2xl shadow-[#E8A33D]/30 flex-shrink-0">
                 <div className="w-full h-full rounded-[10px] bg-[#0F0A1A] flex items-center justify-center overflow-hidden">
-                  <img src="/freedom.png" alt="Freedom Tech Logo" className="w-full h-full object-cover" />
+                  <Image src="/freedom.png" alt="Freedom Tech Logo" width={36} height={36} className="w-full h-full object-cover" />
                 </div>
               </div>
             </div>
@@ -187,9 +193,12 @@ function TopBar({
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-[#E8A33D] to-[#14B8A6] rounded-full blur-xl opacity-30 group-hover:opacity-50 transition-opacity duration-500"></div>
               {user?.profileImageUrl ? (
-                <img
+                <Image
                   src={user.profileImageUrl}
                   alt={`${user?.firstName} ${user?.lastName}`}
+                  width={44}
+                  height={44}
+                  unoptimized
                   className="relative w-11 h-11 rounded-full object-cover shadow-xl shadow-[#E8A33D]/20 transition-transform duration-300 group-hover:scale-110"
                 />
               ) : (
@@ -224,11 +233,27 @@ function TopBar({
   );
 }
 
+interface NavItem {
+  id: string;
+  label: string;
+  path: string;
+  icon: ReactNode;
+  roles: string[];
+}
+
+interface NavGroup {
+  id: string;
+  label: string;
+  icon: ReactNode;
+  roles: string[];
+  items: NavItem[];
+}
+
 // ============================================
 // SIDEBAR NAVIGATION ITEMS - FIXED ROLE VISIBILITY
 // ============================================
-const getNavGroups = (userRole: string) => {
-  const groups = [];
+const getNavGroups = (userRole: string): NavGroup[] => {
+  const groups: NavGroup[] = [];
 
   // =====================
   // SUPER ADMIN ONLY LINKS
@@ -246,6 +271,13 @@ const getNavGroups = (userRole: string) => {
           label: 'Dashboard', 
           path: '/dashboard',
           icon: <LayoutDashboard className="w-5 h-5" />,
+          roles: ['super_admin']
+        },
+        { 
+          id: 'atbriz-ai', 
+          label: 'Atbriz AI', 
+          path: '/dashboard/ai',
+          icon: <Sparkles className="w-5 h-5" />,
           roles: ['super_admin']
         },
         { 
@@ -373,6 +405,13 @@ const getNavGroups = (userRole: string) => {
           label: 'Dashboard', 
           path: '/dashboard',
           icon: <LayoutDashboard className="w-5 h-5" />,
+          roles: ['admin']
+        },
+        { 
+          id: 'atbriz-ai', 
+          label: 'Atbriz AI', 
+          path: '/dashboard/ai',
+          icon: <Sparkles className="w-5 h-5" />,
           roles: ['admin']
         },
         { 
@@ -582,6 +621,13 @@ const getNavGroups = (userRole: string) => {
           roles: ['teacher']
         },
         { 
+          id: 'atbriz-ai', 
+          label: 'Atbriz AI', 
+          path: '/dashboard/ai',
+          icon: <Sparkles className="w-5 h-5" />,
+          roles: ['teacher']
+        },
+        { 
           id: 'students', 
           label: 'Students', 
           path: '/dashboard/students',
@@ -780,6 +826,13 @@ const getNavGroups = (userRole: string) => {
         roles: ['student']
       },
       { 
+        id: 'atbriz-ai', 
+        label: 'Atbriz AI', 
+        path: '/dashboard/ai',
+        icon: <Sparkles className="w-5 h-5" />,
+        roles: ['student']
+      },
+      { 
         id: 'students', 
         label: 'Students', 
         path: '/dashboard/students',
@@ -922,17 +975,30 @@ const getNavGroups = (userRole: string) => {
   return groups;
 };
 
+interface SidebarProps {
+  sidebarOpen: boolean;
+  pathname: string;
+  user: {
+    profileImageUrl?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+    email?: string | null;
+    role?: string | null;
+  } | null;
+  userRole: string;
+  handleLogout: () => void | Promise<void>;
+}
+
 // ============================================
 // SIDEBAR COMPONENT — With fixed notification badge
 // ============================================
-function Sidebar({ 
-  sidebarOpen, 
-  pathname, 
-  user, 
+function Sidebar({
+  sidebarOpen,
+  pathname,
+  user,
   userRole,
   handleLogout,
-  isDarkMode
-}: any) {
+}: SidebarProps) {
   const navGroups = getNavGroups(userRole);
   const [expandedGroups, setExpandedGroups] = useState<string[]>(() => navGroups.map(g => g.id));
   const [searchQuery, setSearchQuery] = useState('');
@@ -968,12 +1034,7 @@ function Sidebar({
         .filter(group => group.items.length > 0)
     : filteredNavGroups;
 
-  // Auto-expand groups when searching
-  useEffect(() => {
-    if (searchQuery) {
-      setExpandedGroups(searchFilteredNavGroups.map(g => g.id));
-    }
-  }, [searchQuery]);
+  const isSearchActive = searchQuery.trim().length > 0;
 
   return (
     <aside className={cn(
@@ -998,7 +1059,7 @@ function Sidebar({
           <div className="absolute inset-0 bg-gradient-to-r from-[#E8A33D] to-[#FB7185] rounded-xl blur-xl opacity-40 group-hover:opacity-60 transition-opacity duration-500"></div>
           <div className="relative w-8 h-8 rounded-xl bg-gradient-to-br from-[#E8A33D] to-[#FB7185] p-[2px] shadow-2xl shadow-[#E8A33D]/30 flex-shrink-0">
             <div className="w-full h-full rounded-[10px] bg-[#0F0A1A] flex items-center justify-center overflow-hidden">
-              <img src="/freedom.png" alt="Freedom Tech Logo" className="w-full h-full object-cover" />
+              <Image src="/freedom.png" alt="Freedom Tech Logo" width={32} height={32} className="w-full h-full object-cover" />
             </div>
           </div>
         </div>
@@ -1078,9 +1139,9 @@ function Sidebar({
               )}
             </button>
 
-            {expandedGroups.includes(group.id) && sidebarOpen && (
+            {(isSearchActive || expandedGroups.includes(group.id)) && sidebarOpen && (
               <div className="ml-2 space-y-0.5 mt-0.5">
-                {group.items.map((item: any) => {
+                {group.items.map((item: NavItem) => {
                   const isActive = pathname === item.path || pathname.startsWith(item.path + '/');
                   return (
                     <Link
@@ -1155,9 +1216,12 @@ function Sidebar({
             <div className="relative group">
               <div className="absolute inset-0 bg-gradient-to-r from-[#E8A33D] to-[#14B8A6] rounded-full blur-xl opacity-30 group-hover:opacity-50 transition-opacity duration-500"></div>
               {user?.profileImageUrl ? (
-                <img
+                <Image
                   src={user.profileImageUrl}
                   alt={`${user?.firstName} ${user?.lastName}`}
+                  width={40}
+                  height={40}
+                  unoptimized
                   className="relative w-10 h-10 rounded-full object-cover shadow-xl shadow-[#E8A33D]/20 transition-transform duration-300 group-hover:scale-110"
                 />
               ) : (
@@ -1218,7 +1282,6 @@ export default function DashboardLayout({
   const { data: session, status } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -1226,8 +1289,10 @@ export default function DashboardLayout({
   const isLoading = status === 'loading';
   const isAuthenticated = status === 'authenticated';
   const userRole = user?.role || 'student';
+  const isAiPage = pathname === '/dashboard/ai' || pathname.startsWith('/dashboard/ai/');
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMobileMenuOpen(false);
   }, [pathname]);
 
@@ -1250,14 +1315,6 @@ export default function DashboardLayout({
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDarkMode]);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -1327,7 +1384,6 @@ export default function DashboardLayout({
           user={user}
           userRole={userRole}
           handleLogout={handleLogout}
-          isDarkMode={isDarkMode}
         />
       </div>
 
@@ -1338,12 +1394,9 @@ export default function DashboardLayout({
           <TopBar
             sidebarOpen={sidebarOpen}
             setSidebarOpen={setSidebarOpen}
-            isDarkMode={isDarkMode}
-            setIsDarkMode={setIsDarkMode}
             isMobile={false}
             user={user}
             userRole={userRole}
-            handleLogout={handleLogout}
           />
 
           <main className="min-h-screen w-full px-8 pb-8 pt-[5.5rem]">
@@ -1376,17 +1429,13 @@ export default function DashboardLayout({
           <TopBar
             sidebarOpen={sidebarOpen}
             setSidebarOpen={setSidebarOpen}
-            isDarkMode={isDarkMode}
-            setIsDarkMode={setIsDarkMode}
             isMobile={true}
             onMenuToggle={toggleMobileMenu}
-            mobileMenuOpen={mobileMenuOpen}
             user={user}
             userRole={userRole}
-            handleLogout={handleLogout}
           />
 
-          <main className="flex-1 w-full overflow-x-hidden overflow-y-auto px-4 pb-4 pt-[7.5rem]">
+          <main className={cn("flex-1 w-full overflow-x-hidden overflow-y-auto px-4 pb-4", isAiPage ? "pt-20 sm:pt-24" : "pt-[7.5rem]")}> 
             <div className="w-full max-w-7xl mx-auto">
               {children}
             </div>
@@ -1435,15 +1484,24 @@ export default function DashboardLayout({
                 user={user}
                 userRole={userRole}
                 handleLogout={handleLogout}
-                isDarkMode={isDarkMode}
               />
             </motion.div>
           </>
         )}
       </AnimatePresence>
       
-      {/* AI Assistant */}
-      <AIAssistant />
+      {!isAiPage && (
+        <Link
+          href="/dashboard/ai"
+          className="fixed bottom-4 right-4 z-40 flex items-center gap-2.5 rounded-2xl border-2 border-white/20 bg-gradient-to-br from-[#E8A33D] via-[#FB7185] to-[#14B8A6] px-3.5 py-3 text-white shadow-2xl shadow-[#E8A33D]/40 transition-all duration-300 hover:scale-105"
+        >
+          <div className="relative">
+            <Image src="/atbriz.png" alt="Atbriz Ai" width={32} height={32} className="h-8 w-8 rounded-xl object-cover" />
+            <div className="absolute -right-1 -top-1.5 rounded-full bg-green-400 p-1" />
+          </div>
+          <span className="whitespace-nowrap text-xs font-bold">Atbriz Ai</span>
+        </Link>
+      )}
       </div>
     </>
   );

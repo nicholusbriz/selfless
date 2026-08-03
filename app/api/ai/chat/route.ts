@@ -3,6 +3,21 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+type ChatHistoryMessage = {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+  timestamp?: string | Date;
+};
+
+type LearningProfileRecord = {
+  preferredTopics?: string[];
+  difficultyLevel?: string;
+  strongSubjects?: string[];
+  weakSubjects?: string[];
+  responseStyle?: string;
+  languagePreference?: string;
+} | null;
+
 // Basic AI identity - all specific knowledge comes from database
 const AI_IDENTITY = `
 You are Atbriz Ai, an intelligent learning assistant designed to help students succeed.
@@ -34,9 +49,52 @@ When answering questions:
 - If you don't know something, admit it and suggest where the user might find help
 `;
 
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const userId = searchParams.get('userId');
+  const conversationId = searchParams.get('conversationId');
+
+  if (!userId) {
+    return NextResponse.json({ success: false, error: 'User ID is required' }, { status: 400 });
+  }
+
+  try {
+    if (conversationId) {
+      const conversation = await prisma.aIConversation.findFirst({
+        where: { id: conversationId, userId, isActive: true },
+        select: { id: true, title: true, messages: true, updatedAt: true },
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          conversation,
+        },
+      });
+    }
+
+    const conversations = await prisma.aIConversation.findMany({
+      where: { userId, isActive: true },
+      orderBy: { updatedAt: 'desc' },
+      select: { id: true, title: true, updatedAt: true, topics: true },
+      take: 20,
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        conversations,
+      },
+    });
+  } catch (error) {
+    console.error('Chat history fetch error:', error);
+    return NextResponse.json({ success: false, error: 'Failed to fetch chat history' }, { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { message, conversationHistory, userId, userContext: prebuiltUserContext, profileRecommendations } = await request.json();
+    const { message, conversationHistory, userId, userContext: prebuiltUserContext, profileRecommendations, conversationId } = await request.json();
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
@@ -44,6 +102,10 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const conversationHistoryMessages = Array.isArray(conversationHistory)
+      ? (conversationHistory as ChatHistoryMessage[])
+      : [];
 
     // Use prebuilt context if provided (from TanStack Query cache), otherwise fetch from database
     let userContext = '';
@@ -95,6 +157,19 @@ USER CONTEXT:
       userContext += profileRecommendations;
     }
 
+    if (userId) {
+      try {
+        const learningProfileContext = await getLearningProfileContext(userId);
+        if (learningProfileContext) {
+          userContext += `\n\n${learningProfileContext}`;
+        }
+      } catch (profileError) {
+        console.error('Learning profile error:', profileError);
+      }
+    }
+
+    const relevantHistory = await getRecentConversationHistory(userId, conversationHistoryMessages);
+
     // Get relevant knowledge base content
     let knowledgeBaseContext = '';
     try {
@@ -123,9 +198,9 @@ ${k.tags.length > 0 ? `**Tags:** ${k.tags.join(', ')}` : ''}
     let response;
 
     if (aiService === 'groq') {
-      response = await callGroqAPI(message, conversationHistory, userContext, knowledgeBaseContext);
+      response = await callGroqAPI(message, relevantHistory, userContext, knowledgeBaseContext);
     } else if (aiService === 'openai') {
-      response = await callOpenAIAPI(message, conversationHistory, userContext, knowledgeBaseContext);
+      response = await callOpenAIAPI(message, relevantHistory, userContext, knowledgeBaseContext);
     } else {
       // Fallback to a simple response if no API is configured
       response = generateFallbackResponse(message);
@@ -134,21 +209,87 @@ ${k.tags.length > 0 ? `**Tags:** ${k.tags.join(', ')}` : ''}
     // Store conversation if userId is provided
     if (userId) {
       try {
-        await storeConversation(userId, message, response, conversationHistory);
-        // Note: learning profile updates can be handled separately or batched
+        const savedConversationId = await storeConversation(userId, message, response, relevantHistory, conversationId);
+        return NextResponse.json({ success: true, data: { response, conversationId: savedConversationId } });
       } catch (storageError) {
         console.error('Conversation storage error:', storageError);
         // Continue even if storage fails
       }
     }
 
-    return NextResponse.json({ success: true, data: { response } });
+    return NextResponse.json({ success: true, data: { response, conversationId: conversationId || null } });
   } catch (error) {
     console.error('AI Chat Error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to process your message' },
       { status: 500 }
     );
+  }
+}
+
+async function getRecentConversationHistory(userId: string | undefined, fallbackHistory: ChatHistoryMessage[] = []) {
+  if (!userId) {
+    return fallbackHistory.slice(-8);
+  }
+
+  try {
+    const recentConversation = await prisma.aIConversation.findFirst({
+      where: { userId, isActive: true },
+      orderBy: { updatedAt: 'desc' },
+      select: { messages: true },
+    });
+
+    const storedMessages = Array.isArray(recentConversation?.messages)
+      ? (recentConversation.messages as ChatHistoryMessage[])
+      : [];
+
+    const mergedHistory = [...storedMessages.slice(-8), ...fallbackHistory.slice(-8)];
+    const uniqueHistory = new Map<string, ChatHistoryMessage>();
+
+    for (const message of mergedHistory) {
+      if (message?.role && message?.content) {
+        uniqueHistory.set(`${message.role}:${message.content}`, message);
+      }
+    }
+
+    return Array.from(uniqueHistory.values()).slice(-10);
+  } catch (historyError) {
+    console.error('Conversation history error:', historyError);
+    return fallbackHistory.slice(-8);
+  }
+}
+
+async function getLearningProfileContext(userId: string) {
+  try {
+    const profile = await prisma.aILearningProfile.findUnique({
+      where: { userId },
+      select: {
+        preferredTopics: true,
+        difficultyLevel: true,
+        strongSubjects: true,
+        weakSubjects: true,
+        responseStyle: true,
+        languagePreference: true,
+      },
+    });
+
+    if (!profile) {
+      return '';
+    }
+
+    const details = [
+      profile.preferredTopics?.length ? `- Preferred topics: ${profile.preferredTopics.join(', ')}` : '',
+      profile.difficultyLevel ? `- Difficulty level: ${profile.difficultyLevel}` : '',
+      profile.strongSubjects?.length ? `- Strong subjects: ${profile.strongSubjects.join(', ')}` : '',
+      profile.weakSubjects?.length ? `- Needs extra support in: ${profile.weakSubjects.join(', ')}` : '',
+      profile.responseStyle ? `- Response style: ${profile.responseStyle}` : '',
+      profile.languagePreference ? `- Language preference: ${profile.languagePreference}` : '',
+    ].filter(Boolean);
+
+    return details.length > 0 ? `\n\nLEARNING PROFILE:\n${details.join('\n')}` : '';
+  } catch (profileError) {
+    console.error('Learning profile lookup error:', profileError);
+    return '';
   }
 }
 
@@ -196,65 +337,99 @@ async function getRelevantKnowledge(message: string) {
   return knowledge;
 }
 
-async function storeConversation(userId: string, userMessage: string, aiResponse: string, history: any[]) {
-  // This is a simplified version - in production, you'd want to update existing conversations
-  // or create new ones based on session management
-  
+async function storeConversation(userId: string, userMessage: string, aiResponse: string, history: ChatHistoryMessage[] = [], conversationId?: string) {
   const messages = [
-    ...(history || []).map((msg: any) => ({
+    ...(history || []).map((msg) => ({
       role: msg.role,
       content: msg.content,
-      timestamp: msg.timestamp || new Date().toISOString()
+      timestamp: msg.timestamp || new Date().toISOString(),
     })),
     {
       role: 'user',
       content: userMessage,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     },
     {
       role: 'assistant',
       content: aiResponse,
-      timestamp: new Date().toISOString()
-    }
+      timestamp: new Date().toISOString(),
+    },
   ];
 
-  // Create or update conversation
-  await prisma.aIConversation.create({
-    data: {
-      userId,
-      title: userMessage.slice(0, 50) + (userMessage.length > 50 ? '...' : ''),
-      messages: messages as any,
-      topics: extractTopics(userMessage),
-      difficulty: assessDifficulty(userMessage)
-    }
+  const existingConversation = conversationId
+    ? await prisma.aIConversation.findFirst({
+        where: { id: conversationId, userId, isActive: true },
+      })
+    : await prisma.aIConversation.findFirst({
+        where: { userId, isActive: true },
+        orderBy: { updatedAt: 'desc' },
+      });
+
+  const title = userMessage.slice(0, 50) + (userMessage.length > 50 ? '...' : '');
+  const topics = extractTopics(userMessage);
+  const difficulty = assessDifficulty(userMessage);
+
+  let savedConversation;
+
+  if (existingConversation) {
+    savedConversation = await prisma.aIConversation.update({
+      where: { id: existingConversation.id },
+      data: {
+        title,
+        messages: messages as unknown as object,
+        topics,
+        difficulty,
+      },
+    });
+  } else {
+    savedConversation = await prisma.aIConversation.create({
+      data: {
+        userId,
+        title,
+        messages: messages as unknown as object,
+        topics,
+        difficulty,
+      },
+    });
+  }
+
+  const existingProfile = await prisma.aILearningProfile.findUnique({
+    where: { userId },
+    select: {
+      preferredTopics: true,
+      difficultyLevel: true,
+    },
   });
+
+  await updateLearningProfile(userId, userMessage, existingProfile as LearningProfileRecord);
+
+  return savedConversation.id;
 }
 
-async function updateLearningProfile(userId: string, message: string, existingProfile: any) {
+async function updateLearningProfile(userId: string, message: string, existingProfile?: LearningProfileRecord) {
   const topics = extractTopics(message);
   const difficulty = assessDifficulty(message);
   
   if (existingProfile) {
-    // Update existing profile
     await prisma.aILearningProfile.update({
       where: { userId },
       data: {
         totalQuestionsAsked: { increment: 1 },
         preferredTopics: {
-          push: topics
+          set: Array.from(new Set([...(existingProfile.preferredTopics || []), ...topics])),
         },
-        updatedAt: new Date()
-      }
+        difficultyLevel: difficulty === 'hard' ? 'intermediate' : existingProfile.difficultyLevel || 'beginner',
+        updatedAt: new Date(),
+      },
     });
   } else {
-    // Create new profile
     await prisma.aILearningProfile.create({
       data: {
         userId,
         totalQuestionsAsked: 1,
         preferredTopics: topics,
-        difficultyLevel: difficulty === 'hard' ? 'intermediate' : 'beginner'
-      }
+        difficultyLevel: difficulty === 'hard' ? 'intermediate' : 'beginner',
+      },
     });
   }
 }
@@ -297,7 +472,7 @@ function assessDifficulty(message: string): string {
   return 'medium';
 }
 
-async function callOpenAIAPI(message: string, conversationHistory: any[] = [], userContext: string = '', knowledgeBaseContext: string = '') {
+async function callOpenAIAPI(message: string, conversationHistory: ChatHistoryMessage[] = [], userContext: string = '', knowledgeBaseContext: string = '') {
   const apiKey = process.env.OPENAI_API_KEY;
   
   if (!apiKey) {
@@ -311,7 +486,7 @@ async function callOpenAIAPI(message: string, conversationHistory: any[] = [], u
       role: 'system',
       content: systemContent
     },
-    ...conversationHistory.map((msg: any) => ({
+    ...conversationHistory.map((msg) => ({
       role: msg.role,
       content: msg.content
     })),
@@ -344,7 +519,7 @@ async function callOpenAIAPI(message: string, conversationHistory: any[] = [], u
   return data.choices[0].message.content;
 }
 
-async function callGroqAPI(message: string, conversationHistory: any[] = [], userContext: string = '', knowledgeBaseContext: string = '') {
+async function callGroqAPI(message: string, conversationHistory: ChatHistoryMessage[] = [], userContext: string = '', knowledgeBaseContext: string = '') {
   const apiKey = process.env.GROQ_API_KEY;
   
   if (!apiKey) {
@@ -358,7 +533,7 @@ async function callGroqAPI(message: string, conversationHistory: any[] = [], use
       role: 'system',
       content: systemContent
     },
-    ...conversationHistory.map((msg: any) => ({
+    ...conversationHistory.map((msg) => ({
       role: msg.role,
       content: msg.content
     })),
