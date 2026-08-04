@@ -1,299 +1,144 @@
-# Freedom City Tech Center Management System
-
-A comprehensive academic management system built with Next.js 16, MongoDB, and Prisma ORM. The system serves multiple user roles (Admin, Teacher, Student) with features for academic tracking, cleaning management, and administrative oversight.
-
-## 🚀 Features
-
-### Core Functionality
-- **Multi-Role Authentication**: Secure JWT-based authentication with role-based access control
-- **Dashboard System**: Role-specific dashboards for Admin, Teacher, and Student users
-- **Academic Management**: Course enrollment, grade tracking, GPA calculation, tuition management
-- **Cleaning Management**: Weekly cleaning schedules, student registration, attendance tracking
-- **Admin Panel**: User management, role assignment, system reporting, oversight capabilities
-- **Real-time Updates**: Live data updates with React Query caching
-- **PWA Support**: Progressive Web App with service worker and offline capabilities
-
-### User Roles
-- **Admin**: Full system access, user management, role assignment, system oversight
-- **Teacher**: Student management, grade assignment, tutoring capabilities
-- **Student**: View own data, course enrollment, cleaning registration, grade tracking
-
-## 🛠️ Tech Stack
-
-### Frontend
-- **Framework**: Next.js 16 (App Router)
-- **Language**: TypeScript 5.9.3
-- **UI Library**: React 19
-- **Styling**: TailwindCSS 3.4.17
-- **State Management**: Zustand 5.0.14
-- **Data Fetching**: TanStack React Query 5.0.0
-- **Animations**: Framer Motion 12.40.0
-- **Charts**: Recharts 3.8.1
-- **Icons**: Lucide React 1.17.0
-- **Forms**: Zod 4.4.3 (validation)
-
-### Backend
-- **Runtime**: Next.js API Routes (Edge & Node.js)
-- **Database**: MongoDB
-- **ORM**: Prisma 5.22.0
-- **Authentication**: JWT (jsonwebtoken 9.0.2, jose 6.2.3)
-- **Password Hashing**: bcryptjs 2.4.3
-- **HTTP Client**: Axios 1.17.0
-
-### Development Tools
-- **Package Manager**: npm
-- **Build Tool**: Turbopack (Next.js 16)
-- **Linting**: ESLint 9
-- **Code Analysis**: Knip 6.16.1
-- **Type Checking**: TypeScript strict mode
-
-## 📋 Prerequisites
-
-- Node.js 18.x or higher
-- npm 9.x or higher
-- MongoDB Atlas account or local MongoDB instance
-- Git
-
-## 🚦 Getting Started
-
-### 1. Clone the Repository
-
-```bash
-git clone <repository-url>
-cd my-app
-```
-
-### 2. Install Dependencies
-
-```bash
-npm install
-```
-
-### 3. Set Up Environment Variables
-
-Create a `.env` file in the root directory:
-
-```env
-DATABASE_URL=mongodb+srv://username:password@cluster.mongodb.net/freedom-tech?retryWrites=true&w=majority
-JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters-long
-NEXT_PUBLIC_API_URL=http://localhost:3000
-NODE_ENV=development
-```
-
-### 4. Generate Prisma Client
-
-```bash
-npx prisma generate
-```
-
-### 5. Start Development Server
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-## 📁 Project Structure
-
-```
-my-app/
-├── app/                      # Next.js App Router
-│   ├── api/                  # API Routes
-│   ├── dashboard/           # Dashboard layouts
-│   ├── layout.tsx           # Root layout
-│   └── page.tsx             # Landing page
-├── components/              # React Components
-│   ├── admin/              # Admin-specific components
-│   ├── cleaning/           # Cleaning system components
-│   ├── overview/           # Dashboard overview components
-│   ├── shared/             # Shared/reusable components
-│   ├── student/            # Student-specific components
-│   ├── teacher/            # Teacher-specific components
-│   └── ui/                 # UI component library
-├── hooks/                  # Custom React Hooks
-│   └── queries/            # React Query hooks
-├── lib/                    # Utility libraries
-│   ├── api/                # API client functions
-│   ├── validations/        # Zod validation schemas
-│   ├── auth-helper.ts      # Auth helper functions
-│   ├── axios.ts            # Axios configuration
-│   ├── prisma.ts           # Prisma client
-│   └── utils.ts            # General utilities
-├── stores/                 # Zustand stores
-│   └── authStore.ts        # Authentication state
-├── prisma/                 # Prisma ORM
-│   └── schema.prisma       # Database schema
-└── public/                 # Static assets
-    ├── sw.js              # Service worker
-    └── manifest.json      # PWA manifest
-```
-
-## 🏗️ Architecture
-
-### System Architecture
-The application follows a modern architecture with clear separation of concerns:
-
-- **Frontend**: Next.js App Router with React 19
-- **Backend**: Next.js API Routes with MongoDB
-- **Authentication**: JWT with HTTP-only cookies
-- **State Management**: Zustand (client) + React Query (server)
-- **Database**: MongoDB with Prisma ORM
-
-For detailed architecture documentation, see:
-- [ARCHITECTURE.md](./ARCHITECTURE.md) - Complete system architecture
-- [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) - Database design with ERD
-- [API_REFERENCE.md](./API_REFERENCE.md) - Complete API documentation
-- [FRONTEND_ARCHITECTURE.md](./FRONTEND_ARCHITECTURE.md) - Frontend architecture
-- [SECURITY_ARCHITECTURE.md](./SECURITY_ARCHITECTURE.md) - Security documentation
-
-## 🔐 Security
-
-### Security Features
-- **JWT Authentication**: Secure token-based authentication
-- **HTTP-only Cookies**: Prevents XSS attacks
-- **Password Hashing**: bcrypt with salt rounds
-- **Rate Limiting**: Prevents brute force attacks
-- **Input Validation**: Zod schema validation
-- **Role-Based Access Control**: Multi-role authorization
-- **SQL Injection Prevention**: Prisma ORM parameterized queries
-
-For detailed security documentation, see [SECURITY_ARCHITECTURE.md](./SECURITY_ARCHITECTURE.md).
-
-## 🧪 Testing
-
-### Running Tests
-```bash
-# Run all tests (when implemented)
-npm test
-
-# Run linting
-npm run lint
-
-# Type checking
-npx tsc --noEmit
-
-# Find unused code
-npx knip
-```
-
-## 📊 Database
-
-### Database Management
-```bash
-# Open Prisma Studio (database GUI)
-npx prisma studio
-
-# Create migration
-npx prisma migrate dev --name description
-
-# Deploy migration
-npx prisma migrate deploy
-
-# Generate client
-npx prisma generate
-
-# Reset database (development only)
-npx prisma migrate reset
-```
-
-For detailed database documentation, see [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md).
-
-## 🚀 Deployment
-
-### Build for Production
-```bash
-npm run build
-```
-
-### Start Production Server
-```bash
-npm start
-```
-
-### Environment Variables for Production
-```env
-DATABASE_URL=mongodb+srv://...
-JWT_SECRET=strong-random-secret-key
-NEXT_PUBLIC_API_URL=https://your-domain.com
-NODE_ENV=production
-```
-
-For detailed deployment documentation, see [DEPLOYMENT.md](./DEPLOYMENT.md).
-
-## 📚 Documentation
-
-- [ARCHITECTURE.md](./ARCHITECTURE.md) - System architecture overview
-- [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) - Database schema and ERD
-- [API_REFERENCE.md](./API_REFERENCE.md) - Complete API reference
-- [FRONTEND_ARCHITECTURE.md](./FRONTEND_ARCHITECTURE.md) - Frontend architecture
-- [SECURITY_ARCHITECTURE.md](./SECURITY_ARCHITECTURE.md) - Security architecture
-- [DEVELOPMENT_GUIDE.md](./DEVELOPMENT_GUIDE.md) - Developer onboarding guide
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Workflow
-- Follow the commit message format
-- Write tests for new features
-- Update documentation as needed
-- Ensure code passes linting
-- Test thoroughly before submitting
-
-## 📝 License
-
-This project is private and proprietary. All rights reserved.
-
-## 👥 Team
-
-- **Development Team**: [turyamurebanicholus@gmail.com]
-- **Project Manager**: [+256 761996296]
-- **System Administrator**: [Nicholus Turyamureba]
-
-## 🆘 Support
-
-For support and questions:
-- Create an issue in the repository
-- Contact the development team
-- Check the documentation first
-
-## 🔗 Links
-
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Prisma Documentation](https://www.prisma.io/docs)
-- [React Documentation](https://react.dev)
-- [TailwindCSS Documentation](https://tailwindcss.com/docs)
-
-## 📈 Roadmap
-
-### Planned Features
-- [ ] Password reset functionality
-- [ ] Email notifications
-- [ ] Advanced reporting
-- [ ] Mobile app
-- [ ] Integration with external systems
-- [ ] Enhanced analytics
-- [ ] Two-factor authentication
-
-### Improvements
-- [ ] Performance optimization
-- [ ] Enhanced testing coverage
-- [ ] Better error handling
-- [ ] Improved accessibility
-- [ ] Internationalization support
-
-## 📞 Contact
-
-For inquiries and support:
-- **Email**: [turyamurebanicholus@gmail.com]
-- **Website**: [https://selfless-henna.vercel.app/]
-- **Address**: [Kampala Uganda]
-
----
-
-Built with ❤️ using Next.js, MongoDB, and Prisma
+Selfless Student Portal
+A comprehensive multi-tenant student management system built with Next.js, MongoDB, and Prisma.
+
+Overview
+The Selfless Student Portal is a multi-tenant platform designed to streamline student management, academic tracking, and community engagement. The system supports multiple tech centers (tenants) with independent data isolation while maintaining a unified user experience.
+
+Key Features
+Student Management
+User Profiles - Complete student profiles with personal information, academic details, and social links
+
+Role-Based Access - Super admin, admin, teacher, and student roles with granular permissions
+
+OAuth Support - GitHub and Google authentication integration
+
+Multi-Tenant Architecture - Each tech center operates independently with isolated data
+
+Academic Features
+Course Enrollment - Students can enroll in courses with tuition tracking
+
+Grade Management - Teachers can assign and manage student grades
+
+Course Unit Tracking - Monitor course credits and academic progress
+
+Academic Status - Track enrollment status (active, completed, dropped)
+
+Cleaning Management
+Weekly Schedule - Manage cleaning schedules on a weekly basis
+
+Day Registration - Students can register for specific cleaning days
+
+Capacity Management - Set and track capacity limits for each cleaning day
+
+Attendance Tracking - Mark attendance with PENDING, ATTENDED, or NO_SHOW status
+
+Communication
+Announcements - Create and publish announcements (global or tech-center specific)
+
+Notifications - Real-time user notifications
+
+Activity Logging - Complete audit trail of user actions
+
+Sports & Teams
+Football Team Management - Track players, jersey numbers, and positions
+
+General Team Memberships - Support for multiple sports (football, volleyball, netball, basketball, athletics)
+
+Team Roles - Players, coaches, kit managers, cheerleaders, team managers, medical staff, referees
+
+AI Assistant Integration
+AI Conversations - Persistent chat history with context tracking
+
+Learning Profiles - Track user learning patterns and preferences
+
+Knowledge Base - Custom data storage with vector embeddings for semantic search
+
+Document Chunking - Efficient document processing for RAG (Retrieval-Augmented Generation)
+
+Database Schema
+The system uses MongoDB as the primary database with Prisma as the ORM. Key schema components include:
+
+Core Tables
+User - Main user table with OAuth support, role assignments, and tech center associations
+
+Role - Role definitions with granular permissions
+
+TechCenter - Multi-tenant isolation with country associations
+
+Country - Country definitions for tech center organization
+
+Academic Tables
+StudentCourse - Student course enrollments with status tracking
+
+Grade - Grade assignments with teacher and student relationships
+
+GradeScale - Standardized grading system
+
+Cleaning Management Tables
+Week - Weekly schedule management
+
+CleaningDay - Individual day scheduling with capacity and registration tracking
+
+CleaningRegistration - Student registrations for cleaning days
+
+AttendanceRecord - Attendance tracking with status management
+
+Communication & Analytics Tables
+Announcement - System announcements with scheduling and expiration
+
+Notification - User notifications with read status
+
+ActivityLog - Complete audit trail of system actions
+
+Sports Tables
+FootballTeam - Football-specific player tracking
+
+TeamMembership - General team memberships with sport and role definitions
+
+AI Tables
+AIConversation - Chat history with message storage
+
+AILearningProfile - User learning patterns and preferences
+
+AIKnowledgeBase - Custom knowledge base with embeddings
+
+AIKnowledgeChunk - Document chunks for efficient retrieval
+
+Technology Stack
+Next.js - Full-stack React framework
+
+MongoDB - NoSQL database for flexible schema
+
+Prisma - Type-safe database ORM
+
+NextAuth.js - Authentication with OAuth support
+
+TypeScript - Type-safe development
+
+Multi-Tenant Architecture
+The platform implements a true multi-tenant architecture where:
+
+Each tech center has complete data isolation
+
+Users can be assigned to specific tech centers
+
+All major entities (courses, announcements, cleaning) are scoped to tech centers
+
+Super admins can manage all tech centers while regular admins operate within their tech center
+
+Getting Started
+Clone the repository
+
+Install dependencies: npm install
+
+Configure environment variables (DATABASE_URL, NEXTAUTH_SECRET, etc.)
+
+Run database migrations: npx prisma db push
+
+Start development server: npm run dev
+
+Deployment
+The application is ready for deployment on any platform that supports Next.js applications, including Vercel, Netlify, or traditional hosting environments.
+
+License
+This project is proprietary and confidential.
