@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Calendar, Users, Clock, Sparkles, Bell, Shield, Star, Zap, Award } from 'lucide-react';
+import { Calendar, Users, Clock, Sparkles, Bell, Shield, Star, Zap, Award, AlertCircle, MessageCircle, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Exact user data matching your screenshots
@@ -199,160 +199,217 @@ const getAvatarColor = (name: string) => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-const getDayIcon = (day: string) => {
-  const icons: Record<string, string> = {
+const getDayEmoji = (day: string) => {
+  const emojis: Record<string, string> = {
     'Monday': '🌅',
     'Tuesday': '🌤️',
     'Wednesday': '☀️',
     'Thursday': '🌙',
     'Friday': '⭐',
   };
-  return icons[day] || '📅';
+  return emojis[day] || '📅';
 };
 
-const getDayEmoji = (day: string) => {
-  const emojis: Record<string, string> = {
-    'Monday': '🔵',
-    'Tuesday': '🟢',
-    'Wednesday': '🟡',
-    'Thursday': '🟠',
-    'Friday': '🔴',
-  };
-  return emojis[day] || '⚪';
+// New: Get a quirky time-based greeting
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Morning shift";
+  if (hour < 17) return "Afternoon shift";
+  return "Evening shift";
 };
 
-// Duty Day Card Component
+// Duty Day Card Component - Made more organic and less structured
 const DutyDayCard = ({ dayData, week, index }: { dayData: any; week: string; index: number }) => {
   const totalUsers = dayData.users.length;
   const dayName = dayData.day;
   const date = dayData.date;
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+
+  // Random quirky fact about the day
+  const dayFacts = {
+    'Monday': "Start the week strong! 💪",
+    'Tuesday': "Keep the momentum going! 🚀",
+    'Wednesday': "Halfway there! 🎯",
+    'Thursday': "Almost weekend vibes! ✨",
+    'Friday': "Last stretch! 🏁",
+  };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.4, delay: index * 0.05 }}
-      whileHover={{ y: -4, scale: 1.01 }}
-      className="group relative bg-[#0B0912] border border-[#2A2438] rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl hover:shadow-amber-500/10 transition-all duration-300"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: index * 0.03 }}
+      className="group relative bg-[#0B0912] border border-[#2A2438] rounded-2xl overflow-hidden hover:border-amber-500/30 transition-all duration-300"
     >
-      {/* Glowing Border Effect */}
-      <div className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/5 to-amber-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-      
-      {/* Top Accent Line */}
-      <div className="h-1 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600" />
+      {/* Subtle gradient background - more organic feel */}
+      <div className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
 
-      {/* Header */}
-      <div className="relative px-5 pt-4 pb-3 border-b border-[#2A2438] bg-gradient-to-r from-[#150F20] to-[#1A1428]">
+      {/* Day header - more casual and friendly */}
+      <div className="relative px-5 pt-4 pb-3 border-b border-[#2A2438] bg-[#150F20]/50">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400/20 to-amber-600/20 border border-amber-500/20 flex items-center justify-center text-2xl">
-                {getDayIcon(dayName)}
-              </div>
-              <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 animate-pulse" />
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400/10 to-amber-600/10 border border-amber-500/20 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-300">
+              {getDayEmoji(dayName)}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-amber-400 uppercase tracking-wider">
+                <span className="text-base font-bold text-[#F5F0E8]">
                   {dayName}
                 </span>
                 <span className="text-xs text-[#6B6358]">•</span>
-                <span className="text-xs text-[#6B6358]">{getDayEmoji(dayName)}</span>
+                <span className="text-xs text-[#A79C8C]">{date}</span>
               </div>
-              <p className="text-xs text-[#A79C8C]">{date}</p>
+              <p className="text-xs text-[#6B6358] mt-0.5 italic">
+                {dayFacts[dayName as keyof typeof dayFacts]}
+              </p>
             </div>
           </div>
           <div className="flex flex-col items-end gap-1">
             <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full">
-              <span className="text-xs font-bold text-amber-400">
-                {totalUsers} Students
+              <span className="text-xs font-medium text-amber-400">
+                {totalUsers} {totalUsers === 1 ? 'student' : 'students'}
               </span>
             </div>
-            <span className="text-[10px] text-[#6B6358] uppercase tracking-wider">{week}</span>
           </div>
         </div>
       </div>
 
-      {/* Duty Alert */}
-      <div className="relative px-5 py-3 bg-gradient-to-r from-amber-500/5 via-transparent to-amber-500/5 border-b border-[#2A2438]">
+      {/* Registration Banner - New enhancement */}
+      <div className="relative px-5 py-2.5 bg-gradient-to-r from-emerald-500/10 via-amber-500/5 to-emerald-500/10 border-b border-[#2A2438]">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="px-2 py-0.5 bg-emerald-500/20 rounded-full text-emerald-400 font-medium text-[10px] uppercase tracking-wider">
+            Open
+          </span>
+          <span className="text-[#A79C8C]">📢 Registration is ongoing</span>
+          <span className="w-1 h-1 rounded-full bg-[#2A2438]" />
+          <button 
+            onClick={() => setShowHelp(!showHelp)}
+            className="flex items-center gap-1 text-amber-400/70 hover:text-amber-400 transition-colors"
+          >
+            <HelpCircle className="w-3.5 h-3.5" />
+            <span>Need help?</span>
+          </button>
+        </div>
+        
+        {/* Help tooltip - New enhancement */}
+        {showHelp && (
+          <motion.div
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="absolute left-5 right-5 top-full mt-1 p-3 bg-[#1A1428] border border-[#2A2438] rounded-xl shadow-xl z-10"
+          >
+            <div className="flex items-start gap-2">
+              <MessageCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+              <div className="text-xs text-[#A79C8C]">
+                <p className="font-medium text-[#F5F0E8] mb-1">Reach out to your tutors</p>
+                <p className="text-[#6B6358]">If you're having any difficulty with your duty schedule, don't hesitate to contact your assigned tutor for guidance.</p>
+                <div className="mt-2 flex gap-2">
+                  <button className="text-xs px-3 py-1 bg-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/30 transition-colors">
+                    Contact Tutor
+                  </button>
+                  <button 
+                    onClick={() => setShowHelp(false)}
+                    className="text-xs px-3 py-1 bg-[#2A2438] text-[#6B6358] rounded-lg hover:bg-[#3A3458] transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </div>
+
+      {/* Duty Alert - Made more conversational */}
+      <div className="relative px-5 py-2.5 bg-gradient-to-r from-amber-500/5 via-rose-500/5 to-amber-500/5 border-b border-[#2A2438]">
         <div className="flex items-start gap-2">
           <Bell className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-          <div>
+          <div className="flex-1">
             <p className="text-sm text-[#F5F0E8]">
-              <span className="font-bold text-amber-400">Duty Call:</span> Report to Tech Center by{' '}
-              <span className="font-bold text-amber-400">10:00 PM</span>
+              ⏰ <span className="font-medium text-amber-400">Heads up!</span> Please report to the Tech Center by <span className="font-bold text-amber-400">10:00 PM</span>
             </p>
-            <div className="flex items-center gap-2 mt-1">
-              <Shield className="w-3 h-3 text-rose-400" />
-              <p className="text-xs text-rose-400/80 font-medium">
-                ⚠️ Non-compliance will lead to consequences
-              </p>
+            <div className="flex items-center gap-3 mt-1 text-xs">
+              <span className="text-rose-400/80 flex items-center gap-1">
+                <Shield className="w-3 h-3" />
+                Non-compliance may have consequences
+              </span>
+              <span className="text-[#6B6358]">•</span>
+              <span className="text-[#6B6358] flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {getGreeting()}
+              </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Students List */}
+      {/* Students List - With personal touch */}
       <div className="divide-y divide-[#1A1428]">
         {totalUsers === 0 ? (
           <div className="p-6 text-center">
-            <p className="text-sm text-[#6B6358]">No students on duty</p>
+            <p className="text-sm text-[#6B6358]">No one on duty today 🤷</p>
           </div>
         ) : (
-          dayData.users.map((user: any, userIndex: number) => {
+          dayData.users.slice(0, isExpanded ? undefined : 3).map((user: any, userIndex: number) => {
             const initials = getInitials(user.name);
             const avatarColor = getAvatarColor(user.name);
             
             return (
               <motion.div
                 key={userIndex}
-                initial={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.2, delay: userIndex * 0.03 }}
-                className="group/user px-5 py-3 hover:bg-[#1A1428] transition-all duration-200 flex items-center justify-between"
+                transition={{ duration: 0.2, delay: userIndex * 0.02 }}
+                className="group/user px-5 py-3 hover:bg-[#1A1428]/50 transition-all duration-200 flex items-center justify-between"
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="relative">
-                    <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${avatarColor} flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-${avatarColor.split(' ')[1]}/20`}>
-                      {initials}
-                    </div>
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-amber-500 border-2 border-[#0B0912] flex items-center justify-center">
-                      <Star className="w-2 h-2 text-[#0B0912]" fill="#0B0912" />
-                    </div>
+                  <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${avatarColor} flex items-center justify-center text-white font-bold text-sm shadow-lg flex-shrink-0`}>
+                    {initials}
                   </div>
                   
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[#F5F0E8] truncate group-hover/user:text-amber-400 transition-colors">
+                    <p className="text-sm text-[#F5F0E8] truncate group-hover/user:text-amber-400 transition-colors">
                       {user.name}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                  <div className="px-2.5 py-1 bg-amber-500/20 border border-amber-500/30 rounded-full">
-                    <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
-                      <Zap className="w-3 h-3" />
-                      ON DUTY
-                    </span>
-                  </div>
+                <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                  <span className="text-[10px] text-amber-400/60">⚡</span>
+                  <span className="text-[10px] text-[#6B6358] font-medium">on duty</span>
                 </div>
               </motion.div>
             );
           })
         )}
+        
+        {/* Show more/less toggle */}
+        {totalUsers > 3 && (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="w-full px-5 py-2 text-xs text-[#6B6358] hover:text-[#F5F0E8] transition-colors bg-[#150F20]/30 hover:bg-[#1A1428] font-medium"
+          >
+            {isExpanded ? 'Show less ↑' : `Show ${totalUsers - 3} more students ↓`}
+          </button>
+        )}
       </div>
 
-      {/* Footer */}
-      <div className="px-5 py-2.5 bg-[#0B0912]/80 border-t border-[#1A1428] flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Award className="w-3.5 h-3.5 text-amber-400" />
+      {/* Footer - Made more casual */}
+      <div className="px-5 py-2 bg-[#0B0912]/50 border-t border-[#1A1428] flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Award className="w-3.5 h-3.5 text-amber-400/60" />
           <span className="text-[10px] text-[#6B6358]">
-            {totalUsers} student{totalUsers !== 1 ? 's' : ''} assigned
+            {totalUsers} on duty
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <Clock className="w-3 h-3 text-[#6B6358]" />
-          <span className="text-[10px] text-[#6B6358]">10:00 PM deadline</span>
+        <div className="flex items-center gap-3 text-[10px] text-[#6B6358]">
+          <span>🏷️ {week}</span>
+          <span>•</span>
+          <span className="flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            10 PM
+          </span>
         </div>
       </div>
     </motion.div>
@@ -366,7 +423,6 @@ interface CleaningRotaProps {
 
 export default function CleaningRota({ showTitle = true, className = '' }: CleaningRotaProps) {
   const [selectedWeek, setSelectedWeek] = useState<'all' | 'First Week' | 'Second Week' | 'Third Week'>('all');
-  const [hoveredFilter, setHoveredFilter] = useState<string | null>(null);
 
   const getCurrentWeekData = () => {
     if (selectedWeek === 'all') {
@@ -391,92 +447,73 @@ export default function CleaningRota({ showTitle = true, className = '' }: Clean
   const days = getCurrentWeekData();
   const totalStudents = days.reduce((acc, day) => acc + day.users.length, 0);
 
+  // Week filter labels with personality
   const filters = [
-    { id: 'all', label: 'All Weeks', icon: Calendar },
-    { id: 'First Week', label: 'Week 1', sub: 'Jun 29 - Jul 3' },
-    { id: 'Second Week', label: 'Week 2', sub: 'Jul 6 - 10' },
-    { id: 'Third Week', label: 'Week 3', sub: 'Jul 13 - 17' },
+    { id: 'all', label: '📋 All Weeks', sub: `${totalStudents} students` },
+    { id: 'First Week', label: '🌱 Week 1', sub: 'Jun 29 - Jul 3' },
+    { id: 'Second Week', label: '🌿 Week 2', sub: 'Jul 6 - 10' },
+    { id: 'Third Week', label: '🌳 Week 3', sub: 'Jul 13 - 17' },
   ];
 
   return (
     <div className={`${className} max-w-4xl mx-auto`}>
-      {/* Header */}
+      {/* Header - More personality */}
       {showTitle && (
         <motion.div 
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-6"
         >
-          <div className="flex items-center gap-4 mb-2">
-            <div className="relative">
-              <div className="p-3 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/20">
-                <Sparkles className="w-7 h-7 text-amber-400" />
-              </div>
-              <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-amber-400 animate-ping" />
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/20 flex-shrink-0">
+              <Sparkles className="w-6 h-6 text-amber-400" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-[#F5F0E8]" style={{ fontFamily: 'var(--font-display)' }}>
-                Cleaning Rota
+              <h2 className="text-2xl font-bold text-[#F5F0E8]">
+                🧹 Cleaning Rota
               </h2>
-              <p className="text-sm text-[#A79C8C] flex items-center gap-2">
-                <span>Weekly cleaning duty schedule</span>
-                <span className="w-1 h-1 rounded-full bg-[#2A2438]" />
-                <span className="text-amber-400 font-medium">{totalStudents} total assignments</span>
+              <p className="text-sm text-[#A79C8C] mt-0.5">
+                <span className="text-amber-400 font-medium">{totalStudents}</span> students registered across all weeks
               </p>
+              <div className="flex items-center gap-2 mt-1 text-xs text-[#6B6358]">
+                <span>📢 Registration is ongoing</span>
+                <span className="w-1 h-1 rounded-full bg-[#2A2438]" />
+                <span className="text-amber-400/70">Need help? Reach out to your tutors!</span>
+              </div>
             </div>
           </div>
         </motion.div>
       )}
 
-      {/* Week Selector */}
+      {/* Week Selector - More tactile */}
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="flex flex-wrap gap-2 mb-8"
+        className="flex flex-wrap gap-2 mb-6"
       >
         {filters.map((filter) => {
-          const Icon = filter.icon;
           const isActive = selectedWeek === filter.id;
-          const isHovered = hoveredFilter === filter.id;
 
           return (
             <motion.button
               key={filter.id}
               onClick={() => setSelectedWeek(filter.id as any)}
-              onMouseEnter={() => setHoveredFilter(filter.id)}
-              onMouseLeave={() => setHoveredFilter(null)}
-              whileHover={{ scale: 1.02, y: -2 }}
-              whileTap={{ scale: 0.98 }}
-              className={`relative px-5 py-2.5 rounded-xl transition-all duration-300 ${
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              className={`px-4 py-2 rounded-xl transition-all duration-200 ${
                 isActive
-                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-[#0B0912] font-bold shadow-lg shadow-amber-500/30'
+                  ? 'bg-amber-500 text-[#0B0912] font-medium shadow-lg shadow-amber-500/25'
                   : 'bg-[#150F20] border border-[#2A2438] text-[#A79C8C] hover:border-amber-500/30 hover:text-[#F5F0E8]'
               }`}
             >
-              {isActive && (
-                <motion.div
-                  layoutId="activeFilter"
-                  className="absolute inset-0 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                />
-              )}
-              <span className="relative z-10 flex items-center gap-2">
-                {Icon && <Icon className="w-4 h-4" />}
-                <span className="text-sm font-medium">{filter.label}</span>
-                {filter.sub && !isActive && (
-                  <span className="text-[10px] text-[#6B6358] hidden sm:inline">• {filter.sub}</span>
+              <div className="flex items-center gap-2 text-sm">
+                <span>{filter.label}</span>
+                {filter.sub && (
+                  <span className={`text-[10px] ${isActive ? 'text-[#0B0912]/70' : 'text-[#6B6358]'}`}>
+                    • {filter.sub}
+                  </span>
                 )}
-                {isActive && filter.sub && (
-                  <span className="text-[10px] text-[#0B0912]/70">• {filter.sub}</span>
-                )}
-              </span>
-              {isActive && (
-                <motion.div
-                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-6 h-1 bg-amber-400 rounded-full"
-                  layoutId="activeIndicator"
-                />
-              )}
+              </div>
             </motion.button>
           );
         })}
@@ -486,11 +523,11 @@ export default function CleaningRota({ showTitle = true, className = '' }: Clean
       <AnimatePresence mode="wait">
         <motion.div 
           key={selectedWeek}
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.3 }}
-          className="space-y-4"
+          exit={{ opacity: 0, y: -15 }}
+          transition={{ duration: 0.25 }}
+          className="space-y-3.5"
         >
           {days.map((dayData, index) => (
             <DutyDayCard 
@@ -503,22 +540,22 @@ export default function CleaningRota({ showTitle = true, className = '' }: Clean
         </motion.div>
       </AnimatePresence>
 
-      {/* Footer Summary */}
+      {/* Footer Summary - More organic */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="mt-6"
+        transition={{ delay: 0.2 }}
+        className="mt-5"
       >
-        <div className="bg-gradient-to-r from-[#150F20] to-[#1A1428] border border-[#2A2438] rounded-2xl p-4">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                <Users className="w-5 h-5 text-amber-400" />
+        <div className="bg-[#150F20]/50 border border-[#2A2438] rounded-xl p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <Users className="w-4 h-4 text-amber-400" />
               </div>
               <div>
                 <p className="text-sm font-medium text-[#F5F0E8]">
-                  {totalStudents} Total Registrations
+                  {totalStudents} total registrations
                 </p>
                 <p className="text-xs text-[#6B6358]">
                   {selectedWeek === 'all' ? 'All weeks combined' : selectedWeek}
@@ -526,15 +563,32 @@ export default function CleaningRota({ showTitle = true, className = '' }: Clean
               </div>
             </div>
             <div className="flex items-center gap-3 text-xs text-[#6B6358]">
-              <Clock className="w-4 h-4" />
-              <span>
-                Updated {new Date().toLocaleDateString('en-US', { 
-                  month: 'short', 
-                  day: 'numeric',
-                  year: 'numeric'
-                })}
-              </span>
+              <div className="flex items-center gap-1">
+                <AlertCircle className="w-3.5 h-3.5 text-amber-400/60" />
+                <span>Registration open</span>
+              </div>
+              <span className="w-px h-4 bg-[#2A2438]" />
+              <div className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5" />
+                <span>
+                  Updated {new Date().toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric'
+                  })}
+                </span>
+              </div>
             </div>
+          </div>
+          {/* New: Tutor reach out message */}
+          <div className="mt-3 pt-3 border-t border-[#1A1428] flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs text-[#6B6358]">
+              <MessageCircle className="w-3.5 h-3.5 text-amber-400/60" />
+              <span>Having difficulties? </span>
+              <button className="text-amber-400/70 hover:text-amber-400 transition-colors font-medium">
+                Contact your tutor →
+              </button>
+            </div>
+            <span className="text-[10px] text-[#6B6358]">💡 We're here to help</span>
           </div>
         </div>
       </motion.div>
