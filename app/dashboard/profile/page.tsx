@@ -37,6 +37,8 @@ export default function ProfilePage() {
     generalCourse: user?.generalCourse || '',
     linkedinUrl: user?.linkedinUrl || '',
     githubUrl: user?.githubUrl || '',
+    gender: user?.gender || '',
+    projectUrls: user?.projectUrls || [],
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
@@ -97,10 +99,18 @@ export default function ProfilePage() {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleProjectUrlsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const urls = e.target.value.split(',').map(url => url.trim()).filter(url => url.length > 0);
+    setFormData({
+      ...formData,
+      projectUrls: urls,
     });
   };
 
@@ -149,6 +159,8 @@ export default function ProfilePage() {
         generalCourse: formData.generalCourse,
         linkedinUrl: formData.linkedinUrl,
         githubUrl: formData.githubUrl,
+        gender: formData.gender,
+        projectUrls: formData.projectUrls,
       });
 
       setSuccess('Profile updated successfully');
@@ -182,6 +194,8 @@ export default function ProfilePage() {
       generalCourse: user?.generalCourse || '',
       linkedinUrl: user?.linkedinUrl || '',
       githubUrl: user?.githubUrl || '',
+      gender: user?.gender || '',
+      projectUrls: user?.projectUrls || [],
       currentPassword: '',
       newPassword: '',
       confirmPassword: '',
@@ -527,6 +541,41 @@ export default function ProfilePage() {
                 placeholder="https://github.com/username"
                 className="w-full px-4 py-3 bg-[#0B0912] border border-[#2A2438] rounded-lg text-[#F5F0E8] focus:outline-none focus:border-[#E8A33D] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               />
+            </div>
+
+            {/* Gender */}
+            <div>
+              <label className="block text-sm font-medium text-[#A79C8C] mb-2">
+                Gender
+              </label>
+              <select
+                name="gender"
+                value={formData.gender}
+                onChange={handleInputChange}
+                disabled={!isEditing}
+                className="w-full px-4 py-3 bg-[#0B0912] border border-[#2A2438] rounded-lg text-[#F5F0E8] focus:outline-none focus:border-[#E8A33D] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              >
+                <option value="">Select gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            </div>
+
+            {/* Project URLs */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-[#A79C8C] mb-2">
+                Project URLs
+              </label>
+              <input
+                type="text"
+                name="projectUrls"
+                value={formData.projectUrls.join(', ')}
+                onChange={handleProjectUrlsChange}
+                disabled={!isEditing}
+                placeholder="https://project1.com, https://project2.com"
+                className="w-full px-4 py-3 bg-[#0B0912] border border-[#2A2438] rounded-lg text-[#F5F0E8] focus:outline-none focus:border-[#E8A33D] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              />
+              <p className="mt-1 text-xs text-[#6B6358]">Enter multiple URLs separated by commas</p>
             </div>
 
             {/* Password Change Section */}

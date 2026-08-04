@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, User, MapPin, Calendar, Book, CheckCircle, XCircle, Clock, Phone, Globe, Link as LinkIcon, Map, GitFork, Copy } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Calendar, Book, CheckCircle, XCircle, Clock, Phone, Globe, Link as LinkIcon, Map, GitFork, Copy, User as UserIcon } from 'lucide-react';
 import axios from 'axios';
 
 interface StudentProfile {
@@ -30,6 +30,7 @@ interface StudentProfile {
   linkedinUrl: string | null;
   githubUrl: string | null;
   projectUrls: string[];
+  gender: string | null;
   createdAt: string;
   updatedAt: string;
   status: string;
@@ -391,6 +392,22 @@ export default function StudentProfilePage() {
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* Personal Information */}
+            <div className="bg-[#0B0912] rounded-xl p-4 border border-[#2A2438]">
+              <div className="text-xs uppercase tracking-wider text-[#6B6358] mb-4">
+                Personal Information
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="w-4 h-4 text-[#6B6358]" />
+                  <div>
+                    <p className="text-xs text-[#6B6358]">Gender</p>
+                    <p className="text-sm text-[#F5F0E8] capitalize">{student.gender || 'Not provided'}</p>
+                  </div>
+                </div>
               </div>
             </div>
 

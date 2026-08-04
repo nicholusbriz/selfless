@@ -36,7 +36,8 @@ export async function POST(req: NextRequest) {
       generalCourse,
       linkedinUrl,
       githubUrl,
-      projectUrls
+      projectUrls,
+      gender
     } = body;
 
     // Build update object with only provided fields
@@ -54,6 +55,7 @@ export async function POST(req: NextRequest) {
     if (linkedinUrl !== undefined) updateData.linkedinUrl = linkedinUrl;
     if (githubUrl !== undefined) updateData.githubUrl = githubUrl;
     if (projectUrls !== undefined) updateData.projectUrls = projectUrls;
+    if (gender !== undefined) updateData.gender = gender;
 
     // Handle email update (requires validation)
     if (email !== undefined && email !== user.email) {
@@ -121,6 +123,7 @@ export async function POST(req: NextRequest) {
         linkedinUrl: updatedUser.linkedinUrl,
         githubUrl: updatedUser.githubUrl,
         projectUrls: updatedUser.projectUrls,
+        gender: updatedUser.gender,
       },
     });
   } catch (error: any) {
