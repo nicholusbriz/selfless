@@ -89,6 +89,7 @@ export const authOptions: AuthOptions = {
           generalCourse: user.generalCourse,
           linkedinUrl: user.linkedinUrl,
           githubUrl: user.githubUrl,
+          projectUrls: user.projectUrls,
           gender: user.gender,
           preferredTeamType: user.preferredTeamType,
           preferredTeamRole: user.preferredTeamRole,
@@ -117,17 +118,6 @@ export const authOptions: AuthOptions = {
         session.user.status = token.status as string;
         session.user.isActive = token.isActive as boolean;
         session.user.phoneNumber = token.phoneNumber as string | null;
-        session.user.country = token.country as string | null;
-        session.user.city = token.city as string | null;
-        session.user.town = token.town as string | null;
-        session.user.street = token.street as string | null;
-        session.user.generalCourse = token.generalCourse as string | null;
-        session.user.linkedinUrl = token.linkedinUrl as string | null;
-        session.user.githubUrl = token.githubUrl as string | null;
-        session.user.projectUrls = token.projectUrls as string[];
-        session.user.gender = token.gender as string | null;
-        session.user.preferredTeamType = token.preferredTeamType as string | null;
-        session.user.preferredTeamRole = token.preferredTeamRole as string | null;
         session.user.country = token.country as string | null;
         session.user.city = token.city as string | null;
         session.user.town = token.town as string | null;
