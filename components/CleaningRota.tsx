@@ -70,7 +70,7 @@ const weekData = {
           { name: 'Babriye Badria' },
           { name: 'Brendah Ainembabazi' },
           { name: 'Hyla Nalwadda' },
-          { name: 'Masaazi Faswiiha Was...' },
+          { name: 'Masaazi Faswiiha Waswa' },
         ]
       },
       {
@@ -167,7 +167,7 @@ const weekData = {
           { name: 'Max Tinka' },
           { name: 'Cyrus Ssekiranda' },
           { name: 'Nalubega Safina' },
-          { name: 'Sekirangi Edward Tendo ...' },
+          { name: 'Sekirangi Edward Tendo' },
           { name: 'Racheal Christian Nakazzi' },
         ]
       }
@@ -223,7 +223,6 @@ const DutyDayCard = ({ dayData, week, index }: { dayData: any; week: string; ind
   const totalUsers = dayData.users.length;
   const dayName = dayData.day;
   const date = dayData.date;
-  const [isExpanded, setIsExpanded] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
   // Random quirky fact about the day
@@ -351,10 +350,10 @@ const DutyDayCard = ({ dayData, week, index }: { dayData: any; week: string; ind
             <p className="text-sm text-[#6B6358]">No one on duty today 🤷</p>
           </div>
         ) : (
-          dayData.users.slice(0, isExpanded ? undefined : 3).map((user: any, userIndex: number) => {
+          dayData.users.map((user: any, userIndex: number) => {
             const initials = getInitials(user.name);
             const avatarColor = getAvatarColor(user.name);
-            
+
             return (
               <motion.div
                 key={userIndex}
@@ -363,13 +362,13 @@ const DutyDayCard = ({ dayData, week, index }: { dayData: any; week: string; ind
                 transition={{ duration: 0.2, delay: userIndex * 0.02 }}
                 className="group/user px-5 py-3 hover:bg-[#1A1428]/50 transition-all duration-200 flex items-center justify-between"
               >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="flex items-center gap-3 flex-1">
                   <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${avatarColor} flex items-center justify-center text-white font-bold text-sm shadow-lg flex-shrink-0`}>
                     {initials}
                   </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-[#F5F0E8] truncate group-hover/user:text-amber-400 transition-colors">
+
+                  <div className="flex-1">
+                    <p className="text-sm text-[#F5F0E8] group-hover/user:text-amber-400 transition-colors">
                       {user.name}
                     </p>
                   </div>
@@ -382,16 +381,6 @@ const DutyDayCard = ({ dayData, week, index }: { dayData: any; week: string; ind
               </motion.div>
             );
           })
-        )}
-        
-        {/* Show more/less toggle */}
-        {totalUsers > 3 && (
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="w-full px-5 py-2 text-xs text-[#6B6358] hover:text-[#F5F0E8] transition-colors bg-[#150F20]/30 hover:bg-[#1A1428] font-medium"
-          >
-            {isExpanded ? 'Show less ↑' : `Show ${totalUsers - 3} more students ↓`}
-          </button>
         )}
       </div>
 
