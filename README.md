@@ -801,7 +801,6 @@ npx prisma generate
 ## Support
 
 For support and questions:
-- Phone: +256 761996296
 - Create an issue in the repository
 
 ## License
@@ -810,8 +809,7 @@ This project is private and proprietary. All rights reserved.
 
 ## Team
 
-- Development Team: +256 761996296
-- Project Manager: +256 761996296
-- System Administrator: Nicholus Turyamureba
+- Development Team: 
+- Project Manager:
+- System Administrator:Atbriz
 - Founder: Atbriz
-- Publisher:Nicholus Turyamureba
