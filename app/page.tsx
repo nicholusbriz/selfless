@@ -2,6 +2,7 @@
 
 "use client";
 
+import { useState, useEffect } from 'react';
 import CoverSection from "@/components/CoverContent";
 import TrustedSection from "@/app/components/TrustedSection";
 import PortalOverview from "@/components/PortalOverview";
@@ -13,13 +14,21 @@ import WhyChoosePortal from "@/components/WhyChoosePortal";
 import Testimonials from "@/components/Testimonials";
 import FAQ from "@/components/FAQ";
 import CTASection from "@/components/CTASection";
+import LoadingScreen from "@/app/components/LoadingScreen";
 import { useTenant } from "@/lib/contexts/TenantContext";
 
 export default function HomePage() {
   const { currentTechCenter, isTenantView } = useTenant();
+  const [isLoading, setIsLoading] = useState(true);
 
   return (
-    <main className="bg-[#0D1117] text-white pt-16">
+    <>
+      <LoadingScreen 
+        onComplete={() => setIsLoading(false)} 
+        delay={4000}
+      />
+      
+      <main className="bg-[#0D1117] text-white pt-16" style={{ opacity: isLoading ? 0 : 1, transition: 'opacity 0.5s ease-in' }}>
 
       {/* ========================================================= */}
       {/* HERO */}
@@ -167,5 +176,6 @@ export default function HomePage() {
       </section>
 
     </main>
+    </>
   );
 }
