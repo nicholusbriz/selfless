@@ -1,178 +1,346 @@
-"use client";
-
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import Image from "next/image";
-import { useState } from "react";
+import React, { useEffect, useRef, useState } from 'react';
+import { gsap } from 'gsap';
+import { 
+  GraduationCap, 
+  BookOpen, 
+  CheckCircle2, 
+  ArrowRight, 
+  Clock, 
+  Sparkles,
+  Award,
+  Bell,
+  Building2
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useTenant } from '@/lib/contexts/TenantContext';
 
 export default function CoverContent() {
-  const [isHovered, setIsHovered] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const phoneRef = useRef<HTMLDivElement>(null);
+  const title1Ref = useRef<HTMLHeadingElement>(null);
+  const title2Ref = useRef<HTMLHeadingElement>(null);
+  const descRef = useRef<HTMLParagraphElement>(null);
+  const ctaRef = useRef<HTMLDivElement>(null);
+  const badge1Ref = useRef<HTMLDivElement>(null);
+  const badge2Ref = useRef<HTMLDivElement>(null);
+  const featuresRef = useRef<HTMLDivElement>(null);
+  const statsRef = useRef<HTMLDivElement>(null);
+  const networkRef = useRef<HTMLDivElement>(null);
+  const techCenterTextRef = useRef<HTMLSpanElement>(null);
 
-  // Deterministic particle positions to avoid hydration mismatch
-  const particlePositions = [
-    { x: 25, y: 61 },
-    { x: 67, y: 55 },
-    { x: 95, y: 4 },
-    { x: 90, y: 45 },
-    { x: 48, y: 35 },
-    { x: 22, y: 23 },
-    { x: 84, y: 81 },
-    { x: 9, y: 49 },
+  const { currentTechCenter } = useTenant();
+  const [techCenterIndex, setTechCenterIndex] = useState(0);
+  const [displayText, setDisplayText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [activityIndex, setActivityIndex] = useState(0);
+
+  const techCenters = [
+    'FreedomCity Tech Center',
+    'Jinja Tech Center',
+    'Mbale Tech Center',
+    'Sseta Tech Center',
+    'Masaka Tech Center',
+    'Lira Tech Center',
+    'Ntinda Tech Center'
   ];
 
-  // Mouse follow tilt effect
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const mouseXSpring = useSpring(x);
-  const mouseYSpring = useSpring(y);
+  const activities = [
+    'Submit Courses',
+    'Submit Credits',
+    'Track Your Grades',
+    'Are You Taking Religion Course',
+    'Join Football Team',
+    'Join Volleyball Team',
+    'Join Netball Team',
+    'Join Athletics Team',
+    'Chat with Atbriz AI Assistant',
+    'Connect with Students',
+    'Message Your Fellow Students',
+    'Create Global and Tech Center annoucements',
+    'Register for Cleaning Day',
+    'Find Internships',
+    'Register for Trips',
+    'All in one intelligent portal'
+  ];
 
-  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["5deg", "-5deg"]);
-  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-5deg", "5deg"]);
+  // Typing animation effect
+  useEffect(() => {
+    const currentTechCenter = techCenters[techCenterIndex];
+    const typingSpeed = 100;
+    const deletingSpeed = 50;
+    const pauseAfterType = 2000;
+    const pauseAfterDelete = 500;
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
-    const mouseX = (e.clientX - rect.left) / width - 0.5;
-    const mouseY = (e.clientY - rect.top) / height - 0.5;
-    x.set(mouseX);
-    y.set(mouseY);
-  };
+    const timeout = setTimeout(() => {
+      if (!isDeleting && displayText === currentTechCenter) {
+        // Finished typing, pause then delete
+        setTimeout(() => setIsDeleting(true), pauseAfterType);
+      } else if (isDeleting && displayText === '') {
+        // Finished deleting, move to next tech center
+        setIsDeleting(false);
+        setTechCenterIndex((prev) => (prev + 1) % techCenters.length);
+      } else {
+        // Continue typing or deleting
+        setDisplayText((prev) => {
+          if (isDeleting) {
+            return prev.slice(0, -1);
+          } else {
+            return currentTechCenter.slice(0, prev.length + 1);
+          }
+        });
+      }
+    }, isDeleting ? deletingSpeed : typingSpeed);
 
-  const handleMouseLeave = () => {
-    x.set(0);
-    y.set(0);
-  };
+    return () => clearTimeout(timeout);
+  }, [displayText, isDeleting, techCenterIndex, techCenters]);
+
+  // Activity scrolling animation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActivityIndex((prev) => (prev + 1) % activities.length);
+    }, 2500); // Change every 2.5 seconds
+
+    return () => clearInterval(interval);
+  }, [activities.length]);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      // Extended 20-second animation timeline
+      const tl = gsap.timeline({ repeat: -1, repeatDelay: 3 });
+
+      // 1. Initial Card Tilt & Lift (0-2s)
+      tl.fromTo(
+        cardRef.current,
+        {
+          rotateX: 25,
+          rotateY: -10,
+          scale: 0.85,
+          y: 80,
+          opacity: 0,
+        },
+        {
+          rotateX: 0,
+          rotateY: 0,
+          scale: 1,
+          y: 0,
+          opacity: 1,
+          duration: 1.5,
+          ease: 'power3.out',
+        }
+      )
+      // 2. Parallax Phone Screen & Badges Pop (2-3.5s)
+      .fromTo(
+        phoneRef.current,
+        { y: 60, rotateZ: -5, opacity: 0 },
+        { y: -15, rotateZ: 0, opacity: 1, duration: 1, ease: 'back.out(1.4)' },
+        '-=0.8'
+      )
+      .fromTo(
+        [badge1Ref.current, badge2Ref.current],
+        { scale: 0, opacity: 0, y: 20 },
+        { scale: 1, opacity: 1, y: 0, duration: 0.6, stagger: 0.2, ease: 'back.out(1.7)' },
+        '-=0.5'
+      )
+      // 3. Text & CTA Reveals (3.5-5s)
+      .fromTo(
+        [title1Ref.current, title2Ref.current, descRef.current, ctaRef.current],
+        { opacity: 0, y: 30 },
+        { opacity: 1, y: 0, duration: 0.8, stagger: 0.15, ease: 'power2.out' },
+        '-=0.6'
+      )
+      // 4. Phone content animation - Course progress (5-7s)
+      .to(phoneRef.current, { y: -25, duration: 1, ease: 'power2.inOut' }, '+=0.5')
+      .to(badge1Ref.current, { x: -10, y: -10, duration: 0.8, ease: 'power2.inOut' }, '<')
+      .to(badge2Ref.current, { x: 10, y: 10, duration: 0.8, ease: 'power2.inOut' }, '<')
+      // 5. Card subtle rotation (7-9s)
+      .to(cardRef.current, { rotateY: 5, rotateX: -2, duration: 1.5, ease: 'power2.inOut' })
+      .to(cardRef.current, { rotateY: -5, rotateX: 2, duration: 1.5, ease: 'power2.inOut' })
+      .to(cardRef.current, { rotateY: 0, rotateX: 0, duration: 0.5, ease: 'power2.inOut' })
+      // 6. Phone return to center (9-10s)
+      .to(phoneRef.current, { y: -15, duration: 0.8, ease: 'power2.inOut' })
+      .to([badge1Ref.current, badge2Ref.current], { x: 0, y: 0, duration: 0.8, ease: 'power2.inOut' }, '<')
+      // 7. Scale up phone for focus (10-12s)
+      .to(phoneRef.current, { scale: 1.1, duration: 1, ease: 'power2.inOut' })
+      .to(phoneRef.current, { scale: 1, duration: 1, ease: 'power2.inOut' })
+      // 8. Badges pulse effect (12-14s)
+      .to([badge1Ref.current, badge2Ref.current], { scale: 1.1, duration: 0.3, ease: 'power2.inOut' })
+      .to([badge1Ref.current, badge2Ref.current], { scale: 1, duration: 0.3, ease: 'power2.inOut' })
+      .to([badge1Ref.current, badge2Ref.current], { scale: 1.1, duration: 0.3, ease: 'power2.inOut' })
+      .to([badge1Ref.current, badge2Ref.current], { scale: 1, duration: 0.3, ease: 'power2.inOut' })
+      // 9. Card glow effect (14-16s)
+      .to(cardRef.current, { boxShadow: `0 0 60px ${dynamicColor}40`, duration: 1, ease: 'power2.inOut' })
+      .to(cardRef.current, { boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', duration: 1, ease: 'power2.inOut' })
+      // 10. Final settle (16-18s)
+      .to([title1Ref.current, title2Ref.current], { y: -5, duration: 0.5, ease: 'power2.inOut' })
+      .to([title1Ref.current, title2Ref.current], { y: 0, duration: 0.5, ease: 'power2.inOut' })
+      // 11. Fade out for repeat (18-20s)
+      .to(cardRef.current, { opacity: 0.8, scale: 0.95, duration: 1, ease: 'power2.inOut' })
+      .to(cardRef.current, { opacity: 1, scale: 1, duration: 1, ease: 'power2.inOut' });
+    }, containerRef);
+
+    return () => ctx.revert();
+  }, []);
+
+  const dynamicColor = currentTechCenter?.color || '#E8A33D';
 
   return (
-    <section className="relative min-h-[80vh] flex items-center overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#0D1117] via-[#111827] to-[#171F2E]" />
+    <div
+      ref={containerRef}
+      className="relative min-h-screen w-full bg-[#0D1117] text-white overflow-hidden flex items-center justify-center py-10 px-4 sm:px-6"
+    >
+      {/* Noise Texture Overlay for organic feel */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.03] mix-blend-overlay" style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`
+      }} />
 
-      {/* Ambient Glow */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(232,163,61,0.12),transparent_35%)]" />
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-[#E8A33D]/5 blur-[120px]" />
-      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-[#E8A33D]/5 blur-[120px]" />
+      {/* Radial Ambient Glow */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-20 blur-3xl"
+        style={{
+          background: `radial-gradient(circle at 50% 30%, ${dynamicColor}, transparent 70%)`
+        }}
+      />
 
-      {/* Animated Particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {particlePositions.map((pos, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1 h-1 rounded-full bg-[#E8A33D]/20"
-            initial={{
-              x: pos.x + "%",
-              y: pos.y + "%",
-            }}
-            animate={{
-              y: [null, "-20%", "20%", null],
-              x: [null, "10%", "-10%", null],
-            }}
-            transition={{
-              duration: 10 + (i * 1.5),
-              repeat: Infinity,
-              ease: "linear",
-            }}
-          />
-        ))}
-      </div>
+      {/* Subtle grid pattern */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.02]" style={{
+        backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+        backgroundSize: '50px 50px'
+      }} />
 
-      {/* Grid Pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.025)_1px,transparent_1px)] bg-[size:60px_60px]" />
+      {/* Hero Container */}
+      <div className="relative max-w-6xl w-full mx-auto flex flex-col items-center z-10">
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 w-full">
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-          {/* Left Content */}
-          <motion.div
-            initial={{ opacity: 0, y: 25 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            className="text-center lg:text-left"
-          >
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.1] tracking-tight mb-8">
-              <span className="text-white">Student</span>
-              <span className="block text-[#E8A33D] mt-1">
-                Self Service
-              </span>
-              <span className="block text-white/90 mt-1">
-                Portal
-              </span>
-            </h1>
+        {/* Main 3D Card Glass Structure */}
+        <div
+          ref={cardRef}
+          style={{ transformStyle: 'preserve-3d' }}
+          className="relative w-full rounded-3xl border border-white/10 bg-slate-900/60 backdrop-blur-xl p-6 sm:p-10 shadow-2xl transition-all duration-300"
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            
+            {/* Left Content Side */}
+            <div className="lg:col-span-7 space-y-6 text-left">
+              <div className="space-y-2">
+                <h1 ref={title1Ref} className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white">
+                  Student Self Service Portal
+                </h1>
+                <h1
+                  ref={title2Ref}
+                  className="text-4xl sm:text-6xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400"
+                >
+                  All Education In One Place
+                </h1>
+              </div>
 
-            <p className="text-base md:text-lg leading-relaxed text-gray-300 max-w-2xl mx-auto lg:mx-0 mb-4">
-              Everything you need to manage your academic journey from one
-              intelligent platform. Register courses, monitor your progress,
-              collaborate with peers, and receive tutor feedback — all in one
-              place.
-            </p>
+              <p ref={descRef} className="text-base sm:text-lg text-slate-400 max-w-xl">
+                Your centralized multi-tenant platform for managing BYU-Idaho courses, tracking academic progress, receiving tutor feedback, and connecting across the Selfless Tech Center Network.
+              </p>
 
-            <p className="text-sm md:text-base text-gray-400 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-              Built exclusively for students studying through the{" "}
-              <span className="text-[#E8A33D] font-semibold">
-                Selfless Tech Center Network
-              </span>
-              , connecting learning, collaboration, and student success into
-              one seamless experience.
-            </p>
-          </motion.div>
-
-          {/* Right Side - Enhanced Image with Interactivity */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="flex items-center justify-center"
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
-            onMouseEnter={() => setIsHovered(true)}
-          >
-            <div className="relative w-full max-w-md lg:max-w-lg">
-              {/* Animated Glow Background */}
-              <motion.div
-                className="absolute -inset-6 bg-gradient-to-r from-[#E8A33D]/20 via-[#C97F1F]/10 to-[#E8A33D]/20 rounded-3xl blur-2xl"
-                animate={{
-                  scale: isHovered ? 1.1 : 1,
-                  opacity: isHovered ? 0.8 : 0.5,
-                }}
-                transition={{ duration: 0.5 }}
-              />
-
-              {/* Image Container with 3D Tilt */}
-              <motion.div
-                className="relative rounded-2xl overflow-hidden border border-[#E8A33D]/20 shadow-2xl shadow-[#E8A33D]/10"
-                style={{
-                  rotateX: rotateX,
-                  rotateY: rotateY,
-                  transformStyle: "preserve-3d",
-                }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              >
-                {/* Shine/Reflection Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none z-10" />
-                
-                {/* Animated Border Glow */}
-                <motion.div
-                  className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-[#E8A33D] via-[#C97F1F] to-[#E8A33D] opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                  animate={{
-                    opacity: isHovered ? 1 : 0,
-                  }}
-                />
-
-                <Image
-                  src="/student-portal.png"
-                  alt="Student Portal Dashboard"
-                  width={600}
-                  height={400}
-                  className="w-full h-auto object-cover relative z-0"
-                  priority
-                />
-
-                {/* Bottom Gradient Overlay */}
-                <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#0D1117] to-transparent pointer-events-none" />
-              </motion.div>
+              {/* Action Buttons */}
+              <div ref={ctaRef} className="flex flex-wrap items-center gap-4 pt-2">
+                <button
+                  className="px-6 py-3.5 rounded-xl font-semibold text-white flex items-center gap-2 shadow-lg hover:opacity-90 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+                  style={{ backgroundColor: dynamicColor }}
+                >
+                  <span>Access Portal</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+                <button className="px-6 py-3.5 rounded-xl font-semibold text-slate-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-all">
+                  Course Catalog
+                </button>
+              </div>
             </div>
-          </motion.div>
+
+            {/* Right Side 3D Device Showcase */}
+            <div className="lg:col-span-5 relative flex justify-center items-center">
+              
+              {/* Floating Glass Badge 1 - Announcement */}
+              <div
+                ref={badge1Ref}
+                className="absolute -top-4 -left-4 z-20 p-3 rounded-2xl bg-slate-800/80 backdrop-blur-md border border-white/10 shadow-xl flex items-center gap-3"
+              >
+                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
+                  <Bell className="w-5 h-5" />
+                </div>
+                <div className="text-left">
+                  <p className="text-xs font-semibold text-white">New Announcement</p>
+                  <p className="text-[10px] text-slate-400">Fall 2026 Registration Open</p>
+                </div>
+              </div>
+
+              {/* Floating Glass Badge 2 - Announcement */}
+              <div
+                ref={badge2Ref}
+                className="absolute -bottom-4 -right-4 z-20 p-3 rounded-2xl bg-slate-800/80 backdrop-blur-md border border-white/10 shadow-xl flex items-center gap-3"
+              >
+                <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div className="text-left">
+                  <p className="text-xs font-semibold text-white">Event Update</p>
+                  <p className="text-[10px] text-slate-400">Career Fair Next Week</p>
+                </div>
+              </div>
+
+              {/* Mockup Phone Frame */}
+              <div
+                ref={phoneRef}
+                className="w-full max-w-[280px] rounded-[36px] bg-slate-950 p-3 border-4 border-slate-800 shadow-2xl relative z-10"
+              >
+                <div className="w-full rounded-[28px] bg-slate-900 border border-white/5 overflow-hidden p-4 space-y-4">
+
+                  {/* Phone Header */}
+                  <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                    <div className="flex items-center gap-2">
+                      <GraduationCap className="w-5 h-5" style={{ color: dynamicColor }} />
+                      <span className="text-xs font-bold text-white">Tech Centers</span>
+                    </div>
+                    <span className="text-[10px] text-slate-500">Network</span>
+                  </div>
+
+                  {/* Typing Tech Center Animation */}
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/5 text-center space-y-2">
+                    <p className="text-[10px] uppercase tracking-wider text-slate-400">Current Location</p>
+                    <div className="flex items-center justify-center gap-2">
+                      <Building2 className="w-4 h-4" style={{ color: dynamicColor }} />
+                      <span ref={techCenterTextRef} className="text-lg font-bold text-white">
+                        {displayText}
+                      </span>
+                      <span className="animate-pulse text-white">|</span>
+                    </div>
+                  </div>
+
+                  {/* Scrolling Activities Animation */}
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/5 text-center space-y-2">
+                    <p className="text-[10px] uppercase tracking-wider text-slate-400">Quick Actions</p>
+                    <div className="h-8 overflow-hidden relative">
+                      <div
+                        className="transition-transform duration-500 ease-in-out"
+                        style={{ transform: `translateY(-${activityIndex * 32}px)` }}
+                      >
+                        {activities.map((activity, index) => (
+                          <div
+                            key={index}
+                            className="h-8 flex items-center justify-center text-sm font-semibold text-white"
+                            style={{ color: dynamicColor }}
+                          >
+                            {activity}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+
+          </div>
         </div>
+
       </div>
-    </section>
+    </div>
   );
-}
+};

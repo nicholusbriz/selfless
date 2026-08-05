@@ -6,11 +6,16 @@ import { ArrowRight } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import AuthModal from "@/components/auth/AuthModal";
 import { useState } from "react";
+import { useTenant } from "@/lib/contexts/TenantContext";
 
 export default function CTASection() {
   const { isAuthenticated, user } = useAuth();
+  const { currentTechCenter, isTenantView } = useTenant();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalType, setAuthModalType] = useState<'login' | 'register'>('login');
+  
+  const primaryColor = currentTechCenter?.color || '#E8A33D';
+  const accentColor = currentTechCenter?.accentColor || '#C97F1F';
 
   const handleSignIn = () => {
     setAuthModalType('login');
@@ -29,7 +34,12 @@ export default function CTASection() {
   return (
     <section className="relative overflow-hidden bg-[#0D1117] py-16">
       {/* Background */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(232,163,61,.08),transparent_55%)]" />
+      <div 
+        className="absolute inset-0"
+        style={{
+          background: `radial-gradient(circle_at_center,${primaryColor}14,transparent_55%)`,
+        }}
+      />
 
       <div className="relative mx-auto max-w-6xl px-6">
         <motion.div
@@ -37,23 +47,34 @@ export default function CTASection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="rounded-xl border border-[#E8A33D]/20 bg-gradient-to-br from-[#111827] to-[#1A2233] p-8 md:p-10 text-center"
+          className="rounded-xl border bg-gradient-to-br from-[#111827] to-[#1A2233] p-8 md:p-10 text-center"
+          style={{
+            borderColor: `${primaryColor}33`,
+          }}
         >
           {/* Badge */}
-          <span className="inline-flex rounded-full border border-[#E8A33D]/20 bg-[#E8A33D]/10 px-4 py-1.5 text-xs uppercase tracking-[0.25em] text-[#F2C879]">
+          <span 
+            className="inline-flex rounded-full border px-4 py-1.5 text-xs uppercase tracking-[0.25em]"
+            style={{
+              borderColor: `${primaryColor}33`,
+              backgroundColor: `${primaryColor}1A`,
+              color: primaryColor,
+            }}
+          >
             Begin Your Journey
           </span>
 
           {/* Heading */}
           <h2 className="mt-4 text-3xl md:text-5xl font-black text-white">
-            Ready To Start?
+            {isTenantView ? `Ready to Start at ${currentTechCenter?.displayName}?` : 'Ready To Start?'}
           </h2>
 
           {/* Description */}
           <p className="mx-auto mt-3 max-w-2xl text-base leading-6 text-gray-400">
-            Access the Official Selfless Student Self Service Portal
-            and manage every aspect of your academic journey from one
-            intelligent platform.
+            {isTenantView 
+              ? `Access the ${currentTechCenter?.displayName} Student Portal and manage every aspect of your academic journey from one intelligent platform.`
+              : 'Access the Official Selfless Student Self Service Portal and manage every aspect of your academic journey from one intelligent platform.'
+            }
           </p>
 
           {/* Buttons */}
@@ -61,7 +82,16 @@ export default function CTASection() {
             {isAuthenticated && user ? (
               <Link
                 href="/dashboard"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#E8A33D] px-6 py-3 font-semibold text-black transition hover:scale-105 hover:bg-[#C97F1F]"
+                className="inline-flex items-center gap-2 rounded-xl px-6 py-3 font-semibold text-black transition hover:scale-105"
+                style={{
+                  backgroundColor: primaryColor,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = accentColor;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = primaryColor;
+                }}
               >
                 Go to Dashboard
                 <ArrowRight size={16} />
@@ -70,7 +100,16 @@ export default function CTASection() {
               <>
                 <button
                   onClick={handleRegister}
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#E8A33D] px-6 py-3 font-semibold text-black transition hover:scale-105 hover:bg-[#C97F1F]"
+                  className="inline-flex items-center gap-2 rounded-xl px-6 py-3 font-semibold text-black transition hover:scale-105"
+                  style={{
+                    backgroundColor: primaryColor,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = accentColor;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = primaryColor;
+                  }}
                 >
                   Create Account
                   <ArrowRight size={16} />
@@ -78,7 +117,16 @@ export default function CTASection() {
 
                 <button
                   onClick={handleSignIn}
-                  className="rounded-lg border border-white/10 bg-white/5 px-5 py-2.5 font-medium text-white transition hover:border-[#E8A33D]/40 hover:bg-white/10"
+                  className="rounded-lg border border-white/10 bg-white/5 px-5 py-2.5 font-medium text-white transition hover:bg-white/10"
+                  style={{
+                    borderColor: isTenantView ? `${primaryColor}33` : 'rgba(255,255,255,0.1)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = `${primaryColor}66`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = isTenantView ? `${primaryColor}33` : 'rgba(255,255,255,0.1)';
+                  }}
                 >
                   Student Login
                 </button>

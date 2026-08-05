@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { Download, X, Apple } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,7 +10,7 @@ export default function PWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstall, setShowInstall] = useState(false);
   const [showIOSGuide, setShowIOSGuide] = useState(false);
-  const [lastShown, setLastShown] = useState<number>(0);
+  const lastShownRef = useRef<number>(0);
 
   const isHomePage = pathname === '/';
 
@@ -33,16 +33,16 @@ export default function PWAInstall() {
 
     // Check if we showed it in last 2 minutes
     const now = Date.now();
-    if (lastShown && (now - lastShown) < 2 * 60 * 1000) return;
+    if (lastShownRef.current && (now - lastShownRef.current) < 2 * 60 * 1000) return;
 
     const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    
+
     const handler = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
       if (isHomePage) {
         setShowInstall(true);
-        setLastShown(Date.now());
+        lastShownRef.current = Date.now();
       }
     };
 
@@ -51,18 +51,18 @@ export default function PWAInstall() {
     if (iOS && isHomePage) {
       const timer = setTimeout(() => {
         setShowIOSGuide(true);
-        setLastShown(Date.now());
+        lastShownRef.current = Date.now();
       }, 2000);
       return () => clearTimeout(timer);
     }
 
     if (!iOS && isHomePage && deferredPrompt) {
       setShowInstall(true);
-      setLastShown(Date.now());
+      lastShownRef.current = Date.now();
     }
 
     return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, [isHomePage, lastShown, deferredPrompt]);
+  }, [isHomePage, deferredPrompt]);
 
   const handleInstall = async () => {
     if (deferredPrompt) {
