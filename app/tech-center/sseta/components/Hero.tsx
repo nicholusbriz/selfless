@@ -67,17 +67,17 @@ export default function SsetaHero() {
 
             {/* Feature highlights */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl w-full">
-              <div className="p-5 rounded-lg border border-[#2A2438] bg-[#150F20]/50 hover:border-2 transition-all" style={{ hoverBorderColor: techCenterColor }}>
+              <div className="p-5 rounded-lg border border-[#2A2438] bg-[#150F20]/50 hover:border-2 transition-all hover:scale-105" style={{ borderColor: techCenterColor }}>
                 <div className="text-2xl mb-2">📚</div>
                 <div className="font-semibold text-white mb-1">Digital Library</div>
                 <div className="text-xs text-[#6B6358]">Access to extensive resources</div>
               </div>
-              <div className="p-5 rounded-lg border border-[#2A2438] bg-[#150F20]/50 hover:border-2 transition-all" style={{ hoverBorderColor: techCenterColor }}>
+              <div className="p-5 rounded-lg border border-[#2A2438] bg-[#150F20]/50 hover:border-2 transition-all hover:scale-105" style={{ borderColor: techCenterColor }}>
                 <div className="text-2xl mb-2">🎯</div>
                 <div className="font-semibold text-white mb-1">Personalized Learning</div>
                 <div className="text-xs text-[#6B6358]">Tailored academic pathways</div>
               </div>
-              <div className="p-5 rounded-lg border border-[#2A2438] bg-[#150F20]/50 hover:border-2 transition-all" style={{ hoverBorderColor: techCenterColor }}>
+              <div className="p-5 rounded-lg border border-[#2A2438] bg-[#150F20]/50 hover:border-2 transition-all hover:scale-105" style={{ borderColor: techCenterColor }}>
                 <div className="text-2xl mb-2">🌟</div>
                 <div className="font-semibold text-white mb-1">Expert Guidance</div>
                 <div className="text-xs text-[#6B6358]">Dedicated tutor support</div>
