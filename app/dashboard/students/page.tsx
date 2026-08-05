@@ -86,6 +86,13 @@ export default function StudentsPage() {
     return colors[Math.abs(hash) % colors.length];
   };
 
+  const getTotalCredits = (student: Student) => {
+    if (!student.studentCourses || student.studentCourses.length === 0) {
+      return 0;
+    }
+    return student.studentCourses.reduce((total, course) => total + (course.credits || 0), 0);
+  };
+
   const filterStudents = (students: Student[]) => {
     let filtered = students;
 
@@ -439,12 +446,20 @@ export default function StudentsPage() {
                                     <span className="text-[#A79C8C]">{course.code}</span>
                                     <span className="text-[#6B6358]">•</span>
                                     <span className="text-[#A79C8C] truncate">{course.courseUnit}</span>
+                                    <span className="text-[#6B6358]">•</span>
+                                    <span className="text-[#E8A33D]">{course.credits} credits</span>
                                   </div>
                                 ))}
                                 {student.studentCourses.length > 3 && (
                                   <div className="text-xs text-[#6B6358]">+{student.studentCourses.length - 3} more</div>
                                 )}
                               </div>
+                            </div>
+                          )}
+                          {student.studentCourses && student.studentCourses.length > 0 && (
+                            <div className="flex items-center gap-1 text-xs text-[#E8A33D] mb-1">
+                              <span>Total Credits:</span>
+                              <span className="font-semibold">{getTotalCredits(student)}</span>
                             </div>
                           )}
                           {student.takesReligion !== null && (
@@ -571,12 +586,20 @@ export default function StudentsPage() {
                                     <span className="text-[#A79C8C]">{course.code}</span>
                                     <span className="text-[#6B6358]">•</span>
                                     <span className="text-[#A79C8C] truncate">{course.courseUnit}</span>
+                                    <span className="text-[#6B6358]">•</span>
+                                    <span className="text-[#E8A33D]">{course.credits} credits</span>
                                   </div>
                                 ))}
                                 {student.studentCourses.length > 3 && (
                                   <div className="text-xs text-[#6B6358]">+{student.studentCourses.length - 3} more</div>
                                 )}
                               </div>
+                            </div>
+                          )}
+                          {student.studentCourses && student.studentCourses.length > 0 && (
+                            <div className="flex items-center gap-1 text-xs text-[#E8A33D] mb-1">
+                              <span>Total Credits:</span>
+                              <span className="font-semibold">{getTotalCredits(student)}</span>
                             </div>
                           )}
                           {student.takesReligion !== null && (
