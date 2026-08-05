@@ -64,9 +64,6 @@ export default function StudentJourney() {
           transition={{ duration: 0.6 }}
           className="text-center max-w-3xl mx-auto"
         >
-          <span className="inline-flex rounded-full border border-[#E8A33D]/20 bg-[#E8A33D]/10 px-4 py-1.5 text-xs tracking-[0.25em] uppercase text-[#F2C879]">
-            Student Journey
-          </span>
 
           <h2 className="mt-5 text-3xl md:text-5xl font-black text-white">
             From Enrollment
