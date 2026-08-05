@@ -22,8 +22,6 @@ export default function CoverContent() {
   const title2Ref = useRef<HTMLHeadingElement>(null);
   const descRef = useRef<HTMLParagraphElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
-  const badge1Ref = useRef<HTMLDivElement>(null);
-  const badge2Ref = useRef<HTMLDivElement>(null);
   const featuresRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
   const networkRef = useRef<HTMLDivElement>(null);
@@ -129,18 +127,12 @@ export default function CoverContent() {
           ease: 'power3.out',
         }
       )
-      // 2. Parallax Phone Screen & Badges Pop (2-3.5s)
+      // 2. Parallax Phone Screen (2-3.5s)
       .fromTo(
         phoneRef.current,
         { y: 60, rotateZ: -5, opacity: 0 },
         { y: -15, rotateZ: 0, opacity: 1, duration: 1, ease: 'back.out(1.4)' },
         '-=0.8'
-      )
-      .fromTo(
-        [badge1Ref.current, badge2Ref.current],
-        { scale: 0, opacity: 0, y: 20 },
-        { scale: 1, opacity: 1, y: 0, duration: 0.6, stagger: 0.2, ease: 'back.out(1.7)' },
-        '-=0.5'
       )
       // 3. Text & CTA Reveals (3.5-5s)
       .fromTo(
@@ -151,30 +143,22 @@ export default function CoverContent() {
       )
       // 4. Phone content animation - Course progress (5-7s)
       .to(phoneRef.current, { y: -25, duration: 1, ease: 'power2.inOut' }, '+=0.5')
-      .to(badge1Ref.current, { x: -10, y: -10, duration: 0.8, ease: 'power2.inOut' }, '<')
-      .to(badge2Ref.current, { x: 10, y: 10, duration: 0.8, ease: 'power2.inOut' }, '<')
       // 5. Card subtle rotation (7-9s)
       .to(cardRef.current, { rotateY: 5, rotateX: -2, duration: 1.5, ease: 'power2.inOut' })
       .to(cardRef.current, { rotateY: -5, rotateX: 2, duration: 1.5, ease: 'power2.inOut' })
       .to(cardRef.current, { rotateY: 0, rotateX: 0, duration: 0.5, ease: 'power2.inOut' })
       // 6. Phone return to center (9-10s)
       .to(phoneRef.current, { y: -15, duration: 0.8, ease: 'power2.inOut' })
-      .to([badge1Ref.current, badge2Ref.current], { x: 0, y: 0, duration: 0.8, ease: 'power2.inOut' }, '<')
       // 7. Scale up phone for focus (10-12s)
       .to(phoneRef.current, { scale: 1.1, duration: 1, ease: 'power2.inOut' })
       .to(phoneRef.current, { scale: 1, duration: 1, ease: 'power2.inOut' })
-      // 8. Badges pulse effect (12-14s)
-      .to([badge1Ref.current, badge2Ref.current], { scale: 1.1, duration: 0.3, ease: 'power2.inOut' })
-      .to([badge1Ref.current, badge2Ref.current], { scale: 1, duration: 0.3, ease: 'power2.inOut' })
-      .to([badge1Ref.current, badge2Ref.current], { scale: 1.1, duration: 0.3, ease: 'power2.inOut' })
-      .to([badge1Ref.current, badge2Ref.current], { scale: 1, duration: 0.3, ease: 'power2.inOut' })
-      // 9. Card glow effect (14-16s)
+      // 8. Card glow effect (14-16s)
       .to(cardRef.current, { boxShadow: `0 0 60px ${dynamicColor}40`, duration: 1, ease: 'power2.inOut' })
       .to(cardRef.current, { boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', duration: 1, ease: 'power2.inOut' })
-      // 10. Final settle (16-18s)
+      // 9. Final settle (16-18s)
       .to([title1Ref.current, title2Ref.current], { y: -5, duration: 0.5, ease: 'power2.inOut' })
       .to([title1Ref.current, title2Ref.current], { y: 0, duration: 0.5, ease: 'power2.inOut' })
-      // 11. Fade out for repeat (18-20s)
+      // 10. Fade out for repeat (18-20s)
       .to(cardRef.current, { opacity: 0.8, scale: 0.95, duration: 1, ease: 'power2.inOut' })
       .to(cardRef.current, { opacity: 1, scale: 1, duration: 1, ease: 'power2.inOut' });
     }, containerRef);
@@ -220,7 +204,7 @@ export default function CoverContent() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             
             {/* Left Content Side */}
-            <div className="lg:col-span-7 space-y-6 text-left">
+            <div className="lg:col-span-6 space-y-6 text-left">
               <div className="space-y-2">
                 <h1 ref={title1Ref} className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white">
                   Student Self Service Portal
@@ -252,77 +236,49 @@ export default function CoverContent() {
               </div>
             </div>
 
-            {/* Right Side 3D Device Showcase */}
-            <div className="lg:col-span-5 relative flex justify-center items-center">
-              
-              {/* Floating Glass Badge 1 - Announcement */}
-              <div
-                ref={badge1Ref}
-                className="absolute -top-4 -left-4 z-20 p-3 rounded-2xl bg-slate-800/80 backdrop-blur-md border border-white/10 shadow-xl flex items-center gap-3"
-              >
-                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
-                  <Bell className="w-5 h-5" />
-                </div>
-                <div className="text-left">
-                  <p className="text-xs font-semibold text-white">New Announcement</p>
-                  <p className="text-[10px] text-slate-400">Fall 2026 Registration Open</p>
-                </div>
-              </div>
+            {/* Right Side 3D Device Showcase - Increased Phone Size */}
+            <div className="lg:col-span-6 relative flex justify-center items-center">
 
-              {/* Floating Glass Badge 2 - Announcement */}
-              <div
-                ref={badge2Ref}
-                className="absolute -bottom-4 -right-4 z-20 p-3 rounded-2xl bg-slate-800/80 backdrop-blur-md border border-white/10 shadow-xl flex items-center gap-3"
-              >
-                <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div className="text-left">
-                  <p className="text-xs font-semibold text-white">Event Update</p>
-                  <p className="text-[10px] text-slate-400">Career Fair Next Week</p>
-                </div>
-              </div>
-
-              {/* Mockup Phone Frame */}
+              {/* Mockup Phone Frame - Larger size */}
               <div
                 ref={phoneRef}
-                className="w-full max-w-[280px] rounded-[36px] bg-slate-950 p-3 border-4 border-slate-800 shadow-2xl relative z-10"
+                className="w-full max-w-[380px] rounded-[36px] bg-slate-950 p-3 border-4 border-slate-800 shadow-2xl relative z-10"
               >
-                <div className="w-full rounded-[28px] bg-slate-900 border border-white/5 overflow-hidden p-4 space-y-4">
+                <div className="w-full rounded-[28px] bg-slate-900 border border-white/5 overflow-hidden p-6 space-y-6">
 
                   {/* Phone Header */}
-                  <div className="flex items-center justify-between pb-2 border-b border-white/5">
-                    <div className="flex items-center gap-2">
-                      <GraduationCap className="w-5 h-5" style={{ color: dynamicColor }} />
-                      <span className="text-xs font-bold text-white">Tech Centers</span>
+                  <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                    <div className="flex items-center gap-3">
+                      <GraduationCap className="w-6 h-6" style={{ color: dynamicColor }} />
+                      <span className="text-sm font-bold text-white">Tech Centers</span>
                     </div>
-                    <span className="text-[10px] text-slate-500">Network</span>
+                    <span className="text-xs text-slate-500">Network</span>
                   </div>
 
-                  {/* Typing Tech Center Animation */}
-                  <div className="p-4 rounded-xl bg-white/5 border border-white/5 text-center space-y-2">
-                    <p className="text-[10px] uppercase tracking-wider text-slate-400">Current Location</p>
-                    <div className="flex items-center justify-center gap-2">
-                      <Building2 className="w-4 h-4" style={{ color: dynamicColor }} />
-                      <span ref={techCenterTextRef} className="text-lg font-bold text-white">
+                  {/* Typing Tech Center Animation - Larger */}
+                  <div className="p-6 rounded-xl bg-white/5 border border-white/5 text-center space-y-3">
+                    <p className="text-xs uppercase tracking-wider text-slate-400">Current Location</p>
+                    <div className="flex items-center justify-center gap-3">
+                      <Building2 className="w-5 h-5" style={{ color: dynamicColor }} />
+                      <span ref={techCenterTextRef} className="text-2xl font-bold text-white">
                         {displayText}
                       </span>
-                      <span className="animate-pulse text-white">|</span>
+                      <span className="animate-pulse text-white text-2xl">|</span>
                     </div>
                   </div>
 
-                  {/* Scrolling Activities Animation */}
-                  <div className="p-4 rounded-xl bg-white/5 border border-white/5 text-center space-y-2">
-                    <p className="text-[10px] uppercase tracking-wider text-slate-400">Quick Actions</p>
-                    <div className="h-8 overflow-hidden relative">
+                  {/* Scrolling Activities Animation - Larger */}
+                  <div className="p-6 rounded-xl bg-white/5 border border-white/5 text-center space-y-3">
+                    <p className="text-xs uppercase tracking-wider text-slate-400">Quick Actions</p>
+                    <div className="h-12 overflow-hidden relative">
                       <div
                         className="transition-transform duration-500 ease-in-out"
-                        style={{ transform: `translateY(-${activityIndex * 32}px)` }}
+                        style={{ transform: `translateY(-${activityIndex * 48}px)` }}
                       >
                         {activities.map((activity, index) => (
                           <div
                             key={index}
-                            className="h-8 flex items-center justify-center text-sm font-semibold text-white"
+                            className="h-12 flex items-center justify-center text-base font-semibold text-white"
                             style={{ color: dynamicColor }}
                           >
                             {activity}
