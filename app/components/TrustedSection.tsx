@@ -3,8 +3,11 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useTenant } from "@/lib/contexts/TenantContext";
 
 export default function TrustedSection() {
+  const { currentTechCenter, isTenantView } = useTenant();
+
   return (
     <section className="py-20 bg-[#0F172A]">
 
@@ -20,23 +23,28 @@ export default function TrustedSection() {
 
         >
 
-          <p className="uppercase tracking-[0.3em] text-[#E8A33D] text-sm">
-
-            Trusted Across
-
+          <p 
+            className="uppercase tracking-[0.3em] text-sm"
+            style={{ color: isTenantView ? currentTechCenter?.color : '#E8A33D' }}
+          >
+            {isTenantView ? 'Welcome to' : 'Trusted Across'}
           </p>
 
           <h2 className="mt-4 text-4xl font-bold text-white">
 
-            The SELFLESS Tech Center Network
+            {isTenantView 
+              ? `${currentTechCenter?.displayName} Tech Center`
+              : 'The SELFLESS Tech Center Network'
+            }
 
           </h2>
 
           <p className="mt-5 max-w-3xl mx-auto text-gray-400 leading-8">
 
-            Designed to support students across SELFLESS learning communities,
-            providing one unified platform for academic success, collaboration,
-            and student engagement.
+            {isTenantView 
+              ? `Part of the broader SELFLESS CE network, ${currentTechCenter?.displayName} provides specialized technical education and BYU-Idaho courses with local support and community engagement.`
+              : 'Designed to support students across SELFLESS learning communities, providing one unified platform for academic success, collaboration, and student engagement.'
+            }
 
           </p>
 

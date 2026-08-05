@@ -1,7 +1,9 @@
 // app/page.tsx
 
+"use client";
+
 import CoverSection from "@/components/CoverContent";
-import TrustedSection from "@/components/TrustedSection";
+import TrustedSection from "@/app/components/TrustedSection";
 import PortalOverview from "@/components/PortalOverview";
 import StudentJourney from "@/components/StudentJourney";
 import AcademicFeatures from "@/components/AcademicFeatures";
@@ -11,25 +13,73 @@ import WhyChoosePortal from "@/components/WhyChoosePortal";
 import Testimonials from "@/components/Testimonials";
 import FAQ from "@/components/FAQ";
 import CTASection from "@/components/CTASection";
-import Footer from "@/components/Footer";
-import FixedHeader from "@/components/FixedHeader";
+import { useTenant } from "@/lib/contexts/TenantContext";
 
 export default function HomePage() {
+  const { currentTechCenter, isTenantView } = useTenant();
+
   return (
-    <main className="overflow-hidden bg-[#0D1117] text-white">
-
-      {/* ========================================================= */}
-      {/* FIXED HEADER */}
-      {/* ========================================================= */}
-
-      <FixedHeader />
+    <main className="bg-[#0D1117] text-white pt-16">
 
       {/* ========================================================= */}
       {/* HERO */}
       {/* ========================================================= */}
 
       <section id="cover">
-        <CoverSection />
+        {isTenantView ? (
+          <div className="relative min-h-[600px] flex items-center justify-center px-4 py-20">
+            <div 
+              className="absolute inset-0 opacity-10"
+              style={{
+                background: `radial-gradient(circle at center, ${currentTechCenter?.color} 0%, transparent 70%)`
+              }}
+            />
+            <div className="relative z-10 text-center max-w-4xl mx-auto">
+              <div className="mb-6">
+                <span 
+                  className="inline-block px-4 py-2 rounded-full text-sm font-semibold uppercase tracking-wider"
+                  style={{
+                    backgroundColor: `${currentTechCenter?.color}20`,
+                    color: currentTechCenter?.color,
+                    border: `1px solid ${currentTechCenter?.color}40`
+                  }}
+                >
+                  {currentTechCenter?.displayName} Tech Center
+                </span>
+              </div>
+              <h1 
+                className="text-4xl md:text-6xl font-bold mb-6"
+                style={{ color: currentTechCenter?.color }}
+              >
+                Welcome to {currentTechCenter?.displayName}
+              </h1>
+              <p className="text-xl text-[#A79C8C] mb-8 max-w-2xl mx-auto">
+                Your gateway to BYU-Idaho education and technical excellence at {currentTechCenter?.description}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <button
+                  className="px-8 py-4 rounded-lg font-semibold text-[#0B0912] transition-all"
+                  style={{ backgroundColor: currentTechCenter?.color }}
+                  onClick={() => window.location.href = '/login'}
+                >
+                  Get Started
+                </button>
+                <button
+                  className="px-8 py-4 rounded-lg font-semibold border-2 transition-all hover:bg-[#2A2438]/30"
+                  style={{ 
+                    borderColor: currentTechCenter?.color,
+                    color: currentTechCenter?.color
+                  }}
+                  onClick={() => document.getElementById('overview')?.scrollIntoView({ behavior: 'smooth' })}
+                >
+                  Learn More
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <CoverSection />
+        )}
       </section>
 
       {/* ========================================================= */}
@@ -115,12 +165,6 @@ export default function HomePage() {
       <section id="cta">
         <CTASection />
       </section>
-
-      {/* ========================================================= */}
-      {/* FOOTER */}
-      {/* ========================================================= */}
-
-      <Footer />
 
     </main>
   );
