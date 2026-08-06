@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
-import { 
-  GraduationCap, 
-  BookOpen, 
-  CheckCircle2, 
-  ArrowRight, 
-  Clock, 
+import {
+  GraduationCap,
+  BookOpen,
+  CheckCircle2,
+  ArrowRight,
+  Clock,
   Sparkles,
   Award,
   Bell,
@@ -32,6 +32,9 @@ export default function CoverContent() {
   const [displayText, setDisplayText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [activityIndex, setActivityIndex] = useState(0);
+
+  // Fix: dynamicColor declared BEFORE all useEffect calls so GSAP can reference it
+  const dynamicColor = currentTechCenter?.color || '#E8A33D';
 
   const techCenters = [
     'FreedomCity Tech Center',
@@ -127,46 +130,44 @@ export default function CoverContent() {
           ease: 'power3.out',
         }
       )
-      // 2. Parallax Phone Screen (2-3.5s)
-      .fromTo(
-        phoneRef.current,
-        { y: 60, rotateZ: -5, opacity: 0 },
-        { y: -15, rotateZ: 0, opacity: 1, duration: 1, ease: 'back.out(1.4)' },
-        '-=0.8'
-      )
-      // 3. Text & CTA Reveals (3.5-5s)
-      .fromTo(
-        [title1Ref.current, title2Ref.current, descRef.current, ctaRef.current],
-        { opacity: 0, y: 30 },
-        { opacity: 1, y: 0, duration: 0.8, stagger: 0.15, ease: 'power2.out' },
-        '-=0.6'
-      )
-      // 4. Phone content animation - Course progress (5-7s)
-      .to(phoneRef.current, { y: -25, duration: 1, ease: 'power2.inOut' }, '+=0.5')
-      // 5. Card subtle rotation (7-9s)
-      .to(cardRef.current, { rotateY: 5, rotateX: -2, duration: 1.5, ease: 'power2.inOut' })
-      .to(cardRef.current, { rotateY: -5, rotateX: 2, duration: 1.5, ease: 'power2.inOut' })
-      .to(cardRef.current, { rotateY: 0, rotateX: 0, duration: 0.5, ease: 'power2.inOut' })
-      // 6. Phone return to center (9-10s)
-      .to(phoneRef.current, { y: -15, duration: 0.8, ease: 'power2.inOut' })
-      // 7. Scale up phone for focus (10-12s)
-      .to(phoneRef.current, { scale: 1.1, duration: 1, ease: 'power2.inOut' })
-      .to(phoneRef.current, { scale: 1, duration: 1, ease: 'power2.inOut' })
-      // 8. Card glow effect (14-16s)
-      .to(cardRef.current, { boxShadow: `0 0 60px ${dynamicColor}40`, duration: 1, ease: 'power2.inOut' })
-      .to(cardRef.current, { boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', duration: 1, ease: 'power2.inOut' })
-      // 9. Final settle (16-18s)
-      .to([title1Ref.current, title2Ref.current], { y: -5, duration: 0.5, ease: 'power2.inOut' })
-      .to([title1Ref.current, title2Ref.current], { y: 0, duration: 0.5, ease: 'power2.inOut' })
-      // 10. Fade out for repeat (18-20s)
-      .to(cardRef.current, { opacity: 0.8, scale: 0.95, duration: 1, ease: 'power2.inOut' })
-      .to(cardRef.current, { opacity: 1, scale: 1, duration: 1, ease: 'power2.inOut' });
+        // 2. Parallax Phone Screen (2-3.5s)
+        .fromTo(
+          phoneRef.current,
+          { y: 60, rotateZ: -5, opacity: 0 },
+          { y: -15, rotateZ: 0, opacity: 1, duration: 1, ease: 'back.out(1.4)' },
+          '-=0.8'
+        )
+        // 3. Text & CTA Reveals (3.5-5s)
+        .fromTo(
+          [title1Ref.current, title2Ref.current, descRef.current, ctaRef.current],
+          { opacity: 0, y: 30 },
+          { opacity: 1, y: 0, duration: 0.8, stagger: 0.15, ease: 'power2.out' },
+          '-=0.6'
+        )
+        // 4. Phone content animation - Course progress (5-7s)
+        .to(phoneRef.current, { y: -25, duration: 1, ease: 'power2.inOut' }, '+=0.5')
+        // 5. Card subtle rotation (7-9s)
+        .to(cardRef.current, { rotateY: 5, rotateX: -2, duration: 1.5, ease: 'power2.inOut' })
+        .to(cardRef.current, { rotateY: -5, rotateX: 2, duration: 1.5, ease: 'power2.inOut' })
+        .to(cardRef.current, { rotateY: 0, rotateX: 0, duration: 0.5, ease: 'power2.inOut' })
+        // 6. Phone return to center (9-10s)
+        .to(phoneRef.current, { y: -15, duration: 0.8, ease: 'power2.inOut' })
+        // 7. Scale up phone for focus (10-12s)
+        .to(phoneRef.current, { scale: 1.1, duration: 1, ease: 'power2.inOut' })
+        .to(phoneRef.current, { scale: 1, duration: 1, ease: 'power2.inOut' })
+        // 8. Card glow effect (14-16s)
+        .to(cardRef.current, { boxShadow: `0 0 60px ${dynamicColor}40`, duration: 1, ease: 'power2.inOut' })
+        .to(cardRef.current, { boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', duration: 1, ease: 'power2.inOut' })
+        // 9. Final settle (16-18s)
+        .to([title1Ref.current, title2Ref.current], { y: -5, duration: 0.5, ease: 'power2.inOut' })
+        .to([title1Ref.current, title2Ref.current], { y: 0, duration: 0.5, ease: 'power2.inOut' })
+        // 10. Fade out for repeat (18-20s)
+        .to(cardRef.current, { opacity: 0.8, scale: 0.95, duration: 1, ease: 'power2.inOut' })
+        .to(cardRef.current, { opacity: 1, scale: 1, duration: 1, ease: 'power2.inOut' });
     }, containerRef);
 
     return () => ctx.revert();
   }, []);
-
-  const dynamicColor = currentTechCenter?.color || '#E8A33D';
 
   return (
     <div
@@ -192,6 +193,20 @@ export default function CoverContent() {
         backgroundSize: '50px 50px'
       }} />
 
+      {/* Floating background orbs */}
+      <div
+        className="absolute top-1/4 left-1/4 w-72 h-72 rounded-full blur-3xl opacity-10 animate-float pointer-events-none"
+        style={{ backgroundColor: dynamicColor }}
+      />
+      <div
+        className="absolute bottom-1/3 right-1/4 w-96 h-96 rounded-full blur-3xl opacity-[0.07] animate-float pointer-events-none"
+        style={{ backgroundColor: dynamicColor, animationDelay: '1s' }}
+      />
+      <div
+        className="absolute top-2/3 left-1/2 w-64 h-64 rounded-full blur-3xl opacity-[0.05] animate-float pointer-events-none"
+        style={{ backgroundColor: dynamicColor, animationDelay: '2s' }}
+      />
+
       {/* Hero Container */}
       <div className="relative max-w-6xl w-full mx-auto flex flex-col items-center z-10">
 
@@ -199,10 +214,10 @@ export default function CoverContent() {
         <div
           ref={cardRef}
           style={{ transformStyle: 'preserve-3d' }}
-          className="relative w-full rounded-3xl border border-white/10 bg-slate-900/60 backdrop-blur-xl p-6 sm:p-10 shadow-2xl transition-all duration-300"
+          className="relative w-full rounded-3xl border border-white/10 bg-[#0D1117]/60 backdrop-blur-xl p-6 sm:p-10 shadow-2xl transition-all duration-300"
         >
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            
+
             {/* Left Content Side */}
             <div className="lg:col-span-6 space-y-6 text-left">
               <div className="space-y-2">
@@ -211,15 +226,34 @@ export default function CoverContent() {
                 </h1>
                 <h1
                   ref={title2Ref}
-                  className="text-4xl sm:text-6xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400"
+                  className="text-4xl sm:text-6xl font-extrabold tracking-tight"
+                  style={{
+                    background: `linear-gradient(135deg, #ffffff, ${dynamicColor})`,
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                  }}
                 >
                   All Education In One Place
                 </h1>
               </div>
 
-              <p ref={descRef} className="text-base sm:text-lg text-slate-400 max-w-xl">
+              <p ref={descRef} className="text-base sm:text-lg text-[#A79C8C] max-w-xl">
                 Your centralized multi-tenant platform for managing BYU-Idaho courses, tracking academic progress, receiving tutor feedback, and connecting across the Selfless Tech Center Network.
               </p>
+
+              {/* Trust pills */}
+              <div className="flex flex-wrap items-center gap-2">
+                {['Free to use', 'Real-time tracking', 'AI-Powered'].map((label) => (
+                  <span
+                    key={label}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-[#A79C8C]"
+                  >
+                    <span style={{ color: dynamicColor }}>✓</span>
+                    {label}
+                  </span>
+                ))}
+              </div>
 
               {/* Action Buttons */}
               <div ref={ctaRef} className="flex flex-wrap items-center gap-4 pt-2">
@@ -236,15 +270,15 @@ export default function CoverContent() {
               </div>
             </div>
 
-            {/* Right Side 3D Device Showcase - Increased Phone Size */}
-            <div className="lg:col-span-6 relative flex justify-center items-center">
+            {/* Right Side 3D Device Showcase */}
+            <div className="flex lg:col-span-6 relative justify-center items-center">
 
               {/* Mockup Phone Frame - Larger size */}
               <div
                 ref={phoneRef}
-                className="w-full max-w-[380px] rounded-[36px] bg-slate-950 p-3 border-4 border-slate-800 shadow-2xl relative z-10"
+                className="w-full max-w-[320px] sm:max-w-[380px] rounded-[36px] bg-[#0B0912] p-3 border-4 border-[#2A2438] shadow-2xl relative z-10"
               >
-                <div className="w-full rounded-[28px] bg-slate-900 border border-white/5 overflow-hidden p-6 space-y-6">
+                <div className="w-full rounded-[28px] bg-[#150F20] border border-white/5 overflow-hidden p-6 space-y-4">
 
                   {/* Phone Header */}
                   <div className="flex items-center justify-between pb-3 border-b border-white/5">
@@ -252,33 +286,65 @@ export default function CoverContent() {
                       <GraduationCap className="w-6 h-6" style={{ color: dynamicColor }} />
                       <span className="text-sm font-bold text-white">Tech Centers</span>
                     </div>
-                    <span className="text-xs text-slate-500">Network</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-400">Network</span>
                   </div>
 
-                  {/* Typing Tech Center Animation - Larger */}
-                  <div className="p-6 rounded-xl bg-white/5 border border-white/5 text-center space-y-3">
-                    <p className="text-xs uppercase tracking-wider text-slate-400">Current Location</p>
-                    <div className="flex items-center justify-center gap-3">
-                      <Building2 className="w-5 h-5" style={{ color: dynamicColor }} />
-                      <span ref={techCenterTextRef} className="text-2xl font-bold text-white">
+                  {/* Typing Tech Center Animation */}
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/5 text-center space-y-2">
+                    <p className="text-xs uppercase tracking-wider text-[#6B6358]">Current Location</p>
+                    <div className="flex items-center justify-center gap-2">
+                      <Building2 className="w-5 h-5 flex-shrink-0" style={{ color: dynamicColor }} />
+                      <span ref={techCenterTextRef} className="text-lg font-bold text-white">
                         {displayText}
                       </span>
-                      <span className="animate-pulse text-white text-2xl">|</span>
+                      <span className="animate-pulse text-white text-lg">|</span>
                     </div>
                   </div>
 
-                  {/* Scrolling Activities Animation - Larger */}
-                  <div className="p-6 rounded-xl bg-white/5 border border-white/5 text-center space-y-3">
-                    <p className="text-xs uppercase tracking-wider text-slate-400">Quick Actions</p>
-                    <div className="h-12 overflow-hidden relative">
+                  {/* Mini grade/credits card */}
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/5 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 flex-shrink-0" style={{ color: dynamicColor }} />
+                      <span className="text-xs text-[#6B6358]">Academic Progress</span>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full bg-white/10">
+                      <div
+                        className="h-1.5 rounded-full"
+                        style={{ width: '72%', backgroundColor: dynamicColor }}
+                      />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-[#A79C8C]">Credits: 24/30</span>
+                      <span className="text-xs text-[#A79C8C]">GPA: 3.8</span>
+                    </div>
+                  </div>
+
+                  {/* Notification row */}
+                  <div className="flex justify-between items-center px-3 py-2 rounded-lg bg-white/5 border border-white/5">
+                    <div className="flex items-center gap-2">
+                      <Bell className="w-4 h-4" style={{ color: dynamicColor }} />
+                      <span className="text-xs text-[#A79C8C]">3 new announcements</span>
+                    </div>
+                    <span
+                      className="text-white text-[10px] rounded-full px-1.5 py-0.5 font-semibold"
+                      style={{ backgroundColor: dynamicColor }}
+                    >
+                      3
+                    </span>
+                  </div>
+
+                  {/* Scrolling Activities Animation */}
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/5 text-center space-y-2">
+                    <p className="text-xs uppercase tracking-wider text-[#6B6358]">Quick Actions</p>
+                    <div className="h-10 overflow-hidden relative">
                       <div
                         className="transition-transform duration-500 ease-in-out"
-                        style={{ transform: `translateY(-${activityIndex * 48}px)` }}
+                        style={{ transform: `translateY(-${activityIndex * 40}px)` }}
                       >
                         {activities.map((activity, index) => (
                           <div
                             key={index}
-                            className="h-12 flex items-center justify-center text-base font-semibold text-white"
+                            className="h-10 flex items-center justify-center text-sm font-semibold"
                             style={{ color: dynamicColor }}
                           >
                             {activity}
@@ -294,6 +360,14 @@ export default function CoverContent() {
             </div>
 
           </div>
+        </div>
+
+        {/* Scroll indicator */}
+        <div className="mt-10 flex flex-col items-center gap-2 animate-bounce">
+          <span className="text-xs text-slate-500 tracking-widest uppercase">Scroll</span>
+          <svg width="16" height="24" viewBox="0 0 16 24" fill="none" className="opacity-40">
+            <path d="M8 0v20M1 13l7 7 7-7" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </div>
 
       </div>
