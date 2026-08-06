@@ -28,7 +28,7 @@ export default function HomePage() {
         delay={4000}
       />
       
-      <main className="bg-[#0D1117] text-white pt-16" style={{ opacity: isLoading ? 0 : 1, transition: 'opacity 0.5s ease-in' }}>
+      <main className="bg-background text-foreground pt-16" style={{ opacity: isLoading ? 0 : 1, transition: 'opacity 0.5s ease-in' }}>
 
       {/* ========================================================= */}
       {/* HERO */}
@@ -62,20 +62,20 @@ export default function HomePage() {
               >
                 Welcome to {currentTechCenter?.displayName}
               </h1>
-              <p className="text-xl text-[#A79C8C] mb-8 max-w-2xl mx-auto">
+              <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
                 Your gateway to BYU-Idaho education and technical excellence at {currentTechCenter?.description}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button
-                  className="px-8 py-4 rounded-lg font-semibold text-[#0B0912] transition-all"
+                  className="px-8 py-4 rounded-lg font-semibold text-primary-foreground transition-all"
                   style={{ backgroundColor: currentTechCenter?.color }}
                   onClick={() => window.location.href = '/login'}
                 >
                   Get Started
                 </button>
                 <button
-                  className="px-8 py-4 rounded-lg font-semibold border-2 transition-all hover:bg-[#2A2438]/30"
-                  style={{ 
+                  className="px-8 py-4 rounded-lg font-semibold border-2 transition-all hover:bg-secondary/50"
+                  style={{
                     borderColor: currentTechCenter?.color,
                     color: currentTechCenter?.color
                   }}
@@ -144,36 +144,48 @@ export default function HomePage() {
       </section>
 
       {/* ========================================================= */}
-      {/* WHY CHOOSE THE PORTAL */}
+      {/* TWO-COLUMN LAYOUT */}
       {/* ========================================================= */}
 
-      <section id="why-choose">
-        <WhyChoosePortal />
-      </section>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Left Column - Sticky Why Choose */}
+          <div className="lg:col-span-1">
+            <div className="lg:sticky lg:top-20">
+              <section id="why-choose">
+                <WhyChoosePortal />
+              </section>
+            </div>
+          </div>
 
-      {/* ========================================================= */}
-      {/* TESTIMONIALS */}
-      {/* ========================================================= */}
+          {/* Right Column - Scrollable Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* ========================================================= */}
+            {/* TESTIMONIALS */}
+            {/* ========================================================= */}
 
-      <section id="testimonials">
-        <Testimonials />
-      </section>
+            <section id="testimonials">
+              <Testimonials />
+            </section>
 
-      {/* ========================================================= */}
-      {/* FAQ */}
-      {/* ========================================================= */}
+            {/* ========================================================= */}
+            {/* FAQ */}
+            {/* ========================================================= */}
 
-      <section id="faq">
-        <FAQ />
-      </section>
+            <section id="faq">
+              <FAQ />
+            </section>
 
-      {/* ========================================================= */}
-      {/* CALL TO ACTION */}
-      {/* ========================================================= */}
+            {/* ========================================================= */}
+            {/* CALL TO ACTION */}
+            {/* ========================================================= */}
 
-      <section id="cta">
-        <CTASection />
-      </section>
+            <section id="cta">
+              <CTASection />
+            </section>
+          </div>
+        </div>
+      </div>
 
     </main>
     </>

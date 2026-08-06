@@ -9,7 +9,7 @@ export default function TrustedSection() {
   const { currentTechCenter, isTenantView } = useTenant();
 
   return (
-    <section className="py-20 bg-[#0F172A]">
+    <section className="py-20 bg-background/90">
 
       <div className="max-w-6xl mx-auto px-6">
 
@@ -25,12 +25,12 @@ export default function TrustedSection() {
 
           <p 
             className="uppercase tracking-[0.3em] text-sm"
-            style={{ color: isTenantView ? currentTechCenter?.color : '#E8A33D' }}
+            style={{ color: isTenantView ? currentTechCenter?.color : 'var(--primary)' }}
           >
             {isTenantView ? 'Welcome to' : 'Trusted Across'}
           </p>
 
-          <h2 className="mt-4 text-4xl font-bold text-white">
+          <h2 className="mt-4 text-4xl font-bold text-foreground">
 
             {isTenantView 
               ? `${currentTechCenter?.displayName} Tech Center`
@@ -39,7 +39,7 @@ export default function TrustedSection() {
 
           </h2>
 
-          <p className="mt-5 max-w-3xl mx-auto text-gray-400 leading-8">
+          <p className="mt-5 max-w-3xl mx-auto text-muted-foreground leading-8">
 
             {isTenantView 
               ? `Part of the broader SELFLESS CE network, ${currentTechCenter?.displayName} provides specialized technical education and BYU-Idaho courses with local support and community engagement.`

@@ -24,7 +24,7 @@ export function Header() {
   const [hoveredNav, setHoveredNav] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const techCenters = getAllTechCenters();
-  const techCenterColor = currentTechCenter?.color || '#E8A33D';
+  const techCenterColor = currentTechCenter?.color || '#000000';
 
   // Get current page display name
   const getCurrentPageName = () => {
@@ -115,7 +115,7 @@ export function Header() {
   const headerClasses = cn(
     'fixed top-3 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-32px)] max-w-7xl transition-all duration-700 ease-out',
     'rounded-2xl md:rounded-full backdrop-blur-xl border transition-all h-16',
-    scrolled ? 'bg-[#0D1E35]/95 border-[#1A3050]/50 shadow-2xl shadow-black/20 backdrop-blur-2xl' : 'bg-[#0D1E35]/20 border-white/5 shadow-sm backdrop-blur-sm',
+    scrolled ? 'bg-background/95 border-border shadow-2xl shadow-black/20 backdrop-blur-2xl' : 'bg-background/20 border-border/5 shadow-sm backdrop-blur-sm',
     isVisible ? 'opacity-100 translate-y-0 blur-0' : 'opacity-0 -translate-y-8 blur-xl',
     'duration-1000'
   );
@@ -175,7 +175,7 @@ export function Header() {
             </div>
 
             <div>
-              <h1 className="text-base font-bold tracking-tight text-[#F5F0E8]">
+              <h1 className="text-base font-bold tracking-tight text-foreground">
                 {isTenantView
                   ? `${currentTechCenter?.displayName} Portal`
                   : 'Selfless CE Student Portal'}
@@ -187,8 +187,8 @@ export function Header() {
                 >
                   {isTenantView ? currentTechCenter?.displayName : 'Multi-Tenant'}
                 </span>
-                <span className="w-0.5 h-0.5 bg-[#2A2724] rounded-full" />
-                <span className="text-[10px] text-[#6B6358]">
+                <span className="w-0.5 h-0.5 bg-muted-foreground/30 rounded-full" />
+                <span className="text-[10px] text-muted-foreground">
                   BYU Idaho
                 </span>
               </div>
@@ -199,7 +199,7 @@ export function Header() {
           <div className="hidden lg:flex items-center gap-0.5">
             {allLinks.map((link) => {
               const techCenter = techCenters.find((tc) => tc.slug === link.slug);
-              const itemColor = techCenter?.color || (link.label === 'Home' ? techCenterColor : '#A79C8C');
+              const itemColor = techCenter?.color || (link.label === 'Home' ? techCenterColor : 'var(--muted-foreground)');
               const Icon = link.icon;
               const isActive = pathname === link.href;
               const isHovered = hoveredNav === link.href;
@@ -214,9 +214,9 @@ export function Header() {
                     'relative rounded-lg transition-all duration-300 font-medium px-3 py-1.5 text-sm',
                     'hover:-translate-y-0.5',
                     isActive
-                      ? 'text-white bg-white/10 shadow-inner'
-                      : 'text-[#A79C8C] hover:text-white',
-                    isHovered && !isActive && 'bg-[#112240]/20'
+                      ? 'text-foreground bg-secondary/50 shadow-inner'
+                      : 'text-muted-foreground hover:text-foreground',
+                    isHovered && !isActive && 'bg-secondary/30'
                   )}
                 >
                   <span className="flex items-center gap-1.5">
@@ -257,7 +257,7 @@ export function Header() {
           </div>
 
           {/* Divider */}
-          <div className="hidden lg:block w-px h-4 bg-white/10 flex-shrink-0" />
+          <div className="hidden lg:block w-px h-4 bg-border/50 flex-shrink-0" />
 
           {/* Desktop Auth - Enhanced */}
           <div className="hidden lg:flex items-center gap-2 flex-shrink-0">
@@ -265,22 +265,22 @@ export function Header() {
               <div className="flex items-center gap-3">
                 {/* User avatar */}
                 <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[#0E0D0C] text-[10px] transition-all duration-300"
+                  className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-background text-[10px] transition-all duration-300"
                   style={{ background: `linear-gradient(135deg, ${techCenterColor}, ${techCenterColor}99)` }}
                 >
                   {user?.firstName?.charAt(0).toUpperCase() || 'U'}
                 </div>
                 <div className="hidden xl:block text-left">
-                  <p className="text-xs text-[#F5F0E8] font-medium">
+                  <p className="text-xs text-foreground font-medium">
                     {user?.firstName || 'User'}
                   </p>
-                  <p className="text-[8px] text-[#6B6358]">Student</p>
+                  <p className="text-[8px] text-muted-foreground">Student</p>
                 </div>
 
                 {/* Dashboard button */}
                 <button
                   onClick={handleDashboard}
-                  className="flex items-center gap-1.5 rounded-lg transition-all duration-300 hover:scale-105 px-3 py-1.5 text-xs text-[#A79C8C] hover:text-white hover:bg-[#112240]/30"
+                  className="flex items-center gap-1.5 rounded-lg transition-all duration-300 hover:scale-105 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/30"
                 >
                   <LayoutDashboard className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Dashboard</span>
@@ -291,13 +291,13 @@ export function Header() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleAuth('login')}
-                  className="text-[#A79C8C] hover:text-white rounded-md transition-all duration-200 hover:scale-105 px-2.5 py-1 text-xs"
+                  className="text-muted-foreground hover:text-foreground rounded-md transition-all duration-200 hover:scale-105 px-2.5 py-1 text-xs"
                 >
                   Login
                 </button>
                 <button
                   onClick={() => handleAuth('register')}
-                  className="group relative rounded-md text-[#0E0D0C] font-semibold transition-all duration-300 overflow-hidden hover:scale-105 hover:shadow-lg px-4 py-1.5 text-sm"
+                  className="group relative rounded-md text-primary-foreground font-semibold transition-all duration-300 overflow-hidden hover:scale-105 hover:shadow-lg px-4 py-1.5 text-sm"
                   style={{ backgroundColor: techCenterColor }}
                 >
                   <span className="relative z-10 flex items-center gap-1">
@@ -316,23 +316,23 @@ export function Header() {
             {isAuthenticated && user ? (
               <button
                 onClick={handleDashboard}
-                className="flex items-center gap-1.5 rounded-full bg-white/5 border border-white/10 px-2 py-1 transition-all duration-200 hover:bg-white/10"
+                className="flex items-center gap-1.5 rounded-full bg-secondary/30 border border-border px-2 py-1 transition-all duration-200 hover:bg-secondary/50"
                 aria-label="Dashboard"
               >
                 <div
-                  className="w-5 h-5 rounded-full flex items-center justify-center font-bold text-[#0E0D0C] text-[9px] flex-shrink-0"
+                  className="w-5 h-5 rounded-full flex items-center justify-center font-bold text-background text-[9px] flex-shrink-0"
                   style={{ backgroundColor: techCenterColor }}
                 >
                   {user?.firstName?.charAt(0).toUpperCase() || 'U'}
                 </div>
-                <span className="text-[10px] text-[#F5F0E8] font-medium pr-0.5">
+                <span className="text-[10px] text-foreground font-medium pr-0.5">
                   {user?.firstName || 'User'}
                 </span>
               </button>
             ) : (
               <button
                 onClick={() => handleAuth('login')}
-                className="text-[10px] font-medium text-[#A79C8C] hover:text-white rounded-md border border-white/10 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 transition-all duration-200"
+                className="text-[10px] font-medium text-muted-foreground hover:text-foreground rounded-md border border-border px-2.5 py-1.5 bg-secondary/30 hover:bg-secondary/50 transition-all duration-200"
               >
                 Login
               </button>
@@ -342,8 +342,8 @@ export function Header() {
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className={cn(
-                'rounded-lg border border-[#1A3050] bg-[#0E2240]/50 text-[#A79C8C] hover:text-[#F5F0E8] hover:bg-[#112240]/40 transition-all duration-300 flex items-center gap-1.5 px-3 py-1.5 hover:scale-105',
-                mobileMenuOpen && 'bg-[#112240]/40 text-[#F5F0E8]'
+                'rounded-lg border border-border bg-secondary/30 text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all duration-300 flex items-center gap-1.5 px-3 py-1.5 hover:scale-105',
+                mobileMenuOpen && 'bg-secondary/50 text-foreground'
               )}
               aria-label="Toggle menu"
             >
@@ -360,14 +360,14 @@ export function Header() {
       {/* Mobile Menu Drawer - Enhanced */}
       <div
         className={cn(
-          'fixed inset-0 z-40 bg-[#0D1E35]/80 backdrop-blur-xl lg:hidden transition-all duration-500',
+          'fixed inset-0 z-40 bg-background/80 backdrop-blur-xl lg:hidden transition-all duration-500',
           mobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         )}
         onClick={() => setMobileMenuOpen(false)}
       >
         <div
           className={cn(
-            'fixed right-0 top-0 h-full w-80 max-w-[85%] bg-[#0A1628] border-l border-[#1A3050]/50',
+            'fixed right-0 top-0 h-full w-80 max-w-[85%] bg-background border-l border-border/50',
             'transform transition-all duration-500 ease-out',
             mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
           )}
@@ -375,41 +375,41 @@ export function Header() {
         >
           <div className="flex flex-col h-full overflow-y-auto">
             {/* Mobile header */}
-            <div className="flex items-center justify-between p-4 border-b border-[#1A3050]/30">
-              <span className="text-sm font-medium text-[#6B6358]">TechCenters</span>
+            <div className="flex items-center justify-between p-4 border-b border-border/30">
+              <span className="text-sm font-medium text-muted-foreground">TechCenters</span>
               <button
                 onClick={() => setMobileMenuOpen(false)}
-                className="rounded-full p-1 hover:bg-[#112240]/30 transition-colors"
+                className="rounded-full p-1 hover:bg-secondary/30 transition-colors"
               >
-                <X className="w-5 h-5 text-[#A79C8C]" />
+                <X className="w-5 h-5 text-muted-foreground" />
               </button>
             </div>
 
             {/* User section in mobile */}
             {isAuthenticated && user ? (
-              <div className="flex items-center gap-3 p-4 m-4 bg-[#0E2240] rounded-xl border border-[#1A3050]">
+              <div className="flex items-center gap-3 p-4 m-4 bg-secondary/30 rounded-xl border border-border">
                 <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-[#0E0D0C]"
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-background"
                   style={{ background: `linear-gradient(135deg, ${techCenterColor}, ${techCenterColor}99)` }}
                 >
                   {user?.firstName?.charAt(0).toUpperCase() || 'U'}
                 </div>
                 <div className="flex-1">
-                  <p className="text-[#F5F0E8] font-medium">{user?.firstName || 'User'}</p>
-                  <p className="text-[#6B6358] text-xs">Signed in</p>
+                  <p className="text-foreground font-medium">{user?.firstName || 'User'}</p>
+                  <p className="text-muted-foreground text-xs">Signed in</p>
                 </div>
               </div>
             ) : (
               <div className="flex flex-col gap-2 p-4">
                 <button
                   onClick={() => handleAuth('login')}
-                  className="w-full rounded-xl border border-[#1A3050] bg-[#0E2240] text-[#A79C8C] hover:text-[#F5F0E8] hover:bg-[#112240]/40 transition-all duration-200 px-4 py-3 text-sm"
+                  className="w-full rounded-xl border border-border bg-secondary/30 text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all duration-200 px-4 py-3 text-sm"
                 >
                   Login
                 </button>
                 <button
                   onClick={() => handleAuth('register')}
-                  className="w-full rounded-xl text-[#0E0D0C] font-semibold transition-all duration-300 hover:scale-[1.02] px-4 py-3 text-sm"
+                  className="w-full rounded-xl text-primary-foreground font-semibold transition-all duration-300 hover:scale-[1.02] px-4 py-3 text-sm"
                   style={{ backgroundColor: techCenterColor }}
                 >
                   Get Started
@@ -420,13 +420,13 @@ export function Header() {
             {/* Mobile navigation with current page highlight */}
             <nav className="flex-1 px-4 space-y-1">
               <div className="px-4 py-2">
-                <span className="text-[10px] uppercase tracking-wider text-[#6B6358] font-medium">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
                   Navigation
                 </span>
               </div>
               {allLinks.map((link, index) => {
                 const techCenter = techCenters.find((tc) => tc.slug === link.slug);
-                const itemColor = techCenter?.color || (link.label === 'Home' ? techCenterColor : '#A79C8C');
+                const itemColor = techCenter?.color || (link.label === 'Home' ? techCenterColor : 'var(--muted-foreground)');
                 const Icon = link.icon;
                 const isActive = pathname === link.href;
 
@@ -438,8 +438,8 @@ export function Header() {
                       'w-full text-left px-4 py-3 rounded-xl transition-all duration-300 flex items-center gap-3',
                       'hover:translate-x-2',
                       isActive
-                        ? 'bg-[#112240]/40 text-white'
-                        : 'text-[#A79C8C] hover:bg-[#112240]/20 hover:text-white'
+                        ? 'bg-secondary/50 text-foreground'
+                        : 'text-muted-foreground hover:bg-secondary/30 hover:text-foreground'
                     )}
                     style={{
                       animation: mobileMenuOpen ? `fadeInUp 0.3s ease-out ${index * 0.05}s both` : 'none',
@@ -469,10 +469,10 @@ export function Header() {
             </nav>
 
             {/* Mobile footer */}
-            <div className="p-4 mt-auto border-t border-[#1A3050]/30">
+            <div className="p-4 mt-auto border-t border-border/30">
               {isAuthenticated && (
                 <button
-                  className="w-full rounded-xl bg-[#112240]/20 text-[#A79C8C] hover:bg-[#112240]/40 hover:text-white transition-all duration-200 px-4 py-3 text-sm"
+                  className="w-full rounded-xl bg-secondary/30 text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-all duration-200 px-4 py-3 text-sm"
                   onClick={handleDashboard}
                 >
                   Go to Dashboard
