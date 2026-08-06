@@ -107,42 +107,76 @@ function LoginForm({ onClose, onSwitchToRegister }: LoginFormProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.3 }}
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -20, scale: 0.95 }}
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       className="w-full max-w-md mx-auto"
     >
-      <div className="bg-[#150F20] rounded-2xl border border-[#2A2438] p-6 sm:p-8 max-h-[90vh] overflow-y-auto relative shadow-2xl shadow-[#E8A33D]/5">
+      <div className="bg-[#150F20]/95 backdrop-blur-xl rounded-3xl border border-[#2A2438]/60 p-6 sm:p-8 max-h-[90vh] overflow-y-auto relative shadow-2xl shadow-[#E8A33D]/10">
         {/* Header */}
-        <div className="text-center mb-6">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#E8A33D] to-[#C97F1F] p-[2px] shadow-lg shadow-[#E8A33D]/30 mx-auto mb-4">
-            <div className="w-full h-full rounded-2xl bg-[#0B0912] flex items-center justify-center overflow-hidden">
+        <motion.div 
+          className="text-center mb-8"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.4 }}
+        >
+          <motion.div 
+            className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#E8A33D] to-[#C97F1F] p-[3px] shadow-2xl shadow-[#E8A33D]/40 mx-auto mb-5"
+            whileHover={{ scale: 1.05, rotate: 5 }}
+            transition={{ duration: 0.3, type: 'spring', stiffness: 300 }}
+          >
+            <div className="w-full h-full rounded-3xl bg-[#0B0912] flex items-center justify-center overflow-hidden">
               <img src="/freedom.png" alt="Logo" className="w-full h-full object-cover" />
             </div>
-          </div>
-          <h2 className="text-2xl font-bold text-[#F5F0E8]" style={{ fontFamily: 'var(--font-display)' }}>
+          </motion.div>
+          <motion.h2 
+            className="text-3xl font-bold text-[#F5F0E8]" 
+            style={{ fontFamily: 'var(--font-display)' }}
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+          >
             Welcome Back
-          </h2>
-          <p className="text-[#A79C8C] text-sm mt-1">Sign in to continue to your dashboard</p>
-        </div>
+          </motion.h2>
+          <motion.p 
+            className="text-[#A79C8C] text-sm mt-2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.4 }}
+          >
+            Sign in to continue to your dashboard
+          </motion.p>
+        </motion.div>
 
         {/* Email/Password Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-[#A79C8C] flex items-center gap-2">
-              <Mail className="w-4 h-4 text-[#6B6358]" />
+        <motion.form 
+          onSubmit={handleSubmit} 
+          className="space-y-5"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4, duration: 0.4 }}
+        >
+          <motion.div 
+            className="space-y-2"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5, duration: 0.4 }}
+          >
+            <label className="text-sm font-semibold text-[#A79C8C] flex items-center gap-2">
+              <Mail className="w-4 h-4 text-[#E8A33D]" />
               Email Address
             </label>
-            <input
+            <motion.input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
-              className="w-full px-4 py-3 bg-[#0B0912]/60 border border-[#2A2438] rounded-xl text-[#F5F0E8] placeholder-[#6B6358] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-all duration-200"
+              className="w-full px-4 py-3.5 bg-[#0B0912]/70 border border-[#2A2438]/60 rounded-2xl text-[#F5F0E8] placeholder-[#6B6358] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/50 focus:border-[#E8A33D]/50 transition-all duration-300"
               required
+              whileFocus={{ scale: 1.01, boxShadow: '0 0 0 4px rgba(232, 163, 61, 0.1)' }}
             />
-          </div>
+          </motion.div>
 
           <AnimatePresence>
             {error && (
@@ -161,9 +195,9 @@ function LoginForm({ onClose, onSwitchToRegister }: LoginFormProps) {
           <motion.button
             type="submit"
             disabled={isLoading}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="w-full py-3 bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] rounded-xl font-semibold text-[#0B0912] transition-all duration-300 shadow-lg shadow-[#E8A33D]/20 hover:shadow-[#E8A33D]/40 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            whileHover={{ scale: 1.02, y: -2, boxShadow: '0 10px 40px -10px rgba(232, 163, 61, 0.4)' }}
+            whileTap={{ scale: 0.98, y: 0 }}
+            className="w-full py-4 bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] rounded-2xl font-bold text-[#0B0912] transition-all duration-300 shadow-xl shadow-[#E8A33D]/25 hover:shadow-[#E8A33D]/40 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-xl flex items-center justify-center gap-3"
           >
             {isLoading ? (
               <>
@@ -173,22 +207,40 @@ function LoginForm({ onClose, onSwitchToRegister }: LoginFormProps) {
             ) : (
               <>
                 <span>Sign In with Email</span>
-                <ArrowRight className="w-4 h-4" />
+                <motion.div
+                  animate={{ x: [0, 5, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <ArrowRight className="w-5 h-5" />
+                </motion.div>
               </>
             )}
           </motion.button>
-        </form>
+        </motion.form>
 
         {/* Footer */}
-        <p className="text-center text-sm text-[#A79C8C] mt-6">
+        <motion.p 
+          className="text-center text-sm text-[#A79C8C] mt-8"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6, duration: 0.4 }}
+        >
           Don't have an account?{' '}
-          <button
+          <motion.button
             onClick={onSwitchToRegister}
-            className="text-[#F2C879] hover:text-[#E8A33D] font-medium transition-colors duration-200"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="text-[#F2C879] hover:text-[#E8A33D] font-semibold transition-colors duration-300 relative"
           >
             Create one
-          </button>
-        </p>
+            <motion.span
+              className="absolute bottom-0 left-0 w-full h-0.5 bg-[#E8A33D]"
+              initial={{ scaleX: 0 }}
+              whileHover={{ scaleX: 1 }}
+              transition={{ duration: 0.3 }}
+            />
+          </motion.button>
+        </motion.p>
       </div>
     </motion.div>
   );
@@ -287,13 +339,13 @@ function RegisterForm({ onClose, onSwitchToLogin }: RegisterFormProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.3 }}
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -20, scale: 0.95 }}
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       className="w-full max-w-md mx-auto"
     >
-      <div className="bg-[#150F20] rounded-2xl border border-[#2A2438] p-6 sm:p-8 max-h-[90vh] overflow-y-auto relative shadow-2xl shadow-[#E8A33D]/5">
+      <div className="bg-[#150F20]/95 backdrop-blur-xl rounded-3xl border border-[#2A2438]/60 p-6 sm:p-8 max-h-[90vh] overflow-y-auto relative shadow-2xl shadow-[#E8A33D]/10">
         {/* Header */}
         <div className="text-center mb-6">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#E8A33D] to-[#C97F1F] p-[2px] shadow-lg shadow-[#E8A33D]/30 mx-auto mb-4">
@@ -545,53 +597,82 @@ export default function AuthModal({ isOpen, onClose, defaultType = 'login' }: Au
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+        transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+        className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
         onClick={onClose}
       >
+        {/* Animated backdrop */}
         <motion.div
-          initial={{ scale: 0.95, opacity: 0, y: 20 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.95, opacity: 0, y: 20 }}
-          transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/70 to-[#E8A33D]/10 backdrop-blur-md"
+        />
+        
+        {/* Ambient glow effect */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.8 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full blur-3xl"
+          style={{ backgroundColor: '#E8A33D', opacity: 0.15 }}
+        />
+
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0, y: 30, rotateX: 5 }}
+          animate={{ scale: 1, opacity: 1, y: 0, rotateX: 0 }}
+          exit={{ scale: 0.9, opacity: 0, y: 30, rotateX: 5 }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           className="relative w-full max-w-md"
           onClick={(e) => e.stopPropagation()}
+          style={{ perspective: 1000 }}
         >
           {/* Close Button */}
           <motion.button
-            whileHover={{ scale: 1.1, rotate: 90 }}
+            whileHover={{ scale: 1.15, rotate: 90, backgroundColor: 'rgba(232, 163, 61, 0.2)' }}
             whileTap={{ scale: 0.9 }}
             onClick={onClose}
-            className="absolute -top-12 right-0 text-[#A79C8C] hover:text-[#F5F0E8] transition-colors duration-200 z-10 p-2"
+            className="absolute -top-14 right-0 text-[#A79C8C] hover:text-[#F5F0E8] transition-all duration-300 z-10 p-3 rounded-full"
           >
-            <X className="w-6 h-6" />
+            <X className="w-7 h-7" />
           </motion.button>
 
           {/* Form Toggle Indicator */}
-          <div className="flex justify-center mb-4">
-            <div className="bg-[#0B0912] rounded-full p-1 border border-[#2A2438]">
-              <button
+          <motion.div 
+            className="flex justify-center mb-6"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+          >
+            <div className="bg-[#0B0912]/80 backdrop-blur-xl rounded-full p-1.5 border border-[#2A2438]/50 shadow-xl">
+              <motion.button
                 onClick={() => setType('login')}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`px-5 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${
                   type === 'login'
-                    ? 'bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] text-[#0B0912] shadow-lg shadow-[#E8A33D]/20'
-                    : 'text-[#A79C8C] hover:text-[#F5F0E8]'
+                    ? 'bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] text-[#0B0912] shadow-lg shadow-[#E8A33D]/30'
+                    : 'text-[#A79C8C] hover:text-[#F5F0E8] hover:bg-[#2A2438]/30'
                 }`}
               >
                 Sign In
-              </button>
-              <button
+              </motion.button>
+              <motion.button
                 onClick={() => setType('register')}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`px-5 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${
                   type === 'register'
-                    ? 'bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] text-[#0B0912] shadow-lg shadow-[#E8A33D]/20'
-                    : 'text-[#A79C8C] hover:text-[#F5F0E8]'
+                    ? 'bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] text-[#0B0912] shadow-lg shadow-[#E8A33D]/30'
+                    : 'text-[#A79C8C] hover:text-[#F5F0E8] hover:bg-[#2A2438]/30'
                 }`}
               >
                 Register
-              </button>
+              </motion.button>
             </div>
-          </div>
+          </motion.div>
 
           {/* Render the active form */}
           <AnimatePresence mode="wait">

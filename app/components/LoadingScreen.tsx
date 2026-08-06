@@ -49,13 +49,13 @@ export default function LoadingScreen({ onComplete, delay = 2000 }: LoadingScree
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0D1117]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
       <div className="text-center space-y-8">
         {/* Logo */}
         <div className="relative">
           <div className="w-32 h-32 mx-auto mb-6 relative">
-            <div className="absolute inset-0 rounded-full border-4 border-[#E8A33D] opacity-20 animate-ping" />
-            <div className="absolute inset-2 rounded-full border-4 border-[#E8A33D] opacity-40 animate-pulse" />
+            <div className="absolute inset-0 rounded-full border-4 border-primary opacity-20 animate-ping" />
+            <div className="absolute inset-2 rounded-full border-4 border-primary opacity-40 animate-pulse" />
             <img
               src="/icon-512x512.png"
               alt="Selfless CE Logo"
@@ -70,7 +70,7 @@ export default function LoadingScreen({ onComplete, delay = 2000 }: LoadingScree
         {/* Title */}
         <div className="space-y-3">
           <h1 
-            className="text-3xl md:text-4xl font-bold text-white"
+            className="text-3xl md:text-4xl font-bold text-foreground"
             style={{
               animation: 'slideUp 0.6s ease-out forwards',
               animationDelay: '0.2s',
@@ -80,7 +80,7 @@ export default function LoadingScreen({ onComplete, delay = 2000 }: LoadingScree
             Selfless CE
           </h1>
           <p 
-            className="text-lg md:text-xl text-[#A79C8C]"
+            className="text-lg md:text-xl text-muted-foreground"
             style={{
               animation: 'slideUp 0.6s ease-out forwards',
               animationDelay: '0.4s',
@@ -90,7 +90,7 @@ export default function LoadingScreen({ onComplete, delay = 2000 }: LoadingScree
             Student Self Service Portal
           </p>
           <p 
-            className="text-sm md:text-base text-[#E8A33D] italic tracking-wide"
+            className="text-sm md:text-base text-primary italic tracking-wide"
             style={{
               animation: 'slideUp 0.6s ease-out forwards',
               animationDelay: '0.5s',
@@ -110,13 +110,13 @@ export default function LoadingScreen({ onComplete, delay = 2000 }: LoadingScree
             opacity: 0
           }}
         >
-          <div className="h-1 bg-[#2A2438] rounded-full overflow-hidden">
+          <div className="h-1 bg-secondary/50 rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#E8A33D] transition-all duration-100 ease-out"
+              className="h-full bg-primary transition-all duration-100 ease-out"
               style={{ width: `${progress}%` }}
             />
           </div>
-          <p className="text-xs text-[#6B6358] text-center">
+          <p className="text-xs text-muted-foreground text-center">
             {loadingMessages[currentMessage]} {Math.round(progress)}%
           </p>
         </div>
