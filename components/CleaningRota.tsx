@@ -1,10 +1,27 @@
 'use client';
 
-import { useState } from 'react';
-import { Calendar, Users, Clock, Sparkles, Bell, Shield, Star, Zap, Award, AlertCircle, MessageCircle, HelpCircle } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { 
+  Calendar, 
+  Users, 
+  Clock, 
+  Sparkles, 
+  Bell, 
+  Shield, 
+  Award, 
+  AlertCircle, 
+  MessageCircle,
+  LayoutDashboard,
+  Download,
+  Camera,
+  Copy,
+  Check
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Exact user data matching your screenshots
+// ============================================
+// DATA - EXACTLY AS YOU HAD IT
+// ============================================
 const weekData = {
   'First Week': {
     days: [
@@ -175,6 +192,9 @@ const weekData = {
   }
 };
 
+// ============================================
+// HELPERS
+// ============================================
 const getInitials = (name: string) => {
   const parts = name.trim().split(' ');
   if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
@@ -183,14 +203,14 @@ const getInitials = (name: string) => {
 
 const getAvatarColor = (name: string) => {
   const colors = [
-    'from-amber-400 to-amber-600',
-    'from-emerald-400 to-emerald-600',
-    'from-rose-400 to-rose-600',
-    'from-indigo-400 to-indigo-600',
-    'from-teal-400 to-teal-600',
-    'from-purple-400 to-purple-600',
-    'from-pink-400 to-pink-600',
-    'from-cyan-400 to-cyan-600',
+    'from-[#E8A33D] to-[#C97F1F]',
+    'from-[#14B8A6] to-[#0D9488]',
+    'from-[#FB7185] to-[#E11D48]',
+    'from-[#8B5CF6] to-[#6366F1]',
+    'from-[#F59E0B] to-[#D97706]',
+    'from-[#10B981] to-[#059669]',
+    'from-[#F472B6] to-[#EC4899]',
+    'from-[#06B6D4] to-[#0891B2]',
   ];
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
@@ -199,18 +219,17 @@ const getAvatarColor = (name: string) => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-const getDayEmoji = (day: string) => {
-  const emojis: Record<string, string> = {
-    'Monday': '🌅',
-    'Tuesday': '🌤️',
-    'Wednesday': '☀️',
-    'Thursday': '🌙',
-    'Friday': '⭐',
+const getDayColor = (day: string) => {
+  const colors: Record<string, string> = {
+    'Monday': 'border-[#E8A33D]/30',
+    'Tuesday': 'border-[#14B8A6]/30',
+    'Wednesday': 'border-[#FB7185]/30',
+    'Thursday': 'border-[#8B5CF6]/30',
+    'Friday': 'border-[#F59E0B]/30',
   };
-  return emojis[day] || '📅';
+  return colors[day] || 'border-[#1A3050]';
 };
 
-// New: Get a quirky time-based greeting
 const getGreeting = () => {
   const hour = new Date().getHours();
   if (hour < 12) return "Morning shift";
@@ -218,55 +237,56 @@ const getGreeting = () => {
   return "Evening shift";
 };
 
-// Duty Day Card Component - Made more organic and less structured
+// ============================================
+// DUTY DAY CARD COMPONENT
+// ============================================
 const DutyDayCard = ({ dayData, week, index }: { dayData: any; week: string; index: number }) => {
   const totalUsers = dayData.users.length;
   const dayName = dayData.day;
   const date = dayData.date;
-  const [showHelp, setShowHelp] = useState(false);
-
-  // Random quirky fact about the day
-  const dayFacts = {
-    'Monday': "Start the week strong! 💪",
-    'Tuesday': "Keep the momentum going! 🚀",
-    'Wednesday': "Halfway there! 🎯",
-    'Thursday': "Almost weekend vibes! ✨",
-    'Friday': "Last stretch! 🏁",
-  };
+  const dayColor = getDayColor(dayName);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.03 }}
-      className="group relative bg-[#0B0912] border border-[#2A2438] rounded-2xl overflow-hidden hover:border-amber-500/30 transition-all duration-300"
+      className={`group relative bg-[#0D1E35] border ${dayColor} rounded-2xl overflow-hidden hover:shadow-xl hover:shadow-[#E8A33D]/10 transition-all duration-500`}
     >
-      {/* Subtle gradient background - more organic feel */}
-      <div className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+      {/* Background glow */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#E8A33D]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
 
-      {/* Day header - more casual and friendly */}
-      <div className="relative px-5 pt-4 pb-3 border-b border-[#2A2438] bg-[#150F20]/50">
+      {/* Day header - Clean version with note after date */}
+      <div className="relative px-5 pt-4 pb-3 border-b border-[#1A3050] bg-[#112240]/50">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400/10 to-amber-600/10 border border-amber-500/20 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-300">
-              {getDayEmoji(dayName)}
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#E8A33D]/20 to-[#FB7185]/20 border border-[#E8A33D]/30 flex items-center justify-center overflow-hidden group-hover:scale-110 transition-transform duration-300">
+              <img src="/freedom.png" alt="Freedom Logo" className="w-full h-full object-contain p-1" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="text-base font-bold text-[#F5F0E8]">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-base font-bold text-white">
                   {dayName}
                 </span>
-                <span className="text-xs text-[#6B6358]">•</span>
-                <span className="text-xs text-[#A79C8C]">{date}</span>
+                <span className="text-xs text-[#8A8278]">•</span>
+                <span className="text-xs text-[#C4BDB5]">{date}</span>
+                <span className="text-xs text-[#8A8278]">|</span>
+                <span className="text-xs text-[#8A8278] font-medium">
+                  ⏰ Report by 10:00 PM
+                </span>
               </div>
-              <p className="text-xs text-[#6B6358] mt-0.5 italic">
-                {dayFacts[dayName as keyof typeof dayFacts]}
-              </p>
+              {/* Note section - moved here after date */}
+              <div className="flex items-center gap-2 mt-1">
+                <MessageCircle className="w-3 h-3 text-[#E8A33D]/60" />
+                <p className="text-[11px] text-[#C4BDB5]">
+                  Having difficulties? Reach out to your assigned tutor for guidance
+                </p>
+              </div>
             </div>
           </div>
-          <div className="flex flex-col items-end gap-1">
-            <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full">
-              <span className="text-xs font-medium text-amber-400">
+          <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-4">
+            <div className="px-3 py-1 bg-[#E8A33D]/10 border border-[#E8A33D]/20 rounded-full">
+              <span className="text-xs font-medium text-[#E8A33D]">
                 {totalUsers} {totalUsers === 1 ? 'student' : 'students'}
               </span>
             </div>
@@ -274,67 +294,21 @@ const DutyDayCard = ({ dayData, week, index }: { dayData: any; week: string; ind
         </div>
       </div>
 
-      {/* Registration Banner - New enhancement */}
-      <div className="relative px-5 py-2.5 bg-gradient-to-r from-emerald-500/10 via-amber-500/5 to-emerald-500/10 border-b border-[#2A2438]">
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="px-2 py-0.5 bg-emerald-500/20 rounded-full text-emerald-400 font-medium text-[10px] uppercase tracking-wider">
-            Open
-          </span>
-          <span className="text-[#A79C8C]">📢 Registration is ongoing</span>
-          <span className="w-1 h-1 rounded-full bg-[#2A2438]" />
-          <button 
-            onClick={() => setShowHelp(!showHelp)}
-            className="flex items-center gap-1 text-amber-400/70 hover:text-amber-400 transition-colors"
-          >
-            <HelpCircle className="w-3.5 h-3.5" />
-            <span>Need help?</span>
-          </button>
-        </div>
-        
-        {/* Help tooltip - New enhancement */}
-        {showHelp && (
-          <motion.div
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="absolute left-5 right-5 top-full mt-1 p-3 bg-[#1A1428] border border-[#2A2438] rounded-xl shadow-xl z-10"
-          >
-            <div className="flex items-start gap-2">
-              <MessageCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-              <div className="text-xs text-[#A79C8C]">
-                <p className="font-medium text-[#F5F0E8] mb-1">Reach out to your tutors</p>
-                <p className="text-[#6B6358]">If you're having any difficulty with your duty schedule, don't hesitate to contact your assigned tutor for guidance.</p>
-                <div className="mt-2 flex gap-2">
-                  <button className="text-xs px-3 py-1 bg-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/30 transition-colors">
-                    Contact Tutor
-                  </button>
-                  <button 
-                    onClick={() => setShowHelp(false)}
-                    className="text-xs px-3 py-1 bg-[#2A2438] text-[#6B6358] rounded-lg hover:bg-[#3A3458] transition-colors"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </div>
-
-      {/* Duty Alert - Made more conversational */}
-      <div className="relative px-5 py-2.5 bg-gradient-to-r from-amber-500/5 via-rose-500/5 to-amber-500/5 border-b border-[#2A2438]">
+      {/* Duty Alert */}
+      <div className="relative px-5 py-2.5 bg-gradient-to-r from-[#E8A33D]/5 via-[#FB7185]/5 to-[#E8A33D]/5 border-b border-[#1A3050]">
         <div className="flex items-start gap-2">
-          <Bell className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+          <Bell className="w-4 h-4 text-[#E8A33D] flex-shrink-0 mt-0.5" />
           <div className="flex-1">
-            <p className="text-sm text-[#F5F0E8]">
-              ⏰ <span className="font-medium text-amber-400">Heads up!</span> Please report to the Tech Center by <span className="font-bold text-amber-400">10:00 PM</span>
+            <p className="text-sm text-white">
+              <span className="font-medium text-[#E8A33D]">Reminder:</span> Please report to the Tech Center by <span className="font-bold text-[#E8A33D]">10:00 PM</span>
             </p>
             <div className="flex items-center gap-3 mt-1 text-xs">
-              <span className="text-rose-400/80 flex items-center gap-1">
+              <span className="text-[#FB7185]/80 flex items-center gap-1">
                 <Shield className="w-3 h-3" />
                 Non-compliance may have consequences
               </span>
-              <span className="text-[#6B6358]">•</span>
-              <span className="text-[#6B6358] flex items-center gap-1">
+              <span className="text-[#8A8278]">•</span>
+              <span className="text-[#8A8278] flex items-center gap-1">
                 <Clock className="w-3 h-3" />
                 {getGreeting()}
               </span>
@@ -343,11 +317,11 @@ const DutyDayCard = ({ dayData, week, index }: { dayData: any; week: string; ind
         </div>
       </div>
 
-      {/* Students List - With personal touch */}
-      <div className="divide-y divide-[#1A1428]">
+      {/* Students List */}
+      <div className="divide-y divide-[#112240]">
         {totalUsers === 0 ? (
           <div className="p-6 text-center">
-            <p className="text-sm text-[#6B6358]">No one on duty today 🤷</p>
+            <p className="text-sm text-[#8A8278]">No one on duty today 🤷</p>
           </div>
         ) : (
           dayData.users.map((user: any, userIndex: number) => {
@@ -360,23 +334,23 @@ const DutyDayCard = ({ dayData, week, index }: { dayData: any; week: string; ind
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.2, delay: userIndex * 0.02 }}
-                className="group/user px-5 py-3 hover:bg-[#1A1428]/50 transition-all duration-200 flex items-center justify-between"
+                className="group/user px-5 py-3 hover:bg-[#112240]/50 transition-all duration-200 flex items-center justify-between"
               >
                 <div className="flex items-center gap-3 flex-1">
-                  <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${avatarColor} flex items-center justify-center text-white font-bold text-sm shadow-lg flex-shrink-0`}>
+                  <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${avatarColor} flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-[#E8A33D]/20 flex-shrink-0`}>
                     {initials}
                   </div>
 
                   <div className="flex-1">
-                    <p className="text-sm text-[#F5F0E8] group-hover/user:text-amber-400 transition-colors">
+                    <p className="text-sm text-white group-hover/user:text-[#E8A33D] transition-colors">
                       {user.name}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
-                  <span className="text-[10px] text-amber-400/60">⚡</span>
-                  <span className="text-[10px] text-[#6B6358] font-medium">on duty</span>
+                  <span className="text-[10px] text-[#E8A33D]/60">⚡</span>
+                  <span className="text-[10px] text-[#8A8278] font-medium">on duty</span>
                 </div>
               </motion.div>
             );
@@ -384,27 +358,82 @@ const DutyDayCard = ({ dayData, week, index }: { dayData: any; week: string; ind
         )}
       </div>
 
-      {/* Footer - Made more casual */}
-      <div className="px-5 py-2 bg-[#0B0912]/50 border-t border-[#1A1428] flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Award className="w-3.5 h-3.5 text-amber-400/60" />
-          <span className="text-[10px] text-[#6B6358]">
-            {totalUsers} on duty
-          </span>
-        </div>
-        <div className="flex items-center gap-3 text-[10px] text-[#6B6358]">
-          <span>🏷️ {week}</span>
-          <span>•</span>
-          <span className="flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            10 PM
-          </span>
+      {/* Footer - Clean version */}
+      <div className="px-5 py-3 bg-[#0A1628]/80 border-t border-[#112240]">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Award className="w-3.5 h-3.5 text-[#E8A33D]/60" />
+              <span className="text-[10px] text-[#8A8278]">
+                {totalUsers} on duty
+              </span>
+            </div>
+            <span className="w-px h-4 bg-[#1A3050]" />
+            <span className="text-[10px] text-[#8A8278]">🏷️ {week}</span>
+          </div>
+          <div className="flex items-center gap-3 text-[10px] text-[#8A8278]">
+            <span className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              10 PM
+            </span>
+          </div>
         </div>
       </div>
     </motion.div>
   );
 };
 
+// ============================================
+// SCREENSHOT HELPER COMPONENT
+// ============================================
+const ScreenshotHelper = ({ onCapture }: { onCapture: () => void }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={onCapture}
+        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0D1E35] border border-[#1A3050] rounded-lg text-xs text-[#C4BDB5] hover:border-[#E8A33D]/30 hover:text-white transition-all duration-300"
+      >
+        <Camera className="w-3.5 h-3.5" />
+        <span>Capture</span>
+      </button>
+      <button
+        onClick={handleCopyLink}
+        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0D1E35] border border-[#1A3050] rounded-lg text-xs text-[#C4BDB5] hover:border-[#E8A33D]/30 hover:text-white transition-all duration-300"
+      >
+        {copied ? (
+          <>
+            <Check className="w-3.5 h-3.5 text-[#14B8A6]" />
+            <span className="text-[#14B8A6]">Copied!</span>
+          </>
+        ) : (
+          <>
+            <Copy className="w-3.5 h-3.5" />
+            <span>Copy Link</span>
+          </>
+        )}
+      </button>
+      <button
+        onClick={() => window.print()}
+        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0D1E35] border border-[#1A3050] rounded-lg text-xs text-[#C4BDB5] hover:border-[#E8A33D]/30 hover:text-white transition-all duration-300"
+      >
+        <Download className="w-3.5 h-3.5" />
+        <span>Print</span>
+      </button>
+    </div>
+  );
+};
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
 interface CleaningRotaProps {
   showTitle?: boolean;
   className?: string;
@@ -412,6 +441,8 @@ interface CleaningRotaProps {
 
 export default function CleaningRota({ showTitle = true, className = '' }: CleaningRotaProps) {
   const [selectedWeek, setSelectedWeek] = useState<'all' | 'First Week' | 'Second Week' | 'Third Week'>('all');
+  const [isCapturing, setIsCapturing] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const getCurrentWeekData = () => {
     if (selectedWeek === 'all') {
@@ -436,7 +467,6 @@ export default function CleaningRota({ showTitle = true, className = '' }: Clean
   const days = getCurrentWeekData();
   const totalStudents = days.reduce((acc, day) => acc + day.users.length, 0);
 
-  // Week filter labels with personality
   const filters = [
     { id: 'all', label: '📋 All Weeks', sub: `${totalStudents} students` },
     { id: 'First Week', label: '🌱 Week 1', sub: 'Jun 29 - Jul 3' },
@@ -444,41 +474,78 @@ export default function CleaningRota({ showTitle = true, className = '' }: Clean
     { id: 'Third Week', label: '🌳 Week 3', sub: 'Jul 13 - 17' },
   ];
 
+  // Screenshot capture handler
+  const handleCapture = () => {
+    setIsCapturing(true);
+    if (contentRef.current) {
+      contentRef.current.classList.add('screenshot-mode');
+    }
+    
+    setTimeout(() => {
+      setIsCapturing(false);
+      if (contentRef.current) {
+        contentRef.current.classList.remove('screenshot-mode');
+      }
+      alert('📸 Screenshot ready! Use your browser\'s screenshot tool or print to save as PDF.');
+    }, 500);
+  };
+
   return (
-    <div className={`${className} max-w-4xl mx-auto`}>
-      {/* Header - More personality */}
+    <div className={`${className} max-w-4xl mx-auto relative`}>
+      {/* Background patterns - matching your layout */}
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
+        backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0)`,
+        backgroundSize: '24px 24px'
+      }} />
+
+      {/* Header with Screenshot Tools */}
       {showTitle && (
         <motion.div 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
+          className="relative z-10 mb-6"
         >
-          <div className="flex items-start gap-4">
-            <div className="p-3 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/20 flex-shrink-0">
-              <Sparkles className="w-6 h-6 text-amber-400" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-[#F5F0E8]">
-                🧹 Cleaning Rota
-              </h2>
-              <p className="text-sm text-[#A79C8C] mt-0.5">
-                <span className="text-amber-400 font-medium">{totalStudents}</span> students registered across all weeks
-              </p>
-              <div className="flex items-center gap-2 mt-1 text-xs text-[#6B6358]">
-                <span>📢 Registration is ongoing</span>
-                <span className="w-1 h-1 rounded-full bg-[#2A2438]" />
-                <span className="text-amber-400/70">Need help? Reach out to your tutors!</span>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-4 mb-2">
+                <div className="h-8 w-1 rounded-full bg-gradient-to-b from-[#E8A33D] to-[#14B8A6]" />
+                <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+                  <span className="bg-gradient-to-r from-[#E8A33D]/20 to-[#FB7185]/20 p-2 rounded-xl border border-[#E8A33D]/20">
+                    <Calendar className="w-5 h-5 text-[#E8A33D]" />
+                  </span>
+                  Cleaning Rota
+                </h1>
               </div>
+              <div className="ml-6 flex flex-wrap items-center gap-4">
+                <p className="text-sm text-[#C4BDB5]">
+                  <span className="text-[#E8A33D] font-medium">{totalStudents}</span> students registered across all weeks
+                </p>
+                <div className="flex items-center gap-2 text-xs text-[#8A8278]">
+                  <span className="px-2 py-0.5 bg-[#14B8A6]/10 border border-[#14B8A6]/20 rounded-full text-[#14B8A6] text-[10px] font-medium">
+                    Registration Open
+                  </span>
+                  <span className="w-1 h-1 rounded-full bg-[#1A3050]" />
+                  <span className="text-[#E8A33D]/70 flex items-center gap-1">
+                    <MessageCircle className="w-3 h-3" />
+                    Need help? Reach out to tutors
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Screenshot Tools */}
+            <div className="flex-shrink-0">
+              <ScreenshotHelper onCapture={handleCapture} />
             </div>
           </div>
         </motion.div>
       )}
 
-      {/* Week Selector - More tactile */}
+      {/* Week Selector */}
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-wrap gap-2 mb-6"
+        className="relative z-10 flex flex-wrap gap-2 mb-6"
       >
         {filters.map((filter) => {
           const isActive = selectedWeek === filter.id;
@@ -487,18 +554,18 @@ export default function CleaningRota({ showTitle = true, className = '' }: Clean
             <motion.button
               key={filter.id}
               onClick={() => setSelectedWeek(filter.id as any)}
-              whileHover={{ scale: 1.02 }}
+              whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
-              className={`px-4 py-2 rounded-xl transition-all duration-200 ${
+              className={`px-4 py-2.5 rounded-xl transition-all duration-300 ${
                 isActive
-                  ? 'bg-amber-500 text-[#0B0912] font-medium shadow-lg shadow-amber-500/25'
-                  : 'bg-[#150F20] border border-[#2A2438] text-[#A79C8C] hover:border-amber-500/30 hover:text-[#F5F0E8]'
+                  ? 'bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] text-[#0A1628] font-semibold shadow-lg shadow-[#E8A33D]/30'
+                  : 'bg-[#0D1E35] border border-[#1A3050] text-[#C4BDB5] hover:border-[#E8A33D]/30 hover:text-white'
               }`}
             >
               <div className="flex items-center gap-2 text-sm">
                 <span>{filter.label}</span>
                 {filter.sub && (
-                  <span className={`text-[10px] ${isActive ? 'text-[#0B0912]/70' : 'text-[#6B6358]'}`}>
+                  <span className={`text-[10px] ${isActive ? 'text-[#0A1628]/70' : 'text-[#8A8278]'}`}>
                     • {filter.sub}
                   </span>
                 )}
@@ -508,79 +575,124 @@ export default function CleaningRota({ showTitle = true, className = '' }: Clean
         })}
       </motion.div>
 
-      {/* Duty Cards */}
-      <AnimatePresence mode="wait">
-        <motion.div 
-          key={selectedWeek}
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -15 }}
-          transition={{ duration: 0.25 }}
-          className="space-y-3.5"
-        >
-          {days.map((dayData, index) => (
-            <DutyDayCard 
-              key={`${dayData.week}-${dayData.day}-${index}`}
-              dayData={dayData}
-              week={dayData.week}
-              index={index}
-            />
-          ))}
-        </motion.div>
-      </AnimatePresence>
-
-      {/* Footer Summary - More organic */}
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.2 }}
-        className="mt-5"
+      {/* Content - Screenshot Ready */}
+      <div 
+        ref={contentRef}
+        className="relative z-10 screenshot-content"
+        style={{
+          backgroundColor: '#111110',
+          padding: '1px',
+          borderRadius: '16px',
+        }}
       >
-        <div className="bg-[#150F20]/50 border border-[#2A2438] rounded-xl p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                <Users className="w-4 h-4 text-amber-400" />
+        {/* Duty Cards */}
+        <AnimatePresence mode="wait">
+          <motion.div 
+            key={selectedWeek}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.25 }}
+            className="space-y-3.5"
+          >
+            {days.map((dayData, index) => (
+              <DutyDayCard 
+                key={`${dayData.week}-${dayData.day}-${index}`}
+                dayData={dayData}
+                week={dayData.week}
+                index={index}
+              />
+            ))}
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Footer Summary - Clean version */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="mt-5"
+        >
+          <div className="bg-[#0D1E35] border border-[#1A3050] rounded-2xl p-5 hover:shadow-xl hover:shadow-[#E8A33D]/10 transition-all duration-300">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-[#E8A33D]/10 border border-[#E8A33D]/20">
+                  <Users className="w-4 h-4 text-[#E8A33D]" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">
+                    {totalStudents} total registrations
+                  </p>
+                  <p className="text-xs text-[#8A8278]">
+                    {selectedWeek === 'all' ? 'All weeks combined' : selectedWeek}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-[#F5F0E8]">
-                  {totalStudents} total registrations
-                </p>
-                <p className="text-xs text-[#6B6358]">
-                  {selectedWeek === 'all' ? 'All weeks combined' : selectedWeek}
-                </p>
+              <div className="flex items-center gap-3 text-xs text-[#8A8278]">
+                <div className="flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 text-[#E8A33D]/60" />
+                  <span>Registration open</span>
+                </div>
+                <span className="w-px h-4 bg-[#1A3050]" />
+                <div className="flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>
+                    Updated {new Date().toLocaleDateString('en-US', { 
+                      month: 'short', 
+                      day: 'numeric'
+                    })}
+                  </span>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-3 text-xs text-[#6B6358]">
-              <div className="flex items-center gap-1">
-                <AlertCircle className="w-3.5 h-3.5 text-amber-400/60" />
-                <span>Registration open</span>
-              </div>
-              <span className="w-px h-4 bg-[#2A2438]" />
-              <div className="flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" />
-                <span>
-                  Updated {new Date().toLocaleDateString('en-US', { 
-                    month: 'short', 
-                    day: 'numeric'
-                  })}
+            
+            {/* Tutor Contact - Clean version */}
+            <div className="mt-3 pt-3 border-t border-[#112240]">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 text-xs text-[#8A8278]">
+                  <MessageCircle className="w-3.5 h-3.5 text-[#E8A33D]/60 flex-shrink-0" />
+                  <span>Having difficulties? </span>
+                  <button className="text-[#E8A33D]/70 hover:text-[#E8A33D] transition-colors font-medium hover:underline">
+                    Contact your tutor →
+                  </button>
+                </div>
+                <span className="text-[10px] text-[#8A8278] flex items-center gap-1 ml-auto">
+                  <Sparkles className="w-3 h-3 text-[#E8A33D]" />
+                  We're here to help
                 </span>
               </div>
             </div>
           </div>
-          {/* New: Tutor reach out message */}
-          <div className="mt-3 pt-3 border-t border-[#1A1428] flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs text-[#6B6358]">
-              <MessageCircle className="w-3.5 h-3.5 text-amber-400/60" />
-              <span>Having difficulties? </span>
-              <button className="text-amber-400/70 hover:text-amber-400 transition-colors font-medium">
-                Contact your tutor →
-              </button>
-            </div>
-            <span className="text-[10px] text-[#6B6358]">💡 We're here to help</span>
-          </div>
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
+
+      {/* Screenshot Mode Styles */}
+      <style jsx global>{`
+        .screenshot-mode {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          color-adjust: exact !important;
+        }
+        
+        .screenshot-mode * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          color-adjust: exact !important;
+        }
+        
+        @media print {
+          .screenshot-content {
+            background: #111110 !important;
+            padding: 16px !important;
+          }
+          
+          .screenshot-content * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
