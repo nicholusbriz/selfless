@@ -230,13 +230,6 @@ const getDayColor = (day: string) => {
   return colors[day] || 'border-[#1A3050]';
 };
 
-const getGreeting = () => {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Morning shift";
-  if (hour < 17) return "Afternoon shift";
-  return "Evening shift";
-};
-
 // ============================================
 // DUTY DAY CARD COMPONENT
 // ============================================
@@ -256,12 +249,12 @@ const DutyDayCard = ({ dayData, week, index }: { dayData: any; week: string; ind
       {/* Background glow */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#E8A33D]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
 
-      {/* Day header - Clean version with note after date */}
+      {/* Day header - with 8:00 AM - 10:00 AM time */}
       <div className="relative px-5 pt-4 pb-3 border-b border-[#1A3050] bg-[#112240]/50">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#E8A33D]/20 to-[#FB7185]/20 border border-[#E8A33D]/30 flex items-center justify-center overflow-hidden group-hover:scale-110 transition-transform duration-300">
-              <img src="/freedom.png" alt="Freedom Logo" className="w-full h-full object-contain p-1" />
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#E8A33D]/20 to-[#FB7185]/20 border border-[#E8A33D]/30 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-300">
+              {dayName.charAt(0)}
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -271,11 +264,11 @@ const DutyDayCard = ({ dayData, week, index }: { dayData: any; week: string; ind
                 <span className="text-xs text-[#8A8278]">•</span>
                 <span className="text-xs text-[#C4BDB5]">{date}</span>
                 <span className="text-xs text-[#8A8278]">|</span>
-                <span className="text-xs text-[#8A8278] font-medium">
-                  ⏰ Report by 10:00 PM
+                <span className="text-xs text-[#E8A33D] font-semibold">
+                  ⏰ 8:00 AM - 10:00 AM
                 </span>
               </div>
-              {/* Note section - moved here after date */}
+              {/* Note section - tutor guidance */}
               <div className="flex items-center gap-2 mt-1">
                 <MessageCircle className="w-3 h-3 text-[#E8A33D]/60" />
                 <p className="text-[11px] text-[#C4BDB5]">
@@ -294,13 +287,13 @@ const DutyDayCard = ({ dayData, week, index }: { dayData: any; week: string; ind
         </div>
       </div>
 
-      {/* Duty Alert */}
+      {/* Duty Alert - Updated with 8:00 AM - 10:00 AM */}
       <div className="relative px-5 py-2.5 bg-gradient-to-r from-[#E8A33D]/5 via-[#FB7185]/5 to-[#E8A33D]/5 border-b border-[#1A3050]">
         <div className="flex items-start gap-2">
           <Bell className="w-4 h-4 text-[#E8A33D] flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <p className="text-sm text-white">
-              <span className="font-medium text-[#E8A33D]">Reminder:</span> Please report to the Tech Center by <span className="font-bold text-[#E8A33D]">10:00 PM</span>
+              <span className="font-medium text-[#E8A33D]">Reminder:</span> Please report to the Tech Center between <span className="font-bold text-[#E8A33D]">8:00 AM - 10:00 AM</span>
             </p>
             <div className="flex items-center gap-3 mt-1 text-xs">
               <span className="text-[#FB7185]/80 flex items-center gap-1">
@@ -310,7 +303,7 @@ const DutyDayCard = ({ dayData, week, index }: { dayData: any; week: string; ind
               <span className="text-[#8A8278]">•</span>
               <span className="text-[#8A8278] flex items-center gap-1">
                 <Clock className="w-3 h-3" />
-                {getGreeting()}
+                Morning shift
               </span>
             </div>
           </div>
@@ -358,7 +351,7 @@ const DutyDayCard = ({ dayData, week, index }: { dayData: any; week: string; ind
         )}
       </div>
 
-      {/* Footer - Clean version */}
+      {/* Footer - Updated time */}
       <div className="px-5 py-3 bg-[#0A1628]/80 border-t border-[#112240]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -374,7 +367,7 @@ const DutyDayCard = ({ dayData, week, index }: { dayData: any; week: string; ind
           <div className="flex items-center gap-3 text-[10px] text-[#8A8278]">
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
-              10 PM
+              8:00 AM - 10:00 AM
             </span>
           </div>
         </div>
