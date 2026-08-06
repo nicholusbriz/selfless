@@ -264,14 +264,14 @@ export default function FootballTeamPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen p-6 bg-[#0D1117]">
+      <div className="min-h-screen p-6">
         <div className="max-w-4xl mx-auto space-y-6">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-[#150F20] border border-[#2A2438] rounded-xl p-6">
-              <div className="h-6 w-48 bg-[#2A2438] rounded animate-pulse mb-4" />
+            <div key={i} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl p-6">
+              <div className="h-6 w-48 bg-black/40 rounded animate-pulse mb-4" />
               <div className="space-y-3">
                 {[1, 2, 3].map((j) => (
-                  <div key={j} className="h-16 bg-[#2A2438] rounded-lg animate-pulse" />
+                  <div key={j} className="h-16 bg-black/40 rounded-lg animate-pulse" />
                 ))}
               </div>
             </div>
@@ -283,7 +283,7 @@ export default function FootballTeamPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0D1117]">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-[#FB7185]">Failed to load team data</p>
         </div>
@@ -347,10 +347,12 @@ export default function FootballTeamPage() {
           loop
           playsInline
           preload="auto"
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover blur-sm"
         >
           <source src="/football-video.mp4" type="video/mp4" />
         </video>
+        {/* Dark gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70" />
       </div>
 
       {/* Content - Directly on top with transparent backgrounds */}
@@ -359,7 +361,7 @@ export default function FootballTeamPage() {
         <div className="flex items-center gap-4 mb-8">
           <button
             onClick={() => router.back()}
-            className="p-2 rounded-lg bg-black/30 hover:bg-black/50 text-white backdrop-blur-sm transition-all duration-200 border border-white/10"
+            className="p-2 rounded-lg bg-black/40 hover:bg-black/50 text-white backdrop-blur-sm transition-all duration-200 border border-white/10"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -367,7 +369,7 @@ export default function FootballTeamPage() {
           <div className="h-8 w-px bg-white/20" />
           
           <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-xl bg-black/30 backdrop-blur-sm border border-white/20`}>
+            <div className={`p-2.5 rounded-xl bg-black/40 backdrop-blur-sm border border-white/20`}>
               {currentSportConfig && <currentSportConfig.icon className="w-6 h-6 text-[#E8A33D]" />}
             </div>
             <div>
@@ -393,7 +395,7 @@ export default function FootballTeamPage() {
                   p-4 rounded-xl border-2 transition-all duration-200 flex flex-col items-center gap-2
                   ${isSelected 
                     ? `${config.borderColor} ${config.bgColor} border-[#E8A33D]` 
-                    : 'border-[#2A2438] bg-black/30 hover:border-[#E8A33D]/50'
+                    : 'border-[#2A2438] bg-black/40 hover:border-[#E8A33D]/50'
                   }
                 `}
               >
@@ -408,7 +410,7 @@ export default function FootballTeamPage() {
 
         {/* Stats - Transparent glass */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+          <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-xl p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-[#E8A33D]/20 border border-[#E8A33D]/30 backdrop-blur-sm">
                 <Users className="w-5 h-5 text-[#E8A33D]" />
@@ -420,10 +422,10 @@ export default function FootballTeamPage() {
             </div>
           </div>
 
-          <div className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+          <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-xl p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-[#14B8A6]/20 border border-[#14B8A6]/30 backdrop-blur-sm">
-                <Shirt className="w-5 h-5 text-[#14B8A6]" />
+              <div className="p-2 rounded-lg bg-blue-500/20 border border-blue-500/30 backdrop-blur-sm">
+                <Shirt className="w-5 h-5 text-blue-500" />
               </div>
               <div>
                 <p className="text-xl font-bold text-white drop-shadow-lg">{membersByRole.PLAYER?.length || 0}</p>
@@ -432,10 +434,10 @@ export default function FootballTeamPage() {
             </div>
           </div>
 
-          <div className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+          <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-xl p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-[#FB7185]/20 border border-[#FB7185]/30 backdrop-blur-sm">
-                <Trophy className="w-5 h-5 text-[#FB7185]" />
+              <div className="p-2 rounded-lg bg-yellow-500/20 border border-yellow-500/30 backdrop-blur-sm">
+                <Trophy className="w-5 h-5 text-yellow-500" />
               </div>
               <div>
                 <p className="text-xl font-bold text-white drop-shadow-lg">{membersByRole.COACH?.length || 0}</p>
@@ -444,10 +446,10 @@ export default function FootballTeamPage() {
             </div>
           </div>
 
-          <div className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+          <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-xl p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-[#14B8A6]/20 border border-[#14B8A6]/30 backdrop-blur-sm">
-                <Megaphone className="w-5 h-5 text-[#14B8A6]" />
+              <div className="p-2 rounded-lg bg-pink-500/20 border border-pink-500/30 backdrop-blur-sm">
+                <Megaphone className="w-5 h-5 text-pink-500" />
               </div>
               <div>
                 <p className="text-xl font-bold text-white drop-shadow-lg">{membersByRole.CHEERLEADER?.length || 0}</p>
@@ -456,10 +458,10 @@ export default function FootballTeamPage() {
             </div>
           </div>
 
-          <div className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+          <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-xl p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-[#14B8A6]/20 border border-[#14B8A6]/30 backdrop-blur-sm">
-                <Package className="w-5 h-5 text-[#14B8A6]" />
+              <div className="p-2 rounded-lg bg-amber-500/20 border border-amber-500/30 backdrop-blur-sm">
+                <Package className="w-5 h-5 text-amber-500" />
               </div>
               <div>
                 <p className="text-xl font-bold text-white drop-shadow-lg">{membersByRole.KIT_MANAGER?.length || 0}</p>
@@ -468,10 +470,10 @@ export default function FootballTeamPage() {
             </div>
           </div>
 
-          <div className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+          <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-xl p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-[#14B8A6]/20 border border-[#14B8A6]/30 backdrop-blur-sm">
-                <UserCog className="w-5 h-5 text-[#14B8A6]" />
+              <div className="p-2 rounded-lg bg-teal-500/20 border border-teal-500/30 backdrop-blur-sm">
+                <UserCog className="w-5 h-5 text-teal-500" />
               </div>
               <div>
                 <p className="text-xl font-bold text-white drop-shadow-lg">{membersByRole.TEAM_MANAGER?.length || 0}</p>
@@ -480,10 +482,10 @@ export default function FootballTeamPage() {
             </div>
           </div>
 
-          <div className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+          <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-xl p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-[#14B8A6]/20 border border-[#14B8A6]/30 backdrop-blur-sm">
-                <Stethoscope className="w-5 h-5 text-[#14B8A6]" />
+              <div className="p-2 rounded-lg bg-red-500/20 border border-red-500/30 backdrop-blur-sm">
+                <Stethoscope className="w-5 h-5 text-red-500" />
               </div>
               <div>
                 <p className="text-xl font-bold text-white drop-shadow-lg">{membersByRole.MEDICAL?.length || 0}</p>
@@ -492,10 +494,10 @@ export default function FootballTeamPage() {
             </div>
           </div>
 
-          <div className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+          <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-xl p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-[#14B8A6]/20 border border-[#14B8A6]/30 backdrop-blur-sm">
-                <Award className="w-5 h-5 text-[#14B8A6]" />
+              <div className="p-2 rounded-lg bg-slate-500/20 border border-slate-500/30 backdrop-blur-sm">
+                <Award className="w-5 h-5 text-slate-500" />
               </div>
               <div>
                 <p className="text-xl font-bold text-white drop-shadow-lg">{membersByRole.REFEREE?.length || 0}</p>
@@ -506,7 +508,7 @@ export default function FootballTeamPage() {
         </div>
 
         {/* Multi-Sport Communication Banner */}
-        <div className="mb-6 bg-gradient-to-r from-[#E8A33D]/20 to-[#C97F1F]/10 border border-[#E8A33D]/30 rounded-xl p-4">
+        <div className="mb-6 bg-black/30 backdrop-blur-sm bg-gradient-to-r from-[#E8A33D]/20 to-[#C97F1F]/10 border border-[#E8A33D]/30 rounded-xl p-4">
           <div className="flex items-start gap-3">
             <div className="p-2 rounded-lg bg-[#E8A33D]/20">
               <Trophy className="w-5 h-5 text-[#E8A33D]" />
@@ -521,7 +523,7 @@ export default function FootballTeamPage() {
         {/* Join/Leave Action - Transparent */}
         <div className="mb-8">
           {currentUserMembership && currentUserMembership.teamType === selectedSport ? (
-            <div className="bg-black/30 backdrop-blur-sm border border-[#14B8A6]/30 rounded-xl p-4">
+            <div className="bg-black/50 backdrop-blur-md border border-[#14B8A6]/30 rounded-xl p-4">
               {!isEditing ? (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -710,7 +712,7 @@ export default function FootballTeamPage() {
             const roleMembers = membersByRole[role] || [];
             
             return (
-              <div key={role} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl p-6">
+              <div key={role} className="bg-black/50 backdrop-blur-md border border-white/10 rounded-xl p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className={`p-2 rounded-lg bg-gradient-to-br ${config.color}`}>
                     <Icon className="w-5 h-5 text-white" />
@@ -722,7 +724,7 @@ export default function FootballTeamPage() {
                 </div>
 
                 {roleMembers.length === 0 ? (
-                  <div className="bg-black/20 rounded-lg p-6 text-center border border-dashed border-white/10">
+                  <div className="bg-black/40 rounded-lg p-6 text-center border border-dashed border-white/10">
                     <Icon className="w-8 h-8 text-white/30 mx-auto mb-2" />
                     <p className="text-white/50 text-sm">No {config.name.toLowerCase()} registered yet</p>
                     <p className="text-white/30 text-xs mt-1">Join as {config.name.slice(0, -1)} to be displayed here</p>
@@ -734,7 +736,7 @@ export default function FootballTeamPage() {
                         key={member.id}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className={`bg-black/20 border ${config.borderColor} rounded-lg p-3 hover:bg-black/30 transition-all`}
+                        className={`bg-black/40 border ${config.borderColor} rounded-lg p-3 hover:bg-black/50 transition-all`}
                       >
                         <div className="flex items-center gap-3">
                           <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${config.color} flex items-center justify-center flex-shrink-0`}>
