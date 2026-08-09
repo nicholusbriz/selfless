@@ -96,7 +96,7 @@ export function Header() {
 
   // Header classes - floating glass - FIXED: removed calc width, using padding instead
   const headerClasses = cn(
-    'fixed top-3 left-1/2 -translate-x-1/2 z-50 w-full max-w-7xl px-4 transition-all duration-700 ease-out',
+    'fixed top-3 inset-x-0 mx-auto z-50 w-full max-w-7xl px-4 transition-all duration-700 ease-out',
     'rounded-2xl md:rounded-full backdrop-blur-xl border transition-all h-16',
     scrolled ? 'bg-background/95 border-border shadow-2xl shadow-black/20 backdrop-blur-2xl' : 'bg-background/20 border-border/5 shadow-sm backdrop-blur-sm',
     isVisible ? 'opacity-100 translate-y-0 blur-0' : 'opacity-0 -translate-y-8 blur-xl',
@@ -107,7 +107,7 @@ export function Header() {
     <>
       {/* Ambient glow effect */}
       <div
-        className="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] pointer-events-none z-40 opacity-10"
+        className="fixed top-0 left-0 right-0 mx-auto w-[min(600px,100vw)] h-[200px] pointer-events-none z-40 opacity-10"
         style={{
           backgroundImage: `radial-gradient(ellipse at center, ${techCenterColor}60 0%, transparent 70%)`,
           filter: 'blur(50px)',

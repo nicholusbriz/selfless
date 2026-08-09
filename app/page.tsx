@@ -34,15 +34,15 @@ export default function HomePage() {
         style={{ 
           opacity: isLoading ? 0 : 1, 
           transition: 'opacity 0.5s ease-in',
-          overflowX: 'hidden',
         }}
       >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-      {/* ========================================================= */}
-      {/* HERO */}
-      {/* ========================================================= */}
+          {/* ========================================================= */}
+          {/* HERO */}
+          {/* ========================================================= */}
 
-      <section id="cover" className="w-full overflow-x-hidden">
+          <section id="cover" className="w-full overflow-hidden">
         {isTenantView ? (
           <div className="relative min-h-[600px] flex items-center justify-center px-4 py-20 w-full">
             <div 
@@ -194,7 +194,7 @@ export default function HomePage() {
           </div>
         </div>
       </div>
-
+      </div>
     </main>
     </>
   );
