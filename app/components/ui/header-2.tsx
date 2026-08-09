@@ -1,7 +1,7 @@
 // app/components/ui/header-2.tsx
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { Home, ChevronDown, Sparkles, LayoutDashboard, X } from 'lucide-react';
@@ -25,24 +25,6 @@ export function Header() {
   const [isVisible, setIsVisible] = useState(false);
   const techCenters = getAllTechCenters();
   const techCenterColor = currentTechCenter?.color || '#000000';
-
-  // Get current page display name
-  const getCurrentPageName = () => {
-    if (pathname === '/') return 'Home';
-
-    // Check if we're on a tech center page
-    for (const tc of techCenters) {
-      if (pathname === `/tech-center/${tc.slug}`) {
-        return tc.displayName;
-      }
-    }
-
-    // Check dashboard
-    if (pathname === '/dashboard') return 'Dashboard';
-
-    // Default fallback
-    return 'Portal';
-  };
 
   // Links
   interface LinkItem {
@@ -74,7 +56,8 @@ export function Header() {
 
   // Entrance animation
   useEffect(() => {
-    setIsVisible(true);
+    const frame = requestAnimationFrame(() => setIsVisible(true));
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   // Mobile menu body lock
@@ -111,9 +94,9 @@ export function Header() {
     setLogoGlow({ x: 0, y: 0 });
   };
 
-  // Header classes - floating glass
+  // Header classes - floating glass - FIXED: removed calc width, using padding instead
   const headerClasses = cn(
-    'fixed top-3 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-32px)] max-w-7xl transition-all duration-700 ease-out',
+    'fixed top-3 left-1/2 -translate-x-1/2 z-50 w-full max-w-7xl px-4 transition-all duration-700 ease-out',
     'rounded-2xl md:rounded-full backdrop-blur-xl border transition-all h-16',
     scrolled ? 'bg-background/95 border-border shadow-2xl shadow-black/20 backdrop-blur-2xl' : 'bg-background/20 border-border/5 shadow-sm backdrop-blur-sm',
     isVisible ? 'opacity-100 translate-y-0 blur-0' : 'opacity-0 -translate-y-8 blur-xl',
@@ -132,7 +115,7 @@ export function Header() {
       />
 
       <header className={headerClasses}>
-        <div className="flex items-center justify-between px-3 md:px-4 w-full h-16">
+        <div className="flex items-center justify-between w-full h-16">
           {/* Logo - Enhanced with 3D and glow */}
           <div
             className="flex items-center gap-2 cursor-pointer group flex-shrink-0"
