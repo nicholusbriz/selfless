@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import CoverSection from "@/components/CoverContent";
 import TrustedSection from "@/app/components/TrustedSection";
 import PortalOverview from "@/components/PortalOverview";
@@ -28,22 +28,30 @@ export default function HomePage() {
         delay={4000}
       />
       
-      <main className="bg-background text-foreground pt-16" style={{ opacity: isLoading ? 0 : 1, transition: 'opacity 0.5s ease-in' }}>
+      {/* FIXED: Added overflow-x-hidden to prevent horizontal scroll */}
+      <main 
+        className="bg-background text-foreground pt-16 overflow-x-hidden w-full max-w-full" 
+        style={{ 
+          opacity: isLoading ? 0 : 1, 
+          transition: 'opacity 0.5s ease-in',
+          overflowX: 'hidden',
+        }}
+      >
 
       {/* ========================================================= */}
       {/* HERO */}
       {/* ========================================================= */}
 
-      <section id="cover">
+      <section id="cover" className="w-full overflow-x-hidden">
         {isTenantView ? (
-          <div className="relative min-h-[600px] flex items-center justify-center px-4 py-20">
+          <div className="relative min-h-[600px] flex items-center justify-center px-4 py-20 w-full">
             <div 
               className="absolute inset-0 opacity-10"
               style={{
                 background: `radial-gradient(circle at center, ${currentTechCenter?.color} 0%, transparent 70%)`
               }}
             />
-            <div className="relative z-10 text-center max-w-4xl mx-auto">
+            <div className="relative z-10 text-center max-w-4xl mx-auto w-full px-4">
               <div className="mb-6">
                 <span 
                   className="inline-block px-4 py-2 rounded-full text-sm font-semibold uppercase tracking-wider"
@@ -99,7 +107,7 @@ export default function HomePage() {
       {/* TRUSTED TECH CENTERS */}
       {/* ========================================================= */}
 
-      <section id="trusted">
+      <section id="trusted" className="w-full overflow-x-hidden">
         <TrustedSection />
       </section>
 
@@ -107,7 +115,7 @@ export default function HomePage() {
       {/* PLATFORM OVERVIEW */}
       {/* ========================================================= */}
 
-      <section id="overview">
+      <section id="overview" className="w-full overflow-x-hidden">
         <PortalOverview />
       </section>
 
@@ -115,7 +123,7 @@ export default function HomePage() {
       {/* STUDENT JOURNEY */}
       {/* ========================================================= */}
 
-      <section id="journey">
+      <section id="journey" className="w-full overflow-x-hidden">
         <StudentJourney />
       </section>
 
@@ -123,7 +131,7 @@ export default function HomePage() {
       {/* ACADEMIC FEATURES */}
       {/* ========================================================= */}
 
-      <section id="academic">
+      <section id="academic" className="w-full overflow-x-hidden">
         <AcademicFeatures />
       </section>
 
@@ -131,7 +139,7 @@ export default function HomePage() {
       {/* COMMUNITY */}
       {/* ========================================================= */}
 
-      <section id="community">
+      <section id="community" className="w-full overflow-x-hidden">
         <CommunityFeatures />
       </section>
 
@@ -139,7 +147,7 @@ export default function HomePage() {
       {/* DASHBOARD PREVIEW */}
       {/* ========================================================= */}
 
-      <section id="dashboard-preview">
+      <section id="dashboard-preview" className="w-full overflow-x-hidden">
         <DashboardPreview />
       </section>
 
@@ -147,8 +155,8 @@ export default function HomePage() {
       {/* TWO-COLUMN LAYOUT */}
       {/* ========================================================= */}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid lg:grid-cols-3 gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full overflow-x-hidden">
+        <div className="grid lg:grid-cols-3 gap-6 w-full">
           {/* Left Column - Sticky Why Choose */}
           <div className="lg:col-span-1">
             <div className="lg:sticky lg:top-20">
