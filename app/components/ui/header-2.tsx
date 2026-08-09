@@ -96,8 +96,8 @@ export function Header() {
 
   // Header classes - floating glass - FIXED: removed calc width, using padding instead
   const headerClasses = cn(
-    'fixed top-3 inset-x-0 mx-auto z-50 w-full max-w-7xl px-4 transition-all duration-700 ease-out',
-    'rounded-2xl md:rounded-full backdrop-blur-xl border transition-all h-16',
+    'fixed top-3 inset-x-0 mx-auto z-50 w-full max-w-7xl px-3 sm:px-4 transition-all duration-700 ease-out',
+    'rounded-2xl md:rounded-full backdrop-blur-xl border transition-all h-14 md:h-16',
     scrolled ? 'bg-background/95 border-border shadow-2xl shadow-black/20 backdrop-blur-2xl' : 'bg-background/20 border-border/5 shadow-sm backdrop-blur-sm',
     isVisible ? 'opacity-100 translate-y-0 blur-0' : 'opacity-0 -translate-y-8 blur-xl',
     'duration-1000'
@@ -158,10 +158,10 @@ export function Header() {
             </div>
 
             <div>
-              <h1 className="text-base font-bold tracking-tight text-foreground">
+              <h1 className="text-sm md:text-base font-bold tracking-tight text-foreground">
                 {isTenantView
                   ? `${currentTechCenter?.displayName} Portal`
-                  : 'Selfless CE Student Portal'}
+                  : 'Selfless Portal'}
               </h1>
               <div className="flex items-center gap-1.5">
                 <span
@@ -179,7 +179,7 @@ export function Header() {
           </div>
 
           {/* Desktop Links - Enhanced with hover effects */}
-          <div className="hidden lg:flex items-center gap-0.5">
+          <div className="hidden lg:flex items-center gap-1">
             {allLinks.map((link) => {
               const techCenter = techCenters.find((tc) => tc.slug === link.slug);
               const itemColor = techCenter?.color || (link.label === 'Home' ? techCenterColor : 'var(--muted-foreground)');
@@ -194,7 +194,7 @@ export function Header() {
                   onMouseEnter={() => setHoveredNav(link.href)}
                   onMouseLeave={() => setHoveredNav(null)}
                   className={cn(
-                    'relative rounded-lg transition-all duration-300 font-medium px-3 py-1.5 text-sm',
+                    'relative rounded-lg transition-all duration-300 font-medium px-2.5 py-1 text-xs',
                     'hover:-translate-y-0.5',
                     isActive
                       ? 'text-foreground bg-secondary/50 shadow-inner'
@@ -280,7 +280,7 @@ export function Header() {
                 </button>
                 <button
                   onClick={() => handleAuth('register')}
-                  className="group relative rounded-md text-primary-foreground font-semibold transition-all duration-300 overflow-hidden hover:scale-105 hover:shadow-lg px-4 py-1.5 text-sm"
+                  className="group relative rounded-md text-white font-semibold transition-all duration-300 overflow-hidden hover:scale-105 hover:shadow-lg px-4 py-1.5 text-sm"
                   style={{ backgroundColor: techCenterColor }}
                 >
                   <span className="relative z-10 flex items-center gap-1">
@@ -325,14 +325,14 @@ export function Header() {
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className={cn(
-                'rounded-lg border border-border bg-secondary/30 text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all duration-300 flex items-center gap-1.5 px-3 py-1.5 hover:scale-105',
+                'rounded-lg border border-border bg-secondary/30 text-foreground hover:text-foreground hover:bg-secondary/50 transition-all duration-300 flex items-center gap-1.5 px-3 py-1.5 hover:scale-105',
                 mobileMenuOpen && 'bg-secondary/50 text-foreground'
               )}
               aria-label="Toggle menu"
             >
-              <span className="text-xs font-medium">TechCenters</span>
+              <span className="text-xs font-semibold">Tech Centers</span>
               <ChevronDown className={cn(
-                'w-3 h-3 transition-transform duration-300',
+                'w-4 h-4 transition-transform duration-300',
                 mobileMenuOpen && 'rotate-180'
               )} />
             </button>
