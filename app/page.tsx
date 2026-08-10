@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import CoverSection from "@/components/CoverContent";
 import TrustedSection from "@/app/components/TrustedSection";
 import PortalOverview from "@/components/PortalOverview";
@@ -15,10 +15,10 @@ import Testimonials from "@/components/Testimonials";
 import FAQ from "@/components/FAQ";
 import CTASection from "@/components/CTASection";
 import LoadingScreen from "@/app/components/LoadingScreen";
-import { useTenant } from "@/lib/contexts/TenantContext";
+import Header2 from "@/app/components/ui/header-2";
+import Footer from "@/app/components/Footer";
 
 export default function HomePage() {
-  const { currentTechCenter, isTenantView } = useTenant();
   const [isLoading, setIsLoading] = useState(true);
 
   return (
@@ -28,154 +28,72 @@ export default function HomePage() {
         delay={4000}
       />
       
-      <main className="bg-[#0D1117] text-white pt-16" style={{ opacity: isLoading ? 0 : 1, transition: 'opacity 0.5s ease-in' }}>
+      <Header2 />
 
-      {/* ========================================================= */}
-      {/* HERO */}
-      {/* ========================================================= */}
-
-      <section id="cover">
-        {isTenantView ? (
-          <div className="relative min-h-[600px] flex items-center justify-center px-4 py-20">
-            <div 
-              className="absolute inset-0 opacity-10"
-              style={{
-                background: `radial-gradient(circle at center, ${currentTechCenter?.color} 0%, transparent 70%)`
-              }}
-            />
-            <div className="relative z-10 text-center max-w-4xl mx-auto">
-              <div className="mb-6">
-                <span 
-                  className="inline-block px-4 py-2 rounded-full text-sm font-semibold uppercase tracking-wider"
-                  style={{
-                    backgroundColor: `${currentTechCenter?.color}20`,
-                    color: currentTechCenter?.color,
-                    border: `1px solid ${currentTechCenter?.color}40`
-                  }}
-                >
-                  {currentTechCenter?.displayName} Tech Center
-                </span>
-              </div>
-              <h1 
-                className="text-4xl md:text-6xl font-bold mb-6"
-                style={{ color: currentTechCenter?.color }}
-              >
-                Welcome to {currentTechCenter?.displayName}
-              </h1>
-              <p className="text-xl text-[#A79C8C] mb-8 max-w-2xl mx-auto">
-                Your gateway to BYU-Idaho education and technical excellence at {currentTechCenter?.description}
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <button
-                  className="px-8 py-4 rounded-lg font-semibold text-[#0B0912] transition-all"
-                  style={{ backgroundColor: currentTechCenter?.color }}
-                  onClick={() => window.location.href = '/login'}
-                >
-                  Get Started
-                </button>
-                <button
-                  className="px-8 py-4 rounded-lg font-semibold border-2 transition-all hover:bg-[#2A2438]/30"
-                  style={{ 
-                    borderColor: currentTechCenter?.color,
-                    color: currentTechCenter?.color
-                  }}
-                  onClick={() => document.getElementById('overview')?.scrollIntoView({ behavior: 'smooth' })}
-                >
-                  Learn More
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
+      <main 
+        className="bg-[#0D1117] text-white pt-24" 
+        style={{ 
+          opacity: isLoading ? 0 : 1, 
+          transition: 'opacity 0.5s ease-in' 
+        }}
+      >
+        {/* HERO */}
+        <section id="cover">
           <CoverSection />
-        )}
-      </section>
+        </section>
 
-      {/* ========================================================= */}
-      {/* COVER BUTTONS */}
-      {/* ========================================================= */}
+        {/* TRUSTED TECH CENTERS */}
+        <section id="trusted">
+          <TrustedSection />
+        </section>
 
-      {/* ========================================================= */}
-      {/* TRUSTED TECH CENTERS */}
-      {/* ========================================================= */}
+        {/* PLATFORM OVERVIEW */}
+        <section id="overview">
+          <PortalOverview />
+        </section>
 
-      <section id="trusted">
-        <TrustedSection />
-      </section>
+        {/* STUDENT JOURNEY */}
+        <section id="journey">
+          <StudentJourney />
+        </section>
 
-      {/* ========================================================= */}
-      {/* PLATFORM OVERVIEW */}
-      {/* ========================================================= */}
+        {/* ACADEMIC FEATURES */}
+        <section id="academic">
+          <AcademicFeatures />
+        </section>
 
-      <section id="overview">
-        <PortalOverview />
-      </section>
+        {/* COMMUNITY */}
+        <section id="community">
+          <CommunityFeatures />
+        </section>
 
-      {/* ========================================================= */}
-      {/* STUDENT JOURNEY */}
-      {/* ========================================================= */}
+        {/* DASHBOARD PREVIEW */}
+        <section id="dashboard-preview">
+          <DashboardPreview />
+        </section>
 
-      <section id="journey">
-        <StudentJourney />
-      </section>
+        {/* WHY CHOOSE THE PORTAL */}
+        <section id="why-choose">
+          <WhyChoosePortal />
+        </section>
 
-      {/* ========================================================= */}
-      {/* ACADEMIC FEATURES */}
-      {/* ========================================================= */}
+        {/* TESTIMONIALS */}
+        <section id="testimonials">
+          <Testimonials />
+        </section>
 
-      <section id="academic">
-        <AcademicFeatures />
-      </section>
+        {/* FAQ */}
+        <section id="faq">
+          <FAQ />
+        </section>
 
-      {/* ========================================================= */}
-      {/* COMMUNITY */}
-      {/* ========================================================= */}
+        {/* CALL TO ACTION */}
+        <section id="cta">
+          <CTASection />
+        </section>
+      </main>
 
-      <section id="community">
-        <CommunityFeatures />
-      </section>
-
-      {/* ========================================================= */}
-      {/* DASHBOARD PREVIEW */}
-      {/* ========================================================= */}
-
-      <section id="dashboard-preview">
-        <DashboardPreview />
-      </section>
-
-      {/* ========================================================= */}
-      {/* WHY CHOOSE THE PORTAL */}
-      {/* ========================================================= */}
-
-      <section id="why-choose">
-        <WhyChoosePortal />
-      </section>
-
-      {/* ========================================================= */}
-      {/* TESTIMONIALS */}
-      {/* ========================================================= */}
-
-      <section id="testimonials">
-        <Testimonials />
-      </section>
-
-      {/* ========================================================= */}
-      {/* FAQ */}
-      {/* ========================================================= */}
-
-      <section id="faq">
-        <FAQ />
-      </section>
-
-      {/* ========================================================= */}
-      {/* CALL TO ACTION */}
-      {/* ========================================================= */}
-
-      <section id="cta">
-        <CTASection />
-      </section>
-
-    </main>
+      <Footer />
     </>
   );
 }

@@ -1,9 +1,9 @@
 import {
   MessageCircle,
-  Share2,
   Mail,
   Phone,
 } from "lucide-react";
+import Image from "next/image";
 
 export default function Footer() {
   return (
@@ -12,11 +12,15 @@ export default function Footer() {
         <div className="grid gap-10 lg:grid-cols-4">
           {/* Brand */}
           <div>
-            <img
-              src="/freedom.png"
-              className="h-16 w-16 rounded-xl"
-              alt="Selfless CE Logo"
-            />
+            <div className="relative h-16 w-16 rounded-xl overflow-hidden">
+              <Image
+                src="/freedom.png"
+                alt="Selfless CE Logo"
+                fill
+                className="object-cover"
+                sizes="64px"
+              />
+            </div>
 
             <h3 className="mt-4 text-xl font-bold text-white">
               Selfless Student Portal

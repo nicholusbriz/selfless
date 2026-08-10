@@ -1,3 +1,5 @@
+// components/CTASection.tsx
+
 "use client";
 
 import Link from "next/link";
@@ -6,16 +8,14 @@ import { ArrowRight } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import AuthModal from "@/components/auth/AuthModal";
 import { useState } from "react";
-import { useTenant } from "@/lib/contexts/TenantContext";
 
 export default function CTASection() {
   const { isAuthenticated, user } = useAuth();
-  const { currentTechCenter, isTenantView } = useTenant();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalType, setAuthModalType] = useState<'login' | 'register'>('login');
   
-  const primaryColor = currentTechCenter?.color || '#E8A33D';
-  const accentColor = currentTechCenter?.accentColor || '#C97F1F';
+  const primaryColor = '#E8A33D';
+  const accentColor = '#C97F1F';
 
   const handleSignIn = () => {
     setAuthModalType('login');
@@ -66,15 +66,13 @@ export default function CTASection() {
 
           {/* Heading */}
           <h2 className="mt-4 text-3xl md:text-5xl font-black text-white">
-            {isTenantView ? `Ready to Start at ${currentTechCenter?.displayName}?` : 'Ready To Start?'}
+            Ready To Start?
           </h2>
 
           {/* Description */}
           <p className="mx-auto mt-3 max-w-2xl text-base leading-6 text-gray-400">
-            {isTenantView 
-              ? `Access the ${currentTechCenter?.displayName} Student Portal and manage every aspect of your academic journey from one intelligent platform.`
-              : 'Access the Official Selfless Student Self Service Portal and manage every aspect of your academic journey from one intelligent platform.'
-            }
+            Access the Official Selfless Student Self Service Portal and manage 
+            every aspect of your academic journey from one intelligent platform.
           </p>
 
           {/* Buttons */}
@@ -118,14 +116,11 @@ export default function CTASection() {
                 <button
                   onClick={handleSignIn}
                   className="rounded-lg border border-white/10 bg-white/5 px-5 py-2.5 font-medium text-white transition hover:bg-white/10"
-                  style={{
-                    borderColor: isTenantView ? `${primaryColor}33` : 'rgba(255,255,255,0.1)',
-                  }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.borderColor = `${primaryColor}66`;
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = isTenantView ? `${primaryColor}33` : 'rgba(255,255,255,0.1)';
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
                   }}
                 >
                   Student Login

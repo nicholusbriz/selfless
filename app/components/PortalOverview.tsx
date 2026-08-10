@@ -1,3 +1,5 @@
+// components/PortalOverview.tsx
+
 "use client";
 
 import { motion } from "framer-motion";
@@ -8,7 +10,6 @@ import {
   CalendarDays,
   ArrowRight,
 } from "lucide-react";
-import { useTenant } from "@/lib/contexts/TenantContext";
 
 const features = [
   {
@@ -46,9 +47,7 @@ const features = [
 ];
 
 export default function PortalOverview() {
-  const { currentTechCenter, isTenantView } = useTenant();
-  const primaryColor = currentTechCenter?.color || '#E8A33D';
-  const accentColor = currentTechCenter?.accentColor || '#C97F1F';
+  const primaryColor = '#E8A33D';
 
   return (
     <section className="relative py-16 bg-[#0D1117] overflow-hidden">
@@ -61,7 +60,6 @@ export default function PortalOverview() {
       />
       
       <div className="relative max-w-7xl mx-auto px-6">
-
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -71,20 +69,16 @@ export default function PortalOverview() {
           className="max-w-3xl mx-auto text-center"
         >
           <h2 className="mt-6 text-3xl md:text-5xl font-black tracking-tight text-white">
-            {isTenantView ? `${currentTechCenter?.displayName} Portal` : 'Designed Around'}
-            <span 
-              className="block"
-              style={{ color: primaryColor }}
-            >
-              {isTenantView ? 'Student Success' : 'Student Success'}
+            Designed Around
+            <span className="block" style={{ color: primaryColor }}>
+              Student Success
             </span>
           </h2>
 
           <p className="mt-5 text-base leading-7 text-gray-400 max-w-2xl mx-auto">
-            {isTenantView 
-              ? `The ${currentTechCenter?.displayName} Student Portal provides every tool students need to stay organized, collaborate with others, monitor academic progress, and successfully complete their educational journey at ${currentTechCenter?.description}.`
-              : 'The Selfless Student Self Service Portal provides every tool students need to stay organized, collaborate with others, monitor academic progress, and successfully complete their educational journey.'
-            }
+            The Selfless Student Self Service Portal provides every tool students 
+            need to stay organized, collaborate with others, monitor academic 
+            progress, and successfully complete their educational journey.
           </p>
         </motion.div>
 
@@ -104,14 +98,11 @@ export default function PortalOverview() {
                   duration: 0.6,
                 }}
                 className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-xl transition-all duration-500 hover:-translate-y-1"
-                style={{
-                  borderColor: isTenantView ? `${primaryColor}20` : 'rgba(255,255,255,0.1)',
-                }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = `${primaryColor}40`;
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = isTenantView ? `${primaryColor}20` : 'rgba(255,255,255,0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
                 }}
               >
                 <div
@@ -131,9 +122,7 @@ export default function PortalOverview() {
                   <ArrowRight
                     size={18}
                     className="transition duration-300 group-hover:translate-x-1"
-                    style={{
-                      color: isTenantView ? primaryColor : '#6B7280',
-                    }}
+                    style={{ color: primaryColor }}
                   />
 
                   <h3 className="mt-4 text-lg font-bold text-white">
@@ -146,9 +135,7 @@ export default function PortalOverview() {
 
                   <div 
                     className="mt-4 inline-flex rounded-full bg-white/5 px-3 py-1 text-xs border border-white/10"
-                    style={{
-                      color: primaryColor,
-                    }}
+                    style={{ color: primaryColor }}
                   >
                     {feature.stats}
                   </div>
@@ -158,7 +145,7 @@ export default function PortalOverview() {
           })}
         </div>
 
-        {/* Bottom Banner - Reduced padding */}
+        {/* Bottom Banner */}
         <motion.div
           initial={{ opacity: 0, y: 25 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -186,10 +173,9 @@ export default function PortalOverview() {
               </h3>
 
               <p className="mt-2 leading-6 text-gray-400 text-sm">
-                {isTenantView 
-                  ? `Forget switching between multiple systems. Access your courses, academic records, announcements, schedules, tutor feedback, and student activities at ${currentTechCenter?.displayName} from one secure platform.`
-                  : 'Forget switching between multiple systems. Access your courses, academic records, announcements, schedules, tutor feedback, and student activities from one secure platform.'
-                }
+                Forget switching between multiple systems. Access your courses, 
+                academic records, announcements, schedules, tutor feedback, and 
+                student activities from one secure platform.
               </p>
             </div>
 
@@ -207,14 +193,11 @@ export default function PortalOverview() {
                 <div
                   key={item}
                   className="rounded-lg border border-white/10 bg-white/5 p-2.5 text-center transition hover:bg-white/10"
-                  style={{
-                    borderColor: isTenantView ? `${primaryColor}20` : 'rgba(255,255,255,0.1)',
-                  }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.borderColor = `${primaryColor}30`;
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = isTenantView ? `${primaryColor}20` : 'rgba(255,255,255,0.1)';
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
                   }}
                 >
                   <p className="font-medium text-white text-xs">

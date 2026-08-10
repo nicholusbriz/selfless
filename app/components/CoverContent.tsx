@@ -1,18 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { gsap } from 'gsap';
 import {
   GraduationCap,
   BookOpen,
-  CheckCircle2,
   ArrowRight,
-  Clock,
-  Sparkles,
-  Award,
   Bell,
   Building2
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useTenant } from '@/lib/contexts/TenantContext';
+import { useAuth } from '@/lib/hooks/useAuth';
+import AuthModal from '@/components/auth/AuthModal';
 
 export default function CoverContent() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -22,29 +19,18 @@ export default function CoverContent() {
   const title2Ref = useRef<HTMLHeadingElement>(null);
   const descRef = useRef<HTMLParagraphElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
-  const featuresRef = useRef<HTMLDivElement>(null);
-  const statsRef = useRef<HTMLDivElement>(null);
-  const networkRef = useRef<HTMLDivElement>(null);
   const techCenterTextRef = useRef<HTMLSpanElement>(null);
 
-  const { currentTechCenter } = useTenant();
   const [techCenterIndex, setTechCenterIndex] = useState(0);
   const [displayText, setDisplayText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [activityIndex, setActivityIndex] = useState(0);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalType, setAuthModalType] = useState<'login' | 'register'>('login');
 
-  // Fix: dynamicColor declared BEFORE all useEffect calls so GSAP can reference it
-  const dynamicColor = currentTechCenter?.color || '#E8A33D';
+  const { isAuthenticated } = useAuth();
 
-  const techCenters = [
-    'FreedomCity Tech Center',
-    'Jinja Tech Center',
-    'Mbale Tech Center',
-    'Sseta Tech Center',
-    'Masaka Tech Center',
-    'Lira Tech Center',
-    'Ntinda Tech Center'
-  ];
+  const dynamicColor = '#E8A33D';
 
   const activities = [
     'Submit Courses',
@@ -67,11 +53,20 @@ export default function CoverContent() {
 
   // Typing animation effect
   useEffect(() => {
+    const techCenters = [
+      'FreedomCity Tech Center',
+      'Jinja Tech Center',
+      'Mbale Tech Center',
+      'Sseta Tech Center',
+      'Masaka Tech Center',
+      'Lira Tech Center',
+      'Ntinda Tech Center'
+    ];
+
     const currentTechCenter = techCenters[techCenterIndex];
     const typingSpeed = 100;
     const deletingSpeed = 50;
     const pauseAfterType = 2000;
-    const pauseAfterDelete = 500;
 
     const timeout = setTimeout(() => {
       if (!isDeleting && displayText === currentTechCenter) {
@@ -94,7 +89,12 @@ export default function CoverContent() {
     }, isDeleting ? deletingSpeed : typingSpeed);
 
     return () => clearTimeout(timeout);
-  }, [displayText, isDeleting, techCenterIndex, techCenters]);
+  }, [displayText, isDeleting, techCenterIndex]);
+
+  const openAuthModal = (type: 'login' | 'register') => {
+    setAuthModalType(type);
+    setShowAuthModal(true);
+  };
 
   // Activity scrolling animation
   useEffect(() => {
@@ -167,7 +167,7 @@ export default function CoverContent() {
     }, containerRef);
 
     return () => ctx.revert();
-  }, []);
+  }, [dynamicColor]);
 
   return (
     <div
@@ -239,7 +239,8 @@ export default function CoverContent() {
               </div>
 
               <p ref={descRef} className="text-base sm:text-lg text-[#A79C8C] max-w-xl">
-                Your centralized multi-tenant platform for managing BYU-Idaho courses, tracking academic progress, receiving tutor feedback, and connecting across the Selfless Tech Center Network.
+                Your centralized platform for managing BYU-Idaho courses, tracking academic progress, 
+                receiving tutor feedback, and connecting across the Selfless Tech Center Network.
               </p>
 
               {/* Trust pills */}
@@ -257,16 +258,41 @@ export default function CoverContent() {
 
               {/* Action Buttons */}
               <div ref={ctaRef} className="flex flex-wrap items-center gap-4 pt-2">
-                <button
-                  className="px-6 py-3.5 rounded-xl font-semibold text-white flex items-center gap-2 shadow-lg hover:opacity-90 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
-                  style={{ backgroundColor: dynamicColor }}
-                >
-                  <span>Access Portal</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-                <button className="px-6 py-3.5 rounded-xl font-semibold text-slate-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-all">
-                  Course Catalog
-                </button>
+                {isAuthenticated ? (
+                  <>
+                    <Link
+                      href="/dashboard"
+                      className="px-6 py-3.5 rounded-xl font-semibold text-white flex items-center gap-2 shadow-lg hover:opacity-90 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+                      style={{ backgroundColor: dynamicColor }}
+                    >
+                      <span>Go to Dashboard</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                    <Link
+                      href="/dashboard/courses"
+                      className="px-6 py-3.5 rounded-xl font-semibold text-slate-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
+                    >
+                      Course Catalog
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => openAuthModal('login')}
+                      className="px-6 py-3.5 rounded-xl font-semibold text-white flex items-center gap-2 shadow-lg hover:opacity-90 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+                      style={{ backgroundColor: dynamicColor }}
+                    >
+                      <span>Access Portal</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => openAuthModal('register')}
+                      className="px-6 py-3.5 rounded-xl font-semibold text-slate-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
+                    >
+                      Get Started
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -370,7 +396,13 @@ export default function CoverContent() {
           </svg>
         </div>
 
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          defaultType={authModalType}
+        />
+
       </div>
     </div>
   );
-};
+}
