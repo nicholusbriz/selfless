@@ -3,9 +3,6 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from './providers';
 import PWAInstall from '@/components/PWAInstall';
-import Footer from '@/components/Footer';
-import { TenantProvider } from '@/lib/contexts/TenantContext';
-import ConditionalLayout from '@/components/ConditionalLayout';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://selfless-henna.vercel.app'),
@@ -318,16 +315,12 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col">
-        <TenantProvider>
           <Providers>
             <PWAInstall />
-            <ConditionalLayout>
               <main className="flex-1">
                 {children}
               </main>
-            </ConditionalLayout>
           </Providers>
-        </TenantProvider>
       </body>
     </html>
   );

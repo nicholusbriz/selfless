@@ -684,7 +684,8 @@ npx prisma migrate dev --name init
 
 ### Step 6: Seed AI Knowledge Base (Optional)
 
-```
+```bash
+npm run seed:ai
 ```
 
 **Purpose**: Populates the AI knowledge base with initial knowledge entries. This enables the AI assistant to provide helpful responses.
@@ -801,6 +802,8 @@ npx prisma generate
 ## Support
 
 For support and questions:
+- Email: turyamurebanicholus@gmail.com
+- Phone: +256 761996296
 - Create an issue in the repository
 
 ## License
@@ -809,7 +812,8 @@ This project is private and proprietary. All rights reserved.
 
 ## Team
 
-- Development Team: 
-- Project Manager:
-- System Administrator:Atbriz
+- Development Team: turyamurebanicholus@gmail.com
+- Project Manager: +256 761996296
+- System Administrator: Nicholus Turyamureba
 - Founder: Atbriz
+- Publisher: Cyber Touch

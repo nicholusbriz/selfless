@@ -9,7 +9,6 @@ import {
   Sparkles,
   UserCheck,
 } from "lucide-react";
-import { useTenant } from "@/lib/contexts/TenantContext";
 
 const community = [
   {
@@ -17,70 +16,66 @@ const community = [
     description:
       "Join collaborative study groups, prepare for exams together, and learn from your peers.",
     icon: Users,
-    details: ["Group Formation", "Exam Preparation", "Peer Learning"],
   },
   {
     title: "Tutor Communication",
     description:
       "Reach tutors quickly, receive guidance, and ask questions whenever you need academic support.",
     icon: MessageSquare,
-    details: ["Quick Access", "Academic Guidance", "Q&A Support"],
   },
   {
     title: "Campus Activities",
     description:
       "Participate in Tech Center activities, workshops, events, and community initiatives.",
     icon: Calendar,
-    details: ["Workshops", "Community Events", "Initiatives"],
   },
   {
     title: "Announcements",
     description:
       "Never miss important announcements, schedules, or updates from administrators.",
     icon: BellRing,
-    details: ["Important Updates", "Schedule Changes", "Admin Notices"],
   },
   {
     title: "Student Recognition",
     description:
       "Celebrate achievements, milestones, and outstanding contributions within the community.",
     icon: Sparkles,
-    details: ["Achievement Badges", "Milestone Tracking", "Community Awards"],
   },
   {
     title: "Leadership Opportunities",
     description:
       "Grow your leadership skills through mentorship, volunteering, and student responsibilities.",
     icon: UserCheck,
-    details: ["Mentorship Programs", "Volunteer Roles", "Student Leadership"],
   },
 ];
 
 export default function CommunityFeatures() {
-  const { currentTechCenter } = useTenant();
-  const primaryColor = currentTechCenter?.color || '#000000';
-
   return (
-    <section className="py-20 border-t border-border">
-      <div className="max-w-6xl mx-auto px-6">
+    <section className="relative overflow-hidden bg-[#101826] py-16">
+      {/* Background */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(232,163,61,.05),transparent_45%)]" />
+
+      <div className="mx-auto max-w-7xl px-6">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 25 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="max-w-2xl mb-12"
+          className="mx-auto max-w-3xl text-center"
         >
-          <span className="text-sm font-semibold uppercase tracking-wider" style={{ color: primaryColor }}>
+          <span className="inline-flex rounded-full border border-[#E8A33D]/20 bg-[#E8A33D]/10 px-4 py-1.5 text-xs uppercase tracking-[0.25em] text-[#F2C879]">
             Connected Learning
           </span>
-          <h2 className="text-3xl md:text-4xl font-bold mt-2 mb-4">
+
+          <h2 className="mt-5 text-3xl md:text-5xl font-black text-white">
             Learn Together.
-            <span className="block" style={{ color: primaryColor }}>
+            <span className="block text-[#E8A33D]">
               Grow Together.
             </span>
           </h2>
-          <p className="text-muted-foreground text-lg">
+
+          <p className="mt-4 text-base leading-7 text-gray-400">
             Education is more than attending classes. Build friendships,
             collaborate with tutors, participate in Tech Center activities,
             and become part of a thriving student community designed to help
@@ -88,81 +83,86 @@ export default function CommunityFeatures() {
           </p>
         </motion.div>
 
-        {/* Editorial Layout */}
-        <div className="grid md:grid-cols-2 gap-8">
+        {/* Community Cards */}
+        <div className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {community.map((item, index) => {
             const Icon = item.icon;
 
             return (
               <motion.div
                 key={item.title}
-                initial={{ opacity: 0, x: index % 2 === 0 ? -50 : 50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
                 transition={{
-                  delay: index * 0.15,
-                  duration: 0.6,
-                  ease: "easeOut"
+                  delay: index * 0.06,
+                  duration: 0.4,
                 }}
-                whileHover={{ 
-                  scale: 1.02, 
-                  x: 10,
-                  transition: { duration: 0.2 }
-                }}
-                className="border-l-2 pl-6 cursor-pointer"
-                style={{ borderColor: primaryColor }}
+                className="group rounded-xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-[#E8A33D]/40"
               >
-                <motion.div 
-                  className="flex items-center gap-3 mb-3"
-                  whileHover={{ x: 5 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <motion.div 
-                    className="p-2 rounded-lg"
-                    style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}
-                    whileHover={{ 
-                      rotate: 360,
-                      transition: { duration: 0.6 }
-                    }}
-                  >
-                    <Icon size={20} />
-                  </motion.div>
-                  <h3 className="text-xl font-semibold">{item.title}</h3>
-                </motion.div>
-                <p className="text-muted-foreground mb-4">{item.description}</p>
-                <motion.ul 
-                  className="space-y-1"
-                  initial={{ opacity: 0 }}
-                  whileInView={{ opacity: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.15 + 0.3, duration: 0.4 }}
-                >
-                  {item.details.map((detail, detailIndex) => (
-                    <motion.li 
-                      key={detail} 
-                      className="text-sm text-muted-foreground flex items-center gap-2"
-                      initial={{ opacity: 0, x: -20 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ 
-                        delay: index * 0.15 + 0.3 + (detailIndex * 0.1),
-                        duration: 0.4 
-                      }}
-                    >
-                      <motion.span 
-                        className="w-1.5 h-1.5 rounded-full"
-                        style={{ backgroundColor: primaryColor }}
-                        whileHover={{ scale: 1.5 }}
-                      />
-                      {detail}
-                    </motion.li>
-                  ))}
-                </motion.ul>
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#E8A33D]/10 text-[#E8A33D] transition duration-300 group-hover:scale-110">
+                  <Icon size={22} />
+                </div>
+
+                <h3 className="mt-4 text-base font-bold text-white">
+                  {item.title}
+                </h3>
+
+                <p className="mt-2 leading-6 text-gray-400 text-sm">
+                  {item.description}
+                </p>
               </motion.div>
             );
           })}
         </div>
+
+        {/* Bottom Stats Banner */}
+        <motion.div
+          initial={{ opacity: 0, y: 25 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="mt-12 rounded-xl border border-white/10 bg-gradient-to-r from-white/[0.04] via-[#E8A33D]/10 to-white/[0.04] p-6"
+        >
+          <div className="grid gap-4 md:grid-cols-4">
+            <StatCard
+              title="Study Groups"
+              value="Collaborative Learning"
+            />
+            <StatCard
+              title="Tutor Support"
+              value="Always Connected"
+            />
+            <StatCard
+              title="Events"
+              value="Stay Involved"
+            />
+            <StatCard
+              title="Community"
+              value="Learn Together"
+            />
+          </div>
+        </motion.div>
       </div>
     </section>
+  );
+}
+
+function StatCard({
+  title,
+  value,
+}: {
+  title: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-center transition hover:border-[#E8A33D]/40">
+      <h4 className="text-sm font-semibold text-white">
+        {title}
+      </h4>
+      <p className="mt-1 text-[#E8A33D] text-xs">
+        {value}
+      </p>
+    </div>
   );
 }

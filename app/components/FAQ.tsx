@@ -6,24 +6,29 @@ import { ChevronDown } from "lucide-react";
 
 const faqs = [
   {
-    question: "Who can access?",
-    answer: "Registered students at Selfless Tech Centers.",
+    question: "Who can access the Selfless Student Self Service Portal?",
+    answer:
+      "The portal is available to registered students studying through the Selfless Tech Center Network. Each student receives secure credentials to access their academic information.",
   },
   {
-    question: "Mobile access?",
-    answer: "Yes, fully responsive on all devices.",
+    question: "Can I access the portal on my phone?",
+    answer:
+      "Yes. The portal is fully responsive and works seamlessly across desktop, tablet, and mobile devices.",
   },
   {
-    question: "What can I manage?",
-    answer: "Courses, progress, attendance, announcements.",
+    question: "What can I manage from the portal?",
+    answer:
+      "Students can register courses, monitor academic progress, view attendance, receive announcements, communicate with tutors, join study groups, and manage their learning journey from one place.",
   },
   {
-    question: "Account recovery?",
-    answer: "Use password recovery or contact admin.",
+    question: "How do I recover my account?",
+    answer:
+      "If you've forgotten your password or cannot access your account, use the password recovery option or contact your Tech Center administrator for assistance.",
   },
   {
-    question: "Is it secure?",
-    answer: "Yes, modern security practices protect data.",
+    question: "Is my academic information secure?",
+    answer:
+      "Yes. Your academic records and personal information are securely stored and protected using modern security practices.",
   },
 ];
 
@@ -31,54 +36,76 @@ export default function FAQ() {
   const [active, setActive] = useState<number | null>(0);
 
   return (
-    <section className="py-4">
-      <h2 className="text-lg font-semibold text-foreground mb-4">FAQ</h2>
-      <div className="space-y-2">
-        {faqs.map((faq, index) => (
-          <div
-            key={faq.question}
-            className="rounded-lg border border-primary/10 bg-primary/5 transition-all duration-300 hover:border-primary/20"
-          >
-            <button
-              onClick={() => setActive(active === index ? null : index)}
-              className="flex w-full items-center justify-between px-3 py-2 text-left"
+    <section className="relative bg-[#101826] py-16">
+      <div className="max-w-5xl mx-auto px-6">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 25 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center"
+        >
+          <span className="inline-flex rounded-full border border-[#E8A33D]/20 bg-[#E8A33D]/10 px-4 py-1.5 text-xs uppercase tracking-[0.25em] text-[#F2C879]">
+            Frequently Asked Questions
+          </span>
+
+          <h2 className="mt-5 text-3xl md:text-5xl font-black text-white">
+            Have Questions?
+            <span className="block text-[#E8A33D]">
+              We've Got Answers.
+            </span>
+          </h2>
+        </motion.div>
+
+        {/* FAQ Items */}
+        <div className="mt-12 space-y-3">
+          {faqs.map((faq, index) => (
+            <div
+              key={faq.question}
+              className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] transition-all duration-300 hover:border-[#E8A33D]/20"
             >
-              <h3 className="text-sm font-medium text-foreground">
-                {faq.question}
-              </h3>
+              <button
+                onClick={() => setActive(active === index ? null : index)}
+                className="flex w-full items-center justify-between px-5 py-4 text-left"
+              >
+                <h3 className="text-sm font-semibold text-white">
+                  {faq.question}
+                </h3>
 
-              <ChevronDown
-                size={16}
-                className={`transition duration-300 flex-shrink-0 ml-2 ${
-                  active === index
-                    ? "rotate-180 text-primary"
-                    : "text-muted-foreground"
-                }`}
-              />
-            </button>
+                <ChevronDown
+                  size={18}
+                  className={`transition duration-300 flex-shrink-0 ml-4 ${
+                    active === index
+                      ? "rotate-180 text-[#E8A33D]"
+                      : "text-gray-400"
+                  }`}
+                />
+              </button>
 
-            <AnimatePresence>
-              {active === index && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{
-                    height: "auto",
-                    opacity: 1,
-                  }}
-                  exit={{
-                    height: 0,
-                    opacity: 0,
-                  }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <p className="px-3 pb-2 text-xs text-muted-foreground">
-                    {faq.answer}
-                  </p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        ))}
+              <AnimatePresence>
+                {active === index && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{
+                      height: "auto",
+                      opacity: 1,
+                    }}
+                    exit={{
+                      height: 0,
+                      opacity: 0,
+                    }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <p className="px-5 pb-5 leading-6 text-gray-400 text-sm">
+                      {faq.answer}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );

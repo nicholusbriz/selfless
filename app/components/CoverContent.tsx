@@ -1,18 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { gsap } from 'gsap';
 import {
   GraduationCap,
   BookOpen,
-  CheckCircle2,
   ArrowRight,
-  Clock,
-  Sparkles,
-  Award,
   Bell,
   Building2
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useTenant } from '@/lib/contexts/TenantContext';
+import { useAuth } from '@/lib/hooks/useAuth';
+import AuthModal from '@/components/auth/AuthModal';
 
 export default function CoverContent() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -22,29 +19,18 @@ export default function CoverContent() {
   const title2Ref = useRef<HTMLHeadingElement>(null);
   const descRef = useRef<HTMLParagraphElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
-  const featuresRef = useRef<HTMLDivElement>(null);
-  const statsRef = useRef<HTMLDivElement>(null);
-  const networkRef = useRef<HTMLDivElement>(null);
   const techCenterTextRef = useRef<HTMLSpanElement>(null);
 
-  const { currentTechCenter } = useTenant();
   const [techCenterIndex, setTechCenterIndex] = useState(0);
   const [displayText, setDisplayText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [activityIndex, setActivityIndex] = useState(0);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalType, setAuthModalType] = useState<'login' | 'register'>('login');
 
-  // Fix: dynamicColor declared BEFORE all useEffect calls so GSAP can reference it
-  const dynamicColor = currentTechCenter?.color || '#000000';
+  const { isAuthenticated } = useAuth();
 
-  const techCenters = [
-    'FreedomCity Tech Center',
-    'Jinja Tech Center',
-    'Mbale Tech Center',
-    'Sseta Tech Center',
-    'Masaka Tech Center',
-    'Lira Tech Center',
-    'Ntinda Tech Center'
-  ];
+  const dynamicColor = '#E8A33D';
 
   const activities = [
     'Submit Courses',
@@ -67,11 +53,20 @@ export default function CoverContent() {
 
   // Typing animation effect
   useEffect(() => {
+    const techCenters = [
+      'FreedomCity Tech Center',
+      'Jinja Tech Center',
+      'Mbale Tech Center',
+      'Sseta Tech Center',
+      'Masaka Tech Center',
+      'Lira Tech Center',
+      'Ntinda Tech Center'
+    ];
+
     const currentTechCenter = techCenters[techCenterIndex];
     const typingSpeed = 100;
     const deletingSpeed = 50;
     const pauseAfterType = 2000;
-    const pauseAfterDelete = 500;
 
     const timeout = setTimeout(() => {
       if (!isDeleting && displayText === currentTechCenter) {
@@ -94,7 +89,12 @@ export default function CoverContent() {
     }, isDeleting ? deletingSpeed : typingSpeed);
 
     return () => clearTimeout(timeout);
-  }, [displayText, isDeleting, techCenterIndex, techCenters]);
+  }, [displayText, isDeleting, techCenterIndex]);
+
+  const openAuthModal = (type: 'login' | 'register') => {
+    setAuthModalType(type);
+    setShowAuthModal(true);
+  };
 
   // Activity scrolling animation
   useEffect(() => {
@@ -167,12 +167,12 @@ export default function CoverContent() {
     }, containerRef);
 
     return () => ctx.revert();
-  }, []);
+  }, [dynamicColor]);
 
   return (
     <div
       ref={containerRef}
-      className="relative min-h-screen w-full bg-background text-foreground overflow-hidden flex items-center justify-center py-10 px-4 sm:px-6"
+      className="relative min-h-screen w-full bg-[#0D1117] text-white overflow-hidden flex items-center justify-center py-10 px-4 sm:px-6"
     >
       {/* Noise Texture Overlay for organic feel */}
       <div className="absolute inset-0 pointer-events-none opacity-[0.03] mix-blend-overlay" style={{
@@ -189,7 +189,7 @@ export default function CoverContent() {
 
       {/* Subtle grid pattern */}
       <div className="absolute inset-0 pointer-events-none opacity-[0.02]" style={{
-        backgroundImage: `linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px)`,
+        backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
         backgroundSize: '50px 50px'
       }} />
 
@@ -214,21 +214,21 @@ export default function CoverContent() {
         <div
           ref={cardRef}
           style={{ transformStyle: 'preserve-3d' }}
-          className="relative w-full rounded-3xl border border-border bg-background backdrop-blur-xl p-6 sm:p-10 shadow-2xl transition-all duration-300"
+          className="relative w-full rounded-3xl border border-white/10 bg-[#0D1117]/60 backdrop-blur-xl p-6 sm:p-10 shadow-2xl transition-all duration-300"
         >
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
 
             {/* Left Content Side */}
             <div className="lg:col-span-6 space-y-6 text-left">
               <div className="space-y-2">
-                <h1 ref={title1Ref} className="text-4xl sm:text-6xl font-semibold tracking-tight text-foreground">
+                <h1 ref={title1Ref} className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white">
                   Student Self Service Portal
                 </h1>
                 <h1
                   ref={title2Ref}
-                  className="text-4xl sm:text-6xl font-semibold tracking-tight"
+                  className="text-4xl sm:text-6xl font-extrabold tracking-tight"
                   style={{
-                    background: `linear-gradient(135deg, var(--foreground), ${dynamicColor})`,
+                    background: `linear-gradient(135deg, #ffffff, ${dynamicColor})`,
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
                     backgroundClip: 'text',
@@ -238,8 +238,9 @@ export default function CoverContent() {
                 </h1>
               </div>
 
-              <p ref={descRef} className="text-base sm:text-lg text-muted-foreground max-w-xl">
-                Your centralized multi-tenant platform for managing BYU-Idaho courses, tracking academic progress, receiving tutor feedback, and connecting across the Selfless Tech Center Network.
+              <p ref={descRef} className="text-base sm:text-lg text-[#A79C8C] max-w-xl">
+                Your centralized platform for managing BYU-Idaho courses, tracking academic progress, 
+                receiving tutor feedback, and connecting across the Selfless Tech Center Network.
               </p>
 
               {/* Trust pills */}
@@ -247,7 +248,7 @@ export default function CoverContent() {
                 {['Free to use', 'Real-time tracking', 'AI-Powered'].map((label) => (
                   <span
                     key={label}
-                    className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-background border border-border text-xs text-muted-foreground"
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-[#A79C8C]"
                   >
                     <span style={{ color: dynamicColor }}>✓</span>
                     {label}
@@ -257,16 +258,41 @@ export default function CoverContent() {
 
               {/* Action Buttons */}
               <div ref={ctaRef} className="flex flex-wrap items-center gap-4 pt-2">
-                <button
-                  className="px-6 py-3.5 rounded-xl font-semibold text-white flex items-center gap-2 shadow-lg hover:opacity-90 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
-                  style={{ backgroundColor: dynamicColor }}
-                >
-                  <span>Access Portal</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-                <button className="px-6 py-3.5 rounded-xl font-semibold text-muted-foreground bg-background hover:bg-secondary/50 border border-border transition-all">
-                  Course Catalog
-                </button>
+                {isAuthenticated ? (
+                  <>
+                    <Link
+                      href="/dashboard"
+                      className="px-6 py-3.5 rounded-xl font-semibold text-white flex items-center gap-2 shadow-lg hover:opacity-90 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+                      style={{ backgroundColor: dynamicColor }}
+                    >
+                      <span>Go to Dashboard</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                    <Link
+                      href="/dashboard/courses"
+                      className="px-6 py-3.5 rounded-xl font-semibold text-slate-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
+                    >
+                      Course Catalog
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => openAuthModal('login')}
+                      className="px-6 py-3.5 rounded-xl font-semibold text-white flex items-center gap-2 shadow-lg hover:opacity-90 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+                      style={{ backgroundColor: dynamicColor }}
+                    >
+                      <span>Access Portal</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => openAuthModal('register')}
+                      className="px-6 py-3.5 rounded-xl font-semibold text-slate-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
+                    >
+                      Get Started
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -276,57 +302,57 @@ export default function CoverContent() {
               {/* Mockup Phone Frame - Larger size */}
               <div
                 ref={phoneRef}
-                className="w-full max-w-[320px] sm:max-w-[380px] rounded-[36px] bg-background/95 p-3 border-4 border-border shadow-2xl relative z-10"
+                className="w-full max-w-[320px] sm:max-w-[380px] rounded-[36px] bg-[#0B0912] p-3 border-4 border-[#2A2438] shadow-2xl relative z-10"
               >
-                <div className="w-full rounded-[28px] bg-background border border-border/5 overflow-hidden p-6 space-y-4">
+                <div className="w-full rounded-[28px] bg-[#150F20] border border-white/5 overflow-hidden p-6 space-y-4">
 
                   {/* Phone Header */}
-                  <div className="flex items-center justify-between pb-3 border-b border-border/5">
+                  <div className="flex items-center justify-between pb-3 border-b border-white/5">
                     <div className="flex items-center gap-3">
                       <GraduationCap className="w-6 h-6" style={{ color: dynamicColor }} />
-                      <span className="text-sm font-semibold text-foreground">Tech Centers</span>
+                      <span className="text-sm font-bold text-white">Tech Centers</span>
                     </div>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-background border border-border text-muted-foreground">Network</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-400">Network</span>
                   </div>
 
                   {/* Typing Tech Center Animation */}
-                  <div className="p-4 rounded-xl bg-background border border-border/5 text-center space-y-2">
-                    <p className="text-xs uppercase tracking-wider text-muted-foreground">Current Location</p>
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/5 text-center space-y-2">
+                    <p className="text-xs uppercase tracking-wider text-[#6B6358]">Current Location</p>
                     <div className="flex items-center justify-center gap-2">
                       <Building2 className="w-5 h-5 flex-shrink-0" style={{ color: dynamicColor }} />
-                      <span ref={techCenterTextRef} className="text-lg font-semibold text-foreground">
+                      <span ref={techCenterTextRef} className="text-lg font-bold text-white">
                         {displayText}
                       </span>
-                      <span className="animate-pulse text-foreground text-lg">|</span>
+                      <span className="animate-pulse text-white text-lg">|</span>
                     </div>
                   </div>
 
                   {/* Mini grade/credits card */}
-                  <div className="p-4 rounded-xl bg-background border border-border/5 space-y-2">
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/5 space-y-2">
                     <div className="flex items-center gap-2">
                       <BookOpen className="w-4 h-4 flex-shrink-0" style={{ color: dynamicColor }} />
-                      <span className="text-xs text-muted-foreground">Academic Progress</span>
+                      <span className="text-xs text-[#6B6358]">Academic Progress</span>
                     </div>
-                    <div className="w-full h-1.5 rounded-full bg-border">
+                    <div className="w-full h-1.5 rounded-full bg-white/10">
                       <div
                         className="h-1.5 rounded-full"
                         style={{ width: '72%', backgroundColor: dynamicColor }}
                       />
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-xs text-muted-foreground">Credits: 24/30</span>
-                      <span className="text-xs text-muted-foreground">GPA: 3.8</span>
+                      <span className="text-xs text-[#A79C8C]">Credits: 24/30</span>
+                      <span className="text-xs text-[#A79C8C]">GPA: 3.8</span>
                     </div>
                   </div>
 
                   {/* Notification row */}
-                  <div className="flex justify-between items-center px-3 py-2 rounded-lg bg-background border border-border/5">
+                  <div className="flex justify-between items-center px-3 py-2 rounded-lg bg-white/5 border border-white/5">
                     <div className="flex items-center gap-2">
                       <Bell className="w-4 h-4" style={{ color: dynamicColor }} />
-                      <span className="text-xs text-muted-foreground">3 new announcements</span>
+                      <span className="text-xs text-[#A79C8C]">3 new announcements</span>
                     </div>
                     <span
-                      className="text-primary-foreground text-[10px] rounded-full px-1.5 py-0.5 font-semibold"
+                      className="text-white text-[10px] rounded-full px-1.5 py-0.5 font-semibold"
                       style={{ backgroundColor: dynamicColor }}
                     >
                       3
@@ -334,8 +360,8 @@ export default function CoverContent() {
                   </div>
 
                   {/* Scrolling Activities Animation */}
-                  <div className="p-4 rounded-xl bg-background border border-border/5 text-center space-y-2">
-                    <p className="text-xs uppercase tracking-wider text-muted-foreground">Quick Actions</p>
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/5 text-center space-y-2">
+                    <p className="text-xs uppercase tracking-wider text-[#6B6358]">Quick Actions</p>
                     <div className="h-10 overflow-hidden relative">
                       <div
                         className="transition-transform duration-500 ease-in-out"
@@ -344,7 +370,7 @@ export default function CoverContent() {
                         {activities.map((activity, index) => (
                           <div
                             key={index}
-                            className="h-10 flex items-center justify-center text-sm font-medium"
+                            className="h-10 flex items-center justify-center text-sm font-semibold"
                             style={{ color: dynamicColor }}
                           >
                             {activity}
@@ -364,13 +390,19 @@ export default function CoverContent() {
 
         {/* Scroll indicator */}
         <div className="mt-10 flex flex-col items-center gap-2 animate-bounce">
-          <span className="text-xs text-muted-foreground tracking-widest uppercase">Scroll</span>
+          <span className="text-xs text-slate-500 tracking-widest uppercase">Scroll</span>
           <svg width="16" height="24" viewBox="0 0 16 24" fill="none" className="opacity-40">
-            <path d="M8 0v20M1 13l7 7 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M8 0v20M1 13l7 7 7-7" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
+
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          defaultType={authModalType}
+        />
 
       </div>
     </div>
   );
-};
+}
