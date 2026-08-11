@@ -50,6 +50,8 @@ const community = [
 ];
 
 export default function CommunityFeatures() {
+  const primaryColor = '#E8A33D';
+  
   return (
     <section className="relative overflow-hidden bg-[#101826] py-16">
       {/* Background */}
@@ -64,11 +66,7 @@ export default function CommunityFeatures() {
           transition={{ duration: 0.6 }}
           className="mx-auto max-w-3xl text-center"
         >
-          <span className="inline-flex rounded-full border border-[#E8A33D]/20 bg-[#E8A33D]/10 px-4 py-1.5 text-xs uppercase tracking-[0.25em] text-[#F2C879]">
-            Connected Learning
-          </span>
-
-          <h2 className="mt-5 text-3xl md:text-5xl font-black text-white">
+          <h2 className="text-3xl md:text-5xl font-black text-white">
             Learn Together.
             <span className="block text-[#E8A33D]">
               Grow Together.
@@ -98,9 +96,16 @@ export default function CommunityFeatures() {
                   delay: index * 0.06,
                   duration: 0.4,
                 }}
-                className="group rounded-xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-[#E8A33D]/40"
+                className="group rounded-xl border-2 border-[#E8A33D]/20 bg-[#1a1610] p-5 transition-all duration-300 hover:-translate-y-1 hover:border-[#E8A33D]/40"
+                style={{
+                  backgroundImage: `
+                    linear-gradient(135deg, rgba(232, 163, 61, 0.03) 0%, transparent 50%),
+                    url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paperNoise)' opacity='0.06'/%3E%3C/svg%3E")
+                  `,
+                  backgroundSize: 'cover, 400px 400px'
+                }}
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#E8A33D]/10 text-[#E8A33D] transition duration-300 group-hover:scale-110">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#E8A33D]/10 text-[#E8A33D] border border-[#E8A33D]/30 transition duration-300 group-hover:scale-110">
                   <Icon size={22} />
                 </div>
 
@@ -122,7 +127,15 @@ export default function CommunityFeatures() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="mt-12 rounded-xl border border-white/10 bg-gradient-to-r from-white/[0.04] via-[#E8A33D]/10 to-white/[0.04] p-6"
+          className="mt-12 rounded-xl border-2 border-[#E8A33D]/20 p-6"
+          style={{
+            background: `linear-gradient(to right, ${primaryColor}15, rgba(26, 22, 16, 0.8), ${primaryColor}15)`,
+            backgroundImage: `
+              linear-gradient(to right, ${primaryColor}15, rgba(26, 22, 16, 0.8), ${primaryColor}15),
+              url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paperNoise)' opacity='0.04'/%3E%3C/svg%3E")
+            `,
+            backgroundSize: '100% 100%, 400px 400px'
+          }}
         >
           <div className="grid gap-4 md:grid-cols-4">
             <StatCard
@@ -155,8 +168,18 @@ function StatCard({
   title: string;
   value: string;
 }) {
+  const primaryColor = '#E8A33D';
+  
   return (
-    <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-center transition hover:border-[#E8A33D]/40">
+    <div 
+      className="rounded-lg border-2 border-[#E8A33D]/20 bg-[#E8A33D]/5 p-4 text-center transition hover:border-[#E8A33D]/40"
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = `${primaryColor}50`;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = 'rgba(232, 163, 61, 0.2)';
+      }}
+    >
       <h4 className="text-sm font-semibold text-white">
         {title}
       </h4>

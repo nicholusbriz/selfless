@@ -34,6 +34,7 @@ const faqs = [
 
 export default function FAQ() {
   const [active, setActive] = useState<number | null>(0);
+  const primaryColor = '#E8A33D';
 
   return (
     <section className="relative bg-[#101826] py-16">
@@ -46,11 +47,7 @@ export default function FAQ() {
           transition={{ duration: 0.6 }}
           className="text-center"
         >
-          <span className="inline-flex rounded-full border border-[#E8A33D]/20 bg-[#E8A33D]/10 px-4 py-1.5 text-xs uppercase tracking-[0.25em] text-[#F2C879]">
-            Frequently Asked Questions
-          </span>
-
-          <h2 className="mt-5 text-3xl md:text-5xl font-black text-white">
+          <h2 className="text-3xl md:text-5xl font-black text-white">
             Have Questions?
             <span className="block text-[#E8A33D]">
               We've Got Answers.
@@ -63,7 +60,14 @@ export default function FAQ() {
           {faqs.map((faq, index) => (
             <div
               key={faq.question}
-              className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] transition-all duration-300 hover:border-[#E8A33D]/20"
+              className="overflow-hidden rounded-xl border-2 border-[#E8A33D]/20 bg-[#1a1610] transition-all duration-300 hover:border-[#E8A33D]/30"
+              style={{
+                backgroundImage: `
+                  linear-gradient(135deg, rgba(232, 163, 61, 0.03) 0%, transparent 50%),
+                  url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paperNoise)' opacity='0.06'/%3E%3C/svg%3E")
+                `,
+                backgroundSize: 'cover, 400px 400px'
+              }}
             >
               <button
                 onClick={() => setActive(active === index ? null : index)}

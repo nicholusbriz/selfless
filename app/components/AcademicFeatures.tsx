@@ -51,6 +51,8 @@ const features = [
 ];
 
 export default function AcademicFeatures() {
+  const primaryColor = '#E8A33D';
+  
   return (
     <section className="relative bg-[#0D1117] py-16 overflow-hidden">
       {/* Background */}
@@ -66,11 +68,7 @@ export default function AcademicFeatures() {
         >
           {/* Left Content */}
           <div>
-            <span className="inline-flex rounded-full bg-[#E8A33D]/10 border border-[#E8A33D]/20 px-4 py-1.5 uppercase tracking-[0.25em] text-xs text-[#F2C879]">
-              Academic Excellence
-            </span>
-
-            <h2 className="mt-4 text-3xl md:text-5xl font-black leading-tight text-white">
+            <h2 className="text-3xl md:text-5xl font-black leading-tight text-white">
               Everything You Need
               <span className="block text-[#E8A33D]">
                 To Stay Ahead
@@ -104,9 +102,16 @@ export default function AcademicFeatures() {
                     delay: index * 0.06,
                     duration: 0.4,
                   }}
-                  className="group rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-4 transition-all duration-300 hover:-translate-y-1 hover:border-[#E8A33D]/40"
+                  className="group rounded-xl border-2 border-[#E8A33D]/20 bg-[#1a1610] p-4 transition-all duration-300 hover:-translate-y-1 hover:border-[#E8A33D]/40"
+                  style={{
+                    backgroundImage: `
+                      linear-gradient(135deg, rgba(232, 163, 61, 0.03) 0%, transparent 50%),
+                      url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paperNoise)' opacity='0.06'/%3E%3C/svg%3E")
+                    `,
+                    backgroundSize: 'cover, 400px 400px'
+                  }}
                 >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#E8A33D]/10 text-[#E8A33D]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#E8A33D]/10 text-[#E8A33D] border border-[#E8A33D]/30">
                     <Icon size={20} />
                   </div>
 
