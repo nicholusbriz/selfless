@@ -50,6 +50,8 @@ const journey = [
 ];
 
 export default function StudentJourney() {
+  const primaryColor = '#E8A33D';
+  
   return (
     <section className="relative py-16 bg-[#101826] overflow-hidden">
       {/* Background */}
@@ -101,14 +103,26 @@ export default function StudentJourney() {
                   className="relative flex gap-6"
                 >
                   {/* Icon */}
-                  <div className="hidden lg:flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-[#E8A33D]/30 bg-[#E8A33D]/10 text-[#E8A33D]">
+                  <div className="hidden lg:flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border-2 border-[#E8A33D]/30 bg-[#E8A33D]/10 text-[#E8A33D]">
                     <Icon size={24} />
                   </div>
 
                   {/* Card */}
-                  <div className="flex-1 rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-5 transition-all duration-300 hover:border-[#E8A33D]/40 hover:-translate-y-1">
+                  <div 
+                    className="flex-1 rounded-xl border-2 border-[#E8A33D]/20 bg-[#1a1610] p-5 transition-all duration-300 hover:border-[#E8A33D]/40 hover:-translate-y-1"
+                    style={{
+                      backgroundImage: `
+                        linear-gradient(135deg, rgba(232, 163, 61, 0.03) 0%, transparent 50%),
+                        url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paperNoise)' opacity='0.06'/%3E%3C/svg%3E")
+                      `,
+                      backgroundSize: 'cover, 400px 400px'
+                    }}
+                  >
                     <div className="flex items-center gap-3">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E8A33D] font-bold text-black text-sm">
+                      <span 
+                        className="flex h-8 w-8 items-center justify-center rounded-full font-bold text-black text-sm border-2 border-[#E8A33D]/50"
+                        style={{ backgroundColor: primaryColor }}
+                      >
                         {index + 1}
                       </span>
                       <h3 className="text-lg font-bold text-white">

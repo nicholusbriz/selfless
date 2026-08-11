@@ -28,6 +28,8 @@ const testimonials = [
 ];
 
 export default function Testimonials() {
+  const primaryColor = '#E8A33D';
+  
   return (
     <section className="relative overflow-hidden bg-[#0D1117] py-16">
       {/* Background */}
@@ -42,11 +44,7 @@ export default function Testimonials() {
           transition={{ duration: 0.6 }}
           className="mx-auto max-w-3xl text-center"
         >
-          <span className="inline-flex rounded-full border border-[#E8A33D]/20 bg-[#E8A33D]/10 px-4 py-1.5 text-xs uppercase tracking-[0.25em] text-[#F2C879]">
-            Student Stories
-          </span>
-
-          <h2 className="mt-5 text-3xl md:text-5xl font-black text-white">
+          <h2 className="text-3xl md:text-5xl font-black text-white">
             Built For
             <span className="block text-[#E8A33D]">
               Student Success
@@ -72,7 +70,14 @@ export default function Testimonials() {
                 delay: index * 0.1,
                 duration: 0.5,
               }}
-              className="group rounded-xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-[#E8A33D]/40"
+              className="group rounded-xl border-2 border-[#E8A33D]/20 bg-[#1a1610] p-5 transition-all duration-300 hover:-translate-y-1 hover:border-[#E8A33D]/40"
+              style={{
+                backgroundImage: `
+                  linear-gradient(135deg, rgba(232, 163, 61, 0.03) 0%, transparent 50%),
+                  url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paperNoise)' opacity='0.06'/%3E%3C/svg%3E")
+                `,
+                backgroundSize: 'cover, 400px 400px'
+              }}
             >
               <Quote size={32} className="text-[#E8A33D]" />
 
@@ -91,7 +96,7 @@ export default function Testimonials() {
                 "{item.message}"
               </p>
 
-              <div className="mt-3 border-t border-white/10 pt-3">
+              <div className="mt-3 border-t border-[#E8A33D]/20 pt-3">
                 <h3 className="text-sm font-bold text-white">
                   {item.name}
                 </h3>
@@ -112,7 +117,15 @@ export default function Testimonials() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="mt-12 rounded-xl border border-[#E8A33D]/20 bg-gradient-to-r from-[#E8A33D]/10 via-white/[0.04] to-[#E8A33D]/10 p-5"
+          className="mt-12 rounded-xl border-2 border-[#E8A33D]/20 p-5"
+          style={{
+            background: `linear-gradient(to right, ${primaryColor}15, rgba(26, 22, 16, 0.8), ${primaryColor}15)`,
+            backgroundImage: `
+              linear-gradient(to right, ${primaryColor}15, rgba(26, 22, 16, 0.8), ${primaryColor}15),
+              url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paperNoise)' opacity='0.04'/%3E%3C/svg%3E")
+            `,
+            backgroundSize: '100% 100%, 400px 400px'
+          }}
         >
           <div className="grid items-center gap-4 lg:grid-cols-3">
             <Stat

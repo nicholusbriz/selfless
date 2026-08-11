@@ -47,16 +47,22 @@ export default function CTASection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="rounded-xl border bg-gradient-to-br from-[#111827] to-[#1A2233] p-8 md:p-10 text-center"
+          className="rounded-xl border-2 p-8 md:p-10 text-center"
           style={{
-            borderColor: `${primaryColor}33`,
+            borderColor: `${primaryColor}40`,
+            background: `linear-gradient(to bottom, ${primaryColor}15, rgba(26, 22, 16, 0.9))`,
+            backgroundImage: `
+              linear-gradient(to bottom, ${primaryColor}15, rgba(26, 22, 16, 0.9)),
+              url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paperNoise)' opacity='0.04'/%3E%3C/svg%3E")
+            `,
+            backgroundSize: '100% 100%, 400px 400px'
           }}
         >
           {/* Badge */}
           <span 
-            className="inline-flex rounded-full border px-4 py-1.5 text-xs uppercase tracking-[0.25em]"
+            className="inline-flex rounded-full border-2 px-4 py-1.5 text-xs uppercase tracking-[0.25em]"
             style={{
-              borderColor: `${primaryColor}33`,
+              borderColor: `${primaryColor}40`,
               backgroundColor: `${primaryColor}1A`,
               color: primaryColor,
             }}
@@ -115,12 +121,12 @@ export default function CTASection() {
 
                 <button
                   onClick={handleSignIn}
-                  className="rounded-lg border border-white/10 bg-white/5 px-5 py-2.5 font-medium text-white transition hover:bg-white/10"
+                  className="rounded-lg border-2 border-[#E8A33D]/30 bg-[#E8A33D]/10 px-5 py-2.5 font-medium text-white transition hover:bg-[#E8A33D]/20"
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = `${primaryColor}66`;
+                    e.currentTarget.style.borderColor = `${primaryColor}50`;
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                    e.currentTarget.style.borderColor = 'rgba(232, 163, 61, 0.3)';
                   }}
                 >
                   Student Login

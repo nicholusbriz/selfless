@@ -97,12 +97,19 @@ export default function PortalOverview() {
                   delay: index * 0.12,
                   duration: 0.6,
                 }}
-                className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-xl transition-all duration-500 hover:-translate-y-1"
+                className="group relative overflow-hidden rounded-xl border-2 border-[#E8A33D]/20 bg-[#1a1610] transition-all duration-500 hover:-translate-y-1"
+                style={{
+                  backgroundImage: `
+                    linear-gradient(135deg, rgba(232, 163, 61, 0.03) 0%, transparent 50%),
+                    url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paperNoise)' opacity='0.06'/%3E%3C/svg%3E")
+                  `,
+                  backgroundSize: 'cover, 400px 400px'
+                }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = `${primaryColor}40`;
+                  e.currentTarget.style.borderColor = `${primaryColor}50`;
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(232, 163, 61, 0.2)';
                 }}
               >
                 <div
@@ -113,8 +120,9 @@ export default function PortalOverview() {
                   <div 
                     className="flex h-12 w-12 items-center justify-center rounded-xl"
                     style={{
-                      backgroundColor: `${primaryColor}15`,
+                      backgroundColor: `${primaryColor}20`,
                       color: primaryColor,
+                      border: `1px solid ${primaryColor}30`
                     }}
                   >
                     <Icon size={24} />
@@ -132,13 +140,6 @@ export default function PortalOverview() {
                   <p className="mt-2 leading-6 text-gray-400 text-sm">
                     {feature.description}
                   </p>
-
-                  <div 
-                    className="mt-4 inline-flex rounded-full bg-white/5 px-3 py-1 text-xs border border-white/10"
-                    style={{ color: primaryColor }}
-                  >
-                    {feature.stats}
-                  </div>
                 </div>
               </motion.div>
             );
@@ -151,10 +152,15 @@ export default function PortalOverview() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="mt-12 rounded-xl border p-6"
+          className="mt-12 rounded-xl border-2 p-6"
           style={{
-            borderColor: `${primaryColor}20`,
-            background: `linear-gradient(to right, ${primaryColor}10, rgba(255,255,255,0.05), ${primaryColor}10)`,
+            borderColor: `${primaryColor}30`,
+            background: `linear-gradient(to right, ${primaryColor}15, rgba(26, 22, 16, 0.8), ${primaryColor}15)`,
+            backgroundImage: `
+              linear-gradient(to right, ${primaryColor}15, rgba(26, 22, 16, 0.8), ${primaryColor}15),
+              url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paperNoise)' opacity='0.04'/%3E%3C/svg%3E")
+            `,
+            backgroundSize: '100% 100%, 400px 400px'
           }}
         >
           <div className="grid lg:grid-cols-2 gap-6 items-center">
@@ -192,12 +198,12 @@ export default function PortalOverview() {
               ].map((item) => (
                 <div
                   key={item}
-                  className="rounded-lg border border-white/10 bg-white/5 p-2.5 text-center transition hover:bg-white/10"
+                  className="rounded-lg border border-[#E8A33D]/20 bg-[#E8A33D]/5 p-2.5 text-center transition hover:bg-[#E8A33D]/10"
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = `${primaryColor}30`;
+                    e.currentTarget.style.borderColor = `${primaryColor}40`;
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                    e.currentTarget.style.borderColor = 'rgba(232, 163, 61, 0.2)';
                   }}
                 >
                   <p className="font-medium text-white text-xs">
