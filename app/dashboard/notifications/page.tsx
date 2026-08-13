@@ -5,6 +5,15 @@ import { useRouter } from 'next/navigation';
 import { useNotifications, useMarkNotificationAsRead, useMarkAllAsRead } from '@/hooks/useNotifications';
 import { motion } from 'framer-motion';
 
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
 export default function NotificationsPage() {
   const router = useRouter();
   const { data, isLoading, error } = useNotifications(false);
@@ -19,7 +28,7 @@ export default function NotificationsPage() {
     await markAllAsReadMutation.mutateAsync();
   };
 
-  const handleNotificationClick = async (notification: any) => {
+  const handleNotificationClick = async (notification: Notification) => {
     if (!notification.isRead) {
       await handleMarkAsRead(notification.id);
     }
@@ -115,7 +124,7 @@ export default function NotificationsPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {data.notifications.map((notification, index) => (
+          {data.notifications.map((notification: Notification, index: number) => (
             <motion.div
               key={notification.id}
               initial={{ opacity: 0, y: 20 }}

@@ -2,7 +2,6 @@
 // Custom hook for student cleaning page - registration, change, and status
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axiosInstance from '@/lib/axios';
 
 // Types
 export interface CleaningDay {
@@ -106,32 +105,60 @@ export interface CleaningStatus {
 // API Functions
 const api = {
   getCleaningData: async (): Promise<CleaningData> => {
-    const response = await axiosInstance.get<CleaningData>('/api/cleaning/student');
-    return response.data;
+    const response = await fetch('/api/cleaning/student');
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to fetch cleaning data');
+    }
+    return response.json();
   },
 
   registerForCleaning: async (cleaningDayId: string) => {
-    const response = await axiosInstance.post('/api/cleaning/register', { cleaningDayId });
-    return response.data;
+    const response = await fetch('/api/cleaning/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cleaningDayId }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to register for cleaning');
+    }
+    return response.json();
   },
 
   changeRegistration: async ({ newDayId }: { newDayId: string }) => {
-    const response = await axiosInstance.post('/api/cleaning/change-day', { newDayId });
-    return response.data;
+    const response = await fetch('/api/cleaning/change-day', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newDayId }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to change registration');
+    }
+    return response.json();
   },
 
   markAttendance: async ({ userId, cleaningDayId, status }: { userId: string; cleaningDayId: string; status: 'ATTENDED' | 'NO_SHOW' | 'PENDING' }) => {
-    const response = await axiosInstance.post('/api/cleaning/attendance', {
-      userId,
-      cleaningDayId,
-      status,
+    const response = await fetch('/api/cleaning/attendance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, cleaningDayId, status }),
     });
-    return response.data;
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to mark attendance');
+    }
+    return response.json();
   },
 
   getCleaningStatus: async (): Promise<CleaningStatus> => {
-    const response = await axiosInstance.get<CleaningData>('/api/cleaning/student');
-    const data = response.data;
+    const response = await fetch('/api/cleaning/student');
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to fetch cleaning status');
+    }
+    const data = await response.json();
     // Transform the data to match CleaningStatus interface
     if (data.registration) {
       return {

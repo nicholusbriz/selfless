@@ -41,12 +41,13 @@ export const authOptions: AuthOptions = {
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
-        email: { label: 'Email', type: 'email', placeholder: 'your@email.com' }
+        email: { label: 'Email', type: 'email', placeholder: 'your@email.com' },
+        password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials) {
-        // 1. Validate email exists
-        if (!credentials?.email) {
-          throw new Error('Email required');
+        // 1. Validate email and password exist
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error('Email and password required');
         }
 
         // 2. Find user in database
@@ -60,16 +61,30 @@ export const authOptions: AuthOptions = {
           throw new Error('No user found with this email');
         }
 
-        // 4. Update last login
+        // 4. Verify password
+        if (!user.password) {
+          throw new Error('No password set for this user');
+        }
+
+        const isPasswordValid = await bcrypt.compare(
+          credentials.password as string,
+          user.password
+        );
+
+        if (!isPasswordValid) {
+          throw new Error('Invalid password');
+        }
+
+        // 5. Update last login
         await prisma.user.update({
           where: { id: user.id },
           data: { lastLoginAt: new Date() }
         });
 
-        // 5. Log the login
+        // 6. Log the login
         await logLogin(user.id, user.techCenterId || undefined);
 
-        // 6. Return user object
+        // 7. Return user object
         return {
           id: user.id,
           email: user.email,
@@ -231,7 +246,7 @@ export const authOptions: AuthOptions = {
   
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 7 * 24 * 60 * 60, // 7 days
   },
 
   // ============================================

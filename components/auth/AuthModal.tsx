@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { signIn } from 'next-auth/react';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -76,7 +76,9 @@ interface LoginFormProps {
 
 function LoginForm({ onClose, onSwitchToRegister }: LoginFormProps) {
   const router = useRouter();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -86,10 +88,7 @@ function LoginForm({ onClose, onSwitchToRegister }: LoginFormProps) {
     setIsLoading(true);
 
     try {
-      const result = await signIn('credentials', {
-        email,
-        redirect: false,
-      });
+      const result = await login(email, password);
 
       if (result?.error) {
         setError(result.error);
@@ -141,6 +140,21 @@ function LoginForm({ onClose, onSwitchToRegister }: LoginFormProps) {
               placeholder="your@email.com"
               className="w-full px-4 py-3 bg-[#0B0912]/60 border border-[#2A2438] rounded-xl text-[#F5F0E8] placeholder-[#6B6358] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-all duration-200"
               required
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-[#A79C8C] flex items-center gap-2">
+              <Lock className="w-4 h-4 text-[#6B6358]" />
+              Password
+            </label>
+            <PasswordInput
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              name="password"
+              required
+              minLength={6}
             />
           </div>
 
@@ -205,6 +219,7 @@ interface RegisterFormProps {
 
 function RegisterForm({ onClose, onSwitchToLogin }: RegisterFormProps) {
   const router = useRouter();
+  const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -255,11 +270,7 @@ function RegisterForm({ onClose, onSwitchToLogin }: RegisterFormProps) {
       if (response.status === 201 && data.user && data.user.id) {
         setSuccess(true);
         
-        const loginResult = await signIn('credentials', {
-          email: formData.email,
-          password: formData.password,
-          redirect: false,
-        });
+        const loginResult = await login(formData.email, formData.password);
         
         if (loginResult?.error) {
           router.push('/login?registered=true');

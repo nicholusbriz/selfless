@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Home, Plus, Trash2, Edit, Bell, Calendar, ChevronDown, ChevronUp, Loader2, X, AlertCircle } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/hooks/useAuth';
-import axios from 'axios';
 
 interface Announcement {
   id: string;
@@ -53,8 +52,8 @@ export default function AnnouncementsPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['announcements'],
     queryFn: async () => {
-      const response = await axios.get('/api/announcements');
-      return response.data;
+      const response = await fetch('/api/announcements');
+      return response.json();
     },
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -68,8 +67,9 @@ export default function AnnouncementsPage() {
     queryKey: ['announcements', 'count'],
     queryFn: async () => {
       try {
-        const response = await axios.get('/api/announcements');
-        return response.data.announcements?.length || 0;
+        const response = await fetch('/api/announcements');
+        const data = await response.json();
+        return data.announcements?.length || 0;
       } catch (error) {
         console.error('Error fetching announcement count:', error);
         return 0;
@@ -82,8 +82,12 @@ export default function AnnouncementsPage() {
   // Create announcement mutation
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await axios.post('/api/announcements', data);
-      return response.data;
+      const response = await fetch('/api/announcements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      return response.json();
     },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ['announcements'] });
@@ -104,8 +108,12 @@ export default function AnnouncementsPage() {
   // Update announcement mutation
   const updateMutation = useMutation({
     mutationFn: async ({ announcementId, data }: { announcementId: string; data: any }) => {
-      const response = await axios.put(`/api/announcements/${announcementId}`, data);
-      return response.data;
+      const response = await fetch(`/api/announcements/${announcementId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      return response.json();
     },
     onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey: ['announcements'] });
@@ -143,8 +151,10 @@ export default function AnnouncementsPage() {
   });
   const deleteMutation = useMutation({
     mutationFn: async (announcementId: string) => {
-      const response = await axios.delete(`/api/announcements/${announcementId}`);
-      return response.data;
+      const response = await fetch(`/api/announcements/${announcementId}`, {
+        method: 'DELETE',
+      });
+      return response.json();
     },
     onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey: ['announcements'] });

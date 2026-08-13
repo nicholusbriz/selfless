@@ -4,7 +4,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, User, MapPin, Calendar, Book, CheckCircle, XCircle, Clock, Phone, Globe, Link as LinkIcon, Map, GitFork, Copy, User as UserIcon } from 'lucide-react';
-import axios from 'axios';
 
 interface StudentProfile {
   _id: string;
@@ -56,15 +55,16 @@ export default function StudentProfilePage() {
     const fetchStudent = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`/api/students/${params.studentId}`, {
+        const response = await fetch(`/api/students/${params.studentId}`, {
           headers: {
             'Cache-Control': 'no-cache',
             'Pragma': 'no-cache',
           },
         });
-        setStudent(response.data.student);
+        const data = await response.json();
+        setStudent(data.student);
       } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to fetch student profile');
+        setError(err.message || 'Failed to fetch student profile');
       } finally {
         setLoading(false);
       }

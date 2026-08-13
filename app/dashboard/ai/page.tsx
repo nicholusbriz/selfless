@@ -28,7 +28,7 @@ import {
   Clock,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { useAIUserData } from '@/hooks/useAIUserData';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
@@ -60,7 +60,7 @@ interface ConversationSummary {
 }
 
 export default function AIDashboardPage() {
-  const { data: session } = useSession();
+  const { user } = useAuth();
   const { userContext, profileRecommendations } = useAIUserData();
 
   // RAG Settings - declare before use
@@ -72,7 +72,7 @@ export default function AIDashboardPage() {
   // CLEAN welcome message - no duplication
   const getWelcomeMessage = useCallback(() => {
     const hour = new Date().getHours();
-    const userName = session?.user?.firstName || 'there';
+    const userName = user?.firstName || 'there';
 
     let timeGreeting = 'Good evening';
     if (hour >= 5 && hour < 12) timeGreeting = 'Good morning';
@@ -105,7 +105,7 @@ export default function AIDashboardPage() {
     welcomeMessage += `Let's start learning together! 🎉`;
 
     return welcomeMessage;
-  }, [session?.user?.firstName, profileRecommendations, ragEnabled]);
+  }, [user?.firstName, profileRecommendations, ragEnabled]);
 
   const [messages, setMessages] = useState<Message[]>(() => [
     {
@@ -150,13 +150,13 @@ export default function AIDashboardPage() {
 
   // Log usage on mount
   useEffect(() => {
-    if (session?.user?.id) {
+    if (user?.id) {
       fetch('/api/ai/log-usage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: session.user.id,
-          techCenterId: session.user.techCenterId || undefined,
+          userId: user.id,
+          techCenterId: user.techCenterId || undefined,
           details: {
             messageCount: 0,
             firstMessage: 'AI page opened',
@@ -164,17 +164,17 @@ export default function AIDashboardPage() {
         }),
       }).catch((err) => console.error('Failed to log AI usage:', err));
     }
-  }, [session?.user?.id, session?.user?.techCenterId]);
+  }, [user?.id, user?.techCenterId]);
 
   const loadConversationHistory = useCallback(async () => {
-    if (!session?.user?.id) {
+    if (!user?.id) {
       setHistoryItems([]);
       return;
     }
 
     setHistoryLoading(true);
     try {
-      const response = await fetch(`/api/ai/chat?userId=${session.user.id}`);
+      const response = await fetch(`/api/ai/chat?userId=${user.id}`);
       const data = await response.json();
       if (data.success) {
         setHistoryItems(data.data.conversations || []);
@@ -184,7 +184,7 @@ export default function AIDashboardPage() {
     } finally {
       setHistoryLoading(false);
     }
-  }, [session]);
+  }, [user]);
 
   useEffect(() => {
     let isActive = true;
@@ -480,12 +480,12 @@ export default function AIDashboardPage() {
   }), [copiedMessageId, createMessageId]);
 
   const openConversation = async (conversationId: string) => {
-    if (!session?.user?.id) return;
+    if (!user?.id) return;
 
     setHistoryOpen(false);
     setHistoryLoading(true);
     try {
-      const response = await fetch(`/api/ai/chat?userId=${session.user.id}&conversationId=${conversationId}`);
+      const response = await fetch(`/api/ai/chat?userId=${user.id}&conversationId=${conversationId}`);
       const data = await response.json();
       if (data.success && data.data.conversation) {
         const loadedMessages = Array.isArray(data.data.conversation.messages)
@@ -540,7 +540,7 @@ export default function AIDashboardPage() {
         body: JSON.stringify({
           message: trimmedInput,
           conversationHistory: messages.slice(-5),
-          userId: session?.user?.id,
+          userId: user?.id,
           userContext,
           profileRecommendations,
           conversationId: activeConversationId || undefined,
@@ -573,13 +573,13 @@ export default function AIDashboardPage() {
         void loadConversationHistory();
 
         // Log RAG metrics if available
-        if (session?.user?.id && data.data.ragEnabled) {
+        if (user?.id && data.data.ragEnabled) {
           fetch('/api/ai/log-usage', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              userId: session.user.id,
-              techCenterId: session.user.techCenterId,
+              userId: user.id,
+              techCenterId: user.techCenterId,
               details: { messageCount: messages.length + 1 },
               ragMetrics: {
                 ragEnabled: data.data.ragEnabled,
@@ -592,13 +592,13 @@ export default function AIDashboardPage() {
               },
             }),
           }).catch((err) => console.error('Failed to log AI message:', err));
-        } else if (session?.user?.id) {
+        } else if (user?.id) {
           fetch('/api/ai/log-usage', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              userId: session.user.id,
-              techCenterId: session.user.techCenterId,
+              userId: user.id,
+              techCenterId: user.techCenterId,
               details: { messageCount: messages.length + 1 },
             }),
           }).catch((err) => console.error('Failed to log AI message:', err));
@@ -661,53 +661,53 @@ export default function AIDashboardPage() {
     >
       
       {/* ========== FIXED HEADER - STICKY ========== */}
-      <div className="sticky top-0 z-20 flex-shrink-0 flex items-center justify-between border-b border-[#2A1F3D] bg-gradient-to-r from-[#0A0615] via-[#140E24] to-[#0A0615] px-4 py-3 backdrop-blur-xl">
-        <div className="flex items-center gap-3">
+      <div className="sticky top-0 z-20 flex-shrink-0 flex items-center justify-between border-b border-[#2A1F3D] bg-gradient-to-r from-[#0A0615] via-[#140E24] to-[#0A0615] px-3 sm:px-4 py-3 backdrop-blur-xl">
+        <div className="flex items-center gap-2 sm:gap-3">
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-r from-[#E8A33D] via-[#FB7185] to-[#14B8A6] rounded-2xl blur-xl opacity-60" />
-            <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[#E8A33D] via-[#FB7185] to-[#14B8A6] overflow-hidden shadow-lg shadow-[#E8A33D]/30">
+            <div className="relative flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[#E8A33D] via-[#FB7185] to-[#14B8A6] overflow-hidden shadow-lg shadow-[#E8A33D]/30">
               <Image src="/atbriz.png" alt="Atbriz Ai" width={40} height={40} className="h-full w-full object-cover" />
             </div>
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold text-white tracking-tight">Atbriz Ai</h1>
-              <Sparkles className="h-4 w-4 text-[#E8A33D] animate-pulse" />
+              <h1 className="text-base sm:text-lg font-bold text-white tracking-tight">Atbriz Ai</h1>
+              <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-[#E8A33D] animate-pulse" />
             </div>
-            <p className="text-xs text-[#A89F96]">Your dedicated learning assistant</p>
+            <p className="text-[10px] sm:text-xs text-[#A89F96] hidden sm:block">Your dedicated learning assistant</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <button
             onClick={() => setHistoryOpen((prev) => !prev)}
-            className="rounded-xl border border-[#2A1F3D] bg-[#0A0615] p-2 text-[#A89F96] transition-all hover:bg-[#140E24] hover:text-white hover:border-[#E8A33D]/30"
+            className="rounded-xl border border-[#2A1F3D] bg-[#0A0615] p-1.5 sm:p-2 text-[#A89F96] transition-all hover:bg-[#140E24] hover:text-white hover:border-[#E8A33D]/30"
             title="View chat history"
           >
-            <MessageSquare className="h-4 w-4" />
+            <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </button>
           <button
             onClick={startNewChat}
-            className="rounded-xl border border-[#2A1F3D] bg-[#0A0615] p-2 text-[#A89F96] transition-all hover:bg-[#140E24] hover:text-white hover:border-[#E8A33D]/30"
+            className="rounded-xl border border-[#2A1F3D] bg-[#0A0615] p-1.5 sm:p-2 text-[#A89F96] transition-all hover:bg-[#140E24] hover:text-white hover:border-[#E8A33D]/30"
             title="Start new chat"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </button>
           <button
             onClick={() => setShowSettings(!showSettings)}
-            className={`rounded-xl border p-2 transition-all ${
-              showSettings 
-                ? 'border-[#E8A33D] bg-[#E8A33D]/20 text-[#E8A33D]' 
+            className={`rounded-xl border p-1.5 sm:p-2 transition-all ${
+              showSettings
+                ? 'border-[#E8A33D] bg-[#E8A33D]/20 text-[#E8A33D]'
                 : 'border-[#2A1F3D] bg-[#0A0615] text-[#A89F96] hover:bg-[#140E24] hover:text-white hover:border-[#E8A33D]/30'
             }`}
             title="AI Settings"
           >
-            <Settings className="h-4 w-4" />
+            <Settings className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </button>
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 rounded-xl border border-[#2A1F3D] bg-[#0A0615] px-3 py-2 text-sm text-[#A89F96] transition-all hover:bg-[#140E24] hover:text-white hover:border-[#E8A33D]/30"
+            className="flex items-center gap-2 rounded-xl border border-[#2A1F3D] bg-[#0A0615] px-2 sm:px-3 py-2 text-sm text-[#A89F96] transition-all hover:bg-[#140E24] hover:text-white hover:border-[#E8A33D]/30"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Back</span>
           </Link>
         </div>
@@ -728,7 +728,7 @@ export default function AIDashboardPage() {
                 <h3 className="text-sm font-semibold text-white">AI Response Settings</h3>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {/* RAG Toggle */}
                 <div className="bg-[#0A0615] border border-[#2A1F3D] rounded-lg p-3">
                   <div className="flex items-center justify-between mb-2">
@@ -827,7 +827,7 @@ export default function AIDashboardPage() {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -300, opacity: 0 }}
               transition={{ duration: 0.25 }}
-              className="absolute inset-y-0 left-0 z-20 flex w-[280px] flex-col border-r border-[#2A1F3D] bg-[#0A0615]/95 p-3 shadow-2xl shadow-black/50 backdrop-blur-xl"
+              className="absolute inset-y-0 left-0 z-20 flex w-[280px] sm:w-[320px] flex-col border-r border-[#2A1F3D] bg-[#0A0615]/95 p-3 shadow-2xl shadow-black/50 backdrop-blur-xl"
             >
               <div className="mb-3 flex items-center justify-between">
                 <div>
@@ -882,10 +882,10 @@ export default function AIDashboardPage() {
         </AnimatePresence>
 
         {/* ========== SCROLLABLE MESSAGES ========== */}
-        <div 
+        <div
           ref={messagesContainerRef}
           onScroll={handleScroll}
-          className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 py-4 space-y-4 overscroll-contain"
+          className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 sm:px-4 py-3 sm:py-4 space-y-3 sm:space-y-4 overscroll-contain"
           style={{ scrollBehavior: 'smooth' }}
         >
           {/* New Chat Confirmation Modal */}
@@ -946,20 +946,20 @@ export default function AIDashboardPage() {
             >
               {/* Avatar */}
               <div className={cn(
-                'flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl shadow-lg',
-                message.role === 'user' 
-                  ? 'bg-gradient-to-br from-[#8B5CF6] to-[#6D28D9]' 
+                'flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl shadow-lg',
+                message.role === 'user'
+                  ? 'bg-gradient-to-br from-[#8B5CF6] to-[#6D28D9]'
                   : 'bg-gradient-to-br from-[#E8A33D] via-[#FB7185] to-[#14B8A6]'
               )}>
                 {message.role === 'user' ? (
-                  session?.user?.profileImageUrl ? (
-                    <Image 
-                      src={session.user.profileImageUrl} 
-                      alt={`${session.user.firstName} ${session.user.lastName}`} 
-                      width={36} 
-                      height={36} 
-                      className="h-full w-full object-cover" 
-                      unoptimized 
+                  user?.profileImageUrl ? (
+                    <Image
+                      src={user.profileImageUrl}
+                      alt={`${user.firstName} ${user.lastName}`}
+                      width={36}
+                      height={36}
+                      className="h-full w-full object-cover"
+                      unoptimized
                     />
                   ) : (
                     <User className="h-4 w-4 text-white" />
@@ -971,13 +971,13 @@ export default function AIDashboardPage() {
 
               {/* Message Content */}
               <div className={cn(
-                'min-w-0 max-w-[88%] sm:max-w-[75%]',
+                'min-w-0 max-w-[85%] sm:max-w-[75%]',
                 message.role === 'user' ? 'text-right' : 'text-left'
               )}>
                 <div className={cn(
-                  'relative inline-block w-full max-w-full rounded-2xl px-4 py-3 text-sm shadow-lg break-words',
-                  message.role === 'user' 
-                    ? 'rounded-tr-sm bg-gradient-to-r from-[#8B5CF6] to-[#6D28D9] text-white' 
+                  'relative inline-block w-full max-w-full rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-sm shadow-lg break-words',
+                  message.role === 'user'
+                    ? 'rounded-tr-sm bg-gradient-to-r from-[#8B5CF6] to-[#6D28D9] text-white'
                     : 'rounded-tl-sm border border-[#2A1F3D] bg-[#0A0615] text-[#F0EDE8]'
                 )}>
                   <div className="prose prose-invert max-w-none overflow-hidden text-left prose-p:my-1 prose-headings:my-1.5 break-words prose-p:text-[#F0EDE8] prose-strong:text-white prose-a:text-[#F2C879] prose-a:hover:text-[#FB7185]">
@@ -1098,7 +1098,7 @@ export default function AIDashboardPage() {
       </div>
 
       {/* ========== FIXED INPUT AREA - STICKY BOTTOM ========== */}
-      <div className="sticky bottom-0 z-20 flex-shrink-0 border-t border-[#2A1F3D] bg-gradient-to-r from-[#0A0615] via-[#140E24] to-[#0A0615] px-4 py-3 backdrop-blur-xl">
+      <div className="sticky bottom-0 z-20 flex-shrink-0 border-t border-[#2A1F3D] bg-gradient-to-r from-[#0A0615] via-[#140E24] to-[#0A0615] px-3 sm:px-4 py-3 backdrop-blur-xl">
         {/* Paste Notification */}
         <AnimatePresence>
           {pasteContent && (
@@ -1122,7 +1122,7 @@ export default function AIDashboardPage() {
           )}
         </AnimatePresence>
 
-        <div className="flex gap-3">
+        <div className="flex gap-2 sm:gap-3">
           <textarea
             ref={inputRef}
             value={input}
@@ -1131,21 +1131,21 @@ export default function AIDashboardPage() {
             onPaste={handlePaste}
             placeholder="Ask Atbriz Ai anything..."
             rows={1}
-            className="flex-1 resize-none overflow-hidden rounded-xl border-2 border-[#2A1F3D] bg-[#0A0615] px-4 py-2.5 text-sm text-white placeholder-[#A89F96] shadow-inner transition-all focus:border-[#E8A33D] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/20 min-h-[44px] max-h-[120px]"
-            style={{ height: '44px' }}
+            className="flex-1 resize-none overflow-hidden rounded-xl border-2 border-[#2A1F3D] bg-[#0A0615] px-3 sm:px-4 py-2.5 text-sm text-white placeholder-[#A89F96] shadow-inner transition-all focus:border-[#E8A33D] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/20 min-h-[40px] sm:min-h-[44px] max-h-[120px]"
+            style={{ height: '40px' }}
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
             className={cn(
-              'flex h-11 w-11 items-center justify-center rounded-xl border-2 border-white/10 bg-gradient-to-br from-[#8B5CF6] to-[#6D28D9] text-white shadow-lg shadow-[#8B5CF6]/30 transition-all hover:scale-105 active:scale-95 flex-shrink-0',
+              'flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl border-2 border-white/10 bg-gradient-to-br from-[#8B5CF6] to-[#6D28D9] text-white shadow-lg shadow-[#8B5CF6]/30 transition-all hover:scale-105 active:scale-95 flex-shrink-0',
               (!input.trim() || isLoading) && 'cursor-not-allowed opacity-50 hover:scale-100'
             )}
           >
-            <Send className="h-4 w-4" />
+            <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </button>
         </div>
-        <div className="mt-1.5 flex items-center justify-between text-[9px] text-[#A89F96] px-1">
+        <div className="mt-1.5 flex items-center justify-between text-[9px] text-[#A89F96] hidden sm:flex px-1">
           <p>Press <kbd className="px-1.5 py-0.5 rounded bg-[#1A1228] border border-[#2A1F3D] text-[8px]">Enter</kbd> to send</p>
           <p>Paste text directly into the box</p>
         </div>
