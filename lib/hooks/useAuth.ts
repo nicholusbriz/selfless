@@ -1,7 +1,6 @@
 // lib/hooks/useAuth.ts
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
 
 export function useAuth() {
   const { data: session, status, update } = useSession();
@@ -27,10 +26,17 @@ export function useAuth() {
   };
 
   const updateUser = async (updates: any) => {
-    const response = await axios.post('/api/user/update', updates);
+    const response = await fetch('/api/user/update', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updates),
+    });
+    const data = await response.json();
     // Update the NextAuth session immediately with the new data
     await update();
-    return response.data;
+    return data;
   };
 
   return {

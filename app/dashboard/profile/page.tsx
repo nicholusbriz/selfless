@@ -6,7 +6,6 @@ import { ArrowLeft, User, Camera, Mail, Lock, Edit2, Save, X, Check, AlertCircle
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { uploadProfileImage, deleteProfileImage } from '@/lib/supabase';
-import axios from 'axios';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -135,13 +134,19 @@ export default function ProfilePage() {
         }
 
         // Change password via API
-        const passwordResponse = await axios.post('/api/user/change-password', {
-          currentPassword: formData.currentPassword,
-          newPassword: formData.newPassword,
+        const passwordResponse = await fetch('/api/user/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            currentPassword: formData.currentPassword,
+            newPassword: formData.newPassword,
+          }),
         });
 
-        if (passwordResponse.status !== 200) {
-          setError(passwordResponse.data.error || 'Failed to change password');
+        const passwordData = await passwordResponse.json();
+
+        if (!passwordResponse.ok) {
+          setError(passwordData.error || 'Failed to change password');
           return;
         }
       }

@@ -771,11 +771,11 @@ export default function AdminCleaningManagement() {
                   <select
                     value={selectedStudentForAssignment}
                     onChange={(e) => setSelectedStudentForAssignment(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:border-purple-500 focus:outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-[#F5F0E8] focus:border-purple-500 focus:outline-none"
                   >
                     <option value="">Choose a student...</option>
                     {students.map((student: any) => (
-                      <option key={student.id} value={student.id}>
+                      <option key={student.id} value={student.id} className="text-[#0B0912]">
                         {student.firstName} {student.lastName}
                       </option>
                     ))}

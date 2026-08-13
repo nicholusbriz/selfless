@@ -1,6 +1,5 @@
 // hooks/useCleaning.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axiosInstance from '@/lib/axios';
 
 // Types
 export interface CleaningWeek {
@@ -69,57 +68,112 @@ export interface CleaningData {
 // API Functions
 const api = {
   getCleaningData: async (): Promise<CleaningData> => {
-    const response = await axiosInstance.get<CleaningData>('/api/admin/cleaning');
-    return response.data;
+    const response = await fetch('/api/admin/cleaning');
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to fetch cleaning data');
+    }
+    return response.json();
   },
 
   createWeek: async (data: any) => {
-    const response = await axiosInstance.post('/api/admin/cleaning', data);
-    return response.data;
+    const response = await fetch('/api/admin/cleaning', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to create week');
+    }
+    return response.json();
   },
 
   updateWeek: async ({ weekId, data }: { weekId: string; data: any }) => {
-    const response = await axiosInstance.put(`/api/admin/cleaning/weeks/${weekId}`, data);
-    return response.data;
+    const response = await fetch(`/api/admin/cleaning/weeks/${weekId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to update week');
+    }
+    return response.json();
   },
 
   deleteWeek: async (weekId: string) => {
-    const response = await axiosInstance.delete(`/api/admin/cleaning/weeks/${weekId}`);
-    return response.data;
+    const response = await fetch(`/api/admin/cleaning/weeks/${weekId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to delete week');
+    }
+    return response.json();
   },
 
   updateDay: async ({ dayId, data }: { dayId: string; data: any }) => {
-    const response = await axiosInstance.put(`/api/admin/cleaning/days/${dayId}`, data);
-    return response.data;
+    const response = await fetch(`/api/admin/cleaning/days/${dayId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to update day');
+    }
+    return response.json();
   },
 
   deleteDay: async (dayId: string) => {
-    const response = await axiosInstance.delete(`/api/admin/cleaning/days/${dayId}`);
-    return response.data;
+    const response = await fetch(`/api/admin/cleaning/days/${dayId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to delete day');
+    }
+    return response.json();
   },
 
   assignStudent: async ({ studentUserId, cleaningDayId }: { studentUserId: string; cleaningDayId: string }) => {
-    const response = await axiosInstance.post('/api/admin/cleaning/manual-assign', {
-      studentUserId,
-      cleaningDayId,
+    const response = await fetch('/api/admin/cleaning/manual-assign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ studentUserId, cleaningDayId }),
     });
-    return response.data;
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to assign student');
+    }
+    return response.json();
   },
 
   markAttendance: async ({ userId, cleaningDayId, status }: { userId: string; cleaningDayId: string; status: 'ATTENDED' | 'NO_SHOW' | 'PENDING' }) => {
-    const response = await axiosInstance.post('/api/admin/cleaning/attendance', {
-      userId,
-      cleaningDayId,
-      status,
+    const response = await fetch('/api/admin/cleaning/attendance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, cleaningDayId, status }),
     });
-    return response.data;
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to mark attendance');
+    }
+    return response.json();
   },
 
   removeStudent: async (studentUserId: string) => {
-    const response = await axiosInstance.delete('/api/admin/cleaning/remove-student', {
-      data: { studentUserId },
+    const response = await fetch('/api/admin/cleaning/remove-student', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ studentUserId }),
     });
-    return response.data;
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to remove student');
+    }
+    return response.json();
   },
 };
 

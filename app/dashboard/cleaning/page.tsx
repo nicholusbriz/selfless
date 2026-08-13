@@ -6,7 +6,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import CleaningRota from '@/components/CleaningRota';
 import {
   Calendar,
   Users,
@@ -337,11 +336,6 @@ export default function CleaningPage() {
         </motion.div>
       )}
 
-      {/* Cleaning Rota Display  l will remove this section when l want to remove the cleaning rota on this page */ }
-      <div className="mb-8">
-        <CleaningRota showTitle={false} />
-      </div>
-
       {/* Weeks List */}
       {weeks.length === 0 ? (
         <motion.div
@@ -557,7 +551,7 @@ export default function CleaningPage() {
                                       return (
                                         <div
                                           key={reg.id}
-                                          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#2A2438] text-xs text-[#A79C8C]"
+                                          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#2A2438] text-xs text-[#F5F0E8]"
                                         >
                                           <User className="w-3 h-3" />
                                           <span>{reg.user.firstName} {reg.user.lastName}</span>

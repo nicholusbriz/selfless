@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Head from 'next/head';
 import Image from 'next/image';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { useSession, signOut } from 'next-auth/react';
+import { useAuth } from '@/lib/hooks/useAuth';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import {
@@ -1362,15 +1362,12 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { data: session, status } = useSession();
+  const { user, isLoading, isAuthenticated, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
 
-  const user = session?.user || null;
-  const isLoading = status === 'loading';
-  const isAuthenticated = status === 'authenticated';
   const userRole = user?.role || 'student';
   const isAiPage = pathname === '/dashboard/ai' || pathname.startsWith('/dashboard/ai/');
 
@@ -1406,8 +1403,7 @@ export default function DashboardLayout({
   }, [isAuthenticated, isLoading, router]);
 
   const handleLogout = async () => {
-    await signOut({ redirect: false });
-    router.push('/');
+    await logout();
   };
 
   const toggleMobileMenu = () => {

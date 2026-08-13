@@ -7,7 +7,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Users, Trophy, Shirt, Plus, X, Loader2, ArrowLeft, Edit2, Save, Megaphone, Package, Stethoscope, Award, UserCog, Circle, Target, Globe, Zap } from 'lucide-react';
 import { useTeam, useRegisterForTeam, useLeaveTeam, useUpdateTeamMembership } from '@/hooks/useTeam';
 import { useAuth } from '@/lib/hooks/useAuth';
-import axios from 'axios';
 
 interface TeamMember {
   id: string;
@@ -71,8 +70,8 @@ export default function FootballTeamPage() {
         queryClient.prefetchQuery({
           queryKey: ['team', techCenterId, sport],
           queryFn: async () => {
-            const response = await axios.get(`/api/team/${techCenterId}/${sport}`);
-            return response.data;
+            const response = await fetch(`/api/team/${techCenterId}/${sport}`);
+            return response.json();
           },
           staleTime: 10 * 60 * 1000,
         });
@@ -199,8 +198,8 @@ export default function FootballTeamPage() {
         queryClient.prefetchQuery({
           queryKey: ['team', techCenterId, sport],
           queryFn: async () => {
-            const response = await axios.get(`/api/team/${techCenterId}/${sport}`);
-            return response.data;
+            const response = await fetch(`/api/team/${techCenterId}/${sport}`);
+            return response.json();
           },
           staleTime: 10 * 60 * 1000,
         });

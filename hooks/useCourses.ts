@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
 
 export interface Course {
   id: string;
@@ -24,8 +23,12 @@ export function useCourses() {
   return useQuery({
     queryKey: ['student-courses'],
     queryFn: async () => {
-      const response = await axios.get<CoursesData>('/api/student-courses');
-      return response.data;
+      const response = await fetch('/api/student-courses');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch courses');
+      }
+      return response.json();
     },
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -38,8 +41,16 @@ export function useSubmitCourses() {
 
   return useMutation({
     mutationFn: async (data: { courses: any[]; tuitionAmount: string }) => {
-      const response = await axios.post('/api/student-courses', data);
-      return response.data;
+      const response = await fetch('/api/student-courses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to submit courses');
+      }
+      return response.json();
     },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ['student-courses'] });
@@ -63,8 +74,16 @@ export function useUpdateCourse() {
 
   return useMutation({
     mutationFn: async ({ courseId, data }: { courseId: string; data: any }) => {
-      const response = await axios.put(`/api/student-courses/${courseId}`, data);
-      return response.data;
+      const response = await fetch(`/api/student-courses/${courseId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update course');
+      }
+      return response.json();
     },
     onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey: ['student-courses'] });
@@ -101,8 +120,14 @@ export function useDeleteCourse() {
 
   return useMutation({
     mutationFn: async (courseId: string) => {
-      const response = await axios.delete(`/api/student-courses/${courseId}`);
-      return response.data;
+      const response = await fetch(`/api/student-courses/${courseId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete course');
+      }
+      return response.json();
     },
     onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey: ['student-courses'] });

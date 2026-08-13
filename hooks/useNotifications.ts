@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
 
 export interface Notification {
   id: string;
@@ -28,8 +27,12 @@ export function useNotifications(unreadOnly: boolean = false) {
   return useQuery({
     queryKey: ['notifications', unreadOnly],
     queryFn: async () => {
-      const response = await axios.get<NotificationsData>(`/api/notifications?unreadOnly=${unreadOnly}`);
-      return response.data;
+      const response = await fetch(`/api/notifications?unreadOnly=${unreadOnly}`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch notifications');
+      }
+      return response.json();
     },
     staleTime: 1 * 60 * 1000, // 1 minute
     gcTime: 5 * 60 * 1000, // 5 minutes
@@ -42,11 +45,16 @@ export function useUnreadNotificationCount() {
     queryKey: ['notifications', 'unread-count'],
     queryFn: async () => {
       try {
-        const response = await axios.get<NotificationsData>('/api/notifications?unreadOnly=true&limit=1');
-        return response.data.unreadCount || 0;
+        const response = await fetch('/api/notifications?unreadOnly=true&limit=1');
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to fetch unread count');
+        }
+        const data = await response.json();
+        return data.unreadCount || 0;
       } catch (error) {
         console.error('Error fetching unread count:', error);
-        return 0; // Return 0 on error to avoid showing stale badges
+        return 0;
       }
     },
     staleTime: 30 * 1000, // 30 seconds
@@ -61,8 +69,13 @@ export function useAnnouncementCount() {
     queryKey: ['announcements', 'count'],
     queryFn: async () => {
       try {
-        const response = await axios.get('/api/announcements');
-        return response.data.announcements?.length || 0;
+        const response = await fetch('/api/announcements');
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to fetch announcements');
+        }
+        const data = await response.json();
+        return data.announcements?.length || 0;
       } catch (error) {
         console.error('Error fetching announcement count:', error);
         return 0;
@@ -79,8 +92,14 @@ export function useMarkNotificationAsRead() {
 
   return useMutation({
     mutationFn: async (notificationId: string) => {
-      const response = await axios.patch(`/api/notifications/${notificationId}`);
-      return response.data;
+      const response = await fetch(`/api/notifications/${notificationId}`, {
+        method: 'PATCH',
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to mark notification as read');
+      }
+      return response.json();
     },
     onSuccess: () => {
       // Invalidate notifications queries
@@ -95,8 +114,14 @@ export function useMarkAllAsRead() {
 
   return useMutation({
     mutationFn: async () => {
-      const response = await axios.post('/api/notifications/mark-all-read');
-      return response.data;
+      const response = await fetch('/api/notifications/mark-all-read', {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to mark all as read');
+      }
+      return response.json();
     },
     onSuccess: () => {
       // Invalidate notifications queries

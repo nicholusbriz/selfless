@@ -1,5 +1,4 @@
 // lib/api/admin-users.ts
-import axiosInstance from '@/lib/axios';
 export interface User {
   id: string;
   firstName: string;
@@ -78,48 +77,81 @@ export const adminUsersApi = {
     sortBy?: string;
     sortOrder?: string;
   }): Promise<UsersResponse> => {
-    const response = await axiosInstance.get<UsersResponse>('/api/admin/users', { params });
-    return response.data;
+    const queryParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value) queryParams.append(key, value.toString());
+      });
+    }
+    const response = await fetch(`/api/admin/users?${queryParams.toString()}`);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to fetch users');
+    }
+    return response.json();
   },
 
   // Get single user
   getUser: async (userId: string): Promise<User> => {
-    const response = await axiosInstance.get<User>(`/api/admin/users/${userId}`);
-    return response.data;
+    const response = await fetch(`/api/admin/users/${userId}`);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to fetch user');
+    }
+    return response.json();
   },
 
   // Update user
   updateUser: async (userId: string, data: UpdateUserData): Promise<{ message: string; user: User }> => {
-    const response = await axiosInstance.patch<{ message: string; user: User }>(
-      `/api/admin/users/${userId}`,
-      data
-    );
-    return response.data;
+    const response = await fetch(`/api/admin/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to update user');
+    }
+    return response.json();
   },
 
   // Update user role
   updateUserRole: async (userId: string, roleId: string): Promise<{ message: string; user: User }> => {
-    const response = await axiosInstance.patch<{ message: string; user: User }>(
-      `/api/admin/users/${userId}/role`,
-      { roleId }
-    );
-    return response.data;
+    const response = await fetch(`/api/admin/users/${userId}/role`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roleId }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to update user role');
+    }
+    return response.json();
   },
 
   // Update user status
   updateUserStatus: async (userId: string, status: string): Promise<{ message: string; user: User }> => {
-    const response = await axiosInstance.patch<{ message: string; user: User }>(
-      `/api/admin/users/${userId}/status`,
-      { status }
-    );
-    return response.data;
+    const response = await fetch(`/api/admin/users/${userId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to update user status');
+    }
+    return response.json();
   },
 
   // Delete user
   deleteUser: async (userId: string): Promise<{ message: string; deleted: any }> => {
-    const response = await axiosInstance.delete<{ message: string; deleted: any }>(
-      `/api/admin/users/${userId}`
-    );
-    return response.data;
+    const response = await fetch(`/api/admin/users/${userId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to delete user');
+    }
+    return response.json();
   },
 };

@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
 
 // Types
 export interface TeamMember {
@@ -43,8 +42,12 @@ export function useFootballTeam(techCenterId: string | null) {
     queryFn: async () => {
       if (!techCenterId) return null;
       
-      const response = await axios.get<FootballTeamData>(`/api/football-team/${techCenterId}`);
-      return response.data;
+      const response = await fetch(`/api/football-team/${techCenterId}`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch football team');
+      }
+      return response.json();
     },
     enabled: !!techCenterId,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -58,8 +61,16 @@ export function useRegisterForFootballTeam() {
 
   return useMutation({
     mutationFn: async (data: { techCenterId: string; jerseyNumber?: number; position?: string; teamRole?: string }) => {
-      const response = await axios.post('/api/football-team/register', data);
-      return response.data;
+      const response = await fetch('/api/football-team/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to register for football team');
+      }
+      return response.json();
     },
     onMutate: async (variables) => {
       // Cancel outgoing refetches
@@ -128,8 +139,16 @@ export function useLeaveFootballTeam() {
 
   return useMutation({
     mutationFn: async (teamId: string) => {
-      const response = await axios.post('/api/football-team/leave', { teamId });
-      return response.data;
+      const response = await fetch('/api/football-team/leave', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teamId }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to leave football team');
+      }
+      return response.json();
     },
     onMutate: async (variables) => {
       // Cancel outgoing refetches
@@ -177,8 +196,16 @@ export function useUpdateFootballTeamMembership() {
 
   return useMutation({
     mutationFn: async (data: { teamId: string; jerseyNumber?: number; position?: string }) => {
-      const response = await axios.put('/api/football-team/update', data);
-      return response.data;
+      const response = await fetch('/api/football-team/update', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update football team membership');
+      }
+      return response.json();
     },
     onMutate: async (variables) => {
       // Cancel outgoing refetches

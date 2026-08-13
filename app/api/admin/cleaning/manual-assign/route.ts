@@ -26,8 +26,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Use transaction to prevent race conditions
-    const result = await prisma.$transaction(async (tx: any) => {
+    // Use transaction to prevent race conditions with increased timeout
+    const result = await prisma.$transaction(
+      async (tx: any) => {
       // Check if student exists
       const student = await tx.user.findUnique({
         where: { id: studentUserId },
@@ -143,6 +144,9 @@ export async function POST(request: NextRequest) {
         registration,
         message: oldCleaningDayId ? 'Student moved to new day' : 'Student assigned successfully',
       };
+    }, {
+      maxWait: 10000, // Increase timeout to 10 seconds
+      timeout: 10000,
     });
 
     return NextResponse.json(result);
