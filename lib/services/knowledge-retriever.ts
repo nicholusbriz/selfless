@@ -92,7 +92,13 @@ export async function semanticSearch(
 
   try {
     // Generate embedding for the query
-    const queryEmbedding = await generateEmbedding(query);
+    let queryEmbedding: number[];
+    try {
+      queryEmbedding = await generateEmbedding(query);
+    } catch (embeddingError) {
+      console.warn('[KnowledgeRetriever] Embedding generation failed, falling back to keyword search:', embeddingError);
+      return await keywordSearch(query, options);
+    }
 
     // Build database query filters
     const where: any = { isActive: true };

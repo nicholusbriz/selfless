@@ -26,7 +26,7 @@ self.addEventListener('activate', (event) => {
 // Fetch handler to handle navigation requests
 // This fixes the "page not found" issue when launching PWA
 self.addEventListener('fetch', (event) => {
-  // For navigation requests, always go to network
+  // Only intercept navigation requests, let all other requests pass through normally
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request).catch(() => {
@@ -35,8 +35,6 @@ self.addEventListener('fetch', (event) => {
       })
     );
   }
-  // For all other requests, let browser handle normally (no caching)
-  else {
-    event.respondWith(fetch(event.request));
-  }
+  // For all other requests (API calls, static assets, etc.), don't intercept
+  // This prevents service worker interference with normal network requests
 });

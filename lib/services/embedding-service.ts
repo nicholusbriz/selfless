@@ -10,15 +10,28 @@
  * - Reduced logging frequency
  * - Simple embedding cache
  * - Progress updates every 10% instead of every line
+ * - Graceful fallback for serverless environments
  * 
  * @module embedding-service
  */
 
-import { pipeline, env } from '@xenova/transformers';
+// Try to import transformers, but handle serverless environments gracefully
+let transformers: any = null;
+let transformersAvailable = false;
 
-// Configure transformers.js to use local cache
-env.allowLocalModels = true;
-env.allowRemoteModels = true;
+try {
+  transformers = require('@xenova/transformers');
+  transformersAvailable = true;
+  
+  // Configure transformers.js to use local cache
+  if (transformers.env) {
+    transformers.env.allowLocalModels = true;
+    transformers.env.allowRemoteModels = true;
+  }
+} catch (error) {
+  console.warn('[EmbeddingService] @xenova/transformers not available, embedding features disabled');
+  transformersAvailable = false;
+}
 
 // Cache for the embedding pipeline to avoid reloading
 let embeddingPipeline: any = null;
@@ -33,9 +46,14 @@ const embeddingCache = new Map<string, number[]>();
  * Loads the all-MiniLM-L6-v2 model for generating 384-dimensional embeddings
  * 
  * @returns Promise that resolves to the embedding pipeline
- * @throws Error if model loading fails
+ * @throws Error if model loading fails or transformers not available
  */
 async function getEmbeddingPipeline(): Promise<any> {
+  // Check if transformers is available
+  if (!transformersAvailable) {
+    throw new Error('Transformers library not available in this environment');
+  }
+
   // Return cached pipeline if available
   if (embeddingPipeline && isPipelineInitialized) {
     return embeddingPipeline;
@@ -51,7 +69,7 @@ async function getEmbeddingPipeline(): Promise<any> {
   const startTime = Date.now();
   let lastLoggedProgress = 0;
   
-  pipelineInitPromise = pipeline(
+  pipelineInitPromise = transformers.pipeline(
     'feature-extraction',
     'Xenova/all-MiniLM-L6-v2',
     {
@@ -96,6 +114,11 @@ export async function generateEmbedding(text: string, useCache: boolean = true):
     return embeddingCache.get(text)!;
   }
 
+  // Check if transformers is available
+  if (!transformersAvailable) {
+    throw new Error('Embedding generation not available in this environment');
+  }
+
   try {
     const pipeline = await getEmbeddingPipeline();
     const embedding = await pipeline(text, { pooling: 'mean', normalize: true });
@@ -137,6 +160,11 @@ export async function generateEmbedding(text: string, useCache: boolean = true):
  */
 export async function generateBatchEmbeddings(texts: string[], useCache: boolean = true): Promise<number[][]> {
   if (texts.length === 0) return [];
+
+  // Check if transformers is available
+  if (!transformersAvailable) {
+    throw new Error('Embedding generation not available in this environment');
+  }
 
   const pipeline = await getEmbeddingPipeline();
   const embeddings: number[][] = [];
