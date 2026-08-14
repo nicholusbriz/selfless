@@ -132,16 +132,26 @@ export async function generateRAGResponse(
     const searchStartTime = Date.now();
 
     let sources: KnowledgeResult[];
-    if (hybridSearch) {
-      sources = await hybridSearchFn(query, {
+    try {
+      if (hybridSearch) {
+        sources = await hybridSearchFn(query, {
+          limit: maxSources,
+          threshold: similarityThreshold,
+          category
+        });
+      } else {
+        sources = await semanticSearch(query, {
+          limit: maxSources,
+          threshold: similarityThreshold,
+          category
+        });
+      }
+    } catch (searchError) {
+      console.warn('[RAGService] Semantic search failed, falling back to keyword search:', searchError);
+      // Fall back to keyword search if semantic search fails
+      const { keywordSearch } = await import('./knowledge-retriever');
+      sources = await keywordSearch(query, {
         limit: maxSources,
-        threshold: similarityThreshold,
-        category
-      });
-    } else {
-      sources = await semanticSearch(query, {
-        limit: maxSources,
-        threshold: similarityThreshold,
         category
       });
     }
