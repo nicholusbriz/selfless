@@ -18,6 +18,7 @@ export interface CleaningDay {
       id: string;
       firstName: string;
       lastName: string;
+      profileImageUrl: string | null;
     };
   }[];
   attendanceRecords: {
@@ -28,6 +29,7 @@ export interface CleaningDay {
       id: string;
       firstName: string;
       lastName: string;
+      profileImageUrl: string | null;
     };
   }[];
 }
@@ -77,7 +79,9 @@ export interface CleaningData {
     firstName: string;
     lastName: string;
     email: string;
+    profileImageUrl: string | null;
     role: string;
+    techCenterId?: string;
   };
   weeks: Week[];
   registration: UserRegistration | null;
@@ -230,7 +234,12 @@ export const useRegisterForCleaning = () => {
                   {
                     id: 'temp-' + Date.now(),
                     userId: old.user.id,
-                    user: old.user,
+                    user: {
+                      id: old.user.id,
+                      firstName: old.user.firstName,
+                      lastName: old.user.lastName,
+                      profileImageUrl: old.user.profileImageUrl,
+                    },
                     registeredAt: new Date().toISOString(),
                   }
                 ]
@@ -311,7 +320,12 @@ export const useChangeRegistration = () => {
                   {
                     id: 'temp-' + Date.now(),
                     userId: old.user.id,
-                    user: old.user,
+                    user: {
+                      id: old.user.id,
+                      firstName: old.user.firstName,
+                      lastName: old.user.lastName,
+                      profileImageUrl: old.user.profileImageUrl,
+                    },
                     registeredAt: new Date().toISOString(),
                   }
                 ]

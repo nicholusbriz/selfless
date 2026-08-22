@@ -336,16 +336,16 @@ async function callAIProvider(
   maxTokens: number
 ): Promise<{ text: string; provider: string; tokenUsage?: { prompt: number; completion: number; total: number } }> {
   // Check which AI service to use
-  const aiService = (process.env.AI_SERVICE || 'auto').toLowerCase();
+  const aiService = (process.env.AI_SERVICE || 'groq').toLowerCase();
 
   const providerOrder =
     aiService === 'groq'
-      ? ['groq', 'gemini', 'openai']
+      ? ['groq']
       : aiService === 'openai'
-        ? ['openai', 'gemini', 'groq']
+        ? ['openai']
         : aiService === 'gemini'
-          ? ['gemini', 'openai', 'groq']
-          : ['gemini', 'openai', 'groq'];
+          ? ['gemini']
+          : ['groq'];
 
   const providers = {
     gemini: {
@@ -392,7 +392,7 @@ async function callGemini(
   if (!apiKey) throw new Error('Gemini API key not configured');
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -485,7 +485,7 @@ async function callGroq(
       'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
+      model: 'llama3-70b-8192',
       messages: [{ role: 'user', content: prompt }],
       temperature,
       max_tokens: maxTokens

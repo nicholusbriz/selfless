@@ -277,18 +277,18 @@ ${k.tags.length > 0 ? `**Tags:** ${k.tags.join(', ')}` : ''}
         // Continue without knowledge base if it fails
       }
 
-      // Check which AI service to use. Auto mode tries Gemini first, then OpenAI, then Groq.
-      const aiService = (process.env.AI_SERVICE || 'auto').toLowerCase();
+      // Check which AI service to use. Default to Groq only.
+      const aiService = (process.env.AI_SERVICE || 'groq').toLowerCase();
 
       try {
         const providerOrder =
           aiService === 'groq'
-            ? ['groq', 'gemini', 'openai']
+            ? ['groq']
             : aiService === 'openai'
-              ? ['openai', 'gemini', 'groq']
+              ? ['openai']
               : aiService === 'gemini'
-                ? ['gemini', 'openai', 'groq']
-                : ['gemini', 'openai', 'groq'];
+                ? ['gemini']
+                : ['groq'];
 
         const providerMap = {
           gemini: {
@@ -649,7 +649,7 @@ async function callGeminiAPI(message: string, conversationHistory: ChatHistoryMe
 
   const prompt = `${systemContent}${historyPrompt}\n\nUser message:\n${message}`;
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -785,7 +785,7 @@ async function callGroqAPI(message: string, conversationHistory: ChatHistoryMess
       'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
+      model: 'llama3-70b-8192',
       messages,
       max_tokens: 1000,
       temperature: 0.7

@@ -16,7 +16,7 @@ interface Course {
 
 export default function MyCoursesPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   
   const [showForm, setShowForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
@@ -31,7 +31,15 @@ export default function MyCoursesPage() {
   const [showTuitionEdit, setShowTuitionEdit] = useState(false);
   const [userTakesReligion, setUserTakesReligion] = useState(false);
   const [userTuitionAmount, setUserTuitionAmount] = useState('');
+  const [userGeneralCourse, setUserGeneralCourse] = useState('');
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  
+  // NEW: State to control general course edit visibility
+  const [showGeneralCourseEdit, setShowGeneralCourseEdit] = useState(false);
+  
+  // Check if user has general course set
+  const hasGeneralCourse = userGeneralCourse && userGeneralCourse.trim() !== '';
 
   // Use hooks
   const { data, isLoading, error } = useCourses();
@@ -46,7 +54,7 @@ export default function MyCoursesPage() {
         const response = await fetch('/api/user/academic-settings');
         if (response.ok) {
           const data = await response.json();
-          console.log('Fetched academic settings:', data); // Debug log
+          console.log('Fetched academic settings:', data);
           setUserTakesReligion(data.user?.takesReligion ?? false);
           setUserTuitionAmount(data.user?.tuitionAmount !== null && data.user?.tuitionAmount !== undefined 
             ? data.user.tuitionAmount.toString() 
@@ -60,7 +68,12 @@ export default function MyCoursesPage() {
     };
 
     fetchAcademicSettings();
-  }, []);
+    
+    // Initialize general course from user data
+    if (user?.generalCourse) {
+      setUserGeneralCourse(user.generalCourse);
+    }
+  }, [user?.generalCourse]);
 
   const updateAcademicSettings = async () => {
     setIsUpdatingSettings(true);
@@ -76,7 +89,6 @@ export default function MyCoursesPage() {
 
       if (response.ok) {
         const data = await response.json();
-        // Update local state with the saved values from API response
         setUserTakesReligion(data.user?.takesReligion ?? false);
         setUserTuitionAmount(data.user?.tuitionAmount !== null && data.user?.tuitionAmount !== undefined 
           ? data.user.tuitionAmount.toString() 
@@ -86,6 +98,41 @@ export default function MyCoursesPage() {
       }
     } catch (error) {
       console.error('Error updating academic settings:', error);
+    } finally {
+      setIsUpdatingSettings(false);
+    }
+  };
+
+  const updateGeneralCourse = async () => {
+    setIsUpdatingSettings(true);
+    setSaveSuccess(false);
+    try {
+      const response = await fetch('/api/user/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          generalCourse: userGeneralCourse.trim()
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (user && updateUser) {
+          await updateUser({ generalCourse: userGeneralCourse.trim() });
+        }
+        setSaveSuccess(true);
+        // Hide the edit form after successful save
+        setShowGeneralCourseEdit(false);
+        setTimeout(() => {
+          setSaveSuccess(false);
+        }, 1500);
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || 'Failed to update general course');
+      }
+    } catch (error) {
+      console.error('Error updating general course:', error);
+      alert('Failed to update general course');
     } finally {
       setIsUpdatingSettings(false);
     }
@@ -108,7 +155,6 @@ export default function MyCoursesPage() {
 
     setCoursesList([...coursesList, newCourse]);
     
-    // Clear form for next entry
     setCourseCode('');
     setCourseUnit('');
     setCredits(3);
@@ -127,11 +173,10 @@ export default function MyCoursesPage() {
 
   const handleSubmit = async () => {
     if (coursesList.length === 0) {
-      alert('Please add at least one course before submitting');
+      alert('Please add at least one course before submitting course units you are doing this block');
       return;
     }
 
-    // Validate that all fields are filled
     for (const course of coursesList) {
       if (!course.code || !course.courseUnit || !course.credits) {
         alert('All fields (course code, course unit name, and credits) are required for each course');
@@ -192,6 +237,15 @@ export default function MyCoursesPage() {
 
   const calculateTotalCredits = () => {
     return coursesList.reduce((sum, course) => sum + (course.credits || 0), 0);
+  };
+
+  // Helper function to toggle general course edit
+  const toggleGeneralCourseEdit = () => {
+    setShowGeneralCourseEdit(!showGeneralCourseEdit);
+    // Reset the input value to current user value when opening
+    if (!showGeneralCourseEdit && user?.generalCourse) {
+      setUserGeneralCourse(user.generalCourse);
+    }
   };
 
   if (isLoading) {
@@ -362,10 +416,110 @@ export default function MyCoursesPage() {
       </div>
 
       <div className="max-w-4xl mx-auto px-6 pb-8">
-        {/* Submit Button */}
+        {/* General Course Section - Always visible */}
+        <div className={`bg-[#150F20] border rounded-xl p-4 mb-6 transition-all ${
+          isUpdatingSettings ? 'border-[#E8A33D]/50' : 'border-[#2A2438]'
+        }`}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg transition-all ${
+                isUpdatingSettings ? 'bg-[#E8A33D]/20' : 'bg-[#E8A33D]/10'
+              }`}>
+                <BookOpen className={`w-5 h-5 transition-all ${
+                  isUpdatingSettings ? 'text-[#E8A33D] animate-pulse' : 'text-[#E8A33D]'
+                }`} />
+              </div>
+              <h3 className="text-sm font-medium text-[#F5F0E8]">General Course</h3>
+              {isUpdatingSettings && (
+                <div className="flex items-center gap-1">
+                  <Loader2 className="w-3 h-3 animate-spin text-[#E8A33D]" />
+                  <span className="text-xs text-[#E8A33D]">Saving...</span>
+                </div>
+              )}
+            </div>
+            
+            {/* Edit button - always visible */}
+            <button
+              onClick={toggleGeneralCourseEdit}
+              disabled={isUpdatingSettings}
+              className="p-1.5 rounded-lg bg-[#2A2438]/50 hover:bg-[#E8A33D]/20 text-[#A79C8C] hover:text-[#E8A33D] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {showGeneralCourseEdit ? <X className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
+            </button>
+          </div>
+          
+          {/* Display current general course (always visible) */}
+          <div className="flex items-center gap-2 mb-3">
+            {hasGeneralCourse ? (
+              <>
+                <span className="text-lg font-semibold text-[#14B8A6]">{user?.generalCourse}</span>
+                <span className="text-sm text-[#A79C8C]">Your general course</span>
+              </>
+            ) : (
+              <>
+                <span className="text-sm text-[#FB7185]">Not set</span>
+                <span className="text-xs text-[#6B6358]">Click edit to set your general course</span>
+              </>
+            )}
+          </div>
+
+          {/* Edit form - only shown when showGeneralCourseEdit is true */}
+          {showGeneralCourseEdit && (
+            <div className="space-y-3">
+              <input
+                type="text"
+                value={userGeneralCourse}
+                onChange={(e) => setUserGeneralCourse(e.target.value)}
+                placeholder="Enter your general course (e.g., Software Engineering, Computer Science)"
+                disabled={isUpdatingSettings}
+                className={`w-full px-4 py-2 bg-[#0B0912]/60 border rounded-lg text-[#F5F0E8] placeholder-[#6B6358] focus:outline-none focus:ring-2 transition-all ${
+                  isUpdatingSettings 
+                    ? 'border-[#2A2438] opacity-50 cursor-not-allowed' 
+                    : 'border-[#2A2438] focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40'
+                }`}
+              />
+              <button
+                onClick={updateGeneralCourse}
+                disabled={isUpdatingSettings || !userGeneralCourse.trim()}
+                className={`w-full px-4 py-2 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2 ${
+                  isUpdatingSettings
+                    ? 'bg-[#2A2438]/50 border border-[#2A2438] text-[#A79C8C] cursor-not-allowed'
+                    : 'bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] text-[#0B0912] hover:shadow-lg hover:shadow-[#E8A33D]/30'
+                }`}
+              >
+                {isUpdatingSettings ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Updating...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    <span>Update General Course</span>
+                  </>
+                )}
+              </button>
+              {isUpdatingSettings && (
+                <div className="flex items-center gap-2 text-xs text-[#A79C8C]">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>Updating your profile...</span>
+                </div>
+              )}
+              {saveSuccess && (
+                <div className="flex items-center gap-2 text-xs text-[#14B8A6]">
+                  <Check className="w-3 h-3" />
+                  <span>General course saved successfully!</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Submit Button - Always visible */}
         <button
           onClick={() => setShowForm(!showForm)}
-          className="w-full bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] text-[#0B0912] rounded-xl p-4 font-medium hover:shadow-lg hover:shadow-[#E8A33D]/30 transition-all flex items-center justify-center gap-2 mb-8"
+          disabled={isUpdatingSettings}
+          className={`w-full bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] text-[#0B0912] rounded-xl p-4 font-medium hover:shadow-lg hover:shadow-[#E8A33D]/30 transition-all flex items-center justify-center gap-2 mb-8 disabled:opacity-50 disabled:cursor-not-allowed`}
         >
           <Plus className="w-5 h-5" />
           Submit Courses
@@ -386,12 +540,6 @@ export default function MyCoursesPage() {
                   <AlertCircle className="w-5 h-5 text-[#FB7185] flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-[#FB7185]">
                     <strong>Important:</strong> This form is specifically for core course units. Enter one course unit at a time, then submit when you have entered all the course units you are taking. Religion status is managed separately in your academic settings above.
-                  </p>
-                </div>
-                <div className="bg-[#14B8A6]/10 border border-[#14B8A6]/30 rounded-lg p-3 flex items-start gap-3">
-                  <Check className="w-5 h-5 text-[#14B8A6] flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-[#14B8A6]">
-                    <strong>Auto-formatting:</strong> Course codes are automatically converted to uppercase (e.g., "wdd230" → "WDD230") and course unit names are automatically formatted with each word capitalized (e.g., "introduction to cs" → "Introduction To CS").
                   </p>
                 </div>
               </div>

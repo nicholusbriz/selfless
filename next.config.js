@@ -14,6 +14,9 @@ const nextConfig = {
 
   },
 
+  // Handle ES modules that need to be externalized
+  serverExternalPackages: ['@xenova/transformers'],
+
 
 
   // Disable source maps in development for faster builds

@@ -328,9 +328,9 @@ export default function ProfilePage() {
 
         {/* Profile Information */}
         <div className="space-y-6">
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-3">
-            {!isEditing ? (
+          {/* Edit Button at Top (when not editing) */}
+          {!isEditing && (
+            <div className="flex justify-end">
               <button
                 onClick={() => setIsEditing(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] text-[#0B0912] rounded-lg font-medium hover:shadow-lg hover:shadow-[#E8A33D]/20 transition-all duration-200"
@@ -338,35 +338,8 @@ export default function ProfilePage() {
                 <Edit2 className="w-4 h-4" />
                 Edit Profile
               </button>
-            ) : (
-              <div className="flex gap-3">
-                <button
-                  onClick={handleCancel}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#2A2438] text-[#A79C8C] rounded-lg font-medium hover:bg-[#3A3448] hover:text-[#F5F0E8] transition-all duration-200"
-                >
-                  <X className="w-4 h-4" />
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={isLoading}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#2FA88A] to-[#45C7A6] text-[#0B0912] rounded-lg font-medium hover:shadow-lg hover:shadow-[#2FA88A]/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-[#0B0912] border-t-transparent rounded-full animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4" />
-                      Save Changes
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Form Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -679,6 +652,36 @@ export default function ProfilePage() {
               </>
             )}
           </div>
+
+          {/* Action Buttons - Moved to bottom */}
+          {isEditing && (
+            <div className="flex justify-end gap-3 pt-6 border-t border-[#2A2438]">
+              <button
+                onClick={handleCancel}
+                className="flex items-center gap-2 px-4 py-2 bg-[#2A2438] text-[#A79C8C] rounded-lg font-medium hover:bg-[#3A3448] hover:text-[#F5F0E8] transition-all duration-200"
+              >
+                <X className="w-4 h-4" />
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#2FA88A] to-[#45C7A6] text-[#0B0912] rounded-lg font-medium hover:shadow-lg hover:shadow-[#2FA88A]/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-[#0B0912] border-t-transparent rounded-full animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    Save Changes
+                  </>
+                )}
+              </button>
+            </div>
+          )}
 
           {/* Account Info */}
           <div className="pt-6 border-t border-[#2A2438]">

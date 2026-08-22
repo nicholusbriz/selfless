@@ -34,6 +34,7 @@ export interface CleaningRegistration {
     firstName: string;
     lastName: string;
     email: string;
+    profileImageUrl: string | null;
   };
 }
 
@@ -49,6 +50,7 @@ export interface AttendanceRecord {
     firstName: string;
     lastName: string;
     email: string;
+    profileImageUrl: string | null;
   };
 }
 
@@ -61,7 +63,7 @@ export interface CleaningStats {
 
 export interface CleaningData {
   weeks: CleaningWeek[];
-  students: { id: string; firstName: string; lastName: string; email: string }[];
+  students: { id: string; firstName: string; lastName: string; email: string; profileImageUrl: string | null }[];
   stats: CleaningStats;
 }
 
@@ -451,7 +453,7 @@ export const useMarkAttendance = () => {
                         cleaningDayId,
                         status,
                         markedAt: new Date().toISOString(),
-                        user: day.registrations.find(r => r.userId === userId)?.user || { id: userId, firstName: '', lastName: '', email: '' },
+                        user: day.registrations.find(r => r.userId === userId)?.user || { id: userId, firstName: '', lastName: '', email: '', profileImageUrl: null },
                       }
                     ];
                 
