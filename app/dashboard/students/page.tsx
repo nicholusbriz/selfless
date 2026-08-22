@@ -148,6 +148,7 @@ export default function StudentsPage() {
     setSelectedTechCenter('all');
     setCourseFilter('all');
     setReligionFilter('all');
+    setSearchQuery('');
   };
 
   if (isLoading) {
@@ -176,6 +177,11 @@ export default function StudentsPage() {
           </div>
         </div>
 
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="h-12 bg-[#0B0912] border border-[#2A2438] rounded-xl animate-pulse" />
+          <div className="h-12 bg-[#0B0912] border border-[#2A2438] rounded-xl animate-pulse" />
+        </div>
+
         <div className="mb-6 flex items-center gap-2">
           <div className="w-4 h-4 bg-[#2A2438]/50 rounded animate-pulse" />
           <div className="h-4 w-32 bg-[#2A2438]/30 rounded animate-pulse" />
@@ -193,12 +199,18 @@ export default function StudentsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[1, 2, 3].map((j) => (
                 <div key={j} className="bg-[#150F20] border border-[#2A2438] rounded-xl p-4">
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="w-12 h-12 rounded-full bg-[#2A2438]/50 animate-pulse" />
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-16 h-16 rounded-xl bg-[#2A2438]/50 animate-pulse" />
                     <div className="flex-grow space-y-2">
                       <div className="h-4 w-32 bg-[#2A2438]/50 rounded animate-pulse" />
                       <div className="h-3 w-24 bg-[#2A2438]/30 rounded animate-pulse" />
+                      <div className="h-3 w-28 bg-[#2A2438]/30 rounded animate-pulse" />
                     </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-16 bg-[#2A2438]/30 rounded animate-pulse" />
+                    <div className="h-4 w-32 bg-[#2A2438]/30 rounded animate-pulse" />
+                    <div className="h-10 bg-[#2A2438]/50 rounded animate-pulse" />
                   </div>
                 </div>
               ))}
@@ -242,6 +254,142 @@ export default function StudentsPage() {
 
   // Check if there are any students
   const hasStudents = allStudents.length > 0;
+
+  // Student Card Component
+  const StudentCard = ({ student }: { student: Student }) => (
+    <div
+      onClick={() => router.push(`/dashboard/students/${student.id}`)}
+      className="bg-[#0B0912] border border-[#2A2438] rounded-xl p-4 cursor-pointer hover:border-[#3A3448] transition-all duration-300 hover:shadow-xl hover:shadow-[#2A2438]/20"
+    >
+      {/* ===== TOP SECTION: Avatar + User Info ===== */}
+      <div className="flex items-start gap-4 mb-4">
+        {/* Avatar with Status Badge */}
+        <div className="relative flex-shrink-0">
+          <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-[#2A2438]">
+            {student.profileImageUrl ? (
+              <img
+                src={student.profileImageUrl}
+                alt={`${student.firstName} ${student.lastName}`}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className={`w-full h-full bg-gradient-to-br ${getAvatarColor(student.firstName, student.lastName)} flex items-center justify-center`}>
+                <span className="text-xl font-bold text-[#F5F0E8]">
+                  {getInitials(student.firstName, student.lastName)}
+                </span>
+              </div>
+            )}
+          </div>
+          {/* Status Badge Overlay */}
+          <div className="absolute -top-1 -right-1">
+            {student.isActive ? (
+              <div className="w-5 h-5 rounded-full bg-[#2FA88A]/20 border-2 border-[#2FA88A] flex items-center justify-center">
+                <CheckCircle className="w-3 h-3 text-[#2FA88A]" />
+              </div>
+            ) : (
+              <div className="w-5 h-5 rounded-full bg-[#FB7185]/20 border-2 border-[#FB7185] flex items-center justify-center">
+                <XCircle className="w-3 h-3 text-[#FB7185]" />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* User Info */}
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-[#F5F0E8] text-base leading-tight">
+            {student.firstName} {student.lastName}
+          </h3>
+          {student.techCenter && (
+            <p className="text-sm text-[#A79C8C] truncate">{student.techCenter.name}</p>
+          )}
+          {student.generalCourse && (
+            <p className="text-sm text-[#6B6358] truncate">{student.generalCourse}</p>
+          )}
+        </div>
+      </div>
+
+      {/* ===== COURSES SECTION ===== */}
+      {student.studentCourses && student.studentCourses.length > 0 ? (
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-[#E8A33D]" />
+              <span className="text-sm font-medium text-[#F5F0E8]">
+                Courses ({student.studentCourses.length})
+              </span>
+            </div>
+            <span className="text-xs text-[#6B6358]">
+              Total: {getTotalCredits(student)} credits
+            </span>
+          </div>
+
+          {/* Course List - Each course on its own line */}
+          <div className="space-y-2">
+            {student.studentCourses.map((course) => (
+              <div
+                key={course.id}
+                className="bg-[#150F20] border border-[#2A2438] rounded-lg p-3"
+              >
+                <div className="flex flex-wrap items-center gap-1">
+                  <span className="text-sm font-medium text-[#E8A33D]">
+                    {course.code}
+                  </span>
+                  <span className="text-xs text-[#6B6358]">·</span>
+                  <span className="text-sm text-[#F5F0E8] break-words flex-1 min-w-[120px]">
+                    {course.courseUnit}
+                  </span>
+                  <span className="text-xs text-[#6B6358] ml-auto flex-shrink-0">
+                    {course.credits} credits
+                  </span>
+                </div>
+                {/* Course status/tier if available */}
+                {course.status && (
+                  <div className="mt-1">
+                    <span className="text-xs px-2 py-0.5 bg-[#2A2438] rounded-full text-[#A79C8C]">
+                      {course.status}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="mb-4 p-3 bg-[#150F20] border border-[#2A2438] rounded-lg text-center">
+          <p className="text-sm text-[#6B6358]">No courses enrolled</p>
+        </div>
+      )}
+
+      {/* ===== STATS SECTION ===== */}
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        {student.takesReligion !== null && (
+          <div className="flex items-center gap-1.5 text-sm">
+            <span className="text-[#6B6358]">⛪ Religion:</span>
+            <span className={student.takesReligion ? 'text-[#2FA88A]' : 'text-[#FB7185]'}>
+              {student.takesReligion ? 'Yes' : 'No'}
+            </span>
+          </div>
+        )}
+        {student.techCenter && (
+          <div className="flex items-center gap-1.5 text-sm text-[#6B6358]">
+            <MapPin className="w-4 h-4" />
+            <span>{student.techCenter.country?.name}</span>
+          </div>
+        )}
+      </div>
+
+      {/* ===== ACTION BUTTON ===== */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          router.push(`/dashboard/students/${student.id}`);
+        }}
+        className="w-full px-4 py-2.5 bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] text-[#0B0912] text-sm font-medium rounded-lg hover:opacity-90 transition-opacity"
+      >
+        View Profile
+      </button>
+    </div>
+  );
 
   return (
     <div className="min-h-screen relative overflow-hidden">
@@ -318,7 +466,7 @@ export default function StudentsPage() {
               </option>
             ))}
           </select>
-          {(selectedTechCenter !== 'all' || courseFilter !== 'all' || religionFilter !== 'all') && (
+          {(selectedTechCenter !== 'all' || courseFilter !== 'all' || religionFilter !== 'all' || searchQuery) && (
             <button
               onClick={clearFilter}
               className="p-2 rounded-lg bg-[#2A2438] hover:bg-[#3A3448] text-[#A79C8C] hover:text-[#F5F0E8] transition-all duration-200"
@@ -373,7 +521,7 @@ export default function StudentsPage() {
       )}
 
       {/* Students by Tech Center (when no filters are active) */}
-      {hasStudents && selectedTechCenter === 'all' && courseFilter === 'all' && religionFilter === 'all' && (
+      {hasStudents && selectedTechCenter === 'all' && courseFilter === 'all' && religionFilter === 'all' && !searchQuery && (
         <>
           {Object.entries(studentsByTechCenter).map(([techCenterName, students]) => {
             const filteredStudents = filterStudents(students as Student[]);
@@ -393,101 +541,7 @@ export default function StudentsPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredStudents.map((student) => (
-                    <div
-                      key={student.id}
-                      onClick={() => router.push(`/dashboard/students/${student.id}`)}
-                      className="bg-[#0B0912] border border-[#2A2438] rounded-xl p-4 cursor-pointer hover:border-[#3A3448] transition-all duration-300"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-lg overflow-hidden border border-[#2A2438] flex-shrink-0">
-                          {student.profileImageUrl ? (
-                            <img
-                              src={student.profileImageUrl}
-                              alt={`${student.firstName} ${student.lastName}`}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className={`w-full h-full bg-gradient-to-br ${getAvatarColor(student.firstName, student.lastName)} flex items-center justify-center`}>
-                              <span className="text-sm font-bold text-[#F5F0E8]">
-                                {getInitials(student.firstName, student.lastName)}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between mb-1">
-                            <h3 className="font-semibold text-[#F5F0E8] truncate">
-                              {student.firstName} {student.lastName}
-                            </h3>
-                            <div className="flex-shrink-0 ml-2">
-                              {student.isActive ? (
-                                <div className="w-4 h-4 rounded-full bg-[#2FA88A]/20 border border-[#2FA88A] flex items-center justify-center">
-                                  <CheckCircle className="w-2.5 h-2.5 text-[#2FA88A]" />
-                                </div>
-                              ) : (
-                                <div className="w-4 h-4 rounded-full bg-[#FB7185]/20 border border-[#FB7185] flex items-center justify-center">
-                                  <XCircle className="w-2.5 h-2.5 text-[#FB7185]" />
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          {student.techCenter && (
-                            <p className="text-xs text-[#A79C8C] truncate mb-1">{student.techCenter.name}</p>
-                          )}
-                          {student.generalCourse && (
-                            <p className="text-xs text-[#6B6358] truncate mb-1">{student.generalCourse}</p>
-                          )}
-                          {student.studentCourses && student.studentCourses.length > 0 && (
-                            <div className="mb-1">
-                              <div className="text-xs text-[#6B6358] mb-1">Courses ({student.studentCourses.length})</div>
-                              <div className="space-y-0.5">
-                                {student.studentCourses.slice(0, 3).map((course) => (
-                                  <div key={course.id} className="flex items-center gap-1 text-xs">
-                                    <span className="text-[#A79C8C]">{course.code}</span>
-                                    <span className="text-[#6B6358]">•</span>
-                                    <span className="text-[#A79C8C] truncate">{course.courseUnit}</span>
-                                    <span className="text-[#6B6358]">•</span>
-                                    <span className="text-[#E8A33D]">{course.credits} credits</span>
-                                  </div>
-                                ))}
-                                {student.studentCourses.length > 3 && (
-                                  <div className="text-xs text-[#6B6358]">+{student.studentCourses.length - 3} more</div>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                          {student.studentCourses && student.studentCourses.length > 0 && (
-                            <div className="flex items-center gap-1 text-xs text-[#E8A33D] mb-1">
-                              <span>Total Credits:</span>
-                              <span className="font-semibold">{getTotalCredits(student)}</span>
-                            </div>
-                          )}
-                          {student.takesReligion !== null && (
-                            <div className="flex items-center gap-1 text-xs text-[#6B6358]">
-                              <span>Religion:</span>
-                              <span className={student.takesReligion ? 'text-[#2FA88A]' : 'text-[#FB7185]'}>
-                                {student.takesReligion ? 'Yes' : 'No'}
-                              </span>
-                            </div>
-                          )}
-                          {student.techCenter && (
-                            <div className="flex items-center gap-1 text-xs text-[#6B6358] mt-1">
-                              <MapPin className="w-3 h-3" />
-                              <span className="truncate">{student.techCenter.country?.name}</span>
-                            </div>
-                          )}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/dashboard/students/${student.id}`);
-                            }}
-                            className="mt-3 w-full px-3 py-2 bg-[#2A2438] hover:bg-[#3A3448] text-[#F5F0E8] text-xs font-medium rounded-lg transition-colors"
-                          >
-                            View Profile
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                    <StudentCard key={student.id} student={student} />
                   ))}
                 </div>
               </div>
@@ -517,8 +571,6 @@ export default function StudentsPage() {
               );
             }
 
-            const techCenterName = filteredStudents[0]?.techCenter?.name || 'Tech Center';
-
             return (
               <div className="mb-8 relative z-10">
                 <div className="flex items-center gap-3 mb-4">
@@ -526,108 +578,14 @@ export default function StudentsPage() {
                     <MapPin className="w-5 h-5 text-[#A79C8C]" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-semibold text-[#F5F0E8]">{techCenterName}</h2>
-                    <p className="text-sm text-[#A79C8C]">{filteredStudents.length} students</p>
+                    <h2 className="text-xl font-semibold text-[#F5F0E8]">Filtered Results</h2>
+                    <p className="text-sm text-[#A79C8C]">{filteredStudents.length} students found</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredStudents.map((student) => (
-                    <div
-                      key={student.id}
-                      onClick={() => router.push(`/dashboard/students/${student.id}`)}
-                      className="bg-[#0B0912] border border-[#2A2438] rounded-xl p-4 cursor-pointer hover:border-[#3A3448] transition-all duration-300"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-lg overflow-hidden border border-[#2A2438] flex-shrink-0">
-                          {student.profileImageUrl ? (
-                            <img
-                              src={student.profileImageUrl}
-                              alt={`${student.firstName} ${student.lastName}`}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className={`w-full h-full bg-gradient-to-br ${getAvatarColor(student.firstName, student.lastName)} flex items-center justify-center`}>
-                              <span className="text-sm font-bold text-[#F5F0E8]">
-                                {getInitials(student.firstName, student.lastName)}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between mb-1">
-                            <h3 className="font-semibold text-[#F5F0E8] truncate">
-                              {student.firstName} {student.lastName}
-                            </h3>
-                            <div className="flex-shrink-0 ml-2">
-                              {student.isActive ? (
-                                <div className="w-4 h-4 rounded-full bg-[#2FA88A]/20 border border-[#2FA88A] flex items-center justify-center">
-                                  <CheckCircle className="w-2.5 h-2.5 text-[#2FA88A]" />
-                                </div>
-                              ) : (
-                                <div className="w-4 h-4 rounded-full bg-[#FB7185]/20 border border-[#FB7185] flex items-center justify-center">
-                                  <XCircle className="w-2.5 h-2.5 text-[#FB7185]" />
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          {student.techCenter && (
-                            <p className="text-xs text-[#A79C8C] truncate mb-1">{student.techCenter.name}</p>
-                          )}
-                          {student.generalCourse && (
-                            <p className="text-xs text-[#6B6358] truncate mb-1">{student.generalCourse}</p>
-                          )}
-                          {student.studentCourses && student.studentCourses.length > 0 && (
-                            <div className="mb-1">
-                              <div className="text-xs text-[#6B6358] mb-1">Courses ({student.studentCourses.length})</div>
-                              <div className="space-y-0.5">
-                                {student.studentCourses.slice(0, 3).map((course) => (
-                                  <div key={course.id} className="flex items-center gap-1 text-xs">
-                                    <span className="text-[#A79C8C]">{course.code}</span>
-                                    <span className="text-[#6B6358]">•</span>
-                                    <span className="text-[#A79C8C] truncate">{course.courseUnit}</span>
-                                    <span className="text-[#6B6358]">•</span>
-                                    <span className="text-[#E8A33D]">{course.credits} credits</span>
-                                  </div>
-                                ))}
-                                {student.studentCourses.length > 3 && (
-                                  <div className="text-xs text-[#6B6358]">+{student.studentCourses.length - 3} more</div>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                          {student.studentCourses && student.studentCourses.length > 0 && (
-                            <div className="flex items-center gap-1 text-xs text-[#E8A33D] mb-1">
-                              <span>Total Credits:</span>
-                              <span className="font-semibold">{getTotalCredits(student)}</span>
-                            </div>
-                          )}
-                          {student.takesReligion !== null && (
-                            <div className="flex items-center gap-1 text-xs text-[#6B6358]">
-                              <span>Religion:</span>
-                              <span className={student.takesReligion ? 'text-[#2FA88A]' : 'text-[#FB7185]'}>
-                                {student.takesReligion ? 'Yes' : 'No'}
-                              </span>
-                            </div>
-                          )}
-                          {student.techCenter && (
-                            <div className="flex items-center gap-1 text-xs text-[#6B6358] mt-1">
-                              <MapPin className="w-3 h-3" />
-                              <span className="truncate">{student.techCenter.country?.name}</span>
-                            </div>
-                          )}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/dashboard/students/${student.id}`);
-                            }}
-                            className="mt-3 w-full px-3 py-2 bg-[#2A2438] hover:bg-[#3A3448] text-[#F5F0E8] text-xs font-medium rounded-lg transition-colors"
-                          >
-                            View Profile
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                    <StudentCard key={student.id} student={student} />
                   ))}
                 </div>
               </div>

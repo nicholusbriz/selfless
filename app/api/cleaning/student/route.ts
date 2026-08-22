@@ -14,7 +14,12 @@ export async function GET() {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: { 
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        profileImageUrl: true,
         role: true,
         techCenter: true
       }
@@ -55,7 +60,7 @@ export async function GET() {
     // Remove deadline filter so users can see all weeks/days even after deadline
     const weeks = await prisma.week.findMany({
       where: {
-        techCenterId: user.techCenterId || undefined,
+        techCenterId: user.techCenter?.id || undefined,
         isActive: true
       },
       include: {
@@ -74,6 +79,7 @@ export async function GET() {
                     firstName: true,
                     lastName: true,
                     email: true,
+                    profileImageUrl: true,
                   }
                 }
               }
@@ -86,6 +92,7 @@ export async function GET() {
                     firstName: true,
                     lastName: true,
                     email: true,
+                    profileImageUrl: true,
                   }
                 }
               }
@@ -107,7 +114,9 @@ export async function GET() {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        role: user.role?.name || 'student'
+        profileImageUrl: user.profileImageUrl,
+        role: user.role?.name || 'student',
+        techCenterId: user.techCenter?.id
       },
       registration: userRegistration,
       userAttendance,

@@ -41,6 +41,21 @@ import {
   type CleaningDay
 } from '@/hooks/useCleaningStudent';
 
+// Helper functions for avatar display
+const getInitials = (firstName: string, lastName: string) => {
+  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+};
+
+const getAvatarColor = (firstName: string, lastName: string) => {
+  const colors = [
+    'from-[#3A3448] to-[#2A2438]',
+    'from-[#4A4458] to-[#3A3448]',
+    'from-[#5A5468] to-[#4A4458]',
+  ];
+  const hash = firstName.charCodeAt(0) + lastName.charCodeAt(0);
+  return colors[Math.abs(hash) % colors.length];
+};
+
 export default function CleaningPage() {
   const router = useRouter();
   
@@ -259,13 +274,6 @@ export default function CleaningPage() {
           className="p-2 rounded-lg bg-[#2A2438]/50 hover:bg-[#2A2438] text-[#A79C8C] hover:text-[#F5F0E8] transition-all duration-200"
         >
           <ArrowLeft className="w-5 h-5" />
-        </button>
-        
-        <button
-          onClick={() => router.push('/')}
-          className="p-2 rounded-lg bg-[#2A2438]/50 hover:bg-[#2A2438] text-[#A79C8C] hover:text-[#F5F0E8] transition-all duration-200"
-        >
-          <Home className="w-5 h-5" />
         </button>
         
         <div className="h-8 w-px bg-[#2A2438]" />
@@ -553,7 +561,21 @@ export default function CleaningPage() {
                                           key={reg.id}
                                           className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#2A2438] text-xs text-[#F5F0E8]"
                                         >
-                                          <User className="w-3 h-3" />
+                                          <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 border border-[#3A3448]">
+                                            {reg.user.profileImageUrl ? (
+                                              <img
+                                                src={reg.user.profileImageUrl}
+                                                alt={`${reg.user.firstName} ${reg.user.lastName}`}
+                                                className="w-full h-full object-cover"
+                                              />
+                                            ) : (
+                                              <div className={`w-full h-full bg-gradient-to-br ${getAvatarColor(reg.user.firstName, reg.user.lastName)} flex items-center justify-center`}>
+                                                <span className="text-[10px] font-bold text-[#F5F0E8]">
+                                                  {getInitials(reg.user.firstName, reg.user.lastName)}
+                                                </span>
+                                              </div>
+                                            )}
+                                          </div>
                                           <span>{reg.user.firstName} {reg.user.lastName}</span>
                                           {isCurrentUser && (
                                             <span className="ml-1 text-[#E8A33D]">(You)</span>

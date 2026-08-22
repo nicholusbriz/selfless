@@ -221,6 +221,18 @@ export default function AdminCleaningManagement() {
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
   };
 
+  // Get avatar color for user
+  const getAvatarColor = (firstName: string, lastName: string) => {
+    const colors = [
+      'from-purple-500 to-pink-500',
+      'from-blue-500 to-cyan-500',
+      'from-green-500 to-emerald-500',
+      'from-orange-500 to-red-500',
+    ];
+    const hash = firstName.charCodeAt(0) + lastName.charCodeAt(0);
+    return colors[Math.abs(hash) % colors.length];
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col min-h-0">
@@ -534,9 +546,20 @@ export default function AdminCleaningManagement() {
                                       className="flex items-center justify-between p-2 rounded bg-white/5"
                                     >
                                       <div className="flex items-center gap-2">
-                                        {/* Avatar Placeholder */}
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                                          {initials || 'U'}
+                                        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border border-white/10">
+                                          {reg.user.profileImageUrl ? (
+                                            <img
+                                              src={reg.user.profileImageUrl}
+                                              alt={`${reg.user.firstName} ${reg.user.lastName}`}
+                                              className="w-full h-full object-cover"
+                                            />
+                                          ) : (
+                                            <div className={`w-full h-full bg-gradient-to-br ${getAvatarColor(reg.user.firstName, reg.user.lastName)} flex items-center justify-center`}>
+                                              <span className="text-white text-xs font-bold">
+                                                {initials || 'U'}
+                                              </span>
+                                            </div>
+                                          )}
                                         </div>
                                         <span className="text-white text-sm">
                                           {reg.user.firstName} {reg.user.lastName}

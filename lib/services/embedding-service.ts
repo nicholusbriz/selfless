@@ -18,19 +18,37 @@
 // Try to import transformers, but handle serverless environments gracefully
 let transformers: any = null;
 let transformersAvailable = false;
+let transformersImportPromise: Promise<any> | null = null;
 
-try {
-  transformers = require('@xenova/transformers');
-  transformersAvailable = true;
-  
-  // Configure transformers.js to use local cache
-  if (transformers.env) {
-    transformers.env.allowLocalModels = true;
-    transformers.env.allowRemoteModels = true;
+// Function to initialize transformers import
+async function initializeTransformers() {
+  if (transformersAvailable || transformersImportPromise) {
+    return transformersImportPromise;
   }
-} catch (error) {
-  console.warn('[EmbeddingService] @xenova/transformers not available, embedding features disabled');
-  transformersAvailable = false;
+  
+  transformersImportPromise = (async () => {
+    try {
+      const module = await import('@xenova/transformers');
+      transformers = module;
+      transformersAvailable = true;
+      
+      // Configure transformers.js to use local cache
+      if (transformers.env) {
+        transformers.env.allowLocalModels = true;
+        transformers.env.allowRemoteModels = true;
+      }
+      
+      console.log('[EmbeddingService] @xenova/transformers loaded successfully');
+      return transformers;
+    } catch (error) {
+      console.warn('[EmbeddingService] @xenova/transformers not available, embedding features disabled');
+      transformersAvailable = false;
+      transformersImportPromise = null;
+      throw error;
+    }
+  })();
+  
+  return transformersImportPromise;
 }
 
 // Cache for the embedding pipeline to avoid reloading
@@ -49,6 +67,9 @@ const embeddingCache = new Map<string, number[]>();
  * @throws Error if model loading fails or transformers not available
  */
 async function getEmbeddingPipeline(): Promise<any> {
+  // Initialize transformers first
+  await initializeTransformers();
+  
   // Check if transformers is available
   if (!transformersAvailable) {
     throw new Error('Transformers library not available in this environment');
@@ -114,6 +135,9 @@ export async function generateEmbedding(text: string, useCache: boolean = true):
     return embeddingCache.get(text)!;
   }
 
+  // Initialize transformers
+  await initializeTransformers();
+
   // Check if transformers is available
   if (!transformersAvailable) {
     throw new Error('Embedding generation not available in this environment');
@@ -160,6 +184,9 @@ export async function generateEmbedding(text: string, useCache: boolean = true):
  */
 export async function generateBatchEmbeddings(texts: string[], useCache: boolean = true): Promise<number[][]> {
   if (texts.length === 0) return [];
+
+  // Initialize transformers
+  await initializeTransformers();
 
   // Check if transformers is available
   if (!transformersAvailable) {

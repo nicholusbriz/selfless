@@ -46,6 +46,7 @@ export async function GET() {
                     firstName: true,
                     lastName: true,
                     email: true,
+                    profileImageUrl: true,
                   }
                 }
               }
@@ -58,6 +59,7 @@ export async function GET() {
                     firstName: true,
                     lastName: true,
                     email: true,
+                    profileImageUrl: true,
                   }
                 }
               }
@@ -82,6 +84,7 @@ export async function GET() {
         firstName: true,
         lastName: true,
         email: true,
+        profileImageUrl: true,
       },
       orderBy: { firstName: 'asc' }
     });
