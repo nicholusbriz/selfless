@@ -1,9 +1,25 @@
-// app/dashboard/students/[studentId]/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, User, MapPin, Calendar, Book, CheckCircle, XCircle, Clock, Phone, Globe, Link as LinkIcon, Map, GitFork, Copy, User as UserIcon } from 'lucide-react';
+import {
+  ArrowLeft,
+  User,
+  MapPin,
+  Calendar,
+  Book,
+  CheckCircle,
+  XCircle,
+  Phone,
+  Globe,
+  Link as LinkIcon,
+  Map,
+  GitFork,
+  Copy,
+  GraduationCap,
+  ExternalLink,
+  Briefcase,
+} from 'lucide-react';
 
 interface StudentProfile {
   _id: string;
@@ -47,7 +63,10 @@ interface StudentProfile {
 export default function StudentProfilePage() {
   const params = useParams();
   const router = useRouter();
-  const [student, setStudent] = useState<StudentProfile | null>(null);
+
+  const [student, setStudent] =
+    useState<StudentProfile | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -55,16 +74,33 @@ export default function StudentProfilePage() {
     const fetchStudent = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/students/${params.studentId}`, {
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache',
-          },
-        });
+
+        const response = await fetch(
+          `/api/students/${params.studentId}`,
+          {
+            headers: {
+              'Cache-Control': 'no-cache',
+              Pragma: 'no-cache',
+            },
+          }
+        );
+
         const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data?.message ||
+              data?.error ||
+              'Failed to fetch student profile'
+          );
+        }
+
         setStudent(data.student);
       } catch (err: any) {
-        setError(err.message || 'Failed to fetch student profile');
+        setError(
+          err.message ||
+            'Failed to fetch student profile'
+        );
       } finally {
         setLoading(false);
       }
@@ -77,467 +113,1031 @@ export default function StudentProfilePage() {
 
   const getInitials = () => {
     if (!student) return '??';
-    return `${student.firstName.charAt(0)}${student.lastName.charAt(0)}`.toUpperCase();
+
+    return `${student.firstName.charAt(
+      0
+    )}${student.lastName.charAt(0)}`.toUpperCase();
   };
 
-  const getAvatarColor = () => {
-    if (!student) return 'from-[#E8A33D] to-[#C97F1F]';
-    const colors = [
-      'from-[#E8A33D] to-[#C97F1F]',
-      'from-[#14B8A6] to-[#0D9488]',
-      'from-[#FB7185] to-[#E11D48]',
-      'from-[#6366F1] to-[#4F46E5]',
-      'from-[#34D399] to-[#059669]',
-    ];
-    const hash = student.firstName.charCodeAt(0) + student.lastName.charCodeAt(0);
-    return colors[Math.abs(hash) % colors.length];
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Preserve functionality without breaking the page
+    }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-  };
+  const totalCredits =
+    student?.studentCourses?.reduce(
+      (sum, course) => sum + course.credits,
+      0
+    ) || 0;
+
+  /*
+   * ============================================================
+   * LOADING
+   * ============================================================
+   */
 
   if (loading) {
     return (
-      <div className="min-h-screen">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <div className="w-10 h-10 rounded-lg bg-[#2A2438]/50 animate-pulse" />
-          <div className="h-8 w-px bg-[#2A2438]" />
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#2A2438]/50 animate-pulse" />
-            <div className="space-y-2">
-              <div className="h-6 w-32 bg-[#2A2438]/50 rounded animate-pulse" />
-              <div className="h-4 w-48 bg-[#2A2438]/30 rounded animate-pulse" />
-            </div>
-          </div>
-        </div>
+      <div className="min-h-screen bg-[#F5F6F8]">
 
-        {/* Profile Card Skeleton */}
-        <div className="bg-[#150F20] border border-[#2A2438] rounded-2xl p-6 md:p-8">
-          {/* Profile Header Skeleton */}
-          <div className="flex flex-col md:flex-row gap-6 mb-8">
-            {/* Profile Image Skeleton */}
-            <div className="flex-shrink-0">
-              <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-[#2A2438]/50 animate-pulse" />
-            </div>
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-10">
 
-            {/* Profile Info Skeleton */}
-            <div className="flex-grow space-y-4">
-              <div className="h-8 w-64 bg-[#2A2438]/50 rounded animate-pulse" />
-              <div className="h-4 w-32 bg-[#2A2438]/30 rounded animate-pulse" />
-              <div className="h-6 w-24 bg-[#2A2438]/30 rounded-full animate-pulse" />
-            </div>
+          {/* Navigation skeleton */}
+          <div className="flex items-center gap-3 mb-10">
+            <div className="w-10 h-10 bg-white border border-[#D8DDE4] animate-pulse" />
+
+            <div className="w-px h-8 bg-[#D8DDE4]" />
+
+            <div className="h-4 w-32 bg-[#D8DDE4] animate-pulse" />
           </div>
 
-          {/* Stats Grid Skeleton */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-[#0B0912] rounded-xl p-4 border border-[#2A2438]">
-                <div className="h-4 w-20 bg-[#2A2438]/30 rounded animate-pulse mb-2" />
-                <div className="h-6 w-24 bg-[#2A2438]/50 rounded animate-pulse" />
+          {/* Billboard skeleton */}
+          <div className="border-y border-[#D8DDE4] py-8 md:py-12">
+
+            <div className="flex flex-col md:flex-row gap-7">
+
+              <div className="w-32 h-32 md:w-44 md:h-44 bg-[#E2E6EB] animate-pulse flex-shrink-0" />
+
+              <div className="flex-1 space-y-5">
+
+                <div className="h-3 w-28 bg-[#D8DDE4] animate-pulse" />
+
+                <div className="h-12 md:h-20 w-3/4 bg-[#D8DDE4] animate-pulse" />
+
+                <div className="h-5 w-64 bg-[#E1E5EA] animate-pulse" />
+
+                <div className="h-4 w-48 bg-[#E1E5EA] animate-pulse" />
+              </div>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 border-b border-[#D8DDE4] mb-10">
+            {[1, 2, 3, 4].map((item) => (
+              <div
+                key={item}
+                className="p-5 border-r border-[#D8DDE4]"
+              >
+                <div className="h-3 w-20 bg-[#D8DDE4] animate-pulse mb-3" />
+                <div className="h-7 w-28 bg-[#D8DDE4] animate-pulse" />
               </div>
             ))}
           </div>
 
-          {/* Additional Info Skeleton */}
+          {/* Sections */}
           <div className="space-y-6">
-            <div className="bg-[#0B0912] rounded-xl p-4 border border-[#2A2438]">
-              <div className="h-4 w-24 bg-[#2A2438]/30 rounded animate-pulse mb-2" />
-              <div className="h-5 w-48 bg-[#2A2438]/50 rounded animate-pulse" />
-            </div>
-            <div className="bg-[#0B0912] rounded-xl p-4 border border-[#2A2438]">
-              <div className="h-4 w-24 bg-[#2A2438]/30 rounded animate-pulse mb-3" />
-              <div className="flex gap-3">
-                <div className="h-8 w-24 bg-[#2A2438]/30 rounded-lg animate-pulse" />
-                <div className="h-8 w-24 bg-[#2A2438]/30 rounded-lg animate-pulse" />
-              </div>
-            </div>
+            {[1, 2, 3].map((item) => (
+              <div
+                key={item}
+                className="h-32 bg-white border border-[#D8DDE4] animate-pulse"
+              />
+            ))}
           </div>
         </div>
       </div>
     );
   }
+
+  /*
+   * ============================================================
+   * ERROR
+   * ============================================================
+   */
 
   if (error || !student) {
     return (
-      <div className="min-h-screen">
-        <div className="flex items-center gap-4 mb-8">
+      <div className="min-h-screen bg-[#F5F6F8]">
+
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-10">
+
           <button
             onClick={() => router.back()}
-            className="p-2 rounded-lg bg-[#2A2438]/50 hover:bg-[#2A2438] text-[#A79C8C] hover:text-[#F5F0E8] transition-all duration-200"
+            className="
+              p-2.5
+              bg-white
+              border
+              border-[#D8DDE4]
+              text-[#596678]
+              hover:text-[#14213D]
+              transition-colors
+            "
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-        </div>
-        <div className="bg-[#150F20] border border-[#2A2438] rounded-2xl p-8">
-          <p className="text-[#FB7185]">{error || 'Student not found'}</p>
+
+          <div className="mt-8 bg-white border border-[#D8DDE4] p-10 md:p-16 text-center">
+
+            <XCircle className="w-12 h-12 text-[#D95C5C] mx-auto mb-5" />
+
+            <h2 className="text-xl font-bold text-[#14213D]">
+              Student profile unavailable
+            </h2>
+
+            <p className="text-sm text-[#718096] mt-2">
+              {error || 'Student not found'}
+            </p>
+
+            <button
+              onClick={() => router.back()}
+              className="
+                mt-6
+                px-6
+                py-3
+                bg-[#1A365D]
+                text-white
+                text-sm
+                font-bold
+                uppercase
+                tracking-[0.12em]
+                hover:bg-[#15304F]
+                transition-colors
+              "
+            >
+              Back to Students
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <button
-          onClick={() => router.back()}
-          className="p-2 rounded-lg bg-[#2A2438]/50 hover:bg-[#2A2438] text-[#A79C8C] hover:text-[#F5F0E8] transition-all duration-200"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        
-        <div className="h-8 w-px bg-[#2A2438]" />
-        
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#E8A33D]/20 to-[#C97F1F]/10 border border-[#E8A33D]/20">
-            <User className="w-6 h-6 text-[#E8A33D]" />
+  /*
+   * ============================================================
+   * REUSABLE SECTION HEADER
+   * ============================================================
+   */
+
+  const SectionHeading = ({
+    number,
+    title,
+    icon,
+  }: {
+    number: string;
+    title: string;
+    icon: React.ReactNode;
+  }) => {
+    return (
+      <div className="flex items-center gap-4 border-b border-[#D8DDE4] pb-3 mb-6">
+
+        <span className="font-mono text-xs font-bold text-[#E8A33D]">
+          {number}
+        </span>
+
+        <div className="w-px h-5 bg-[#D8DDE4]" />
+
+        <div className="flex items-center gap-2">
+          <span className="text-[#1A365D]">
+            {icon}
+          </span>
+
+          <h2 className="text-xs md:text-sm uppercase tracking-[0.18em] font-bold text-[#354258]">
+            {title}
+          </h2>
+        </div>
+      </div>
+    );
+  };
+
+  /*
+   * ============================================================
+   * INFORMATION ROW
+   * ============================================================
+   */
+
+  const InfoRow = ({
+    label,
+    value,
+    icon,
+  }: {
+    label: string;
+    value: React.ReactNode;
+    icon?: React.ReactNode;
+  }) => {
+    return (
+      <div className="flex items-start gap-3 py-4 border-b border-[#E4E7EB] last:border-b-0">
+
+        {icon && (
+          <div className="text-[#8A94A3] pt-0.5 flex-shrink-0">
+            {icon}
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-[#F5F0E8]" style={{ fontFamily: 'var(--font-display)' }}>
-              Student Profile
-            </h1>
-            <p className="text-sm text-[#A79C8C]">View student information and academic progress</p>
+        )}
+
+        <div className="min-w-0 flex-1">
+
+          <p className="text-[9px] uppercase tracking-[0.15em] font-bold text-[#929CAA]">
+            {label}
+          </p>
+
+          <div className="text-sm md:text-base text-[#354258] mt-1 break-words">
+            {value}
           </div>
         </div>
       </div>
+    );
+  };
 
-      {/* Profile Card with Cover Image */}
-      <div className="bg-[#150F20] border border-[#2A2438] rounded-2xl overflow-hidden">
-        {/* Cover Image */}
-        <div 
-          className="h-48 md:h-64 relative bg-cover bg-center"
-          style={{
-            backgroundImage: student.profileImage 
-              ? `url(${student.profileImage})` 
-              : 'linear-gradient(to bottom right, rgba(232, 163, 61, 0.3), rgba(201, 127, 31, 0.2), rgba(42, 36, 56, 1))'
-          }}
-        >
-          {student.profileImage && (
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#150F20]/50 to-[#150F20]" />
-          )}
+  /*
+   * ============================================================
+   * PAGE
+   * ============================================================
+   */
+
+  return (
+    <div className="min-h-screen bg-[#F5F6F8]">
+
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-10">
+
+        {/* ======================================================
+            TOP NAVIGATION
+        ====================================================== */}
+
+        <div className="flex items-center justify-between mb-8">
+
+          <div className="flex items-center gap-3">
+
+            <button
+              onClick={() => router.back()}
+              className="
+                p-2.5
+                bg-white
+                border
+                border-[#D8DDE4]
+                text-[#596678]
+                hover:text-[#14213D]
+                hover:border-[#1A365D]
+                transition-colors
+              "
+              aria-label="Go back"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+
+            <div className="h-8 w-px bg-[#D8DDE4]" />
+
+            <div className="flex items-center gap-2">
+              <GraduationCap className="w-5 h-5 text-[#E8A33D]" />
+
+              <span className="text-[10px] md:text-xs uppercase tracking-[0.2em] font-bold text-[#7B8797]">
+                Student Directory
+              </span>
+            </div>
+          </div>
+
+          <div className="hidden sm:block font-mono text-[10px] text-[#A0A8B3]">
+            PROFILE / {student.studentId.slice(0, 8)}
+          </div>
         </div>
 
-        {/* Profile Content */}
-        <div className="px-6 md:px-8 pb-8">
-          {/* Profile Header - Overlapping Cover */}
-          <div className="relative -mt-20 md:-mt-24 mb-6">
-            <div className="flex flex-col md:flex-row gap-6 items-end md:items-start">
-              {/* Profile Image */}
+        {/* ======================================================
+            STUDENT BILLBOARD HERO
+        ====================================================== */}
+
+        <section className="border-y border-[#CCD3DC] bg-white">
+
+          {/* Gold marker */}
+          <div className="h-[3px] bg-[#E8A33D] w-20" />
+
+          <div className="p-5 md:p-8 lg:p-10">
+
+            <div className="flex flex-col md:flex-row gap-7 lg:gap-10">
+
+              {/* =================================================
+                  PHOTO
+              ================================================= */}
+
               <div className="flex-shrink-0">
-                <div className="w-32 h-32 md:w-40 md:h-40 rounded-2xl overflow-hidden border-4 border-[#150F20] shadow-2xl bg-[#0B0912]">
-                  {student.profileImage ? (
-                    <img
-                      src={student.profileImage}
-                      alt={`${student.firstName} ${student.lastName}`}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className={`w-full h-full bg-gradient-to-br ${getAvatarColor()} flex items-center justify-center`}>
-                      <span className="text-4xl md:text-5xl font-bold text-[#0B0912]">
-                        {getInitials()}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
 
-              {/* Profile Info */}
-              <div className="flex-grow pt-2 md:pt-4">
-                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-3xl font-bold text-[#F5F0E8] mb-2">
-                      {student.firstName} {student.lastName}
-                    </h2>
-                    <div className="flex items-center gap-2 text-[#A79C8C] mb-3">
-                      <MapPin className="w-4 h-4" />
-                      {student.techCenter ? (
-                        <span className="text-sm">
-                          {student.techCenter.name}, {student.techCenter.country?.name}
+                <div className="relative">
+
+                  <div className="w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 overflow-hidden bg-[#E8EBEF]">
+
+                    {student.profileImage ? (
+                      <img
+                        src={student.profileImage}
+                        alt={`${student.firstName} ${student.lastName}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-[#1A365D] flex items-center justify-center">
+                        <span className="text-4xl md:text-5xl font-black text-white">
+                          {getInitials()}
                         </span>
-                      ) : (
-                        <span className="text-sm">No tech center assigned</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="inline-block px-3 py-1 bg-[#2A2438] rounded-full">
-                        <span className="text-sm text-[#A79C8C] capitalize">{student.role}</span>
                       </div>
+                    )}
+                  </div>
+
+                  <div
+                    className={`
+                      absolute
+                      -bottom-2
+                      -right-2
+                      px-2.5
+                      py-1
+                      bg-white
+                      border
+                      ${
+                        student.isActive
+                          ? 'border-[#2F9E78]'
+                          : 'border-[#D95C5C]'
+                      }
+                    `}
+                  >
+                    <div className="flex items-center gap-1.5">
+
                       {student.isActive ? (
-                        <div className="flex items-center gap-2 px-3 py-1 bg-[#2FA88A]/10 border border-[#2FA88A]/30 rounded-full">
-                          <CheckCircle className="w-4 h-4 text-[#2FA88A]" />
-                          <span className="text-sm text-[#2FA88A]">Active</span>
-                        </div>
+                        <CheckCircle className="w-3.5 h-3.5 text-[#2F9E78]" />
                       ) : (
-                        <div className="flex items-center gap-2 px-3 py-1 bg-[#FB7185]/10 border border-[#FB7185]/30 rounded-full">
-                          <XCircle className="w-4 h-4 text-[#FB7185]" />
-                          <span className="text-sm text-[#FB7185]">Inactive</span>
-                        </div>
+                        <XCircle className="w-3.5 h-3.5 text-[#D95C5C]" />
                       )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            <div className="bg-[#0B0912] rounded-xl p-4 border border-[#2A2438]">
-              <div className="flex items-center gap-2 text-[#6B6358] mb-2">
-                <Calendar className="w-4 h-4" />
-                <span className="text-xs uppercase tracking-wider">Joined</span>
-              </div>
-              <p className="text-lg font-semibold text-[#F5F0E8]">
-                {new Date(student.createdAt).toLocaleDateString()}
-              </p>
-            </div>
-
-            <div className="bg-[#0B0912] rounded-xl p-4 border border-[#2A2438]">
-              <div className="flex items-center gap-2 text-[#6B6358] mb-2">
-                <User className="w-4 h-4" />
-                <span className="text-xs uppercase tracking-wider">Student ID</span>
-              </div>
-              <p className="text-lg font-semibold text-[#F5F0E8]">
-                {student.studentId.slice(0, 8)}
-              </p>
-            </div>
-          </div>
-
-          {/* Additional Information */}
-          <div className="space-y-6">
-            {/* Contact Information */}
-            <div className="bg-[#0B0912] rounded-xl p-4 border border-[#2A2438]">
-              <div className="text-xs uppercase tracking-wider text-[#6B6358] mb-4">
-                Contact Information
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <Phone className="w-4 h-4 text-[#6B6358]" />
-                  <div>
-                    <p className="text-xs text-[#6B6358]">Phone Number</p>
-                    <p className="text-sm text-[#F5F0E8]">{student.phoneNumber || 'Not provided'}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Location Information */}
-            <div className="bg-[#0B0912] rounded-xl p-4 border border-[#2A2438]">
-              <div className="text-xs uppercase tracking-wider text-[#6B6358] mb-4">
-                Location
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <Globe className="w-4 h-4 text-[#6B6358]" />
-                  <div>
-                    <p className="text-xs text-[#6B6358]">Country</p>
-                    <p className="text-sm text-[#F5F0E8]">{student.country || 'Not provided'}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Map className="w-4 h-4 text-[#6B6358]" />
-                  <div>
-                    <p className="text-xs text-[#6B6358]">City</p>
-                    <p className="text-sm text-[#F5F0E8]">{student.city || 'Not provided'}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <MapPin className="w-4 h-4 text-[#6B6358]" />
-                  <div>
-                    <p className="text-xs text-[#6B6358]">Town</p>
-                    <p className="text-sm text-[#F5F0E8]">{student.town || 'Not provided'}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <MapPin className="w-4 h-4 text-[#6B6358]" />
-                  <div>
-                    <p className="text-xs text-[#6B6358]">Street</p>
-                    <p className="text-sm text-[#F5F0E8]">{student.street || 'Not provided'}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Academic Information */}
-            <div className="bg-[#0B0912] rounded-xl p-4 border border-[#2A2438]">
-              <div className="text-xs uppercase tracking-wider text-[#6B6358] mb-4">
-                Academic Information
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <Book className="w-4 h-4 text-[#6B6358]" />
-                  <div>
-                    <p className="text-xs text-[#6B6358]">General Course</p>
-                    <p className="text-sm text-[#F5F0E8]">{student.generalCourse || 'Not provided'}</p>
-                  </div>
-                </div>
-                
-                {/* Religion Status */}
-                {student.takesReligion !== null && (
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="w-4 h-4 text-[#6B6358]" />
-                    <div>
-                      <p className="text-xs text-[#6B6358]">Religion Status</p>
-                      {student.takesReligion ? (
-                        <span className="px-2 py-1 bg-[#14B8A6]/20 border border-[#14B8A6]/30 rounded-full text-xs text-[#14B8A6]">
-                          Takes Religion
-                        </span>
-                      ) : (
-                        <span className="px-2 py-1 bg-[#FB7185]/20 border border-[#FB7185]/30 rounded-full text-xs text-[#FB7185]">
-                          No Religion
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Personal Information */}
-            <div className="bg-[#0B0912] rounded-xl p-4 border border-[#2A2438]">
-              <div className="text-xs uppercase tracking-wider text-[#6B6358] mb-4">
-                Personal Information
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="w-4 h-4 text-[#6B6358]" />
-                  <div>
-                    <p className="text-xs text-[#6B6358]">Gender</p>
-                    <p className="text-sm text-[#F5F0E8] capitalize">{student.gender || 'Not provided'}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Course Units */}
-            {student.studentCourses && student.studentCourses.length > 0 && (
-              <div className="bg-[#0B0912] rounded-xl p-4 border border-[#2A2438]">
-                <div className="text-xs uppercase tracking-wider text-[#6B6358] mb-4">
-                  Course Units ({student.studentCourses.length})
-                </div>
-                <div className="space-y-2">
-                  {student.studentCourses.map((course) => (
-                    <div key={course.id} className="flex items-center gap-3 p-2 bg-[#2A2438]/50 rounded-lg">
-                      <span className="px-2 py-1 bg-[#E8A33D]/20 border border-[#E8A33D]/30 rounded-full text-xs text-[#E8A33D] font-medium">
-                        {course.code}
+                      <span
+                        className={`text-[9px] uppercase tracking-[0.12em] font-bold ${
+                          student.isActive
+                            ? 'text-[#2F9E78]'
+                            : 'text-[#D95C5C]'
+                        }`}
+                      >
+                        {student.isActive
+                          ? 'Active'
+                          : 'Inactive'}
                       </span>
-                      <div className="flex-1">
-                        <p className="text-sm text-[#F5F0E8]">{course.courseUnit}</p>
-                        <p className="text-xs text-[#6B6358]">{course.credits} credits</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* =================================================
+                  IDENTITY
+              ================================================= */}
+
+              <div className="flex-1 min-w-0">
+
+                <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+
+                  <div>
+
+                    <div className="flex items-center gap-2 mb-4">
+
+                      <span className="font-mono text-xs font-bold text-[#E8A33D]">
+                        STUDENT
+                      </span>
+
+                      <span className="w-8 h-px bg-[#D8DDE4]" />
+
+                      <span className="text-[10px] uppercase tracking-[0.16em] text-[#8993A2]">
+                        {student.role}
+                      </span>
+                    </div>
+
+                    <h1 className="
+                      text-4xl
+                      sm:text-5xl
+                      md:text-6xl
+                      lg:text-7xl
+                      font-black
+                      tracking-[-0.05em]
+                      leading-[0.9]
+                      text-[#14213D]
+                      break-words
+                    ">
+                      {student.firstName}
+                      <br className="hidden sm:block" />{' '}
+                      {student.lastName}
+                    </h1>
+
+                    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-5">
+
+                      <div className="flex items-center gap-2 text-[#667386]">
+                        <MapPin className="w-4 h-4 text-[#E8A33D]" />
+
+                        <span className="text-sm">
+                          {student.techCenter
+                            ? `${student.techCenter.name}, ${student.techCenter.country?.name || ''}`
+                            : 'No tech center assigned'}
+                        </span>
+                      </div>
+
+                      {student.generalCourse && (
+                        <div className="flex items-center gap-2 text-[#667386]">
+
+                          <Book className="w-4 h-4 text-[#E8A33D]" />
+
+                          <span className="text-sm">
+                            {student.generalCourse}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Student ID */}
+                  <div className="lg:text-right">
+
+                    <p className="text-[9px] uppercase tracking-[0.18em] font-bold text-[#929CAA]">
+                      Student ID
+                    </p>
+
+                    <p className="font-mono text-sm md:text-base font-bold text-[#354258] mt-1">
+                      {student.studentId}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Hero bottom line */}
+            <div className="flex items-center gap-3 mt-8">
+
+              <div className="h-px flex-1 bg-[#E0E4E8]" />
+
+              <span className="text-[#E8A33D] text-xs">
+                ◆
+              </span>
+
+              <div className="h-px w-20 bg-[#E0E4E8]" />
+            </div>
+          </div>
+        </section>
+
+        {/* ======================================================
+            QUICK ACADEMIC STRIP
+        ====================================================== */}
+
+        <section className="grid grid-cols-2 md:grid-cols-4 bg-white border-x border-b border-[#D8DDE4]">
+
+          <div className="p-4 md:p-5 border-r border-b md:border-b-0 border-[#D8DDE4]">
+
+            <p className="text-[9px] uppercase tracking-[0.16em] font-bold text-[#929CAA]">
+              Course Units
+            </p>
+
+            <p className="text-2xl md:text-3xl font-black text-[#1A365D] mt-1">
+              {student.studentCourses.length}
+            </p>
+          </div>
+
+          <div className="p-4 md:p-5 md:border-r border-b md:border-b-0 border-[#D8DDE4]">
+
+            <p className="text-[9px] uppercase tracking-[0.16em] font-bold text-[#929CAA]">
+              Credits
+            </p>
+
+            <p className="text-2xl md:text-3xl font-black text-[#1A365D] mt-1">
+              {totalCredits}
+            </p>
+          </div>
+
+          <div className="p-4 md:p-5 border-r border-[#D8DDE4]">
+
+            <p className="text-[9px] uppercase tracking-[0.16em] font-bold text-[#929CAA]">
+              Joined
+            </p>
+
+            <p className="text-sm md:text-base font-bold text-[#354258] mt-2">
+              {new Date(
+                student.createdAt
+              ).toLocaleDateString()}
+            </p>
+          </div>
+
+          <div className="p-4 md:p-5">
+
+            <p className="text-[9px] uppercase tracking-[0.16em] font-bold text-[#929CAA]">
+              Religion
+            </p>
+
+            <p className="text-sm md:text-base font-bold mt-2">
+              {student.takesReligion === null ? (
+                <span className="text-[#8993A2]">
+                  Not specified
+                </span>
+              ) : student.takesReligion ? (
+                <span className="text-[#2F9E78]">
+                  Takes Religion
+                </span>
+              ) : (
+                <span className="text-[#D95C5C]">
+                  No Religion
+                </span>
+              )}
+            </p>
+          </div>
+        </section>
+
+        {/* ======================================================
+            MAIN CONTENT
+        ====================================================== */}
+
+        <div className="mt-10">
+
+          {/* ====================================================
+              ACADEMIC
+          ==================================================== */}
+
+          <section className="mb-10">
+
+            <SectionHeading
+              number="01"
+              title="Academic Information"
+              icon={<GraduationCap className="w-4 h-4" />}
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
+
+              <InfoRow
+                label="General Course"
+                value={
+                  student.generalCourse ||
+                  'Not provided'
+                }
+                icon={<Book className="w-4 h-4" />}
+              />
+
+              <InfoRow
+                label="Tech Center"
+                value={
+                  student.techCenter
+                    ? student.techCenter.name
+                    : 'Not assigned'
+                }
+                icon={<MapPin className="w-4 h-4" />}
+              />
+
+              <InfoRow
+                label="Country"
+                value={
+                  student.techCenter?.country?.name ||
+                  student.country ||
+                  'Not provided'
+                }
+                icon={<Globe className="w-4 h-4" />}
+              />
+
+              <InfoRow
+                label="Student Status"
+                value={
+                  <span className="capitalize">
+                    {student.status}
+                  </span>
+                }
+                icon={<CheckCircle className="w-4 h-4" />}
+              />
+            </div>
+          </section>
+
+          {/* ====================================================
+              COURSE UNITS
+          ==================================================== */}
+
+          <section className="mb-10">
+
+            <SectionHeading
+              number="02"
+              title={`Course Units (${student.studentCourses.length})`}
+              icon={<Book className="w-4 h-4" />}
+            />
+
+            {student.studentCourses.length > 0 ? (
+              <div className="border border-[#D8DDE4] bg-white">
+
+                {/* Desktop header */}
+                <div className="hidden md:grid grid-cols-[100px_1fr_100px_120px] gap-5 px-5 py-3 bg-[#1A365D] text-white">
+
+                  <span className="text-[9px] uppercase tracking-[0.15em] text-white/60">
+                    Code
+                  </span>
+
+                  <span className="text-[9px] uppercase tracking-[0.15em] text-white/60">
+                    Course Unit
+                  </span>
+
+                  <span className="text-[9px] uppercase tracking-[0.15em] text-white/60">
+                    Credits
+                  </span>
+
+                  <span className="text-[9px] uppercase tracking-[0.15em] text-white/60">
+                    Status
+                  </span>
+                </div>
+
+                {student.studentCourses.map(
+                  (course, index) => (
+                    <div
+                      key={course.id}
+                      className="group border-b border-[#E1E5E9] last:border-b-0 hover:bg-[#FAFBFC] transition-colors"
+                    >
+
+                      {/* Desktop */}
+                      <div className="hidden md:grid grid-cols-[100px_1fr_100px_120px] gap-5 items-center px-5 py-4">
+
+                        <span className="font-mono text-xs font-bold text-[#E8A33D]">
+                          {course.code}
+                        </span>
+
+                        <span className="text-sm font-semibold text-[#354258]">
+                          {course.courseUnit}
+                        </span>
+
+                        <span className="text-sm text-[#657286]">
+                          {course.credits}
+                        </span>
+
+                        <span className="text-xs capitalize text-[#657286]">
+                          {course.status}
+                        </span>
+                      </div>
+
+                      {/* Mobile */}
+                      <div className="md:hidden p-4">
+
+                        <div className="flex items-start justify-between gap-4">
+
+                          <div className="min-w-0">
+
+                            <span className="font-mono text-xs font-bold text-[#E8A33D]">
+                              {course.code}
+                            </span>
+
+                            <p className="text-sm font-bold text-[#354258] mt-1 break-words">
+                              {course.courseUnit}
+                            </p>
+                          </div>
+
+                          <span className="text-xs font-bold text-[#1A365D] whitespace-nowrap">
+                            {course.credits} credits
+                          </span>
+                        </div>
+
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-[#929CAA] mt-3">
+                          {course.status}
+                        </p>
                       </div>
                     </div>
-                  ))}
-                  <div className="mt-3 pt-3 border-t border-[#2A2438] flex items-center justify-between">
-                    <span className="text-xs text-[#6B6358]">Total Credits:</span>
-                    <span className="text-lg font-bold text-[#E8A33D]">
-                      {student.studentCourses.reduce((sum, course) => sum + course.credits, 0)}
-                    </span>
-                  </div>
+                  )
+                )}
+
+                {/* Total */}
+                <div className="flex items-center justify-between px-5 py-4 bg-[#F7F8FA]">
+
+                  <span className="text-[10px] uppercase tracking-[0.15em] font-bold text-[#7B8797]">
+                    Total Credits
+                  </span>
+
+                  <span className="text-xl font-black text-[#1A365D]">
+                    {totalCredits}
+                  </span>
                 </div>
+              </div>
+            ) : (
+              <div className="border border-[#D8DDE4] bg-white p-6 text-sm text-[#8993A2]">
+                No course units provided.
               </div>
             )}
+          </section>
 
-            {/* Social Links */}
-            <div className="bg-[#0B0912] rounded-xl p-4 border border-[#2A2438]">
-              <div className="text-xs uppercase tracking-wider text-[#6B6358] mb-4">
-                Social Links
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <LinkIcon className="w-4 h-4 text-[#0077B5]" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-[#6B6358]">LinkedIn</p>
+          {/* ====================================================
+              CONTACT + LOCATION
+          ==================================================== */}
+
+          <section className="mb-10">
+
+            <SectionHeading
+              number="03"
+              title="Personal & Contact"
+              icon={<User className="w-4 h-4" />}
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
+
+              <InfoRow
+                label="Phone Number"
+                value={
+                  student.phoneNumber ||
+                  'Not provided'
+                }
+                icon={<Phone className="w-4 h-4" />}
+              />
+
+              <InfoRow
+                label="Gender"
+                value={
+                  student.gender ? (
+                    <span className="capitalize">
+                      {student.gender}
+                    </span>
+                  ) : (
+                    'Not provided'
+                  )
+                }
+                icon={<User className="w-4 h-4" />}
+              />
+
+              <InfoRow
+                label="Country"
+                value={
+                  student.country ||
+                  student.techCenter?.country?.name ||
+                  'Not provided'
+                }
+                icon={<Globe className="w-4 h-4" />}
+              />
+
+              <InfoRow
+                label="City"
+                value={
+                  student.city ||
+                  'Not provided'
+                }
+                icon={<Map className="w-4 h-4" />}
+              />
+
+              <InfoRow
+                label="Town"
+                value={
+                  student.town ||
+                  'Not provided'
+                }
+                icon={<MapPin className="w-4 h-4" />}
+              />
+
+              <InfoRow
+                label="Street"
+                value={
+                  student.street ||
+                  'Not provided'
+                }
+                icon={<MapPin className="w-4 h-4" />}
+              />
+            </div>
+          </section>
+
+          {/* ====================================================
+              SOCIAL / PROFESSIONAL
+          ==================================================== */}
+
+          <section className="mb-10">
+
+            <SectionHeading
+              number="04"
+              title="Professional Links"
+              icon={<Briefcase className="w-4 h-4" />}
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              {/* LinkedIn */}
+              <div className="bg-white border border-[#D8DDE4] p-5">
+
+                <div className="flex items-start gap-4">
+
+                  <div className="w-10 h-10 bg-[#EAF3F8] flex items-center justify-center flex-shrink-0">
+                    <LinkIcon className="w-5 h-5 text-[#0077B5]" />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+
+                    <p className="text-[9px] uppercase tracking-[0.16em] font-bold text-[#929CAA]">
+                      LinkedIn
+                    </p>
+
                     {student.linkedinUrl ? (
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm text-[#F5F0E8] truncate max-w-[200px] md:max-w-[300px]">{student.linkedinUrl}</p>
-                        <button
-                          onClick={() => student.linkedinUrl && copyToClipboard(student.linkedinUrl)}
-                          className="p-1.5 rounded hover:bg-[#2A2438] text-[#A79C8C] hover:text-[#F5F0E8] transition-colors flex-shrink-0"
-                          title="Copy link"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </button>
-                      </div>
+                      <>
+                        <p className="text-sm text-[#354258] truncate mt-1">
+                          {student.linkedinUrl}
+                        </p>
+
+                        <div className="flex items-center gap-3 mt-3">
+
+                          <button
+                            onClick={() =>
+                              copyToClipboard(
+                                student.linkedinUrl!
+                              )
+                            }
+                            className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] font-bold text-[#1A365D] hover:text-[#E8A33D]"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                            Copy
+                          </button>
+
+                          <a
+                            href={student.linkedinUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] font-bold text-[#1A365D] hover:text-[#E8A33D]"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            Open
+                          </a>
+                        </div>
+                      </>
                     ) : (
-                      <p className="text-sm text-[#6B6358]">Not provided</p>
+                      <p className="text-sm text-[#8993A2] mt-1">
+                        Not provided
+                      </p>
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <GitFork className="w-4 h-4 text-[#F5F0E8]" />
-                  <div>
-                    <p className="text-xs text-[#6B6358]">GitHub</p>
+              </div>
+
+              {/* GitHub */}
+              <div className="bg-white border border-[#D8DDE4] p-5">
+
+                <div className="flex items-start gap-4">
+
+                  <div className="w-10 h-10 bg-[#EEF0F2] flex items-center justify-center flex-shrink-0">
+                    <GitFork className="w-5 h-5 text-[#354258]" />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+
+                    <p className="text-[9px] uppercase tracking-[0.16em] font-bold text-[#929CAA]">
+                      GitHub
+                    </p>
+
                     {student.githubUrl ? (
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm text-[#F5F0E8] truncate max-w-[200px] md:max-w-[300px]">{student.githubUrl}</p>
-                        <button
-                          onClick={() => student.githubUrl && copyToClipboard(student.githubUrl)}
-                          className="p-1.5 rounded hover:bg-[#2A2438] text-[#A79C8C] hover:text-[#F5F0E8] transition-colors flex-shrink-0"
-                          title="Copy link"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </button>
-                      </div>
+                      <>
+                        <p className="text-sm text-[#354258] truncate mt-1">
+                          {student.githubUrl}
+                        </p>
+
+                        <div className="flex items-center gap-3 mt-3">
+
+                          <button
+                            onClick={() =>
+                              copyToClipboard(
+                                student.githubUrl!
+                              )
+                            }
+                            className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] font-bold text-[#1A365D] hover:text-[#E8A33D]"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                            Copy
+                          </button>
+
+                          <a
+                            href={student.githubUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] font-bold text-[#1A365D] hover:text-[#E8A33D]"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            Open
+                          </a>
+                        </div>
+                      </>
                     ) : (
-                      <p className="text-sm text-[#6B6358]">Not provided</p>
+                      <p className="text-sm text-[#8993A2] mt-1">
+                        Not provided
+                      </p>
                     )}
                   </div>
                 </div>
               </div>
             </div>
+          </section>
 
-            {/* Project URLs */}
-            <div className="bg-[#0B0912] rounded-xl p-4 border border-[#2A2438]">
-              <div className="text-xs uppercase tracking-wider text-[#6B6358] mb-4">
-                Project URLs
-              </div>
-              {student.projectUrls && student.projectUrls.length > 0 ? (
-                <div className="space-y-2">
-                  {student.projectUrls.map((url, index) => (
-                    <div key={index} className="flex items-center gap-2 p-2 bg-[#2A2438]/50 rounded-lg">
-                      <LinkIcon className="w-4 h-4 text-[#E8A33D] flex-shrink-0" />
-                      <span className="text-sm text-[#F5F0E8] truncate flex-1">{url}</span>
+          {/* ====================================================
+              PROJECTS
+          ==================================================== */}
+
+          <section className="mb-10">
+
+            <SectionHeading
+              number="05"
+              title="Student Projects"
+              icon={<LinkIcon className="w-4 h-4" />}
+            />
+
+            {student.projectUrls &&
+            student.projectUrls.length > 0 ? (
+              <div className="border border-[#D8DDE4] bg-white">
+
+                {student.projectUrls.map(
+                  (url, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-4 px-4 md:px-5 py-4 border-b border-[#E1E5E9] last:border-b-0"
+                    >
+
+                      <span className="font-mono text-xs font-bold text-[#E8A33D]">
+                        {String(index + 1).padStart(
+                          2,
+                          '0'
+                        )}
+                      </span>
+
+                      <LinkIcon className="w-4 h-4 text-[#8A94A3] flex-shrink-0" />
+
+                      <span className="text-sm text-[#354258] truncate flex-1">
+                        {url}
+                      </span>
+
                       <button
-                        onClick={() => url && copyToClipboard(url)}
-                        className="p-1.5 rounded hover:bg-[#2A2438] text-[#A79C8C] hover:text-[#F5F0E8] transition-colors flex-shrink-0"
+                        onClick={() =>
+                          copyToClipboard(url)
+                        }
+                        className="p-2 text-[#7B8797] hover:text-[#1A365D] flex-shrink-0"
                         title="Copy link"
                       >
                         <Copy className="w-4 h-4" />
                       </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-[#6B6358]">No projects provided</p>
-              )}
-            </div>
 
-            {/* Account Information */}
-            <div className="bg-[#0B0912] rounded-xl p-4 border border-[#2A2438]">
-              <div className="text-xs uppercase tracking-wider text-[#6B6358] mb-4">
-                Account Information
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hidden sm:flex p-2 text-[#7B8797] hover:text-[#E8A33D]"
+                        title="Open project"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    </div>
+                  )
+                )}
               </div>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <Calendar className="w-4 h-4 text-[#6B6358]" />
-                  <div>
-                    <p className="text-xs text-[#6B6358]">Profile Updated</p>
-                    <p className="text-sm text-[#F5F0E8]">
-                      {new Date(student.updatedAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <User className="w-4 h-4 text-[#6B6358]" />
-                  <div>
-                    <p className="text-xs text-[#6B6358]">Status</p>
-                    <p className="text-sm text-[#F5F0E8] capitalize">{student.status}</p>
-                  </div>
-                </div>
+            ) : (
+              <div className="bg-white border border-[#D8DDE4] p-6">
+                <p className="text-sm text-[#8993A2]">
+                  No projects provided.
+                </p>
               </div>
+            )}
+          </section>
+
+          {/* ====================================================
+              ACCOUNT
+          ==================================================== */}
+
+          <section className="mb-10">
+
+            <SectionHeading
+              number="06"
+              title="Account Information"
+              icon={<Calendar className="w-4 h-4" />}
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-10">
+
+              <InfoRow
+                label="Joined"
+                value={new Date(
+                  student.createdAt
+                ).toLocaleDateString()}
+                icon={<Calendar className="w-4 h-4" />}
+              />
+
+              <InfoRow
+                label="Profile Updated"
+                value={new Date(
+                  student.updatedAt
+                ).toLocaleDateString()}
+                icon={<Calendar className="w-4 h-4" />}
+              />
+
+              <InfoRow
+                label="Account Status"
+                value={
+                  <span className="capitalize">
+                    {student.status}
+                  </span>
+                }
+                icon={<User className="w-4 h-4" />}
+              />
             </div>
+          </section>
+
+          {/* ====================================================
+              BACK TO DIRECTORY
+          ==================================================== */}
+
+          <div className="border-t border-[#D8DDE4] pt-6 pb-10">
+
+            <button
+              onClick={() => router.back()}
+              className="
+                inline-flex
+                items-center
+                gap-3
+                px-5
+                py-3
+                bg-[#1A365D]
+                text-white
+                text-xs
+                uppercase
+                tracking-[0.14em]
+                font-bold
+                hover:bg-[#15304F]
+                transition-colors
+              "
+            >
+              <ArrowLeft className="w-4 h-4" />
+
+              Back to Student Directory
+            </button>
           </div>
         </div>
       </div>
