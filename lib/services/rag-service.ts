@@ -469,6 +469,7 @@ async function callOpenAI(
 
 /**
  * Call Groq API
+ * ✅ FIXED: Updated to use the latest supported model
  */
 async function callGroq(
   prompt: string,
@@ -485,7 +486,8 @@ async function callGroq(
       'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: 'llama3-70b-8192',
+      // ✅ FIXED: Updated to use the latest supported model
+      model: 'llama-3.1-70b-versatile', // Alternative: 'mixtral-8x7b-32768' or 'llama3-8b-8192'
       messages: [{ role: 'user', content: prompt }],
       temperature,
       max_tokens: maxTokens

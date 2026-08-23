@@ -19,7 +19,7 @@ export async function GET(
 ) {
   try {
     // Get authenticated user
-    const user = await requireAuth();
+    await requireAuth();
 
     const { studentId } = await params;
 
@@ -38,6 +38,7 @@ export async function GET(
         id: true,
         firstName: true,
         lastName: true,
+        email: true, // Email is needed on the profile page
         phoneNumber: true,
         profileImageUrl: true,
         role: {
@@ -96,6 +97,7 @@ export async function GET(
         _id: student.id,
         firstName: student.firstName,
         lastName: student.lastName,
+        email: student.email, // Email included for profile page
         phoneNumber: student.phoneNumber,
         profileImage: student.profileImageUrl,
         role: student.role?.name || 'student',
@@ -126,10 +128,12 @@ export async function GET(
     response.headers.set('Expires', '0');
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Student profile API error:', error);
     
-    if (error.message === 'Unauthorized') {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    if (errorMessage === 'Unauthorized') {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }

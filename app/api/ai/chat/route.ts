@@ -315,7 +315,7 @@ ${k.tags.length > 0 ? `**Tags:** ${k.tags.join(', ')}` : ''}
           try {
             response = await provider.call(message, relevantHistory, userContext, knowledgeBaseContext);
             console.log(`[ChatRoute] Using ${providerName} provider (traditional mode)`);
-            break;;
+            break;
           } catch (providerError) {
             // Distinguish between quota errors (try next provider) and network errors (skip to fallback)
             if (providerError instanceof QuotaExceededError) {
@@ -352,8 +352,35 @@ ${k.tags.length > 0 ? `**Tags:** ${k.tags.join(', ')}` : ''}
       }
     }
 
-    // Build response data
-    const responseData: any = {
+    // Define types for source and response data
+    interface SourceData {
+      id: string;
+      title: string;
+      category: string;
+      subcategory: string | null;
+      similarity: number;
+      source: string;
+      chunkIndex: number;
+    }
+
+    interface ResponseData {
+      response: string;
+      conversationId: string | null;
+      ragEnabled: boolean;
+      sources?: SourceData[];
+      fromCache?: boolean;
+      provider?: string;
+      strictModeActive?: boolean;
+      sourcesFound?: number;
+      processingTime?: number;
+      tokenUsage?: {
+        prompt: number;
+        completion: number;
+        total: number;
+      };
+    }
+
+    const responseData: ResponseData = {
       response,
       conversationId: savedConversationId,
       ragEnabled
@@ -365,10 +392,10 @@ ${k.tags.length > 0 ? `**Tags:** ${k.tags.join(', ')}` : ''}
         id: source.id,
         title: source.title,
         category: source.category,
-        subcategory: source.subcategory,
+        subcategory: source.subcategory || null,
         similarity: source.similarity,
         source: source.source,
-        chunkIndex: source.chunkIndex
+        chunkIndex: source.chunkIndex ?? 0 // ✅ Fixed: Provide default value of 0 if undefined
       }));
       responseData.fromCache = ragData.fromCache;
       responseData.provider = ragData.provider;
@@ -754,6 +781,9 @@ async function callOpenAIAPI(message: string, conversationHistory: ChatHistoryMe
   return data.choices[0].message.content;
 }
 
+/**
+ * ✅ FIXED: Updated Groq API call with the latest supported model
+ */
 async function callGroqAPI(message: string, conversationHistory: ChatHistoryMessage[] = [], userContext: string = '', knowledgeBaseContext: string = '') {
   const apiKey = process.env.GROQ_API_KEY?.trim();
   
@@ -785,7 +815,8 @@ async function callGroqAPI(message: string, conversationHistory: ChatHistoryMess
       'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: 'llama3-70b-8192',
+      // ✅ FIXED: Updated to use the latest supported model
+      model: 'llama-3.1-70b-versatile', // Alternative: 'mixtral-8x7b-32768' or 'llama3-8b-8192'
       messages,
       max_tokens: 1000,
       temperature: 0.7
