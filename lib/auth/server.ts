@@ -230,3 +230,169 @@ export function hasPermission(user: any, permission: string) {
   if (user.role?.name === 'super_admin') return true;
   return user.role?.permissions?.includes(permission) || false;
 }
+
+// ============================================
+// PASSWORD RESET FUNCTIONS
+// ============================================
+
+// Generate a 6-digit reset token
+export function generateResetToken(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// Create password reset request
+export async function createPasswordResetRequest(email: string) {
+  try {
+    const user = await getUserByEmail(email);
+    
+    if (!user) {
+      return { error: 'User not found' };
+    }
+
+    // Generate 6-digit token
+    const token = generateResetToken();
+    
+    // Set expiry to 24 hours from now
+    const expiry = new Date();
+    expiry.setHours(expiry.getHours() + 24);
+
+    // Update user with reset token
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetToken: token,
+        resetTokenExpiry: expiry,
+      },
+    });
+
+    return { 
+      success: true, 
+      token,
+      expiry,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        techCenter: user.techCenter,
+      }
+    };
+  } catch (error) {
+    console.error('Create password reset error:', error);
+    return { error: 'Failed to create password reset request' };
+  }
+}
+
+// Verify reset token
+export async function verifyResetToken(email: string, token: string) {
+  try {
+    const user = await getUserByEmail(email);
+    
+    if (!user) {
+      return { error: 'User not found' };
+    }
+
+    if (!user.resetToken || !user.resetTokenExpiry) {
+      return { error: 'No active reset request found' };
+    }
+
+    // Check if token matches
+    if (user.resetToken !== token) {
+      return { error: 'Invalid token' };
+    }
+
+    // Check if token has expired
+    const now = new Date();
+    if (now > user.resetTokenExpiry) {
+      return { error: 'Token has expired' };
+    }
+
+    return { success: true, user };
+  } catch (error) {
+    console.error('Verify reset token error:', error);
+    return { error: 'Failed to verify reset token' };
+  }
+}
+
+// Reset user password
+export async function resetUserPassword(email: string, token: string, newPassword: string) {
+  try {
+    // First verify the token
+    const verification = await verifyResetToken(email, token);
+    
+    if (verification.error || !verification.user) {
+      return { error: verification.error || 'User not found' };
+    }
+
+    // Hash the new password
+    const hashedPassword = await hashPassword(newPassword);
+
+    // Update user password and clear reset token
+    await prisma.user.update({
+      where: { id: verification.user.id },
+      data: {
+        password: hashedPassword,
+        resetToken: null,
+        resetTokenExpiry: null,
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return { error: 'Failed to reset password' };
+  }
+}
+
+// Get users with active reset tokens (for admin)
+export async function getUsersWithActiveResetTokens() {
+  try {
+    const now = new Date();
+    
+    const users = await prisma.user.findMany({
+      where: {
+        resetToken: { not: null },
+        resetTokenExpiry: { gt: now },
+      },
+      include: {
+        role: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        techCenter: {
+          include: {
+            country: true,
+          },
+        },
+      },
+      orderBy: {
+        resetTokenExpiry: 'desc',
+      },
+    });
+
+    return { users };
+  } catch (error) {
+    console.error('Get users with reset tokens error:', error);
+    return { error: 'Failed to fetch users with reset tokens' };
+  }
+}
+
+// Revoke reset token
+export async function revokeResetToken(userId: string) {
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        resetToken: null,
+        resetTokenExpiry: null,
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Revoke reset token error:', error);
+    return { error: 'Failed to revoke reset token' };
+  }
+}
