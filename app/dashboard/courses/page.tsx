@@ -660,7 +660,7 @@ export default function MyCoursesPage() {
 
               <div>
                 <h3 className="text-base font-semibold text-[#F5F0E8]">
-                  General Course
+                  General Degree Course
                 </h3>
 
                 <p className="mt-1 text-sm text-[#A79C8C]">
@@ -687,7 +687,7 @@ export default function MyCoursesPage() {
                 </span>
 
                 <span className="text-sm text-[#A79C8C]">
-                  Your general course
+                  Your General  Degree course
                 </span>
               </div>
             ) : (
@@ -697,7 +697,7 @@ export default function MyCoursesPage() {
                 </span>
 
                 <span className="text-sm text-[#6B6358]">
-                  Click Edit to set your general course
+                  Click Edit to set your general  Degree course
                 </span>
               </div>
             )}
@@ -732,7 +732,7 @@ export default function MyCoursesPage() {
                 ) : (
                   <>
                     <Check className="h-4 w-4" />
-                    Update General Course
+                    Update General Degree Course
                   </>
                 )}
               </button>
@@ -740,7 +740,7 @@ export default function MyCoursesPage() {
               {saveSuccess && (
                 <div className="flex items-center gap-2 text-sm text-[#14B8A6]">
                   <Check className="h-4 w-4" />
-                  General course saved successfully.
+                  General  Degree course saved successfully.
                 </div>
               )}
             </div>
