@@ -110,6 +110,8 @@ export async function GET(request: NextRequest) {
         updatedAt: true,
         roleId: true,
         profileImageUrl: true,
+        tuitionAmount: true,
+        generalCourse: true,
         role: {
           select: {
             id: true,
@@ -122,6 +124,16 @@ export async function GET(request: NextRequest) {
             id: true,
             name: true,
             code: true,
+          }
+        },
+        submittedCourses: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            courseUnit: true,
+            credits: true,
+            status: true,
           }
         },
         _count: {

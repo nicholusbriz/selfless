@@ -160,8 +160,13 @@ export async function DELETE(
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session?.user?.id || session.user.role !== 'super_admin') {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Allow both super_admin and admin
+    if (session.user.role !== 'super_admin' && session.user.role !== 'admin') {
+      return NextResponse.json({ error: 'Access denied. Admin privileges required.' }, { status: 403 });
     }
 
     const { userId } = await params;
@@ -172,6 +177,48 @@ export async function DELETE(
         { error: 'Cannot delete your own account' },
         { status: 400 }
       );
+    }
+
+    // For regular admins, check tech center restriction
+    if (session.user.role === 'admin') {
+      const adminUser = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { techCenterId: true }
+      });
+
+      if (!adminUser?.techCenterId) {
+        return NextResponse.json(
+          { error: 'No tech center assigned' },
+          { status: 404 }
+        );
+      }
+
+      // Get user and verify they belong to same tech center
+      const targetUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { techCenterId: true, role: true }
+      });
+
+      if (!targetUser) {
+        return NextResponse.json(
+          { error: 'User not found' },
+          { status: 404 }
+        );
+      }
+
+      if (targetUser.techCenterId !== adminUser.techCenterId) {
+        return NextResponse.json(
+          { error: 'Access denied. User not in your tech center.' },
+          { status: 403 }
+        );
+      }
+
+      if (targetUser.role?.name === 'super_admin') {
+        return NextResponse.json(
+          { error: 'Cannot delete super admin users' },
+          { status: 403 }
+        );
+      }
     }
 
     // Check if user exists

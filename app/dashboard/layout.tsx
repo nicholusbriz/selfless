@@ -39,7 +39,8 @@ import {
   Building2,
   HeartHandshake,
   Database,
-  Key
+  Key,
+  DollarSign
 } from 'lucide-react';
 import { useUnreadNotificationCount, useAnnouncementCount } from '@/hooks/useNotifications';
 
@@ -553,6 +554,13 @@ const getNavGroups = (userRole: string): NavGroup[] => {
           label: 'Users',
           path: '/dashboard/admin/users',
           icon: <Users className="w-5 h-5" />,
+          roles: ['admin']
+        },
+        {
+          id: 'manage-tuition',
+          label: 'Tuition',
+          path: '/dashboard/admin/tuition',
+          icon: <DollarSign className="w-5 h-5" />,
           roles: ['admin']
         },
         {
