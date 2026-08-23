@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import { logCourseSubmission } from '@/lib/logger';
 
 // GET - Fetch student's courses
 export async function GET(request: NextRequest) {
@@ -94,6 +95,17 @@ export async function POST(request: NextRequest) {
           }
         })
       )
+    );
+
+    // Log the course submission activity
+    await logCourseSubmission(
+      session.user.id,
+      user.techCenterId || undefined,
+      {
+        courseCount: createdCourses.length,
+        courseCodes: createdCourses.map(c => c.code),
+        totalCredits: createdCourses.reduce((sum, c) => sum + c.credits, 0),
+      }
     );
 
     return NextResponse.json({

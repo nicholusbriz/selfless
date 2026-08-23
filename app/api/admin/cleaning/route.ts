@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import { logCleaningWeekCreation, logCleaningDayCreation } from '@/lib/logger';
 
 // GET - Fetch all cleaning data for admin's tech center
 export async function GET() {
@@ -260,20 +261,29 @@ export async function POST(request: NextRequest) {
       timeout: 15000 // 15 seconds timeout
     });
 
-    await prisma.activityLog.create({
-      data: {
-        userId: session.user.id,
-        action: 'create_week',
-        entityType: 'week',
-        entityId: result.week.id,
-        details: {
-          weekLabel: result.week.weekLabel,
-          startDate: result.week.startDate,
-          days: 5 // Monday to Friday
-        },
-        techCenterId: techCenterId,
+    // Log the week creation activity
+    await logCleaningWeekCreation(
+      session.user.id,
+      techCenterId,
+      {
+        weekLabel: result.week.weekLabel,
+        startDate: result.week.startDate,
+        dayCount: 5, // Monday to Friday
       }
-    });
+    );
+
+    // Log each day creation activity
+    for (const day of result.days) {
+      await logCleaningDayCreation(
+        session.user.id,
+        techCenterId,
+        {
+          dayName: day.dayOfWeek,
+          weekLabel: result.week.weekLabel,
+          cleaningDate: day.cleaningDate,
+        }
+      );
+    }
 
     return NextResponse.json({
       message: 'Week created successfully with 5 days (Monday to Friday)',

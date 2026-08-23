@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 import {
   Calendar,
   Users,
@@ -18,15 +19,14 @@ import {
   User,
   AlertCircle,
   Loader2,
-  ArrowLeft,
+  ArrowRight,
   Home,
   CalendarCheck,
   Circle,
   Check,
   X,
-  ArrowRight,
   Lock,
-  Unlock
+  Unlock,
 } from 'lucide-react';
 import {
   useStudentCleaningData,
@@ -271,13 +271,27 @@ export default function CleaningPage() {
       <div className="flex items-center gap-4 mb-8">
         <button
           onClick={() => router.back()}
-          className="p-2 rounded-lg bg-[#2A2438]/50 hover:bg-[#2A2438] text-[#A79C8C] hover:text-[#F5F0E8] transition-all duration-200"
+          className="rounded-lg bg-[#2A2438]/50 px-3 py-2 text-sm text-[#A79C8C] hover:bg-[#2A2438] hover:text-[#F5F0E8] transition-all duration-200"
         >
-          <ArrowLeft className="w-5 h-5" />
+          Back
         </button>
-        
+
+        <Link
+          href="/dashboard/courses"
+          className="rounded-lg bg-[#2A2438]/50 px-3 py-2 text-sm text-[#A79C8C] hover:bg-[#2A2438] hover:text-[#F5F0E8] transition-all duration-200"
+        >
+          Courses
+        </Link>
+
+        <Link
+          href="/dashboard/students"
+          className="rounded-lg bg-[#2A2438]/50 px-3 py-2 text-sm text-[#A79C8C] hover:bg-[#2A2438] hover:text-[#F5F0E8] transition-all duration-200"
+        >
+          Students
+        </Link>
+
         <div className="h-8 w-px bg-[#2A2438]" />
-        
+
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#E8A33D]/20 to-[#C97F1F]/10 border border-[#E8A33D]/20">
             <Calendar className="w-6 h-6 text-[#E8A33D]" />

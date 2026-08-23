@@ -2,10 +2,11 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { ArrowLeft, User, Camera, Mail, Lock, Edit2, Save, X, Check, AlertCircle, MapPin, Phone, Book, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, User, Camera, Mail, Lock, Edit2, Save, X, Check, AlertCircle, MapPin, Phone, Book, Eye, EyeOff, BookOpen, Calendar, Users, Home } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { uploadProfileImage, deleteProfileImage } from '@/lib/supabase';
+import Link from 'next/link';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -241,9 +242,41 @@ export default function ProfilePage() {
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        
+
+        <Link
+          href="/dashboard"
+          className="p-2 rounded-lg bg-[#2A2438]/50 hover:bg-[#2A2438] text-[#A79C8C] hover:text-[#F5F0E8] transition-all duration-200"
+          aria-label="Go to dashboard"
+        >
+          <Home className="w-5 h-5" />
+        </Link>
+
+        <Link
+          href="/dashboard/courses"
+          className="p-2 rounded-lg bg-[#2A2438]/50 hover:bg-[#2A2438] text-[#A79C8C] hover:text-[#F5F0E8] transition-all duration-200"
+          aria-label="Go to courses"
+        >
+          <BookOpen className="w-5 h-5" />
+        </Link>
+
+        <Link
+          href="/dashboard/cleaning"
+          className="p-2 rounded-lg bg-[#2A2438]/50 hover:bg-[#2A2438] text-[#A79C8C] hover:text-[#F5F0E8] transition-all duration-200"
+          aria-label="Go to cleaning schedule"
+        >
+          <Calendar className="w-5 h-5" />
+        </Link>
+
+        <Link
+          href="/dashboard/students"
+          className="p-2 rounded-lg bg-[#2A2438]/50 hover:bg-[#2A2438] text-[#A79C8C] hover:text-[#F5F0E8] transition-all duration-200"
+          aria-label="Go to students"
+        >
+          <Users className="w-5 h-5" />
+        </Link>
+
         <div className="h-8 w-px bg-[#2A2438]" />
-        
+
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#E8A33D]/20 to-[#C97F1F]/10 border border-[#E8A33D]/20">
             <User className="w-6 h-6 text-[#E8A33D]" />

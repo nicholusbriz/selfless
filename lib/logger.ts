@@ -136,6 +136,129 @@ export async function logAIChatUsage(
 }
 
 /**
+ * Log course submission
+ */
+export async function logCourseSubmission(
+  userId: string,
+  techCenterId?: string,
+  details?: {
+    courseCount?: number;
+    courseCodes?: string[];
+    totalCredits?: number;
+  }
+) {
+  await createActivityLog({
+    userId,
+    action: 'course_submission',
+    entityType: 'student_course',
+    details: {
+      ...details,
+      timestamp: new Date().toISOString(),
+    },
+    techCenterId,
+  });
+}
+
+/**
+ * Log cleaning day registration
+ */
+export async function logCleaningRegistration(
+  userId: string,
+  techCenterId?: string,
+  details?: {
+    cleaningDayId?: string;
+    dayName?: string;
+    weekLabel?: string;
+  }
+) {
+  await createActivityLog({
+    userId,
+    action: 'cleaning_registration',
+    entityType: 'cleaning_day',
+    details: {
+      ...details,
+      timestamp: new Date().toISOString(),
+    },
+    techCenterId,
+  });
+}
+
+/**
+ * Log cleaning day change
+ */
+export async function logCleaningDayChange(
+  userId: string,
+  techCenterId?: string,
+  details?: {
+    oldDayId?: string;
+    oldDayName?: string;
+    newDayId?: string;
+    newDayName?: string;
+    oldWeekLabel?: string;
+    newWeekLabel?: string;
+  }
+) {
+  await createActivityLog({
+    userId,
+    action: 'cleaning_day_change',
+    entityType: 'cleaning_day',
+    details: {
+      ...details,
+      timestamp: new Date().toISOString(),
+    },
+    techCenterId,
+  });
+}
+
+/**
+ * Log cleaning week creation
+ */
+export async function logCleaningWeekCreation(
+  userId: string,
+  techCenterId?: string,
+  details?: {
+    weekLabel?: string;
+    startDate?: Date;
+    dayCount?: number;
+  }
+) {
+  await createActivityLog({
+    userId,
+    action: 'cleaning_week_created',
+    entityType: 'week',
+    details: {
+      ...details,
+      timestamp: new Date().toISOString(),
+    },
+    techCenterId,
+  });
+}
+
+/**
+ * Log cleaning day creation
+ */
+export async function logCleaningDayCreation(
+  userId: string,
+  techCenterId?: string,
+  details?: {
+    dayName?: string;
+    weekLabel?: string;
+    cleaningDate?: Date;
+  }
+) {
+  await createActivityLog({
+    userId,
+    action: 'cleaning_day_created',
+    entityType: 'cleaning_day',
+    details: {
+      ...details,
+      timestamp: new Date().toISOString(),
+    },
+    techCenterId,
+  });
+}
+
+/**
  * Extract IP address from request
  */
 export function extractIpAddress(req: Request): string {
