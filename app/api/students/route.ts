@@ -9,17 +9,58 @@
  * Response: { studentsByTechCenter: { [techCenterName]: User[] }, techCenters: TechCenter[] }
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import {  NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
 
-export async function GET(req: NextRequest) {
+// Define types for better type safety
+interface StudentWithTechCenter {
+  id: string;
+  firstName: string;
+  lastName: string;
+  profileImageUrl: string | null;
+  role: { name: string } | null;
+  techCenter: {
+    id: string;
+    name: string;
+    country: {
+      name: string;
+    } | null;
+  } | null;
+  generalCourse: string | null;
+  takesReligion: boolean | null;
+  status: string;
+  isActive: boolean;
+  createdAt: Date;
+  submittedCourses: Array<{
+    id: string;
+    code: string;
+    courseUnit: string;
+    credits: number;
+    status: string;
+  }>;
+}
+
+interface TechCenterWithCountry {
+  id: string;
+  name: string;
+  country: {
+    name: string;
+  } | null;
+}
+
+// Type for the grouped student (without submittedCourses, with studentCourses)
+type GroupedStudent = Omit<StudentWithTechCenter, 'submittedCourses'> & {
+  studentCourses: StudentWithTechCenter['submittedCourses'];
+};
+
+export async function GET() {
   try {
     // Get authenticated user
-    const user = await requireAuth();
+    await requireAuth();
 
     // Fetch all tech centers for filter
-    const techCenters = await prisma.techCenter.findMany({
+    const techCenters: TechCenterWithCountry[] = await prisma.techCenter.findMany({
       select: {
         id: true,
         name: true,
@@ -43,7 +84,6 @@ export async function GET(req: NextRequest) {
         id: true,
         firstName: true,
         lastName: true,
-        email: true,
         profileImageUrl: true,
         role: {
           select: {
@@ -84,9 +124,9 @@ export async function GET(req: NextRequest) {
     });
 
     // Group students by tech center
-    const studentsByTechCenter: { [key: string]: any[] } = {};
+    const studentsByTechCenter: Record<string, GroupedStudent[]> = {};
     
-    students.forEach((student: any) => {
+    students.forEach((student) => {
       const techCenterName = student.techCenter?.name || 'No Tech Center';
       
       if (!studentsByTechCenter[techCenterName]) {
@@ -97,7 +137,6 @@ export async function GET(req: NextRequest) {
         id: student.id,
         firstName: student.firstName,
         lastName: student.lastName,
-        email: student.email,
         profileImageUrl: student.profileImageUrl,
         role: student.role,
         techCenter: student.techCenter,
@@ -115,10 +154,12 @@ export async function GET(req: NextRequest) {
       techCenters,
       totalStudents: students.length,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Students list API error:', error);
     
-    if (error.message === 'Unauthorized') {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    if (errorMessage === 'Unauthorized') {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }

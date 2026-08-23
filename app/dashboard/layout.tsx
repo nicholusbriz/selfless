@@ -48,7 +48,6 @@ import { useUnreadNotificationCount, useAnnouncementCount } from '@/hooks/useNot
 // Primary: Warm Gold → #E8A33D, #F2C879, #C97F1F
 // Secondary: Teal → #14B8A6, #2DD4BF, #0D9488
 // Accent: Coral → #FB7185, #FDA4AF, #E11D48
-// Gradient: Gold to Coral → from-[#E8A33D] to-[#FB7185]
 // Surface: Navy Sidebar → #0A1628 sidebar, #0D1E35 topbar, #112240 hover | Warm Dark content → #111110 page
 // Text: White → #FFFFFF, #F8F5F0, #C4BDB5, #8A8278
 
@@ -1514,7 +1513,13 @@ export default function DashboardLayout({
               userRole={userRole}
             />
 
-            <main className={cn("flex-1 w-full overflow-x-hidden overflow-y-auto px-4 pb-4", isAiPage ? "pt-20 sm:pt-24" : "pt-[7.5rem]")}>
+            {/* 
+              Keep mobile scrolling on the window so page-level sticky
+              elements, like the students search bar, behave like desktop.
+              `overflow: clip` prevents sideways bleed without creating a
+              sticky containing block.
+            */}
+            <main className={cn("flex-1 w-full px-4 pb-4 [overflow-x:clip]", isAiPage ? "pt-20 sm:pt-24" : "pt-[7.5rem]")}>
               <div className="w-full max-w-7xl mx-auto">
                 {children}
               </div>
@@ -1569,16 +1574,61 @@ export default function DashboardLayout({
           )}
         </AnimatePresence>
 
+        {/* ============================================
+            ENHANCED AI BUTTON - CLEAN & PROFESSIONAL
+            ============================================ */}
         {!isAiPage && (
           <Link
             href="/dashboard/ai"
-            className="fixed bottom-4 right-4 z-40 flex items-center gap-2.5 rounded-2xl border-2 border-white/20 bg-gradient-to-br from-[#E8A33D] via-[#FB7185] to-[#14B8A6] px-3.5 py-3 text-white shadow-2xl shadow-[#E8A33D]/40 transition-all duration-300 hover:scale-105"
+            className="fixed bottom-4 right-4 z-40 flex items-center gap-2.5 
+              bg-[#0D1E35] 
+              border border-[#E8A33D] 
+              rounded-2xl 
+              px-3.5 py-2.5 
+              text-white 
+              shadow-xl shadow-[#E8A33D]/20 
+              transition-all duration-300 
+              hover:scale-105 
+              hover:border-[#14B8A6] 
+              hover:shadow-2xl hover:shadow-[#E8A33D]/40
+              group"
           >
-            <div className="relative">
-              <Image src="/atbriz.png" alt="Atbriz Ai" width={32} height={32} className="h-8 w-8 rounded-xl object-cover" />
-              <div className="absolute -right-1 -top-1.5 rounded-full bg-green-400 p-1" />
+            {/* Icon with status */}
+            <div className="relative flex-shrink-0">
+              <div className="absolute inset-0 rounded-xl bg-[#E8A33D]/20 blur-md group-hover:bg-[#14B8A6]/20 transition-all duration-300" />
+              <Image 
+                src="/atbriz.png" 
+                alt="Atbriz AI" 
+                width={32} 
+                height={32} 
+                className="relative h-8 w-8 rounded-xl object-cover border border-[#E8A33D]/30 group-hover:border-[#14B8A6]/50 transition-all duration-300" 
+              />
+              {/* Status dot */}
+              <div className="absolute -right-0.5 -top-0.5">
+                <div className="relative">
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#14B8A6] border-2 border-[#0D1E35] shadow-lg shadow-[#14B8A6]/40" />
+                  <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-[#14B8A6] animate-ping opacity-40" />
+                </div>
+              </div>
             </div>
-            <span className="whitespace-nowrap text-xs font-bold">Atbriz Ai</span>
+
+            {/* Text */}
+            <div className="flex flex-col items-start leading-tight">
+              <span className="text-xs font-bold text-white group-hover:text-[#E8A33D] transition-colors duration-300">
+                Atbriz AI
+              </span>
+              <span className="text-[8px] text-[#8A8278] group-hover:text-[#14B8A6] transition-colors duration-300">
+                Powered by AI
+              </span>
+            </div>
+
+            {/* Subtle accent indicator */}
+            <motion.div
+              className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-[#E8A33D]/30 group-hover:bg-[#14B8A6]/50 transition-all duration-300"
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ duration: 0.6 }}
+            />
           </Link>
         )}
       </div>
