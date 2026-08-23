@@ -1,18 +1,46 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
-import { 
-  Users, Trophy, Shirt, Plus, X, Loader2, ArrowLeft, Edit2, 
-  Save, Megaphone, Package, Stethoscope, Award, UserCog, 
-  Circle, Target, Globe, Zap, Search, User, Filter, 
-  Calendar, Star, Shield, Menu, Grid, List, Crown,
-  Gamepad2, Joystick, Sparkles, Flame, Swords
+import {
+  Users,
+  Trophy,
+  Shirt,
+  Plus,
+  X,
+  Loader2,
+  ArrowLeft,
+  Edit2,
+  Save,
+  Megaphone,
+  Package,
+  Stethoscope,
+  Award,
+  UserCog,
+  Circle,
+  Target,
+  Globe,
+  Zap,
+  User,
+  Crown,
+  Gamepad2,
+  Joystick,
+  Sparkles,
+  Flame,
 } from 'lucide-react';
-import { useTeam, useRegisterForTeam, useLeaveTeam, useUpdateTeamMembership } from '@/hooks/useTeam';
+
+import {
+  useTeam,
+  useRegisterForTeam,
+  useLeaveTeam,
+  useUpdateTeamMembership,
+} from '@/hooks/useTeam';
+
 import { useAuth } from '@/lib/hooks/useAuth';
+
+/* eslint-disable @next/next/no-img-element */
 
 interface TeamMember {
   id: string;
@@ -48,297 +76,466 @@ interface TeamData {
   totalMembers: number;
 }
 
-// Gaming-styled sport configurations
-const sportConfigs = {
+type SportType =
+  | 'FOOTBALL'
+  | 'VOLLEYBALL'
+  | 'NETBALL'
+  | 'BASKETBALL'
+  | 'ATHLETICS';
+
+type TeamRole =
+  | 'PLAYER'
+  | 'COACH'
+  | 'KIT_MANAGER'
+  | 'CHEERLEADER'
+  | 'TEAM_MANAGER'
+  | 'MEDICAL'
+  | 'REFEREE';
+
+interface SportConfig {
+  icon: React.ComponentType<{ className?: string }>;
+  name: string;
+  description: string;
+  positions: string[];
+}
+
+interface RoleConfig {
+  icon: React.ComponentType<{ className?: string }>;
+  name: string;
+  rank: string;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Sport configuration
+|--------------------------------------------------------------------------
+*/
+
+const sportConfigs: Record<SportType, SportConfig> = {
   FOOTBALL: {
     icon: Trophy,
-    borderColor: 'border-[#00ff41]',
-    bgColor: 'bg-[#00ff41]/5',
     name: 'Football',
     description: 'Join the football squad',
     positions: ['Goalkeeper', 'Defender', 'Midfielder', 'Forward'],
-    glowColor: 'shadow-[#00ff41]'
   },
+
   VOLLEYBALL: {
     icon: Circle,
-    borderColor: 'border-[#00d4ff]',
-    bgColor: 'bg-[#00d4ff]/5',
     name: 'Volleyball',
-    description: 'Popular for girls',
-    positions: ['Setter', 'Libero', 'Outside Hitter', 'Middle Blocker', 'Opposite'],
-    glowColor: 'shadow-[#00d4ff]'
+    description: 'Join the volleyball squad',
+    positions: [
+      'Setter',
+      'Libero',
+      'Outside Hitter',
+      'Middle Blocker',
+      'Opposite',
+    ],
   },
+
   NETBALL: {
     icon: Target,
-    borderColor: 'border-[#b400ff]',
-    bgColor: 'bg-[#b400ff]/5',
     name: 'Netball',
-    description: 'Popular for girls',
-    positions: ['Goal Shooter', 'Goal Attack', 'Wing Attack', 'Center', 'Wing Defense', 'Goal Defense'],
-    glowColor: 'shadow-[#b400ff]'
+    description: 'Join the netball squad',
+    positions: [
+      'Goal Shooter',
+      'Goal Attack',
+      'Wing Attack',
+      'Center',
+      'Wing Defense',
+      'Goal Defense',
+    ],
   },
+
   BASKETBALL: {
     icon: Globe,
-    borderColor: 'border-[#ff6b00]',
-    bgColor: 'bg-[#ff6b00]/5',
     name: 'Basketball',
-    description: 'For both boys and girls',
-    positions: ['Point Guard', 'Shooting Guard', 'Small Forward', 'Power Forward', 'Center'],
-    glowColor: 'shadow-[#ff6b00]'
+    description: 'Join the basketball squad',
+    positions: [
+      'Point Guard',
+      'Shooting Guard',
+      'Small Forward',
+      'Power Forward',
+      'Center',
+    ],
   },
+
   ATHLETICS: {
     icon: Zap,
-    borderColor: 'border-[#ffdd00]',
-    bgColor: 'bg-[#ffdd00]/5',
     name: 'Athletics',
-    description: 'Track & Field events',
-    positions: ['Sprinter', 'Distance Runner', 'Jumper', 'Thrower', 'Hurdler', 'Relay Runner'],
-    glowColor: 'shadow-[#ffdd00]'
-  }
+    description: 'Join track and field',
+    positions: [
+      'Sprinter',
+      'Distance Runner',
+      'Jumper',
+      'Thrower',
+      'Hurdler',
+      'Relay Runner',
+    ],
+  },
 };
 
-// Gaming-styled role configurations
-const roleConfigs = {
+/*
+|--------------------------------------------------------------------------
+| Team roles
+|--------------------------------------------------------------------------
+*/
+
+const roleConfigs: Record<TeamRole, RoleConfig> = {
   PLAYER: {
     icon: Users,
-    borderColor: 'border-[#00ff41]',
-    bgColor: 'bg-[#00ff41]/5',
-    name: 'Players',
-    rank: 'Bronze'
+    name: 'Player',
+    rank: 'Player',
   },
+
   COACH: {
     icon: Trophy,
-    borderColor: 'border-[#ffdd00]',
-    bgColor: 'bg-[#ffdd00]/5',
-    name: 'Coaches',
-    rank: 'Gold'
+    name: 'Coach',
+    rank: 'Coach',
   },
+
   KIT_MANAGER: {
     icon: Package,
-    borderColor: 'border-[#ff6b00]',
-    bgColor: 'bg-[#ff6b00]/5',
-    name: 'Kit Managers',
-    rank: 'Silver'
+    name: 'Kit Manager',
+    rank: 'Staff',
   },
+
   CHEERLEADER: {
     icon: Megaphone,
-    borderColor: 'border-[#ff00aa]',
-    bgColor: 'bg-[#ff00aa]/5',
-    name: 'Cheerleaders',
-    rank: 'Platinum'
+    name: 'Cheerleader',
+    rank: 'Support',
   },
+
   TEAM_MANAGER: {
     icon: UserCog,
-    borderColor: 'border-[#00d4ff]',
-    bgColor: 'bg-[#00d4ff]/5',
-    name: 'Team Managers',
-    rank: 'Diamond'
+    name: 'Team Manager',
+    rank: 'Management',
   },
+
   MEDICAL: {
     icon: Stethoscope,
-    borderColor: 'border-[#ff0044]',
-    bgColor: 'bg-[#ff0044]/5',
     name: 'Medical Staff',
-    rank: 'Ruby'
+    rank: 'Medical',
   },
+
   REFEREE: {
     icon: Award,
-    borderColor: 'border-[#ffffff]',
-    bgColor: 'bg-[#ffffff]/5',
-    name: 'Referees',
-    rank: 'Elite'
-  }
+    name: 'Referee',
+    rank: 'Official',
+  },
 };
+
+/*
+|--------------------------------------------------------------------------
+| Component
+|--------------------------------------------------------------------------
+*/
 
 export default function FootballTeamPage() {
   const router = useRouter();
   const { user } = useAuth();
-  
-  // State
+  const queryClient = useQueryClient();
+
+  /*
+  |--------------------------------------------------------------------------
+  | State
+  |--------------------------------------------------------------------------
+  */
+
   const [jerseyNumber, setJerseyNumber] = useState('');
   const [position, setPosition] = useState('');
+
   const [showJoinForm, setShowJoinForm] = useState(false);
+
   const [isEditing, setIsEditing] = useState(false);
   const [editJerseyNumber, setEditJerseyNumber] = useState('');
   const [editPosition, setEditPosition] = useState('');
-  const [selectedRole, setSelectedRole] = useState('PLAYER');
-  const [selectedSport, setSelectedSport] = useState('FOOTBALL');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterRole, setFilterRole] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  const [selectedRole, setSelectedRole] =
+    useState<TeamRole>('PLAYER');
+
+  const [selectedSport, setSelectedSport] =
+    useState<SportType>('FOOTBALL');
+
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
-  
+
+  const [selectedMember, setSelectedMember] =
+    useState<TeamMember | null>(null);
+
   const videoRef = useRef<HTMLVideoElement>(null);
+
   const techCenterId = user?.techCenterId || null;
-  const queryClient = useQueryClient();
-  
-  const { data, isLoading, error } = useTeam(techCenterId, selectedSport) as { 
-    data: TeamData | null, 
-    isLoading: boolean, 
-    error: any 
+
+  /*
+  |--------------------------------------------------------------------------
+  | Team data
+  |--------------------------------------------------------------------------
+  */
+
+  const {
+    data,
+    isLoading,
+    error,
+  } = useTeam(techCenterId, selectedSport) as {
+    data: TeamData | null | undefined;
+    isLoading: boolean;
+    error: Error | null;
   };
-  
+
   const registerMutation = useRegisterForTeam();
   const leaveMutation = useLeaveTeam();
   const updateMutation = useUpdateTeamMembership();
 
-  // Preload all team data
+  /*
+  |--------------------------------------------------------------------------
+  | Preload sport data
+  |--------------------------------------------------------------------------
+  */
+
   useEffect(() => {
-    if (techCenterId) {
-      const sports = ['FOOTBALL', 'VOLLEYBALL', 'NETBALL', 'BASKETBALL', 'ATHLETICS'];
-      sports.forEach(sport => {
-        queryClient.prefetchQuery({
-          queryKey: ['team', techCenterId, sport],
-          queryFn: async () => {
-            const response = await fetch(`/api/team/${techCenterId}/${sport}`);
-            return response.json();
-          },
-          staleTime: 10 * 60 * 1000,
-        });
+    if (!techCenterId) return;
+
+    const sports: SportType[] = [
+      'FOOTBALL',
+      'VOLLEYBALL',
+      'NETBALL',
+      'BASKETBALL',
+      'ATHLETICS',
+    ];
+
+    sports.forEach((sport) => {
+      queryClient.prefetchQuery({
+        queryKey: ['team', techCenterId, sport],
+        queryFn: async () => {
+          const response = await fetch(
+            `/api/team/${techCenterId}/${sport}`
+          );
+
+          if (!response.ok) {
+            throw new Error('Failed to load team data');
+          }
+
+          return response.json() as Promise<TeamData>;
+        },
+        staleTime: 10 * 60 * 1000,
       });
-    }
+    });
   }, [techCenterId, queryClient]);
 
-  // Ensure video plays
+  /*
+  |--------------------------------------------------------------------------
+  | Video playback
+  |--------------------------------------------------------------------------
+  */
+
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.play().catch(err => {
-        console.log('Video autoplay failed:', err);
-      });
-    }
+    const video = videoRef.current;
+
+    if (!video) return;
+
+    video.muted = true;
+
+    const playVideo = async () => {
+      try {
+        await video.play();
+      } catch (videoError) {
+        console.warn('Video autoplay failed:', videoError);
+      }
+    };
+
+    playVideo();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        playVideo();
+      }
+    };
+
+    document.addEventListener(
+      'visibilitychange',
+      handleVisibilityChange
+    );
+
+    return () => {
+      document.removeEventListener(
+        'visibilitychange',
+        handleVisibilityChange
+      );
+    };
   }, []);
 
-  const teamMembers = data?.teamMembers || [];
-  const currentUserMembership = data?.currentUserMembership || null;
-  const totalMembers = data?.totalMembers || 0;
-  const currentSportConfig = sportConfigs[selectedSport as keyof typeof sportConfigs];
+  /*
+  |--------------------------------------------------------------------------
+  | Derived data
+  |--------------------------------------------------------------------------
+  */
 
-  // Filter and search members
-  const filteredMembers = useMemo(() => {
-    let filtered = teamMembers;
+  const teamMembers = data?.teamMembers ?? [];
 
-    // Search filter - enhanced to search by name, email, jersey number, and position
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(member => {
-        const fullName = `${member.user.firstName} ${member.user.lastName}`.toLowerCase();
-        const email = member.user.email?.toLowerCase() || '';
-        const jerseyNumberStr = member.jerseyNumber?.toString() || '';
-        const positionStr = member.position?.toLowerCase() || '';
+  const currentUserMembership =
+    data?.currentUserMembership ?? null;
 
-        return (
-          fullName.includes(query) ||
-          email.includes(query) ||
-          jerseyNumberStr.includes(query) ||
-          positionStr.includes(query)
-        );
-      });
+  const totalMembers = data?.totalMembers ?? teamMembers.length;
+
+  const currentSportConfig =
+    sportConfigs[selectedSport];
+
+  const techCenterName =
+    teamMembers[0]?.techCenter?.name ||
+    'Tech Center';
+
+  /*
+  |--------------------------------------------------------------------------
+  | Helpers
+  |--------------------------------------------------------------------------
+  */
+
+  const getInitials = (
+    firstName: string,
+    lastName: string
+  ) => {
+    return `${firstName.charAt(0)}${lastName.charAt(
+      0
+    )}`.toUpperCase();
+  };
+
+  const getRoleConfig = (role: string) => {
+    return roleConfigs[role as TeamRole] ?? roleConfigs.PLAYER;
+  };
+
+  const getRoleAccent = (role: string) => {
+    switch (role) {
+      case 'COACH':
+        return 'text-amber-300 border-amber-300/40 bg-amber-300/5';
+
+      case 'KIT_MANAGER':
+        return 'text-orange-300 border-orange-300/40 bg-orange-300/5';
+
+      case 'CHEERLEADER':
+        return 'text-pink-300 border-pink-300/40 bg-pink-300/5';
+
+      case 'TEAM_MANAGER':
+        return 'text-cyan-300 border-cyan-300/40 bg-cyan-300/5';
+
+      case 'MEDICAL':
+        return 'text-red-300 border-red-300/40 bg-red-300/5';
+
+      case 'REFEREE':
+        return 'text-slate-200 border-slate-200/40 bg-slate-200/5';
+
+      default:
+        return 'text-emerald-300 border-emerald-300/40 bg-emerald-300/5';
     }
-
-    // Role filter
-    if (filterRole) {
-      filtered = filtered.filter(member => member.teamRole === filterRole);
-    }
-
-    return filtered;
-  }, [teamMembers, searchQuery, filterRole]);
-
-  // Group members by role for stats
-  const membersByRole = Object.keys(roleConfigs).reduce((acc, role) => {
-    acc[role] = teamMembers.filter((m: TeamMember) => m.teamRole === role);
-    return acc;
-  }, {} as Record<string, TeamMember[]>);
-
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
-  const getRankColor = (role: string) => {
-    const rankColors: Record<string, string> = {
-      PLAYER: 'text-[#00ff41] border-[#00ff41]',
-      COACH: 'text-[#ffdd00] border-[#ffdd00]',
-      KIT_MANAGER: 'text-[#ff6b00] border-[#ff6b00]',
-      CHEERLEADER: 'text-[#ff00aa] border-[#ff00aa]',
-      TEAM_MANAGER: 'text-[#00d4ff] border-[#00d4ff]',
-      MEDICAL: 'text-[#ff0044] border-[#ff0044]',
-      REFEREE: 'text-[#ffffff] border-[#ffffff]'
-    };
-    return rankColors[role] || 'text-white border-white';
-  };
-
-  const getGlowEffect = (role: string) => {
-    const glowColors: Record<string, string> = {
-      PLAYER: 'shadow-[0_0_20px_rgba(0,255,65,0.3)]',
-      COACH: 'shadow-[0_0_20px_rgba(255,221,0,0.3)]',
-      KIT_MANAGER: 'shadow-[0_0_20px_rgba(255,107,0,0.3)]',
-      CHEERLEADER: 'shadow-[0_0_20px_rgba(255,0,170,0.3)]',
-      TEAM_MANAGER: 'shadow-[0_0_20px_rgba(0,212,255,0.3)]',
-      MEDICAL: 'shadow-[0_0_20px_rgba(255,0,68,0.3)]',
-      REFEREE: 'shadow-[0_0_20px_rgba(255,255,255,0.3)]'
-    };
-    return glowColors[role] || '';
-  };
+  /*
+  |--------------------------------------------------------------------------
+  | Join team
+  |--------------------------------------------------------------------------
+  */
 
   const handleJoinTeam = async () => {
     if (!techCenterId || !jerseyNumber || !position) {
       alert('Please fill in all required fields');
       return;
     }
-    try {
-      setShowJoinForm(false);
-      setJerseyNumber('');
-      setPosition('');
-      setSelectedRole('PLAYER');
 
+    try {
       await registerMutation.mutateAsync({
         techCenterId,
         teamType: selectedSport,
         teamRole: selectedRole,
-        jerseyNumber: parseInt(jerseyNumber),
-        position: position
+        jerseyNumber: parseInt(jerseyNumber, 10),
+        position,
       });
-    } catch (error) {
-      console.error('Failed to join team:', error);
-      setShowJoinForm(true);
+
+      setShowJoinForm(false);
+      setJerseyNumber('');
+      setPosition('');
+      setSelectedRole('PLAYER');
+    } catch (joinError) {
+      console.error(
+        'Failed to join team:',
+        joinError
+      );
     }
   };
+
+  /*
+  |--------------------------------------------------------------------------
+  | Leave team
+  |--------------------------------------------------------------------------
+  */
 
   const handleLeaveTeam = async (teamId: string) => {
-    if (!confirm('Are you sure you want to leave the team?')) return;
+    const confirmed = window.confirm(
+      'Are you sure you want to leave this team?'
+    );
+
+    if (!confirmed) return;
+
     try {
       await leaveMutation.mutateAsync(teamId);
-    } catch (error) {
-      console.error('Failed to leave team:', error);
+    } catch (leaveError) {
+      console.error(
+        'Failed to leave team:',
+        leaveError
+      );
     }
   };
 
+  /*
+  |--------------------------------------------------------------------------
+  | Edit membership
+  |--------------------------------------------------------------------------
+  */
+
   const handleEditMembership = () => {
-    if (currentUserMembership) {
-      setEditJerseyNumber(currentUserMembership.jerseyNumber?.toString() || '');
-      setEditPosition(currentUserMembership.position || '');
-      setSelectedRole(currentUserMembership.teamRole);
-      setIsEditing(true);
-    }
+    if (!currentUserMembership) return;
+
+    setEditJerseyNumber(
+      currentUserMembership.jerseyNumber?.toString() || ''
+    );
+
+    setEditPosition(
+      currentUserMembership.position || ''
+    );
+
+    setSelectedRole(
+      (currentUserMembership.teamRole as TeamRole) ||
+        'PLAYER'
+    );
+
+    setIsEditing(true);
   };
 
   const handleUpdateMembership = async () => {
-    if (!currentUserMembership || !editJerseyNumber || !editPosition) {
+    if (
+      !currentUserMembership ||
+      !editJerseyNumber ||
+      !editPosition
+    ) {
       alert('Please fill in all required fields');
       return;
     }
+
     try {
       await updateMutation.mutateAsync({
         teamId: currentUserMembership.id,
-        jerseyNumber: parseInt(editJerseyNumber),
-        position: editPosition
+        jerseyNumber: parseInt(
+          editJerseyNumber,
+          10
+        ),
+        position: editPosition,
       });
+
       setIsEditing(false);
       setEditJerseyNumber('');
       setEditPosition('');
-    } catch (error) {
-      console.error('Failed to update team membership:', error);
+    } catch (updateError) {
+      console.error(
+        'Failed to update team membership:',
+        updateError
+      );
     }
   };
 
@@ -348,39 +545,91 @@ export default function FootballTeamPage() {
     setEditPosition('');
   };
 
+  /*
+  |--------------------------------------------------------------------------
+  | Loading
+  |--------------------------------------------------------------------------
+  */
+
   if (isLoading) {
     return (
-      <div className="min-h-screen p-6 bg-[#0a0a0a]">
-        <div className="max-w-4xl mx-auto space-y-6">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-black/50 border border-[#00ff41]/20 rounded-xl p-6 animate-pulse">
-              <div className="h-6 w-48 bg-[#00ff41]/10 rounded mb-4" />
-              <div className="space-y-3">
-                {[1, 2, 3].map((j) => (
-                  <div key={j} className="h-16 bg-[#00ff41]/5 rounded-lg" />
-                ))}
-              </div>
-            </div>
-          ))}
+      <main className="min-h-screen bg-[#07110c] text-white">
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <div className="h-10 w-56 rounded-lg bg-white/10 animate-pulse mb-8" />
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-8">
+            {Array.from({ length: 5 }).map(
+              (_, index) => (
+                <div
+                  key={index}
+                  className="h-20 rounded-xl bg-white/5 border border-white/10 animate-pulse"
+                />
+              )
+            )}
+          </div>
+
+          <div className="space-y-4">
+            {Array.from({ length: 6 }).map(
+              (_, index) => (
+                <div
+                  key={index}
+                  className="h-24 rounded-2xl bg-white/5 border border-white/10 animate-pulse"
+                />
+              )
+            )}
+          </div>
         </div>
-      </div>
+      </main>
     );
   }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Error
+  |--------------------------------------------------------------------------
+  */
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
-        <div className="text-center">
-          <p className="text-[#ff0044] font-mono">ERROR: Failed to load team data</p>
+      <main className="min-h-screen flex items-center justify-center bg-[#07110c] px-6">
+        <div className="w-full max-w-md rounded-2xl border border-red-400/20 bg-black/60 p-8 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-400/10">
+            <X className="h-7 w-7 text-red-300" />
+          </div>
+
+          <h1 className="text-xl font-semibold text-white">
+            Unable to load team
+          </h1>
+
+          <p className="mt-2 text-sm text-white/60">
+            We could not load the selected sport team.
+            Please try again.
+          </p>
+
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-6 rounded-xl bg-emerald-400 px-5 py-3 text-sm font-semibold text-[#07110c] transition hover:bg-emerald-300"
+          >
+            Try Again
+          </button>
         </div>
-      </div>
+      </main>
     );
   }
 
+  /*
+  |--------------------------------------------------------------------------
+  | Page
+  |--------------------------------------------------------------------------
+  */
+
   return (
-    <div className="min-h-screen relative bg-[#0a0a0a]">
-      {/* Video Background */}
-      <div className="fixed inset-0 w-full h-full">
+    <div className="relative min-h-screen overflow-x-hidden bg-[#07110c] text-white">
+      {/* ---------------------------------------------------------------
+          VIDEO BACKGROUND
+      ---------------------------------------------------------------- */}
+
+      <div className="fixed inset-0 z-0 overflow-hidden">
         <video
           ref={videoRef}
           autoPlay
@@ -388,811 +637,1206 @@ export default function FootballTeamPage() {
           loop
           playsInline
           preload="auto"
-          className="w-full h-full object-cover opacity-40"
+          className="absolute inset-0 h-full w-full object-cover object-center opacity-75"
         >
-          <source src="/football-video.mp4" type="video/mp4" />
+          <source
+            src="/football-video.mp4"
+            type="video/mp4"
+          />
         </video>
-        <div className="absolute inset-0 bg-[#0a0a0a]/90" />
-        {/* Scanning line effect */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-0 right-0 h-px bg-[#00ff41]/20 animate-pulse" 
-               style={{ boxShadow: '0 0 100px #00ff41' }} />
-          <div className="absolute bottom-0 left-0 right-0 h-px bg-[#00ff41]/20 animate-pulse" 
-               style={{ boxShadow: '0 0 100px #00ff41' }} />
-        </div>
+
+        {/* Light readability layer instead of the old heavy black overlay */}
+        <div className="absolute inset-0 bg-[#07110c]/35" />
+
+        {/* Slight top protection for header */}
+        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/45 to-transparent" />
+
+        {/* Bottom fade */}
+        <div className="absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-[#07110c] via-[#07110c]/65 to-transparent" />
       </div>
 
-      {/* Grid overlay for gaming feel */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `
-            linear-gradient(rgba(0, 255, 65, 0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 255, 65, 0.03) 1px, transparent 1px)
-          `,
-          backgroundSize: '50px 50px'
-        }} />
-      </div>
+      {/* ---------------------------------------------------------------
+          CONTENT
+      ---------------------------------------------------------------- */}
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 py-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.back()}
-              className="p-2 rounded-lg bg-black/80 border border-[#00ff41]/30 hover:border-[#00ff41] text-[#00ff41] transition-all duration-300 font-mono text-sm"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            
-            <div className="h-8 w-px bg-[#00ff41]/30" />
-            
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-black/80 border border-[#00ff41]/30">
-                {currentSportConfig && <currentSportConfig.icon className="w-6 h-6 text-[#00ff41]" />}
+      <div className="relative z-10">
+        <div className="mx-auto max-w-6xl px-4 pb-16 pt-5 sm:px-6 lg:px-8">
+          {/* -------------------------------------------------------------
+              HEADER
+          -------------------------------------------------------------- */}
+
+          <header className="mb-8 flex items-center justify-between">
+            <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+              <button
+                onClick={() => router.back()}
+                aria-label="Go back"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/15 bg-black/30 text-white backdrop-blur-md transition hover:border-emerald-300/50 hover:bg-black/50"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+
+              <div className="hidden h-8 w-px bg-white/15 sm:block" />
+
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-emerald-300/30 bg-black/30 backdrop-blur-md">
+                  {React.createElement(
+                    currentSportConfig.icon,
+                    {
+                      className:
+                        'h-5 w-5 text-emerald-300',
+                    }
+                  )}
+                </div>
+
+                <div className="min-w-0">
+                  <h1 className="truncate text-xl font-bold tracking-tight text-white sm:text-2xl">
+                    {currentSportConfig.name}
+                  </h1>
+
+                  <p className="truncate text-sm text-white/60">
+                    {techCenterName} • Squad {totalMembers}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-[#00ff41] tracking-wider font-mono" style={{ textShadow: '0 0 20px rgba(0,255,65,0.5)' }}>
-                  {currentSportConfig?.name || 'Team'}
-                </h1>
-                <p className="text-sm text-[#00ff41]/60 font-mono">
-                  {teamMembers[0]?.techCenter?.name || 'Tech Center'} • Squad {totalMembers}
+            </div>
+
+            {/* Profile */}
+            <button
+              onClick={() =>
+                setShowProfileModal(true)
+              }
+              aria-label="Open profile"
+              className="relative shrink-0"
+            >
+              <div className="flex items-center gap-3">
+                <div className="hidden text-right sm:block">
+                  {user?.firstName && (
+                    <p className="text-sm font-semibold text-white">
+                      {user.firstName} {user.lastName}
+                    </p>
+                  )}
+                  <p className="text-xs text-white/50">
+                    {user?.email}
+                  </p>
+                </div>
+
+                <div className="h-11 w-11 overflow-hidden rounded-full border border-white/25 bg-black/40 backdrop-blur-md transition hover:border-emerald-300/60 sm:h-12 sm:w-12">
+                  {user?.profileImageUrl ? (
+                    <img
+                      src={user.profileImageUrl}
+                      alt="Profile"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <User className="h-5 w-5 text-white/80" />
+                    </div>
+                  )}
+                </div>
+
+                <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-[#07110c] bg-emerald-400" />
+              </div>
+            </button>
+          </header>
+
+          {/* -------------------------------------------------------------
+              STICKY SPORT NAVIGATION
+          -------------------------------------------------------------- */}
+
+          <div className="sticky top-0 z-40 -mx-4 mb-8 border-b border-white/10 bg-[#07110c]/80 px-4 py-3 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+            <div className="mb-3 flex items-center gap-2">
+              <Gamepad2 className="h-4 w-4 text-emerald-300" />
+
+              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+                Select sport
+              </span>
+
+              <div className="h-px flex-1 bg-white/10" />
+            </div>
+
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+              {(
+                Object.entries(
+                  sportConfigs
+                ) as [
+                  SportType,
+                  SportConfig
+                ][]
+              ).map(
+                ([sport, config]) => {
+                  const Icon = config.icon;
+                  const isSelected =
+                    selectedSport === sport;
+
+                  return (
+                    <button
+                      key={sport}
+                      onClick={() => {
+                        setSelectedSport(sport);
+                        setShowJoinForm(false);
+                        setIsEditing(false);
+                      }}
+                      className={`
+                        flex min-w-[116px] shrink-0
+                        items-center justify-center gap-2
+                        rounded-xl border px-4 py-3
+                        text-sm font-medium
+                        transition-all duration-200
+                        ${
+                          isSelected
+                            ? 'border-emerald-300/60 bg-emerald-400/15 text-emerald-200 shadow-sm'
+                            : 'border-white/10 bg-black/20 text-white/65 hover:border-white/25 hover:bg-white/5 hover:text-white'
+                        }
+                      `}
+                    >
+                      <Icon className="h-4 w-4" />
+
+                      <span>
+                        {config.name}
+                      </span>
+                    </button>
+                  );
+                }
+              )}
+            </div>
+          </div>
+
+          {/* -------------------------------------------------------------
+              SPORT INTRO
+          -------------------------------------------------------------- */}
+
+          <section className="mb-7">
+            <div className="max-w-3xl">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/25 px-3 py-1.5 backdrop-blur-md">
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+
+                <span className="text-xs font-medium uppercase tracking-wider text-white/65">
+                  {currentSportConfig.name}
+                </span>
+              </div>
+
+              <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                {user?.firstName ? `Welcome, ${user.firstName}!` : `${currentSportConfig.name} Team`}
+              </h2>
+
+              <p className="mt-2 max-w-xl text-sm leading-6 text-white/65 sm:text-base">
+                {currentSportConfig.description}.
+                Browse the members of the{' '}
+                {techCenterName} squad below.
+              </p>
+            </div>
+          </section>
+
+          {/* -------------------------------------------------------------
+              SIMPLE STATS
+          -------------------------------------------------------------- */}
+
+          <section className="mb-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4 backdrop-blur-md">
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-400/10">
+                <Users className="h-4 w-4 text-emerald-300" />
+              </div>
+
+              <p className="text-2xl font-bold text-white">
+                {totalMembers}
+              </p>
+
+              <p className="mt-1 text-xs font-medium uppercase tracking-wider text-white/45">
+                Squad members
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4 backdrop-blur-md">
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-400/10">
+                <Shirt className="h-4 w-4 text-cyan-300" />
+              </div>
+
+              <p className="text-2xl font-bold text-white">
+                {
+                  teamMembers.filter(
+                    (member) =>
+                      member.teamRole ===
+                      'PLAYER'
+                  ).length
+                }
+              </p>
+
+              <p className="mt-1 text-xs font-medium uppercase tracking-wider text-white/45">
+                Players
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4 backdrop-blur-md">
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-amber-400/10">
+                <Crown className="h-4 w-4 text-amber-300" />
+              </div>
+
+              <p className="text-2xl font-bold text-white">
+                {
+                  teamMembers.filter(
+                    (member) =>
+                      member.teamRole ===
+                      'COACH'
+                  ).length
+                }
+              </p>
+
+              <p className="mt-1 text-xs font-medium uppercase tracking-wider text-white/45">
+                Coaches
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4 backdrop-blur-md">
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-violet-400/10">
+                <Sparkles className="h-4 w-4 text-violet-300" />
+              </div>
+
+              <p className="text-2xl font-bold text-white">
+                {
+                  teamMembers.filter(
+                    (member) =>
+                      member.isActive
+                  ).length
+                }
+              </p>
+
+              <p className="mt-1 text-xs font-medium uppercase tracking-wider text-white/45">
+                Active
+              </p>
+            </div>
+          </section>
+
+          {/* -------------------------------------------------------------
+              MULTI-SPORT INFORMATION
+          -------------------------------------------------------------- */}
+
+          <div className="mb-7 rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-md sm:p-5">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-400/10">
+                <Joystick className="h-5 w-5 text-emerald-300" />
+              </div>
+
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-white">
+                  Multi-sport teams
+                </h3>
+
+                <p className="mt-1 text-sm leading-6 text-white/55">
+                  Students can participate in
+                  different sports. Use the sport
+                  categories above to view each
+                  squad.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Profile Button */}
-          <button
-            onClick={() => setShowProfileModal(true)}
-            className="relative group"
-          >
-            <div className="w-12 h-12 rounded-full bg-black/80 border-2 border-[#00ff41] flex items-center justify-center overflow-hidden transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,255,65,0.3)]">
-              {user?.profileImageUrl ? (
-                <img
-                  src={user.profileImageUrl}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <User className="w-6 h-6 text-[#00ff41]" />
-              )}
-            </div>
-            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#00ff41] rounded-full border-2 border-[#0a0a0a]" />
-            <div className="absolute inset-0 rounded-full animate-ping opacity-0 group-hover:opacity-100 border-2 border-[#00ff41]" />
-          </button>
-        </div>
+          {/* -------------------------------------------------------------
+              CURRENT MEMBERSHIP
+          -------------------------------------------------------------- */}
 
-        {/* Sport Filter Buttons - Gaming Style */}
-        <div className="relative mb-8">
-          <div className="flex items-center gap-2 mb-4">
-            <Gamepad2 className="w-5 h-5 text-[#00ff41]" />
-            <span className="text-[#00ff41]/60 font-mono text-sm">SELECT SPORT</span>
-            <div className="flex-1 h-px bg-[#00ff41]/20" />
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            {Object.entries(sportConfigs).map(([sport, config]) => {
-              const Icon = config.icon;
-              const isSelected = selectedSport === sport;
-              
-              return (
-                <button
-                  key={sport}
-                  onClick={() => setSelectedSport(sport)}
-                  className={`
-                    relative p-4 rounded-lg border-2 transition-all duration-300
-                    ${isSelected 
-                      ? `${config.borderColor} bg-black/80 shadow-[0_0_30px_rgba(0,255,65,0.15)]` 
-                      : 'border-[#00ff41]/20 bg-black/50 hover:border-[#00ff41]/50'
-                    }
-                  `}
-                >
-                  <div className="flex flex-col items-center gap-2">
-                    <Icon className={`w-5 h-5 ${isSelected ? 'text-[#00ff41]' : 'text-[#00ff41]/50'}`} />
-                    <span className={`text-sm font-mono ${isSelected ? 'text-[#00ff41]' : 'text-[#00ff41]/60'}`}>
-                      {config.name}
-                    </span>
-                    {isSelected && (
-                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#00ff41] rounded-full animate-pulse" />
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+          <section className="mb-8">
+            {currentUserMembership &&
+            currentUserMembership.teamType ===
+              selectedSport ? (
+              <div className="rounded-2xl border border-emerald-300/20 bg-black/30 p-5 backdrop-blur-md">
+                {!isEditing ? (
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-400/10">
+                        <Users className="h-5 w-5 text-emerald-300" />
+                      </div>
 
-        {/* Gaming Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-black/80 border border-[#00ff41]/20 rounded-lg p-4 hover:border-[#00ff41]/50 transition-all">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg border border-[#00ff41]/30">
-                <Users className="w-5 h-5 text-[#00ff41]" />
-              </div>
-              <div>
-                <p className="text-xl font-bold text-[#00ff41] font-mono">{totalMembers}</p>
-                <p className="text-xs text-[#00ff41]/60 font-mono">TOTAL SQUAD</p>
-              </div>
-            </div>
-          </div>
+                      <div>
+                        <p className="font-semibold text-white">
+                          You are on this team
+                        </p>
 
-          <div className="bg-black/80 border border-[#00ff41]/20 rounded-lg p-4 hover:border-[#00ff41]/50 transition-all">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg border border-[#00d4ff]/30">
-                <Shirt className="w-5 h-5 text-[#00d4ff]" />
-              </div>
-              <div>
-                <p className="text-xl font-bold text-[#00d4ff] font-mono">{membersByRole.PLAYER?.length || 0}</p>
-                <p className="text-xs text-[#00d4ff]/60 font-mono">PLAYERS</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-black/80 border border-[#00ff41]/20 rounded-lg p-4 hover:border-[#00ff41]/50 transition-all">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg border border-[#ffdd00]/30">
-                <Crown className="w-5 h-5 text-[#ffdd00]" />
-              </div>
-              <div>
-                <p className="text-xl font-bold text-[#ffdd00] font-mono">{membersByRole.COACH?.length || 0}</p>
-                <p className="text-xs text-[#ffdd00]/60 font-mono">COACHES</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-black/80 border border-[#00ff41]/20 rounded-lg p-4 hover:border-[#00ff41]/50 transition-all">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg border border-[#ff00aa]/30">
-                <Sparkles className="w-5 h-5 text-[#ff00aa]" />
-              </div>
-              <div>
-                <p className="text-xl font-bold text-[#ff00aa] font-mono">{membersByRole.CHEERLEADER?.length || 0}</p>
-                <p className="text-xs text-[#ff00aa]/60 font-mono">CHEERLEADERS</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Multi-Sport Banner - Gaming Style */}
-        <div className="mb-6 bg-black/80 border border-[#00ff41]/20 rounded-lg p-4 relative overflow-hidden">
-          <div className="absolute inset-0 bg-[#00ff41]/5" />
-          <div className="absolute top-0 left-0 right-0 h-px bg-[#00ff41]/20 animate-pulse" />
-          <div className="relative flex items-start gap-3">
-            <div className="p-2 rounded-lg border border-[#00ff41]/30">
-              <Joystick className="w-5 h-5 text-[#00ff41]" />
-            </div>
-            <div className="flex-1">
-              <p className="text-[#00ff41] font-mono font-medium">MULTI-SPORT UNLOCKED</p>
-              <p className="text-sm text-[#00ff41]/60 font-mono mt-1">
-                Join multiple sports - Football, Volleyball, Netball, Basketball, and Athletics. 
-                Select your sport above to begin.
-              </p>
-            </div>
-            <Swords className="w-5 h-5 text-[#00ff41]/30" />
-          </div>
-        </div>
-
-        {/* Join/Leave Action */}
-        <div className="mb-8">
-          {currentUserMembership && currentUserMembership.teamType === selectedSport ? (
-            <div className="bg-black/80 border border-[#00ff41]/20 rounded-lg p-4">
-              {!isEditing ? (
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg border border-[#00ff41]/30">
-                      <Users className="w-5 h-5 text-[#00ff41]" />
+                        <p className="mt-1 text-sm text-white/55">
+                          {getRoleConfig(
+                            currentUserMembership.teamRole
+                          ).name}{' '}
+                          • #
+                          {
+                            currentUserMembership.jerseyNumber
+                          }{' '}
+                          •{' '}
+                          {
+                            currentUserMembership.position
+                          }
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[#00ff41] font-mono font-medium">
-                        STATUS: {roleConfigs[currentUserMembership.teamRole as keyof typeof roleConfigs]?.name?.toUpperCase() || 'MEMBER'}
-                      </p>
-                      <p className="text-sm text-[#00ff41]/60 font-mono">
-                        #{currentUserMembership.jerseyNumber} • {currentUserMembership.position}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 w-full md:w-auto">
-                    <button
-                      onClick={handleEditMembership}
-                      className="flex-1 md:flex-none px-4 py-2 bg-black/80 border border-[#00ff41]/30 text-[#00ff41] rounded-lg hover:border-[#00ff41] hover:shadow-[0_0_20px_rgba(0,255,65,0.15)] transition-all font-mono text-sm flex items-center justify-center gap-2"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                      EDIT
-                    </button>
-                    <button
-                      onClick={() => handleLeaveTeam(currentUserMembership.id)}
-                      disabled={leaveMutation.isPending}
-                      className="flex-1 md:flex-none px-4 py-2 bg-black/80 border border-[#ff0044]/30 text-[#ff0044] rounded-lg hover:border-[#ff0044] hover:shadow-[0_0_20px_rgba(255,0,68,0.15)] transition-all font-mono text-sm flex items-center justify-center gap-2"
-                    >
-                      {leaveMutation.isPending ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <X className="w-4 h-4" />
-                      )}
-                      LEAVE
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 rounded-lg border border-[#00ff41]/30">
-                      <Edit2 className="w-5 h-5 text-[#00ff41]" />
-                    </div>
-                    <p className="text-[#00ff41] font-mono font-medium">EDIT PROFILE</p>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm text-[#00ff41]/60 font-mono mb-2">JERSEY #</label>
-                      <input
-                        type="number"
-                        value={editJerseyNumber}
-                        onChange={(e) => setEditJerseyNumber(e.target.value)}
-                        className="w-full px-4 py-3 bg-black/80 border border-[#00ff41]/20 rounded-lg text-[#00ff41] placeholder:text-[#00ff41]/30 focus:outline-none focus:border-[#00ff41] transition-all font-mono"
-                        placeholder="e.g., 10"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm text-[#00ff41]/60 font-mono mb-2">POSITION</label>
-                      <select
-                        value={editPosition}
-                        onChange={(e) => setEditPosition(e.target.value)}
-                        className="w-full px-4 py-3 bg-black/80 border border-[#00ff41]/20 rounded-lg text-[#00ff41] focus:outline-none focus:border-[#00ff41] transition-all font-mono"
-                        required
+
+                    <div className="flex w-full gap-2 sm:w-auto">
+                      <button
+                        onClick={
+                          handleEditMembership
+                        }
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition hover:border-emerald-300/40 hover:bg-white/10 sm:flex-none"
                       >
-                        <option value="">SELECT POSITION</option>
-                        {currentSportConfig?.positions.map(pos => (
-                          <option key={pos} value={pos}>{pos.toUpperCase()}</option>
-                        ))}
-                      </select>
+                        <Edit2 className="h-4 w-4" />
+                        Edit
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          handleLeaveTeam(
+                            currentUserMembership.id
+                          )
+                        }
+                        disabled={
+                          leaveMutation.isPending
+                        }
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-300/20 bg-red-400/5 px-4 py-2.5 text-sm font-medium text-red-200 transition hover:bg-red-400/10 disabled:opacity-50 sm:flex-none"
+                      >
+                        {leaveMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <X className="h-4 w-4" />
+                        )}
+
+                        Leave
+                      </button>
                     </div>
                   </div>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={handleUpdateMembership}
-                      disabled={updateMutation.isPending}
-                      className="flex-1 px-4 py-3 bg-[#00ff41] text-black rounded-lg font-mono font-medium hover:shadow-[0_0_30px_rgba(0,255,65,0.3)] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      {updateMutation.isPending ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Save className="w-4 h-4" />
-                          SAVE
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={handleCancelEdit}
-                      className="px-4 py-3 bg-black/80 border border-[#00ff41]/20 text-[#00ff41] rounded-lg hover:border-[#00ff41]/50 transition-all font-mono"
-                    >
-                      CANCEL
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowJoinForm(!showJoinForm)}
-              className="w-full bg-[#00ff41] text-black rounded-lg p-4 font-mono font-medium hover:shadow-[0_0_30px_rgba(0,255,65,0.3)] transition-all flex items-center justify-center gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              JOIN {currentSportConfig?.name.toUpperCase()} SQUAD
-            </button>
-          )}
-        </div>
+                ) : (
+                  <div>
+                    <div className="mb-5 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-400/10">
+                        <Edit2 className="h-5 w-5 text-emerald-300" />
+                      </div>
 
-        {/* Join Form */}
-        <AnimatePresence>
-          {showJoinForm && !currentUserMembership && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="bg-black/80 border border-[#00ff41]/20 rounded-lg p-6 mb-8"
-            >
-              <h3 className="text-lg font-mono font-semibold text-[#00ff41] mb-4">
-                JOIN {currentSportConfig?.name.toUpperCase()}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm text-[#00ff41]/60 font-mono mb-2">ROLE</label>
-                  <select
-                    value={selectedRole}
-                    onChange={(e) => setSelectedRole(e.target.value)}
-                    className="w-full px-4 py-3 bg-black/80 border border-[#00ff41]/20 rounded-lg text-[#00ff41] focus:outline-none focus:border-[#00ff41] transition-all font-mono"
-                  >
-                    {Object.entries(roleConfigs).map(([role, config]) => (
-                      <option key={role} value={role}>{config.name.toUpperCase()}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm text-[#00ff41]/60 font-mono mb-2">JERSEY #</label>
-                  <input
-                    type="number"
-                    value={jerseyNumber}
-                    onChange={(e) => setJerseyNumber(e.target.value)}
-                    className="w-full px-4 py-3 bg-black/80 border border-[#00ff41]/20 rounded-lg text-[#00ff41] placeholder:text-[#00ff41]/30 focus:outline-none focus:border-[#00ff41] transition-all font-mono"
-                    placeholder="e.g., 10"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-[#00ff41]/60 font-mono mb-2">POSITION</label>
-                  <select
-                    value={position}
-                    onChange={(e) => setPosition(e.target.value)}
-                    className="w-full px-4 py-3 bg-black/80 border border-[#00ff41]/20 rounded-lg text-[#00ff41] focus:outline-none focus:border-[#00ff41] transition-all font-mono"
-                    required
-                  >
-                    <option value="">SELECT POSITION</option>
-                    {currentSportConfig?.positions.map(pos => (
-                      <option key={pos} value={pos}>{pos.toUpperCase()}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={handleJoinTeam}
-                  disabled={registerMutation.isPending}
-                  className="flex-1 px-4 py-3 bg-[#00ff41] text-black rounded-lg font-mono font-medium hover:shadow-[0_0_30px_rgba(0,255,65,0.3)] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {registerMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    'JOIN SQUAD'
-                  )}
-                </button>
-                <button
-                  onClick={() => setShowJoinForm(false)}
-                  className="px-4 py-3 bg-black/80 border border-[#00ff41]/20 text-[#00ff41] rounded-lg hover:border-[#00ff41]/50 transition-all font-mono"
-                >
-                  CANCEL
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                      <div>
+                        <h3 className="font-semibold text-white">
+                          Edit your team details
+                        </h3>
 
-        {/* Search and Filters */}
-        <div className="sticky top-0 z-40 mb-6 py-4 bg-gradient-to-b from-black via-black/95 to-transparent backdrop-blur-sm -mx-4 px-4 md:mx-0 md:px-0">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#00ff41]/60" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name, email, jersey number, or position..."
-                className="w-full pl-12 pr-12 py-4 bg-black/90 border-2 border-[#00ff41]/30 rounded-xl text-[#00ff41] placeholder:text-[#00ff41]/40 focus:outline-none focus:border-[#00ff41] focus:shadow-[0_0_20px_rgba(0,255,65,0.2)] transition-all font-mono text-sm"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#00ff41]/60 hover:text-[#00ff41] transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
+                        <p className="text-sm text-white/50">
+                          Update your jersey number
+                          or position.
+                        </p>
+                      </div>
+                    </div>
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="px-4 py-4 bg-black/90 border-2 border-[#00ff41]/30 rounded-xl text-[#00ff41] hover:border-[#00ff41] hover:shadow-[0_0_20px_rgba(0,255,65,0.2)] transition-all font-mono flex items-center gap-2"
-              >
-                <Filter className="w-4 h-4" />
-                <span className="hidden sm:inline">FILTER</span>
-                {filterRole && <span className="w-2 h-2 bg-[#00ff41] rounded-full animate-pulse" />}
-              </button>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-white/65">
+                          Jersey number
+                        </label>
 
-              <button
-                onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-                className="px-4 py-4 bg-black/90 border-2 border-[#00ff41]/30 rounded-xl text-[#00ff41] hover:border-[#00ff41] hover:shadow-[0_0_20px_rgba(0,255,65,0.2)] transition-all"
-              >
-                {viewMode === 'grid' ? <List className="w-4 h-4" /> : <Grid className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
+                        <input
+                          type="number"
+                          value={
+                            editJerseyNumber
+                          }
+                          onChange={(event) =>
+                            setEditJerseyNumber(
+                              event.target.value
+                            )
+                          }
+                          className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none transition placeholder:text-white/25 focus:border-emerald-300/50"
+                          placeholder="e.g. 10"
+                        />
+                      </div>
 
-          {/* Search Results Counter */}
-          {searchQuery && (
-            <div className="mt-3 flex items-center justify-between">
-              <p className="text-xs text-[#00ff41]/60 font-mono">
-                Found {filteredMembers.length} result{filteredMembers.length !== 1 ? 's' : ''} for "{searchQuery}"
-              </p>
-              <button
-                onClick={() => setSearchQuery('')}
-                className="text-xs text-[#00ff41]/60 hover:text-[#00ff41] font-mono transition-colors"
-              >
-                CLEAR SEARCH
-              </button>
-            </div>
-          )}
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-white/65">
+                          Position
+                        </label>
 
-          {/* Enhanced Filter dropdown */}
-          <AnimatePresence>
-            {showFilters && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="mt-4 p-4 bg-black/90 border-2 border-[#00ff41]/30 rounded-xl"
-              >
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setFilterRole(null)}
-                    className={`px-4 py-2 rounded-lg border-2 font-mono text-sm transition-all ${
-                      !filterRole
-                        ? 'border-[#00ff41] text-[#00ff41] bg-[#00ff41]/10 shadow-[0_0_15px_rgba(0,255,65,0.2)]'
-                        : 'border-[#00ff41]/20 text-[#00ff41]/60 hover:border-[#00ff41]/50 hover:bg-[#00ff41]/5'
-                    }`}
-                  >
-                    ALL ROLES
-                  </button>
-                  {Object.entries(roleConfigs).map(([role, config]) => (
-                    <button
-                      key={role}
-                      onClick={() => setFilterRole(filterRole === role ? null : role)}
-                      className={`px-4 py-2 rounded-lg border-2 font-mono text-sm transition-all ${
-                        filterRole === role
-                          ? `${config.borderColor} bg-[#00ff41]/10 text-[#00ff41] shadow-[0_0_15px_rgba(0,255,65,0.2)]`
-                          : 'border-[#00ff41]/20 text-[#00ff41]/60 hover:border-[#00ff41]/50 hover:bg-[#00ff41]/5'
-                      }`}
-                    >
-                      {config.name}
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+                        <select
+                          value={editPosition}
+                          onChange={(event) =>
+                            setEditPosition(
+                              event.target.value
+                            )
+                          }
+                          className="w-full rounded-xl border border-white/10 bg-[#0b1711] px-4 py-3 text-white outline-none transition focus:border-emerald-300/50"
+                        >
+                          <option value="">
+                            Select position
+                          </option>
 
-        {/* Team Members */}
-        <div className="space-y-6">
-          {filterRole ? (
-            // Enhanced Filtered view
-            <div className="bg-black/90 border-2 border-[#00ff41]/30 rounded-xl p-6">
-              <div className="flex items-center gap-4 mb-6">
-                <div className={`p-3 rounded-xl border-2 ${roleConfigs[filterRole as keyof typeof roleConfigs]?.borderColor} bg-black/80`}>
-                  {(() => {
-                    const IconComponent = roleConfigs[filterRole as keyof typeof roleConfigs]?.icon;
-                    if (IconComponent) {
-                      return <IconComponent className={`w-6 h-6 ${getRankColor(filterRole).split(' ')[0]}`} />;
-                    }
-                    return null;
-                  })()}
-                </div>
-                <div>
-                  <h3 className="text-xl font-mono font-bold text-[#00ff41]">
-                    {roleConfigs[filterRole as keyof typeof roleConfigs]?.name}
-                  </h3>
-                  <p className="text-sm text-[#00ff41]/70 font-mono">
-                    {filteredMembers.length} MEMBERS • RANK {roleConfigs[filterRole as keyof typeof roleConfigs]?.rank}
-                  </p>
-                </div>
-              </div>
-
-              {filteredMembers.length === 0 ? (
-                <div className="bg-black/60 rounded-xl p-8 text-center border-2 border-dashed border-[#00ff41]/30">
-                  <Users className="w-12 h-12 text-[#00ff41]/40 mx-auto mb-3" />
-                  <p className="text-[#00ff41]/60 font-mono text-sm">NO MEMBERS FOUND</p>
-                  <p className="text-[#00ff41]/40 font-mono text-xs mt-2">TRY ADJUSTING YOUR SEARCH OR FILTERS</p>
-                </div>
-              ) : (
-                <div className={viewMode === 'grid'
-                  ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
-                  : 'space-y-3'
-                }>
-                  {filteredMembers.map((member: TeamMember) => (
-                    <motion.div
-                      key={member.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      onClick={() => setSelectedMember(member)}
-                      className={`
-                        bg-black/60 border-2 rounded-xl p-4 cursor-pointer transition-all duration-300
-                        ${viewMode === 'grid' ? '' : 'flex items-center gap-4'}
-                        hover:border-[#00ff41]/60 hover:shadow-[0_0_40px_rgba(0,255,65,0.15)] hover:bg-black/70
-                        ${getGlowEffect(member.teamRole)}
-                      `}
-                    >
-                      <div className="flex items-center gap-4 flex-1">
-                        <div className={`w-14 h-14 rounded-full border-2 ${getRankColor(member.teamRole)} flex items-center justify-center flex-shrink-0 bg-black/80 shadow-lg`}>
-                          {member.user.profileImageUrl ? (
-                            <img
-                              src={member.user.profileImageUrl}
-                              alt={member.user.firstName}
-                              className="w-full h-full rounded-full object-cover"
-                            />
-                          ) : (
-                            <span className="text-sm font-bold text-[#00ff41] font-mono">
-                              {getInitials(member.user.firstName, member.user.lastName)}
-                            </span>
+                          {currentSportConfig.positions.map(
+                            (sportPosition) => (
+                              <option
+                                key={
+                                  sportPosition
+                                }
+                                value={
+                                  sportPosition
+                                }
+                              >
+                                {
+                                  sportPosition
+                                }
+                              </option>
+                            )
                           )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-mono font-semibold text-[#00ff41] text-base truncate">
-                            {member.user.firstName} {member.user.lastName}
-                          </p>
-                          <p className="text-xs text-[#00ff41]/70 font-mono truncate mt-1">
-                            #{member.jerseyNumber} • {member.position}
-                          </p>
-                          <div className="flex items-center gap-2 mt-2">
-                            <span className={`text-[9px] px-2 py-1 rounded border ${getRankColor(member.teamRole)} bg-black/50 font-mono`}>
-                              {roleConfigs[member.teamRole as keyof typeof roleConfigs]?.rank}
-                            </span>
-                            {member.isActive && (
-                              <span className="text-[9px] px-2 py-1 rounded border border-[#00ff41]/30 bg-[#00ff41]/10 text-[#00ff41] font-mono">
-                                ACTIVE
-                              </span>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex gap-3">
+                      <button
+                        onClick={
+                          handleUpdateMembership
+                        }
+                        disabled={
+                          updateMutation.isPending
+                        }
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-4 py-3 text-sm font-semibold text-[#07110c] transition hover:bg-emerald-300 disabled:opacity-50"
+                      >
+                        {updateMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4" />
+                        )}
+
+                        Save changes
+                      </button>
+
+                      <button
+                        onClick={
+                          handleCancelEdit
+                        }
+                        className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-white/75 transition hover:bg-white/10"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={() =>
+                  setShowJoinForm(
+                    (current) => !current
+                  )
+                }
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-400 px-5 py-4 font-semibold text-[#07110c] shadow-lg shadow-emerald-950/20 transition hover:bg-emerald-300"
+              >
+                <Plus className="h-5 w-5" />
+                Join {currentSportConfig.name}{' '}
+                team
+              </button>
+            )}
+          </section>
+
+          {/* -------------------------------------------------------------
+              JOIN FORM
+          -------------------------------------------------------------- */}
+
+          <AnimatePresence>
+            {showJoinForm &&
+              !currentUserMembership && (
+                <motion.section
+                  initial={{
+                    opacity: 0,
+                    height: 0,
+                    y: -10,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    height: 'auto',
+                    y: 0,
+                  }}
+                  exit={{
+                    opacity: 0,
+                    height: 0,
+                    y: -10,
+                  }}
+                  className="mb-8 overflow-hidden"
+                >
+                  <div className="rounded-2xl border border-white/10 bg-black/35 p-5 backdrop-blur-md sm:p-6">
+                    <div className="mb-5">
+                      <h3 className="text-lg font-semibold text-white">
+                        Join{' '}
+                        {
+                          currentSportConfig.name
+                        }
+                      </h3>
+
+                      <p className="mt-1 text-sm text-white/50">
+                        Add your team details
+                        below.
+                      </p>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-white/65">
+                          Role
+                        </label>
+
+                        <select
+                          value={selectedRole}
+                          onChange={(event) =>
+                            setSelectedRole(
+                              event.target
+                                .value as TeamRole
+                            )
+                          }
+                          className="w-full rounded-xl border border-white/10 bg-[#0b1711] px-4 py-3 text-white outline-none focus:border-emerald-300/50"
+                        >
+                          {(
+                            Object.entries(
+                              roleConfigs
+                            ) as [
+                              TeamRole,
+                              RoleConfig
+                            ][]
+                          ).map(
+                            ([
+                              role,
+                              config,
+                            ]) => (
+                              <option
+                                key={role}
+                                value={role}
+                              >
+                                {config.name}
+                              </option>
+                            )
+                          )}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-white/65">
+                          Jersey number
+                        </label>
+
+                        <input
+                          type="number"
+                          value={jerseyNumber}
+                          onChange={(event) =>
+                            setJerseyNumber(
+                              event.target.value
+                            )
+                          }
+                          className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none placeholder:text-white/25 focus:border-emerald-300/50"
+                          placeholder="e.g. 10"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-white/65">
+                          Position
+                        </label>
+
+                        <select
+                          value={position}
+                          onChange={(event) =>
+                            setPosition(
+                              event.target.value
+                            )
+                          }
+                          className="w-full rounded-xl border border-white/10 bg-[#0b1711] px-4 py-3 text-white outline-none focus:border-emerald-300/50"
+                        >
+                          <option value="">
+                            Select position
+                          </option>
+
+                          {currentSportConfig.positions.map(
+                            (sportPosition) => (
+                              <option
+                                key={
+                                  sportPosition
+                                }
+                                value={
+                                  sportPosition
+                                }
+                              >
+                                {
+                                  sportPosition
+                                }
+                              </option>
+                            )
+                          )}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="mt-5 flex gap-3">
+                      <button
+                        onClick={
+                          handleJoinTeam
+                        }
+                        disabled={
+                          registerMutation.isPending
+                        }
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 font-semibold text-[#07110c] transition hover:bg-emerald-300 disabled:opacity-50"
+                      >
+                        {registerMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Plus className="h-4 w-4" />
+                        )}
+
+                        Join team
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          setShowJoinForm(
+                            false
+                          )
+                        }
+                        className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-white/75 transition hover:bg-white/10"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </motion.section>
+              )}
+          </AnimatePresence>
+
+          {/* -------------------------------------------------------------
+              TEAM MEMBER LIST
+          -------------------------------------------------------------- */}
+
+          <section>
+            <div className="mb-4 flex items-end justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-white sm:text-2xl">
+                  {currentSportConfig.name}{' '}
+                  squad
+                </h2>
+
+                <p className="mt-1 text-sm text-white/50">
+                  {totalMembers}{' '}
+                  {totalMembers === 1
+                    ? 'member'
+                    : 'members'}
+                </p>
+              </div>
+            </div>
+
+            {teamMembers.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-white/15 bg-black/20 px-6 py-14 text-center backdrop-blur-md">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white/5">
+                  <Users className="h-6 w-6 text-white/40" />
+                </div>
+
+                <h3 className="text-lg font-semibold text-white">
+                  No team members yet
+                </h3>
+
+                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-white/45">
+                  There are currently no members
+                  registered for this sport at{' '}
+                  {techCenterName}.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {teamMembers.map(
+                  (member, index) => {
+                    const memberRole =
+                      getRoleConfig(
+                        member.teamRole
+                      );
+
+                    const roleAccent =
+                      getRoleAccent(
+                        member.teamRole
+                      );
+
+                    const RoleIcon =
+                      memberRole.icon;
+
+                    return (
+                      <motion.button
+                        key={member.id}
+                        type="button"
+                        initial={{
+                          opacity: 0,
+                          y: 12,
+                        }}
+                        animate={{
+                          opacity: 1,
+                          y: 0,
+                        }}
+                        transition={{
+                          duration: 0.25,
+                          delay:
+                            Math.min(
+                              index * 0.025,
+                              0.3
+                            ),
+                        }}
+                        onClick={() =>
+                          setSelectedMember(
+                            member
+                          )
+                        }
+                        className="group w-full rounded-2xl border border-white/10 bg-black/30 p-4 text-left backdrop-blur-md transition duration-200 hover:border-white/20 hover:bg-black/40 sm:p-5"
+                      >
+                        <div className="flex items-center gap-3 sm:gap-4">
+                          {/* Number */}
+                          <div className="hidden w-7 shrink-0 text-center text-xs font-medium text-white/25 sm:block">
+                            {String(
+                              index + 1
+                            ).padStart(2, '0')}
+                          </div>
+
+                          {/* Avatar */}
+                          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border border-white/15 bg-white/5 sm:h-16 sm:w-16">
+                            {member.user
+                              .profileImageUrl ? (
+                              <img
+                                src={
+                                  member.user
+                                    .profileImageUrl
+                                }
+                                alt={`${member.user.firstName} ${member.user.lastName}`}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center">
+                                <span className="text-sm font-bold text-white/75">
+                                  {getInitials(
+                                    member.user
+                                      .firstName,
+                                    member.user
+                                      .lastName
+                                  )}
+                                </span>
+                              </div>
                             )}
                           </div>
-                        </div>
-                        <Flame className="w-5 h-5 text-[#ff6b00]/60" />
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            // Enhanced Grouped by role view
-            Object.entries(roleConfigs).map(([role, config]) => {
-              const roleMembers = filteredMembers.filter(m => m.teamRole === role);
 
-              return (
-                <div key={role} className="bg-black/90 border-2 border-[#00ff41]/30 rounded-xl p-6">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className={`p-3 rounded-xl border-2 ${config.borderColor} bg-black/80`}>
-                      {React.createElement(config.icon as React.ComponentType<{ className?: string }>, {
-                        className: `w-6 h-6 ${getRankColor(role).split(' ')[0]}`
-                      })}
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-mono font-bold text-[#00ff41]">{config.name}</h3>
-                      <p className="text-sm text-[#00ff41]/70 font-mono">
-                        {roleMembers.length} MEMBERS • RANK {config.rank}
-                      </p>
-                    </div>
-                    <div className="ml-auto">
-                      <span className={`text-xs px-3 py-1 rounded border-2 ${getRankColor(role)} bg-black/50 font-mono`}>
-                        {config.rank}
-                      </span>
-                    </div>
-                  </div>
+                          {/* Member information */}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="truncate text-base font-semibold text-white sm:text-lg">
+                                {
+                                  member
+                                    .user
+                                    .firstName
+                                }{' '}
+                                {
+                                  member
+                                    .user
+                                    .lastName
+                                }
+                              </h3>
 
-                  {roleMembers.length === 0 ? (
-                    <div className="bg-black/60 rounded-xl p-8 text-center border-2 border-dashed border-[#00ff41]/30">
-                      <Users className="w-12 h-12 text-[#00ff41]/40 mx-auto mb-3" />
-                      <p className="text-[#00ff41]/60 font-mono text-sm">NO {config.name.toUpperCase()} REGISTERED</p>
-                      <p className="text-[#00ff41]/40 font-mono text-xs mt-2">JOIN AS {config.name.slice(0, -1).toUpperCase()} TO APPEAR HERE</p>
-                    </div>
-                  ) : (
-                    <div className={viewMode === 'grid'
-                      ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
-                      : 'space-y-3'
-                    }>
-                      {roleMembers.map((member: TeamMember) => (
-                        <motion.div
-                          key={member.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          onClick={() => setSelectedMember(member)}
-                          className={`
-                            bg-black/60 border-2 rounded-xl p-4 cursor-pointer transition-all duration-300
-                            ${viewMode === 'grid' ? '' : 'flex items-center gap-4'}
-                            hover:border-[#00ff41]/60 hover:shadow-[0_0_40px_rgba(0,255,65,0.15)] hover:bg-black/70
-                            ${getGlowEffect(member.teamRole)}
-                          `}
-                        >
-                          <div className="flex items-center gap-4 flex-1">
-                            <div className={`w-14 h-14 rounded-full border-2 ${getRankColor(member.teamRole)} flex items-center justify-center flex-shrink-0 bg-black/80 shadow-lg`}>
-                              {member.user.profileImageUrl ? (
-                                <img
-                                  src={member.user.profileImageUrl}
-                                  alt={member.user.firstName}
-                                  className="w-full h-full rounded-full object-cover"
-                                />
-                              ) : (
-                                <span className="text-sm font-bold text-[#00ff41] font-mono">
-                                  {getInitials(member.user.firstName, member.user.lastName)}
+                              {member.isActive && (
+                                <span className="hidden shrink-0 rounded-full bg-emerald-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-300 sm:inline">
+                                  Active
                                 </span>
                               )}
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-mono font-semibold text-[#00ff41] text-base truncate">
-                                {member.user.firstName} {member.user.lastName}
-                              </p>
-                              <p className="text-xs text-[#00ff41]/70 font-mono truncate mt-1">
-                                #{member.jerseyNumber} • {member.position}
-                              </p>
-                              <div className="flex items-center gap-2 mt-2">
-                                <span className={`text-[9px] px-2 py-1 rounded border ${getRankColor(member.teamRole)} bg-black/50 font-mono`}>
-                                  {roleConfigs[member.teamRole as keyof typeof roleConfigs]?.rank}
-                                </span>
-                                {member.isActive && (
-                                  <span className="text-[9px] px-2 py-1 rounded border border-[#00ff41]/30 bg-[#00ff41]/10 text-[#00ff41] font-mono">
-                                    ACTIVE
-                                  </span>
-                                )}
-                              </div>
+
+                            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white/50">
+                              <span>
+                                #
+                                {member.jerseyNumber ??
+                                  '—'}
+                              </span>
+
+                              <span className="text-white/20">
+                                •
+                              </span>
+
+                              <span className="truncate">
+                                {member.position ||
+                                  'Team member'}
+                              </span>
                             </div>
-                            <Star className="w-5 h-5 text-[#ffdd00]/60" />
+
+                            <div className="mt-2 flex items-center gap-2">
+                              <span
+                                className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-medium ${roleAccent}`}
+                              >
+                                <RoleIcon className="h-3 w-3" />
+                                {
+                                  memberRole.name
+                                }
+                              </span>
+
+                              {member.isActive && (
+                                <span className="inline-flex rounded-full bg-emerald-400/10 px-2 py-1 text-[10px] font-medium text-emerald-300 sm:hidden">
+                                  Active
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          )}
+
+                          {/* Right side */}
+                          <div className="flex shrink-0 items-center gap-2">
+                            <Flame className="hidden h-5 w-5 text-white/15 transition group-hover:text-emerald-300/60 sm:block" />
+
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 transition group-hover:border-white/20">
+                              <ArrowLeft className="h-4 w-4 rotate-180 text-white/35 transition group-hover:text-white/70" />
+                            </div>
+                          </div>
+                        </div>
+                      </motion.button>
+                    );
+                  }
+                )}
+              </div>
+            )}
+          </section>
         </div>
       </div>
 
-      {/* Profile Modal */}
+      {/* ---------------------------------------------------------------
+          PROFILE MODAL
+      ---------------------------------------------------------------- */}
+
       <AnimatePresence>
         {showProfileModal && user && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"
+            onClick={() =>
+              setShowProfileModal(false)
+            }
           >
             <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="bg-[#0a0a0a] border border-[#00ff41]/30 rounded-xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto"
+              initial={{
+                opacity: 0,
+                scale: 0.96,
+                y: 15,
+              }}
+              animate={{
+                opacity: 1,
+                scale: 1,
+                y: 0,
+              }}
+              exit={{
+                opacity: 0,
+                scale: 0.96,
+                y: 15,
+              }}
+              onClick={(event) =>
+                event.stopPropagation()
+              }
+              className="w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-[#0b1711] shadow-2xl"
             >
-              <div className="flex justify-between items-start mb-6">
-                <h2 className="text-xl font-mono font-bold text-[#00ff41]">PROFILE</h2>
+              <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+                <div>
+                  <h2 className="font-semibold text-white">
+                    Profile
+                  </h2>
+
+                  <p className="text-xs text-white/40">
+                    Team information
+                  </p>
+                </div>
+
                 <button
-                  onClick={() => setShowProfileModal(false)}
-                  className="p-2 hover:bg-[#00ff41]/10 rounded-lg transition-all"
+                  onClick={() =>
+                    setShowProfileModal(
+                      false
+                    )
+                  }
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-white/60 transition hover:bg-white/10 hover:text-white"
                 >
-                  <X className="w-5 h-5 text-[#00ff41]" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
 
-              <div className="flex flex-col items-center mb-6">
-                <div className="w-24 h-24 rounded-full border-2 border-[#00ff41] flex items-center justify-center overflow-hidden bg-black/80">
-                  {user.profileImageUrl ? (
-                    <img
-                      src={user.profileImageUrl}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <User className="w-12 h-12 text-[#00ff41]" />
+              <div className="p-6">
+                <div className="flex flex-col items-center text-center">
+                  <div className="h-24 w-24 overflow-hidden rounded-full border border-white/15 bg-white/5">
+                    {user.profileImageUrl ? (
+                      <img
+                        src={
+                          user.profileImageUrl
+                        }
+                        alt="Profile"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <User className="h-10 w-10 text-white/50" />
+                      </div>
+                    )}
+                  </div>
+
+                  <h3 className="mt-4 text-xl font-bold text-white">
+                    {user.firstName}{' '}
+                    {user.lastName}
+                  </h3>
+
+                  <p className="mt-1 text-sm text-white/50">
+                    {user.email}
+                  </p>
+
+                  {user.phoneNumber && (
+                    <p className="mt-1 text-xs text-white/35">
+                      {user.phoneNumber}
+                    </p>
                   )}
                 </div>
-                <h3 className="text-lg font-mono text-[#00ff41] mt-3">
-                  {user.firstName} {user.lastName}
-                </h3>
-                <p className="text-sm text-[#00ff41]/60 font-mono">{user.email}</p>
-                {user.phoneNumber && (
-                  <p className="text-xs text-[#00ff41]/40 font-mono mt-1">{user.phoneNumber}</p>
-                )}
-              </div>
 
-              <div className="border-t border-[#00ff41]/20 pt-4">
-                <h4 className="text-sm font-mono text-[#00ff41]/60 mb-3">TEAM STATS</h4>
-                <div className="space-y-2">
-                  {Object.entries(roleConfigs).map(([role, config]) => {
-                    const count = teamMembers.filter(m => m.teamRole === role).length;
-                    return (
-                      <div key={role} className="flex justify-between items-center">
-                        <span className="text-sm font-mono text-[#00ff41]/60">{config.name}</span>
-                        <span className="text-sm font-mono text-[#00ff41]">{count}</span>
-                      </div>
-                    );
-                  })}
+                <div className="mt-7 border-t border-white/10 pt-5">
+                  <h4 className="mb-4 text-xs font-semibold uppercase tracking-wider text-white/40">
+                    Current team
+                  </h4>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-white/50">
+                        Sport
+                      </span>
+
+                      <span className="text-sm font-medium text-white">
+                        {
+                          currentSportConfig.name
+                        }
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-white/50">
+                        Squad
+                      </span>
+
+                      <span className="text-sm font-medium text-white">
+                        {techCenterName}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-white/50">
+                        Members
+                      </span>
+
+                      <span className="text-sm font-medium text-white">
+                        {totalMembers}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <button
-                onClick={() => setShowProfileModal(false)}
-                className="w-full mt-6 px-4 py-3 bg-[#00ff41] text-black rounded-lg font-mono font-medium hover:shadow-[0_0_30px_rgba(0,255,65,0.3)] transition-all"
-              >
-                CLOSE
-              </button>
+                <button
+                  onClick={() =>
+                    setShowProfileModal(
+                      false
+                    )
+                  }
+                  className="mt-6 w-full rounded-xl bg-emerald-400 px-4 py-3 font-semibold text-[#07110c] transition hover:bg-emerald-300"
+                >
+                  Close
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Member Detail Modal */}
+      {/* ---------------------------------------------------------------
+          MEMBER DETAIL MODAL
+      ---------------------------------------------------------------- */}
+
       <AnimatePresence>
         {selectedMember && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90"
-            onClick={() => setSelectedMember(null)}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"
+            onClick={() =>
+              setSelectedMember(null)
+            }
           >
             <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="bg-[#0a0a0a] border border-[#00ff41]/30 rounded-xl p-8 max-w-md w-full"
-              onClick={(e) => e.stopPropagation()}
+              initial={{
+                opacity: 0,
+                scale: 0.96,
+                y: 15,
+              }}
+              animate={{
+                opacity: 1,
+                scale: 1,
+                y: 0,
+              }}
+              exit={{
+                opacity: 0,
+                scale: 0.96,
+                y: 15,
+              }}
+              onClick={(event) =>
+                event.stopPropagation()
+              }
+              className="w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-[#0b1711] shadow-2xl"
             >
-              <div className="flex justify-between items-start mb-6">
-                <h2 className="text-xl font-mono font-bold text-[#00ff41]">PLAYER INFO</h2>
+              {/* Modal header */}
+              <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+                <div>
+                  <h2 className="font-semibold text-white">
+                    Team member
+                  </h2>
+
+                  <p className="text-xs text-white/40">
+                    {currentSportConfig.name}
+                  </p>
+                </div>
+
                 <button
-                  onClick={() => setSelectedMember(null)}
-                  className="p-2 hover:bg-[#00ff41]/10 rounded-lg transition-all"
+                  onClick={() =>
+                    setSelectedMember(null)
+                  }
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-white/60 transition hover:bg-white/10 hover:text-white"
                 >
-                  <X className="w-5 h-5 text-[#00ff41]" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
 
-              <div className="flex flex-col items-center mb-6">
-                <div className={`w-24 h-24 rounded-full border-2 ${getRankColor(selectedMember.teamRole)} flex items-center justify-center overflow-hidden bg-black/80`}>
-                  {selectedMember.user.profileImageUrl ? (
-                    <img
-                      src={selectedMember.user.profileImageUrl}
-                      alt={selectedMember.user.firstName}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-2xl font-bold text-[#00ff41] font-mono">
-                      {getInitials(selectedMember.user.firstName, selectedMember.user.lastName)}
+              <div className="p-6">
+                {/* Avatar */}
+                <div className="flex flex-col items-center text-center">
+                  <div className="h-24 w-24 overflow-hidden rounded-full border border-white/15 bg-white/5">
+                    {selectedMember.user
+                      .profileImageUrl ? (
+                      <img
+                        src={
+                          selectedMember
+                            .user
+                            .profileImageUrl
+                        }
+                        alt={`${selectedMember.user.firstName} ${selectedMember.user.lastName}`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <span className="text-2xl font-bold text-white/70">
+                          {getInitials(
+                            selectedMember
+                              .user
+                              .firstName,
+                            selectedMember
+                              .user
+                              .lastName
+                          )}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <h3 className="mt-4 text-xl font-bold text-white">
+                    {
+                      selectedMember.user
+                        .firstName
+                    }{' '}
+                    {
+                      selectedMember.user
+                        .lastName
+                    }
+                  </h3>
+
+                  <p className="mt-1 text-sm text-white/45">
+                    {selectedMember.user.email}
+                  </p>
+
+                  <div className="mt-3 flex flex-wrap justify-center gap-2">
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs font-medium ${getRoleAccent(
+                        selectedMember.teamRole
+                      )}`}
+                    >
+                      {
+                        getRoleConfig(
+                          selectedMember.teamRole
+                        ).name
+                      }
                     </span>
-                  )}
-                </div>
-                <h3 className="text-lg font-mono text-[#00ff41] mt-3">
-                  {selectedMember.user.firstName} {selectedMember.user.lastName}
-                </h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className={`text-xs px-3 py-1 rounded border ${getRankColor(selectedMember.teamRole)} bg-black/50 font-mono`}>
-                    {roleConfigs[selectedMember.teamRole as keyof typeof roleConfigs]?.rank}
-                  </span>
-                  <span className="text-xs px-3 py-1 rounded border border-[#00ff41]/30 text-[#00ff41]/60 font-mono">
-                    #{selectedMember.jerseyNumber}
-                  </span>
-                </div>
-              </div>
 
-              <div className="border-t border-[#00ff41]/20 pt-4 space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm font-mono text-[#00ff41]/60">POSITION</span>
-                  <span className="text-sm font-mono text-[#00ff41]">{selectedMember.position}</span>
+                    {selectedMember.isActive && (
+                      <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-300">
+                        Active
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm font-mono text-[#00ff41]/60">ROLE</span>
-                  <span className="text-sm font-mono text-[#00ff41]">
-                    {roleConfigs[selectedMember.teamRole as keyof typeof roleConfigs]?.name}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm font-mono text-[#00ff41]/60">TEAM</span>
-                  <span className="text-sm font-mono text-[#00ff41]">
-                    {selectedMember.techCenter?.name}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm font-mono text-[#00ff41]/60">JOINED</span>
-                  <span className="text-sm font-mono text-[#00ff41]">
-                    {new Date(selectedMember.joinedAt).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
 
-              <button
-                onClick={() => setSelectedMember(null)}
-                className="w-full mt-6 px-4 py-3 bg-[#00ff41] text-black rounded-lg font-mono font-medium hover:shadow-[0_0_30px_rgba(0,255,65,0.3)] transition-all"
-              >
-                CLOSE
-              </button>
+                {/* Details */}
+                <div className="mt-7 space-y-4 border-t border-white/10 pt-5">
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-sm text-white/45">
+                      Jersey number
+                    </span>
+
+                    <span className="text-sm font-semibold text-white">
+                      #
+                      {selectedMember.jerseyNumber ??
+                        '—'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-sm text-white/45">
+                      Position
+                    </span>
+
+                    <span className="text-right text-sm font-semibold text-white">
+                      {selectedMember.position ||
+                        'Not specified'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-sm text-white/45">
+                      Sport
+                    </span>
+
+                    <span className="text-sm font-semibold text-white">
+                      {
+                        sportConfigs[
+                          selectedMember
+                            .teamType as SportType
+                        ]?.name ||
+                        selectedMember.teamType
+                      }
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-sm text-white/45">
+                      Team
+                    </span>
+
+                    <span className="max-w-[60%] text-right text-sm font-semibold text-white">
+                      {
+                        selectedMember
+                          .techCenter?.name
+                      }
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-sm text-white/45">
+                      Joined
+                    </span>
+
+                    <span className="text-sm font-semibold text-white">
+                      {new Date(
+                        selectedMember.joinedAt
+                      ).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() =>
+                    setSelectedMember(null)
+                  }
+                  className="mt-7 w-full rounded-xl bg-emerald-400 px-4 py-3 font-semibold text-[#07110c] transition hover:bg-emerald-300"
+                >
+                  Close
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}

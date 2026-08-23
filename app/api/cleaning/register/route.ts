@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import { logCleaningRegistration } from '@/lib/logger';
 
 // POST - Register student for a day
 export async function POST(request: NextRequest) {
@@ -114,6 +115,17 @@ export async function POST(request: NextRequest) {
     }, {
       timeout: 15000 // 15 seconds timeout
     });
+
+    // Log the cleaning registration activity
+    await logCleaningRegistration(
+      user.id,
+      user.techCenterId || undefined,
+      {
+        cleaningDayId: result.cleaningDayId,
+        dayName: result.cleaningDay.dayOfWeek,
+        weekLabel: result.cleaningDay.week.weekLabel,
+      }
+    );
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {

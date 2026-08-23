@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import { logCleaningDayChange } from '@/lib/logger';
 
 // POST - Change student's cleaning day (any week)
 export async function POST(request: NextRequest) {
@@ -150,7 +151,11 @@ export async function POST(request: NextRequest) {
       return {
         oldDayId,
         newDayId,
-        registration: newRegistration
+        registration: newRegistration,
+        oldDayName: existingRegistration.cleaningDay.dayOfWeek,
+        newDayName: newRegistration.cleaningDay.dayOfWeek,
+        oldWeekLabel: existingRegistration.cleaningDay.week.weekLabel,
+        newWeekLabel: newRegistration.cleaningDay.week.weekLabel,
       };
     }, {
       // Increase transaction timeout to 20 seconds
@@ -158,6 +163,20 @@ export async function POST(request: NextRequest) {
       // Increase max wait time
       maxWait: 20000
     });
+
+    // Log the cleaning day change activity
+    await logCleaningDayChange(
+      user.id,
+      user.techCenterId || undefined,
+      {
+        oldDayId: result.oldDayId,
+        newDayId: result.newDayId,
+        oldDayName: result.oldDayName,
+        newDayName: result.newDayName,
+        oldWeekLabel: result.oldWeekLabel,
+        newWeekLabel: result.newWeekLabel,
+      }
+    );
 
     return NextResponse.json({
       success: true,
