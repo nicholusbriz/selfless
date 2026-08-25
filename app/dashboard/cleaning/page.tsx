@@ -1,32 +1,45 @@
 // app/dashboard/cleaning/page.tsx
 // Public cleaning schedule page for students
-// Professional light institutional design with responsive animated experience
+//
+// Features:
+// - Client-side participant search — no database request while searching.
+// - Search registered students by first name, last name, full name,
+//   cleaning day, or cleaning date.
+// - Participant lists start expanded by default.
+// - Search results can open the corresponding week.
+// - Existing registration, switching, attendance and modal functionality
+//   preserved.
+// - Professional light institutional theme.
+// - Responsive desktop/mobile layout.
+// - Accessible controls and focus states.
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import {
-  Calendar,
-  Users,
-  CheckCircle,
-  XCircle,
-  Clock,
-  ChevronDown,
-  User,
   AlertCircle,
-  Loader2,
-  ArrowRight,
-  CalendarCheck,
-  Circle,
+  ArrowLeft,
+  Calendar,
   Check,
+  CheckCircle,
+  ChevronDown,
+  Clock,
+  Loader2,
   Lock,
-  Unlock,
-  Info,
-  PartyPopper,
-  ThumbsUp,
+  Search,
+  User,
+  Users,
+  X,
+  XCircle,
 } from 'lucide-react';
 
 import {
@@ -37,392 +50,947 @@ import {
   useMarkAttendance,
   formatDate,
   isDayPast,
-  getStatusColor,
-  getAttendanceStatusColor,
   type CleaningDay,
 } from '@/hooks/useCleaningStudent';
 
-// ---------------------------------------------------------
-// Helper functions
-// ---------------------------------------------------------
+// =========================================================
+// Design tokens — ink/brass palette matching the rest of the app
+// =========================================================
 
-const getInitials = (firstName: string, lastName: string) => {
-  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+const TOKENS = `
+  [data-cleaning-scope] {
+    --ink:        #12203B;
+    --ink-2:      #3D4A61;
+    --ink-3:      #6B7268;
+    --ink-4:      #8A9088;
+
+    --surface:    #FFFFFF;
+    --surface-2:  #F7F6F2;
+    --surface-3:  #EDECE6;
+
+    --line:       #DADCD3;
+    --line-strong:#C8CABF;
+
+    --brand:      #12203B;
+    --brand-hover:#1C2E4E;
+    --brand-soft: #F0F0EB;
+
+    --brass:      #B98A3E;
+    --brass-hover:#A67A34;
+    --brass-soft: #F8F3E8;
+
+    --ok:         #55705B;
+    --ok-soft:    #EEF3EE;
+
+    --warn:       #8A6E3A;
+    --warn-soft:  #F8F4EC;
+
+    --bad:        #A4462F;
+    --bad-soft:   #FBF0EC;
+
+    --radius:     0px;
+    --radius-sm:  0px;
+
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1, 'cv05' 1;
+  }
+`;
+
+const focusRing =
+  'outline-none focus-visible:ring-1 focus-visible:ring-[var(--brass)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--surface)]';
+
+const panel =
+  'border border-[var(--line)] bg-[var(--surface)]';
+
+const btnBase = `inline-flex items-center justify-center gap-2 px-3.5 py-2 text-[12px] font-mono font-semibold uppercase tracking-[0.08em] transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${focusRing}`;
+
+const btnPrimary = `${btnBase} bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)]`;
+
+const btnQuiet = `${btnBase} border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-2)] hover:border-[var(--brass)] hover:text-[var(--ink)]`;
+
+// =========================================================
+// Helpers
+// =========================================================
+
+const getInitials = (firstName: string, lastName: string) =>
+  `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+
+const daysUntil = (iso: string) => {
+  const target = new Date(iso).getTime();
+  const now = Date.now();
+
+  return Math.ceil((target - now) / 86_400_000);
 };
 
-const getAvatarColor = (firstName: string, lastName: string) => {
-  const colors = [
-    'from-[#1a365d] to-[#2c5282]',
-    'from-[#2c5282] to-[#3182ce]',
-    'from-[#315b88] to-[#1a365d]',
-  ];
+const deadlineLabel = (iso: string) => {
+  const days = daysUntil(iso);
 
-  const hash = firstName.charCodeAt(0) + lastName.charCodeAt(0);
+  if (days < 0) return 'Registration closed';
+  if (days === 0) return 'Registration closes today';
+  if (days === 1) return 'Registration closes tomorrow';
 
-  return colors[Math.abs(hash) % colors.length];
+  return `Registration closes in ${days} days`;
 };
 
-// ---------------------------------------------------------
-// Animated Billboard
-// ---------------------------------------------------------
+type StatusTone = 'ok' | 'warn' | 'bad' | 'neutral';
 
-const billboardMessages = [
-  {
-    title: 'Choose a day you can commit to',
-    description:
-      'Select a cleaning day that fits your schedule and allows you to participate fully.',
-  },
-  {
-    title: 'Together, we keep our environment better',
-    description:
-      'Every contribution matters. A clean environment creates a better place to learn, work, and connect.',
-  },
-  {
-    title: 'Check availability before registering',
-    description:
-      'Review available spaces and see who has already registered for each cleaning day.',
-  },
-  {
-    title: 'Plans changed? You can switch',
-    description:
-      'When registration is still open, you can change your registration to another available day.',
-  },
-  {
-    title: 'Your participation matters',
-    description:
-      'One cleaning session may seem small, but consistent participation makes a meaningful difference.',
-  },
-  {
-    title: 'Register today. Show up tomorrow.',
-    description:
-      'Please honor the commitment you make by attending your selected cleaning day.',
-  },
-];
+const toneClasses: Record<StatusTone, string> = {
+  ok: 'border-[var(--line)] bg-[var(--ok-soft)] text-[var(--ok)]',
+  warn: 'border-[var(--line)] bg-[var(--warn-soft)] text-[var(--warn)]',
+  bad: 'border-[var(--line)] bg-[var(--bad-soft)] text-[var(--bad)]',
+  neutral:
+    'border-[var(--line)] bg-[var(--surface-2)] text-[var(--ink-3)]',
+};
 
-const animatedWords = [
-  'Together.',
-  'Committed.',
-  'Responsible.',
-  'Ready.',
-  'Community.',
-  'Progress.',
-  'Teamwork.',
-  'Respect.',
-  'Service.',
-  'Impact.',
-];
+// =========================================================
+// Tag
+// =========================================================
 
-function AnimatedBillboard() {
-  const [messageIndex, setMessageIndex] = useState(0);
-  const [wordIndex, setWordIndex] = useState(0);
-
-  useEffect(() => {
-    const messageTimer = setInterval(() => {
-      setMessageIndex(
-        (current) => (current + 1) % billboardMessages.length
-      );
-    }, 6000);
-
-    return () => clearInterval(messageTimer);
-  }, []);
-
-  useEffect(() => {
-    const wordTimer = setInterval(() => {
-      setWordIndex(
-        (current) => (current + 1) % animatedWords.length
-      );
-    }, 2500);
-
-    return () => clearInterval(wordTimer);
-  }, []);
-
-  const currentMessage = billboardMessages[messageIndex];
-
+function Tag({
+  tone = 'neutral',
+  children,
+}: {
+  tone?: StatusTone;
+  children: React.ReactNode;
+}) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      className="relative mb-8 overflow-hidden rounded-2xl border border-[#dbe4ee] bg-white shadow-[0_10px_35px_rgba(26,54,93,0.07)]"
+    <span
+      className={`inline-flex items-center gap-1.5 border px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] font-semibold ${toneClasses[tone]}`}
     >
-      <motion.div
-        animate={{
-          scale: [1, 1.08, 1],
-          opacity: [0.08, 0.14, 0.08],
-        }}
-        transition={{
-          duration: 5,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
-        className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-[#3182ce]"
-      />
-
-      <motion.div
-        animate={{
-          scale: [1, 1.12, 1],
-          opacity: [0.05, 0.1, 0.05],
-        }}
-        transition={{
-          duration: 6,
-          repeat: Infinity,
-          ease: 'easeInOut',
-          delay: 1,
-        }}
-        className="pointer-events-none absolute -bottom-24 -left-16 h-48 w-48 rounded-full bg-[#1a365d]"
-      />
-
-      <motion.div
-        animate={{
-          opacity: [0.03, 0.06, 0.03],
-          scale: [1, 1.02, 1],
-        }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
-        className="pointer-events-none absolute right-4 top-1/2 h-32 w-32 -translate-y-1/2"
-      >
-        <img
-          src="/freedom.png"
-          alt=""
-          aria-hidden="true"
-          className="h-full w-full object-contain"
-        />
-      </motion.div>
-
-      <div className="relative p-5 sm:p-6">
-        <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-          <div className="min-w-0 flex-1">
-            <div className="mb-3 flex items-center gap-2">
-              <motion.div
-                animate={{
-                  rotate: [0, -4, 4, -4, 0],
-                  scale: [1, 1.05, 1],
-                }}
-                transition={{
-                  duration: 2.5,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-                className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#1a365d]/10"
-              >
-                <img
-                  src="/freedom.png"
-                  alt=""
-                  aria-hidden="true"
-                  className="h-full w-full object-contain p-1.5"
-                />
-              </motion.div>
-
-              <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#3182ce]">
-                Community Service
-              </span>
-            </div>
-
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={messageIndex}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{
-                  duration: 0.5,
-                  ease: [0.25, 0.1, 0.25, 1],
-                }}
-              >
-                <h2 className="text-xl font-bold leading-tight text-[#1a365d] sm:text-2xl">
-                  {currentMessage.title}
-                </h2>
-
-                <p className="mt-1.5 max-w-2xl text-sm leading-6 text-[#64748b]">
-                  {currentMessage.description}
-                </p>
-              </motion.div>
-            </AnimatePresence>
-          </div>
-
-          <div className="flex shrink-0 items-center justify-center md:min-w-[190px]">
-            <div className="relative flex h-24 w-full items-center justify-center overflow-hidden rounded-xl border border-[#dbe4ee] bg-[#f8fafc] px-5 sm:h-28 sm:w-[190px]">
-              <AnimatePresence mode="wait">
-                <motion.span
-                  key={wordIndex}
-                  initial={{
-                    opacity: 0,
-                    y: 16,
-                    scale: 0.9,
-                    filter: 'blur(2px)',
-                  }}
-                  animate={{
-                    opacity: 1,
-                    y: 0,
-                    scale: 1,
-                    filter: 'blur(0px)',
-                  }}
-                  exit={{
-                    opacity: 0,
-                    y: -16,
-                    scale: 1.05,
-                    filter: 'blur(2px)',
-                  }}
-                  transition={{
-                    duration: 0.4,
-                    ease: [0.25, 0.1, 0.25, 1],
-                  }}
-                  className="text-center text-xl font-bold tracking-tight text-[#1a365d] sm:text-2xl"
-                >
-                  {animatedWords[wordIndex]}
-                </motion.span>
-              </AnimatePresence>
-
-              <motion.div
-                animate={{
-                  scaleX: [0.6, 1, 0.6],
-                  opacity: [0.3, 0.8, 0.3],
-                }}
-                transition={{
-                  duration: 2.5,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-                className="absolute bottom-3 h-0.5 w-16 rounded-full bg-[#3182ce]"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-5 grid grid-cols-1 gap-2 border-t border-[#e2e8f0] pt-4 sm:grid-cols-3">
-          {[
-            'Choose a suitable day',
-            'See who is participating',
-            'Honor your commitment',
-          ].map((item, index) => (
-            <motion.div
-              key={item}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                delay: 0.15 + index * 0.1,
-                duration: 0.4,
-              }}
-              className="flex items-center gap-2 text-xs font-medium text-[#64748b]"
-            >
-              <motion.span
-                animate={{
-                  scale: [1, 1.15, 1],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  delay: index * 0.35,
-                }}
-                className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#3182ce]"
-              />
-              {item}
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </motion.div>
+      {children}
+    </span>
   );
 }
 
-// ---------------------------------------------------------
-// Cleaning Video
-// ---------------------------------------------------------
+// =========================================================
+// Capacity
+// =========================================================
 
-function CleaningVideo() {
+function CapacityMeter({
+  current,
+  limit,
+}: {
+  current: number;
+  limit: number;
+}) {
+  const pct = limit > 0 ? Math.min(100, (current / limit) * 100) : 0;
+
+  const tone: StatusTone =
+    pct >= 100 ? 'bad' : pct >= 80 ? 'warn' : 'ok';
+
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{
-        duration: 0.6,
-      }}
-      className="mt-8 overflow-hidden rounded-2xl border border-[#dbe4ee] bg-white shadow-[0_10px_35px_rgba(26,54,93,0.07)]"
-    >
-      <div className="border-b border-[#e2e8f0] px-5 py-4 sm:px-6">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#3182ce]">
-              Community in Action
-            </p>
+    <div className="flex items-center gap-2.5">
+      <div
+        className="h-1.5 w-16 overflow-hidden bg-[var(--surface-3)]"
+        role="img"
+        aria-label={`${current} of ${limit} places taken`}
+      >
+        <motion.div
+          className="h-full"
+          style={{
+            backgroundColor:
+              tone === 'bad'
+                ? 'var(--bad)'
+                : tone === 'warn'
+                  ? 'var(--warn)'
+                  : 'var(--ok)',
+          }}
+          initial={false}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+        />
+      </div>
 
-            <h2 className="text-base font-bold text-[#1a365d] sm:text-lg">
-              Together, We Make a Difference
+      <span className="font-mono text-[12px] text-[var(--ink-2)] tabular-nums">
+        {current}
+        <span className="text-[var(--ink-4)]">/{limit}</span>
+      </span>
+    </div>
+  );
+}
+
+// =========================================================
+// Avatar
+// =========================================================
+
+function Avatar({
+  firstName,
+  lastName,
+  src,
+  isSelf,
+}: {
+  firstName: string;
+  lastName: string;
+  src?: string | null;
+  isSelf?: boolean;
+}) {
+  return (
+    <div className="relative h-8 w-8 shrink-0 overflow-hidden border border-[var(--line)] bg-[var(--brand)]">
+      {src ? (
+        <img
+          src={src}
+          alt=""
+          className="h-full w-full object-cover grayscale"
+          loading="lazy"
+        />
+      ) : (
+        <span className="flex h-full w-full items-center justify-center font-mono text-[11px] font-semibold text-white tracking-wide">
+          {getInitials(firstName, lastName)}
+        </span>
+      )}
+
+      {isSelf && (
+        <span className="absolute inset-0 border-2 border-[var(--brass)]" />
+      )}
+    </div>
+  );
+}
+
+// =========================================================
+// Confirm dialog
+// =========================================================
+
+type ConfirmState = {
+  title: string;
+  body: string;
+  confirmLabel: string;
+  onConfirm: () => void | Promise<void>;
+} | null;
+
+function ConfirmDialog({
+  state,
+  onClose,
+  pending,
+}: {
+  state: ConfirmState;
+  onClose: () => void;
+  pending: boolean;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const restoreRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!state) return;
+
+    restoreRef.current = document.activeElement as HTMLElement | null;
+
+    const node = panelRef.current;
+
+    node
+      ?.querySelector<HTMLElement>('[data-autofocus]')
+      ?.focus();
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !pending) {
+        onClose();
+        return;
+      }
+
+      if (event.key !== 'Tab' || !node) return;
+
+      const focusables = Array.from(
+        node.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+
+      if (focusables.length === 0) return;
+
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+
+      if (
+        event.shiftKey &&
+        document.activeElement === first
+      ) {
+        event.preventDefault();
+        last.focus();
+      } else if (
+        !event.shiftKey &&
+        document.activeElement === last
+      ) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      restoreRef.current?.focus?.();
+    };
+  }, [state, pending, onClose]);
+
+  return (
+    <AnimatePresence>
+      {state && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="absolute inset-0 bg-[var(--ink)]/35"
+            onClick={() => !pending && onClose()}
+          />
+
+          <motion.div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-title"
+            aria-describedby="confirm-body"
+            initial={{
+              opacity: 0,
+              y: 12,
+              scale: 0.98,
+            }}
+            animate={{
+              opacity: 1,
+              y: 0,
+              scale: 1,
+            }}
+            exit={{
+              opacity: 0,
+              y: 8,
+              scale: 0.98,
+            }}
+            transition={{
+              duration: 0.18,
+              ease: [0.2, 0, 0, 1],
+            }}
+            className="relative w-full max-w-sm border border-[var(--line)] bg-[var(--surface)] p-5"
+          >
+            <h2
+              id="confirm-title"
+              className="text-base font-semibold text-[var(--ink)]"
+            >
+              {state.title}
             </h2>
 
-            <p className="mt-1 max-w-2xl text-xs leading-5 text-[#64748b] sm:text-sm">
-              Take a moment to see the spirit of teamwork and service behind our community cleaning activities.
-            </p>
-          </div>
-
-          <span className="w-fit shrink-0 rounded-full border border-[#3182ce]/20 bg-[#3182ce]/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#3182ce] sm:text-xs">
-            Watch &amp; Get Inspired
-          </span>
-        </div>
-      </div>
-
-      <div className="relative w-full overflow-hidden bg-[#0f172a]">
-        <video
-          className="block aspect-video h-auto w-full object-cover"
-          controls
-          playsInline
-          preload="metadata"
-          aria-label="Community cleaning activities video"
-        >
-          <source src="/cleaning.mp4" type="video/mp4" />
-
-          Your browser does not support the video element.
-        </video>
-      </div>
-
-      <div className="flex flex-col gap-3 border-t border-[#e2e8f0] bg-[#f8fafc] px-5 py-4 sm:px-6">
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#3182ce]/10">
-            <Users className="h-4 w-4 text-[#1a365d]" />
-          </div>
-
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-[#1e293b]">
-              Every contribution counts
+            <p
+              id="confirm-body"
+              className="mt-2 text-[13px] leading-6 text-[var(--ink-3)]"
+            >
+              {state.body}
             </p>
 
-            <p className="mt-1 text-xs leading-5 text-[#64748b] sm:text-sm">
-              Your time, effort, and commitment help create a cleaner, more welcoming environment for everyone.
-            </p>
-          </div>
-        </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                className={btnQuiet}
+                onClick={onClose}
+                disabled={pending}
+              >
+                Cancel
+              </button>
 
-        <div className="flex items-center gap-2 border-t border-[#e2e8f0] pt-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[#94a3b8]">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#3182ce]" />
-          Serve • Participate • Make an impact
+              <button
+                type="button"
+                data-autofocus
+                className={btnPrimary}
+                onClick={() => state.onConfirm()}
+                disabled={pending}
+              >
+                {pending && (
+                  <Loader2
+                    className="h-4 w-4 animate-spin"
+                    aria-hidden
+                  />
+                )}
+
+                {pending ? 'Working…' : state.confirmLabel}
+              </button>
+            </div>
+          </motion.div>
         </div>
-      </div>
-    </motion.section>
+      )}
+    </AnimatePresence>
   );
 }
 
-// ---------------------------------------------------------
-// Main Page
-// ---------------------------------------------------------
+// =========================================================
+// Header
+// =========================================================
+
+function PageHeader({
+  onBack,
+  registeredLabel,
+  deadlineText,
+}: {
+  onBack: () => void;
+  registeredLabel: string | null;
+  deadlineText: string | null;
+}) {
+  return (
+    <header className="border-b border-[var(--line)] bg-[var(--surface)]">
+      <div className="mx-auto max-w-5xl px-4 py-4 sm:px-6">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <button
+              type="button"
+              onClick={onBack}
+              className={`${btnQuiet} px-2.5`}
+              aria-label="Go back"
+            >
+              <ArrowLeft
+                className="h-4 w-4"
+                aria-hidden
+              />
+            </button>
+
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-semibold tracking-tight text-[var(--ink)]">
+                Cleaning Schedule
+              </h1>
+
+              <p className="truncate font-mono text-[11px] text-[var(--ink-3)] uppercase tracking-[0.08em]">
+                {registeredLabel ??
+                  'You have not registered for a day yet'}
+
+                {deadlineText && (
+                  <>
+                    <span className="mx-2 text-[var(--ink-4)]">
+                      ·
+                    </span>
+                    {deadlineText}
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
+
+          <nav className="hidden items-center gap-1 sm:flex">
+            <Link
+              href="/dashboard/courses"
+              className={btnQuiet}
+            >
+              Courses
+            </Link>
+
+            <Link
+              href="/dashboard/students"
+              className={btnQuiet}
+            >
+              Students
+            </Link>
+          </nav>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+// =========================================================
+// Loading skeleton
+// =========================================================
+
+function ScheduleSkeleton() {
+  return (
+    <div
+      className="space-y-3"
+      aria-busy="true"
+      aria-live="polite"
+    >
+      <span className="sr-only">
+        Loading the cleaning schedule…
+      </span>
+
+      {[0, 1, 2].map((week) => (
+        <div
+          key={week}
+          className={panel}
+        >
+          <div className="flex items-center justify-between gap-4 border-b border-[var(--line)] px-4 py-3.5 sm:px-5">
+            <div className="h-4 w-40 animate-pulse bg-[var(--surface-3)]" />
+            <div className="h-4 w-20 animate-pulse bg-[var(--surface-3)]" />
+          </div>
+
+          {week === 0 && (
+            <div>
+              {[0, 1, 2, 3, 4].map((row) => (
+                <div
+                  key={row}
+                  className="flex items-center gap-4 border-b border-[var(--line)] px-4 py-3.5 last:border-b-0 sm:px-5"
+                >
+                  <div className="h-4 w-28 animate-pulse bg-[var(--surface-3)]" />
+                  <div className="h-4 w-24 animate-pulse bg-[var(--surface-3)]" />
+                  <div className="ml-auto h-8 w-24 animate-pulse bg-[var(--surface-3)]" />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// =========================================================
+// Participant List
+//
+// IMPORTANT:
+// Participants are OPEN by default.
+// =========================================================
+
+type AttendanceRecord = {
+  userId: string;
+  status: string;
+};
+
+function ParticipantList({
+  day,
+  currentUserId,
+  canMarkAttendance,
+  onMarkAttendance,
+}: {
+  day: CleaningDay;
+  currentUserId?: string;
+  canMarkAttendance: boolean;
+  onMarkAttendance: (
+    userId: string,
+    dayId: string,
+    status: 'ATTENDED' | 'NO_SHOW' | 'PENDING',
+  ) => void;
+}) {
+  // TRUE means participants are visible immediately.
+  const [open, setOpen] = useState(true);
+
+  const count = day.registrations.length;
+
+  if (count === 0) {
+    return (
+      <p className="font-mono text-[11px] text-[var(--ink-4)]">
+        No participants yet
+      </p>
+    );
+  }
+
+  return (
+    <div className="border border-[var(--line)] bg-[var(--surface-2)] p-3 sm:p-4">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className={`mb-2 inline-flex items-center gap-1.5 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)] hover:text-[var(--ink)] ${focusRing}`}
+      >
+        <Users
+          className="h-3.5 w-3.5"
+          aria-hidden
+        />
+
+        <span>
+          {count}{' '}
+          {count === 1
+            ? 'participant'
+            : 'participants'}
+        </span>
+
+        <ChevronDown
+          className={`h-3.5 w-3.5 transition-transform ${
+            open ? 'rotate-180' : ''
+          }`}
+          aria-hidden
+        />
+      </button>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{
+              height: 0,
+              opacity: 0,
+            }}
+            animate={{
+              height: 'auto',
+              opacity: 1,
+            }}
+            exit={{
+              height: 0,
+              opacity: 0,
+            }}
+            transition={{
+              duration: 0.2,
+              ease: [0.2, 0, 0, 1],
+            }}
+            className="overflow-hidden"
+          >
+            <ul className="grid gap-x-6 gap-y-2 border-t border-[var(--line)] pt-3 sm:grid-cols-2">
+              {day.registrations.map((reg) => {
+                const attendance = (
+                  day.attendanceRecords as
+                    | AttendanceRecord[]
+                    | undefined
+                )?.find(
+                  (record) =>
+                    record.userId === reg.userId,
+                );
+
+                const isSelf =
+                  reg.userId === currentUserId;
+
+                return (
+                  <li
+                    key={reg.id}
+                    className="flex min-w-0 items-center gap-2.5 border border-[var(--line)] bg-[var(--surface)] px-2.5 py-2"
+                  >
+                    <Avatar
+                      firstName={reg.user.firstName}
+                      lastName={reg.user.lastName}
+                      src={reg.user.profileImageUrl}
+                      isSelf={isSelf}
+                    />
+
+                    <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-[var(--ink)]">
+                      {reg.user.firstName}{' '}
+                      {reg.user.lastName}
+
+                      {isSelf && (
+                        <span className="ml-1.5 text-[var(--ink-4)]">
+                          (you)
+                        </span>
+                      )}
+                    </span>
+
+                    {attendance?.status ===
+                      'ATTENDED' && (
+                      <CheckCircle
+                        className="h-4 w-4 shrink-0 text-[var(--ok)]"
+                        aria-label="Attended"
+                      />
+                    )}
+
+                    {attendance?.status ===
+                      'NO_SHOW' && (
+                      <XCircle
+                        className="h-4 w-4 shrink-0 text-[var(--bad)]"
+                        aria-label="No show"
+                      />
+                    )}
+
+                    {attendance?.status ===
+                      'PENDING' && (
+                      <Clock
+                        className="h-4 w-4 shrink-0 text-[var(--warn)]"
+                        aria-label="Attendance pending"
+                      />
+                    )}
+
+                    {canMarkAttendance && (
+                      <span className="flex shrink-0 items-center gap-0.5 border-l border-[var(--line)] pl-2">
+                        {(
+                          [
+                            [
+                              'ATTENDED',
+                              CheckCircle,
+                              'Mark attended',
+                            ],
+                            [
+                              'NO_SHOW',
+                              XCircle,
+                              'Mark no-show',
+                            ],
+                            [
+                              'PENDING',
+                              Clock,
+                              'Mark pending',
+                            ],
+                          ] as const
+                        ).map(
+                          ([
+                            status,
+                            Icon,
+                            label,
+                          ]) => (
+                            <button
+                              key={status}
+                              type="button"
+                              title={label}
+                              aria-label={`${label} for ${reg.user.firstName} ${reg.user.lastName}`}
+                              aria-pressed={
+                                attendance?.status ===
+                                status
+                              }
+                              onClick={() =>
+                                onMarkAttendance(
+                                  reg.userId,
+                                  day.id,
+                                  status,
+                                )
+                              }
+                              className={`p-1 transition-colors ${focusRing} ${
+                                attendance?.status ===
+                                status
+                                  ? 'bg-[var(--surface-3)] text-[var(--ink)]'
+                                  : 'text-[var(--ink-4)] hover:bg-[var(--surface-2)] hover:text-[var(--ink-2)]'
+                              }`}
+                            >
+                              <Icon
+                                className="h-3.5 w-3.5"
+                                aria-hidden
+                              />
+                            </button>
+                          ),
+                        )}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// =========================================================
+// Search result type
+// =========================================================
+
+type ParticipantSearchResult = {
+  registrationId: string;
+  userId: string;
+  firstName: string;
+  lastName: string;
+  profileImageUrl?: string | null;
+  dayId: string;
+  dayOfWeek: string;
+  cleaningDate: string;
+  weekId: string;
+  weekLabel: string;
+};
+
+// =========================================================
+// Participant Search
+//
+// This component receives already-loaded data.
+// It NEVER calls the database.
+// =========================================================
+
+function ParticipantSearch({
+  results,
+  search,
+  onSearchChange,
+  onClear,
+  onSelect,
+}: {
+  results: ParticipantSearchResult[];
+  search: string;
+  onSearchChange: (value: string) => void;
+  onClear: () => void;
+  onSelect: (result: ParticipantSearchResult) => void;
+}) {
+  const [focused, setFocused] = useState(false);
+
+  const showResults =
+    focused && search.trim().length > 0;
+
+  return (
+    <section className={`${panel} mb-4`}>
+      <div className="border-b border-[var(--line)] p-4 sm:p-5">
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center border border-[var(--line)] bg-[var(--brand)] text-white">
+            <Users
+              className="h-4 w-4"
+              aria-hidden
+            />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <h2 className="text-[15px] font-semibold tracking-tight text-[var(--ink)]">
+              Find a registered participant
+            </h2>
+
+            <p className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
+              Search registered students by name or cleaning date.
+            </p>
+          </div>
+        </div>
+
+        <div className="relative mt-4">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-4)]"
+            aria-hidden
+          />
+
+          <input
+            type="search"
+            value={search}
+            onChange={(event) =>
+              onSearchChange(event.target.value)
+            }
+            onFocus={() => setFocused(true)}
+            placeholder="Search student name, day or date..."
+            aria-label="Search registered participants"
+            className={`h-11 w-full border border-[var(--line)] bg-[var(--surface)] pl-10 pr-10 font-mono text-[13px] text-[var(--ink)] placeholder:text-[var(--ink-4)] ${focusRing}`}
+          />
+
+          {search && (
+            <button
+              type="button"
+              onClick={onClear}
+              aria-label="Clear participant search"
+              className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-[var(--ink-4)] hover:text-[var(--ink)] ${focusRing}`}
+            >
+              <X
+                className="h-4 w-4"
+                aria-hidden
+              />
+            </button>
+          )}
+        </div>
+
+        {search.trim() && (
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <p className="font-mono text-[11px] text-[var(--ink-3)]">
+              {results.length}{' '}
+              {results.length === 1
+                ? 'registered participant'
+                : 'registered participants'}{' '}
+              found
+            </p>
+
+            <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--ink-4)]">
+              Client-side search
+            </span>
+          </div>
+        )}
+      </div>
+
+      <AnimatePresence>
+        {showResults && (
+          <motion.div
+            initial={{
+              opacity: 0,
+              y: -4,
+            }}
+            animate={{
+              opacity: 1,
+              y: 0,
+            }}
+            exit={{
+              opacity: 0,
+              y: -4,
+            }}
+          >
+            {results.length > 0 ? (
+              <div className="max-h-[420px] overflow-y-auto p-2">
+                {results.map((result) => (
+                  <button
+                    type="button"
+                    key={`${result.registrationId}-${result.dayId}`}
+                    onClick={() => onSelect(result)}
+                    className={`flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-[var(--surface-2)] ${focusRing}`}
+                  >
+                    <Avatar
+                      firstName={result.firstName}
+                      lastName={result.lastName}
+                      src={result.profileImageUrl}
+                    />
+
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-mono text-[13px] font-semibold text-[var(--ink)]">
+                        {result.firstName}{' '}
+                        {result.lastName}
+                      </span>
+
+                      <span className="mt-0.5 block font-mono text-[11px] text-[var(--ink-3)]">
+                        {result.dayOfWeek},{' '}
+                        {formatDate(
+                          result.cleaningDate,
+                        )}
+                      </span>
+                    </span>
+
+                    <span className="hidden shrink-0 font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--ink-4)] sm:block">
+                      {result.weekLabel}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="border-t border-[var(--line)] px-5 py-8 text-center">
+                <User
+                  className="mx-auto h-6 w-6 text-[var(--ink-4)]"
+                  aria-hidden
+                />
+
+                <p className="mt-2 font-mono text-[13px] font-semibold text-[var(--ink)]">
+                  No registered participant found
+                </p>
+
+                <p className="mt-1 font-mono text-[11px] text-[var(--ink-3)]">
+                  Try the student's first name, last
+                  name, day or date.
+                </p>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
+  );
+}
+
+// =========================================================
+// Shell
+// =========================================================
+
+function Shell({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      data-cleaning-scope
+      className="min-h-screen bg-[var(--surface-2)] text-[var(--ink)] antialiased"
+    >
+      <style
+        dangerouslySetInnerHTML={{
+          __html: TOKENS,
+        }}
+      />
+
+      {children}
+    </div>
+  );
+}
+
+// =========================================================
+// Main page
+// =========================================================
 
 export default function CleaningPage() {
   const router = useRouter();
 
-  const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(
-    new Set()
-  );
+  const [expandedWeeks, setExpandedWeeks] =
+    useState<Set<string>>(new Set());
 
-  const [actionMessage, setActionMessage] = useState<{
-    type: 'success' | 'error';
+  const [confirm, setConfirm] =
+    useState<ConfirmState>(null);
+
+  const [pendingDayId, setPendingDayId] =
+    useState<string | null>(null);
+
+  const [notice, setNotice] = useState<{
+    tone: 'ok' | 'bad';
     message: string;
   } | null>(null);
 
-  const [changingDayId, setChangingDayId] = useState<string | null>(
-    null
-  );
+  // =======================================================
+  // CLIENT-SIDE SEARCH STATE
+  // =======================================================
+
+  const [participantSearch, setParticipantSearch] =
+    useState('');
 
   const {
     data,
@@ -436,1572 +1004,1280 @@ export default function CleaningPage() {
     refetch: refetchStatus,
   } = useStudentCleaningStatus();
 
-  const registerMutation = useRegisterForCleaning();
-  const changeRegistrationMutation = useChangeRegistration();
-  const markAttendanceMutation = useMarkAttendance();
+  const registerMutation =
+    useRegisterForCleaning();
 
-  // -------------------------------------------------------
-  // Register
-  // -------------------------------------------------------
+  const changeRegistrationMutation =
+    useChangeRegistration();
 
-  const handleRegister = async (dayId: string) => {
-    if (
-      !confirm(
-        'Are you sure you want to register for this cleaning day?'
-      )
-    ) {
-      return;
-    }
+  const markAttendanceMutation =
+    useMarkAttendance();
 
-    try {
-      const result = await registerMutation.mutateAsync(dayId);
+  const weeks = useMemo(
+    () => data?.weeks ?? [],
+    [data],
+  );
 
-      setActionMessage({
-        type: 'success',
-        message:
-          result.message ||
-          "You're registered! Thank you for committing to community service.",
-      });
+  // =======================================================
+  // Expand ALL weeks automatically
+  //
+  // This means participants in every published week start
+  // visible rather than only the first week.
+  // =======================================================
 
-      await refetch();
-      await refetchStatus();
+  useEffect(() => {
+    if (weeks.length === 0) return;
 
-      setTimeout(() => setActionMessage(null), 5000);
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Failed to register';
-
-      console.error('Registration error:', errorMessage);
-
-      if (
-        errorMessage
-          .toLowerCase()
-          .includes('already registered')
-      ) {
-        const dayMatch = errorMessage.match(
-          /registered for (.+?)\./i
-        );
-
-        const existingDay = dayMatch
-          ? dayMatch[1]
-          : 'a day';
-
-        setActionMessage({
-          type: 'error',
-          message: `You're already registered for ${existingDay}. Choose "Change to this" on another available day if you need to switch.`,
-        });
-      } else if (
-        errorMessage.toLowerCase().includes('full')
-      ) {
-        setActionMessage({
-          type: 'error',
-          message:
-            'This cleaning day has reached its capacity. Please choose another available day.',
-        });
-      } else if (
-        errorMessage.toLowerCase().includes('closed')
-      ) {
-        setActionMessage({
-          type: 'error',
-          message:
-            'Registration for this day is closed. Please select another open day.',
-        });
-      } else {
-        setActionMessage({
-          type: 'error',
-          message:
-            errorMessage ||
-            'Something went wrong. Please try again.',
-        });
-      }
-
-      setTimeout(() => setActionMessage(null), 8000);
-    }
-  };
-
-  // -------------------------------------------------------
-  // Change registration
-  // -------------------------------------------------------
-
-  const handleChangeRegistration = async (
-    newDayId: string
-  ) => {
-    if (!data?.registration) return;
-
-    const oldDay = data.weeks
-      .flatMap((week) => week.days)
-      .find(
-        (day) =>
-          day.id === data.registration?.cleaningDayId
+    setExpandedWeeks((previous) => {
+      const allWeekIds = new Set(
+        weeks.map((week) => week.id),
       );
 
-    const newDay = data.weeks
-      .flatMap((week) => week.days)
-      .find((day) => day.id === newDayId);
+      // Avoid unnecessary state updates.
+      if (
+        previous.size === allWeekIds.size &&
+        Array.from(allWeekIds).every((id) =>
+          previous.has(id),
+        )
+      ) {
+        return previous;
+      }
 
-    const oldWeek = data.weeks.find((week) =>
-      week.days.some(
-        (day) =>
-          day.id === data.registration?.cleaningDayId
-      )
-    );
+      return allWeekIds;
+    });
+  }, [weeks]);
 
-    const newWeek = data.weeks.find((week) =>
-      week.days.some((day) => day.id === newDayId)
-    );
+  // =======================================================
+  // Client-side participant search
+  //
+  // IMPORTANT:
+  // This only searches data already loaded into `weeks`.
+  // No fetch, axios call, API request or database query.
+  // =======================================================
 
-    if (
-      !confirm(
-        `Change your registration from ${oldDay?.dayOfWeek} (${oldWeek?.weekLabel || 'Week'}) to ${newDay?.dayOfWeek} (${newWeek?.weekLabel || 'Week'})?`
-      )
-    ) {
-      return;
+  const participantSearchResults = useMemo(() => {
+    const query = participantSearch
+      .trim()
+      .toLowerCase();
+
+    if (!query) return [];
+
+    const normalizedQuery = query.replace(/\s+/g, ' ');
+
+    const results: ParticipantSearchResult[] = [];
+
+    for (const week of weeks) {
+      for (const day of week.days) {
+        for (const registration of day.registrations) {
+          const firstName =
+            registration.user.firstName ?? '';
+
+          const lastName =
+            registration.user.lastName ?? '';
+
+          const fullName =
+            `${firstName} ${lastName}`.trim();
+
+          const reverseName =
+            `${lastName} ${firstName}`.trim();
+
+          const dayName =
+            day.dayOfWeek ?? '';
+
+          const dateText =
+            formatDate(day.cleaningDate);
+
+          const rawDate =
+            day.cleaningDate ?? '';
+
+          const searchableText = [
+            firstName,
+            lastName,
+            fullName,
+            reverseName,
+            dayName,
+            dateText,
+            rawDate,
+            week.weekLabel,
+          ]
+            .join(' ')
+            .toLowerCase()
+            .replace(/\s+/g, ' ');
+
+          if (
+            searchableText.includes(
+              normalizedQuery,
+            )
+          ) {
+            results.push({
+              registrationId: registration.id,
+              userId: registration.userId,
+              firstName,
+              lastName,
+              profileImageUrl:
+                registration.user
+                  .profileImageUrl,
+              dayId: day.id,
+              dayOfWeek: day.dayOfWeek,
+              cleaningDate:
+                day.cleaningDate,
+              weekId: week.id,
+              weekLabel: week.weekLabel,
+            });
+          }
+        }
+      }
     }
 
-    setChangingDayId(newDayId);
+    return results;
+  }, [participantSearch, weeks]);
 
-    try {
-      const result =
-        await changeRegistrationMutation.mutateAsync({
-          newDayId,
+  // =======================================================
+  // Search result selection
+  // =======================================================
+
+  const handleParticipantSearchSelect = useCallback(
+    (result: ParticipantSearchResult) => {
+      // Expand the week containing the participant.
+      setExpandedWeeks((previous) => {
+        const next = new Set(previous);
+        next.add(result.weekId);
+        return next;
+      });
+
+      // Clear the search after selecting.
+      setParticipantSearch('');
+
+      // Scroll the matching day into view after React
+      // has had time to render/expand it.
+      window.setTimeout(() => {
+        const element = document.getElementById(
+          `cleaning-day-${result.dayId}`,
+        );
+
+        element?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
         });
+      }, 250);
+    },
+    [],
+  );
 
-      const message =
-        result.message ||
-        `You're now registered for ${newDay?.dayOfWeek}.`;
+  // =======================================================
+  // Flash messages
+  // =======================================================
 
-      setActionMessage({
-        type: 'success',
+  const flash = useCallback(
+    (
+      tone: 'ok' | 'bad',
+      message: string,
+    ) => {
+      setNotice({
+        tone,
         message,
       });
 
-      setChangingDayId(null);
+      window.setTimeout(
+        () => setNotice(null),
+        tone === 'ok' ? 4000 : 7000,
+      );
+    },
+    [],
+  );
 
-      await refetch();
-      await refetchStatus();
+  // =======================================================
+  // All days
+  // =======================================================
 
-      setTimeout(() => setActionMessage(null), 5000);
-    } catch (error: unknown) {
-      setActionMessage({
-        type: 'error',
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Failed to change cleaning day',
-      });
+  const allDays = useMemo(
+    () =>
+      weeks.flatMap(
+        (week) => week.days,
+      ),
+    [weeks],
+  );
 
-      setChangingDayId(null);
+  const registeredDay = useMemo(
+    () =>
+      allDays.find(
+        (day) =>
+          day.id ===
+          data?.registration
+            ?.cleaningDayId,
+      ) ?? null,
+    [
+      allDays,
+      data?.registration?.cleaningDayId,
+    ],
+  );
 
-      setTimeout(() => setActionMessage(null), 5000);
-    }
-  };
+  const registeredWeek = useMemo(
+    () =>
+      weeks.find((week) =>
+        week.days.some(
+          (day) =>
+            day.id ===
+            data?.registration
+              ?.cleaningDayId,
+        ),
+      ) ?? null,
+    [
+      weeks,
+      data?.registration?.cleaningDayId,
+    ],
+  );
 
-  // -------------------------------------------------------
-  // Toggle week
-  // -------------------------------------------------------
+  // =======================================================
+  // Registration
+  // =======================================================
 
-  const toggleWeek = (weekId: string) => {
-    const newExpanded = new Set(expandedWeeks);
-
-    if (newExpanded.has(weekId)) {
-      newExpanded.delete(weekId);
-    } else {
-      newExpanded.add(weekId);
-    }
-
-    setExpandedWeeks(newExpanded);
-  };
-
-  // -------------------------------------------------------
-  // Registration rules
-  // -------------------------------------------------------
-
-  const canChangeRegistration = (
-    day: CleaningDay,
-    week: {
-      registrationDeadline: string;
-    }
+  const runRegister = async (
+    dayId: string,
   ) => {
-    if (!data?.registration) return false;
+    setPendingDayId(dayId);
 
-    const isPast = isDayPast(day.cleaningDate);
-    const isClosed = day.status === 'CLOSED';
-    const isFull = day.status === 'FULL';
+    try {
+      const result =
+        await registerMutation.mutateAsync(
+          dayId,
+        );
 
-    const deadlinePassed =
-      new Date() > new Date(week.registrationDeadline);
+      setConfirm(null);
 
-    return (
-      !isPast &&
-      !isClosed &&
-      !isFull &&
-      !deadlinePassed &&
-      day.id !== data.registration.cleaningDayId
-    );
+      flash(
+        'ok',
+        result.message ??
+          'You are registered for this cleaning day.',
+      );
+
+      await Promise.all([
+        refetch(),
+        refetchStatus(),
+      ]);
+    } catch (err: unknown) {
+      const raw =
+        err instanceof Error
+          ? err.message
+          : 'Registration failed';
+
+      const lower =
+        raw.toLowerCase();
+
+      setConfirm(null);
+
+      if (
+        lower.includes(
+          'already registered',
+        )
+      ) {
+        flash(
+          'bad',
+          'You already have a registration. Use "Switch here" on another open day instead.',
+        );
+      } else if (
+        lower.includes('full')
+      ) {
+        flash(
+          'bad',
+          'This day is full. Choose another open day.',
+        );
+      } else if (
+        lower.includes('closed')
+      ) {
+        flash(
+          'bad',
+          'Registration for this day is closed.',
+        );
+      } else {
+        flash('bad', raw);
+      }
+    } finally {
+      setPendingDayId(null);
+    }
   };
+
+  // =======================================================
+  // Change registration
+  // =======================================================
+
+  const runChange = async (
+    newDayId: string,
+  ) => {
+    setPendingDayId(newDayId);
+
+    try {
+      const result =
+        await changeRegistrationMutation.mutateAsync(
+          {
+            newDayId,
+          },
+        );
+
+      const newDay =
+        allDays.find(
+          (day) =>
+            day.id === newDayId,
+        );
+
+      setConfirm(null);
+
+      flash(
+        'ok',
+        result.message ??
+          `Your registration moved to ${
+            newDay?.dayOfWeek ??
+            'the selected day'
+          }.`,
+      );
+
+      await Promise.all([
+        refetch(),
+        refetchStatus(),
+      ]);
+    } catch (err: unknown) {
+      setConfirm(null);
+
+      flash(
+        'bad',
+        err instanceof Error
+          ? err.message
+          : 'Could not change your cleaning day.',
+      );
+    } finally {
+      setPendingDayId(null);
+    }
+  };
+
+  // =======================================================
+  // Attendance
+  // =======================================================
+
+  const handleMarkAttendance =
+    async (
+      userId: string,
+      dayId: string,
+      status:
+        | 'ATTENDED'
+        | 'NO_SHOW'
+        | 'PENDING',
+    ) => {
+      try {
+        await markAttendanceMutation.mutateAsync(
+          {
+            userId,
+            cleaningDayId: dayId,
+            status,
+          },
+        );
+
+        flash(
+          'ok',
+          `Attendance saved as ${status
+            .toLowerCase()
+            .replace('_', ' ')}.`,
+        );
+
+        await refetch();
+      } catch (err: unknown) {
+        flash(
+          'bad',
+          err instanceof Error
+            ? err.message
+            : 'Could not save attendance.',
+        );
+      }
+    };
+
+  // =======================================================
+  // Confirmation dialogs
+  // =======================================================
+
+  const askRegister = (
+    day: CleaningDay,
+  ) =>
+    setConfirm({
+      title: `Register for ${day.dayOfWeek}?`,
+      body: `${formatDate(
+        day.cleaningDate,
+      )}. You are expected to attend the day you select. You can switch days while registration stays open.`,
+      confirmLabel: 'Register',
+      onConfirm: () =>
+        runRegister(day.id),
+    });
+
+  const askChange = (
+    day: CleaningDay,
+    weekLabel: string,
+  ) =>
+    setConfirm({
+      title: `Switch to ${day.dayOfWeek}?`,
+      body: `Your registration moves from ${
+        registeredDay?.dayOfWeek ??
+        'your current day'
+      } to ${day.dayOfWeek}, ${formatDate(
+        day.cleaningDate,
+      )} (${weekLabel}).`,
+      confirmLabel: 'Switch day',
+      onConfirm: () =>
+        runChange(day.id),
+    });
+
+  // =======================================================
+  // Rules
+  // =======================================================
+
+  const isDeadlinePassed = (
+    deadline: string,
+  ) =>
+    new Date() >
+    new Date(deadline);
 
   const canRegister = (
     day: CleaningDay,
     week: {
       registrationDeadline: string;
       isActive: boolean;
-    }
+    },
+  ) =>
+    !data?.registration &&
+    week.isActive &&
+    day.status === 'OPEN' &&
+    !isDayPast(day.cleaningDate) &&
+    !isDeadlinePassed(
+      week.registrationDeadline,
+    );
+
+  const canSwitch = (
+    day: CleaningDay,
+    week: {
+      registrationDeadline: string;
+      isActive: boolean;
+    },
+  ) =>
+    Boolean(data?.registration) &&
+    day.id !==
+      data?.registration
+        ?.cleaningDayId &&
+    week.isActive &&
+    day.status === 'OPEN' &&
+    !isDayPast(day.cleaningDate) &&
+    !isDeadlinePassed(
+      week.registrationDeadline,
+    );
+
+  const unavailableReason = (
+    day: CleaningDay,
+    week: {
+      registrationDeadline: string;
+      isActive: boolean;
+    },
   ) => {
-    if (data?.registration) return false;
+    if (
+      isDayPast(day.cleaningDate)
+    )
+      return 'Past';
 
-    const isPast = isDayPast(day.cleaningDate);
-    const isClosed = day.status === 'CLOSED';
-    const isFull = day.status === 'FULL';
+    if (day.status === 'FULL')
+      return 'Full';
 
-    const deadlinePassed =
-      new Date() > new Date(week.registrationDeadline);
+    if (day.status === 'CLOSED')
+      return 'Closed';
 
-    return (
-      !isPast &&
-      !isClosed &&
-      !isFull &&
-      !deadlinePassed &&
-      week.isActive
+    if (
+      isDeadlinePassed(
+        week.registrationDeadline,
+      )
+    )
+      return 'Deadline passed';
+
+    if (!week.isActive)
+      return 'Week closed';
+
+    return '—';
+  };
+
+  const dayTone = (
+    day: CleaningDay,
+  ): StatusTone => {
+    if (
+      isDayPast(day.cleaningDate)
+    )
+      return 'neutral';
+
+    if (day.status === 'OPEN')
+      return 'ok';
+
+    if (day.status === 'FULL')
+      return 'warn';
+
+    return 'bad';
+  };
+
+  const canMarkAttendance =
+    data?.user?.role === 'admin' ||
+    data?.user?.role === 'teacher' ||
+    data?.user?.role ===
+      'super_admin';
+
+  // =======================================================
+  // Week toggle
+  // =======================================================
+
+  const toggleWeek = (
+    weekId: string,
+  ) =>
+    setExpandedWeeks(
+      (previous) => {
+        const next = new Set(
+          previous,
+        );
+
+        if (next.has(weekId)) {
+          next.delete(weekId);
+        } else {
+          next.add(weekId);
+        }
+
+        return next;
+      },
     );
-  };
 
-  const isUserRegisteredForDay = (dayId: string) => {
-    return (
-      data?.registration?.cleaningDayId === dayId
+  // =======================================================
+  // Header summary
+  // =======================================================
+
+  const registeredLabel =
+    registeredDay
+      ? `Registered for ${registeredDay.dayOfWeek}, ${formatDate(
+          registeredDay.cleaningDate,
+        )}`
+      : null;
+
+  const activeWeek =
+    weeks.find(
+      (week) => week.isActive,
     );
-  };
 
-  const getUserAttendanceStatus = (dayId: string) => {
-    const record = data?.userAttendance?.find(
-      (attendance) =>
-        attendance.cleaningDay.id === dayId
-    );
+  const deadlineText =
+    registeredWeek
+      ? deadlineLabel(
+          registeredWeek.registrationDeadline,
+        )
+      : activeWeek?.registrationDeadline
+        ? deadlineLabel(
+            activeWeek.registrationDeadline,
+          )
+        : null;
 
-    return record?.status;
-  };
-
-  // -------------------------------------------------------
-  // Attendance
-  // -------------------------------------------------------
-
-  const handleMarkAttendance = async (
-    userId: string,
-    dayId: string,
-    status: 'ATTENDED' | 'NO_SHOW' | 'PENDING'
-  ) => {
-    try {
-      await markAttendanceMutation.mutateAsync({
-        userId,
-        cleaningDayId: dayId,
-        status,
-      });
-
-      setActionMessage({
-        type: 'success',
-        message: `Attendance updated — marked as ${status
-          .toLowerCase()
-          .replace('_', ' ')}`,
-      });
-
-      setTimeout(() => setActionMessage(null), 3000);
-    } catch (error: unknown) {
-      setActionMessage({
-        type: 'error',
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Failed to mark attendance',
-      });
-
-      setTimeout(() => setActionMessage(null), 3000);
-    }
-  };
-
-  // -------------------------------------------------------
+  // =======================================================
   // Loading
-  // -------------------------------------------------------
+  // =======================================================
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#f8fafc] p-4 sm:p-6">
-        <div className="mx-auto max-w-4xl space-y-6">
-          <div className="mb-6 flex items-center justify-between gap-3">
-            <div className="h-10 w-48 animate-pulse rounded-lg bg-[#e2e8f0]" />
-            <div className="h-10 w-32 animate-pulse rounded-lg bg-[#e2e8f0]" />
-          </div>
+      <Shell>
+        <PageHeader
+          onBack={() =>
+            router.back()
+          }
+          registeredLabel={null}
+          deadlineText={null}
+        />
 
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="rounded-xl border border-[#e2e8f0] bg-white p-6 shadow-sm"
-            >
-              <div className="mb-4 flex items-center justify-between">
-                <div className="h-6 w-40 animate-pulse rounded bg-[#e2e8f0]" />
-                <div className="h-6 w-24 animate-pulse rounded bg-[#e2e8f0]" />
-              </div>
-
-              <div className="space-y-3">
-                {[1, 2, 3, 4, 5].map((j) => (
-                  <div
-                    key={j}
-                    className="h-16 animate-pulse rounded-lg bg-[#f1f5f9]"
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+        <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+          <ScheduleSkeleton />
+        </main>
+      </Shell>
     );
   }
 
-  // -------------------------------------------------------
+  // =======================================================
   // Error
-  // -------------------------------------------------------
+  // =======================================================
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f8fafc] px-4">
-        <div className="w-full max-w-md rounded-2xl border border-[#e2e8f0] bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
-            <AlertCircle className="h-8 w-8 text-red-500" />
-          </div>
+      <Shell>
+        <PageHeader
+          onBack={() =>
+            router.back()
+          }
+          registeredLabel={null}
+          deadlineText={null}
+        />
 
-          <h3 className="mb-2 text-xl font-semibold text-[#1e293b]">
-            Unable to Load the Schedule
-          </h3>
-
-          <p className="text-sm leading-6 text-[#64748b]">
-            {(error as Error)?.message ||
-              'An unexpected error occurred while loading the cleaning schedule.'}
-          </p>
-
-          <button
-            onClick={() => refetch()}
-            className="mt-5 rounded-lg bg-[#1a365d] px-6 py-2.5 font-medium text-white transition-all duration-200 hover:bg-[#153475]"
+        <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+          <div
+            className={`${panel} p-6`}
           >
-            Try Again
-          </button>
-        </div>
-      </div>
+            <div className="flex items-start gap-3">
+              <AlertCircle
+                className="mt-0.5 h-5 w-5 shrink-0 text-[var(--bad)]"
+                aria-hidden
+              />
+
+              <div>
+                <h2 className="text-base font-semibold text-[var(--ink)]">
+                  The schedule could not be loaded
+                </h2>
+
+                <p className="mt-1 max-w-prose font-mono text-[13px] leading-6 text-[var(--ink-3)]">
+                  {(error as Error)
+                    ?.message ??
+                    'An unexpected error occurred.'}
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    refetch()
+                  }
+                  className={`${btnPrimary} mt-4`}
+                >
+                  Try again
+                </button>
+              </div>
+            </div>
+          </div>
+        </main>
+      </Shell>
     );
   }
 
-  const weeks = data?.weeks || [];
-
-  // -------------------------------------------------------
+  // =======================================================
   // Page
-  // -------------------------------------------------------
+  // =======================================================
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#f8fafc]">
-      {/* -------------------------------------------------- */}
-      {/* Header */}
-      {/* -------------------------------------------------- */}
+    <Shell>
+      <PageHeader
+        onBack={() =>
+          router.back()
+        }
+        registeredLabel={
+          registeredLabel
+        }
+        deadlineText={
+          deadlineText
+        }
+      />
 
-      <div className="mb-6 flex flex-wrap items-center gap-2 sm:mb-8 sm:gap-3">
-        <button
-          onClick={() => router.back()}
-          className="rounded-lg border border-[#dbe4ee] bg-white px-3 py-2 text-sm font-medium text-[#475569] shadow-sm transition-all duration-200 hover:border-[#1a365d]/30 hover:bg-[#f8fafc] hover:text-[#1a365d]"
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+        {/* =================================================
+            Notice
+        ================================================= */}
+
+        <AnimatePresence
+          initial={false}
         >
-          Back
-        </button>
-
-        <Link
-          href="/dashboard/courses"
-          className="rounded-lg border border-[#dbe4ee] bg-white px-3 py-2 text-sm font-medium text-[#475569] shadow-sm transition-all duration-200 hover:border-[#1a365d]/30 hover:bg-[#f8fafc] hover:text-[#1a365d]"
-        >
-          Courses
-        </Link>
-
-        <Link
-          href="/dashboard/students"
-          className="rounded-lg border border-[#dbe4ee] bg-white px-3 py-2 text-sm font-medium text-[#475569] shadow-sm transition-all duration-200 hover:border-[#1a365d]/30 hover:bg-[#f8fafc] hover:text-[#1a365d]"
-        >
-          Students
-        </Link>
-
-        <div className="hidden h-8 w-px bg-[#dbe4ee] sm:block" />
-
-        {/* Single logo only */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{
-            opacity: 1,
-            scale: 1,
-            y: [0, -2, 0],
-          }}
-          transition={{
-            opacity: { duration: 0.5 },
-            scale: { duration: 0.5 },
-            y: {
-              duration: 3,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            },
-          }}
-          className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#dbe4ee] bg-white shadow-sm"
-        >
-          <img
-            src="/freedom.png"
-            alt="Freedom"
-            className="h-full w-full object-contain p-1.5"
-          />
-        </motion.div>
-      </div>
-
-      {/* -------------------------------------------------- */}
-      {/* Animated Billboard */}
-      {/* -------------------------------------------------- */}
-
-      <AnimatedBillboard />
-
-      {/* -------------------------------------------------- */}
-      {/* Action Message */}
-      {/* -------------------------------------------------- */}
-
-      <AnimatePresence>
-        {actionMessage && (
-          <motion.div
-            initial={{
-              opacity: 0,
-              y: -20,
-              scale: 0.95,
-            }}
-            animate={{
-              opacity: 1,
-              y: 0,
-              scale: 1,
-            }}
-            exit={{
-              opacity: 0,
-              y: -20,
-              scale: 0.95,
-            }}
-            transition={{
-              duration: 0.4,
-              ease: [0.25, 0.1, 0.25, 1],
-            }}
-            className={`mb-6 rounded-2xl border-2 p-5 shadow-lg ${
-              actionMessage.type === 'success'
-                ? 'border-emerald-300 bg-gradient-to-br from-emerald-50 to-emerald-100/50'
-                : 'border-red-300 bg-gradient-to-br from-red-50 to-red-100/50'
-            }`}
-          >
-            <div className="flex items-start gap-4">
-              <motion.div
-                initial={{
-                  scale: 0,
-                  rotate: -180,
-                }}
-                animate={{
-                  scale: 1,
-                  rotate: 0,
-                }}
-                transition={{
-                  delay: 0.1,
-                  duration: 0.5,
-                  type: 'spring',
-                  stiffness: 200,
-                }}
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-                  actionMessage.type === 'success'
-                    ? 'bg-emerald-500 text-white'
-                    : 'bg-red-500 text-white'
-                }`}
-              >
-                {actionMessage.type === 'success' ? (
-                  <PartyPopper className="h-5 w-5" />
-                ) : (
-                  <AlertCircle className="h-5 w-5" />
-                )}
-              </motion.div>
-
-              <div className="flex-1">
-                <motion.p
-                  initial={{
-                    opacity: 0,
-                    x: -10,
-                  }}
-                  animate={{
-                    opacity: 1,
-                    x: 0,
-                  }}
-                  transition={{
-                    delay: 0.2,
-                    duration: 0.3,
-                  }}
-                  className={`text-sm font-semibold leading-6 ${
-                    actionMessage.type === 'success'
-                      ? 'text-emerald-800'
-                      : 'text-red-800'
-                  }`}
-                >
-                  {actionMessage.message}
-                </motion.p>
-
-                {actionMessage.type === 'success' && (
-                  <motion.div
-                    initial={{
-                      opacity: 0,
-                      y: 5,
-                    }}
-                    animate={{
-                      opacity: 1,
-                      y: 0,
-                    }}
-                    transition={{
-                      delay: 0.3,
-                      duration: 0.3,
-                    }}
-                    className="mt-2 flex items-center gap-2 text-xs font-medium text-emerald-600"
-                  >
-                    <ThumbsUp className="h-3.5 w-3.5" />
-                    <span>Thank you for your commitment.</span>
-                  </motion.div>
-                )}
-              </div>
-
-              <motion.button
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4 }}
-                onClick={() => setActionMessage(null)}
-                className="shrink-0 rounded-lg p-1 text-[#94a3b8] transition-colors hover:bg-black/5 hover:text-[#64748b]"
-                aria-label="Dismiss message"
-              >
-                <XCircle className="h-4 w-4" />
-              </motion.button>
-            </div>
-
+          {notice && (
             <motion.div
-              initial={{ width: '100%' }}
-              animate={{ width: '0%' }}
-              transition={{
-                duration:
-                  actionMessage.type === 'success'
-                    ? 5
-                    : 8,
-                ease: 'linear',
+              role="status"
+              aria-live="polite"
+              initial={{
+                opacity: 0,
+                y: -6,
               }}
-              className={`mt-3 h-1 rounded-full ${
-                actionMessage.type === 'success'
-                  ? 'bg-emerald-400'
-                  : 'bg-red-400'
+              animate={{
+                opacity: 1,
+                y: 0,
+              }}
+              exit={{
+                opacity: 0,
+                y: -6,
+              }}
+              transition={{
+                duration: 0.18,
+              }}
+              className={`mb-4 flex items-start gap-2.5 border px-4 py-3 font-mono text-[12px] ${
+                notice.tone === 'ok'
+                  ? toneClasses.ok
+                  : toneClasses.bad
               }`}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* -------------------------------------------------- */}
-      {/* My Status */}
-      {/* -------------------------------------------------- */}
-
-      {statusData && (
-        <motion.div
-          initial={{
-            opacity: 0,
-            y: 18,
-          }}
-          animate={{
-            opacity: 1,
-            y: 0,
-          }}
-          transition={{ duration: 0.5 }}
-          className="mb-8 rounded-2xl border border-[#dbe4ee] bg-white p-5 shadow-[0_8px_30px_rgba(26,54,93,0.05)] sm:p-6"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex min-w-0 items-start gap-3">
-              <motion.div
-                animate={{
-                  scale: [1, 1.08, 1],
-                }}
-                transition={{
-                  duration: 2.5,
-                  repeat: Infinity,
-                }}
-                className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#3182ce]/10"
-              >
-                <User className="h-5 w-5 text-[#1a365d]" />
-              </motion.div>
-
-              <div className="min-w-0">
-                <h3 className="text-base font-semibold text-[#1e293b] sm:text-lg">
-                  My Cleaning Status
-                </h3>
-
-                {statusData.hasRegistration ? (
-                  <p className="mt-1 text-sm leading-6 text-[#64748b]">
-                    You are registered for{' '}
-                    <span className="font-semibold text-[#1a365d]">
-                      {statusData.registration?.dayOfWeek}
-                    </span>{' '}
-                    —{' '}
-                    {formatDate(
-                      statusData.registration
-                        ?.cleaningDate || ''
-                    )}
-
-                    <span className="mt-1 block text-xs text-[#3182ce]">
-                      You can change to another available day while registration remains open.
-                    </span>
-                  </p>
-                ) : (
-                  <p className="mt-1 text-sm leading-6 text-[#64748b]">
-                    You have not registered for a cleaning day yet.
-                    Select an available day below to participate.
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {statusData.hasRegistration && (
-                <div
-                  className={`rounded-full px-3 py-1 text-xs font-medium ${getAttendanceStatusColor(
-                    statusData.registration?.status ||
-                      'PENDING'
-                  )}`}
-                >
-                  {statusData.registration?.status ||
-                    'PENDING'}
-                </div>
+            >
+              {notice.tone === 'ok' ? (
+                <Check
+                  className="mt-0.5 h-4 w-4 shrink-0"
+                  aria-hidden
+                />
+              ) : (
+                <AlertCircle
+                  className="mt-0.5 h-4 w-4 shrink-0"
+                  aria-hidden
+                />
               )}
 
-              {!statusData.hasRegistration &&
-                data?.isAdmin && (
-                  <span className="text-xs text-[#64748b]">
-                    Admin — No registration required
-                  </span>
-                )}
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* -------------------------------------------------- */}
-      {/* Weeks */}
-      {/* -------------------------------------------------- */}
-
-      {weeks.length === 0 ? (
-        <motion.div
-          initial={{
-            opacity: 0,
-            y: 20,
-          }}
-          animate={{
-            opacity: 1,
-            y: 0,
-          }}
-          className="rounded-2xl border border-[#dbe4ee] bg-white p-8 text-center shadow-sm sm:p-12"
-        >
-          <Calendar className="mx-auto mb-4 h-16 w-16 text-[#94a3b8]" />
-
-          <h3 className="mb-2 text-xl font-semibold text-[#1e293b]">
-            No Cleaning Weeks Available
-          </h3>
-
-          <p className="text-sm text-[#64748b]">
-            The cleaning schedule is not currently available.
-            Please check back later for upcoming opportunities.
-          </p>
-        </motion.div>
-      ) : (
-        <div className="space-y-4">
-          {weeks.map((week, weekIndex) => {
-            const isExpanded = expandedWeeks.has(
-              week.id
-            );
-
-            const deadlinePassed =
-              new Date() >
-              new Date(week.registrationDeadline);
-
-            return (
-              <motion.div
-                key={week.id}
-                initial={{
-                  opacity: 0,
-                  y: 18,
-                }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                }}
-                transition={{
-                  duration: 0.45,
-                  delay: weekIndex * 0.06,
-                }}
-                className="overflow-hidden rounded-2xl border border-[#dbe4ee] bg-white shadow-[0_6px_25px_rgba(26,54,93,0.045)] transition-all duration-300 hover:border-[#3182ce]/30"
-              >
-                {/* Week Header */}
-                <div
-                  className="flex cursor-pointer items-center justify-between gap-3 px-4 py-4 sm:px-6"
-                  onClick={() =>
-                    toggleWeek(week.id)
-                  }
-                >
-                  <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-                    <motion.div
-                      animate={{
-                        scale: isExpanded
-                          ? [1, 1.06, 1]
-                          : 1,
-                      }}
-                      transition={{
-                        duration: 0.5,
-                      }}
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1a365d]"
-                    >
-                      <Calendar className="h-5 w-5 text-white" />
-                    </motion.div>
-
-                    <div className="min-w-0">
-                      <motion.h3
-                        animate={{
-                          x: isExpanded ? 2 : 0,
-                        }}
-                        className="truncate text-base font-semibold text-[#1e293b] sm:text-lg"
-                      >
-                        {week.weekLabel}
-                      </motion.h3>
-
-                      <p className="truncate text-xs text-[#64748b] sm:text-sm">
-                        {formatDate(week.startDate)} -{' '}
-                        {formatDate(week.endDate)}
-                        <span className="hidden sm:inline">
-                          {' '}
-                          (Monday - Friday)
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-                    {week.isActive ? (
-                      <span className="flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700 sm:px-3 sm:text-xs">
-                        <Unlock className="h-3 w-3" />
-                        Open
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-semibold text-red-600 sm:px-3 sm:text-xs">
-                        <Lock className="h-3 w-3" />
-                        Closed
-                      </span>
-                    )}
-
-                    {deadlinePassed &&
-                      week.isActive && (
-                        <span className="hidden rounded-full border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-600 md:inline-flex">
-                          Deadline Passed
-                        </span>
-                      )}
-
-                    <motion.div
-                      animate={{
-                        rotate: isExpanded ? 180 : 0,
-                      }}
-                      transition={{
-                        duration: 0.25,
-                      }}
-                    >
-                      <ChevronDown className="h-5 w-5 text-[#64748b]" />
-                    </motion.div>
-                  </div>
-                </div>
-
-                {/* Expanded Days */}
-                <AnimatePresence initial={false}>
-                  {isExpanded && (
-                    <motion.div
-                      initial={{
-                        height: 0,
-                        opacity: 0,
-                      }}
-                      animate={{
-                        height: 'auto',
-                        opacity: 1,
-                      }}
-                      exit={{
-                        height: 0,
-                        opacity: 0,
-                      }}
-                      transition={{
-                        duration: 0.35,
-                        ease: 'easeInOut',
-                      }}
-                      className="border-t border-[#e2e8f0]"
-                    >
-                      <div className="space-y-4 p-4 sm:p-6">
-                        {week.days.map(
-                          (day, dayIndex) => {
-                            const isFull =
-                              day.status === 'FULL';
-
-                            const isClosed =
-                              day.status === 'CLOSED';
-
-                            const isOpen =
-                              day.status === 'OPEN';
-
-                            const isPast =
-                              isDayPast(
-                                day.cleaningDate
-                              );
-
-                            const userRegistered =
-                              isUserRegisteredForDay(
-                                day.id
-                              );
-
-                            const attendanceStatus =
-                              getUserAttendanceStatus(
-                                day.id
-                              );
-
-                            const canChange =
-                              canChangeRegistration(
-                                day,
-                                week
-                              );
-
-                            const canReg =
-                              canRegister(day, week);
-
-                            const currentRegisteredWeek =
-                              data?.registration
-                                ?.cleaningDayId
-                                ? weeks.find((w) =>
-                                    w.days.some(
-                                      (d) =>
-                                        d.id ===
-                                        data.registration
-                                          ?.cleaningDayId
-                                    )
-                                  )
-                                : null;
-
-                            const isDifferentWeek =
-                              currentRegisteredWeek &&
-                              currentRegisteredWeek.id !==
-                                week.id;
-
-                            const canMarkAttendance =
-                              data?.user?.role ===
-                                'admin' ||
-                              data?.user?.role ===
-                                'teacher' ||
-                              data?.user?.role ===
-                                'super_admin';
-
-                            return (
-                              <motion.div
-                                key={day.id}
-                                initial={{
-                                  opacity: 0,
-                                  y: 12,
-                                }}
-                                animate={{
-                                  opacity: 1,
-                                  y: 0,
-                                }}
-                                transition={{
-                                  delay:
-                                    dayIndex * 0.055,
-                                  duration: 0.35,
-                                }}
-                                className={`rounded-xl border p-4 transition-all duration-200 ${
-                                  userRegistered
-                                    ? 'border-emerald-300 bg-emerald-50/60'
-                                    : isPast
-                                      ? 'border-[#e2e8f0] bg-[#f8fafc] opacity-60'
-                                      : isOpen
-                                        ? 'border-[#dbe4ee] bg-white hover:-translate-y-0.5 hover:border-[#3182ce]/40 hover:shadow-md'
-                                        : 'border-[#e2e8f0] bg-[#f8fafc] opacity-70'
-                                }`}
-                              >
-                                <div className="flex flex-col gap-4">
-                                  <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
-                                    <div className="flex min-w-0 items-center gap-3">
-                                      <motion.div
-                                        animate={{
-                                          y: [
-                                            0,
-                                            -2,
-                                            0,
-                                          ],
-                                        }}
-                                        transition={{
-                                          duration: 3,
-                                          repeat:
-                                            Infinity,
-                                          delay:
-                                            dayIndex *
-                                            0.15,
-                                        }}
-                                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#f1f5f9]"
-                                      >
-                                        <Calendar className="h-5 w-5 text-[#64748b]" />
-                                      </motion.div>
-
-                                      <div className="min-w-0">
-                                        <h4 className="font-semibold text-[#1e293b]">
-                                          {day.dayOfWeek}
-                                        </h4>
-
-                                        <p className="text-sm text-[#64748b]">
-                                          {formatDate(
-                                            day.cleaningDate
-                                          )}
-                                        </p>
-
-                                        {data?.registration &&
-                                          isDifferentWeek && (
-                                            <p className="mt-0.5 text-xs font-medium text-[#3182ce]">
-                                              {
-                                                week.weekLabel
-                                              }
-                                            </p>
-                                          )}
-                                      </div>
-                                    </div>
-
-                                    <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-                                      <div className="hidden sm:flex">
-                                        <StatusBadge
-                                          status={
-                                            day.status
-                                          }
-                                          currentRegistrations={
-                                            day.currentRegistrations
-                                          }
-                                          capacityLimit={
-                                            day.capacityLimit
-                                          }
-                                        />
-                                      </div>
-
-                                      {userRegistered && (
-                                        <RegisteredBadge
-                                          attendanceStatus={
-                                            attendanceStatus
-                                          }
-                                        />
-                                      )}
-
-                                      {!data?.registration &&
-                                        canReg && (
-                                          <button
-                                            onClick={() =>
-                                              handleRegister(
-                                                day.id
-                                              )
-                                            }
-                                            disabled={
-                                              registerMutation.isPending
-                                            }
-                                            className="flex items-center gap-2 rounded-lg bg-[#1a365d] px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#153475] hover:shadow-md active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
-                                          >
-                                            {registerMutation.isPending ? (
-                                              <Loader2 className="h-4 w-4 animate-spin" />
-                                            ) : (
-                                              <CalendarCheck className="h-4 w-4" />
-                                            )}
-                                            Register
-                                          </button>
-                                        )}
-
-                                      {data?.registration &&
-                                        canChange && (
-                                          <button
-                                            onClick={() =>
-                                              handleChangeRegistration(
-                                                day.id
-                                              )
-                                            }
-                                            disabled={
-                                              changeRegistrationMutation.isPending &&
-                                              changingDayId ===
-                                                day.id
-                                            }
-                                            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 disabled:opacity-50 ${
-                                              changingDayId ===
-                                                day.id &&
-                                              changeRegistrationMutation.isPending
-                                                ? 'bg-[#f1f5f9] text-[#64748b]'
-                                                : 'border border-[#3182ce]/25 bg-[#3182ce]/5 text-[#1a365d] hover:-translate-y-0.5 hover:border-[#3182ce]/40 hover:bg-[#3182ce]/10 active:translate-y-0'
-                                            }`}
-                                          >
-                                            {changeRegistrationMutation.isPending &&
-                                            changingDayId ===
-                                              day.id ? (
-                                              <Loader2 className="h-4 w-4 animate-spin" />
-                                            ) : (
-                                              <ArrowRight className="h-4 w-4" />
-                                            )}
-
-                                            Change to this
-
-                                            {isDifferentWeek && (
-                                              <span className="text-xs opacity-70">
-                                                (
-                                                {
-                                                  week.weekLabel
-                                                }
-                                                )
-                                              </span>
-                                            )}
-                                          </button>
-                                        )}
-
-                                      {!userRegistered &&
-                                        !canReg &&
-                                        !data?.registration && (
-                                          <AvailabilityMessage
-                                            isPast={isPast}
-                                            isFull={isFull}
-                                            isClosed={
-                                              isClosed
-                                            }
-                                            deadlinePassed={
-                                              deadlinePassed
-                                            }
-                                            weekActive={
-                                              week.isActive
-                                            }
-                                          />
-                                        )}
-
-                                      {data?.registration &&
-                                        !canChange &&
-                                        data.registration
-                                          ?.cleaningDayId !==
-                                          day.id && (
-                                          <AvailabilityMessage
-                                            isPast={isPast}
-                                            isFull={isFull}
-                                            isClosed={
-                                              isClosed
-                                            }
-                                            deadlinePassed={
-                                              deadlinePassed
-                                            }
-                                            weekActive={
-                                              week.isActive
-                                            }
-                                          />
-                                        )}
-                                    </div>
-                                  </div>
-
-                                  {/* Registered Students */}
-
-                                  {day.registrations.length >
-                                    0 && (
-                                    <div className="border-t border-[#e2e8f0] pt-4">
-                                      <div className="mb-3 flex items-center justify-between gap-2">
-                                        <p className="text-xs font-bold uppercase tracking-wider text-[#1a365d]">
-                                          Participants
-                                        </p>
-
-                                        <span className="flex items-center gap-1 text-xs font-semibold text-[#3182ce]">
-                                          <Users className="h-3 w-3" />
-                                          {
-                                            day
-                                              .registrations
-                                              .length
-                                          }{' '}
-                                          registered
-                                        </span>
-                                      </div>
-
-                                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                        {day.registrations.map(
-                                          (reg, index) => {
-                                            const attendance =
-                                              day.attendanceRecords?.find(
-                                                (
-                                                  record: {
-                                                    userId: string;
-                                                    status: string;
-                                                  }
-                                                ) =>
-                                                  record.userId ===
-                                                  reg.userId
-                                              );
-
-                                            const isCurrentUser =
-                                              reg.userId ===
-                                              data?.user
-                                                ?.id;
-
-                                            return (
-                                              <motion.div
-                                                key={reg.id}
-                                                initial={{
-                                                  opacity: 0,
-                                                  scale: 0.92,
-                                                  y: 8,
-                                                }}
-                                                animate={{
-                                                  opacity: 1,
-                                                  scale: 1,
-                                                  y: 0,
-                                                }}
-                                                transition={{
-                                                  duration: 0.35,
-                                                  delay:
-                                                    index *
-                                                    0.05,
-                                                  ease: [
-                                                    0.25,
-                                                    0.1,
-                                                    0.25,
-                                                    1,
-                                                  ],
-                                                }}
-                                                whileHover={{
-                                                  scale: 1.03,
-                                                  borderColor:
-                                                    '#3182ce',
-                                                  boxShadow:
-                                                    '0 4px 12px rgba(49, 130, 206, 0.15)',
-                                                }}
-                                                className="group flex items-center gap-3 rounded-xl border-2 border-[#e2e8f0] bg-white px-3 py-2.5 shadow-sm transition-all"
-                                              >
-                                                <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 border-[#dbe4ee] shadow-sm transition-colors group-hover:border-[#3182ce]/30">
-                                                  {reg.user
-                                                    .profileImageUrl ? (
-                                                    <img
-                                                      src={
-                                                        reg
-                                                          .user
-                                                          .profileImageUrl
-                                                      }
-                                                      alt={`${reg.user.firstName} ${reg.user.lastName}`}
-                                                      className="h-full w-full object-cover"
-                                                    />
-                                                  ) : (
-                                                    <div
-                                                      className={`flex h-full w-full items-center justify-center bg-gradient-to-br ${getAvatarColor(
-                                                        reg.user
-                                                          .firstName,
-                                                        reg.user
-                                                          .lastName
-                                                      )}`}
-                                                    >
-                                                      <span className="text-xs font-bold text-white">
-                                                        {getInitials(
-                                                          reg
-                                                            .user
-                                                            .firstName,
-                                                          reg
-                                                            .user
-                                                            .lastName
-                                                        )}
-                                                      </span>
-                                                    </div>
-                                                  )}
-
-                                                  {isCurrentUser && (
-                                                    <div className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-[#3182ce] shadow-sm">
-                                                      <div className="h-1.5 w-1.5 rounded-full bg-white" />
-                                                    </div>
-                                                  )}
-                                                </div>
-
-                                                <div className="min-w-0 flex-1">
-                                                  <div className="flex items-center gap-2">
-                                                    <span className="truncate text-sm font-semibold text-[#1e293b] transition-colors group-hover:text-[#3182ce]">
-                                                      {
-                                                        reg.user
-                                                          .firstName
-                                                      }{' '}
-                                                      {
-                                                        reg.user
-                                                          .lastName
-                                                      }
-                                                    </span>
-
-                                                    {isCurrentUser && (
-                                                      <span className="shrink-0 rounded-full bg-[#3182ce]/10 px-2 py-0.5 text-[10px] font-bold text-[#3182ce]">
-                                                        You
-                                                      </span>
-                                                    )}
-                                                  </div>
-
-                                                  {attendance?.status && (
-                                                    <div className="mt-0.5 flex items-center gap-1 text-[10px] font-medium">
-                                                      {attendance.status ===
-                                                        'ATTENDED' && (
-                                                        <>
-                                                          <CheckCircle className="h-3 w-3 text-emerald-600" />
-                                                          <span className="text-emerald-600">
-                                                            Attended
-                                                          </span>
-                                                        </>
-                                                      )}
-
-                                                      {attendance.status ===
-                                                        'NO_SHOW' && (
-                                                        <>
-                                                          <XCircle className="h-3 w-3 text-red-600" />
-                                                          <span className="text-red-600">
-                                                            No show
-                                                          </span>
-                                                        </>
-                                                      )}
-
-                                                      {attendance.status ===
-                                                        'PENDING' && (
-                                                        <>
-                                                          <Clock className="h-3 w-3 text-amber-600" />
-                                                          <span className="text-amber-600">
-                                                            Pending
-                                                          </span>
-                                                        </>
-                                                      )}
-                                                    </div>
-                                                  )}
-                                                </div>
-
-                                                {canMarkAttendance && (
-                                                  <div className="flex shrink-0 items-center gap-1 border-l border-[#dbe4ee] pl-2">
-                                                    <button
-                                                      onClick={() =>
-                                                        handleMarkAttendance(
-                                                          reg.userId,
-                                                          day.id,
-                                                          'ATTENDED'
-                                                        )
-                                                      }
-                                                      className={`rounded-lg p-1.5 transition-colors ${
-                                                        attendance?.status ===
-                                                        'ATTENDED'
-                                                          ? 'bg-emerald-100 text-emerald-600'
-                                                          : 'text-[#94a3b8] hover:bg-emerald-50 hover:text-emerald-600'
-                                                      }`}
-                                                      title="Mark as attended"
-                                                    >
-                                                      <CheckCircle className="h-4 w-4" />
-                                                    </button>
-
-                                                    <button
-                                                      onClick={() =>
-                                                        handleMarkAttendance(
-                                                          reg.userId,
-                                                          day.id,
-                                                          'NO_SHOW'
-                                                        )
-                                                      }
-                                                      className={`rounded-lg p-1.5 transition-colors ${
-                                                        attendance?.status ===
-                                                        'NO_SHOW'
-                                                          ? 'bg-red-100 text-red-600'
-                                                          : 'text-[#94a3b8] hover:bg-red-50 hover:text-red-600'
-                                                      }`}
-                                                      title="Mark as no-show"
-                                                    >
-                                                      <XCircle className="h-4 w-4" />
-                                                    </button>
-
-                                                    <button
-                                                      onClick={() =>
-                                                        handleMarkAttendance(
-                                                          reg.userId,
-                                                          day.id,
-                                                          'PENDING'
-                                                        )
-                                                      }
-                                                      className={`rounded-lg p-1.5 transition-colors ${
-                                                        attendance?.status ===
-                                                        'PENDING'
-                                                          ? 'bg-amber-100 text-amber-600'
-                                                          : 'text-[#94a3b8] hover:bg-amber-50 hover:text-amber-600'
-                                                      }`}
-                                                      title="Mark as pending"
-                                                    >
-                                                      <Clock className="h-4 w-4" />
-                                                    </button>
-                                                  </div>
-                                                )}
-                                              </motion.div>
-                                            );
-                                          }
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Mobile Status */}
-
-                                  <div className="flex flex-wrap items-center gap-2 sm:hidden">
-                                    <StatusBadge
-                                      status={day.status}
-                                      currentRegistrations={
-                                        day.currentRegistrations
-                                      }
-                                      capacityLimit={
-                                        day.capacityLimit
-                                      }
-                                      mobile
-                                    />
-
-                                    {userRegistered && (
-                                      <RegisteredBadge
-                                        attendanceStatus={
-                                          attendanceStatus
-                                        }
-                                      />
-                                    )}
-                                  </div>
-                                </div>
-                              </motion.div>
-                            );
-                          }
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* -------------------------------------------------- */}
-      {/* Bottom Information */}
-      {/* -------------------------------------------------- */}
-
-      {weeks.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="mt-8 rounded-2xl border border-[#dbe4ee] bg-white p-5 shadow-sm sm:p-6"
-        >
-          <div className="flex items-start gap-3">
-            <motion.div
-              animate={{
-                scale: [1, 1.08, 1],
-              }}
-              transition={{
-                duration: 2.5,
-                repeat: Infinity,
-              }}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#3182ce]/10"
-            >
-              <Info className="h-4 w-4 text-[#1a365d]" />
-            </motion.div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-[#1e293b]">
-                Making your commitment count
-              </h3>
-
-              <p className="mt-1 text-sm leading-6 text-[#64748b]">
-                Choose a cleaning day you can attend and participate
-                responsibly. You can review the participants under
-                each day and switch to another available day when
-                registration is still open.
+              <p className="flex-1 leading-6">
+                {notice.message}
               </p>
 
-              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3">
-                  <div className="mb-1 flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                    <span className="text-xs font-semibold text-emerald-800">
-                      Open
-                    </span>
-                  </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setNotice(null)
+                }
+                aria-label="Dismiss"
+                className={`shrink-0 p-0.5 opacity-70 hover:opacity-100 ${focusRing}`}
+              >
+                <X
+                  className="h-4 w-4"
+                  aria-hidden
+                />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-                  <p className="text-xs leading-5 text-emerald-700">
-                    Registration is available while spaces remain.
-                  </p>
-                </div>
+        {/* =================================================
+            Status
+        ================================================= */}
 
-                <div className="rounded-xl border border-red-100 bg-red-50/60 p-3">
-                  <div className="mb-1 flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-red-500" />
-                    <span className="text-xs font-semibold text-red-800">
-                      Full or Closed
-                    </span>
-                  </div>
+        {statusData && (
+          <div
+            className={`${panel} mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-3 sm:px-5`}
+          >
+            <p className="font-mono text-[12px] text-[var(--ink-2)]">
+              {statusData.hasRegistration ? (
+                <>
+                  Your day:{' '}
+                  <span className="font-semibold text-[var(--ink)]">
+                    {
+                      statusData
+                        .registration
+                        ?.dayOfWeek
+                    }
+                  </span>
 
-                  <p className="text-xs leading-5 text-red-700">
-                    Registration is not available for these days.
-                  </p>
-                </div>
+                  <span className="mx-2 text-[var(--ink-4)]">
+                    ·
+                  </span>
 
-                <div className="rounded-xl border border-[#3182ce]/10 bg-[#3182ce]/5 p-3">
-                  <div className="mb-1 flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-[#3182ce]" />
-                    <span className="text-xs font-semibold text-[#1a365d]">
-                      Registered
-                    </span>
-                  </div>
+                  {formatDate(
+                    statusData
+                      .registration
+                      ?.cleaningDate ??
+                      '',
+                  )}
+                </>
+              ) : data?.isAdmin ? (
+                'Administrators do not need to register.'
+              ) : (
+                'Pick an open day below to register.'
+              )}
+            </p>
 
-                  <p className="text-xs leading-5 text-[#64748b]">
-                    Your selected day is highlighted for easy reference.
-                  </p>
-                </div>
-              </div>
-            </div>
+            {statusData.hasRegistration && (
+              <Tag
+                tone={
+                  statusData
+                    .registration
+                    ?.status ===
+                  'ATTENDED'
+                    ? 'ok'
+                    : statusData
+                          .registration
+                          ?.status ===
+                        'NO_SHOW'
+                      ? 'bad'
+                      : 'warn'
+                }
+              >
+                {(statusData.registration?.status ?? 'PENDING')
+                  .toLowerCase()
+                  .replace('_', ' ')}
+              </Tag>
+            )}
           </div>
-        </motion.div>
-      )}
+        )}
 
-      {/* -------------------------------------------------- */}
-      {/* Cleaning Video — LAST CONTENT BEFORE FOOTER */}
-      {/* -------------------------------------------------- */}
+        {/* =================================================
+            Participant Search
+        ================================================= */}
 
-      <CleaningVideo />
-
-      {/* -------------------------------------------------- */}
-      {/* Footer Indicator */}
-      {/* -------------------------------------------------- */}
-
-      <motion.div
-        animate={{
-          opacity: [0.4, 0.7, 0.4],
-        }}
-        transition={{
-          duration: 4,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
-        className="mx-auto mt-7 flex items-center justify-center gap-2 pb-6 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#94a3b8]"
-      >
-        <span className="h-1.5 w-1.5 rounded-full bg-[#3182ce]" />
-        Serve • Participate • Make an impact
-        <span className="h-1.5 w-1.5 rounded-full bg-[#3182ce]" />
-      </motion.div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------
-// Status Badge
-// ---------------------------------------------------------
-
-function StatusBadge({
-  status,
-  currentRegistrations,
-  capacityLimit,
-  mobile = false,
-}: {
-  status: string;
-  currentRegistrations: number;
-  capacityLimit: number;
-  mobile?: boolean;
-}) {
-  return (
-    <motion.div
-      animate={
-        status === 'OPEN'
-          ? {
-              scale: [1, 1.02, 1],
+        {weeks.length > 0 && (
+          <ParticipantSearch
+            search={
+              participantSearch
             }
-          : undefined
-      }
-      transition={{
-        duration: 3,
-        repeat: Infinity,
-        ease: 'easeInOut',
-      }}
-      className={`flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${getStatusColor(
-        status
-      )} ${mobile ? 'w-fit' : ''}`}
-    >
-      {status === 'OPEN' ? (
-        <Unlock className="h-3.5 w-3.5" />
-      ) : status === 'FULL' ? (
-        <Users className="h-3.5 w-3.5" />
-      ) : status === 'CLOSED' ? (
-        <Lock className="h-3.5 w-3.5" />
-      ) : (
-        <Circle className="h-3.5 w-3.5" />
-      )}
+            results={
+              participantSearchResults
+            }
+            onSearchChange={
+              setParticipantSearch
+            }
+            onClear={() =>
+              setParticipantSearch(
+                '',
+              )
+            }
+            onSelect={
+              handleParticipantSearchSelect
+            }
+          />
+        )}
 
-      <span>{status}</span>
+        {/* =================================================
+            Schedule
+        ================================================= */}
 
-      <span className="text-current opacity-50">
-        •
-      </span>
+        {weeks.length === 0 ? (
+          <div
+            className={`${panel} px-6 py-14 text-center`}
+          >
+            <Calendar
+              className="mx-auto h-6 w-6 text-[var(--ink-4)]"
+              aria-hidden
+            />
 
-      <span>
-        {currentRegistrations}/{capacityLimit}
-      </span>
-    </motion.div>
-  );
-}
+            <h2 className="mt-3 text-base font-semibold text-[var(--ink)]">
+              No cleaning weeks published
+            </h2>
 
-// ---------------------------------------------------------
-// Registered Badge
-// ---------------------------------------------------------
+            <p className="mx-auto mt-1 max-w-sm font-mono text-[13px] leading-6 text-[var(--ink-3)]">
+              When your administrator
+              publishes a schedule, the
+              available days will appear
+              here.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {weeks.map((week) => {
+              const isExpanded =
+                expandedWeeks.has(
+                  week.id,
+                );
 
-function RegisteredBadge({
-  attendanceStatus,
-}: {
-  attendanceStatus?: string;
-}) {
-  return (
-    <div className="flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-      <Check className="h-3 w-3" />
+              const deadlinePassed =
+                isDeadlinePassed(
+                  week.registrationDeadline,
+                );
 
-      <span>Registered</span>
+              const openCount =
+                week.days.filter(
+                  (day) =>
+                    day.status ===
+                      'OPEN' &&
+                    !isDayPast(
+                      day.cleaningDate,
+                    ),
+                ).length;
 
-      {attendanceStatus && (
-        <span
-          className={`ml-1 rounded-full px-2 py-0.5 text-[10px] ${getAttendanceStatusColor(
-            attendanceStatus
-          )}`}
+              return (
+                <section
+                  key={week.id}
+                  id={`cleaning-week-${week.id}`}
+                  className={panel}
+                >
+                  {/* =======================================
+                      Week Header
+                  ======================================= */}
+
+                  <h2>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        toggleWeek(
+                          week.id,
+                        )
+                      }
+                      aria-expanded={
+                        isExpanded
+                      }
+                      className={`flex w-full items-center justify-between gap-4 border-b border-[var(--line)] px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] sm:px-5 ${focusRing}`}
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-[15px] font-semibold tracking-tight text-[var(--ink)]">
+                          {
+                            week.weekLabel
+                          }
+                        </span>
+
+                        <span className="block truncate font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
+                          {formatDate(
+                            week.startDate,
+                          )}{' '}
+                          –{' '}
+                          {formatDate(
+                            week.endDate,
+                          )}
+
+                          <span className="mx-2 text-[var(--ink-4)]">
+                            ·
+                          </span>
+
+                          {openCount}{' '}
+                          open{' '}
+                          {openCount ===
+                          1
+                            ? 'day'
+                            : 'days'}
+                        </span>
+                      </span>
+
+                      <span className="flex shrink-0 items-center gap-2.5">
+                        {!week.isActive ? (
+                          <Tag tone="bad">
+                            <Lock
+                              className="h-3 w-3"
+                              aria-hidden
+                            />
+                            Closed
+                          </Tag>
+                        ) : deadlinePassed ? (
+                          <Tag tone="warn">
+                            Deadline passed
+                          </Tag>
+                        ) : (
+                          <span className="hidden font-mono text-[11px] text-[var(--ink-3)] sm:inline">
+                            {deadlineLabel(
+                              week.registrationDeadline,
+                            )}
+                          </span>
+                        )}
+
+                        <ChevronDown
+                          className={`h-4 w-4 text-[var(--ink-4)] transition-transform duration-200 ${
+                            isExpanded
+                              ? 'rotate-180'
+                              : ''
+                          }`}
+                          aria-hidden
+                        />
+                      </span>
+                    </button>
+                  </h2>
+
+                  {/* =======================================
+                      Week Contents
+                  ======================================= */}
+
+                  <AnimatePresence
+                    initial={false}
+                  >
+                    {isExpanded && (
+                      <motion.div
+                        initial={{
+                          height: 0,
+                          opacity: 0,
+                        }}
+                        animate={{
+                          height: 'auto',
+                          opacity: 1,
+                        }}
+                        exit={{
+                          height: 0,
+                          opacity: 0,
+                        }}
+                        transition={{
+                          duration: 0.22,
+                          ease: [
+                            0.2,
+                            0,
+                            0,
+                            1,
+                          ],
+                        }}
+                        className="overflow-hidden"
+                      >
+                        {/* Desktop columns */}
+                        <div className="hidden grid-cols-[1fr_auto_auto_auto] items-center gap-6 border-b border-[var(--line)] bg-[var(--surface-2)] px-5 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-4)] lg:grid">
+                          <span>
+                            Day
+                          </span>
+
+                          <span>
+                            Places
+                          </span>
+
+                          <span>
+                            Status
+                          </span>
+
+                          <span className="text-right">
+                            Action
+                          </span>
+                        </div>
+
+                        <ul>
+                          {week.days.map(
+                            (day) => {
+                              const isSelf =
+                                day.id ===
+                                data
+                                  ?.registration
+                                  ?.cleaningDayId;
+
+                              const registerable =
+                                canRegister(
+                                  day,
+                                  week,
+                                );
+
+                              const switchable =
+                                canSwitch(
+                                  day,
+                                  week,
+                                );
+
+                              const busy =
+                                pendingDayId ===
+                                day.id;
+
+                              const past =
+                                isDayPast(
+                                  day.cleaningDate,
+                                );
+
+                              return (
+                                <li
+                                  key={
+                                    day.id
+                                  }
+                                  id={`cleaning-day-${day.id}`}
+                                  className={`border-b border-[var(--line)] last:border-b-0 ${
+                                    isSelf
+                                      ? 'bg-[var(--brand-soft)]'
+                                      : past
+                                        ? 'bg-[var(--surface-2)]'
+                                        : ''
+                                  }`}
+                                >
+                                  <div className="grid gap-3 px-4 py-3.5 sm:px-5 lg:grid-cols-[1fr_auto_auto_auto] lg:items-center lg:gap-6">
+                                    {/* Day */}
+                                    <div className="min-w-0">
+                                      <p
+                                        className={`font-mono text-[13px] font-semibold ${
+                                          past
+                                            ? 'text-[var(--ink-4)]'
+                                            : 'text-[var(--ink)]'
+                                        }`}
+                                      >
+                                        {
+                                          day.dayOfWeek
+                                        }
+
+                                        {isSelf && (
+                                          <span className="ml-2 align-middle font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--brass)]">
+                                            Your day
+                                          </span>
+                                        )}
+                                      </p>
+
+                                      <p className="font-mono text-[11px] text-[var(--ink-3)]">
+                                        {formatDate(
+                                          day.cleaningDate,
+                                        )}
+                                      </p>
+                                    </div>
+
+                                    {/* Places */}
+                                    <div className="lg:w-32">
+                                      <CapacityMeter
+                                        current={
+                                          day.currentRegistrations
+                                        }
+                                        limit={
+                                          day.capacityLimit
+                                        }
+                                      />
+                                    </div>
+
+                                    {/* Status */}
+                                    <div className="lg:w-24">
+                                      <Tag
+                                        tone={dayTone(
+                                          day,
+                                        )}
+                                      >
+                                        {past
+                                          ? 'Past'
+                                          : day.status
+                                              .charAt(
+                                                0,
+                                              ) +
+                                            day.status
+                                              .slice(
+                                                1,
+                                              )
+                                              .toLowerCase()}
+                                      </Tag>
+                                    </div>
+
+                                    {/* Action */}
+                                    <div className="flex items-center lg:justify-end">
+                                      {isSelf ? (
+                                        <span className="inline-flex items-center gap-1.5 font-mono text-[12px] font-semibold text-[var(--ok)]">
+                                          <Check
+                                            className="h-4 w-4"
+                                            aria-hidden
+                                          />
+                                          Registered
+                                        </span>
+                                      ) : registerable ? (
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            askRegister(
+                                              day,
+                                            )
+                                          }
+                                          disabled={
+                                            busy
+                                          }
+                                          className={
+                                            btnPrimary
+                                          }
+                                        >
+                                          {busy && (
+                                            <Loader2
+                                              className="h-4 w-4 animate-spin"
+                                              aria-hidden
+                                            />
+                                          )}
+
+                                          {busy
+                                            ? 'Registering…'
+                                            : 'Register'}
+                                        </button>
+                                      ) : switchable ? (
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            askChange(
+                                              day,
+                                              week.weekLabel,
+                                            )
+                                          }
+                                          disabled={
+                                            busy
+                                          }
+                                          className={
+                                            btnQuiet
+                                          }
+                                        >
+                                          {busy && (
+                                            <Loader2
+                                              className="h-4 w-4 animate-spin"
+                                              aria-hidden
+                                            />
+                                          )}
+
+                                          {busy
+                                            ? 'Switching…'
+                                            : 'Switch here'}
+                                        </button>
+                                      ) : (
+                                        <span className="font-mono text-[12px] text-[var(--ink-4)]">
+                                          {unavailableReason(
+                                            day,
+                                            week,
+                                          )}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    {/* Participants */}
+                                    <div className="lg:col-span-4">
+                                      <ParticipantList
+                                        day={
+                                          day
+                                        }
+                                        currentUserId={
+                                          data
+                                            ?.user
+                                            ?.id
+                                        }
+                                        canMarkAttendance={Boolean(
+                                          canMarkAttendance,
+                                        )}
+                                        onMarkAttendance={
+                                          handleMarkAttendance
+                                        }
+                                      />
+                                    </div>
+                                  </div>
+                                </li>
+                              );
+                            },
+                          )}
+                        </ul>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </section>
+              );
+            })}
+          </div>
+        )}
+
+        {/* =================================================
+            Guidance
+        ================================================= */}
+
+        {weeks.length > 0 && (
+          <p className="mt-6 max-w-prose font-mono text-[12px] leading-6 text-[var(--ink-3)]">
+            Choose a day you can genuinely
+            attend. While registration for a
+            week is still open you may switch to
+            any day that still has places; once
+            the deadline passes your day is fixed
+            and attendance is recorded by staff.
+          </p>
+        )}
+
+        {/* =================================================
+            Video
+        ================================================= */}
+
+        <section
+          className={`${panel} mt-6 overflow-hidden`}
         >
-          {attendanceStatus}
-        </span>
-      )}
-    </div>
-  );
-}
+          <div className="border-b border-[var(--line)] px-4 py-3.5 sm:px-5">
+            <h2 className="text-[15px] font-semibold tracking-tight text-[var(--ink)]">
+              Community cleaning, recorded
+            </h2>
 
-// ---------------------------------------------------------
-// Availability Message
-// ---------------------------------------------------------
+            <p className="mt-0.5 max-w-prose font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
+              A short look at how a cleaning
+              session runs, so you know what to
+              expect on the day you register for.
+            </p>
+          </div>
 
-function AvailabilityMessage({
-  isPast,
-  isFull,
-  isClosed,
-  deadlinePassed,
-  weekActive,
-}: {
-  isPast: boolean;
-  isFull: boolean;
-  isClosed: boolean;
-  deadlinePassed: boolean;
-  weekActive: boolean;
-}) {
-  let message = 'Unavailable';
+          <video
+            className="block aspect-video w-full bg-[var(--ink)] object-cover"
+            controls
+            playsInline
+            preload="metadata"
+            aria-label="Community cleaning activities"
+          >
+            <source
+              src="/cleaning.mp4"
+              type="video/mp4"
+            />
 
-  if (isPast) {
-    message = 'Past date';
-  } else if (isFull) {
-    message = 'Full';
-  } else if (isClosed) {
-    message = 'Closed';
-  } else if (deadlinePassed) {
-    message = 'Registration deadline passed';
-  } else if (!weekActive) {
-    message = 'Week closed';
-  }
+            Your browser does not support
+            embedded video.
+          </video>
+        </section>
+      </main>
 
-  return (
-    <span className="text-xs font-medium text-[#94a3b8] sm:text-sm">
-      {message}
-    </span>
+      {/* =================================================
+          Confirm Dialog
+      ================================================= */}
+
+      <ConfirmDialog
+        state={confirm}
+        onClose={() =>
+          setConfirm(null)
+        }
+        pending={
+          registerMutation.isPending ||
+          changeRegistrationMutation.isPending
+        }
+      />
+    </Shell>
   );
 }

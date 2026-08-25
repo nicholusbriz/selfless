@@ -21,6 +21,60 @@ import {
 } from '@/hooks/useCourses';
 import { useAuth } from '@/lib/hooks/useAuth';
 
+// =========================================================
+// Design tokens — matching the rest of the app
+// =========================================================
+
+const TOKENS = `
+  [data-courses-scope] {
+    --ink:        #12203B;
+    --ink-2:      #3D4A61;
+    --ink-3:      #6B7268;
+    --ink-4:      #8A9088;
+
+    --surface:    #FFFFFF;
+    --surface-2:  #F7F6F2;
+    --surface-3:  #EDECE6;
+
+    --line:       #DADCD3;
+    --line-strong:#C8CABF;
+
+    --brand:      #12203B;
+    --brand-hover:#1C2E4E;
+    --brand-soft: #F0F0EB;
+
+    --brass:      #B98A3E;
+    --brass-hover:#A67A34;
+    --brass-soft: #F8F3E8;
+
+    --ok:         #55705B;
+    --ok-soft:    #EEF3EE;
+
+    --warn:       #8A6E3A;
+    --warn-soft:  #F8F4EC;
+
+    --bad:        #A4462F;
+    --bad-soft:   #FBF0EC;
+
+    --radius:     0px;
+
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1, 'cv05' 1;
+  }
+`;
+
+const focusRing =
+  'outline-none focus-visible:ring-1 focus-visible:ring-[var(--brass)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--surface)]';
+
+const panel =
+  'border border-[var(--line)] bg-[var(--surface)]';
+
+const btnBase = `inline-flex items-center justify-center gap-2 px-3.5 py-2 text-[12px] font-mono font-semibold uppercase tracking-[0.08em] transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${focusRing}`;
+
+const btnPrimary = `${btnBase} bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)]`;
+
+const btnQuiet = `${btnBase} border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-2)] hover:border-[var(--brass)] hover:text-[var(--ink)]`;
+
 interface Course {
   id?: string;
   code: string;
@@ -330,20 +384,25 @@ export default function MyCoursesPage() {
     setShowGeneralCourseEdit((previous) => !previous);
   };
 
+  // =========================================================
+  // Loading
+  // =========================================================
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div data-courses-scope className="min-h-screen bg-[var(--surface-2)] text-[var(--ink)] antialiased">
+        <style dangerouslySetInnerHTML={{ __html: TOKENS }} />
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="mb-8 space-y-2">
-            <div className="h-7 w-40 animate-pulse rounded bg-slate-200" />
-            <div className="h-4 w-64 animate-pulse rounded bg-slate-200" />
+            <div className="h-7 w-40 animate-pulse bg-[var(--surface-3)]" />
+            <div className="h-4 w-64 animate-pulse bg-[var(--surface-3)]" />
           </div>
 
           <div className="space-y-3">
             {[1, 2, 3, 4].map((item) => (
               <div
                 key={item}
-                className="h-20 animate-pulse rounded-lg border border-slate-200 bg-white"
+                className="h-20 animate-pulse border border-[var(--line)] bg-[var(--surface)]"
               />
             ))}
           </div>
@@ -352,80 +411,96 @@ export default function MyCoursesPage() {
     );
   }
 
+  // =========================================================
+  // Error
+  // =========================================================
+
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <div className="w-full max-w-md rounded-lg border border-red-200 bg-white p-6 text-center shadow-sm">
-          <AlertCircle className="mx-auto mb-3 h-8 w-8 text-red-600" />
+      <div data-courses-scope className="min-h-screen bg-[var(--surface-2)] text-[var(--ink)] antialiased">
+        <style dangerouslySetInnerHTML={{ __html: TOKENS }} />
+        <div className="flex min-h-screen items-center justify-center px-4">
+          <div className="w-full max-w-md border border-[var(--line)] bg-[var(--surface)] p-6 text-center">
+            <AlertCircle className="mx-auto mb-3 h-8 w-8 text-[var(--bad)]" />
 
-          <h2 className="text-base font-semibold text-slate-900">
-            Unable to load courses
-          </h2>
+            <h2 className="text-base font-semibold text-[var(--ink)]">
+              Unable to load courses
+            </h2>
 
-          <p className="mt-1 text-sm text-slate-500">
-            Please refresh the page and try again.
-          </p>
+            <p className="mt-1 font-mono text-[13px] text-[var(--ink-3)]">
+              Please refresh the page and try again.
+            </p>
+          </div>
         </div>
       </div>
     );
   }
 
+  // =========================================================
+  // Page
+  // =========================================================
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div
+      data-courses-scope
+      className="min-h-screen bg-[var(--surface-2)] text-[var(--ink)] antialiased"
+    >
+      <style dangerouslySetInnerHTML={{ __html: TOKENS }} />
+
       {/* Header */}
-      <header className="border-b border-slate-200 bg-white">
+      <header className="border-b border-[var(--line)] bg-[var(--surface)]">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <div className="flex min-h-[72px] items-center justify-between gap-4">
-            <div className="min-w-0">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => router.back()}
-                  className="text-sm font-medium text-slate-500 transition-colors hover:text-[#1A365D]"
-                >
-                  Back
-                </button>
+          <div className="flex min-h-[72px] flex-col justify-center py-4 sm:min-h-[80px]">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => router.back()}
+                className={`${btnQuiet} px-2.5`}
+              >
+                Back
+              </button>
 
-                <span className="text-slate-300">/</span>
+              <span className="text-[var(--ink-4)]">/</span>
 
-                <Link
-                  href="/dashboard/students"
-                  className="hidden text-sm font-medium text-slate-500 transition-colors hover:text-[#1A365D] sm:block"
-                >
-                  Students
-                </Link>
+              <Link
+                href="/dashboard/students"
+                className="hidden font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)] transition-colors hover:text-[var(--ink)] sm:block"
+              >
+                Students
+              </Link>
 
-                <span className="hidden text-slate-300 sm:block">
-                  /
-                </span>
+              <span className="hidden text-[var(--ink-4)] sm:block">
+                /
+              </span>
 
-                <Link
-                  href="/dashboard/cleaning"
-                  className="hidden text-sm font-medium text-slate-500 transition-colors hover:text-[#1A365D] sm:block"
-                >
-                  Cleaning
-                </Link>
-              </div>
+              <Link
+                href="/dashboard/cleaning"
+                className="hidden font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)] transition-colors hover:text-[var(--ink)] sm:block"
+              >
+                Cleaning
+              </Link>
+            </div>
 
-              <div className="mt-2">
-                <h1 className="text-2xl font-bold tracking-tight text-[#172033]">
+            <div className="mt-2 flex items-end justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-semibold tracking-tight text-[var(--ink)]">
                   My Courses
                 </h1>
 
-                <p className="mt-0.5 text-sm text-slate-500">
+                <p className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
                   Manage your current course units and academic
                   information
                 </p>
               </div>
-            </div>
 
-            <div className="hidden shrink-0 text-right sm:block">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                Total Credits
-              </p>
+              <div className="hidden shrink-0 text-right sm:block">
+                <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--ink-4)]">
+                  Total Credits
+                </p>
 
-              <p className="mt-0.5 text-2xl font-bold text-[#1A365D]">
-                {totalCredits}
-              </p>
+                <p className="mt-0.5 font-mono text-2xl font-semibold tabular-nums text-[var(--brand)]">
+                  {totalCredits}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -440,15 +515,15 @@ export default function MyCoursesPage() {
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 border border-blue-200 bg-blue-50 px-4 py-4 sm:px-5"
+            className="mb-6 border border-[var(--line)] bg-[var(--brand-soft)] px-4 py-4 sm:px-5"
           >
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-semibold text-[#1A365D]">
+                <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--brand)]">
                   Complete your profile
                 </p>
 
-                <p className="mt-1 text-sm leading-5 text-slate-600">
+                <p className="mt-1 font-mono text-[12px] leading-5 text-[var(--ink-2)]">
                   {!user?.profileImageUrl &&
                     'Add a profile photo. '}
                   {!user?.generalCourse &&
@@ -462,7 +537,7 @@ export default function MyCoursesPage() {
                 onClick={() =>
                   router.push('/dashboard/profile')
                 }
-                className="shrink-0 border border-[#1A365D] bg-[#1A365D] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#153E75]"
+                className={`${btnPrimary} shrink-0`}
               >
                 Complete Profile
               </button>
@@ -473,21 +548,21 @@ export default function MyCoursesPage() {
         {/* Academic Information */}
         <section className="mb-8">
           <div className="mb-3">
-            <h2 className="text-base font-semibold text-slate-900">
+            <h2 className="text-base font-semibold tracking-tight text-[var(--ink)]">
               Academic Information
             </h2>
 
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
               Keep your academic information up to date.
             </p>
           </div>
 
-          <div className="divide-y divide-slate-200 border border-slate-200 bg-white shadow-sm">
+          <div className="divide-y divide-[var(--line)] border border-[var(--line)] bg-[var(--surface)]">
             {/* General Degree Course */}
             <div className="p-5 sm:p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-500">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
                     General Degree Course
                   </p>
 
@@ -495,17 +570,17 @@ export default function MyCoursesPage() {
                     <>
                       {hasGeneralCourse ? (
                         <div className="mt-1">
-                          <p className="text-base font-semibold text-slate-900">
+                          <p className="font-mono text-[15px] font-semibold text-[var(--ink)]">
                             {user?.generalCourse ||
                               userGeneralCourse}
                           </p>
 
-                          <p className="mt-1 text-sm text-slate-500">
+                          <p className="mt-1 font-mono text-[11px] text-[var(--ink-3)]">
                             Your main academic programme
                           </p>
                         </div>
                       ) : (
-                        <p className="mt-1 text-sm font-medium text-red-600">
+                        <p className="mt-1 font-mono text-[12px] font-semibold text-[var(--bad)]">
                           Not set
                         </p>
                       )}
@@ -516,15 +591,15 @@ export default function MyCoursesPage() {
                 <button
                   onClick={toggleGeneralCourseEdit}
                   disabled={isUpdatingSettings}
-                  className="self-start border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:border-[#1A365D] hover:text-[#1A365D] disabled:cursor-not-allowed disabled:opacity-50"
+                  className={btnQuiet}
                 >
                   {showGeneralCourseEdit ? 'Cancel' : 'Edit'}
                 </button>
               </div>
 
               {showGeneralCourseEdit && (
-                <div className="mt-5 border-t border-slate-100 pt-5">
-                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                <div className="mt-5 border-t border-[var(--line)] pt-5">
+                  <label className="mb-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
                     Degree Course
                   </label>
 
@@ -536,7 +611,7 @@ export default function MyCoursesPage() {
                     }
                     placeholder="e.g. Software Engineering"
                     disabled={isUpdatingSettings}
-                    className="w-full border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-shadow placeholder:text-slate-400 focus:border-[#3182CE] focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-50"
+                    className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[13px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-4)] focus:border-[var(--brass)] disabled:cursor-not-allowed disabled:bg-[var(--surface-2)] ${focusRing}`}
                   />
 
                   <div className="mt-3 flex flex-col gap-3 sm:flex-row">
@@ -546,7 +621,7 @@ export default function MyCoursesPage() {
                         isUpdatingSettings ||
                         !userGeneralCourse.trim()
                       }
-                      className="inline-flex items-center justify-center gap-2 bg-[#1A365D] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#153E75] disabled:cursor-not-allowed disabled:opacity-50"
+                      className={btnPrimary}
                     >
                       {isUpdatingSettings ? (
                         <>
@@ -563,14 +638,14 @@ export default function MyCoursesPage() {
                         setShowGeneralCourseEdit(false)
                       }
                       disabled={isUpdatingSettings}
-                      className="border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
+                      className={btnQuiet}
                     >
                       Cancel
                     </button>
                   </div>
 
                   {saveSuccess && (
-                    <div className="mt-3 flex items-center gap-2 text-sm font-medium text-green-700">
+                    <div className="mt-3 flex items-center gap-2 font-mono text-[12px] font-semibold text-[var(--ok)]">
                       <Check className="h-4 w-4" />
                       General degree course saved successfully.
                     </div>
@@ -583,23 +658,23 @@ export default function MyCoursesPage() {
             <div className="p-5 sm:p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-500">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
                     Religion Status
                   </p>
 
                   {!showReligionEdit && (
                     <div className="mt-2 flex items-center gap-2">
                       <span
-                        className={`text-sm font-semibold ${
+                        className={`font-mono text-[13px] font-semibold ${
                           userTakesReligion
-                            ? 'text-green-700'
-                            : 'text-slate-700'
+                            ? 'text-[var(--ok)]'
+                            : 'text-[var(--ink)]'
                         }`}
                       >
                         {userTakesReligion ? 'Yes' : 'No'}
                       </span>
 
-                      <span className="text-sm text-slate-400">
+                      <span className="font-mono text-[11px] text-[var(--ink-4)]">
                         Takes religion
                       </span>
                     </div>
@@ -613,25 +688,25 @@ export default function MyCoursesPage() {
                     )
                   }
                   disabled={isUpdatingSettings}
-                  className="self-start border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:border-[#1A365D] hover:text-[#1A365D] disabled:cursor-not-allowed disabled:opacity-50"
+                  className={btnQuiet}
                 >
                   {showReligionEdit ? 'Cancel' : 'Edit'}
                 </button>
               </div>
 
               {showReligionEdit && (
-                <div className="mt-5 border-t border-slate-100 pt-5">
-                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                <div className="mt-5 border-t border-[var(--line)] pt-5">
+                  <label className="mb-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
                     Do you take religion?
                   </label>
 
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={() => setUserTakesReligion(true)}
-                      className={`border px-4 py-2.5 text-sm font-medium transition-colors ${
+                      className={`border px-4 py-2.5 font-mono text-[12px] font-semibold uppercase tracking-[0.08em] transition-colors ${
                         userTakesReligion
-                          ? 'border-[#1A365D] bg-blue-50 text-[#1A365D]'
-                          : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
+                          ? 'border-[var(--brass)] bg-[var(--brass-soft)] text-[var(--brass)]'
+                          : 'border-[var(--line)] bg-[var(--surface)] text-[var(--ink-2)] hover:bg-[var(--surface-2)]'
                       }`}
                     >
                       Yes
@@ -641,10 +716,10 @@ export default function MyCoursesPage() {
                       onClick={() =>
                         setUserTakesReligion(false)
                       }
-                      className={`border px-4 py-2.5 text-sm font-medium transition-colors ${
+                      className={`border px-4 py-2.5 font-mono text-[12px] font-semibold uppercase tracking-[0.08em] transition-colors ${
                         !userTakesReligion
-                          ? 'border-[#1A365D] bg-blue-50 text-[#1A365D]'
-                          : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
+                          ? 'border-[var(--brass)] bg-[var(--brass-soft)] text-[var(--brass)]'
+                          : 'border-[var(--line)] bg-[var(--surface)] text-[var(--ink-2)] hover:bg-[var(--surface-2)]'
                       }`}
                     >
                       No
@@ -654,7 +729,7 @@ export default function MyCoursesPage() {
                   <button
                     onClick={updateAcademicSettings}
                     disabled={isUpdatingSettings}
-                    className="mt-3 inline-flex w-full items-center justify-center gap-2 bg-[#1A365D] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#153E75] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                    className={`${btnPrimary} mt-3 w-full sm:w-auto`}
                   >
                     {isUpdatingSettings ? (
                       <>
@@ -673,7 +748,7 @@ export default function MyCoursesPage() {
             <div className="p-5 sm:p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-500">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
                     Tuition Amount
                   </p>
 
@@ -681,7 +756,7 @@ export default function MyCoursesPage() {
                     <div className="mt-1">
                       {userTuitionAmount !== '' ? (
                         <div className="flex items-baseline gap-2">
-                          <span className="text-lg font-semibold text-slate-900">
+                          <span className="font-mono text-lg font-semibold text-[var(--ink)] tabular-nums">
                             $
                             {parseFloat(
                               userTuitionAmount
@@ -691,12 +766,12 @@ export default function MyCoursesPage() {
                             })}
                           </span>
 
-                          <span className="text-sm text-slate-500">
+                          <span className="font-mono text-[11px] text-[var(--ink-3)]">
                             USD
                           </span>
                         </div>
                       ) : (
-                        <p className="text-sm font-medium text-slate-400">
+                        <p className="font-mono text-[12px] font-medium text-[var(--ink-4)]">
                           Not set
                         </p>
                       )}
@@ -711,15 +786,15 @@ export default function MyCoursesPage() {
                     )
                   }
                   disabled={isUpdatingSettings}
-                  className="self-start border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:border-[#1A365D] hover:text-[#1A365D] disabled:cursor-not-allowed disabled:opacity-50"
+                  className={btnQuiet}
                 >
                   {showTuitionEdit ? 'Cancel' : 'Edit'}
                 </button>
               </div>
 
               {showTuitionEdit && (
-                <div className="mt-5 border-t border-slate-100 pt-5">
-                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                <div className="mt-5 border-t border-[var(--line)] pt-5">
+                  <label className="mb-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
                     Tuition Amount (USD)
                   </label>
 
@@ -732,13 +807,13 @@ export default function MyCoursesPage() {
                     placeholder="Enter tuition amount"
                     min="0"
                     step="0.01"
-                    className="w-full border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-shadow placeholder:text-slate-400 focus:border-[#3182CE] focus:ring-2 focus:ring-blue-100"
+                    className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[13px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-4)] focus:border-[var(--brass)] ${focusRing}`}
                   />
 
                   <button
                     onClick={updateAcademicSettings}
                     disabled={isUpdatingSettings}
-                    className="mt-3 inline-flex w-full items-center justify-center gap-2 bg-[#1A365D] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#153E75] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                    className={`${btnPrimary} mt-3 w-full sm:w-auto`}
                   >
                     {isUpdatingSettings ? (
                       <>
@@ -759,17 +834,17 @@ export default function MyCoursesPage() {
         <section>
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-base font-semibold text-slate-900">
+              <h2 className="text-base font-semibold tracking-tight text-[var(--ink)]">
                 Course Units
               </h2>
 
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
                 Add and manage the course units you are taking.
               </p>
             </div>
 
-            <div className="text-sm text-slate-500 sm:text-right">
-              <span className="font-semibold text-slate-900">
+            <div className="font-mono text-[12px] text-[var(--ink-3)] sm:text-right">
+              <span className="font-semibold text-[var(--ink)]">
                 {submittedCourses.length}
               </span>{' '}
               {submittedCourses.length === 1
@@ -784,7 +859,7 @@ export default function MyCoursesPage() {
             <button
               onClick={() => setShowForm(true)}
               disabled={isUpdatingSettings}
-              className="mb-5 flex w-full items-center justify-center gap-2 border border-[#1A365D] bg-[#1A365D] px-5 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-[#153E75] disabled:cursor-not-allowed disabled:opacity-50"
+              className={`${btnPrimary} mb-5 flex w-full items-center justify-center`}
             >
               <Plus className="h-4 w-4" />
               Add Courses
@@ -807,16 +882,16 @@ export default function MyCoursesPage() {
                   opacity: 0,
                   y: -8,
                 }}
-                className="mb-6 border border-slate-200 bg-white shadow-sm"
+                className={`${panel} mb-6`}
               >
-                <div className="border-b border-slate-200 p-5 sm:p-6">
+                <div className="border-b border-[var(--line)] p-5 sm:p-6">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-900">
+                      <h3 className="text-lg font-semibold tracking-tight text-[var(--ink)]">
                         Add Course Units
                       </h3>
 
-                      <p className="mt-1 text-sm text-slate-500">
+                      <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
                         Enter each course unit and add it to your
                         submission list.
                       </p>
@@ -827,7 +902,7 @@ export default function MyCoursesPage() {
                         setShowForm(false);
                         clearCourseList();
                       }}
-                      className="border border-slate-300 bg-white p-2 text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                      className={`border border-[var(--line)] bg-[var(--surface)] p-2 text-[var(--ink-3)] transition-colors hover:border-[var(--brass)] hover:text-[var(--ink)] ${focusRing}`}
                       aria-label="Close course form"
                     >
                       <X className="h-5 w-5" />
@@ -837,8 +912,8 @@ export default function MyCoursesPage() {
 
                 <div className="p-5 sm:p-6">
                   {/* Important Notice */}
-                  <div className="mb-6 border-l-4 border-amber-500 bg-amber-50 px-4 py-3">
-                    <p className="text-sm leading-6 text-amber-800">
+                  <div className="mb-6 border-l-4 border-[var(--warn)] bg-[var(--warn-soft)] px-4 py-3">
+                    <p className="font-mono text-[12px] leading-6 text-[var(--warn)]">
                       <strong>Important:</strong> This form is
                       specifically for core course units. Add one
                       course unit at a time, then submit when you
@@ -849,15 +924,15 @@ export default function MyCoursesPage() {
 
                   {/* Course Details */}
                   <div>
-                    <h4 className="mb-4 text-sm font-semibold text-slate-900">
+                    <h4 className="mb-4 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink)]">
                       Course Unit Details
                     </h4>
 
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                       <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">
+                        <label className="mb-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
                           Course Code{' '}
-                          <span className="text-red-600">*</span>
+                          <span className="text-[var(--bad)]">*</span>
                         </label>
 
                         <input
@@ -868,16 +943,16 @@ export default function MyCoursesPage() {
                               e.target.value.toUpperCase()
                             )
                           }
-                          className="w-full border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#3182CE] focus:ring-2 focus:ring-blue-100"
+                          className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[13px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-4)] focus:border-[var(--brass)] ${focusRing}`}
                           placeholder="e.g. WDD230"
                           required
                         />
                       </div>
 
                       <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">
+                        <label className="mb-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
                           Course Unit Name{' '}
-                          <span className="text-red-600">*</span>
+                          <span className="text-[var(--bad)]">*</span>
                         </label>
 
                         <input
@@ -897,16 +972,16 @@ export default function MyCoursesPage() {
 
                             setCourseUnit(titleCase);
                           }}
-                          className="w-full border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#3182CE] focus:ring-2 focus:ring-blue-100"
+                          className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[13px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-4)] focus:border-[var(--brass)] ${focusRing}`}
                           placeholder="e.g. Introduction To CS"
                           required
                         />
                       </div>
 
                       <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">
+                        <label className="mb-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
                           Credits{' '}
-                          <span className="text-red-600">*</span>
+                          <span className="text-[var(--bad)]">*</span>
                         </label>
 
                         <input
@@ -917,7 +992,7 @@ export default function MyCoursesPage() {
                               parseInt(e.target.value, 10) || 0
                             )
                           }
-                          className="w-full border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#3182CE] focus:ring-2 focus:ring-blue-100"
+                          className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[13px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-4)] focus:border-[var(--brass)] ${focusRing}`}
                           placeholder="e.g. 3"
                           min="1"
                           required
@@ -927,7 +1002,7 @@ export default function MyCoursesPage() {
 
                     <button
                       onClick={addCourseToList}
-                      className="mt-4 inline-flex w-full items-center justify-center gap-2 border border-[#1A365D] bg-white px-4 py-3 text-sm font-semibold text-[#1A365D] transition-colors hover:bg-blue-50"
+                      className={`${btnQuiet} mt-4 w-full`}
                     >
                       <Plus className="h-4 w-4" />
                       Add to List
@@ -936,13 +1011,13 @@ export default function MyCoursesPage() {
 
                   {/* Courses Waiting to Submit */}
                   {coursesList.length > 0 && (
-                    <div className="mt-6 border-t border-slate-200 pt-6">
+                    <div className="mt-6 border-t border-[var(--line)] pt-6">
                       <div className="mb-3 flex items-center justify-between gap-4">
-                        <h4 className="text-sm font-semibold text-slate-900">
+                        <h4 className="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink)]">
                           Course Units to Submit
                         </h4>
 
-                        <span className="text-sm text-slate-500">
+                        <span className="font-mono text-[12px] text-[var(--ink-3)]">
                           {coursesList.length}{' '}
                           {coursesList.length === 1
                             ? 'course'
@@ -950,24 +1025,24 @@ export default function MyCoursesPage() {
                         </span>
                       </div>
 
-                      <div className="divide-y divide-slate-200 border border-slate-200">
+                      <div className="divide-y divide-[var(--line)] border border-[var(--line)]">
                         {coursesList.map((course, index) => (
                           <div
                             key={`${course.code}-${index}`}
-                            className="flex items-center justify-between gap-4 bg-white px-4 py-3"
+                            className="flex items-center justify-between gap-4 bg-[var(--surface)] px-4 py-3"
                           >
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-3">
-                                <span className="font-mono text-sm font-semibold text-[#1A365D]">
+                                <span className="font-mono text-[13px] font-semibold text-[var(--brand)]">
                                   {course.code}
                                 </span>
 
-                                <span className="text-sm font-medium text-slate-900">
+                                <span className="font-mono text-[13px] text-[var(--ink)]">
                                   {course.courseUnit}
                                 </span>
                               </div>
 
-                              <p className="mt-1 text-xs text-slate-500">
+                              <p className="mt-1 font-mono text-[11px] text-[var(--ink-3)]">
                                 {course.credits}{' '}
                                 {course.credits === 1
                                   ? 'credit'
@@ -979,7 +1054,7 @@ export default function MyCoursesPage() {
                               onClick={() =>
                                 removeCourseFromList(index)
                               }
-                              className="shrink-0 border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                              className={`border border-[var(--line)] bg-[var(--surface)] p-2 text-[var(--ink-3)] transition-colors hover:border-[var(--bad)] hover:bg-[var(--bad-soft)] hover:text-[var(--bad)] ${focusRing}`}
                               aria-label={`Remove ${course.code}`}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -991,12 +1066,12 @@ export default function MyCoursesPage() {
                   )}
 
                   {/* Submission Total */}
-                  <div className="mt-6 flex items-center justify-between border border-slate-200 bg-slate-50 px-4 py-3">
-                    <span className="text-sm font-medium text-slate-600">
+                  <div className="mt-6 flex items-center justify-between border border-[var(--line)] bg-[var(--surface-2)] px-4 py-3">
+                    <span className="font-mono text-[12px] font-medium text-[var(--ink-2)]">
                       Total Credits for This Submission
                     </span>
 
-                    <span className="text-lg font-bold text-[#1A365D]">
+                    <span className="font-mono text-lg font-bold text-[var(--brand)] tabular-nums">
                       {calculateTotalCredits()}
                     </span>
                   </div>
@@ -1009,7 +1084,7 @@ export default function MyCoursesPage() {
                         submitMutation.isPending ||
                         coursesList.length === 0
                       }
-                      className="flex flex-1 items-center justify-center gap-2 bg-[#1A365D] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#153E75] disabled:cursor-not-allowed disabled:opacity-50"
+                      className={`${btnPrimary} flex-1`}
                     >
                       {submitMutation.isPending ? (
                         <>
@@ -1026,7 +1101,7 @@ export default function MyCoursesPage() {
 
                     <button
                       onClick={clearCourseList}
-                      className="border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                      className={btnQuiet}
                     >
                       Clear
                     </button>
@@ -1036,7 +1111,7 @@ export default function MyCoursesPage() {
                         setShowForm(false);
                         clearCourseList();
                       }}
-                      className="border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                      className={btnQuiet}
                     >
                       Cancel
                     </button>
@@ -1062,16 +1137,16 @@ export default function MyCoursesPage() {
                   opacity: 0,
                   y: -8,
                 }}
-                className="mb-6 border border-slate-200 bg-white shadow-sm"
+                className={`${panel} mb-6`}
               >
-                <div className="border-b border-slate-200 p-5 sm:p-6">
+                <div className="border-b border-[var(--line)] p-5 sm:p-6">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-900">
+                      <h3 className="text-lg font-semibold tracking-tight text-[var(--ink)]">
                         Edit Course
                       </h3>
 
-                      <p className="mt-1 text-sm text-slate-500">
+                      <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
                         Update the course information below.
                       </p>
                     </div>
@@ -1081,7 +1156,7 @@ export default function MyCoursesPage() {
                         setShowEditForm(false);
                         setEditingCourse(null);
                       }}
-                      className="border border-slate-300 bg-white p-2 text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                      className={`border border-[var(--line)] bg-[var(--surface)] p-2 text-[var(--ink-3)] transition-colors hover:border-[var(--brass)] hover:text-[var(--ink)] ${focusRing}`}
                       aria-label="Close edit form"
                     >
                       <X className="h-5 w-5" />
@@ -1092,9 +1167,9 @@ export default function MyCoursesPage() {
                 <div className="p-5 sm:p-6">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-slate-700">
+                      <label className="mb-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
                         Course Code{' '}
-                        <span className="text-red-600">*</span>
+                        <span className="text-[var(--bad)]">*</span>
                       </label>
 
                       <input
@@ -1106,16 +1181,16 @@ export default function MyCoursesPage() {
                             code: e.target.value.toUpperCase(),
                           })
                         }
-                        className="w-full border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#3182CE] focus:ring-2 focus:ring-blue-100"
+                        className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[13px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-4)] focus:border-[var(--brass)] ${focusRing}`}
                         placeholder="e.g. WDD230"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-slate-700">
+                      <label className="mb-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
                         Course Unit Name{' '}
-                        <span className="text-red-600">*</span>
+                        <span className="text-[var(--bad)]">*</span>
                       </label>
 
                       <input
@@ -1138,16 +1213,16 @@ export default function MyCoursesPage() {
                             courseUnit: titleCase,
                           });
                         }}
-                        className="w-full border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#3182CE] focus:ring-2 focus:ring-blue-100"
+                        className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[13px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-4)] focus:border-[var(--brass)] ${focusRing}`}
                         placeholder="e.g. Introduction To CS"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-slate-700">
+                      <label className="mb-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
                         Credits{' '}
-                        <span className="text-red-600">*</span>
+                        <span className="text-[var(--bad)]">*</span>
                       </label>
 
                       <input
@@ -1160,7 +1235,7 @@ export default function MyCoursesPage() {
                               parseInt(e.target.value, 10) || 0,
                           })
                         }
-                        className="w-full border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-[#3182CE] focus:ring-2 focus:ring-blue-100"
+                        className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[13px] text-[var(--ink)] outline-none focus:border-[var(--brass)] ${focusRing}`}
                         min="1"
                         required
                       />
@@ -1171,7 +1246,7 @@ export default function MyCoursesPage() {
                     <button
                       onClick={handleUpdate}
                       disabled={updateMutation.isPending}
-                      className="flex flex-1 items-center justify-center gap-2 bg-[#1A365D] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#153E75] disabled:cursor-not-allowed disabled:opacity-50"
+                      className={`${btnPrimary} flex-1`}
                     >
                       {updateMutation.isPending ? (
                         <>
@@ -1191,7 +1266,7 @@ export default function MyCoursesPage() {
                         setShowEditForm(false);
                         setEditingCourse(null);
                       }}
-                      className="border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                      className={btnQuiet}
                     >
                       Cancel
                     </button>
@@ -1203,14 +1278,14 @@ export default function MyCoursesPage() {
 
           {/* Submitted Courses */}
           {submittedCourses.length === 0 ? (
-            <div className="border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
-              <BookOpen className="mx-auto mb-4 h-8 w-8 text-slate-300" />
+            <div className={`${panel} px-6 py-12 text-center`}>
+              <BookOpen className="mx-auto mb-4 h-8 w-8 text-[var(--ink-4)]" />
 
-              <h3 className="text-base font-semibold text-slate-900">
+              <h3 className="text-base font-semibold text-[var(--ink)]">
                 No courses submitted yet
               </h3>
 
-              <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
+              <p className="mx-auto mt-2 max-w-md font-mono text-[13px] text-[var(--ink-3)]">
                 Add your course units above and submit them when
                 you are finished.
               </p>
@@ -1219,27 +1294,27 @@ export default function MyCoursesPage() {
             <div>
               <div className="mb-3 flex items-end justify-between gap-4">
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900">
+                  <h3 className="text-base font-semibold tracking-tight text-[var(--ink)]">
                     Submitted Courses
                   </h3>
 
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
                     Your currently submitted course units.
                   </p>
                 </div>
 
                 <div className="hidden text-right sm:block">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--ink-4)]">
                     Total Credits
                   </p>
 
-                  <p className="text-lg font-bold text-[#1A365D]">
+                  <p className="font-mono text-lg font-bold text-[var(--brand)] tabular-nums">
                     {totalCredits}
                   </p>
                 </div>
               </div>
 
-              <div className="divide-y divide-slate-200 border border-slate-200 bg-white shadow-sm">
+              <div className="divide-y divide-[var(--line)] border border-[var(--line)] bg-[var(--surface)]">
                 {submittedCourses.map((course) => (
                   <motion.div
                     key={course.id}
@@ -1251,33 +1326,33 @@ export default function MyCoursesPage() {
                       opacity: 1,
                       y: 0,
                     }}
-                    className="p-4 transition-colors hover:bg-slate-50 sm:p-5"
+                    className="p-4 transition-colors hover:bg-[var(--surface-2)] sm:p-5"
                   >
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                          <span className="font-mono text-sm font-semibold text-[#1A365D]">
+                          <span className="font-mono text-[13px] font-semibold text-[var(--brand)]">
                             {course.code}
                           </span>
 
-                          <h4 className="text-base font-semibold text-slate-900">
+                          <h4 className="font-mono text-[13px] font-semibold text-[var(--ink)]">
                             {course.courseUnit}
                           </h4>
                         </div>
 
-                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-                          <span className="text-slate-500">
+                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[12px]">
+                          <span className="text-[var(--ink-3)]">
                             {course.credits}{' '}
                             {course.credits === 1
                               ? 'credit'
                               : 'credits'}
                           </span>
 
-                          <span className="text-slate-300">
+                          <span className="text-[var(--ink-4)]">
                             |
                           </span>
 
-                          <span className="font-medium text-green-700">
+                          <span className="font-semibold text-[var(--ok)]">
                             Submitted
                           </span>
                         </div>
@@ -1286,7 +1361,7 @@ export default function MyCoursesPage() {
                       <div className="flex shrink-0 items-center gap-2">
                         <button
                           onClick={() => handleEdit(course)}
-                          className="border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-[#1A365D] hover:text-[#1A365D]"
+                          className={btnQuiet}
                         >
                           Edit
                         </button>
@@ -1296,7 +1371,7 @@ export default function MyCoursesPage() {
                             handleDelete(course.id)
                           }
                           disabled={deleteMutation.isPending}
-                          className="border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:border-red-200 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          className={`${btnQuiet} text-[var(--bad)] hover:border-[var(--bad)] hover:bg-[var(--bad-soft)] hover:text-[var(--bad)] disabled:opacity-50`}
                         >
                           {deleteMutation.isPending ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
