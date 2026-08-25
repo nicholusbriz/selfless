@@ -424,9 +424,10 @@ export default function AdminUsersPage() {
         user.lastName
           .toLowerCase()
           .includes(searchLower) ||
-        user.email
-          .toLowerCase()
-          .includes(searchLower) ||
+        (user.email &&
+          user.email
+            .toLowerCase()
+            .includes(searchLower)) ||
         (user.phoneNumber &&
           user.phoneNumber
             .toLowerCase()

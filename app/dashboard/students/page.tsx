@@ -1,15 +1,13 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import {
   Users,
   Search,
   X,
   MapPin,
-  ChevronDown,
   BookOpen,
-  SlidersHorizontal,
   ArrowRight,
   AlertCircle,
   Check,
@@ -79,8 +77,12 @@ const Stat = ({
 );
 
 // ============================================================
-// STICKY SEARCH & FILTER BAR
+// SEARCH & FILTER BAR
 // ============================================================
+// Normal page section.
+// NOT sticky.
+// NOT horizontally scrollable.
+// All filters wrap naturally.
 
 const SearchFilterBar = ({
   searchQuery,
@@ -96,327 +98,274 @@ const SearchFilterBar = ({
   setSelectedLocation: (id: string) => void;
   locations: TechCenter[];
   totalStudents: number;
-  displayedCount: number;
-  hasActiveFilters: boolean;
-  clearFilter: () => void;
 }) => {
-  const scrollerRef = useRef<HTMLDivElement | null>(null);
-
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [sheetQuery, setSheetQuery] = useState('');
-
-  const updateScrollState = useCallback(() => {
-    const el = scrollerRef.current;
-
-    if (!el) return;
-
-    setCanScrollLeft(el.scrollLeft > 4);
-    setCanScrollRight(
-      el.scrollLeft + el.clientWidth < el.scrollWidth - 4
-    );
-  }, []);
-
-  useEffect(() => {
-    updateScrollState();
-
-    const el = scrollerRef.current;
-
-    if (!el) return;
-
-    el.addEventListener('scroll', updateScrollState, {
-      passive: true,
-    });
-
-    window.addEventListener('resize', updateScrollState);
-
-    return () => {
-      el.removeEventListener('scroll', updateScrollState);
-      window.removeEventListener('resize', updateScrollState);
-    };
-  }, [updateScrollState, locations.length]);
-
-  useEffect(() => {
-    const el = scrollerRef.current;
-
-    if (!el) return;
-
-    const active =
-      el.querySelector<HTMLElement>('[data-active="true"]');
-
-    active?.scrollIntoView({
-      behavior: 'smooth',
-      inline: 'center',
-      block: 'nearest',
-    });
-  }, [selectedLocation]);
-
-  useEffect(() => {
-    if (!sheetOpen) return;
-
-    const previousOverflow = document.body.style.overflow;
-
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [sheetOpen]);
-
   const activeLocation = locations.find(
     (location) => location.id === selectedLocation
   );
 
-  const activeLabel =
-    selectedLocation === 'all'
-      ? 'All tech centers'
-      : activeLocation?.name ?? 'All tech centers';
-
-  const sheetLocations = locations.filter((location) =>
-    location.name
-      .toLowerCase()
-      .includes(sheetQuery.toLowerCase().trim())
-  );
-
   const chipBase =
-    'inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl border text-[12px] sm:text-[13px] font-bold leading-none whitespace-nowrap transition-all duration-200 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A33D]/40';
+    'inline-flex items-center justify-center gap-2 min-h-[42px] px-4 py-2.5 rounded-xl border text-[12px] sm:text-[13px] font-bold leading-tight transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A33D]/40';
 
   const chipOn =
-    'bg-[#1A365D] border-[#1A365D] text-white shadow-[0_4px_12px_rgba(26,54,93,0.20)]';
+    'bg-[#1A365D] border-[#1A365D] text-white shadow-[0_5px_15px_rgba(26,54,93,0.18)]';
 
   const chipOff =
-    'bg-white border-[#D8DEE7] text-[#354258] hover:border-[#E8A33D] hover:text-[#1A365D] hover:shadow-sm active:scale-[0.98]';
+    'bg-white border-[#D8DEE7] text-[#354258] hover:border-[#E8A33D] hover:text-[#1A365D] hover:bg-[#FFFCF7] hover:shadow-sm active:scale-[0.98]';
 
   return (
-    <>
-      {/* ======================================================
-          STICKY BAR
-      ====================================================== */}
+    <section
+      className="
+        rounded-2xl
+        border border-[#E3E8EF]
+        bg-white
+        shadow-[0_3px_12px_rgba(20,33,61,0.04)]
+        overflow-hidden
+      "
+    >
+      {/* SEARCH HEADER */}
 
-      <div
-        className="
-          sticky top-0 z-40
-          -mx-4 sm:-mx-6 lg:-mx-8
-          px-4 sm:px-6 lg:px-8
-          bg-white/95 backdrop-blur-xl
-          border-b border-[#E3E8EF]
-          shadow-[0_1px_0_rgba(20,33,61,0.04),0_8px_24px_-18px_rgba(20,33,61,0.35)]
-          supports-[backdrop-filter]:bg-white/80
-        "
-      >
-        <div className="py-3 sm:py-4 space-y-3">
-          {/* SEARCH ROW */}
+      <div className="p-4 sm:p-5 lg:p-6">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-1 h-4 rounded-full bg-[#E8A33D]" />
 
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1 min-w-0 lg:max-w-[620px]">
-              <Search
-                className="
-                  absolute left-3.5 top-1/2
-                  -translate-y-1/2
-                  w-4.5 h-4.5
-                  text-[#7D8796]
-                  pointer-events-none
-                "
-                strokeWidth={2}
-              />
-
-              <input
-                type="text"
-                inputMode="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search students, courses..."
-                aria-label="Search students"
-                className="
-                  w-full
-                  h-11 sm:h-12
-                  pl-11 pr-10
-                  bg-[#F8FAFC]
-                  border border-[#D8DEE7]
-                  text-[#14213D]
-                  placeholder:text-[#8A94A3]
-                  text-[14px] sm:text-[15px]
-                  rounded-xl
-                  font-medium
-                  focus:outline-none
-                  focus:bg-white
-                  focus:border-[#E8A33D]
-                  focus:ring-4
-                  focus:ring-[#E8A33D]/10
-                  transition-all
-                "
-              />
-
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  aria-label="Clear search"
-                  className="
-                    absolute right-2.5 top-1/2
-                    -translate-y-1/2
-                    p-1.5
-                    rounded-lg
-                    text-[#7D8796]
-                    hover:text-[#14213D]
-                    hover:bg-[#EEF2F7]
-                    transition-colors
-                  "
-                >
-                  <X
-                    className="w-4 h-4"
-                    strokeWidth={2.5}
-                  />
-                </button>
-              )}
+              <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.15em] text-[#7D8796]">
+                Find Students
+              </p>
             </div>
 
-            {/* MOBILE FILTER BUTTON */}
+            <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-[#14213D]">
+              Search & filter students
+            </h2>
 
-            <button
-              type="button"
-              onClick={() => setSheetOpen(true)}
+            <p className="mt-1 text-[12px] sm:text-[13px] text-[#8993A2]">
+              Search by student name, course, or choose a tech
+              center below.
+            </p>
+          </div>
+
+          {/* SEARCH */}
+
+          <div className="relative w-full lg:w-[480px] xl:w-[560px] shrink-0">
+            <Search
               className="
-                lg:hidden
+                absolute
+                left-4
+                top-1/2
+                -translate-y-1/2
+                w-4.5
+                h-4.5
+                text-[#7D8796]
+                pointer-events-none
+              "
+              strokeWidth={2}
+            />
+
+            <input
+              type="text"
+              inputMode="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search students, courses..."
+              aria-label="Search students"
+              className="
+                w-full
+                h-12
+                pl-11
+                pr-11
+                bg-[#F8FAFC]
+                border
+                border-[#D8DEE7]
+                text-[#14213D]
+                placeholder:text-[#8A94A3]
+                text-[14px]
+                sm:text-[15px]
+                rounded-xl
+                font-medium
+                focus:outline-none
+                focus:bg-white
+                focus:border-[#E8A33D]
+                focus:ring-4
+                focus:ring-[#E8A33D]/10
+                transition-all
+              "
+            />
+
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                aria-label="Clear search"
+                className="
+                  absolute
+                  right-2.5
+                  top-1/2
+                  -translate-y-1/2
+                  p-2
+                  rounded-lg
+                  text-[#7D8796]
+                  hover:text-[#14213D]
+                  hover:bg-[#EEF2F7]
+                  transition-colors
+                "
+              >
+                <X
+                  className="w-4 h-4"
+                  strokeWidth={2.5}
+                />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* FILTER AREA */}
+
+      <div className="border-t border-[#EEF2F7] bg-[#FBFCFE] px-4 sm:px-5 lg:px-6 py-4 sm:py-5">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.14em] text-[#7D8796]">
+              Filter by Tech Center
+            </p>
+
+            <p className="mt-1 text-[11px] sm:text-[12px] font-medium text-[#8993A2]">
+              Tap any center to view its students.
+            </p>
+          </div>
+
+          <div
+            className="
+              inline-flex
+              items-center
+              gap-2
+              self-start
+              shrink-0
+              rounded-full
+              bg-white
+              border
+              border-[#E3E8EF]
+              px-3
+              py-1.5
+            "
+          >
+            <Users
+              className="w-3.5 h-3.5 text-[#1A365D]"
+              strokeWidth={2}
+            />
+
+            <span className="text-[11px] font-extrabold text-[#14213D] tabular-nums">
+              {totalStudents}
+            </span>
+
+            <span className="text-[10px] font-semibold text-[#8993A2]">
+              students
+            </span>
+          </div>
+        </div>
+
+        {/* ALL FILTERS DISPLAYED AND WRAPPED */}
+
+        <div
+          className="
+            mt-4
+            flex
+            flex-wrap
+            items-center
+            gap-2
+          "
+          role="tablist"
+          aria-label="Filter by tech center"
+        >
+          {/* ALL */}
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={selectedLocation === 'all'}
+            onClick={() => setSelectedLocation('all')}
+            className={`
+              ${chipBase}
+              ${
+                selectedLocation === 'all'
+                  ? chipOn
+                  : chipOff
+              }
+            `}
+          >
+            <Users
+              className="w-4 h-4 shrink-0"
+              strokeWidth={2.2}
+            />
+
+            <span>All Students</span>
+
+            <span
+              className={`
                 inline-flex
                 items-center
                 justify-center
-                gap-2
-                h-11
-                px-3.5
-                rounded-xl
-                border border-[#D8DEE7]
-                bg-white
-                text-[12px]
-                sm:text-[13px]
-                font-bold
-                text-[#1A365D]
-                shadow-sm
-                active:scale-[0.98]
-                transition-all
-                max-w-[45%]
-              "
-              aria-label="Filter by tech center"
-            >
-              <SlidersHorizontal
-                className="w-4 h-4 shrink-0"
-                strokeWidth={2.2}
-              />
-
-              <span className="truncate">
-                {selectedLocation === 'all'
-                  ? 'Filter'
-                  : activeLabel}
-              </span>
-
-              <ChevronDown
-                className="w-3.5 h-3.5 shrink-0 opacity-60"
-                strokeWidth={2.5}
-              />
-            </button>
-
-            {/* DESKTOP STUDENT COUNT */}
-
-            <div
-              className="
-                hidden lg:flex
-                items-center gap-2
-                h-12
-                px-4
-                rounded-xl
-                bg-[#F8FAFC]
-                border border-[#E3E8EF]
-                shrink-0
-              "
-            >
-              <Users
-                className="w-4 h-4 text-[#1A365D]"
-                strokeWidth={2}
-              />
-
-              <span className="text-[14px] font-extrabold text-[#14213D] tabular-nums">
-                {totalStudents}
-              </span>
-
-              <span className="text-[12px] font-semibold text-[#7D8796]">
-                students
-              </span>
-            </div>
-          </div>
-
-          {/* TECH CENTER FILTERS */}
-
-          <div className="relative">
-            <div
-              className={`
-                lg:hidden
-                pointer-events-none
-                absolute left-0 top-0 bottom-0
-                w-8
-                bg-gradient-to-r
-                from-white
-                to-transparent
-                transition-opacity
-                z-10
-                ${canScrollLeft ? 'opacity-100' : 'opacity-0'}
+                min-w-[1.5rem]
+                h-5
+                px-1.5
+                rounded-full
+                text-[10px]
+                font-extrabold
+                tabular-nums
+                ${
+                  selectedLocation === 'all'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-[#EEF2F7] text-[#5B6779]'
+                }
               `}
-            />
-
-            <div
-              className={`
-                lg:hidden
-                pointer-events-none
-                absolute right-0 top-0 bottom-0
-                w-10
-                bg-gradient-to-l
-                from-white
-                to-transparent
-                transition-opacity
-                z-10
-                ${canScrollRight ? 'opacity-100' : 'opacity-0'}
-              `}
-            />
-
-            <div
-              ref={scrollerRef}
-              className="
-                flex
-                items-center
-                gap-2
-                overflow-x-auto
-                lg:overflow-visible
-                lg:flex-wrap
-                pb-1
-                scroll-smooth
-                snap-x
-                snap-mandatory
-                [scrollbar-width:none]
-                [-ms-overflow-style:none]
-                [&::-webkit-scrollbar]:hidden
-              "
-              role="tablist"
-              aria-label="Filter by tech center"
             >
-              {/* ALL */}
+              {totalStudents}
+            </span>
+          </button>
 
+          {/* TECH CENTERS */}
+
+          {locations.map((location) => {
+            const count = location._count?.students || 0;
+            const isSelected =
+              selectedLocation === location.id;
+
+            return (
               <button
+                key={location.id}
                 type="button"
                 role="tab"
-                aria-selected={selectedLocation === 'all'}
-                data-active={selectedLocation === 'all'}
-                onClick={() => setSelectedLocation('all')}
+                aria-selected={isSelected}
+                onClick={() =>
+                  setSelectedLocation(location.id)
+                }
+                title={location.name}
                 className={`
                   ${chipBase}
-                  snap-start
                   ${
-                    selectedLocation === 'all'
+                    isSelected
                       ? chipOn
                       : chipOff
                   }
                 `}
               >
-                All
+                <MapPin
+                  className={`
+                    w-4
+                    h-4
+                    shrink-0
+                    ${
+                      isSelected
+                        ? 'text-white'
+                        : 'text-[#1A365D]'
+                    }
+                  `}
+                  strokeWidth={2.2}
+                />
+
+                <span className="break-words text-left">
+                  {location.name}
+                </span>
 
                 <span
                   className={`
@@ -431,351 +380,44 @@ const SearchFilterBar = ({
                     font-extrabold
                     tabular-nums
                     ${
-                      selectedLocation === 'all'
+                      isSelected
                         ? 'bg-white/20 text-white'
                         : 'bg-[#EEF2F7] text-[#5B6779]'
                     }
                   `}
                 >
-                  {totalStudents}
+                  {count}
                 </span>
               </button>
-
-              {/* TECH CENTERS */}
-
-              {locations.map((location) => {
-                const count = location._count?.students || 0;
-                const isSelected =
-                  selectedLocation === location.id;
-
-                return (
-                  <button
-                    key={location.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={isSelected}
-                    data-active={isSelected}
-                    onClick={() =>
-                      setSelectedLocation(location.id)
-                    }
-                    title={location.name}
-                    className={`
-                      ${chipBase}
-                      snap-start
-                      max-w-[16rem]
-                      ${
-                        isSelected
-                          ? chipOn
-                          : chipOff
-                      }
-                    `}
-                  >
-                    <span className="truncate max-w-[11rem]">
-                      {location.name}
-                    </span>
-
-                    <span
-                      className={`
-                        inline-flex
-                        items-center
-                        justify-center
-                        min-w-[1.5rem]
-                        h-5
-                        px-1.5
-                        rounded-full
-                        text-[10px]
-                        font-extrabold
-                        tabular-nums
-                        ${
-                          isSelected
-                            ? 'bg-white/20 text-white'
-                            : 'bg-[#EEF2F7] text-[#5B6779]'
-                        }
-                      `}
-                    >
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+            );
+          })}
         </div>
+
+        {/* ACTIVE FILTER */}
+
+        {selectedLocation !== 'all' && (
+          <div className="mt-4 flex items-center gap-2">
+            <span className="text-[11px] font-semibold text-[#8993A2]">
+              Showing:
+            </span>
+
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EEF3F9] border border-[#D8E1EC] px-3 py-1.5 text-[11px] font-bold text-[#1A365D]">
+              <MapPin
+                className="w-3.5 h-3.5"
+                strokeWidth={2.2}
+              />
+
+              {activeLocation?.name || 'Selected center'}
+
+              <Check
+                className="w-3.5 h-3.5 text-[#E8A33D]"
+                strokeWidth={3}
+              />
+            </span>
+          </div>
+        )}
       </div>
-
-      {/* ======================================================
-          MOBILE FILTER SHEET
-      ====================================================== */}
-
-      {sheetOpen && (
-        <div className="lg:hidden fixed inset-0 z-50">
-          <div
-            className="
-              absolute inset-0
-              bg-[#0B182B]/50
-              backdrop-blur-[2px]
-              animate-in
-              fade-in
-              duration-200
-            "
-            onClick={() => setSheetOpen(false)}
-          />
-
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Filter by tech center"
-            className="
-              absolute
-              inset-x-0
-              bottom-0
-              max-h-[85vh]
-              flex
-              flex-col
-              bg-white
-              rounded-t-3xl
-              border-t
-              border-[#E3E8EF]
-              shadow-[0_-16px_50px_rgba(11,24,43,0.25)]
-              animate-in
-              slide-in-from-bottom
-              duration-250
-            "
-          >
-            <div className="pt-3 pb-2 flex justify-center">
-              <span className="h-1.5 w-12 rounded-full bg-[#D8DEE7]" />
-            </div>
-
-            <div className="px-5 pb-4 flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-extrabold text-[#14213D]">
-                  Tech Centers
-                </h3>
-
-                <p className="mt-0.5 text-[12px] text-[#7D8796] font-medium">
-                  {locations.length} centers • {totalStudents}{' '}
-                  students
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setSheetOpen(false)}
-                aria-label="Close"
-                className="
-                  p-2.5
-                  rounded-xl
-                  text-[#7D8796]
-                  hover:bg-[#F1F4F8]
-                "
-              >
-                <X
-                  className="w-5 h-5"
-                  strokeWidth={2.5}
-                />
-              </button>
-            </div>
-
-            <div className="px-5 pb-4">
-              <div className="relative">
-                <Search
-                  className="
-                    absolute
-                    left-3.5
-                    top-1/2
-                    -translate-y-1/2
-                    w-4.5
-                    h-4.5
-                    text-[#8A94A3]
-                  "
-                  strokeWidth={2}
-                />
-
-                <input
-                  value={sheetQuery}
-                  onChange={(e) =>
-                    setSheetQuery(e.target.value)
-                  }
-                  placeholder="Find a tech center..."
-                  className="
-                    w-full
-                    h-12
-                    pl-11
-                    pr-4
-                    bg-[#F8FAFC]
-                    border
-                    border-[#D8DEE7]
-                    rounded-xl
-                    text-[14px]
-                    text-[#14213D]
-                    placeholder:text-[#8A94A3]
-                    font-medium
-                    focus:outline-none
-                    focus:border-[#E8A33D]
-                    focus:ring-4
-                    focus:ring-[#E8A33D]/10
-                  "
-                />
-              </div>
-            </div>
-
-            <div
-              className="
-                flex-1
-                overflow-y-auto
-                overscroll-contain
-                px-3
-                pb-[max(1rem,env(safe-area-inset-bottom))]
-              "
-            >
-              {/* ALL */}
-
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedLocation('all');
-                  setSheetOpen(false);
-                }}
-                className={`
-                  w-full
-                  flex
-                  items-center
-                  justify-between
-                  gap-3
-                  px-3
-                  py-3.5
-                  rounded-xl
-                  transition-colors
-                  ${
-                    selectedLocation === 'all'
-                      ? 'bg-[#F2F6FC]'
-                      : 'hover:bg-[#F8FAFC]'
-                  }
-                `}
-              >
-                <span className="flex items-center gap-3 min-w-0">
-                  <span
-                    className="
-                      w-10
-                      h-10
-                      rounded-xl
-                      bg-[#1A365D]
-                      flex
-                      items-center
-                      justify-center
-                      shrink-0
-                    "
-                  >
-                    <Users
-                      className="w-5 h-5 text-white"
-                      strokeWidth={2}
-                    />
-                  </span>
-
-                  <span className="text-[14px] font-bold text-[#14213D] truncate">
-                    All tech centers
-                  </span>
-                </span>
-
-                <span className="flex items-center gap-2 shrink-0">
-                  <span className="text-[12px] font-extrabold text-[#5B6779] tabular-nums">
-                    {totalStudents}
-                  </span>
-
-                  {selectedLocation === 'all' && (
-                    <Check
-                      className="w-5 h-5 text-[#E8A33D]"
-                      strokeWidth={3}
-                    />
-                  )}
-                </span>
-              </button>
-
-              {sheetLocations.map((location) => {
-                const isSelected =
-                  selectedLocation === location.id;
-
-                return (
-                  <button
-                    key={location.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedLocation(location.id);
-                      setSheetOpen(false);
-                    }}
-                    className={`
-                      w-full
-                      flex
-                      items-center
-                      justify-between
-                      gap-3
-                      px-3
-                      py-3.5
-                      rounded-xl
-                      transition-colors
-                      ${
-                        isSelected
-                          ? 'bg-[#F2F6FC]'
-                          : 'hover:bg-[#F8FAFC]'
-                      }
-                    `}
-                  >
-                    <span className="flex items-center gap-3 min-w-0 text-left">
-                      <span
-                        className="
-                          w-10
-                          h-10
-                          rounded-xl
-                          bg-[#EEF2F7]
-                          flex
-                          items-center
-                          justify-center
-                          shrink-0
-                        "
-                      >
-                        <MapPin
-                          className="w-5 h-5 text-[#1A365D]"
-                          strokeWidth={2}
-                        />
-                      </span>
-
-                      <span className="min-w-0">
-                        <span className="block text-[14px] font-bold text-[#14213D] truncate">
-                          {location.name}
-                        </span>
-
-                        <span className="block mt-0.5 text-[11px] font-medium text-[#8993A2] truncate">
-                          {location.country?.name}
-                        </span>
-                      </span>
-                    </span>
-
-                    <span className="flex items-center gap-2 shrink-0">
-                      <span className="text-[12px] font-extrabold text-[#5B6779] tabular-nums">
-                        {location._count?.students || 0}
-                      </span>
-
-                      {isSelected && (
-                        <Check
-                          className="w-5 h-5 text-[#E8A33D]"
-                          strokeWidth={3}
-                        />
-                      )}
-                    </span>
-                  </button>
-                );
-              })}
-
-              {sheetLocations.length === 0 && (
-                <p className="py-10 text-center text-[13px] text-[#8993A2]">
-                  No tech center matches that name.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+    </section>
   );
 };
 
@@ -817,7 +459,8 @@ const StudentCard = ({
 
   const getTotalCredits = (s: Student) =>
     s.studentCourses?.reduce(
-      (total, course) => total + (course.credits || 0),
+      (total, course) =>
+        total + (course.credits || 0),
       0
     ) ?? 0;
 
@@ -831,16 +474,20 @@ const StudentCard = ({
   return (
     <article
       onClick={() =>
-        router.push(`/dashboard/students/${student.id}`)
+        router.push(
+          `/dashboard/students/${student.id}`
+        )
       }
       className="
         group
         bg-white
-        border border-[#E3E8EF]
+        border
+        border-[#E3E8EF]
         rounded-2xl
         overflow-hidden
         cursor-pointer
-        flex flex-col
+        flex
+        flex-col
         shadow-[0_2px_6px_rgba(20,33,61,0.05)]
         transition-all
         duration-200
@@ -935,7 +582,9 @@ const StudentCard = ({
                 }
               `}
               title={
-                student.isActive ? 'Active' : 'Inactive'
+                student.isActive
+                  ? 'Active'
+                  : 'Inactive'
               }
             />
           </div>
@@ -994,7 +643,8 @@ const StudentCard = ({
         <div className="grid grid-cols-2 gap-x-5 gap-y-4">
           <Stat label="General Course">
             <span className="break-words">
-              {student.generalCourse || 'Not specified'}
+              {student.generalCourse ||
+                'Not specified'}
             </span>
           </Stat>
 
@@ -1019,7 +669,9 @@ const StudentCard = ({
           </Stat>
 
           <Stat label="Credits">
-            <span>{getTotalCredits(student)}</span>
+            <span>
+              {getTotalCredits(student)}
+            </span>
           </Stat>
 
           <Stat label="Religion">
@@ -1317,9 +969,10 @@ const StudentSection = ({
 
 export default function StudentsPage() {
   const router = useRouter();
-  const resultsRef = useRef<HTMLDivElement | null>(null);
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] =
+    useState('');
+
   const [selectedLocation, setSelectedLocation] =
     useState('all');
 
@@ -1330,7 +983,9 @@ export default function StudentsPage() {
       const response = await fetch('/api/students');
 
       if (!response.ok) {
-        throw new Error('Failed to fetch students');
+        throw new Error(
+          'Failed to fetch students'
+        );
       }
 
       const result = await response.json();
@@ -1353,19 +1008,27 @@ export default function StudentsPage() {
 
   const techCenters = data?.techCenters || [];
 
-  const totalStudents = data?.totalStudents || 0;
+  const totalStudents =
+    data?.totalStudents || 0;
 
   const allStudents = Object.values(
     studentsByTechCenter
   ).flat() as Student[];
 
-  const filterStudents = (students: Student[]) => {
+  // ==========================================================
+  // FILTERING
+  // ==========================================================
+
+  const filterStudents = (
+    students: Student[]
+  ) => {
     let filtered = students;
 
     if (selectedLocation !== 'all') {
       filtered = filtered.filter(
         (student) =>
-          student.techCenter?.id === selectedLocation
+          student.techCenter?.id ===
+          selectedLocation
       );
     }
 
@@ -1406,18 +1069,23 @@ export default function StudentsPage() {
   const filteredAllStudents =
     filterStudents(allStudents);
 
-  const getLocationCount = (locationId: string) =>
+  const getLocationCount = (
+    locationId: string
+  ) =>
     allStudents.filter(
       (student) =>
-        student.techCenter?.id === locationId
+        student.techCenter?.id ===
+        locationId
     ).length;
 
-  const locations = techCenters.map((center) => ({
-    ...center,
-    _count: {
-      students: getLocationCount(center.id),
-    },
-  }));
+  const locations = techCenters.map(
+    (center) => ({
+      ...center,
+      _count: {
+        students: getLocationCount(center.id),
+      },
+    })
+  );
 
   const clearFilter = () => {
     setSelectedLocation('all');
@@ -1428,11 +1096,8 @@ export default function StudentsPage() {
     selectedLocation !== 'all' ||
     Boolean(searchQuery.trim());
 
-  const hasStudents = allStudents.length > 0;
-
-  const displayedCount = hasActiveFilters
-    ? filteredAllStudents.length
-    : totalStudents;
+  const hasStudents =
+    allStudents.length > 0;
 
   // ==========================================================
   // LOADING
@@ -1454,24 +1119,7 @@ export default function StudentsPage() {
         >
           <div className="h-24 rounded-2xl bg-white border border-[#E3E8EF]" />
 
-          <div className="mt-4 h-20 rounded-2xl bg-white border border-[#E3E8EF]" />
-
-          <div className="mt-6 flex gap-2 overflow-hidden">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="
-                  h-10
-                  w-32
-                  shrink-0
-                  rounded-xl
-                  bg-white
-                  border
-                  border-[#E3E8EF]
-                "
-              />
-            ))}
-          </div>
+          <div className="mt-4 h-32 rounded-2xl bg-white border border-[#E3E8EF]" />
 
           <div
             className="
@@ -1484,18 +1132,20 @@ export default function StudentsPage() {
               2xl:grid-cols-4
             "
           >
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div
-                key={i}
-                className="
-                  h-80
-                  rounded-2xl
-                  bg-white
-                  border
-                  border-[#E3E8EF]
-                "
-              />
-            ))}
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(
+              (i) => (
+                <div
+                  key={i}
+                  className="
+                    h-80
+                    rounded-2xl
+                    bg-white
+                    border
+                    border-[#E3E8EF]
+                  "
+                />
+              )
+            )}
           </div>
         </div>
       </div>
@@ -1551,7 +1201,9 @@ export default function StudentsPage() {
           </p>
 
           <button
-            onClick={() => window.location.reload()}
+            onClick={() =>
+              window.location.reload()
+            }
             className="
               mt-6
               h-11
@@ -1577,7 +1229,7 @@ export default function StudentsPage() {
   // ==========================================================
 
   return (
-    <div className="min-h-screen bg-[#F6F8FB]">
+    <div className="min-h-screen bg-[#F6F8FB] overflow-x-hidden">
       <div
         className="
           mx-auto
@@ -1606,24 +1258,57 @@ export default function StudentsPage() {
           "
         >
           <div className="min-w-0">
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
               <Link
                 href="/dashboard"
-                className="rounded-lg bg-[#F0F4F8] px-3 py-2 text-sm text-[#6B7280] hover:bg-[#E8EEF5] hover:text-[#374151] transition-all duration-200"
+                className="
+                  rounded-lg
+                  bg-[#F0F4F8]
+                  px-3
+                  py-2
+                  text-sm
+                  text-[#6B7280]
+                  hover:bg-[#E8EEF5]
+                  hover:text-[#374151]
+                  transition-all
+                  duration-200
+                "
               >
                 Dashboard
               </Link>
 
               <Link
                 href="/dashboard/courses"
-                className="rounded-lg bg-[#F0F4F8] px-3 py-2 text-sm text-[#6B7280] hover:bg-[#E8EEF5] hover:text-[#374151] transition-all duration-200"
+                className="
+                  rounded-lg
+                  bg-[#F0F4F8]
+                  px-3
+                  py-2
+                  text-sm
+                  text-[#6B7280]
+                  hover:bg-[#E8EEF5]
+                  hover:text-[#374151]
+                  transition-all
+                  duration-200
+                "
               >
                 Courses
               </Link>
 
               <Link
                 href="/dashboard/cleaning"
-                className="rounded-lg bg-[#F0F4F8] px-3 py-2 text-sm text-[#6B7280] hover:bg-[#E8EEF5] hover:text-[#374151] transition-all duration-200"
+                className="
+                  rounded-lg
+                  bg-[#F0F4F8]
+                  px-3
+                  py-2
+                  text-sm
+                  text-[#6B7280]
+                  hover:bg-[#E8EEF5]
+                  hover:text-[#374151]
+                  transition-all
+                  duration-200
+                "
               >
                 Cleaning
               </Link>
@@ -1670,10 +1355,13 @@ export default function StudentsPage() {
                 text-[#5B6779]
               "
             >
-              Explore the students learning and growing
-              across our university community.
+              Explore the students learning and
+              growing across our university
+              community.
             </p>
           </div>
+
+          {/* COMMUNITY COUNT */}
 
           <div
             className="
@@ -1720,7 +1408,7 @@ export default function StudentsPage() {
         </header>
 
         {/* ====================================================
-            STICKY SEARCH + FILTERS
+            NORMAL SEARCH + FILTER SECTION
         ==================================================== */}
 
         <SearchFilterBar
@@ -1730,19 +1418,15 @@ export default function StudentsPage() {
           setSelectedLocation={setSelectedLocation}
           locations={locations}
           totalStudents={totalStudents}
-          displayedCount={displayedCount}
-          hasActiveFilters={hasActiveFilters}
-          clearFilter={clearFilter}
         />
 
         {/* ====================================================
             RESULTS
         ==================================================== */}
 
-        <main
-          ref={resultsRef}
-          className="pt-6"
-        >
+        <main className="pt-7">
+          {/* NO STUDENTS */}
+
           {!hasStudents && (
             <div
               className="
@@ -1770,10 +1454,13 @@ export default function StudentsPage() {
             </div>
           )}
 
+          {/* FILTERED RESULTS */}
+
           {hasStudents &&
             hasActiveFilters && (
               <>
-                {filteredAllStudents.length === 0 ? (
+                {filteredAllStudents.length ===
+                0 ? (
                   <div
                     className="
                       rounded-2xl
@@ -1834,12 +1521,16 @@ export default function StudentsPage() {
                           'Filtered Results'
                         : 'Filtered Results'
                     }
-                    students={filteredAllStudents}
+                    students={
+                      filteredAllStudents
+                    }
                     router={router}
                   />
                 )}
               </>
             )}
+
+          {/* ALL STUDENTS BY TECH CENTER */}
 
           {hasStudents &&
             !hasActiveFilters && (
@@ -1855,9 +1546,11 @@ export default function StudentsPage() {
                       students as Student[];
 
                     if (
-                      studentList.length === 0
-                    )
+                      studentList.length ===
+                      0
+                    ) {
                       return null;
+                    }
 
                     return (
                       <StudentSection
@@ -1881,8 +1574,10 @@ export default function StudentsPage() {
               className="
                 mt-5
                 flex
-                items-center
-                justify-between
+                flex-col
+                sm:flex-row
+                sm:items-center
+                sm:justify-between
                 gap-3
                 rounded-2xl
                 border
@@ -1922,7 +1617,9 @@ export default function StudentsPage() {
                   tabular-nums
                 "
               >
-                {totalStudents} students
+                {hasActiveFilters
+                  ? `${filteredAllStudents.length} of ${totalStudents} students`
+                  : `${totalStudents} students`}
               </span>
             </footer>
           )}

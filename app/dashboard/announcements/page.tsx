@@ -1,10 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Home, Plus, Trash2, Edit, Bell, Calendar, ChevronDown, ChevronUp, Loader2, X, AlertCircle } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  ArrowLeft,
+  Home,
+  Plus,
+  Trash2,
+  Edit,
+  Bell,
+  Calendar,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+} from 'lucide-react';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { useAuth } from '@/lib/hooks/useAuth';
 
 interface Announcement {
@@ -30,29 +45,44 @@ interface Announcement {
   } | null;
 }
 
+const INITIAL_FORM = {
+  title: '',
+  content: '',
+  deadline: '',
+  isGlobal: false,
+};
+
 export default function AnnouncementsPage() {
   const router = useRouter();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  
+
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [expandedAnnouncement, setExpandedAnnouncement] = useState<string | null>(null);
-  const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
-  
-  const [formData, setFormData] = useState({
-    title: '',
-    content: '',
-    deadline: '',
-    isGlobal: false
-  });
+  const [expandedAnnouncement, setExpandedAnnouncement] =
+    useState<string | null>(null);
+  const [editingAnnouncement, setEditingAnnouncement] =
+    useState<Announcement | null>(null);
 
-  // Fetch announcements
-  const { data, isLoading, error } = useQuery({
+  const [formData, setFormData] = useState(INITIAL_FORM);
+
+  // ---------------------------------------------------------
+  // FETCH ANNOUNCEMENTS
+  // ---------------------------------------------------------
+
+  const {
+    data,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['announcements'],
     queryFn: async () => {
       const response = await fetch('/api/announcements');
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch announcements');
+      }
+
       return response.json();
     },
     staleTime: 5 * 60 * 1000,
@@ -60,16 +90,24 @@ export default function AnnouncementsPage() {
   });
 
   const currentUser = data?.currentUser;
-  const announcements = data?.announcements || [];
+  const announcements: Announcement[] = data?.announcements || [];
 
-  // Fetch announcement count for navigation badge
-  const { data: announcementCount } = useQuery({
+  // ---------------------------------------------------------
+  // ANNOUNCEMENT COUNT
+  // ---------------------------------------------------------
+
+  useQuery({
     queryKey: ['announcements', 'count'],
     queryFn: async () => {
       try {
         const response = await fetch('/api/announcements');
-        const data = await response.json();
-        return data.announcements?.length || 0;
+
+        if (!response.ok) {
+          return 0;
+        }
+
+        const result = await response.json();
+        return result.announcements?.length || 0;
       } catch (error) {
         console.error('Error fetching announcement count:', error);
         return 0;
@@ -79,175 +117,351 @@ export default function AnnouncementsPage() {
     gcTime: 5 * 60 * 1000,
   });
 
-  // Create announcement mutation
+  // ---------------------------------------------------------
+  // CREATE
+  // ---------------------------------------------------------
+
   const createMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (announcementData: typeof INITIAL_FORM) => {
       const response = await fetch('/api/announcements', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(announcementData),
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to create announcement');
+      }
+
       return response.json();
     },
+
     onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: ['announcements'] });
-      const previousData = queryClient.getQueryData(['announcements']);
+      await queryClient.cancelQueries({
+        queryKey: ['announcements'],
+      });
+
+      const previousData = queryClient.getQueryData([
+        'announcements',
+      ]);
+
       return { previousData };
     },
-    onError: (err, variables, context) => {
+
+    onError: (_error, _variables, context) => {
       if (context?.previousData) {
-        queryClient.setQueryData(['announcements'], context.previousData);
+        queryClient.setQueryData(
+          ['announcements'],
+          context.previousData
+        );
       }
     },
+
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['announcements'] });
-      queryClient.invalidateQueries({ queryKey: ['announcements', 'count'] });
+      queryClient.invalidateQueries({
+        queryKey: ['announcements'],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ['announcements', 'count'],
+      });
     },
   });
 
-  // Update announcement mutation
+  // ---------------------------------------------------------
+  // UPDATE
+  // ---------------------------------------------------------
+
   const updateMutation = useMutation({
-    mutationFn: async ({ announcementId, data }: { announcementId: string; data: any }) => {
-      const response = await fetch(`/api/announcements/${announcementId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
+    mutationFn: async ({
+      announcementId,
+      data,
+    }: {
+      announcementId: string;
+      data: typeof INITIAL_FORM;
+    }) => {
+      const response = await fetch(
+        `/api/announcements/${announcementId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to update announcement');
+      }
+
       return response.json();
     },
+
     onMutate: async (variables) => {
-      await queryClient.cancelQueries({ queryKey: ['announcements'] });
-      const previousData = queryClient.getQueryData(['announcements']);
-      
-      queryClient.setQueryData(['announcements'], (old: any) => {
-        if (!old) return old;
-        return {
-          ...old,
-          announcements: old.announcements.map((a: Announcement) => 
-            a.id === variables.announcementId 
-              ? { 
-                  ...a, 
-                  title: variables.data.title || a.title,
-                  content: variables.data.content || a.content,
-                  deadline: variables.data.deadline ? new Date(variables.data.deadline) : a.deadline,
-                  isGlobal: variables.data.isGlobal !== undefined ? variables.data.isGlobal : a.isGlobal
-                }
-              : a
-          )
-        };
+      await queryClient.cancelQueries({
+        queryKey: ['announcements'],
       });
-      
+
+      const previousData = queryClient.getQueryData([
+        'announcements',
+      ]);
+
+      queryClient.setQueryData(
+        ['announcements'],
+        (old: any) => {
+          if (!old) return old;
+
+          return {
+            ...old,
+            announcements: old.announcements.map(
+              (announcement: Announcement) =>
+                announcement.id === variables.announcementId
+                  ? {
+                      ...announcement,
+                      title:
+                        variables.data.title ||
+                        announcement.title,
+                      content:
+                        variables.data.content ||
+                        announcement.content,
+                      deadline: variables.data.deadline
+                        ? new Date(
+                            variables.data.deadline
+                          ).toISOString()
+                        : announcement.deadline,
+                      isGlobal:
+                        variables.data.isGlobal !== undefined
+                          ? variables.data.isGlobal
+                          : announcement.isGlobal,
+                    }
+                  : announcement
+            ),
+          };
+        }
+      );
+
       return { previousData };
     },
-    onError: (err, variables, context) => {
+
+    onError: (_error, _variables, context) => {
       if (context?.previousData) {
-        queryClient.setQueryData(['announcements'], context.previousData);
+        queryClient.setQueryData(
+          ['announcements'],
+          context.previousData
+        );
       }
     },
+
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['announcements'] });
-      queryClient.invalidateQueries({ queryKey: ['announcements', 'count'] });
+      queryClient.invalidateQueries({
+        queryKey: ['announcements'],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ['announcements', 'count'],
+      });
     },
   });
+
+  // ---------------------------------------------------------
+  // DELETE
+  // ---------------------------------------------------------
+
   const deleteMutation = useMutation({
     mutationFn: async (announcementId: string) => {
-      const response = await fetch(`/api/announcements/${announcementId}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(
+        `/api/announcements/${announcementId}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to delete announcement');
+      }
+
       return response.json();
     },
-    onMutate: async (variables) => {
-      await queryClient.cancelQueries({ queryKey: ['announcements'] });
-      const previousData = queryClient.getQueryData(['announcements']);
-      
-      queryClient.setQueryData(['announcements'], (old: any) => {
-        if (!old) return old;
-        return {
-          ...old,
-          announcements: old.announcements.filter((a: Announcement) => a.id !== variables)
-        };
+
+    onMutate: async (announcementId) => {
+      await queryClient.cancelQueries({
+        queryKey: ['announcements'],
       });
-      
+
+      const previousData = queryClient.getQueryData([
+        'announcements',
+      ]);
+
+      queryClient.setQueryData(
+        ['announcements'],
+        (old: any) => {
+          if (!old) return old;
+
+          return {
+            ...old,
+            announcements: old.announcements.filter(
+              (announcement: Announcement) =>
+                announcement.id !== announcementId
+            ),
+          };
+        }
+      );
+
       return { previousData };
     },
-    onError: (err, variables, context) => {
+
+    onError: (_error, _variables, context) => {
       if (context?.previousData) {
-        queryClient.setQueryData(['announcements'], context.previousData);
+        queryClient.setQueryData(
+          ['announcements'],
+          context.previousData
+        );
       }
     },
+
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['announcements'] });
-      queryClient.invalidateQueries({ queryKey: ['announcements', 'count'] });
+      queryClient.invalidateQueries({
+        queryKey: ['announcements'],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ['announcements', 'count'],
+      });
     },
   });
 
+  // ---------------------------------------------------------
+  // CREATE HANDLER
+  // ---------------------------------------------------------
+
   const handleCreateAnnouncement = async () => {
-    if (!formData.title || !formData.content) {
+    if (!formData.title.trim() || !formData.content.trim()) {
       alert('Please fill in title and description');
       return;
     }
-    
+
     try {
       await createMutation.mutateAsync(formData);
+
       setShowCreateForm(false);
-      setFormData({ title: '', content: '', deadline: '', isGlobal: false });
+      setFormData(INITIAL_FORM);
     } catch (error) {
-      console.error('Failed to create announcement:', error);
+      console.error(
+        'Failed to create announcement:',
+        error
+      );
     }
   };
 
-  const handleEditAnnouncement = (announcement: Announcement) => {
+  // ---------------------------------------------------------
+  // EDIT HANDLER
+  // ---------------------------------------------------------
+
+  const handleEditAnnouncement = (
+    announcement: Announcement
+  ) => {
     setEditingAnnouncement(announcement);
+
     setFormData({
       title: announcement.title,
       content: announcement.content,
-      deadline: announcement.deadline ? announcement.deadline.slice(0, 16) : '',
-      isGlobal: announcement.isGlobal
+      deadline: announcement.deadline
+        ? new Date(announcement.deadline)
+            .toISOString()
+            .slice(0, 16)
+        : '',
+      isGlobal: announcement.isGlobal,
     });
+
+    setShowCreateForm(false);
     setShowEditForm(true);
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
   };
 
+  // ---------------------------------------------------------
+  // UPDATE HANDLER
+  // ---------------------------------------------------------
+
   const handleUpdateAnnouncement = async () => {
-    if (!editingAnnouncement || !formData.title || !formData.content) {
+    if (
+      !editingAnnouncement ||
+      !formData.title.trim() ||
+      !formData.content.trim()
+    ) {
       alert('Please fill in title and description');
       return;
     }
-    
+
     try {
       await updateMutation.mutateAsync({
         announcementId: editingAnnouncement.id,
-        data: formData
+        data: formData,
       });
+
       setShowEditForm(false);
       setEditingAnnouncement(null);
-      setFormData({ title: '', content: '', deadline: '', isGlobal: false });
+      setFormData(INITIAL_FORM);
     } catch (error) {
-      console.error('Failed to update announcement:', error);
+      console.error(
+        'Failed to update announcement:',
+        error
+      );
     }
   };
 
-  const handleDeleteAnnouncement = async (announcementId: string) => {
-    if (!confirm('Are you sure you want to delete this announcement?')) return;
-    
+  // ---------------------------------------------------------
+  // DELETE HANDLER
+  // ---------------------------------------------------------
+
+  const handleDeleteAnnouncement = async (
+    announcementId: string
+  ) => {
+    if (
+      !confirm(
+        'Are you sure you want to delete this announcement?'
+      )
+    ) {
+      return;
+    }
+
     try {
       await deleteMutation.mutateAsync(announcementId);
     } catch (error) {
-      console.error('Failed to delete announcement:', error);
+      console.error(
+        'Failed to delete announcement:',
+        error
+      );
     }
   };
 
+  // ---------------------------------------------------------
+  // UI HELPERS
+  // ---------------------------------------------------------
+
   const toggleExpand = (announcementId: string) => {
-    setExpandedAnnouncement(expandedAnnouncement === announcementId ? null : announcementId);
+    setExpandedAnnouncement(
+      expandedAnnouncement === announcementId
+        ? null
+        : announcementId
+    );
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
+
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
@@ -256,16 +470,43 @@ export default function AnnouncementsPage() {
   };
 
   const canDelete = (announcement: Announcement) => {
-    return isOwner(announcement) || currentUser?.isAdmin;
+    return (
+      isOwner(announcement) ||
+      currentUser?.isAdmin
+    );
   };
+
+  const closeCreateForm = () => {
+    setShowCreateForm(false);
+    setFormData(INITIAL_FORM);
+  };
+
+  const closeEditForm = () => {
+    setShowEditForm(false);
+    setEditingAnnouncement(null);
+    setFormData(INITIAL_FORM);
+  };
+
+  // ---------------------------------------------------------
+  // LOADING
+  // ---------------------------------------------------------
 
   if (isLoading) {
     return (
-      <div className="min-h-screen p-6 bg-[#0D1117]">
-        <div className="max-w-4xl mx-auto">
-          <div className="animate-pulse space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-[#150F20] border border-[#2A2438] rounded-xl p-6 h-32" />
+      <div className="min-h-screen bg-[#F6F8FB]">
+        <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+          <div className="mb-8 flex items-center gap-4">
+            <div className="h-10 w-10 animate-pulse rounded-xl bg-white border border-[#E2E8F0]" />
+            <div className="h-10 w-10 animate-pulse rounded-xl bg-white border border-[#E2E8F0]" />
+            <div className="h-10 w-48 animate-pulse rounded-lg bg-[#E2E8F0]" />
+          </div>
+
+          <div className="space-y-4">
+            {[1, 2, 3].map((item) => (
+              <div
+                key={item}
+                className="h-32 animate-pulse rounded-2xl border border-[#E2E8F0] bg-white shadow-sm"
+              />
             ))}
           </div>
         </div>
@@ -273,352 +514,675 @@ export default function AnnouncementsPage() {
     );
   }
 
+  // ---------------------------------------------------------
+  // ERROR
+  // ---------------------------------------------------------
+
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0D1117]">
-        <div className="text-center">
-          <p className="text-[#FB7185]">Failed to load announcements</p>
+      <div className="min-h-screen bg-[#F6F8FB] flex items-center justify-center px-6">
+        <div className="w-full max-w-md rounded-2xl border border-[#E2E8F0] bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
+            <Bell className="h-6 w-6 text-red-500" />
+          </div>
+
+          <h2 className="text-lg font-semibold text-[#1E293B]">
+            Unable to load announcements
+          </h2>
+
+          <p className="mt-2 text-sm text-[#64748B]">
+            Something went wrong while loading the announcements.
+          </p>
+
+          <button
+            onClick={() =>
+              queryClient.invalidateQueries({
+                queryKey: ['announcements'],
+              })
+            }
+            className="mt-5 rounded-xl bg-[#1A365D] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#153475]"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     );
   }
 
+  // ---------------------------------------------------------
+  // MAIN PAGE
+  // ---------------------------------------------------------
+
   return (
-    <div className="min-h-screen bg-[#0D1117]">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-8 p-6">
-        <button
-          onClick={() => router.back()}
-          className="p-2 rounded-lg bg-[#2A2438]/50 hover:bg-[#2A2438] text-[#A79C8C] hover:text-[#F5F0E8] transition-all duration-200"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        
-        <button
-          onClick={() => router.push('/dashboard')}
-          className="p-2 rounded-lg bg-[#2A2438]/50 hover:bg-[#2A2438] text-[#A79C8C] hover:text-[#F5F0E8] transition-all duration-200"
-        >
-          <Home className="w-5 h-5" />
-        </button>
-        
-        <div className="h-8 w-px bg-[#2A2438]" />
-        
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-[#E8A33D]/10 border border-[#E8A33D]/20">
-            <Bell className="w-6 h-6 text-[#E8A33D]" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-[#F5F0E8]" style={{ fontFamily: 'var(--font-display)' }}>
-              Announcements
-            </h1>
-            <p className="text-sm text-[#A79C8C]">{announcements.length} announcement{announcements.length !== 1 ? 's' : ''}</p>
+    <div className="min-h-screen bg-[#F6F8FB] text-[#1E293B]">
+      {/* =====================================================
+          PAGE HEADER
+      ====================================================== */}
+
+      <header className="border-b border-[#E2E8F0] bg-white">
+        <div className="mx-auto max-w-5xl px-4 py-5 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.back()}
+              aria-label="Go back"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#64748B] transition-all hover:border-[#CBD5E1] hover:bg-[#F8FAFC] hover:text-[#1A365D]"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+
+            <button
+              onClick={() => router.push('/dashboard')}
+              aria-label="Go to dashboard"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#64748B] transition-all hover:border-[#CBD5E1] hover:bg-[#F8FAFC] hover:text-[#1A365D]"
+            >
+              <Home className="h-5 w-5" />
+            </button>
+
+            <div className="mx-1 hidden h-7 w-px bg-[#E2E8F0] sm:block" />
+
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EEF4FB]">
+                <Bell className="h-5 w-5 text-[#1A365D]" />
+              </div>
+
+              <div className="min-w-0">
+                <h1
+                  className="truncate text-xl font-bold text-[#1A365D] sm:text-2xl"
+                  style={{
+                    fontFamily: 'var(--font-display)',
+                  }}
+                >
+                  Announcements
+                </h1>
+
+                <p className="text-sm text-[#64748B]">
+                  {announcements.length}{' '}
+                  {announcements.length === 1
+                    ? 'announcement'
+                    : 'announcements'}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-4xl mx-auto px-6 pb-8">
-        {/* Create Button */}
+      {/* =====================================================
+          CONTENT
+      ====================================================== */}
+
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        {/* Page intro */}
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#3182CE]">
+              Communication
+            </p>
+
+            <h2 className="mt-1 text-xl font-bold text-[#1E293B] sm:text-2xl">
+              Stay informed
+            </h2>
+
+            <p className="mt-1 max-w-2xl text-sm text-[#64748B]">
+              Important updates, deadlines and information
+              from your tech center.
+            </p>
+          </div>
+
+          <div className="hidden rounded-xl border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm text-[#64748B] shadow-sm sm:block">
+            <span className="font-semibold text-[#1A365D]">
+              {announcements.length}
+            </span>{' '}
+            active announcements
+          </div>
+        </div>
+
+        {/* =================================================
+            CREATE BUTTON
+        ================================================== */}
+
         <button
-          onClick={() => setShowCreateForm(!showCreateForm)}
-          className="w-full bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] text-[#0B0912] rounded-xl p-4 font-medium hover:shadow-lg hover:shadow-[#E8A33D]/30 transition-all flex items-center justify-center gap-2 mb-8"
+          onClick={() => {
+            setShowCreateForm(!showCreateForm);
+            setShowEditForm(false);
+            setEditingAnnouncement(null);
+            setFormData(INITIAL_FORM);
+          }}
+          className="mb-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#1A365D] px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#153475] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#3182CE]/30 focus:ring-offset-2"
         >
-          <Plus className="w-5 h-5" />
-          Create Announcement
+          <Plus className="h-5 w-5" />
+          {showCreateForm
+            ? 'Close Announcement Form'
+            : 'Create Announcement'}
         </button>
 
-        {/* Create Form */}
+        {/* =================================================
+            CREATE FORM
+        ================================================== */}
+
         <AnimatePresence>
           {showCreateForm && (
             <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="bg-[#150F20] border border-[#2A2438] rounded-xl p-6 mb-8"
+              initial={{
+                opacity: 0,
+                height: 0,
+                y: -10,
+              }}
+              animate={{
+                opacity: 1,
+                height: 'auto',
+                y: 0,
+              }}
+              exit={{
+                opacity: 0,
+                height: 0,
+                y: -10,
+              }}
+              className="mb-6 overflow-hidden"
             >
-              <h3 className="text-lg font-semibold text-[#F5F0E8] mb-4">Create Announcement</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm text-[#A79C8C] mb-2">Title</label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full px-4 py-3 bg-[#0B0912]/60 border border-[#2A2438] rounded-xl text-[#F5F0E8] placeholder-[#6B6358] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-all"
-                    placeholder="Announcement title"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-[#A79C8C] mb-2">Description</label>
-                  <textarea
-                    value={formData.content}
-                    onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                    className="w-full px-4 py-3 bg-[#0B0912]/60 border border-[#2A2438] rounded-xl text-[#F5F0E8] placeholder-[#6B6358] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-all min-h-[120px]"
-                    placeholder="Announcement description"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-[#A79C8C] mb-2">Deadline (Optional)</label>
-                  <div className="relative">
-                    <input
-                      type="datetime-local"
-                      value={formData.deadline}
-                      onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-                      className="w-full px-4 py-3 bg-[#0B0912]/60 border border-[#2A2438] rounded-xl text-[#F5F0E8] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-all cursor-pointer"
-                      min={new Date().toISOString().slice(0, 16)}
-                    />
-                    <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#A79C8C] pointer-events-none" />
-                  </div>
-                  <p className="text-xs text-[#6B6358] mt-1">Click to open calendar and pick date/time</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="isGlobal"
-                    checked={formData.isGlobal}
-                    onChange={(e) => setFormData({ ...formData, isGlobal: e.target.checked })}
-                    className="w-5 h-5 rounded"
-                  />
-                  <label htmlFor="isGlobal" className="text-sm text-[#A79C8C]">
-                    Global announcement (visible to all tech centers)
-                  </label>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleCreateAnnouncement}
-                    disabled={createMutation.isPending}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] text-[#0B0912] rounded-xl font-medium hover:shadow-lg hover:shadow-[#E8A33D]/30 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {createMutation.isPending ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      'Create Announcement'
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setShowCreateForm(false)}
-                    className="px-4 py-3 bg-[#2A2438]/50 border border-[#2A2438] text-[#A79C8C] rounded-xl hover:bg-[#2A2438] transition-all"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
+              <AnnouncementForm
+                title="Create Announcement"
+                formData={formData}
+                setFormData={setFormData}
+                onSubmit={handleCreateAnnouncement}
+                onCancel={closeCreateForm}
+                isPending={createMutation.isPending}
+                submitLabel="Create Announcement"
+              />
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Edit Form */}
+        {/* =================================================
+            EDIT FORM
+        ================================================== */}
+
         <AnimatePresence>
           {showEditForm && editingAnnouncement && (
             <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="bg-[#150F20] border border-[#2A2438] rounded-xl p-6 mb-8"
+              initial={{
+                opacity: 0,
+                height: 0,
+                y: -10,
+              }}
+              animate={{
+                opacity: 1,
+                height: 'auto',
+                y: 0,
+              }}
+              exit={{
+                opacity: 0,
+                height: 0,
+                y: -10,
+              }}
+              className="mb-6 overflow-hidden"
             >
-              <h3 className="text-lg font-semibold text-[#F5F0E8] mb-4">Edit Announcement</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm text-[#A79C8C] mb-2">Title</label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full px-4 py-3 bg-[#0B0912]/60 border border-[#2A2438] rounded-xl text-[#F5F0E8] placeholder-[#6B6358] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-all"
-                    placeholder="Announcement title"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-[#A79C8C] mb-2">Description</label>
-                  <textarea
-                    value={formData.content}
-                    onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                    className="w-full px-4 py-3 bg-[#0B0912]/60 border border-[#2A2438] rounded-xl text-[#F5F0E8] placeholder-[#6B6358] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-all min-h-[120px]"
-                    placeholder="Announcement description"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-[#A79C8C] mb-2">Deadline (Optional)</label>
-                  <div className="relative">
-                    <input
-                      type="datetime-local"
-                      value={formData.deadline}
-                      onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-                      className="w-full px-4 py-3 bg-[#0B0912]/60 border border-[#2A2438] rounded-xl text-[#F5F0E8] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-all cursor-pointer"
-                      min={new Date().toISOString().slice(0, 16)}
-                    />
-                    <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#A79C8C] pointer-events-none" />
-                  </div>
-                  <p className="text-xs text-[#6B6358] mt-1">Click to open calendar and pick date/time</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="isGlobalEdit"
-                    checked={formData.isGlobal}
-                    onChange={(e) => setFormData({ ...formData, isGlobal: e.target.checked })}
-                    className="w-5 h-5 rounded"
-                  />
-                  <label htmlFor="isGlobalEdit" className="text-sm text-[#A79C8C]">
-                    Global announcement (visible to all tech centers)
-                  </label>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleUpdateAnnouncement}
-                    disabled={updateMutation.isPending}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] text-[#0B0912] rounded-xl font-medium hover:shadow-lg hover:shadow-[#E8A33D]/30 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {updateMutation.isPending ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      'Update Announcement'
-                    )}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowEditForm(false);
-                      setEditingAnnouncement(null);
-                      setFormData({ title: '', content: '', deadline: '', isGlobal: false });
-                    }}
-                    className="px-4 py-3 bg-[#2A2438]/50 border border-[#2A2438] text-[#A79C8C] rounded-xl hover:bg-[#2A2438] transition-all"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
+              <AnnouncementForm
+                title="Edit Announcement"
+                formData={formData}
+                setFormData={setFormData}
+                onSubmit={handleUpdateAnnouncement}
+                onCancel={closeEditForm}
+                isPending={updateMutation.isPending}
+                submitLabel="Save Changes"
+              />
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Announcements List */}
+        {/* =================================================
+            ANNOUNCEMENTS
+        ================================================== */}
+
         {announcements.length === 0 ? (
-          <div className="bg-[#150F20] border border-[#2A2438] rounded-xl p-8 text-center">
-            <Bell className="w-12 h-12 text-[#A79C8C] mx-auto mb-3" />
-            <p className="text-[#A79C8C]">No announcements yet</p>
-            <p className="text-sm text-[#6B6358] mt-1">Be the first to create an announcement!</p>
+          <div className="rounded-2xl border border-[#E2E8F0] bg-white px-6 py-14 text-center shadow-sm">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F1F5F9]">
+              <Bell className="h-7 w-7 text-[#64748B]" />
+            </div>
+
+            <h3 className="mt-5 text-lg font-semibold text-[#1E293B]">
+              No announcements yet
+            </h3>
+
+            <p className="mx-auto mt-2 max-w-md text-sm text-[#64748B]">
+              There are currently no announcements available.
+              Create the first announcement to keep students
+              informed.
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
-            {announcements.map((announcement: Announcement) => (
-              <motion.div
-                key={announcement.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-[#150F20] border border-[#2A2438] rounded-xl overflow-hidden"
-              >
-                {/* Header */}
-                <div 
-                  className="p-4 cursor-pointer hover:bg-[#1A1525] transition-colors"
-                  onClick={() => toggleExpand(announcement.id)}
+            {announcements.map(
+              (
+                announcement: Announcement,
+                index: number
+              ) => (
+                <motion.article
+                  key={announcement.id}
+                  initial={{
+                    opacity: 0,
+                    y: 12,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                  }}
+                  transition={{
+                    duration: 0.25,
+                    delay: Math.min(index * 0.04, 0.2),
+                  }}
+                  className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm transition-shadow hover:shadow-md"
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3 flex-1">
-                      {/* Profile Image */}
-                      {announcement.author.profileImageUrl ? (
+                  {/* Announcement header */}
+                  <div
+                    className="cursor-pointer p-4 sm:p-5"
+                    onClick={() =>
+                      toggleExpand(announcement.id)
+                    }
+                  >
+                    <div className="flex items-start gap-3 sm:gap-4">
+                      {/* Author avatar */}
+                      {announcement.author
+                        .profileImageUrl ? (
                         <img
-                          src={announcement.author.profileImageUrl}
-                          alt={announcement.author.firstName}
-                          className="w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 border-[#2A2438]"
+                          src={
+                            announcement.author
+                              .profileImageUrl
+                          }
+                          alt={`${announcement.author.firstName} ${announcement.author.lastName}`}
+                          className="h-11 w-11 shrink-0 rounded-full border-2 border-[#E2E8F0] object-cover"
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#E8A33D] to-[#C97F1F] flex items-center justify-center text-[#0B0912] font-semibold flex-shrink-0 border-2 border-[#2A2438]">
-                          {announcement.author.firstName.charAt(0)}{announcement.author.lastName.charAt(0)}
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#1A365D] text-sm font-bold text-white">
+                          {announcement.author.firstName.charAt(
+                            0
+                          )}
+                          {announcement.author.lastName.charAt(
+                            0
+                          )}
                         </div>
                       )}
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-2 flex-wrap">
+
+                      {/* Main information */}
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
                           {announcement.isGlobal && (
-                            <span className="px-2 py-1 bg-[#E8A33D]/20 border border-[#E8A33D]/30 rounded-full text-xs text-[#E8A33D]">
+                            <span className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-[#1A365D]">
                               Global
                             </span>
                           )}
+
                           {announcement.techCenter && (
-                            <span className="px-2 py-1 bg-[#14B8A6]/20 border border-[#14B8A6]/30 rounded-full text-xs text-[#14B8A6]">
+                            <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
                               {announcement.techCenter.name}
                             </span>
                           )}
-                          <h3 className="text-lg font-semibold text-[#F5F0E8]">{announcement.title}</h3>
                         </div>
-                        
-                        <div className="flex items-center gap-3 text-sm text-[#A79C8C] flex-wrap">
-                          <span>{announcement.author.firstName} {announcement.author.lastName}</span>
-                          <span>•</span>
-                          <span>{announcement.author.role.displayName}</span>
+
+                        <h3 className="text-base font-bold leading-6 text-[#1E293B] sm:text-lg">
+                          {announcement.title}
+                        </h3>
+
+                        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-[#64748B] sm:text-sm">
+                          <span className="font-medium text-[#475569]">
+                            {announcement.author.firstName}{' '}
+                            {announcement.author.lastName}
+                          </span>
+
+                          <span className="hidden text-[#CBD5E1] sm:inline">
+                            •
+                          </span>
+
+                          <span>
+                            {announcement.author.role
+                              .displayName}
+                          </span>
+
                           {announcement.deadline && (
                             <>
-                              <span>•</span>
-                              <Calendar className="w-4 h-4" />
-                              <span>Deadline: {formatDate(announcement.deadline)}</span>
+                              <span className="hidden text-[#CBD5E1] sm:inline">
+                                •
+                              </span>
+
+                              <span className="flex items-center gap-1.5">
+                                <Calendar className="h-3.5 w-3.5 text-[#3182CE]" />
+                                Deadline:{' '}
+                                {formatDate(
+                                  announcement.deadline
+                                )}
+                              </span>
                             </>
                           )}
                         </div>
                       </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <button className="p-1 rounded hover:bg-[#2A2438] transition-colors">
-                        {expandedAnnouncement === announcement.id ? (
-                          <ChevronUp className="w-5 h-5 text-[#A79C8C]" />
-                        ) : (
-                          <ChevronDown className="w-5 h-5 text-[#A79C8C]" />
-                        )}
-                      </button>
-                      
-                      {isOwner(announcement) && (
+
+                      {/* Actions */}
+                      <div
+                        className="flex shrink-0 items-center gap-1"
+                        onClick={(e) =>
+                          e.stopPropagation()
+                        }
+                      >
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditAnnouncement(announcement);
-                          }}
-                          className="p-1 rounded hover:bg-[#E8A33D]/20 text-[#E8A33D] transition-colors"
+                          onClick={() =>
+                            toggleExpand(
+                              announcement.id
+                            )
+                          }
+                          aria-label={
+                            expandedAnnouncement ===
+                            announcement.id
+                              ? 'Collapse announcement'
+                              : 'Expand announcement'
+                          }
+                          className="flex h-9 w-9 items-center justify-center rounded-lg text-[#64748B] transition-colors hover:bg-[#F1F5F9] hover:text-[#1A365D]"
                         >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                      )}
-                      
-                      {canDelete(announcement) && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteAnnouncement(announcement.id);
-                          }}
-                          disabled={deleteMutation.isPending}
-                          className="p-1 rounded hover:bg-[#FB7185]/20 text-[#FB7185] transition-colors disabled:opacity-50"
-                        >
-                          {deleteMutation.isPending ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                          {expandedAnnouncement ===
+                          announcement.id ? (
+                            <ChevronUp className="h-5 w-5" />
                           ) : (
-                            <Trash2 className="w-4 h-4" />
+                            <ChevronDown className="h-5 w-5" />
                           )}
                         </button>
-                      )}
+
+                        {isOwner(announcement) && (
+                          <button
+                            onClick={() =>
+                              handleEditAnnouncement(
+                                announcement
+                              )
+                            }
+                            aria-label="Edit announcement"
+                            className="flex h-9 w-9 items-center justify-center rounded-lg text-[#3182CE] transition-colors hover:bg-blue-50"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                        )}
+
+                        {canDelete(announcement) && (
+                          <button
+                            onClick={() =>
+                              handleDeleteAnnouncement(
+                                announcement.id
+                              )
+                            }
+                            disabled={
+                              deleteMutation.isPending
+                            }
+                            aria-label="Delete announcement"
+                            className="flex h-9 w-9 items-center justify-center rounded-lg text-red-500 transition-colors hover:bg-red-50 disabled:opacity-50"
+                          >
+                            {deleteMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Expandable Content */}
-                <AnimatePresence>
-                  {expandedAnnouncement === announcement.id && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="border-t border-[#2A2438] px-4 py-4"
-                    >
-                      <div className="pl-16">
-                        <p className="text-[#A79C8C] whitespace-pre-wrap">{announcement.content}</p>
-                        <p className="text-xs text-[#6B6358] mt-2">
-                          Created: {formatDate(announcement.createdAt)}
-                        </p>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            ))}
+                  {/* Expandable content */}
+                  <AnimatePresence initial={false}>
+                    {expandedAnnouncement ===
+                      announcement.id && (
+                      <motion.div
+                        initial={{
+                          height: 0,
+                          opacity: 0,
+                        }}
+                        animate={{
+                          height: 'auto',
+                          opacity: 1,
+                        }}
+                        exit={{
+                          height: 0,
+                          opacity: 0,
+                        }}
+                        transition={{
+                          duration: 0.22,
+                        }}
+                        className="overflow-hidden"
+                      >
+                        <div className="border-t border-[#E2E8F0] bg-[#F8FAFC] px-4 py-5 sm:px-5">
+                          <div className="sm:pl-[3.75rem]">
+                            <p className="whitespace-pre-wrap text-sm leading-6 text-[#475569] sm:text-[15px]">
+                              {announcement.content}
+                            </p>
+
+                            <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-[#94A3B8]">
+                              <span>
+                                Published{' '}
+                                {formatDate(
+                                  announcement.createdAt
+                                )}
+                              </span>
+
+                              {announcement.deadline && (
+                                <>
+                                  <span>•</span>
+                                  <span className="font-medium text-[#64748B]">
+                                    Deadline{' '}
+                                    {formatDate(
+                                      announcement.deadline
+                                    )}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.article>
+              )
+            )}
           </div>
         )}
+      </main>
+    </div>
+  );
+}
+
+// =============================================================
+// ANNOUNCEMENT FORM
+// =============================================================
+
+interface AnnouncementFormProps {
+  title: string;
+  formData: {
+    title: string;
+    content: string;
+    deadline: string;
+    isGlobal: boolean;
+  };
+  setFormData: React.Dispatch<
+    React.SetStateAction<{
+      title: string;
+      content: string;
+      deadline: string;
+      isGlobal: boolean;
+    }>
+  >;
+  onSubmit: () => void;
+  onCancel: () => void;
+  isPending: boolean;
+  submitLabel: string;
+}
+
+function AnnouncementForm({
+  title,
+  formData,
+  setFormData,
+  onSubmit,
+  onCancel,
+  isPending,
+  submitLabel,
+}: AnnouncementFormProps) {
+  return (
+    <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm sm:p-6">
+      {/* Form heading */}
+      <div className="mb-6 border-b border-[#E2E8F0] pb-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EEF4FB]">
+            <Bell className="h-5 w-5 text-[#1A365D]" />
+          </div>
+
+          <div>
+            <h3 className="text-lg font-bold text-[#1E293B]">
+              {title}
+            </h3>
+
+            <p className="text-sm text-[#64748B]">
+              Share important information with students.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-5">
+        {/* Title */}
+        <div>
+          <label
+            htmlFor="announcement-title"
+            className="mb-2 block text-sm font-semibold text-[#334155]"
+          >
+            Title
+          </label>
+
+          <input
+            id="announcement-title"
+            type="text"
+            value={formData.title}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                title: e.target.value,
+              })
+            }
+            className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-sm text-[#1E293B] placeholder-[#94A3B8] outline-none transition-all focus:border-[#3182CE] focus:ring-4 focus:ring-blue-50"
+            placeholder="Enter announcement title"
+          />
+        </div>
+
+        {/* Description */}
+        <div>
+          <label
+            htmlFor="announcement-content"
+            className="mb-2 block text-sm font-semibold text-[#334155]"
+          >
+            Description
+          </label>
+
+          <textarea
+            id="announcement-content"
+            value={formData.content}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                content: e.target.value,
+              })
+            }
+            className="min-h-[130px] w-full resize-y rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-sm leading-6 text-[#1E293B] placeholder-[#94A3B8] outline-none transition-all focus:border-[#3182CE] focus:ring-4 focus:ring-blue-50"
+            placeholder="Write the announcement details..."
+          />
+        </div>
+
+        {/* Deadline */}
+        <div>
+          <label
+            htmlFor="announcement-deadline"
+            className="mb-2 block text-sm font-semibold text-[#334155]"
+          >
+            Deadline{' '}
+            <span className="font-normal text-[#94A3B8]">
+              (Optional)
+            </span>
+          </label>
+
+          <div className="relative">
+            <input
+              id="announcement-deadline"
+              type="datetime-local"
+              value={formData.deadline}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  deadline: e.target.value,
+                })
+              }
+              min={new Date()
+                .toISOString()
+                .slice(0, 16)}
+              className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 pr-11 text-sm text-[#1E293B] outline-none transition-all focus:border-[#3182CE] focus:ring-4 focus:ring-blue-50"
+            />
+
+            <Calendar className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#64748B]" />
+          </div>
+
+          <p className="mt-1.5 text-xs text-[#94A3B8]">
+            Select a date and time if this announcement has
+            a deadline.
+          </p>
+        </div>
+
+        {/* Global */}
+        <label
+          htmlFor={`global-${title}`}
+          className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 transition-colors hover:bg-[#F1F5F9]"
+        >
+          <input
+            id={`global-${title}`}
+            type="checkbox"
+            checked={formData.isGlobal}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                isGlobal: e.target.checked,
+              })
+            }
+            className="mt-0.5 h-4 w-4 rounded border-[#CBD5E1] text-[#1A365D] focus:ring-[#3182CE]"
+          />
+
+          <span>
+            <span className="block text-sm font-semibold text-[#334155]">
+              Global announcement
+            </span>
+
+            <span className="mt-0.5 block text-xs leading-5 text-[#64748B]">
+              Make this announcement visible to all tech
+              centers.
+            </span>
+          </span>
+        </label>
+
+        {/* Buttons */}
+        <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row">
+          <button
+            onClick={onCancel}
+            disabled={isPending}
+            className="rounded-xl border border-[#CBD5E1] bg-white px-5 py-3 text-sm font-semibold text-[#475569] transition-colors hover:bg-[#F8FAFC] disabled:opacity-50 sm:w-auto"
+          >
+            Cancel
+          </button>
+
+          <button
+            onClick={onSubmit}
+            disabled={isPending}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#1A365D] px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-[#153475] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              submitLabel
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
