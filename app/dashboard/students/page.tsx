@@ -17,6 +17,14 @@ import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 
 // ============================================================
+// TOKENS — same system as the dashboard shell:
+// ink #12203B · paper #F1F1EC · surface #FFFFFF · hairline #DADCD3
+// muted #6B7268 · subtle #8A9088 · brass #B98A3E (accent)
+// moss #55705B (active) · rust #A4462F (error)
+// labels/counts/codes -> font-mono
+// ============================================================
+
+// ============================================================
 // INTERFACES
 // ============================================================
 
@@ -66,11 +74,11 @@ const Stat = ({
   children: React.ReactNode;
 }) => (
   <div className="min-w-0">
-    <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.1em] text-[#7D8796]">
+    <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-[#8A9088]">
       {label}
     </p>
 
-    <div className="mt-1 text-[13px] sm:text-[14px] font-semibold leading-5 text-[#14213D] break-words">
+    <div className="mt-1 text-[13px] font-semibold leading-5 text-[#12203B] break-words">
       {children}
     </div>
   </div>
@@ -79,10 +87,6 @@ const Stat = ({
 // ============================================================
 // SEARCH & FILTER BAR
 // ============================================================
-// Normal page section.
-// NOT sticky.
-// NOT horizontally scrollable.
-// All filters wrap naturally.
 
 const SearchFilterBar = ({
   searchQuery,
@@ -104,44 +108,30 @@ const SearchFilterBar = ({
   );
 
   const chipBase =
-    'inline-flex items-center justify-center gap-2 min-h-[42px] px-4 py-2.5 rounded-xl border text-[12px] sm:text-[13px] font-bold leading-tight transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A33D]/40';
+    'inline-flex items-center justify-center gap-2 min-h-[38px] px-3.5 py-2 border text-[12px] font-semibold leading-tight transition-colors duration-150 focus:outline-none focus-visible:border-[#B98A3E]';
 
-  const chipOn =
-    'bg-[#1A365D] border-[#1A365D] text-white shadow-[0_5px_15px_rgba(26,54,93,0.18)]';
+  const chipOn = 'bg-[#12203B] border-[#12203B] text-white';
 
   const chipOff =
-    'bg-white border-[#D8DEE7] text-[#354258] hover:border-[#E8A33D] hover:text-[#1A365D] hover:bg-[#FFFCF7] hover:shadow-sm active:scale-[0.98]';
+    'bg-white border-[#DADCD3] text-[#4B564C] hover:border-[#B98A3E] hover:text-[#12203B]';
 
   return (
-    <section
-      className="
-        rounded-2xl
-        border border-[#E3E8EF]
-        bg-white
-        shadow-[0_3px_12px_rgba(20,33,61,0.04)]
-        overflow-hidden
-      "
-    >
+    <section className="border border-[#DADCD3] bg-white">
       {/* SEARCH HEADER */}
 
-      <div className="p-4 sm:p-5 lg:p-6">
+      <div className="p-5 sm:p-6">
         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="w-1 h-4 rounded-full bg-[#E8A33D]" />
+            <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-[#B98A3E]">
+              Find students
+            </p>
 
-              <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.15em] text-[#7D8796]">
-                Find Students
-              </p>
-            </div>
-
-            <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-[#14213D]">
-              Search & filter students
+            <h2 className="mt-1 text-lg font-semibold tracking-tight text-[#12203B]">
+              Search &amp; filter
             </h2>
 
-            <p className="mt-1 text-[12px] sm:text-[13px] text-[#8993A2]">
-              Search by student name, course, or choose a tech
-              center below.
+            <p className="mt-1 text-[13px] text-[#6B7268]">
+              Search by name, course, or choose a tech center below.
             </p>
           </div>
 
@@ -149,16 +139,7 @@ const SearchFilterBar = ({
 
           <div className="relative w-full lg:w-[480px] xl:w-[560px] shrink-0">
             <Search
-              className="
-                absolute
-                left-4
-                top-1/2
-                -translate-y-1/2
-                w-4.5
-                h-4.5
-                text-[#7D8796]
-                pointer-events-none
-              "
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8A9088] pointer-events-none"
               strokeWidth={2}
             />
 
@@ -170,25 +151,16 @@ const SearchFilterBar = ({
               placeholder="Search students, courses..."
               aria-label="Search students"
               className="
-                w-full
-                h-12
-                pl-11
-                pr-11
-                bg-[#F8FAFC]
-                border
-                border-[#D8DEE7]
-                text-[#14213D]
-                placeholder:text-[#8A94A3]
-                text-[14px]
-                sm:text-[15px]
-                rounded-xl
-                font-medium
+                w-full h-11 pl-10 pr-10
+                bg-[#F7F6F2]
+                border border-[#DADCD3]
+                text-[#12203B]
+                placeholder:text-[#8A9088]
+                text-[14px] font-medium
                 focus:outline-none
                 focus:bg-white
-                focus:border-[#E8A33D]
-                focus:ring-4
-                focus:ring-[#E8A33D]/10
-                transition-all
+                focus:border-[#B98A3E]
+                transition-colors
               "
             />
 
@@ -197,23 +169,9 @@ const SearchFilterBar = ({
                 type="button"
                 onClick={() => setSearchQuery('')}
                 aria-label="Clear search"
-                className="
-                  absolute
-                  right-2.5
-                  top-1/2
-                  -translate-y-1/2
-                  p-2
-                  rounded-lg
-                  text-[#7D8796]
-                  hover:text-[#14213D]
-                  hover:bg-[#EEF2F7]
-                  transition-colors
-                "
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-[#8A9088] hover:text-[#12203B] hover:bg-[#F5F4EE] transition-colors"
               >
-                <X
-                  className="w-4 h-4"
-                  strokeWidth={2.5}
-                />
+                <X className="w-4 h-4" strokeWidth={2.5} />
               </button>
             )}
           </div>
@@ -222,113 +180,55 @@ const SearchFilterBar = ({
 
       {/* FILTER AREA */}
 
-      <div className="border-t border-[#EEF2F7] bg-[#FBFCFE] px-4 sm:px-5 lg:px-6 py-4 sm:py-5">
+      <div className="border-t border-[#DADCD3] bg-[#F7F6F2] px-5 sm:px-6 py-5">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.14em] text-[#7D8796]">
-              Filter by Tech Center
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#8A9088]">
+              Filter by tech center
             </p>
 
-            <p className="mt-1 text-[11px] sm:text-[12px] font-medium text-[#8993A2]">
+            <p className="mt-1 text-[12px] text-[#6B7268]">
               Tap any center to view its students.
             </p>
           </div>
 
-          <div
-            className="
-              inline-flex
-              items-center
-              gap-2
-              self-start
-              shrink-0
-              rounded-full
-              bg-white
-              border
-              border-[#E3E8EF]
-              px-3
-              py-1.5
-            "
-          >
-            <Users
-              className="w-3.5 h-3.5 text-[#1A365D]"
-              strokeWidth={2}
-            />
-
-            <span className="text-[11px] font-extrabold text-[#14213D] tabular-nums">
+          <div className="inline-flex items-center gap-2 self-start shrink-0 border border-[#DADCD3] bg-white px-3 py-1.5">
+            <Users className="w-3.5 h-3.5 text-[#12203B]" strokeWidth={2} />
+            <span className="font-mono text-[11px] font-semibold text-[#12203B] tabular-nums">
               {totalStudents}
             </span>
-
-            <span className="text-[10px] font-semibold text-[#8993A2]">
-              students
-            </span>
+            <span className="text-[10px] text-[#8A9088]">students</span>
           </div>
         </div>
 
-        {/* ALL FILTERS DISPLAYED AND WRAPPED */}
+        {/* FILTER CHIPS */}
 
         <div
-          className="
-            mt-4
-            flex
-            flex-wrap
-            items-center
-            gap-2
-          "
+          className="mt-4 flex flex-wrap items-center gap-2"
           role="tablist"
           aria-label="Filter by tech center"
         >
-          {/* ALL */}
-
           <button
             type="button"
             role="tab"
             aria-selected={selectedLocation === 'all'}
             onClick={() => setSelectedLocation('all')}
-            className={`
-              ${chipBase}
-              ${
-                selectedLocation === 'all'
-                  ? chipOn
-                  : chipOff
-              }
-            `}
+            className={`${chipBase} ${selectedLocation === 'all' ? chipOn : chipOff}`}
           >
-            <Users
-              className="w-4 h-4 shrink-0"
-              strokeWidth={2.2}
-            />
-
+            <Users className="w-4 h-4 shrink-0" strokeWidth={2.2} />
             <span>All Students</span>
-
             <span
-              className={`
-                inline-flex
-                items-center
-                justify-center
-                min-w-[1.5rem]
-                h-5
-                px-1.5
-                rounded-full
-                text-[10px]
-                font-extrabold
-                tabular-nums
-                ${
-                  selectedLocation === 'all'
-                    ? 'bg-white/20 text-white'
-                    : 'bg-[#EEF2F7] text-[#5B6779]'
-                }
-              `}
+              className={`font-mono text-[10px] tabular-nums ${
+                selectedLocation === 'all' ? 'text-white/70' : 'text-[#8A9088]'
+              }`}
             >
               {totalStudents}
             </span>
           </button>
 
-          {/* TECH CENTERS */}
-
           {locations.map((location) => {
             const count = location._count?.students || 0;
-            const isSelected =
-              selectedLocation === location.id;
+            const isSelected = selectedLocation === location.id;
 
             return (
               <button
@@ -336,55 +236,19 @@ const SearchFilterBar = ({
                 type="button"
                 role="tab"
                 aria-selected={isSelected}
-                onClick={() =>
-                  setSelectedLocation(location.id)
-                }
+                onClick={() => setSelectedLocation(location.id)}
                 title={location.name}
-                className={`
-                  ${chipBase}
-                  ${
-                    isSelected
-                      ? chipOn
-                      : chipOff
-                  }
-                `}
+                className={`${chipBase} ${isSelected ? chipOn : chipOff}`}
               >
                 <MapPin
-                  className={`
-                    w-4
-                    h-4
-                    shrink-0
-                    ${
-                      isSelected
-                        ? 'text-white'
-                        : 'text-[#1A365D]'
-                    }
-                  `}
+                  className={`w-4 h-4 shrink-0 ${isSelected ? 'text-white' : 'text-[#12203B]'}`}
                   strokeWidth={2.2}
                 />
-
-                <span className="break-words text-left">
-                  {location.name}
-                </span>
-
+                <span className="break-words text-left">{location.name}</span>
                 <span
-                  className={`
-                    inline-flex
-                    items-center
-                    justify-center
-                    min-w-[1.5rem]
-                    h-5
-                    px-1.5
-                    rounded-full
-                    text-[10px]
-                    font-extrabold
-                    tabular-nums
-                    ${
-                      isSelected
-                        ? 'bg-white/20 text-white'
-                        : 'bg-[#EEF2F7] text-[#5B6779]'
-                    }
-                  `}
+                  className={`font-mono text-[10px] tabular-nums ${
+                    isSelected ? 'text-white/70' : 'text-[#8A9088]'
+                  }`}
                 >
                   {count}
                 </span>
@@ -397,22 +261,11 @@ const SearchFilterBar = ({
 
         {selectedLocation !== 'all' && (
           <div className="mt-4 flex items-center gap-2">
-            <span className="text-[11px] font-semibold text-[#8993A2]">
-              Showing:
-            </span>
-
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EEF3F9] border border-[#D8E1EC] px-3 py-1.5 text-[11px] font-bold text-[#1A365D]">
-              <MapPin
-                className="w-3.5 h-3.5"
-                strokeWidth={2.2}
-              />
-
+            <span className="text-[11px] text-[#6B7268]">Showing:</span>
+            <span className="inline-flex items-center gap-1.5 border border-[#DADCD3] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#12203B]">
+              <MapPin className="w-3.5 h-3.5" strokeWidth={2.2} />
               {activeLocation?.name || 'Selected center'}
-
-              <Check
-                className="w-3.5 h-3.5 text-[#E8A33D]"
-                strokeWidth={3}
-              />
+              <Check className="w-3.5 h-3.5 text-[#B98A3E]" strokeWidth={3} />
             </span>
           </div>
         )}
@@ -434,96 +287,30 @@ const StudentCard = ({
   index: number;
   router: Router;
 }) => {
-  const getInitials = (
-    firstName: string,
-    lastName: string
-  ) =>
+  const getInitials = (firstName: string, lastName: string) =>
     `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 
-  const getAvatarColor = (
-    firstName: string,
-    lastName: string
-  ) => {
-    const colors = [
-      'bg-[#1A365D]',
-      'bg-[#244A78]',
-      'bg-[#315D8D]',
-    ];
-
-    const hash =
-      firstName.charCodeAt(0) +
-      lastName.charCodeAt(0);
-
-    return colors[Math.abs(hash) % colors.length];
-  };
-
   const getTotalCredits = (s: Student) =>
-    s.studentCourses?.reduce(
-      (total, course) =>
-        total + (course.credits || 0),
-      0
-    ) ?? 0;
+    s.studentCourses?.reduce((total, course) => total + (course.credits || 0), 0) ?? 0;
 
-  const initials = getInitials(
-    student.firstName,
-    student.lastName
-  );
-
+  const initials = getInitials(student.firstName, student.lastName);
   const fullName = `${student.firstName} ${student.lastName}`;
 
   return (
     <article
-      onClick={() =>
-        router.push(
-          `/dashboard/students/${student.id}`
-        )
-      }
+      onClick={() => router.push(`/dashboard/students/${student.id}`)}
       className="
-        group
-        bg-white
-        border
-        border-[#E3E8EF]
-        rounded-2xl
-        overflow-hidden
-        cursor-pointer
-        flex
-        flex-col
-        shadow-[0_2px_6px_rgba(20,33,61,0.05)]
-        transition-all
-        duration-200
-        hover:shadow-[0_18px_45px_-22px_rgba(20,33,61,0.45)]
-        hover:border-[#E8A33D]
-        hover:-translate-y-1
-        focus-within:ring-2
-        focus-within:ring-[#E8A33D]/30
-        h-full
+        group bg-white border border-[#DADCD3]
+        overflow-hidden cursor-pointer flex flex-col h-full
+        transition-colors duration-150
+        hover:border-[#B98A3E]
+        focus-within:border-[#B98A3E]
       "
     >
       {/* CARD HEADER */}
 
-      <div
-        className="
-          relative
-          p-5
-          pb-4
-          bg-gradient-to-b
-          from-[#F8FAFC]
-          to-white
-          border-b
-          border-[#EEF2F7]
-        "
-      >
-        <span
-          className="
-            absolute
-            top-4
-            right-4
-            text-[11px]
-            font-extrabold
-            tabular-nums
-            text-[#B2BBC8]
-          "
-        >
+      <div className="relative p-5 pb-4 border-b border-[#DADCD3]">
+        <span className="absolute top-4 right-4 font-mono text-[11px] tabular-nums text-[#B9BEB2]">
           {String(index + 1).padStart(2, '0')}
         </span>
 
@@ -533,104 +320,35 @@ const StudentCard = ({
               <Image
                 src={student.profileImageUrl}
                 alt={fullName}
-                width={60}
-                height={60}
-                className="
-                  w-[60px]
-                  h-[60px]
-                  rounded-2xl
-                  object-cover
-                  border
-                  border-[#E3E8EF]
-                "
+                width={56}
+                height={56}
+                className="w-14 h-14 object-cover grayscale border border-[#DADCD3]"
               />
             ) : (
-              <div
-                className={`
-                  w-[60px]
-                  h-[60px]
-                  rounded-2xl
-                  flex
-                  items-center
-                  justify-center
-                  ${getAvatarColor(
-                    student.firstName,
-                    student.lastName
-                  )}
-                `}
-              >
-                <span className="text-white text-base font-extrabold tracking-wide">
+              <div className="w-14 h-14 flex items-center justify-center bg-[#12203B]">
+                <span className="text-white text-sm font-mono font-semibold tracking-wide">
                   {initials}
                 </span>
               </div>
             )}
 
             <span
-              className={`
-                absolute
-                -bottom-1
-                -right-1
-                w-4
-                h-4
-                rounded-full
-                border-2
-                border-white
-                ${
-                  student.isActive
-                    ? 'bg-[#22A06B]'
-                    : 'bg-[#B6BDC8]'
-                }
-              `}
-              title={
-                student.isActive
-                  ? 'Active'
-                  : 'Inactive'
-              }
+              className={`absolute -bottom-1 -right-1 w-3 h-3 border-2 border-white ${
+                student.isActive ? 'bg-[#55705B]' : 'bg-[#B9BEB2]'
+              }`}
+              title={student.isActive ? 'Active' : 'Inactive'}
             />
           </div>
 
           <div className="min-w-0 flex-1 pr-5">
-            <h3
-              className="
-                text-[16px]
-                sm:text-[17px]
-                font-extrabold
-                leading-tight
-                text-[#14213D]
-                break-words
-                group-hover:text-[#1A365D]
-              "
-            >
+            <h3 className="text-[16px] font-semibold leading-tight text-[#12203B] break-words">
               {fullName}
             </h3>
 
-            <p
-              className="
-                mt-2
-                inline-flex
-                items-center
-                gap-1.5
-                max-w-full
-                text-[11px]
-                sm:text-[12px]
-                font-bold
-                text-[#5B6779]
-                bg-[#F1F4F8]
-                border
-                border-[#E3E8EF]
-                rounded-full
-                px-2.5
-                py-1
-              "
-            >
-              <MapPin
-                className="w-3.5 h-3.5 shrink-0 text-[#1A365D]"
-                strokeWidth={2.4}
-              />
-
+            <p className="mt-2 inline-flex items-center gap-1.5 max-w-full font-mono text-[11px] text-[#6B7268]">
+              <MapPin className="w-3.5 h-3.5 shrink-0 text-[#12203B]" strokeWidth={2.4} />
               <span className="break-words">
-                {student.techCenter?.name ||
-                  'No location'}
+                {student.techCenter?.name || 'No location'}
               </span>
             </p>
           </div>
@@ -642,36 +360,21 @@ const StudentCard = ({
       <div className="p-5 flex-1">
         <div className="grid grid-cols-2 gap-x-5 gap-y-4">
           <Stat label="General Course">
-            <span className="break-words">
-              {student.generalCourse ||
-                'Not specified'}
-            </span>
+            <span className="break-words">{student.generalCourse || 'Not specified'}</span>
           </Stat>
 
           <Stat label="Status">
-            <span
-              className={
-                student.isActive
-                  ? 'text-[#1B7A52]'
-                  : 'text-[#8993A2]'
-              }
-            >
-              {student.isActive
-                ? 'Active'
-                : 'Inactive'}
+            <span className={student.isActive ? 'text-[#55705B]' : 'text-[#8A9088]'}>
+              {student.isActive ? 'Active' : 'Inactive'}
             </span>
           </Stat>
 
           <Stat label="Courses Taking">
-            <span>
-              {student.studentCourses?.length || 0}
-            </span>
+            <span>{student.studentCourses?.length || 0}</span>
           </Stat>
 
           <Stat label="Credits">
-            <span>
-              {getTotalCredits(student)}
-            </span>
+            <span>{getTotalCredits(student)}</span>
           </Stat>
 
           <Stat label="Religion">
@@ -679,15 +382,14 @@ const StudentCard = ({
               {student.takesReligion === null
                 ? 'N/A'
                 : student.takesReligion
-                ? 'Yes'
-                : 'No'}
+                  ? 'Yes'
+                  : 'No'}
             </span>
           </Stat>
 
           <Stat label="Location">
             <span className="break-words">
-              {student.techCenter?.name ||
-                'Not specified'}
+              {student.techCenter?.name || 'Not specified'}
             </span>
           </Stat>
         </div>
@@ -696,109 +398,37 @@ const StudentCard = ({
 
         {student.studentCourses?.length > 0 && (
           <>
-            <div className="my-5 h-px bg-[#EEF2F7]" />
+            <div className="my-5 h-px bg-[#DADCD3]" />
 
-            <p
-              className="
-                flex
-                items-center
-                gap-2
-                text-[10px]
-                sm:text-[11px]
-                font-bold
-                uppercase
-                tracking-[0.12em]
-                text-[#7D8796]
-              "
-            >
-              <BookOpen
-                className="w-4 h-4 text-[#1A365D]"
-                strokeWidth={2.2}
-              />
-
+            <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[#8A9088]">
+              <BookOpen className="w-4 h-4 text-[#12203B]" strokeWidth={2.2} />
               Enrolled Courses
             </p>
 
             <ul className="mt-3 space-y-2">
-              {student.studentCourses
-                .slice(0, 3)
-                .map((course) => (
-                  <li
-                    key={course.id}
-                    className="
-                      flex
-                      items-center
-                      justify-between
-                      gap-3
-                      rounded-xl
-                      border
-                      border-[#EEF2F7]
-                      bg-[#F8FAFC]
-                      px-3
-                      py-2.5
-                    "
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span
-                        className="
-                          block
-                          text-[12px]
-                          sm:text-[13px]
-                          font-extrabold
-                          text-[#1A365D]
-                          break-words
-                        "
-                      >
-                        {course.code}
-                      </span>
-
-                      <span
-                        className="
-                          block
-                          mt-0.5
-                          text-[11px]
-                          sm:text-[12px]
-                          text-[#8993A2]
-                          break-words
-                        "
-                      >
-                        {course.courseUnit}
-                      </span>
+              {student.studentCourses.slice(0, 3).map((course) => (
+                <li
+                  key={course.id}
+                  className="flex items-center justify-between gap-3 border border-[#DADCD3] bg-[#F7F6F2] px-3 py-2.5"
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[12px] font-semibold text-[#12203B] break-words">
+                      {course.code}
                     </span>
-
-                    <span
-                      className="
-                        shrink-0
-                        text-[11px]
-                        font-bold
-                        text-[#5B6779]
-                        bg-white
-                        border
-                        border-[#E3E8EF]
-                        rounded-full
-                        px-2.5
-                        py-1
-                        tabular-nums
-                      "
-                    >
-                      {course.credits} cr
+                    <span className="block mt-0.5 text-[11px] text-[#6B7268] break-words">
+                      {course.courseUnit}
                     </span>
-                  </li>
-                ))}
+                  </span>
+
+                  <span className="shrink-0 font-mono text-[11px] text-[#4B564C] tabular-nums">
+                    {course.credits} cr
+                  </span>
+                </li>
+              ))}
 
               {student.studentCourses.length > 3 && (
-                <li
-                  className="
-                    pt-0.5
-                    text-[11px]
-                    font-bold
-                    text-[#8993A2]
-                    break-words
-                  "
-                >
-                  +
-                  {student.studentCourses.length - 3}{' '}
-                  more courses
+                <li className="pt-0.5 text-[11px] text-[#8A9088] break-words">
+                  +{student.studentCourses.length - 3} more courses
                 </li>
               )}
             </ul>
@@ -813,40 +443,19 @@ const StudentCard = ({
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-
-            router.push(
-              `/dashboard/students/${student.id}`
-            );
+            router.push(`/dashboard/students/${student.id}`);
           }}
           className="
-            w-full
-            h-11
-            rounded-xl
-            bg-[#1A365D]
-            text-white
-            text-[12px]
-            uppercase
-            tracking-[0.12em]
-            font-extrabold
-            flex
-            items-center
-            justify-center
-            gap-2
-            hover:bg-[#15304F]
-            group-hover:bg-[#E8A33D]
-            group-hover:text-[#14213D]
+            w-full h-11 bg-[#12203B] text-white
+            font-mono text-[11px] uppercase tracking-[0.12em] font-semibold
+            flex items-center justify-center gap-2
             transition-colors
+            group-hover:bg-[#B98A3E] group-hover:text-[#12203B]
           "
         >
           View Profile
-
           <ArrowRight
-            className="
-              w-4
-              h-4
-              transition-transform
-              group-hover:translate-x-0.5
-            "
+            className="w-4 h-4 transition-transform group-hover:translate-x-0.5"
             strokeWidth={2.5}
           />
         </button>
@@ -872,91 +481,31 @@ const StudentSection = ({
 
   return (
     <section className="mb-10">
-      <header
-        className="
-          mb-4
-          flex
-          items-end
-          justify-between
-          gap-3
-        "
-      >
+      <header className="mb-4 flex items-end justify-between gap-3">
         <div className="min-w-0">
-          <p
-            className="
-              flex
-              items-center
-              gap-2
-              text-[10px]
-              sm:text-[11px]
-              font-bold
-              uppercase
-              tracking-[0.16em]
-              text-[#7D8796]
-            "
-          >
-            <span className="h-4 w-1 bg-[#E8A33D] rounded-full" />
-
+          <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#8A9088]">
+            <span className="h-4 w-[3px] bg-[#B98A3E]" />
             Student Board
           </p>
 
-          <h2
-            className="
-              mt-1.5
-              text-xl
-              sm:text-2xl
-              font-extrabold
-              tracking-tight
-              text-[#14213D]
-              break-words
-            "
-          >
+          <h2 className="mt-1.5 text-xl font-semibold tracking-tight text-[#12203B] break-words">
             {title}
           </h2>
         </div>
 
-        <div
-          className="
-            shrink-0
-            flex
-            items-baseline
-            gap-1.5
-            rounded-full
-            border
-            border-[#E3E8EF]
-            bg-white
-            px-3.5
-            py-2
-            shadow-sm
-          "
-        >
-          <span className="text-[15px] font-extrabold text-[#1A365D] tabular-nums">
+        <div className="shrink-0 flex items-baseline gap-1.5 border border-[#DADCD3] bg-white px-3 py-1.5">
+          <span className="font-mono text-[14px] font-semibold text-[#12203B] tabular-nums">
             {students.length}
           </span>
-
-          <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[#8993A2]">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-[#8A9088]">
             students
           </span>
         </div>
       </header>
 
-      <div
-        className="
-          grid
-          gap-5
-          grid-cols-1
-          sm:grid-cols-2
-          xl:grid-cols-3
-          2xl:grid-cols-4
-        "
-      >
+      <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {students.map((student, index) => (
-          <StudentCard
-            key={student.id}
-            student={student}
-            index={index}
-            router={router}
-          />
+          <StudentCard key={student.id} student={student} index={index} router={router} />
         ))}
       </div>
     </section>
@@ -970,11 +519,8 @@ const StudentSection = ({
 export default function StudentsPage() {
   const router = useRouter();
 
-  const [searchQuery, setSearchQuery] =
-    useState('');
-
-  const [selectedLocation, setSelectedLocation] =
-    useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState('all');
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['students'],
@@ -983,17 +529,13 @@ export default function StudentsPage() {
       const response = await fetch('/api/students');
 
       if (!response.ok) {
-        throw new Error(
-          'Failed to fetch students'
-        );
+        throw new Error('Failed to fetch students');
       }
 
       const result = await response.json();
 
       return result as {
-        studentsByTechCenter: {
-          [key: string]: Student[];
-        };
+        studentsByTechCenter: { [key: string]: Student[] };
         techCenters: TechCenter[];
         totalStudents: number;
       };
@@ -1003,62 +545,42 @@ export default function StudentsPage() {
     gcTime: 10 * 60 * 1000,
   });
 
-  const studentsByTechCenter =
-    data?.studentsByTechCenter || {};
-
+  const studentsByTechCenter = data?.studentsByTechCenter || {};
   const techCenters = data?.techCenters || [];
+  const totalStudents = data?.totalStudents || 0;
 
-  const totalStudents =
-    data?.totalStudents || 0;
-
-  const allStudents = Object.values(
-    studentsByTechCenter
-  ).flat() as Student[];
+  const allStudents = Object.values(studentsByTechCenter).flat() as Student[];
 
   // ==========================================================
   // FILTERING
   // ==========================================================
 
-  const filterStudents = (
-    students: Student[]
-  ) => {
+  const filterStudents = (students: Student[]) => {
     let filtered = students;
 
     if (selectedLocation !== 'all') {
       filtered = filtered.filter(
-        (student) =>
-          student.techCenter?.id ===
-          selectedLocation
+        (student) => student.techCenter?.id === selectedLocation
       );
     }
 
     if (searchQuery.trim()) {
-      const query =
-        searchQuery.toLowerCase().trim();
+      const query = searchQuery.toLowerCase().trim();
 
       filtered = filtered.filter((student) => {
-        const fullName =
-          `${student.firstName} ${student.lastName}`.toLowerCase();
+        const fullName = `${student.firstName} ${student.lastName}`.toLowerCase();
 
         return (
           fullName.includes(query) ||
           student.studentCourses?.some(
             (course) =>
-              course.code
-                .toLowerCase()
-                .includes(query) ||
-              course.courseUnit
-                .toLowerCase()
-                .includes(query)
+              course.code.toLowerCase().includes(query) ||
+              course.courseUnit.toLowerCase().includes(query)
           ) ||
           (student.generalCourse &&
-            student.generalCourse
-              .toLowerCase()
-              .includes(query)) ||
+            student.generalCourse.toLowerCase().includes(query)) ||
           (student.techCenter &&
-            student.techCenter.name
-              .toLowerCase()
-              .includes(query))
+            student.techCenter.name.toLowerCase().includes(query))
         );
       });
     }
@@ -1066,38 +588,23 @@ export default function StudentsPage() {
     return filtered;
   };
 
-  const filteredAllStudents =
-    filterStudents(allStudents);
+  const filteredAllStudents = filterStudents(allStudents);
 
-  const getLocationCount = (
-    locationId: string
-  ) =>
-    allStudents.filter(
-      (student) =>
-        student.techCenter?.id ===
-        locationId
-    ).length;
+  const getLocationCount = (locationId: string) =>
+    allStudents.filter((student) => student.techCenter?.id === locationId).length;
 
-  const locations = techCenters.map(
-    (center) => ({
-      ...center,
-      _count: {
-        students: getLocationCount(center.id),
-      },
-    })
-  );
+  const locations = techCenters.map((center) => ({
+    ...center,
+    _count: { students: getLocationCount(center.id) },
+  }));
 
   const clearFilter = () => {
     setSelectedLocation('all');
     setSearchQuery('');
   };
 
-  const hasActiveFilters =
-    selectedLocation !== 'all' ||
-    Boolean(searchQuery.trim());
-
-  const hasStudents =
-    allStudents.length > 0;
+  const hasActiveFilters = selectedLocation !== 'all' || Boolean(searchQuery.trim());
+  const hasStudents = allStudents.length > 0;
 
   // ==========================================================
   // LOADING
@@ -1105,47 +612,15 @@ export default function StudentsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#F6F8FB]">
-        <div
-          className="
-            mx-auto
-            max-w-[1600px]
-            px-4
-            sm:px-6
-            lg:px-8
-            py-6
-            animate-pulse
-          "
-        >
-          <div className="h-24 rounded-2xl bg-white border border-[#E3E8EF]" />
+      <div className="min-h-screen bg-[#F1F1EC]">
+        <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-6 animate-pulse">
+          <div className="h-24 bg-white border border-[#DADCD3]" />
+          <div className="mt-4 h-32 bg-white border border-[#DADCD3]" />
 
-          <div className="mt-4 h-32 rounded-2xl bg-white border border-[#E3E8EF]" />
-
-          <div
-            className="
-              mt-6
-              grid
-              gap-5
-              grid-cols-1
-              sm:grid-cols-2
-              xl:grid-cols-3
-              2xl:grid-cols-4
-            "
-          >
-            {[1, 2, 3, 4, 5, 6, 7, 8].map(
-              (i) => (
-                <div
-                  key={i}
-                  className="
-                    h-80
-                    rounded-2xl
-                    bg-white
-                    border
-                    border-[#E3E8EF]
-                  "
-                />
-              )
-            )}
+          <div className="mt-6 grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <div key={i} className="h-80 bg-white border border-[#DADCD3]" />
+            ))}
           </div>
         </div>
       </div>
@@ -1158,64 +633,23 @@ export default function StudentsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#F6F8FB] flex items-center justify-center px-4">
-        <div
-          className="
-            max-w-sm
-            w-full
-            text-center
-            rounded-2xl
-            border
-            border-[#E3E8EF]
-            bg-white
-            p-8
-            shadow-sm
-          "
-        >
-          <div
-            className="
-              mx-auto
-              w-14
-              h-14
-              rounded-2xl
-              bg-[#FDECEC]
-              flex
-              items-center
-              justify-center
-            "
-          >
-            <AlertCircle
-              className="w-7 h-7 text-[#C0392B]"
-              strokeWidth={2}
-            />
+      <div className="min-h-screen bg-[#F1F1EC] flex items-center justify-center px-4">
+        <div className="max-w-sm w-full text-center border border-[#DADCD3] bg-white p-8">
+          <div className="mx-auto w-12 h-12 bg-[#FBF0EC] flex items-center justify-center">
+            <AlertCircle className="w-6 h-6 text-[#A4462F]" strokeWidth={2} />
           </div>
 
-          <h2 className="mt-5 text-lg font-extrabold text-[#14213D]">
+          <h2 className="mt-5 text-lg font-semibold text-[#12203B]">
             Failed to load students
           </h2>
 
-          <p className="mt-2 text-[13px] leading-5 text-[#8993A2]">
-            {error instanceof Error
-              ? error.message
-              : 'Please try again later'}
+          <p className="mt-2 text-[13px] leading-5 text-[#6B7268]">
+            {error instanceof Error ? error.message : 'Please try again later'}
           </p>
 
           <button
-            onClick={() =>
-              window.location.reload()
-            }
-            className="
-              mt-6
-              h-11
-              px-6
-              rounded-xl
-              bg-[#1A365D]
-              text-white
-              text-[13px]
-              font-bold
-              hover:bg-[#15304F]
-              transition-colors
-            "
+            onClick={() => window.location.reload()}
+            className="mt-6 h-11 px-6 bg-[#12203B] text-white font-mono text-[12px] uppercase tracking-widest hover:bg-[#1C2E4E] transition-colors"
           >
             Retry
           </button>
@@ -1229,186 +663,71 @@ export default function StudentsPage() {
   // ==========================================================
 
   return (
-    <div className="min-h-screen bg-[#F6F8FB] overflow-x-hidden">
-      <div
-        className="
-          mx-auto
-          max-w-[1600px]
-          px-4
-          sm:px-6
-          lg:px-8
-          pb-12
-        "
-      >
+    <div className="min-h-screen bg-[#F1F1EC] overflow-x-hidden">
+      <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 pb-12">
         {/* ====================================================
             PAGE HEADER
         ==================================================== */}
 
-        <header
-          className="
-            pt-7
-            sm:pt-8
-            pb-5
-            flex
-            flex-col
-            lg:flex-row
-            lg:items-end
-            lg:justify-between
-            gap-5
-          "
-        >
+        <header className="pt-7 sm:pt-8 pb-5 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
+            <div className="flex flex-wrap items-center gap-2 mb-4">
               <Link
                 href="/dashboard"
-                className="
-                  rounded-lg
-                  bg-[#F0F4F8]
-                  px-3
-                  py-2
-                  text-sm
-                  text-[#6B7280]
-                  hover:bg-[#E8EEF5]
-                  hover:text-[#374151]
-                  transition-all
-                  duration-200
-                "
+                className="border border-[#DADCD3] px-3 py-1.5 font-mono text-[11px] uppercase tracking-wide text-[#6B7268] hover:border-[#B98A3E] hover:text-[#12203B] transition-colors"
               >
                 Dashboard
               </Link>
 
               <Link
                 href="/dashboard/courses"
-                className="
-                  rounded-lg
-                  bg-[#F0F4F8]
-                  px-3
-                  py-2
-                  text-sm
-                  text-[#6B7280]
-                  hover:bg-[#E8EEF5]
-                  hover:text-[#374151]
-                  transition-all
-                  duration-200
-                "
+                className="border border-[#DADCD3] px-3 py-1.5 font-mono text-[11px] uppercase tracking-wide text-[#6B7268] hover:border-[#B98A3E] hover:text-[#12203B] transition-colors"
               >
                 Courses
               </Link>
 
               <Link
                 href="/dashboard/cleaning"
-                className="
-                  rounded-lg
-                  bg-[#F0F4F8]
-                  px-3
-                  py-2
-                  text-sm
-                  text-[#6B7280]
-                  hover:bg-[#E8EEF5]
-                  hover:text-[#374151]
-                  transition-all
-                  duration-200
-                "
+                className="border border-[#DADCD3] px-3 py-1.5 font-mono text-[11px] uppercase tracking-wide text-[#6B7268] hover:border-[#B98A3E] hover:text-[#12203B] transition-colors"
               >
                 Cleaning
               </Link>
             </div>
 
-            <p
-              className="
-                flex
-                items-center
-                gap-2
-                text-[10px]
-                sm:text-[11px]
-                font-bold
-                uppercase
-                tracking-[0.18em]
-                text-[#7D8796]
-              "
-            >
-              <span className="h-4 w-1 bg-[#E8A33D] rounded-full" />
-
+            <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-[#B98A3E]">
+              <span className="h-4 w-[3px] bg-[#B98A3E]" />
               University Community
             </p>
 
-            <h1
-              className="
-                mt-2
-                text-3xl
-                sm:text-4xl
-                font-black
-                tracking-tight
-                text-[#14213D]
-              "
-            >
-              STUDENTS
+            <h1 className="mt-2 text-3xl sm:text-4xl font-semibold tracking-tight text-[#12203B]">
+              Students
             </h1>
 
-            <p
-              className="
-                mt-2
-                max-w-xl
-                text-[14px]
-                sm:text-[15px]
-                leading-6
-                text-[#5B6779]
-              "
-            >
-              Explore the students learning and
-              growing across our university
-              community.
+            <p className="mt-2 max-w-xl text-[14px] leading-6 text-[#6B7268]">
+              Explore the students learning and growing across our
+              university community.
             </p>
           </div>
 
           {/* COMMUNITY COUNT */}
 
-          <div
-            className="
-              shrink-0
-              rounded-2xl
-              border
-              border-[#E3E8EF]
-              bg-white
-              px-5
-              py-4
-              shadow-sm
-              min-w-[190px]
-            "
-          >
-            <p
-              className="
-                text-[10px]
-                font-bold
-                uppercase
-                tracking-[0.16em]
-                text-[#7D8796]
-              "
-            >
+          <div className="shrink-0 border border-[#DADCD3] bg-white px-5 py-4 min-w-[190px]">
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8A9088]">
               Community
             </p>
 
-            <p
-              className="
-                mt-1
-                text-3xl
-                font-black
-                text-[#1A365D]
-                tabular-nums
-                leading-tight
-              "
-            >
+            <p className="mt-1 text-3xl font-semibold text-[#12203B] tabular-nums leading-tight">
               {totalStudents}
             </p>
 
-            <p className="mt-1 text-[11px] font-semibold text-[#8993A2]">
+            <p className="mt-1 font-mono text-[11px] text-[#8A9088]">
               registered students
             </p>
           </div>
         </header>
 
         {/* ====================================================
-            NORMAL SEARCH + FILTER SECTION
+            SEARCH + FILTER
         ==================================================== */}
 
         <SearchFilterBar
@@ -1428,195 +747,83 @@ export default function StudentsPage() {
           {/* NO STUDENTS */}
 
           {!hasStudents && (
-            <div
-              className="
-                rounded-2xl
-                border
-                border-[#E3E8EF]
-                bg-white
-                py-20
-                text-center
-              "
-            >
-              <Users
-                className="
-                  mx-auto
-                  w-10
-                  h-10
-                  text-[#C3CAD5]
-                "
-                strokeWidth={1.8}
-              />
-
-              <p className="mt-4 text-[14px] font-semibold text-[#8993A2]">
-                No students found.
-              </p>
+            <div className="border border-[#DADCD3] bg-white py-20 text-center">
+              <Users className="mx-auto w-9 h-9 text-[#B9BEB2]" strokeWidth={1.8} />
+              <p className="mt-4 text-[14px] text-[#6B7268]">No students found.</p>
             </div>
           )}
 
           {/* FILTERED RESULTS */}
 
-          {hasStudents &&
-            hasActiveFilters && (
-              <>
-                {filteredAllStudents.length ===
-                0 ? (
-                  <div
-                    className="
-                      rounded-2xl
-                      border
-                      border-[#E3E8EF]
-                      bg-white
-                      py-20
-                      text-center
-                      px-6
-                    "
+          {hasStudents && hasActiveFilters && (
+            <>
+              {filteredAllStudents.length === 0 ? (
+                <div className="border border-[#DADCD3] bg-white py-20 text-center px-6">
+                  <Search className="mx-auto w-9 h-9 text-[#B9BEB2]" strokeWidth={1.8} />
+
+                  <h3 className="mt-4 text-lg font-semibold text-[#12203B]">
+                    No matching students
+                  </h3>
+
+                  <p className="mt-2 text-[13px] leading-5 text-[#6B7268]">
+                    Try changing your search or location filter.
+                  </p>
+
+                  <button
+                    onClick={clearFilter}
+                    className="mt-6 h-11 px-6 bg-[#12203B] text-white font-mono text-[12px] uppercase tracking-widest hover:bg-[#1C2E4E] transition-colors"
                   >
-                    <Search
-                      className="
-                        mx-auto
-                        w-10
-                        h-10
-                        text-[#C3CAD5]
-                      "
-                      strokeWidth={1.8}
-                    />
-
-                    <h3 className="mt-4 text-lg font-extrabold text-[#14213D]">
-                      No matching students
-                    </h3>
-
-                    <p className="mt-2 text-[13px] leading-5 text-[#8993A2]">
-                      Try changing your search or
-                      location filter.
-                    </p>
-
-                    <button
-                      onClick={clearFilter}
-                      className="
-                        mt-6
-                        h-11
-                        px-6
-                        rounded-xl
-                        bg-[#1A365D]
-                        text-white
-                        text-[13px]
-                        font-bold
-                        hover:bg-[#15304F]
-                        transition-colors
-                      "
-                    >
-                      Clear Filters
-                    </button>
-                  </div>
-                ) : (
-                  <StudentSection
-                    title={
-                      selectedLocation !== 'all'
-                        ? locations.find(
-                            (loc) =>
-                              loc.id ===
-                              selectedLocation
-                          )?.name ||
-                          'Filtered Results'
-                        : 'Filtered Results'
-                    }
-                    students={
-                      filteredAllStudents
-                    }
-                    router={router}
-                  />
-                )}
-              </>
-            )}
+                    Clear Filters
+                  </button>
+                </div>
+              ) : (
+                <StudentSection
+                  title={
+                    selectedLocation !== 'all'
+                      ? locations.find((loc) => loc.id === selectedLocation)?.name ||
+                        'Filtered Results'
+                      : 'Filtered Results'
+                  }
+                  students={filteredAllStudents}
+                  router={router}
+                />
+              )}
+            </>
+          )}
 
           {/* ALL STUDENTS BY TECH CENTER */}
 
-          {hasStudents &&
-            !hasActiveFilters && (
-              <>
-                {Object.entries(
-                  studentsByTechCenter
-                ).map(
-                  ([
-                    locationName,
-                    students,
-                  ]) => {
-                    const studentList =
-                      students as Student[];
+          {hasStudents && !hasActiveFilters && (
+            <>
+              {Object.entries(studentsByTechCenter).map(([locationName, students]) => {
+                const studentList = students as Student[];
 
-                    if (
-                      studentList.length ===
-                      0
-                    ) {
-                      return null;
-                    }
+                if (studentList.length === 0) return null;
 
-                    return (
-                      <StudentSection
-                        key={locationName}
-                        title={locationName}
-                        students={studentList}
-                        router={router}
-                      />
-                    );
-                  }
-                )}
-              </>
-            )}
+                return (
+                  <StudentSection
+                    key={locationName}
+                    title={locationName}
+                    students={studentList}
+                    router={router}
+                  />
+                );
+              })}
+            </>
+          )}
 
           {/* ==================================================
               FOOTER
           ================================================== */}
 
           {hasStudents && (
-            <footer
-              className="
-                mt-5
-                flex
-                flex-col
-                sm:flex-row
-                sm:items-center
-                sm:justify-between
-                gap-3
-                rounded-2xl
-                border
-                border-[#E3E8EF]
-                bg-white
-                px-4
-                sm:px-5
-                py-4
-                shadow-sm
-              "
-            >
-              <p
-                className="
-                  flex
-                  items-center
-                  gap-2
-                  text-[12px]
-                  sm:text-[13px]
-                  font-bold
-                  text-[#5B6779]
-                "
-              >
-                <Users
-                  className="w-4 h-4 text-[#1A365D]"
-                  strokeWidth={2}
-                />
-
+            <footer className="mt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border border-[#DADCD3] bg-white px-5 py-4">
+              <p className="flex items-center gap-2 text-[12px] font-semibold text-[#4B564C]">
+                <Users className="w-4 h-4 text-[#12203B]" strokeWidth={2} />
                 Student Community Directory
               </p>
 
-              <span
-                className="
-                  text-[12px]
-                  sm:text-[13px]
-                  font-extrabold
-                  text-[#1A365D]
-                  tabular-nums
-                "
-              >
+              <span className="font-mono text-[12px] font-semibold text-[#12203B] tabular-nums">
                 {hasActiveFilters
                   ? `${filteredAllStudents.length} of ${totalStudents} students`
                   : `${totalStudents} students`}

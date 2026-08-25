@@ -30,7 +30,6 @@ import {
   Settings,
   Bell,
   ChevronDown,
-  GraduationCap,
   Users,
   Megaphone,
   FileText,
@@ -64,33 +63,34 @@ import {
 // ============================================================
 //
 // Background:
-//   Page       #F8FAFC
+//   Page       #F1F1EC   paper
 //   Surface    #FFFFFF
 //
 // Borders:
-//   #E5E7EB
+//   #DADCD3   hairline
 //
 // Text:
-//   Heading    #111827
-//   Body       #374151
-//   Muted      #6B7280
-//   Subtle     #9CA3AF
+//   Heading    #12203B   ink
+//   Body       #12203B
+//   Muted      #6B7268
+//   Subtle     #8A9088
 //
-// Primary:
-//   Blue       #2563EB
-//   Blue tint  #EFF6FF
+// Accent:
+//   Brass      #B98A3E   active state / primary accent
+//   Brass tint #F7F1E4
 //
 // Status:
-//   Success    #16A34A
-//   Danger     #DC2626
-//   Warning    #D97706
+//   Success    #55705B   moss
+//   Danger     #A4462F   rust  (notifications)
+//   Warning    #3E5C76   slate (announcements)
 //
-// The design intentionally avoids:
-//   - gradients
-//   - excessive rounded cards
-//   - glow effects
-//   - excessive animations
-//   - oversized navigation
+// Type:
+//   Labels, eyebrows, timestamps, codes -> font-mono
+//   Body copy -> font-sans (default)
+//
+// Shape: square corners throughout (rounded-none), avatars square +
+// grayscale, matching the dashboard content page. Circular shapes
+// reserved only for tiny functional count badges and the presence dot.
 //
 // ============================================================
 
@@ -679,14 +679,14 @@ function TopBar({
   return (
     <header
       className={cn(
-        'fixed top-0 right-0 z-30 h-16 bg-white border-b border-[#E5E7EB]',
+        'fixed top-0 right-0 z-30 h-16 bg-white border-b border-[#DADCD3]',
         'transition-shadow duration-200',
         isMobile
           ? 'left-0'
           : sidebarOpen
             ? 'left-0 lg:left-64'
             : 'left-0 lg:left-[72px]',
-        scrolled && 'shadow-[0_1px_8px_rgba(15,23,42,0.05)]'
+        scrolled && 'shadow-[0_1px_8px_rgba(18,32,59,0.06)]'
       )}
     >
       <div className="h-full flex items-center justify-between px-4 sm:px-6 lg:px-7">
@@ -700,8 +700,8 @@ function TopBar({
                 : () => setSidebarOpen((previous) => !previous)
             }
             className={cn(
-              'flex items-center justify-center w-9 h-9 rounded-md',
-              'text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6]',
+              'flex items-center justify-center w-9 h-9',
+              'text-[#6B7268] hover:text-[#12203B] hover:bg-[#F5F4EE]',
               'transition-colors duration-150'
             )}
             aria-label={isMobile ? 'Open navigation' : 'Toggle sidebar'}
@@ -715,17 +715,17 @@ function TopBar({
             )}
           </button>
 
-          <div className="ml-3 pl-3 border-l border-[#E5E7EB] min-w-0">
-            <div className="flex items-center gap-2 text-xs text-[#9CA3AF]">
+          <div className="ml-3 pl-3 border-l border-[#DADCD3] min-w-0">
+            <div className="flex items-center gap-2 font-mono text-[11px] text-[#8A9088]">
               {pageInfo.section && (
                 <>
-                  <span className="hidden sm:inline truncate">
+                  <span className="hidden sm:inline truncate uppercase tracking-wider">
                     {pageInfo.section}
                   </span>
-                  <ChevronRight className="hidden sm:block w-3 h-3 text-[#D1D5DB]" />
+                  <ChevronRight className="hidden sm:block w-3 h-3 text-[#B9BEB2]" />
                 </>
               )}
-              <span className="text-[#374151] font-medium truncate">
+              <span className="text-[#12203B] font-medium truncate">
                 {pageInfo.title}
               </span>
             </div>
@@ -739,15 +739,15 @@ function TopBar({
             href="/dashboard/announcements"
             aria-label="Announcements"
             className={cn(
-              'relative flex items-center justify-center w-9 h-9 rounded-md',
-              'text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6]',
+              'relative flex items-center justify-center w-9 h-9',
+              'text-[#6B7268] hover:text-[#12203B] hover:bg-[#F5F4EE]',
               'transition-colors duration-150'
             )}
           >
             <Megaphone className="w-[18px] h-[18px]" />
 
             {announcementCount && announcementCount > 0 ? (
-              <span className="absolute top-1 right-1 min-w-[15px] h-[15px] px-1 rounded-full bg-[#D97706] text-white text-[9px] font-semibold flex items-center justify-center border-2 border-white">
+              <span className="absolute top-1 right-1 min-w-[15px] h-[15px] px-1 rounded-full bg-[#3E5C76] text-white text-[9px] font-mono font-semibold flex items-center justify-center border-2 border-white">
                 {announcementCount > 99 ? '99+' : announcementCount}
               </span>
             ) : null}
@@ -758,15 +758,15 @@ function TopBar({
             href="/dashboard/notifications"
             aria-label="Notifications"
             className={cn(
-              'relative flex items-center justify-center w-9 h-9 rounded-md',
-              'text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6]',
+              'relative flex items-center justify-center w-9 h-9',
+              'text-[#6B7268] hover:text-[#12203B] hover:bg-[#F5F4EE]',
               'transition-colors duration-150'
             )}
           >
             <Bell className="w-[18px] h-[18px]" />
 
             {unreadCount && unreadCount > 0 ? (
-              <span className="absolute top-1 right-1 min-w-[15px] h-[15px] px-1 rounded-full bg-[#DC2626] text-white text-[9px] font-semibold flex items-center justify-center border-2 border-white">
+              <span className="absolute top-1 right-1 min-w-[15px] h-[15px] px-1 rounded-full bg-[#A4462F] text-white text-[9px] font-mono font-semibold flex items-center justify-center border-2 border-white">
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             ) : null}
@@ -776,9 +776,9 @@ function TopBar({
           <Link
             href="/dashboard/profile"
             className={cn(
-              'ml-1 sm:ml-2 pl-2 sm:pl-3 border-l border-[#E5E7EB]',
-              'flex items-center gap-2.5 rounded-md py-1.5 px-1.5',
-              'hover:bg-[#F9FAFB] transition-colors duration-150'
+              'ml-1 sm:ml-2 pl-2 sm:pl-3 border-l border-[#DADCD3]',
+              'flex items-center gap-2.5 py-1.5 px-1.5',
+              'hover:bg-[#F7F6F2] transition-colors duration-150'
             )}
           >
             {user?.profileImageUrl ? (
@@ -788,25 +788,25 @@ function TopBar({
                 width={34}
                 height={34}
                 unoptimized
-                className="w-[34px] h-[34px] rounded-full object-cover border border-[#E5E7EB]"
+                className="w-[34px] h-[34px] object-cover grayscale border border-[#DADCD3]"
               />
             ) : (
-              <div className="w-[34px] h-[34px] rounded-full bg-[#2563EB] flex items-center justify-center text-white text-[11px] font-semibold">
+              <div className="w-[34px] h-[34px] bg-[#12203B] flex items-center justify-center text-white font-mono text-[11px] font-semibold">
                 {getInitials(user)}
               </div>
             )}
 
             <div className="hidden sm:block min-w-0">
-              <p className="text-[#111827] text-sm font-medium leading-tight truncate max-w-[150px]">
+              <p className="text-[#12203B] text-sm font-medium leading-tight truncate max-w-[150px]">
                 {user?.firstName} {user?.lastName}
               </p>
 
-              <p className="text-[#9CA3AF] text-[11px] leading-tight mt-0.5">
+              <p className="text-[#8A9088] text-[11px] font-mono leading-tight mt-0.5 uppercase tracking-wide">
                 {formatRole(userRole)}
               </p>
             </div>
 
-            <ChevronDown className="hidden md:block w-3.5 h-3.5 text-[#9CA3AF]" />
+            <ChevronDown className="hidden md:block w-3.5 h-3.5 text-[#8A9088]" />
           </Link>
         </div>
       </div>
@@ -848,21 +848,21 @@ function NavigationItem({
         href={item.path}
         aria-label={item.label}
         className={cn(
-          'relative group flex items-center justify-center w-full h-10 rounded-md',
+          'relative group flex items-center justify-center w-full h-10',
           'transition-colors duration-150',
           active
-            ? 'bg-[#EFF6FF] text-[#2563EB]'
-            : 'text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6]'
+            ? 'bg-[#F7F1E4] text-[#B98A3E]'
+            : 'text-[#6B7268] hover:text-[#12203B] hover:bg-[#F5F4EE]'
         )}
       >
         {active && (
-          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-[#2563EB]" />
+          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[#B98A3E]" />
         )}
 
         {item.icon}
 
         {badge && badge > 0 ? (
-          <span className="absolute top-1 right-1 min-w-[14px] h-[14px] px-0.5 rounded-full bg-[#DC2626] text-white text-[8px] font-semibold flex items-center justify-center border border-white">
+          <span className="absolute top-1 right-1 min-w-[14px] h-[14px] px-0.5 rounded-full bg-[#A4462F] text-white text-[8px] font-mono font-semibold flex items-center justify-center border border-white">
             {badge > 9 ? '9+' : badge}
           </span>
         ) : null}
@@ -870,8 +870,8 @@ function NavigationItem({
         <span
           className={cn(
             'absolute left-full ml-2.5 top-1/2 -translate-y-1/2',
-            'whitespace-nowrap bg-[#111827] text-white text-xs font-medium',
-            'px-2.5 py-1.5 rounded-md shadow-lg',
+            'whitespace-nowrap bg-[#12203B] text-white text-xs font-medium',
+            'px-2.5 py-1.5 shadow-lg',
             'opacity-0 invisible group-hover:opacity-100 group-hover:visible',
             'transition-all duration-150 pointer-events-none z-[200]'
           )}
@@ -886,21 +886,21 @@ function NavigationItem({
     <Link
       href={item.path}
       className={cn(
-        'relative flex items-center gap-3 w-full min-h-10 px-3 rounded-md',
+        'relative flex items-center gap-3 w-full min-h-10 px-3',
         'text-[13px] transition-colors duration-150',
         active
-          ? 'bg-[#EFF6FF] text-[#1D4ED8] font-semibold'
-          : 'text-[#4B5563] font-medium hover:text-[#111827] hover:bg-[#F3F4F6]'
+          ? 'bg-[#F7F1E4] text-[#12203B] font-semibold'
+          : 'text-[#4B564C] font-medium hover:text-[#12203B] hover:bg-[#F5F4EE]'
       )}
     >
       {active && (
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-[#2563EB]" />
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[#B98A3E]" />
       )}
 
       <span
         className={cn(
           'flex items-center justify-center',
-          active ? 'text-[#2563EB]' : 'text-[#6B7280]'
+          active ? 'text-[#B98A3E]' : 'text-[#6B7268]'
         )}
       >
         {item.icon}
@@ -913,10 +913,10 @@ function NavigationItem({
           className={cn(
             'ml-auto min-w-[20px] h-5 px-1.5 rounded-full',
             'flex items-center justify-center',
-            'text-[10px] font-semibold text-white',
+            'text-[10px] font-mono font-semibold text-white',
             item.id === 'notifications'
-              ? 'bg-[#DC2626]'
-              : 'bg-[#D97706]'
+              ? 'bg-[#A4462F]'
+              : 'bg-[#3E5C76]'
           )}
         >
           {badge > 99 ? '99+' : badge}
@@ -996,7 +996,7 @@ function Sidebar({
   return (
     <aside
       className={cn(
-        'h-screen bg-white border-r border-[#E5E7EB]',
+        'h-screen bg-white border-r border-[#DADCD3]',
         'flex flex-col overflow-hidden',
         'transition-[width] duration-200 ease-out',
         sidebarOpen ? 'w-64' : 'w-[72px]'
@@ -1008,7 +1008,7 @@ function Sidebar({
 
       <div
         className={cn(
-          'h-16 flex-shrink-0 border-b border-[#E5E7EB]',
+          'h-16 flex-shrink-0 border-b border-[#DADCD3]',
           'flex items-center',
           sidebarOpen ? 'px-4' : 'justify-center'
         )}
@@ -1018,7 +1018,7 @@ function Sidebar({
           className="flex items-center gap-3 min-w-0"
           aria-label="Selfless CE Dashboard"
         >
-          <div className="w-8 h-8 rounded-md bg-[#111827] flex items-center justify-center overflow-hidden flex-shrink-0">
+          <div className="w-8 h-8 bg-[#12203B] flex items-center justify-center overflow-hidden flex-shrink-0">
             <Image
               src="/freedom.png"
               alt="Selfless CE Logo"
@@ -1030,11 +1030,11 @@ function Sidebar({
 
           {sidebarOpen && (
             <div className="min-w-0">
-              <p className="text-[#111827] font-semibold text-sm leading-tight truncate">
+              <p className="text-[#12203B] font-semibold text-sm leading-tight truncate">
                 Selfless CE
               </p>
 
-              <p className="text-[#9CA3AF] text-[10px] leading-tight mt-0.5">
+              <p className="text-[#8A9088] text-[10px] font-mono uppercase tracking-wide leading-tight mt-0.5">
                 Student Portal
               </p>
             </div>
@@ -1049,7 +1049,7 @@ function Sidebar({
       {sidebarOpen && (
         <div className="px-3 pt-3 pb-2">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8A9088]" />
 
             <input
               type="text"
@@ -1058,18 +1058,18 @@ function Sidebar({
               placeholder="Search..."
               aria-label="Search navigation"
               className={cn(
-                'w-full h-9 pl-9 pr-8 rounded-md',
-                'bg-[#F8FAFC] border border-[#E5E7EB]',
-                'text-[13px] text-[#111827]',
-                'placeholder:text-[#9CA3AF]',
+                'w-full h-9 pl-9 pr-8',
+                'bg-[#F7F6F2] border border-[#DADCD3]',
+                'text-[13px] text-[#12203B]',
+                'placeholder:text-[#8A9088]',
                 'outline-none',
-                'focus:bg-white focus:border-[#93C5FD]',
+                'focus:bg-white focus:border-[#B98A3E]',
                 'transition-colors duration-150'
               )}
             />
 
             {!searchQuery && (
-              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 hidden xl:flex items-center gap-0.5 text-[9px] text-[#9CA3AF] border border-[#E5E7EB] rounded px-1 py-0.5 bg-white">
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 hidden xl:flex items-center gap-0.5 font-mono text-[9px] text-[#8A9088] border border-[#DADCD3] px-1 py-0.5 bg-white">
                 Ctrl K
               </span>
             )}
@@ -1078,7 +1078,7 @@ function Sidebar({
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#111827]"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#8A9088] hover:text-[#12203B]"
                 aria-label="Clear navigation search"
               >
                 <X className="w-4 h-4" />
@@ -1105,9 +1105,9 @@ function Sidebar({
           <Link
             href="/"
             className={cn(
-              'relative flex items-center gap-3 h-10 px-3 rounded-md',
-              'text-[13px] text-[#6B7280] font-medium',
-              'hover:text-[#111827] hover:bg-[#F3F4F6]',
+              'relative flex items-center gap-3 h-10 px-3',
+              'text-[13px] text-[#6B7268] font-medium',
+              'hover:text-[#12203B] hover:bg-[#F5F4EE]',
               'transition-colors duration-150',
               !sidebarOpen && 'justify-center px-0'
             )}
@@ -1117,14 +1117,14 @@ function Sidebar({
             {sidebarOpen && <span>Back to Home</span>}
 
             {!sidebarOpen && (
-              <span className="absolute left-full ml-2.5 top-1/2 -translate-y-1/2 whitespace-nowrap bg-[#111827] text-white text-xs font-medium px-2.5 py-1.5 rounded-md opacity-0 invisible group-hover:opacity-100 z-[200]">
+              <span className="absolute left-full ml-2.5 top-1/2 -translate-y-1/2 whitespace-nowrap bg-[#12203B] text-white text-xs font-medium px-2.5 py-1.5 opacity-0 invisible group-hover:opacity-100 z-[200]">
                 Back to Home
               </span>
             )}
           </Link>
         </div>
 
-        <div className="h-px bg-[#E5E7EB] mb-3" />
+        <div className="h-px bg-[#DADCD3] mb-3" />
 
         {/* Collapsed navigation */}
         {!sidebarOpen && (
@@ -1159,9 +1159,9 @@ function Sidebar({
                     onClick={() => toggleSection(section.id)}
                     className={cn(
                       'w-full flex items-center gap-2 px-3 mb-1',
-                      'text-[10px] uppercase tracking-[0.08em]',
-                      'font-semibold text-[#9CA3AF]',
-                      'hover:text-[#4B5563]',
+                      'font-mono text-[10px] uppercase tracking-[0.1em]',
+                      'font-semibold text-[#8A9088]',
+                      'hover:text-[#4B564C]',
                       'transition-colors duration-150'
                     )}
                     aria-expanded={expanded}
@@ -1172,8 +1172,8 @@ function Sidebar({
                       className={cn(
                         'w-3 h-3 ml-auto transition-transform duration-150',
                         expanded
-                          ? 'rotate-180 text-[#6B7280]'
-                          : 'text-[#D1D5DB]'
+                          ? 'rotate-180 text-[#6B7268]'
+                          : 'text-[#B9BEB2]'
                       )}
                     />
                   </button>
@@ -1200,8 +1200,8 @@ function Sidebar({
 
             {searchActive && searchResults.length === 0 && (
               <div className="px-3 py-8 text-center">
-                <Search className="w-5 h-5 mx-auto mb-2 text-[#D1D5DB]" />
-                <p className="text-xs text-[#6B7280]">
+                <Search className="w-5 h-5 mx-auto mb-2 text-[#B9BEB2]" />
+                <p className="text-xs text-[#6B7268]">
                   No pages found
                 </p>
               </div>
@@ -1213,15 +1213,15 @@ function Sidebar({
         {/* LOGOUT */}
         {/* ================================================== */}
 
-        <div className="mt-4 pt-3 border-t border-[#E5E7EB]">
+        <div className="mt-4 pt-3 border-t border-[#DADCD3]">
           <button
             type="button"
             onClick={handleLogout}
             className={cn(
               'relative group w-full flex items-center gap-3',
-              'h-10 px-3 rounded-md',
-              'text-[13px] text-[#6B7280] font-medium',
-              'hover:text-[#DC2626] hover:bg-[#FEF2F2]',
+              'h-10 px-3',
+              'text-[13px] text-[#6B7268] font-medium',
+              'hover:text-[#A4462F] hover:bg-[#FBF0EC]',
               'transition-colors duration-150',
               !sidebarOpen && 'justify-center px-0'
             )}
@@ -1231,7 +1231,7 @@ function Sidebar({
             {sidebarOpen && <span>Logout</span>}
 
             {!sidebarOpen && (
-              <span className="absolute left-full ml-2.5 top-1/2 -translate-y-1/2 whitespace-nowrap bg-[#111827] text-white text-xs font-medium px-2.5 py-1.5 rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 pointer-events-none z-[200]">
+              <span className="absolute left-full ml-2.5 top-1/2 -translate-y-1/2 whitespace-nowrap bg-[#12203B] text-white text-xs font-medium px-2.5 py-1.5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 pointer-events-none z-[200]">
                 Logout
               </span>
             )}
@@ -1244,10 +1244,10 @@ function Sidebar({
       {/* ================================================== */}
 
       {sidebarOpen && (
-        <div className="flex-shrink-0 border-t border-[#E5E7EB] px-3 py-3">
+        <div className="flex-shrink-0 border-t border-[#DADCD3] px-3 py-3">
           <Link
             href="/dashboard/profile"
-            className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-[#F8FAFC] transition-colors duration-150"
+            className="flex items-center gap-3 px-2 py-2 hover:bg-[#F7F6F2] transition-colors duration-150"
           >
             {user?.profileImageUrl ? (
               <Image
@@ -1256,28 +1256,28 @@ function Sidebar({
                 width={34}
                 height={34}
                 unoptimized
-                className="w-[34px] h-[34px] rounded-full object-cover border border-[#E5E7EB]"
+                className="w-[34px] h-[34px] object-cover grayscale border border-[#DADCD3]"
               />
             ) : (
-              <div className="w-[34px] h-[34px] rounded-full bg-[#2563EB] flex items-center justify-center text-white text-[11px] font-semibold">
+              <div className="w-[34px] h-[34px] bg-[#12203B] flex items-center justify-center text-white font-mono text-[11px] font-semibold">
                 {getInitials(user)}
               </div>
             )}
 
             <div className="min-w-0 flex-1">
-              <p className="text-[#111827] text-xs font-semibold truncate">
+              <p className="text-[#12203B] text-xs font-semibold truncate">
                 {user?.firstName} {user?.lastName}
               </p>
 
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" />
-                <p className="text-[#9CA3AF] text-[10px] truncate">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#55705B]" />
+                <p className="text-[#8A9088] text-[10px] font-mono uppercase tracking-wide truncate">
                   {formatRole(userRole)}
                 </p>
               </div>
             </div>
 
-            <ChevronRight className="w-3.5 h-3.5 text-[#D1D5DB]" />
+            <ChevronRight className="w-3.5 h-3.5 text-[#B9BEB2]" />
           </Link>
         </div>
       )}
@@ -1285,7 +1285,7 @@ function Sidebar({
       <style jsx>{`
         .sidebar-nav {
           scrollbar-width: thin;
-          scrollbar-color: #e5e7eb transparent;
+          scrollbar-color: #dadcd3 transparent;
         }
 
         .sidebar-nav::-webkit-scrollbar {
@@ -1297,12 +1297,12 @@ function Sidebar({
         }
 
         .sidebar-nav::-webkit-scrollbar-thumb {
-          background-color: #e5e7eb;
+          background-color: #dadcd3;
           border-radius: 999px;
         }
 
         .sidebar-nav:hover::-webkit-scrollbar-thumb {
-          background-color: #d1d5db;
+          background-color: #b9beb2;
         }
       `}</style>
     </aside>
@@ -1427,11 +1427,11 @@ export default function DashboardLayout({
 
   if (isLoading) {
     return (
-      <div className="h-screen w-screen bg-[#F8FAFC] flex items-center justify-center">
+      <div className="h-screen w-screen bg-[#F1F1EC] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 rounded-full border-2 border-[#E5E7EB] border-t-[#2563EB] animate-spin mx-auto mb-3" />
+          <div className="w-8 h-8 rounded-full border-2 border-[#DADCD3] border-t-[#12203B] animate-spin mx-auto mb-3" />
 
-          <p className="text-[#6B7280] text-sm">
+          <p className="text-[#6B7268] text-sm font-mono uppercase tracking-wide">
             Loading Selfless CE...
           </p>
         </div>
@@ -1453,7 +1453,7 @@ export default function DashboardLayout({
         <title>{pageInfo.title} | Selfless CE</title>
       </Head>
 
-      <div className="min-h-screen bg-[#F8FAFC]">
+      <div className="min-h-screen bg-[#F1F1EC]">
         {/* ================================================== */}
         {/* DESKTOP SIDEBAR */}
         {/* ================================================== */}
@@ -1496,17 +1496,17 @@ export default function DashboardLayout({
                 {/* Page heading */}
                 {pathname !== '/dashboard' && !isAiPage && (
                   <div className="mb-6">
-                    <div className="flex items-center gap-2 text-xs text-[#9CA3AF] mb-2">
+                    <div className="flex items-center gap-2 font-mono text-[11px] text-[#8A9088] mb-2 uppercase tracking-wide">
                       <span>Dashboard</span>
 
-                      <ChevronRight className="w-3 h-3 text-[#D1D5DB]" />
+                      <ChevronRight className="w-3 h-3 text-[#B9BEB2]" />
 
-                      <span className="text-[#6B7280]">
+                      <span className="text-[#6B7268]">
                         {pageInfo.section}
                       </span>
                     </div>
 
-                    <h1 className="text-2xl font-semibold tracking-tight text-[#111827]">
+                    <h1 className="text-2xl font-semibold tracking-tight text-[#12203B]">
                       {pageInfo.title}
                     </h1>
                   </div>
@@ -1517,45 +1517,45 @@ export default function DashboardLayout({
             </main>
 
             {/* Desktop footer */}
-            <footer className="border-t border-[#E5E7EB] bg-white">
+            <footer className="border-t border-[#DADCD3] bg-white">
               <div className="max-w-[1440px] mx-auto px-7 xl:px-8 py-5">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-                  <p className="text-xs text-[#9CA3AF]">
+                  <p className="font-mono text-xs text-[#8A9088]">
                     © 2026 Selfless CE Organization
                   </p>
 
-                  <div className="flex items-center gap-5 text-xs text-[#9CA3AF]">
+                  <div className="flex items-center gap-5 text-xs text-[#8A9088]">
                     <button
                       type="button"
-                      className="hover:text-[#374151] transition-colors"
+                      className="hover:text-[#12203B] transition-colors"
                     >
                       About
                     </button>
 
                     <button
                       type="button"
-                      className="hover:text-[#374151] transition-colors"
+                      className="hover:text-[#12203B] transition-colors"
                     >
                       FAQ
                     </button>
 
                     <button
                       type="button"
-                      className="hover:text-[#374151] transition-colors"
+                      className="hover:text-[#12203B] transition-colors"
                     >
                       Contact
                     </button>
 
                     <button
                       type="button"
-                      className="hover:text-[#374151] transition-colors"
+                      className="hover:text-[#12203B] transition-colors"
                     >
                       Privacy
                     </button>
 
                     <button
                       type="button"
-                      className="hover:text-[#374151] transition-colors"
+                      className="hover:text-[#12203B] transition-colors"
                     >
                       Terms
                     </button>
@@ -1588,15 +1588,15 @@ export default function DashboardLayout({
               <div className="w-full max-w-7xl mx-auto">
                 {pathname !== '/dashboard' && !isAiPage && (
                   <div className="mb-5">
-                    <div className="flex items-center gap-1.5 text-[11px] text-[#9CA3AF] mb-1.5">
+                    <div className="flex items-center gap-1.5 font-mono text-[11px] text-[#8A9088] mb-1.5 uppercase tracking-wide">
                       <span>Dashboard</span>
 
-                      <ChevronRight className="w-3 h-3 text-[#D1D5DB]" />
+                      <ChevronRight className="w-3 h-3 text-[#B9BEB2]" />
 
                       <span>{pageInfo.section}</span>
                     </div>
 
-                    <h1 className="text-xl font-semibold tracking-tight text-[#111827]">
+                    <h1 className="text-xl font-semibold tracking-tight text-[#12203B]">
                       {pageInfo.title}
                     </h1>
                   </div>
@@ -1606,43 +1606,43 @@ export default function DashboardLayout({
               </div>
             </main>
 
-            <footer className="border-t border-[#E5E7EB] bg-white">
+            <footer className="border-t border-[#DADCD3] bg-white">
               <div className="px-4 py-4">
-                <div className="flex flex-col items-center gap-3 text-[10px] text-[#9CA3AF]">
+                <div className="flex flex-col items-center gap-3 font-mono text-[10px] text-[#8A9088]">
                   <p>© 2026 Selfless CE Organization</p>
 
                   <div className="flex flex-wrap justify-center gap-4">
                     <button
                       type="button"
-                      className="hover:text-[#374151] transition-colors"
+                      className="hover:text-[#12203B] transition-colors"
                     >
                       About
                     </button>
 
                     <button
                       type="button"
-                      className="hover:text-[#374151] transition-colors"
+                      className="hover:text-[#12203B] transition-colors"
                     >
                       FAQ
                     </button>
 
                     <button
                       type="button"
-                      className="hover:text-[#374151] transition-colors"
+                      className="hover:text-[#12203B] transition-colors"
                     >
                       Contact
                     </button>
 
                     <button
                       type="button"
-                      className="hover:text-[#374151] transition-colors"
+                      className="hover:text-[#12203B] transition-colors"
                     >
                       Privacy
                     </button>
 
                     <button
                       type="button"
-                      className="hover:text-[#374151] transition-colors"
+                      className="hover:text-[#12203B] transition-colors"
                     >
                       Terms
                     </button>
@@ -1666,7 +1666,7 @@ export default function DashboardLayout({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.15 }}
-                className="fixed inset-0 z-[9998] lg:hidden bg-black/35"
+                className="fixed inset-0 z-[9998] lg:hidden bg-[#12203B]/40"
                 onClick={() => setMobileMenuOpen(false)}
                 aria-hidden="true"
               />
@@ -1702,10 +1702,10 @@ export default function DashboardLayout({
             className={cn(
               'fixed bottom-5 right-5 z-40',
               'flex items-center gap-2',
-              'bg-white border border-[#D1D5DB]',
-              'rounded-lg px-3 py-2',
-              'shadow-[0_4px_12px_rgba(15,23,42,0.08)]',
-              'hover:border-[#93C5FD] hover:shadow-[0_6px_16px_rgba(15,23,42,0.10)]',
+              'bg-white border border-[#DADCD3]',
+              'px-3 py-2',
+              'shadow-[0_4px_12px_rgba(18,32,59,0.10)]',
+              'hover:border-[#B98A3E] hover:shadow-[0_6px_16px_rgba(18,32,59,0.14)]',
               'transition-all duration-150',
               'group'
             )}
@@ -1716,18 +1716,18 @@ export default function DashboardLayout({
                 alt="Atbriz AI"
                 width={30}
                 height={30}
-                className="w-[30px] h-[30px] rounded-md object-cover border border-[#E5E7EB]"
+                className="w-[30px] h-[30px] object-cover border border-[#DADCD3]"
               />
 
-              <span className="absolute -right-0.5 -top-0.5 w-2 h-2 rounded-full bg-[#16A34A] border-2 border-white" />
+              <span className="absolute -right-0.5 -top-0.5 w-2 h-2 rounded-full bg-[#55705B] border-2 border-white" />
             </div>
 
             <div className="hidden sm:block leading-tight">
-              <p className="text-[11px] font-semibold text-[#111827]">
+              <p className="text-[11px] font-semibold text-[#12203B]">
                 Atbriz AI
               </p>
 
-              <p className="text-[9px] text-[#9CA3AF]">
+              <p className="text-[9px] font-mono text-[#8A9088] uppercase tracking-wide">
                 Assistant
               </p>
             </div>
