@@ -36,7 +36,6 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const search = searchParams.get('search') || '';
-    const role = searchParams.get('role') || '';
     const status = searchParams.get('status') || '';
     const sortBy = searchParams.get('sortBy') || 'createdAt';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
@@ -45,12 +44,6 @@ export async function GET(request: NextRequest) {
     // Build where clause - only users in this tech center
     const where: any = {
       techCenterId: techCenterId,
-      // Exclude Super Admins from being managed
-      role: {
-        NOT: {
-          name: 'super_admin'
-        }
-      }
     };
 
     // Search across multiple fields
@@ -59,13 +52,7 @@ export async function GET(request: NextRequest) {
         { firstName: { contains: search, mode: 'insensitive' } },
         { lastName: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
-        { phoneNumber: { contains: search, mode: 'insensitive' } },
       ];
-    }
-
-    // Filter by role (excluding super_admin)
-    if (role) {
-      where.role = { name: role };
     }
 
     // Filter by status
@@ -79,67 +66,31 @@ export async function GET(request: NextRequest) {
     // Get status counts for all users in tech center
     const baseWhere = {
       techCenterId: techCenterId,
-      role: {
-        NOT: {
-          name: 'super_admin'
-        }
-      }
     };
 
-    const [activeCount, inactiveCount, suspendedCount] = await Promise.all([
-      prisma.user.count({ where: { ...baseWhere, status: 'ACTIVE' } }),
-      prisma.user.count({ where: { ...baseWhere, status: 'INACTIVE' } }),
-      prisma.user.count({ where: { ...baseWhere, status: 'SUSPENDED' } }),
-    ]);
-
-    // Fetch users with relations
+    // Get all users with their courses and tuition info
     const users = await prisma.user.findMany({
       where,
       select: {
         id: true,
         firstName: true,
         lastName: true,
-        email: true,
-        phoneNumber: true,
-        country: true,
-        city: true,
         status: true,
         isActive: true,
-        lastLoginAt: true,
-        createdAt: true,
-        updatedAt: true,
-        roleId: true,
-        profileImageUrl: true,
         tuitionAmount: true,
-        generalCourse: true,
-        role: {
-          select: {
-            id: true,
-            name: true,
-            displayName: true,
-          }
-        },
-        techCenter: {
-          select: {
-            id: true,
-            name: true,
-            code: true,
-          }
-        },
+        profileImageUrl: true,
         submittedCourses: {
           select: {
             id: true,
             name: true,
             code: true,
-            courseUnit: true,
             credits: true,
-            status: true,
+            courseUnit: true,
           }
         },
         _count: {
           select: {
             submittedCourses: true,
-            activityLogs: true,
           }
         }
       },
@@ -150,16 +101,44 @@ export async function GET(request: NextRequest) {
       take: limit,
     });
 
-    // Get filter options (only for this tech center)
-    const roles = await prisma.role.findMany({
-      where: {
-        NOT: {
-          name: 'super_admin'
-        }
-      },
-      select: { id: true, name: true, displayName: true },
-      orderBy: { name: 'asc' }
+    // Calculate stats
+    const totalStudents = await prisma.user.count({ where: baseWhere });
+    const withTuition = await prisma.user.count({ 
+      where: { ...baseWhere, tuitionAmount: { gt: 0 } } 
     });
+    
+    const totalTuitionSum = await prisma.user.aggregate({
+      where: baseWhere,
+      _sum: {
+        tuitionAmount: true,
+      },
+    });
+
+    // Calculate total credits across all users
+    const allUsersWithCourses = await prisma.user.findMany({
+      where: baseWhere,
+      select: {
+        submittedCourses: {
+          select: {
+            credits: true,
+          }
+        }
+      }
+    });
+
+    let totalCreditsAllUsers = 0;
+    allUsersWithCourses.forEach(user => {
+      user.submittedCourses.forEach(course => {
+        totalCreditsAllUsers += course.credits || 0;
+      });
+    });
+
+    // Get status counts
+    const [activeCount, inactiveCount, suspendedCount] = await Promise.all([
+      prisma.user.count({ where: { ...baseWhere, status: 'ACTIVE' } }),
+      prisma.user.count({ where: { ...baseWhere, status: 'INACTIVE' } }),
+      prisma.user.count({ where: { ...baseWhere, status: 'SUSPENDED' } }),
+    ]);
 
     const statuses = ['ACTIVE', 'INACTIVE', 'SUSPENDED'];
 
@@ -171,15 +150,17 @@ export async function GET(request: NextRequest) {
         limit,
         totalPages: Math.ceil(total / limit),
       },
-      filters: {
-        roles,
-        statuses,
-      },
       stats: {
+        total: totalStudents,
+        withTuition: withTuition,
+        withoutTuition: totalStudents - withTuition,
+        totalTuition: totalTuitionSum._sum.tuitionAmount || 0,
+        totalCredits: totalCreditsAllUsers,
         active: activeCount,
         inactive: inactiveCount,
         suspended: suspendedCount,
       },
+      statuses,
       techCenter: adminUser.techCenter
     });
   } catch (error) {

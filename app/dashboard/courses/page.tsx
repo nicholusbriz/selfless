@@ -12,7 +12,6 @@ import {
   AlertCircle,
   Loader2,
   Trash2,
-  User,
 } from 'lucide-react';
 import {
   useCourses,
@@ -47,9 +46,9 @@ export default function MyCoursesPage() {
   const [courseUnit, setCourseUnit] = useState('');
   const [credits, setCredits] = useState(3);
   const [coursesList, setCoursesList] = useState<Course[]>([]);
-  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  const [editingCourse, setEditingCourse] =
+    useState<Course | null>(null);
 
-  // User academic settings
   const [showReligionEdit, setShowReligionEdit] = useState(false);
   const [showTuitionEdit, setShowTuitionEdit] = useState(false);
   const [userTakesReligion, setUserTakesReligion] = useState(false);
@@ -58,28 +57,18 @@ export default function MyCoursesPage() {
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const [showGeneralCourseEdit, setShowGeneralCourseEdit] = useState(false);
+  const [showGeneralCourseEdit, setShowGeneralCourseEdit] =
+    useState(false);
 
   const hasGeneralCourse =
     userGeneralCourse.trim() !== '' ||
     Boolean(user?.generalCourse?.trim());
 
-  // Course hooks
   const { data, isLoading, error } = useCourses();
   const submitMutation = useSubmitCourses();
   const updateMutation = useUpdateCourse();
   const deleteMutation = useDeleteCourse();
 
-  /*
-   * Fetch academic settings.
-   *
-   * The previous implementation also called setUserGeneralCourse()
-   * synchronously inside this effect whenever user?.generalCourse changed.
-   * That triggered react-hooks/set-state-in-effect.
-   *
-   * General course is now initialized from user data and synchronized
-   * only when the user opens the General Course editor.
-   */
   useEffect(() => {
     const fetchAcademicSettings = async () => {
       try {
@@ -112,12 +101,6 @@ export default function MyCoursesPage() {
     fetchAcademicSettings();
   }, []);
 
-  /*
-   * Keep local general-course input synchronized when user data
-   * becomes available, without using a state-setting effect.
-   *
-   * The input is also reset to the saved value when the editor opens.
-   */
   const getCurrentGeneralCourse = () =>
     user?.generalCourse?.trim() || userGeneralCourse.trim();
 
@@ -195,6 +178,7 @@ export default function MyCoursesPage() {
         }, 1500);
       } else {
         const errorData = await response.json();
+
         alert(
           errorData.error || 'Failed to update general course'
         );
@@ -338,12 +322,6 @@ export default function MyCoursesPage() {
     );
   };
 
-  /*
-   * General Course editor.
-   *
-   * Instead of setting state inside useEffect, the input is populated
-   * when the user explicitly opens the editor.
-   */
   const toggleGeneralCourseEdit = () => {
     if (!showGeneralCourseEdit) {
       setUserGeneralCourse(getCurrentGeneralCourse());
@@ -354,13 +332,18 @@ export default function MyCoursesPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0D1117] p-6">
-        <div className="mx-auto max-w-4xl">
-          <div className="space-y-4 animate-pulse">
-            {[1, 2, 3].map((item) => (
+      <div className="min-h-screen bg-slate-50">
+        <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="mb-8 space-y-2">
+            <div className="h-7 w-40 animate-pulse rounded bg-slate-200" />
+            <div className="h-4 w-64 animate-pulse rounded bg-slate-200" />
+          </div>
+
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map((item) => (
               <div
                 key={item}
-                className="h-24 rounded-xl border border-[#2A2438] bg-[#150F20]"
+                className="h-20 animate-pulse rounded-lg border border-slate-200 bg-white"
               />
             ))}
           </div>
@@ -371,11 +354,16 @@ export default function MyCoursesPage() {
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0D1117]">
-        <div className="text-center">
-          <AlertCircle className="mx-auto mb-3 h-10 w-10 text-[#FB7185]" />
-          <p className="text-[#FB7185]">
-            Failed to load courses
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+        <div className="w-full max-w-md rounded-lg border border-red-200 bg-white p-6 text-center shadow-sm">
+          <AlertCircle className="mx-auto mb-3 h-8 w-8 text-red-600" />
+
+          <h2 className="text-base font-semibold text-slate-900">
+            Unable to load courses
+          </h2>
+
+          <p className="mt-1 text-sm text-slate-500">
+            Please refresh the page and try again.
           </p>
         </div>
       </div>
@@ -383,477 +371,756 @@ export default function MyCoursesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0D1117] text-[#F5F0E8]">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       {/* Header */}
-      <div className="border-b border-[#2A2438] bg-[#0D1117]">
-        <div className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-5 sm:px-6">
-          <button
-            onClick={() => router.back()}
-            aria-label="Go back"
-            className="rounded-lg border border-[#2A2438] bg-[#150F20] px-3 py-2 text-sm text-[#A79C8C] transition-colors hover:border-[#E8A33D]/40 hover:bg-[#1A1525] hover:text-[#E8A33D]"
-          >
-            Back
-          </button>
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <div className="flex min-h-[72px] items-center justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => router.back()}
+                  className="text-sm font-medium text-slate-500 transition-colors hover:text-[#1A365D]"
+                >
+                  Back
+                </button>
 
-          <Link
-            href="/dashboard/students"
-            className="rounded-lg border border-[#2A2438] bg-[#150F20] px-3 py-2 text-sm text-[#A79C8C] transition-colors hover:border-[#E8A33D]/40 hover:bg-[#1A1525] hover:text-[#E8A33D]"
-          >
-            Students
-          </Link>
+                <span className="text-slate-300">/</span>
 
-          <Link
-            href="/dashboard/cleaning"
-            className="rounded-lg border border-[#2A2438] bg-[#150F20] px-3 py-2 text-sm text-[#A79C8C] transition-colors hover:border-[#E8A33D]/40 hover:bg-[#1A1525] hover:text-[#E8A33D]"
-          >
-            Cleaning
-          </Link>
+                <Link
+                  href="/dashboard/students"
+                  className="hidden text-sm font-medium text-slate-500 transition-colors hover:text-[#1A365D] sm:block"
+                >
+                  Students
+                </Link>
 
-          <div className="h-8 w-px bg-[#2A2438]" />
+                <span className="hidden text-slate-300 sm:block">
+                  /
+                </span>
 
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg border border-[#E8A33D]/20 bg-[#E8A33D]/10 p-2.5">
-              <BookOpen className="h-5 w-5 text-[#E8A33D]" />
+                <Link
+                  href="/dashboard/cleaning"
+                  className="hidden text-sm font-medium text-slate-500 transition-colors hover:text-[#1A365D] sm:block"
+                >
+                  Cleaning
+                </Link>
+              </div>
+
+              <div className="mt-2">
+                <h1 className="text-2xl font-bold tracking-tight text-[#172033]">
+                  My Courses
+                </h1>
+
+                <p className="mt-0.5 text-sm text-slate-500">
+                  Manage your current course units and academic
+                  information
+                </p>
+              </div>
             </div>
 
-            <div>
-              <h1
-                className="text-xl font-bold text-[#F5F0E8] sm:text-2xl"
-                style={{
-                  fontFamily: 'var(--font-display)',
-                }}
-              >
-                My Courses
-              </h1>
+            <div className="hidden shrink-0 text-right sm:block">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                Total Credits
+              </p>
 
-              <p className="text-sm text-[#A79C8C]">
-                {totalCredits} total credits
+              <p className="mt-0.5 text-2xl font-bold text-[#1A365D]">
+                {totalCredits}
               </p>
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Profile Completion Banner */}
-      {(!user?.profileImageUrl || !user?.generalCourse || !user?.phoneNumber) && (
-        <div className="mx-auto max-w-4xl px-4 py-4 sm:px-6">
+      {/* Main */}
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        {/* Profile Completion */}
+        {(!user?.profileImageUrl ||
+          !user?.generalCourse ||
+          !user?.phoneNumber) && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between gap-4 rounded-xl border border-[#E8A33D]/30 bg-[#E8A33D]/5 p-4"
+            className="mb-6 border border-blue-200 bg-blue-50 px-4 py-4 sm:px-5"
           >
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E8A33D]/20">
-                <User className="h-5 w-5 text-[#E8A33D]" />
-              </div>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-semibold text-[#E8A33D]">
-                  Complete Your Profile
+                <p className="text-sm font-semibold text-[#1A365D]">
+                  Complete your profile
                 </p>
-                <p className="text-xs text-[#A79C8C]">
-                  {!user?.profileImageUrl && 'Add profile photo. '}
-                  {!user?.generalCourse && 'Set your general course. '}
-                  {!user?.phoneNumber && 'Add your phone number.'}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => router.push('/dashboard/profile')}
-              className="rounded-lg bg-[#E8A33D] px-4 py-2 text-sm font-semibold text-[#0B0912] transition-colors hover:bg-[#D9952F]"
-            >
-              Finish Setting Profile
-            </button>
-          </motion.div>
-        </div>
-      )}
 
-      {/* Academic Settings */}
-      <div className="px-4 py-6 sm:px-6">
-        <div className="mx-auto grid max-w-4xl grid-cols-1 gap-4 md:grid-cols-2">
-          {/* Religion Status */}
-          <div className="rounded-xl border border-[#2A2438] bg-[#150F20] p-5">
-            <div className="mb-4 flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-base font-semibold text-[#F5F0E8]">
-                  Religion Status
-                </h3>
-
-                <p className="mt-1 text-sm text-[#A79C8C]">
-                  Academic religion requirement
+                <p className="mt-1 text-sm leading-5 text-slate-600">
+                  {!user?.profileImageUrl &&
+                    'Add a profile photo. '}
+                  {!user?.generalCourse &&
+                    'Set your general degree course. '}
+                  {!user?.phoneNumber &&
+                    'Add your phone number.'}
                 </p>
               </div>
 
               <button
                 onClick={() =>
-                  setShowReligionEdit((previous) => !previous)
+                  router.push('/dashboard/profile')
                 }
-                disabled={isUpdatingSettings}
-                className="rounded-lg border border-[#2A2438] bg-[#1A1525] px-3 py-1.5 text-sm font-medium text-[#A79C8C] transition-colors hover:border-[#E8A33D]/40 hover:bg-[#E8A33D]/10 hover:text-[#E8A33D] disabled:cursor-not-allowed disabled:opacity-50"
+                className="shrink-0 border border-[#1A365D] bg-[#1A365D] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#153E75]"
               >
-                {showReligionEdit ? 'Cancel' : 'Edit'}
+                Complete Profile
               </button>
             </div>
+          </motion.div>
+        )}
 
-            {showReligionEdit ? (
-              <div className="space-y-3">
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setUserTakesReligion(true)}
-                    className={`flex-1 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
-                      userTakesReligion
-                        ? 'border-[#14B8A6]/40 bg-[#14B8A6]/10 text-[#14B8A6]'
-                        : 'border-[#2A2438] bg-[#1A1525] text-[#A79C8C] hover:border-[#14B8A6]/30'
-                    }`}
-                  >
-                    Yes
-                  </button>
+        {/* Academic Information */}
+        <section className="mb-8">
+          <div className="mb-3">
+            <h2 className="text-base font-semibold text-slate-900">
+              Academic Information
+            </h2>
 
-                  <button
-                    onClick={() => setUserTakesReligion(false)}
-                    className={`flex-1 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
-                      !userTakesReligion
-                        ? 'border-[#FB7185]/40 bg-[#FB7185]/10 text-[#FB7185]'
-                        : 'border-[#2A2438] bg-[#1A1525] text-[#A79C8C] hover:border-[#FB7185]/30'
-                    }`}
-                  >
-                    No
-                  </button>
+            <p className="mt-1 text-sm text-slate-500">
+              Keep your academic information up to date.
+            </p>
+          </div>
+
+          <div className="divide-y divide-slate-200 border border-slate-200 bg-white shadow-sm">
+            {/* General Degree Course */}
+            <div className="p-5 sm:p-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-slate-500">
+                    General Degree Course
+                  </p>
+
+                  {!showGeneralCourseEdit && (
+                    <>
+                      {hasGeneralCourse ? (
+                        <div className="mt-1">
+                          <p className="text-base font-semibold text-slate-900">
+                            {user?.generalCourse ||
+                              userGeneralCourse}
+                          </p>
+
+                          <p className="mt-1 text-sm text-slate-500">
+                            Your main academic programme
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="mt-1 text-sm font-medium text-red-600">
+                          Not set
+                        </p>
+                      )}
+                    </>
+                  )}
                 </div>
 
                 <button
-                  onClick={updateAcademicSettings}
+                  onClick={toggleGeneralCourseEdit}
                   disabled={isUpdatingSettings}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#E8A33D] px-4 py-2.5 text-sm font-semibold text-[#0B0912] transition-colors hover:bg-[#D9952F] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="self-start border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:border-[#1A365D] hover:text-[#1A365D] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {isUpdatingSettings ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="h-4 w-4" />
-                      Save
-                    </>
-                  )}
+                  {showGeneralCourseEdit ? 'Cancel' : 'Edit'}
                 </button>
               </div>
-            ) : (
-              <div className="flex items-center gap-3">
-                <span
-                  className={`rounded-full border px-3 py-1 text-sm font-medium ${
-                    userTakesReligion
-                      ? 'border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14B8A6]'
-                      : 'border-[#FB7185]/30 bg-[#FB7185]/10 text-[#FB7185]'
-                  }`}
-                >
-                  {userTakesReligion ? 'Yes' : 'No'}
-                </span>
 
-                <span className="text-sm text-[#A79C8C]">
-                  Takes religion
-                </span>
-              </div>
-            )}
-          </div>
+              {showGeneralCourseEdit && (
+                <div className="mt-5 border-t border-slate-100 pt-5">
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                    Degree Course
+                  </label>
 
-          {/* Tuition Amount */}
-          <div className="rounded-xl border border-[#2A2438] bg-[#150F20] p-5">
-            <div className="mb-4 flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-base font-semibold text-[#F5F0E8]">
-                  Tuition Amount
-                </h3>
+                  <input
+                    type="text"
+                    value={userGeneralCourse}
+                    onChange={(e) =>
+                      setUserGeneralCourse(e.target.value)
+                    }
+                    placeholder="e.g. Software Engineering"
+                    disabled={isUpdatingSettings}
+                    className="w-full border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-shadow placeholder:text-slate-400 focus:border-[#3182CE] focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-50"
+                  />
 
-                <p className="mt-1 text-sm text-[#A79C8C]">
-                  Amount in USD
-                </p>
-              </div>
-
-              <button
-                onClick={() =>
-                  setShowTuitionEdit((previous) => !previous)
-                }
-                disabled={isUpdatingSettings}
-                className="rounded-lg border border-[#2A2438] bg-[#1A1525] px-3 py-1.5 text-sm font-medium text-[#A79C8C] transition-colors hover:border-[#E8A33D]/40 hover:bg-[#E8A33D]/10 hover:text-[#E8A33D] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {showTuitionEdit ? 'Cancel' : 'Edit'}
-              </button>
-            </div>
-
-            {showTuitionEdit ? (
-              <div className="space-y-3">
-                <input
-                  type="number"
-                  value={userTuitionAmount}
-                  onChange={(e) =>
-                    setUserTuitionAmount(e.target.value)
-                  }
-                  placeholder="Enter tuition amount in USD"
-                  min="0"
-                  step="0.01"
-                  className="w-full rounded-lg border border-[#2A2438] bg-[#0B0912] px-4 py-2.5 text-sm text-[#F5F0E8] placeholder-[#6B6358] outline-none transition-colors focus:border-[#E8A33D]/50 focus:ring-2 focus:ring-[#E8A33D]/10"
-                />
-
-                <button
-                  onClick={updateAcademicSettings}
-                  disabled={isUpdatingSettings}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#E8A33D] px-4 py-2.5 text-sm font-semibold text-[#0B0912] transition-colors hover:bg-[#D9952F] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {isUpdatingSettings ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="h-4 w-4" />
-                      Save
-                    </>
-                  )}
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-baseline gap-2">
-                {userTuitionAmount !== '' ? (
-                  <>
-                    <span className="text-xl font-bold text-[#E8A33D]">
-                      $
-                      {parseFloat(userTuitionAmount).toLocaleString(
-                        undefined,
-                        {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        }
+                  <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+                    <button
+                      onClick={updateGeneralCourse}
+                      disabled={
+                        isUpdatingSettings ||
+                        !userGeneralCourse.trim()
+                      }
+                      className="inline-flex items-center justify-center gap-2 bg-[#1A365D] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#153E75] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isUpdatingSettings ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        'Save Changes'
                       )}
-                    </span>
+                    </button>
 
-                    <span className="text-sm text-[#A79C8C]">
-                      USD
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-sm text-[#6B6358]">
-                    Not set
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+                    <button
+                      onClick={() =>
+                        setShowGeneralCourseEdit(false)
+                      }
+                      disabled={isUpdatingSettings}
+                      className="border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
 
-      <div className="mx-auto max-w-4xl px-4 pb-10 sm:px-6">
-        {/* General Course */}
-        <div
-          className={`mb-6 rounded-xl border bg-[#150F20] p-5 transition-colors ${
-            isUpdatingSettings
-              ? 'border-[#E8A33D]/40'
-              : 'border-[#2A2438]'
-          }`}
-        >
-          <div className="mb-4 flex items-start justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg border border-[#E8A33D]/20 bg-[#E8A33D]/10 p-2">
-                <BookOpen className="h-5 w-5 text-[#E8A33D]" />
-              </div>
-
-              <div>
-                <h3 className="text-base font-semibold text-[#F5F0E8]">
-                  General Degree Course
-                </h3>
-
-                <p className="mt-1 text-sm text-[#A79C8C]">
-                  Your main academic programme
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={toggleGeneralCourseEdit}
-              disabled={isUpdatingSettings}
-              className="rounded-lg border border-[#2A2438] bg-[#1A1525] px-3 py-1.5 text-sm font-medium text-[#A79C8C] transition-colors hover:border-[#E8A33D]/40 hover:bg-[#E8A33D]/10 hover:text-[#E8A33D] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {showGeneralCourseEdit ? 'Cancel' : 'Edit'}
-            </button>
-          </div>
-
-          {/* Current General Course */}
-          <div className="mb-4">
-            {hasGeneralCourse ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-lg font-semibold text-[#14B8A6]">
-                  {user?.generalCourse || userGeneralCourse}
-                </span>
-
-                <span className="text-sm text-[#A79C8C]">
-                  Your General  Degree course
-                </span>
-              </div>
-            ) : (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-medium text-[#FB7185]">
-                  Not set
-                </span>
-
-                <span className="text-sm text-[#6B6358]">
-                  Click Edit to set your general  Degree course
-                </span>
-              </div>
-            )}
-          </div>
-
-          {showGeneralCourseEdit && (
-            <div className="space-y-3">
-              <input
-                type="text"
-                value={userGeneralCourse}
-                onChange={(e) =>
-                  setUserGeneralCourse(e.target.value)
-                }
-                placeholder="e.g., Software Engineering"
-                disabled={isUpdatingSettings}
-                className="w-full rounded-lg border border-[#2A2438] bg-[#0B0912] px-4 py-3 text-sm text-[#F5F0E8] placeholder-[#6B6358] outline-none transition-colors focus:border-[#E8A33D]/50 focus:ring-2 focus:ring-[#E8A33D]/10 disabled:cursor-not-allowed disabled:opacity-50"
-              />
-
-              <button
-                onClick={updateGeneralCourse}
-                disabled={
-                  isUpdatingSettings ||
-                  !userGeneralCourse.trim()
-                }
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#E8A33D] px-4 py-3 text-sm font-semibold text-[#0B0912] transition-colors hover:bg-[#D9952F] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isUpdatingSettings ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Updating...
-                  </>
-                ) : (
-                  <>
-                    <Check className="h-4 w-4" />
-                    Update General Degree Course
-                  </>
-                )}
-              </button>
-
-              {saveSuccess && (
-                <div className="flex items-center gap-2 text-sm text-[#14B8A6]">
-                  <Check className="h-4 w-4" />
-                  General  Degree course saved successfully.
+                  {saveSuccess && (
+                    <div className="mt-3 flex items-center gap-2 text-sm font-medium text-green-700">
+                      <Check className="h-4 w-4" />
+                      General degree course saved successfully.
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
-        </div>
 
-        {/* Add Courses Button
-            This is intentionally the ONLY button shown when
-            the course form is closed. */}
-        {!showForm && (
-          <button
-            onClick={() => setShowForm(true)}
-            disabled={isUpdatingSettings}
-            className="mb-8 flex w-full items-center justify-center gap-2 rounded-xl bg-[#E8A33D] px-5 py-4 text-base font-semibold text-[#0B0912] transition-colors hover:bg-[#D9952F] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Plus className="h-5 w-5" />
-            Add Courses
-          </button>
-        )}
+            {/* Religion */}
+            <div className="p-5 sm:p-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-500">
+                    Religion Status
+                  </p>
 
-        {/* Course Form */}
-        <AnimatePresence>
-          {showForm && (
-            <motion.div
-              initial={{
-                opacity: 0,
-                y: -12,
-              }}
-              animate={{
-                opacity: 1,
-                y: 0,
-              }}
-              exit={{
-                opacity: 0,
-                y: -12,
-              }}
-              className="mb-8 rounded-xl border border-[#2A2438] bg-[#150F20] p-5 sm:p-6"
-            >
-              <div className="mb-5">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-[#F5F0E8]">
-                      Add Course Units
-                    </h3>
+                  {!showReligionEdit && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <span
+                        className={`text-sm font-semibold ${
+                          userTakesReligion
+                            ? 'text-green-700'
+                            : 'text-slate-700'
+                        }`}
+                      >
+                        {userTakesReligion ? 'Yes' : 'No'}
+                      </span>
 
-                    <p className="mt-1 text-sm text-[#A79C8C]">
-                      Add all the core course units you are taking.
-                    </p>
+                      <span className="text-sm text-slate-400">
+                        Takes religion
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={() =>
+                    setShowReligionEdit(
+                      (previous) => !previous
+                    )
+                  }
+                  disabled={isUpdatingSettings}
+                  className="self-start border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:border-[#1A365D] hover:text-[#1A365D] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {showReligionEdit ? 'Cancel' : 'Edit'}
+                </button>
+              </div>
+
+              {showReligionEdit && (
+                <div className="mt-5 border-t border-slate-100 pt-5">
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                    Do you take religion?
+                  </label>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setUserTakesReligion(true)}
+                      className={`border px-4 py-2.5 text-sm font-medium transition-colors ${
+                        userTakesReligion
+                          ? 'border-[#1A365D] bg-blue-50 text-[#1A365D]'
+                          : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      Yes
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        setUserTakesReligion(false)
+                      }
+                      className={`border px-4 py-2.5 text-sm font-medium transition-colors ${
+                        !userTakesReligion
+                          ? 'border-[#1A365D] bg-blue-50 text-[#1A365D]'
+                          : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      No
+                    </button>
                   </div>
 
                   <button
-                    onClick={() => {
-                      setShowForm(false);
-                      clearCourseList();
-                    }}
-                    className="rounded-lg border border-[#2A2438] bg-[#1A1525] p-2 text-[#A79C8C] transition-colors hover:border-[#FB7185]/40 hover:text-[#FB7185]"
-                    aria-label="Close course form"
+                    onClick={updateAcademicSettings}
+                    disabled={isUpdatingSettings}
+                    className="mt-3 inline-flex w-full items-center justify-center gap-2 bg-[#1A365D] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#153E75] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                   >
-                    <X className="h-5 w-5" />
+                    {isUpdatingSettings ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Changes'
+                    )}
                   </button>
                 </div>
+              )}
+            </div>
 
-                <div className="mt-4 flex items-start gap-3 rounded-lg border border-[#FB7185]/30 bg-[#FB7185]/10 p-4">
-                  <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#FB7185]" />
-
-                  <p className="text-sm leading-6 text-[#FB7185]">
-                    <strong>Important:</strong> This form is
-                    specifically for core course units. Add one
-                    course unit at a time, then submit when you
-                    have entered all the course units you are
-                    taking. Religion status is managed separately
-                    above.
+            {/* Tuition */}
+            <div className="p-5 sm:p-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-500">
+                    Tuition Amount
                   </p>
+
+                  {!showTuitionEdit && (
+                    <div className="mt-1">
+                      {userTuitionAmount !== '' ? (
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-lg font-semibold text-slate-900">
+                            $
+                            {parseFloat(
+                              userTuitionAmount
+                            ).toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </span>
+
+                          <span className="text-sm text-slate-500">
+                            USD
+                          </span>
+                        </div>
+                      ) : (
+                        <p className="text-sm font-medium text-slate-400">
+                          Not set
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
+
+                <button
+                  onClick={() =>
+                    setShowTuitionEdit(
+                      (previous) => !previous
+                    )
+                  }
+                  disabled={isUpdatingSettings}
+                  className="self-start border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:border-[#1A365D] hover:text-[#1A365D] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {showTuitionEdit ? 'Cancel' : 'Edit'}
+                </button>
               </div>
 
-              <div className="space-y-4">
-                {/* Add Individual Course */}
-                <div className="rounded-xl border border-[#2A2438] bg-[#0B0912] p-4 sm:p-5">
-                  <h4 className="mb-4 text-sm font-semibold text-[#F5F0E8]">
-                    Course Unit Details
-                  </h4>
+              {showTuitionEdit && (
+                <div className="mt-5 border-t border-slate-100 pt-5">
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                    Tuition Amount (USD)
+                  </label>
 
+                  <input
+                    type="number"
+                    value={userTuitionAmount}
+                    onChange={(e) =>
+                      setUserTuitionAmount(e.target.value)
+                    }
+                    placeholder="Enter tuition amount"
+                    min="0"
+                    step="0.01"
+                    className="w-full border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-shadow placeholder:text-slate-400 focus:border-[#3182CE] focus:ring-2 focus:ring-blue-100"
+                  />
+
+                  <button
+                    onClick={updateAcademicSettings}
+                    disabled={isUpdatingSettings}
+                    className="mt-3 inline-flex w-full items-center justify-center gap-2 bg-[#1A365D] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#153E75] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                  >
+                    {isUpdatingSettings ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Changes'
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Course Section */}
+        <section>
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-slate-900">
+                Course Units
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Add and manage the course units you are taking.
+              </p>
+            </div>
+
+            <div className="text-sm text-slate-500 sm:text-right">
+              <span className="font-semibold text-slate-900">
+                {submittedCourses.length}
+              </span>{' '}
+              {submittedCourses.length === 1
+                ? 'course unit'
+                : 'course units'}{' '}
+              submitted
+            </div>
+          </div>
+
+          {/* Add Courses Button */}
+          {!showForm && (
+            <button
+              onClick={() => setShowForm(true)}
+              disabled={isUpdatingSettings}
+              className="mb-5 flex w-full items-center justify-center gap-2 border border-[#1A365D] bg-[#1A365D] px-5 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-[#153E75] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Plus className="h-4 w-4" />
+              Add Courses
+            </button>
+          )}
+
+          {/* Course Form */}
+          <AnimatePresence>
+            {showForm && (
+              <motion.div
+                initial={{
+                  opacity: 0,
+                  y: -8,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                exit={{
+                  opacity: 0,
+                  y: -8,
+                }}
+                className="mb-6 border border-slate-200 bg-white shadow-sm"
+              >
+                <div className="border-b border-slate-200 p-5 sm:p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900">
+                        Add Course Units
+                      </h3>
+
+                      <p className="mt-1 text-sm text-slate-500">
+                        Enter each course unit and add it to your
+                        submission list.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setShowForm(false);
+                        clearCourseList();
+                      }}
+                      className="border border-slate-300 bg-white p-2 text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                      aria-label="Close course form"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-5 sm:p-6">
+                  {/* Important Notice */}
+                  <div className="mb-6 border-l-4 border-amber-500 bg-amber-50 px-4 py-3">
+                    <p className="text-sm leading-6 text-amber-800">
+                      <strong>Important:</strong> This form is
+                      specifically for core course units. Add one
+                      course unit at a time, then submit when you
+                      have entered all the course units you are
+                      taking. Religion status is managed separately.
+                    </p>
+                  </div>
+
+                  {/* Course Details */}
+                  <div>
+                    <h4 className="mb-4 text-sm font-semibold text-slate-900">
+                      Course Unit Details
+                    </h4>
+
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">
+                          Course Code{' '}
+                          <span className="text-red-600">*</span>
+                        </label>
+
+                        <input
+                          type="text"
+                          value={courseCode}
+                          onChange={(e) =>
+                            setCourseCode(
+                              e.target.value.toUpperCase()
+                            )
+                          }
+                          className="w-full border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#3182CE] focus:ring-2 focus:ring-blue-100"
+                          placeholder="e.g. WDD230"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">
+                          Course Unit Name{' '}
+                          <span className="text-red-600">*</span>
+                        </label>
+
+                        <input
+                          type="text"
+                          value={courseUnit}
+                          onChange={(e) => {
+                            const words =
+                              e.target.value.split(' ');
+
+                            const titleCase = words
+                              .map(
+                                (word) =>
+                                  word.charAt(0).toUpperCase() +
+                                  word.slice(1).toLowerCase()
+                              )
+                              .join(' ');
+
+                            setCourseUnit(titleCase);
+                          }}
+                          className="w-full border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#3182CE] focus:ring-2 focus:ring-blue-100"
+                          placeholder="e.g. Introduction To CS"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">
+                          Credits{' '}
+                          <span className="text-red-600">*</span>
+                        </label>
+
+                        <input
+                          type="number"
+                          value={credits}
+                          onChange={(e) =>
+                            setCredits(
+                              parseInt(e.target.value, 10) || 0
+                            )
+                          }
+                          className="w-full border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#3182CE] focus:ring-2 focus:ring-blue-100"
+                          placeholder="e.g. 3"
+                          min="1"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={addCourseToList}
+                      className="mt-4 inline-flex w-full items-center justify-center gap-2 border border-[#1A365D] bg-white px-4 py-3 text-sm font-semibold text-[#1A365D] transition-colors hover:bg-blue-50"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add to List
+                    </button>
+                  </div>
+
+                  {/* Courses Waiting to Submit */}
+                  {coursesList.length > 0 && (
+                    <div className="mt-6 border-t border-slate-200 pt-6">
+                      <div className="mb-3 flex items-center justify-between gap-4">
+                        <h4 className="text-sm font-semibold text-slate-900">
+                          Course Units to Submit
+                        </h4>
+
+                        <span className="text-sm text-slate-500">
+                          {coursesList.length}{' '}
+                          {coursesList.length === 1
+                            ? 'course'
+                            : 'courses'}
+                        </span>
+                      </div>
+
+                      <div className="divide-y divide-slate-200 border border-slate-200">
+                        {coursesList.map((course, index) => (
+                          <div
+                            key={`${course.code}-${index}`}
+                            className="flex items-center justify-between gap-4 bg-white px-4 py-3"
+                          >
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-3">
+                                <span className="font-mono text-sm font-semibold text-[#1A365D]">
+                                  {course.code}
+                                </span>
+
+                                <span className="text-sm font-medium text-slate-900">
+                                  {course.courseUnit}
+                                </span>
+                              </div>
+
+                              <p className="mt-1 text-xs text-slate-500">
+                                {course.credits}{' '}
+                                {course.credits === 1
+                                  ? 'credit'
+                                  : 'credits'}
+                              </p>
+                            </div>
+
+                            <button
+                              onClick={() =>
+                                removeCourseFromList(index)
+                              }
+                              className="shrink-0 border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                              aria-label={`Remove ${course.code}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Submission Total */}
+                  <div className="mt-6 flex items-center justify-between border border-slate-200 bg-slate-50 px-4 py-3">
+                    <span className="text-sm font-medium text-slate-600">
+                      Total Credits for This Submission
+                    </span>
+
+                    <span className="text-lg font-bold text-[#1A365D]">
+                      {calculateTotalCredits()}
+                    </span>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                    <button
+                      onClick={handleSubmit}
+                      disabled={
+                        submitMutation.isPending ||
+                        coursesList.length === 0
+                      }
+                      className="flex flex-1 items-center justify-center gap-2 bg-[#1A365D] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#153E75] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {submitMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="h-4 w-4" />
+                          Submit All Courses
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={clearCourseList}
+                      className="border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                    >
+                      Clear
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowForm(false);
+                        clearCourseList();
+                      }}
+                      className="border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Edit Course */}
+          <AnimatePresence>
+            {showEditForm && editingCourse && (
+              <motion.div
+                initial={{
+                  opacity: 0,
+                  y: -8,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                exit={{
+                  opacity: 0,
+                  y: -8,
+                }}
+                className="mb-6 border border-slate-200 bg-white shadow-sm"
+              >
+                <div className="border-b border-slate-200 p-5 sm:p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900">
+                        Edit Course
+                      </h3>
+
+                      <p className="mt-1 text-sm text-slate-500">
+                        Update the course information below.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setShowEditForm(false);
+                        setEditingCourse(null);
+                      }}
+                      className="border border-slate-300 bg-white p-2 text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                      aria-label="Close edit form"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-5 sm:p-6">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-[#A79C8C]">
+                      <label className="mb-2 block text-sm font-medium text-slate-700">
                         Course Code{' '}
-                        <span className="text-[#FB7185]">*</span>
+                        <span className="text-red-600">*</span>
                       </label>
 
                       <input
                         type="text"
-                        value={courseCode}
+                        value={editingCourse.code}
                         onChange={(e) =>
-                          setCourseCode(
-                            e.target.value.toUpperCase()
-                          )
+                          setEditingCourse({
+                            ...editingCourse,
+                            code: e.target.value.toUpperCase(),
+                          })
                         }
-                        className="w-full rounded-lg border border-[#2A2438] bg-[#150F20] px-4 py-3 text-sm text-[#F5F0E8] placeholder-[#6B6358] outline-none transition-colors focus:border-[#E8A33D]/50 focus:ring-2 focus:ring-[#E8A33D]/10"
+                        className="w-full border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#3182CE] focus:ring-2 focus:ring-blue-100"
                         placeholder="e.g. WDD230"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-[#A79C8C]">
+                      <label className="mb-2 block text-sm font-medium text-slate-700">
                         Course Unit Name{' '}
-                        <span className="text-[#FB7185]">*</span>
+                        <span className="text-red-600">*</span>
                       </label>
 
                       <input
                         type="text"
-                        value={courseUnit}
+                        value={editingCourse.courseUnit}
                         onChange={(e) => {
                           const words =
                             e.target.value.split(' ');
@@ -866,421 +1133,186 @@ export default function MyCoursesPage() {
                             )
                             .join(' ');
 
-                          setCourseUnit(titleCase);
+                          setEditingCourse({
+                            ...editingCourse,
+                            courseUnit: titleCase,
+                          });
                         }}
-                        className="w-full rounded-lg border border-[#2A2438] bg-[#150F20] px-4 py-3 text-sm text-[#F5F0E8] placeholder-[#6B6358] outline-none transition-colors focus:border-[#E8A33D]/50 focus:ring-2 focus:ring-[#E8A33D]/10"
+                        className="w-full border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#3182CE] focus:ring-2 focus:ring-blue-100"
                         placeholder="e.g. Introduction To CS"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-[#A79C8C]">
+                      <label className="mb-2 block text-sm font-medium text-slate-700">
                         Credits{' '}
-                        <span className="text-[#FB7185]">*</span>
+                        <span className="text-red-600">*</span>
                       </label>
 
                       <input
                         type="number"
-                        value={credits}
+                        value={editingCourse.credits}
                         onChange={(e) =>
-                          setCredits(
-                            parseInt(e.target.value, 10) || 0
-                          )
+                          setEditingCourse({
+                            ...editingCourse,
+                            credits:
+                              parseInt(e.target.value, 10) || 0,
+                          })
                         }
-                        className="w-full rounded-lg border border-[#2A2438] bg-[#150F20] px-4 py-3 text-sm text-[#F5F0E8] placeholder-[#6B6358] outline-none transition-colors focus:border-[#E8A33D]/50 focus:ring-2 focus:ring-[#E8A33D]/10"
-                        placeholder="e.g. 3"
+                        className="w-full border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-[#3182CE] focus:ring-2 focus:ring-blue-100"
                         min="1"
                         required
                       />
                     </div>
                   </div>
 
-                  <button
-                    onClick={addCourseToList}
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-[#E8A33D]/40 bg-[#E8A33D]/10 px-4 py-3 text-sm font-semibold text-[#E8A33D] transition-colors hover:bg-[#E8A33D] hover:text-[#0B0912]"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add to List
-                  </button>
-                </div>
+                  <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                    <button
+                      onClick={handleUpdate}
+                      disabled={updateMutation.isPending}
+                      className="flex flex-1 items-center justify-center gap-2 bg-[#1A365D] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#153E75] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {updateMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="h-4 w-4" />
+                          Update Course
+                        </>
+                      )}
+                    </button>
 
-                {/* Course List */}
-                {coursesList.length > 0 && (
-                  <div className="rounded-xl border border-[#2A2438] bg-[#0B0912] p-4">
-                    <div className="mb-3 flex items-center justify-between">
-                      <h4 className="text-sm font-semibold text-[#F5F0E8]">
-                        Course Units to Submit
-                      </h4>
-
-                      <span className="rounded-full bg-[#E8A33D]/10 px-2.5 py-1 text-xs font-medium text-[#E8A33D]">
-                        {coursesList.length}{' '}
-                        {coursesList.length === 1
-                          ? 'course'
-                          : 'courses'}
-                      </span>
-                    </div>
-
-                    <div className="space-y-2">
-                      {coursesList.map((course, index) => (
-                        <div
-                          key={`${course.code}-${index}`}
-                          className="flex items-center justify-between gap-3 rounded-lg border border-[#2A2438] bg-[#150F20] p-3"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="rounded-md border border-[#E8A33D]/30 bg-[#E8A33D]/10 px-2 py-1 text-xs font-semibold text-[#E8A33D]">
-                                {course.code}
-                              </span>
-
-                              <span className="text-sm font-medium text-[#F5F0E8]">
-                                {course.courseUnit}
-                              </span>
-                            </div>
-
-                            <p className="mt-1 text-xs text-[#A79C8C]">
-                              {course.credits} credits
-                            </p>
-                          </div>
-
-                          <button
-                            onClick={() =>
-                              removeCourseFromList(index)
-                            }
-                            className="rounded-lg p-2 text-[#FB7185] transition-colors hover:bg-[#FB7185]/10"
-                            aria-label={`Remove ${course.code}`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
+                    <button
+                      onClick={() => {
+                        setShowEditForm(false);
+                        setEditingCourse(null);
+                      }}
+                      className="border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                    >
+                      Cancel
+                    </button>
                   </div>
-                )}
-
-                {/* Submission Total */}
-                <div className="flex items-center justify-between rounded-lg border border-[#E8A33D]/30 bg-[#E8A33D]/10 p-4">
-                  <span className="text-sm font-medium text-[#F5F0E8]">
-                    Total Credits for This Submission
-                  </span>
-
-                  <span className="text-xl font-bold text-[#E8A33D]">
-                    {calculateTotalCredits()}
-                  </span>
                 </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-                {/* Form Actions */}
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <button
-                    onClick={handleSubmit}
-                    disabled={
-                      submitMutation.isPending ||
-                      coursesList.length === 0
-                    }
-                    className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#E8A33D] px-4 py-3 text-sm font-semibold text-[#0B0912] transition-colors hover:bg-[#D9952F] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {submitMutation.isPending ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Submitting...
-                      </>
-                    ) : (
-                      <>
-                        <Check className="h-4 w-4" />
-                        Submit All Courses
-                      </>
-                    )}
-                  </button>
+          {/* Submitted Courses */}
+          {submittedCourses.length === 0 ? (
+            <div className="border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+              <BookOpen className="mx-auto mb-4 h-8 w-8 text-slate-300" />
 
-                  <button
-                    onClick={clearCourseList}
-                    className="rounded-lg border border-[#2A2438] bg-[#1A1525] px-5 py-3 text-sm font-medium text-[#A79C8C] transition-colors hover:bg-[#2A2438] hover:text-[#F5F0E8]"
-                  >
-                    Clear
-                  </button>
+              <h3 className="text-base font-semibold text-slate-900">
+                No courses submitted yet
+              </h3>
 
-                  <button
-                    onClick={() => {
-                      setShowForm(false);
-                      clearCourseList();
-                    }}
-                    className="rounded-lg border border-[#2A2438] bg-[#1A1525] px-5 py-3 text-sm font-medium text-[#A79C8C] transition-colors hover:border-[#FB7185]/40 hover:text-[#FB7185]"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Edit Course Form */}
-        <AnimatePresence>
-          {showEditForm && editingCourse && (
-            <motion.div
-              initial={{
-                opacity: 0,
-                y: -12,
-              }}
-              animate={{
-                opacity: 1,
-                y: 0,
-              }}
-              exit={{
-                opacity: 0,
-                y: -12,
-              }}
-              className="mb-8 rounded-xl border border-[#2A2438] bg-[#150F20] p-5 sm:p-6"
-            >
-              <div className="mb-5 flex items-center justify-between gap-4">
+              <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
+                Add your course units above and submit them when
+                you are finished.
+              </p>
+            </div>
+          ) : (
+            <div>
+              <div className="mb-3 flex items-end justify-between gap-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-[#F5F0E8]">
-                    Edit Course
+                  <h3 className="text-base font-semibold text-slate-900">
+                    Submitted Courses
                   </h3>
 
-                  <p className="mt-1 text-sm text-[#A79C8C]">
-                    Update the course information below.
+                  <p className="mt-1 text-sm text-slate-500">
+                    Your currently submitted course units.
                   </p>
                 </div>
 
-                <button
-                  onClick={() => {
-                    setShowEditForm(false);
-                    setEditingCourse(null);
-                  }}
-                  className="rounded-lg border border-[#2A2438] bg-[#1A1525] p-2 text-[#A79C8C] transition-colors hover:border-[#FB7185]/40 hover:text-[#FB7185]"
-                  aria-label="Close edit form"
-                >
-                  <X className="h-5 w-5" />
-                </button>
+                <div className="hidden text-right sm:block">
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                    Total Credits
+                  </p>
+
+                  <p className="text-lg font-bold text-[#1A365D]">
+                    {totalCredits}
+                  </p>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-[#A79C8C]">
-                    Course Code{' '}
-                    <span className="text-[#FB7185]">*</span>
-                  </label>
-
-                  <input
-                    type="text"
-                    value={editingCourse.code}
-                    onChange={(e) =>
-                      setEditingCourse({
-                        ...editingCourse,
-                        code: e.target.value.toUpperCase(),
-                      })
-                    }
-                    className="w-full rounded-lg border border-[#2A2438] bg-[#0B0912] px-4 py-3 text-sm text-[#F5F0E8] outline-none transition-colors focus:border-[#E8A33D]/50 focus:ring-2 focus:ring-[#E8A33D]/10"
-                    placeholder="e.g. WDD230"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-[#A79C8C]">
-                    Course Unit Name{' '}
-                    <span className="text-[#FB7185]">*</span>
-                  </label>
-
-                  <input
-                    type="text"
-                    value={editingCourse.courseUnit}
-                    onChange={(e) => {
-                      const words =
-                        e.target.value.split(' ');
-
-                      const titleCase = words
-                        .map(
-                          (word) =>
-                            word.charAt(0).toUpperCase() +
-                            word.slice(1).toLowerCase()
-                        )
-                        .join(' ');
-
-                      setEditingCourse({
-                        ...editingCourse,
-                        courseUnit: titleCase,
-                      });
+              <div className="divide-y divide-slate-200 border border-slate-200 bg-white shadow-sm">
+                {submittedCourses.map((course) => (
+                  <motion.div
+                    key={course.id}
+                    initial={{
+                      opacity: 0,
+                      y: 6,
                     }}
-                    className="w-full rounded-lg border border-[#2A2438] bg-[#0B0912] px-4 py-3 text-sm text-[#F5F0E8] outline-none transition-colors focus:border-[#E8A33D]/50 focus:ring-2 focus:ring-[#E8A33D]/10"
-                    placeholder="e.g. Introduction To CS"
-                    required
-                  />
-                </div>
+                    animate={{
+                      opacity: 1,
+                      y: 0,
+                    }}
+                    className="p-4 transition-colors hover:bg-slate-50 sm:p-5"
+                  >
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                          <span className="font-mono text-sm font-semibold text-[#1A365D]">
+                            {course.code}
+                          </span>
 
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-[#A79C8C]">
-                    Credits{' '}
-                    <span className="text-[#FB7185]">*</span>
-                  </label>
+                          <h4 className="text-base font-semibold text-slate-900">
+                            {course.courseUnit}
+                          </h4>
+                        </div>
 
-                  <input
-                    type="number"
-                    value={editingCourse.credits}
-                    onChange={(e) =>
-                      setEditingCourse({
-                        ...editingCourse,
-                        credits:
-                          parseInt(e.target.value, 10) || 0,
-                      })
-                    }
-                    className="w-full rounded-lg border border-[#2A2438] bg-[#0B0912] px-4 py-3 text-sm text-[#F5F0E8] outline-none transition-colors focus:border-[#E8A33D]/50 focus:ring-2 focus:ring-[#E8A33D]/10"
-                    min="1"
-                    required
-                  />
-                </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                          <span className="text-slate-500">
+                            {course.credits}{' '}
+                            {course.credits === 1
+                              ? 'credit'
+                              : 'credits'}
+                          </span>
+
+                          <span className="text-slate-300">
+                            |
+                          </span>
+
+                          <span className="font-medium text-green-700">
+                            Submitted
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-2">
+                        <button
+                          onClick={() => handleEdit(course)}
+                          className="border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-[#1A365D] hover:text-[#1A365D]"
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            handleDelete(course.id)
+                          }
+                          disabled={deleteMutation.isPending}
+                          className="border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:border-red-200 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {deleteMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            'Delete'
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
-
-              <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                <button
-                  onClick={handleUpdate}
-                  disabled={updateMutation.isPending}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#E8A33D] px-4 py-3 text-sm font-semibold text-[#0B0912] transition-colors hover:bg-[#D9952F] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {updateMutation.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Updating...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="h-4 w-4" />
-                      Update Course
-                    </>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => {
-                    setShowEditForm(false);
-                    setEditingCourse(null);
-                  }}
-                  className="rounded-lg border border-[#2A2438] bg-[#1A1525] px-5 py-3 text-sm font-medium text-[#A79C8C] transition-colors hover:bg-[#2A2438] hover:text-[#F5F0E8]"
-                >
-                  Cancel
-                </button>
-              </div>
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
-
-        {/* Submitted Courses */}
-        {submittedCourses.length === 0 ? (
-          <div className="rounded-xl border border-[#2A2438] bg-[#150F20] p-8 text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-[#2A2438] bg-[#1A1525]">
-              <BookOpen className="h-7 w-7 text-[#A79C8C]" />
-            </div>
-
-            <h3 className="text-base font-semibold text-[#F5F0E8]">
-              No courses submitted yet
-            </h3>
-
-            <p className="mx-auto mt-2 max-w-md text-sm text-[#6B6358]">
-              Click &quot;Add Courses&quot; above to add your
-              course units.
-            </p>
-          </div>
-        ) : (
-          <div>
-            <div className="mb-4 flex items-end justify-between gap-4">
-              <div>
-                <h3 className="text-lg font-semibold text-[#F5F0E8]">
-                  Your Submitted Courses
-                </h3>
-
-                <p className="mt-1 text-sm text-[#A79C8C]">
-                  {submittedCourses.length}{' '}
-                  {submittedCourses.length === 1
-                    ? 'course unit'
-                    : 'course units'}{' '}
-                  submitted
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-[#E8A33D]/20 bg-[#E8A33D]/10 px-3 py-2 text-right">
-                <p className="text-xs text-[#A79C8C]">
-                  Total Credits
-                </p>
-
-                <p className="text-lg font-bold text-[#E8A33D]">
-                  {totalCredits}
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {submittedCourses.map((course) => (
-                <motion.div
-                  key={course.id}
-                  initial={{
-                    opacity: 0,
-                    y: 12,
-                  }}
-                  animate={{
-                    opacity: 1,
-                    y: 0,
-                  }}
-                  className="rounded-xl border border-[#2A2438] bg-[#150F20] p-4 transition-colors hover:border-[#3A3348]"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-md border border-[#E8A33D]/30 bg-[#E8A33D]/10 px-2.5 py-1 text-xs font-semibold text-[#E8A33D]">
-                          {course.code}
-                        </span>
-
-                        <h4 className="text-base font-semibold text-[#F5F0E8]">
-                          {course.courseUnit}
-                        </h4>
-                      </div>
-
-                      <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
-                        <span className="text-[#A79C8C]">
-                          {course.credits}{' '}
-                          {course.credits === 1
-                            ? 'credit'
-                            : 'credits'}
-                        </span>
-
-                        <span className="h-1 w-1 rounded-full bg-[#6B6358]" />
-
-                        <span className="flex items-center gap-1.5 font-medium text-[#14B8A6]">
-                          <Check className="h-4 w-4" />
-                          Submitted
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex shrink-0 items-center gap-2">
-                      {/* Edit word instead of pencil icon */}
-                      <button
-                        onClick={() => handleEdit(course)}
-                        className="rounded-lg border border-[#2A2438] bg-[#1A1525] px-3 py-2 text-sm font-medium text-[#E8A33D] transition-colors hover:border-[#E8A33D]/40 hover:bg-[#E8A33D]/10"
-                      >
-                        Edit
-                      </button>
-
-                      <button
-                        onClick={() => handleDelete(course.id)}
-                        disabled={deleteMutation.isPending}
-                        className="rounded-lg border border-[#2A2438] bg-[#1A1525] p-2 text-[#FB7185] transition-colors hover:border-[#FB7185]/40 hover:bg-[#FB7185]/10 disabled:cursor-not-allowed disabled:opacity-50"
-                        aria-label={`Delete ${course.code}`}
-                      >
-                        {deleteMutation.isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+        </section>
+      </main>
     </div>
   );
 }

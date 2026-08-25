@@ -5,12 +5,14 @@ const nextConfig = {
   experimental: {
 
     // Optimize package imports for better Turbopack performance
-
     optimizePackageImports: ['@tanstack/react-query', 'mongoose', 'lucide-react', 'framer-motion'],
 
     // Optimize CSS handling
-
     optimizeCss: true,
+
+    // Increase max body size for video uploads (allow up to 100MB)
+    // ✅ Updated from middlewareClientMaxBodySize to proxyClientMaxBodySize
+    proxyClientMaxBodySize: 100 * 1024 * 1024, // 100MB
 
   },
 
@@ -20,13 +22,11 @@ const nextConfig = {
 
 
   // Disable source maps in development for faster builds
-
   productionBrowserSourceMaps: false,
 
 
 
   // Configure image optimization
-
   images: {
 
     remotePatterns: [
@@ -48,25 +48,21 @@ const nextConfig = {
 
 
   // Enable compression
-
   compress: true,
 
 
 
   // Power header configurations for security
-
   poweredByHeader: false,
 
 
 
   // React strict mode (keep enabled for development)
-
   reactStrictMode: true,
 
 
 
   // Improve build performance
-
   modularizeImports: {
     lucideReact: {
       transform: 'lucide-react/dist/esm/icons/{{kebabCase member}}',
