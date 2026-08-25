@@ -15,7 +15,6 @@ import {
   XCircle,
   Clock,
   ChevronDown,
-  ChevronUp,
   User,
   AlertCircle,
   Loader2,
@@ -81,7 +80,7 @@ const billboardMessages = [
       'A quick cleanup makes the place better for everyone to study and hang out.',
   },
   {
-    title: 'See what\'s available',
+    title: "See what's available",
     description:
       'Check which days still have spots and who else has signed up.',
   },
@@ -107,7 +106,7 @@ const animatedWords = [
   'Thanks.',
   'Good job.',
   'We got this.',
-  'Let\'s go.',
+  "Let's go.",
   'Nice work.',
   'All set.',
   'Easy.',
@@ -121,8 +120,8 @@ function AnimatedBillboard() {
 
   useEffect(() => {
     const messageTimer = setInterval(() => {
-      setMessageIndex((current) =>
-        (current + 1) % billboardMessages.length
+      setMessageIndex(
+        (current) => (current + 1) % billboardMessages.length
       );
     }, 6000);
 
@@ -131,8 +130,8 @@ function AnimatedBillboard() {
 
   useEffect(() => {
     const wordTimer = setInterval(() => {
-      setWordIndex((current) =>
-        (current + 1) % animatedWords.length
+      setWordIndex(
+        (current) => (current + 1) % animatedWords.length
       );
     }, 2500);
 
@@ -148,7 +147,6 @@ function AnimatedBillboard() {
       transition={{ duration: 0.6 }}
       className="relative mb-8 overflow-hidden rounded-2xl border border-[#dbe4ee] bg-white shadow-[0_10px_35px_rgba(26,54,93,0.07)]"
     >
-      {/* Decorative background elements */}
       <motion.div
         animate={{
           scale: [1, 1.08, 1],
@@ -176,7 +174,6 @@ function AnimatedBillboard() {
         className="pointer-events-none absolute -bottom-24 -left-16 h-48 w-48 rounded-full bg-[#1a365d]"
       />
 
-      {/* Freedom logo watermark */}
       <motion.div
         animate={{
           opacity: [0.03, 0.06, 0.03],
@@ -187,7 +184,7 @@ function AnimatedBillboard() {
           repeat: Infinity,
           ease: 'easeInOut',
         }}
-        className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-32 w-32 opacity-5"
+        className="pointer-events-none absolute right-4 top-1/2 h-32 w-32 -translate-y-1/2 opacity-5"
       >
         <img
           src="/freedom.png"
@@ -198,7 +195,6 @@ function AnimatedBillboard() {
 
       <div className="relative p-5 sm:p-6">
         <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-          {/* Left */}
           <div className="min-w-0 flex-1">
             <div className="mb-3 flex items-center gap-2">
               <motion.div
@@ -211,7 +207,7 @@ function AnimatedBillboard() {
                   repeat: Infinity,
                   ease: 'easeInOut',
                 }}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#1a365d]/10 overflow-hidden"
+                className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#1a365d]/10"
               >
                 <img
                   src="/freedom.png"
@@ -231,7 +227,10 @@ function AnimatedBillboard() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+                transition={{
+                  duration: 0.5,
+                  ease: [0.25, 0.1, 0.25, 1],
+                }}
               >
                 <h2 className="text-xl font-bold leading-tight text-[#1a365d] sm:text-2xl">
                   {currentMessage.title}
@@ -244,7 +243,6 @@ function AnimatedBillboard() {
             </AnimatePresence>
           </div>
 
-          {/* Animated words */}
           <div className="flex shrink-0 items-center justify-center md:min-w-[190px]">
             <div className="relative flex h-24 w-full items-center justify-center overflow-hidden rounded-xl border border-[#dbe4ee] bg-[#f8fafc] px-5 sm:h-28 sm:w-[190px]">
               <AnimatePresence mode="wait">
@@ -294,7 +292,6 @@ function AnimatedBillboard() {
           </div>
         </div>
 
-        {/* Information points */}
         <div className="mt-5 grid grid-cols-1 gap-2 border-t border-[#e2e8f0] pt-4 sm:grid-cols-3">
           {[
             'Pick a day that works',
@@ -332,6 +329,73 @@ function AnimatedBillboard() {
 }
 
 // ---------------------------------------------------------
+// Cleaning Video
+// ---------------------------------------------------------
+
+function CleaningVideo() {
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        duration: 0.6,
+        delay: 0.1,
+      }}
+      className="mb-8 overflow-hidden rounded-2xl border border-[#dbe4ee] bg-white shadow-[0_10px_35px_rgba(26,54,93,0.07)]"
+    >
+      {/* Video heading */}
+      <div className="border-b border-[#e2e8f0] px-5 py-4 sm:px-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h2 className="text-base font-bold text-[#1a365d] sm:text-lg">
+              Cleaning Together
+            </h2>
+
+            <p className="mt-1 text-xs leading-5 text-[#64748b] sm:text-sm">
+              Watch and get ready for your cleaning day.
+            </p>
+          </div>
+
+          <span className="w-fit shrink-0 rounded-full border border-[#3182ce]/20 bg-[#3182ce]/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#3182ce] sm:text-xs">
+            Community Cleaning
+          </span>
+        </div>
+      </div>
+
+      {/* Responsive video */}
+      <div className="relative w-full overflow-hidden bg-[#0f172a]">
+        <video
+          className="block aspect-video h-auto w-full object-cover"
+          controls
+          playsInline
+          preload="metadata"
+          aria-label="Community cleaning video"
+        >
+          <source
+            src="/cleaning.mp4"
+            type="video/mp4"
+          />
+
+          Your browser does not support the video element.
+        </video>
+      </div>
+
+      {/* Video footer */}
+      <div className="flex flex-col gap-2 border-t border-[#e2e8f0] bg-[#f8fafc] px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <p className="text-xs leading-5 text-[#64748b]">
+          Your participation makes a difference. Watch the video and join us in keeping our environment clean.
+        </p>
+
+        <div className="flex shrink-0 items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[#94a3b8]">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#3182ce]" />
+          Working together
+        </div>
+      </div>
+    </motion.section>
+  );
+}
+
+// ---------------------------------------------------------
 // Main Page
 // ---------------------------------------------------------
 
@@ -347,7 +411,9 @@ export default function CleaningPage() {
     message: string;
   } | null>(null);
 
-  const [changingDayId, setChangingDayId] = useState<string | null>(null);
+  const [changingDayId, setChangingDayId] = useState<string | null>(
+    null
+  );
 
   const {
     data,
@@ -385,7 +451,7 @@ export default function CleaningPage() {
         type: 'success',
         message:
           result.message ||
-          'You\'re registered! See you on your cleaning day.',
+          "You're registered! See you on your cleaning day.",
       });
 
       await refetch();
@@ -625,7 +691,9 @@ export default function CleaningPage() {
 
       setActionMessage({
         type: 'success',
-        message: `Attendance updated - marked as ${status.toLowerCase().replace('_', ' ')}`,
+        message: `Attendance updated - marked as ${status
+          .toLowerCase()
+          .replace('_', ' ')}`,
       });
 
       setTimeout(() => setActionMessage(null), 3000);
@@ -759,7 +827,7 @@ export default function CleaningPage() {
               repeat: Infinity,
               ease: 'easeInOut',
             }}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#3182ce]/15 bg-[#3182ce]/10 overflow-hidden"
+            className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#3182ce]/15 bg-[#3182ce]/10"
           >
             <img
               src="/freedom.png"
@@ -784,7 +852,10 @@ export default function CleaningPage() {
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.15, duration: 0.5 }}
+              transition={{
+                delay: 0.15,
+                duration: 0.5,
+              }}
               className="text-xs text-[#64748b] sm:text-sm"
             >
               View and register for cleaning days
@@ -802,6 +873,12 @@ export default function CleaningPage() {
       {/* -------------------------------------------------- */}
 
       <AnimatedBillboard />
+
+      {/* -------------------------------------------------- */}
+      {/* Cleaning Video */}
+      {/* -------------------------------------------------- */}
+
+      <CleaningVideo />
 
       {/* -------------------------------------------------- */}
       {/* Action Message */}
@@ -825,7 +902,10 @@ export default function CleaningPage() {
               y: -20,
               scale: 0.95,
             }}
-            transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+            transition={{
+              duration: 0.4,
+              ease: [0.25, 0.1, 0.25, 1],
+            }}
             className={`mb-6 rounded-2xl border-2 p-5 shadow-lg ${
               actionMessage.type === 'success'
                 ? 'border-emerald-300 bg-gradient-to-br from-emerald-50 to-emerald-100/50'
@@ -834,8 +914,14 @@ export default function CleaningPage() {
           >
             <div className="flex items-start gap-4">
               <motion.div
-                initial={{ scale: 0, rotate: -180 }}
-                animate={{ scale: 1, rotate: 0 }}
+                initial={{
+                  scale: 0,
+                  rotate: -180,
+                }}
+                animate={{
+                  scale: 1,
+                  rotate: 0,
+                }}
                 transition={{
                   delay: 0.1,
                   duration: 0.5,
@@ -857,9 +943,18 @@ export default function CleaningPage() {
 
               <div className="flex-1">
                 <motion.p
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2, duration: 0.3 }}
+                  initial={{
+                    opacity: 0,
+                    x: -10,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    x: 0,
+                  }}
+                  transition={{
+                    delay: 0.2,
+                    duration: 0.3,
+                  }}
                   className={`text-sm font-semibold leading-6 ${
                     actionMessage.type === 'success'
                       ? 'text-emerald-800'
@@ -871,9 +966,18 @@ export default function CleaningPage() {
 
                 {actionMessage.type === 'success' && (
                   <motion.div
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3, duration: 0.3 }}
+                    initial={{
+                      opacity: 0,
+                      y: 5,
+                    }}
+                    animate={{
+                      opacity: 1,
+                      y: 0,
+                    }}
+                    transition={{
+                      delay: 0.3,
+                      duration: 0.3,
+                    }}
                     className="mt-2 flex items-center gap-2 text-xs font-medium text-emerald-600"
                   >
                     <ThumbsUp className="h-3.5 w-3.5" />
@@ -887,18 +991,20 @@ export default function CleaningPage() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
                 onClick={() => setActionMessage(null)}
-                className="shrink-0 rounded-lg p-1 text-[#94a3b8] hover:bg-black/5 hover:text-[#64748b] transition-colors"
+                className="shrink-0 rounded-lg p-1 text-[#94a3b8] transition-colors hover:bg-black/5 hover:text-[#64748b]"
               >
                 <XCircle className="h-4 w-4" />
               </motion.button>
             </div>
 
-            {/* Progress bar for auto-dismiss */}
             <motion.div
               initial={{ width: '100%' }}
               animate={{ width: '0%' }}
               transition={{
-                duration: actionMessage.type === 'success' ? 5 : 8,
+                duration:
+                  actionMessage.type === 'success'
+                    ? 5
+                    : 8,
                 ease: 'linear',
               }}
               className={`mt-3 h-1 rounded-full ${
@@ -917,8 +1023,14 @@ export default function CleaningPage() {
 
       {statusData && (
         <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{
+            opacity: 0,
+            y: 18,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
           transition={{ duration: 0.5 }}
           className="mb-8 rounded-2xl border border-[#dbe4ee] bg-white p-5 shadow-[0_8px_30px_rgba(26,54,93,0.05)] sm:p-6"
         >
@@ -998,8 +1110,14 @@ export default function CleaningPage() {
 
       {weeks.length === 0 ? (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{
+            opacity: 0,
+            y: 20,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
           className="rounded-2xl border border-[#dbe4ee] bg-white p-8 text-center shadow-sm sm:p-12"
         >
           <Calendar className="mx-auto mb-4 h-16 w-16 text-[#94a3b8]" />
@@ -1222,14 +1340,12 @@ export default function CleaningPage() {
                                     : isPast
                                       ? 'border-[#e2e8f0] bg-[#f8fafc] opacity-60'
                                       : isOpen
-                                        ? 'border-[#dbe4ee] bg-white hover:border-[#3182ce]/40 hover:shadow-md hover:-translate-y-0.5'
+                                        ? 'border-[#dbe4ee] bg-white hover:-translate-y-0.5 hover:border-[#3182ce]/40 hover:shadow-md'
                                         : 'border-[#e2e8f0] bg-[#f8fafc] opacity-70'
                                 }`}
                               >
-                                {/* Day main content */}
                                 <div className="flex flex-col gap-4">
                                   <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
-                                    {/* Day information */}
                                     <div className="flex min-w-0 items-center gap-3">
                                       <motion.div
                                         animate={{
@@ -1274,9 +1390,7 @@ export default function CleaningPage() {
                                       </div>
                                     </div>
 
-                                    {/* Desktop / tablet actions */}
                                     <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-                                      {/* Status is hidden on mobile and rendered after students */}
                                       <div className="hidden sm:flex">
                                         <StatusBadge
                                           status={
@@ -1291,7 +1405,6 @@ export default function CleaningPage() {
                                         />
                                       </div>
 
-                                      {/* Registered */}
                                       {userRegistered && (
                                         <RegisteredBadge
                                           attendanceStatus={
@@ -1300,7 +1413,6 @@ export default function CleaningPage() {
                                         />
                                       )}
 
-                                      {/* Register */}
                                       {!data?.registration &&
                                         canReg && (
                                           <button
@@ -1312,7 +1424,7 @@ export default function CleaningPage() {
                                             disabled={
                                               registerMutation.isPending
                                             }
-                                            className="flex items-center gap-2 rounded-lg bg-[#1a365d] px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-[#153475] hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                                            className="flex items-center gap-2 rounded-lg bg-[#1a365d] px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#153475] hover:shadow-md active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
                                           >
                                             {registerMutation.isPending ? (
                                               <Loader2 className="h-4 w-4 animate-spin" />
@@ -1323,7 +1435,6 @@ export default function CleaningPage() {
                                           </button>
                                         )}
 
-                                      {/* Change */}
                                       {data?.registration &&
                                         canChange && (
                                           <button
@@ -1342,7 +1453,7 @@ export default function CleaningPage() {
                                                 day.id &&
                                               changeRegistrationMutation.isPending
                                                 ? 'bg-[#f1f5f9] text-[#64748b]'
-                                                : 'border border-[#3182ce]/25 bg-[#3182ce]/5 text-[#1a365d] hover:bg-[#3182ce]/10 hover:border-[#3182ce]/40 hover:-translate-y-0.5 active:translate-y-0'
+                                                : 'border border-[#3182ce]/25 bg-[#3182ce]/5 text-[#1a365d] hover:-translate-y-0.5 hover:border-[#3182ce]/40 hover:bg-[#3182ce]/10 active:translate-y-0'
                                             }`}
                                           >
                                             {changeRegistrationMutation.isPending &&
@@ -1367,7 +1478,6 @@ export default function CleaningPage() {
                                           </button>
                                         )}
 
-                                      {/* Unavailable */}
                                       {!userRegistered &&
                                         !canReg &&
                                         !data?.registration && (
@@ -1408,9 +1518,7 @@ export default function CleaningPage() {
                                     </div>
                                   </div>
 
-                                  {/* ------------------------------------------------ */}
                                   {/* Registered Students */}
-                                  {/* ------------------------------------------------ */}
 
                                   {day.registrations.length >
                                     0 && (
@@ -1466,18 +1574,26 @@ export default function CleaningPage() {
                                                 }}
                                                 transition={{
                                                   duration: 0.35,
-                                                  delay: index * 0.05,
-                                                  ease: [0.25, 0.1, 0.25, 1],
+                                                  delay:
+                                                    index *
+                                                    0.05,
+                                                  ease: [
+                                                    0.25,
+                                                    0.1,
+                                                    0.25,
+                                                    1,
+                                                  ],
                                                 }}
                                                 whileHover={{
                                                   scale: 1.03,
-                                                  borderColor: '#3182ce',
-                                                  boxShadow: '0 4px 12px rgba(49, 130, 206, 0.15)',
+                                                  borderColor:
+                                                    '#3182ce',
+                                                  boxShadow:
+                                                    '0 4px 12px rgba(49, 130, 206, 0.15)',
                                                 }}
                                                 className="group flex items-center gap-3 rounded-xl border-2 border-[#e2e8f0] bg-white px-3 py-2.5 shadow-sm transition-all"
                                               >
-                                                {/* Avatar */}
-                                                <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 border-[#dbe4ee] shadow-sm group-hover:border-[#3182ce]/30 transition-colors">
+                                                <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 border-[#dbe4ee] shadow-sm transition-colors group-hover:border-[#3182ce]/30">
                                                   {reg.user
                                                     .profileImageUrl ? (
                                                     <img
@@ -1510,8 +1626,9 @@ export default function CleaningPage() {
                                                       </span>
                                                     </div>
                                                   )}
+
                                                   {isCurrentUser && (
-                                                    <div className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#3182ce] border-2 border-white shadow-sm">
+                                                    <div className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-[#3182ce] shadow-sm">
                                                       <div className="h-1.5 w-1.5 rounded-full bg-white" />
                                                     </div>
                                                   )}
@@ -1519,7 +1636,7 @@ export default function CleaningPage() {
 
                                                 <div className="min-w-0 flex-1">
                                                   <div className="flex items-center gap-2">
-                                                    <span className="truncate text-sm font-semibold text-[#1e293b] group-hover:text-[#3182ce] transition-colors">
+                                                    <span className="truncate text-sm font-semibold text-[#1e293b] transition-colors group-hover:text-[#3182ce]">
                                                       {
                                                         reg.user
                                                           .firstName
@@ -1539,29 +1656,39 @@ export default function CleaningPage() {
 
                                                   {attendance?.status && (
                                                     <div className="mt-0.5 flex items-center gap-1 text-[10px] font-medium">
-                                                      {attendance.status === 'ATTENDED' && (
+                                                      {attendance.status ===
+                                                        'ATTENDED' && (
                                                         <>
                                                           <CheckCircle className="h-3 w-3 text-emerald-600" />
-                                                          <span className="text-emerald-600">Attended</span>
+                                                          <span className="text-emerald-600">
+                                                            Attended
+                                                          </span>
                                                         </>
                                                       )}
-                                                      {attendance.status === 'NO_SHOW' && (
+
+                                                      {attendance.status ===
+                                                        'NO_SHOW' && (
                                                         <>
                                                           <XCircle className="h-3 w-3 text-red-600" />
-                                                          <span className="text-red-600">No show</span>
+                                                          <span className="text-red-600">
+                                                            No show
+                                                          </span>
                                                         </>
                                                       )}
-                                                      {attendance.status === 'PENDING' && (
+
+                                                      {attendance.status ===
+                                                        'PENDING' && (
                                                         <>
                                                           <Clock className="h-3 w-3 text-amber-600" />
-                                                          <span className="text-amber-600">Pending</span>
+                                                          <span className="text-amber-600">
+                                                            Pending
+                                                          </span>
                                                         </>
                                                       )}
                                                     </div>
                                                   )}
                                                 </div>
 
-                                                {/* Admin attendance controls */}
                                                 {canMarkAttendance && (
                                                   <div className="flex shrink-0 items-center gap-1 border-l border-[#dbe4ee] pl-2">
                                                     <button
@@ -1630,10 +1757,7 @@ export default function CleaningPage() {
                                     </div>
                                   )}
 
-                                  {/* ------------------------------------------------ */}
                                   {/* MOBILE STATUS */}
-                                  {/* This intentionally comes AFTER registered students */}
-                                  {/* ------------------------------------------------ */}
 
                                   <div className="flex flex-wrap items-center gap-2 sm:hidden">
                                     <StatusBadge
@@ -1726,6 +1850,7 @@ export default function CleaningPage() {
       )}
 
       {/* Subtle living page indicator */}
+
       <motion.div
         animate={{
           opacity: [0.4, 0.7, 0.4],
@@ -1776,11 +1901,7 @@ function StatusBadge({
       }}
       className={`flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${getStatusColor(
         status
-      )} ${
-        mobile
-          ? 'w-fit'
-          : ''
-      }`}
+      )} ${mobile ? 'w-fit' : ''}`}
     >
       {status === 'OPEN' ? (
         <Unlock className="h-3.5 w-3.5" />
