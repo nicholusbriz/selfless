@@ -1,6 +1,6 @@
 // app/dashboard/cleaning/page.tsx
 // Public cleaning schedule page for students
-// Light institutional design with responsive animated experience
+// Professional light institutional design with responsive animated experience
 
 'use client';
 
@@ -24,7 +24,6 @@ import {
   Check,
   Lock,
   Unlock,
-  Sparkles,
   Info,
   PartyPopper,
   ThumbsUp,
@@ -58,8 +57,7 @@ const getAvatarColor = (firstName: string, lastName: string) => {
     'from-[#315b88] to-[#1a365d]',
   ];
 
-  const hash =
-    firstName.charCodeAt(0) + lastName.charCodeAt(0);
+  const hash = firstName.charCodeAt(0) + lastName.charCodeAt(0);
 
   return colors[Math.abs(hash) % colors.length];
 };
@@ -70,48 +68,48 @@ const getAvatarColor = (firstName: string, lastName: string) => {
 
 const billboardMessages = [
   {
-    title: 'Pick a day that works for you',
+    title: 'Choose a day you can commit to',
     description:
-      'Choose a cleaning day that fits around your classes and other commitments.',
+      'Select a cleaning day that fits your schedule and allows you to participate fully.',
   },
   {
-    title: 'Keep our campus decent',
+    title: 'Together, we keep our environment better',
     description:
-      'A quick cleanup makes the place better for everyone to study and hang out.',
+      'Every contribution matters. A clean environment creates a better place to learn, work, and connect.',
   },
   {
-    title: "See what's available",
+    title: 'Check availability before registering',
     description:
-      'Check which days still have spots and who else has signed up.',
+      'Review available spaces and see who has already registered for each cleaning day.',
   },
   {
-    title: 'Need to switch days?',
+    title: 'Plans changed? You can switch',
     description:
-      'If your schedule changes, you can change to another day when registration is open.',
+      'When registration is still open, you can change your registration to another available day.',
   },
   {
-    title: 'It only takes one time',
+    title: 'Your participation matters',
     description:
-      'Just one cleaning session helps keep things tidy for the whole community.',
+      'One cleaning session may seem small, but consistent participation makes a meaningful difference.',
   },
   {
-    title: 'Show up when you say you will',
+    title: 'Register today. Show up tomorrow.',
     description:
-      'Please make it to the day you register for - the team counts on you.',
+      'Please honor the commitment you make by attending your selected cleaning day.',
   },
 ];
 
 const animatedWords = [
-  'Done.',
-  'Thanks.',
-  'Good job.',
-  'We got this.',
-  "Let's go.",
-  'Nice work.',
-  'All set.',
-  'Easy.',
-  'Team.',
+  'Together.',
+  'Committed.',
+  'Responsible.',
   'Ready.',
+  'Community.',
+  'Progress.',
+  'Teamwork.',
+  'Respect.',
+  'Service.',
+  'Impact.',
 ];
 
 function AnimatedBillboard() {
@@ -184,11 +182,12 @@ function AnimatedBillboard() {
           repeat: Infinity,
           ease: 'easeInOut',
         }}
-        className="pointer-events-none absolute right-4 top-1/2 h-32 w-32 -translate-y-1/2 opacity-5"
+        className="pointer-events-none absolute right-4 top-1/2 h-32 w-32 -translate-y-1/2"
       >
         <img
           src="/freedom.png"
-          alt="Freedom"
+          alt=""
+          aria-hidden="true"
           className="h-full w-full object-contain"
         />
       </motion.div>
@@ -211,13 +210,14 @@ function AnimatedBillboard() {
               >
                 <img
                   src="/freedom.png"
-                  alt="Freedom"
+                  alt=""
+                  aria-hidden="true"
                   className="h-full w-full object-contain p-1.5"
                 />
               </motion.div>
 
               <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#3182ce]">
-                Cleaning Community
+                Community Service
               </span>
             </div>
 
@@ -294,9 +294,9 @@ function AnimatedBillboard() {
 
         <div className="mt-5 grid grid-cols-1 gap-2 border-t border-[#e2e8f0] pt-4 sm:grid-cols-3">
           {[
-            'Pick a day that works',
-            'See who else is coming',
-            'Make sure you show up',
+            'Choose a suitable day',
+            'See who is participating',
+            'Honor your commitment',
           ].map((item, index) => (
             <motion.div
               key={item}
@@ -339,56 +339,65 @@ function CleaningVideo() {
       animate={{ opacity: 1, y: 0 }}
       transition={{
         duration: 0.6,
-        delay: 0.1,
       }}
-      className="mb-8 overflow-hidden rounded-2xl border border-[#dbe4ee] bg-white shadow-[0_10px_35px_rgba(26,54,93,0.07)]"
+      className="mt-8 overflow-hidden rounded-2xl border border-[#dbe4ee] bg-white shadow-[0_10px_35px_rgba(26,54,93,0.07)]"
     >
-      {/* Video heading */}
       <div className="border-b border-[#e2e8f0] px-5 py-4 sm:px-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#3182ce]">
+              Community in Action
+            </p>
+
             <h2 className="text-base font-bold text-[#1a365d] sm:text-lg">
-              Cleaning Together
+              Together, We Make a Difference
             </h2>
 
-            <p className="mt-1 text-xs leading-5 text-[#64748b] sm:text-sm">
-              Watch and get ready for your cleaning day.
+            <p className="mt-1 max-w-2xl text-xs leading-5 text-[#64748b] sm:text-sm">
+              Take a moment to see the spirit of teamwork and service behind our community cleaning activities.
             </p>
           </div>
 
           <span className="w-fit shrink-0 rounded-full border border-[#3182ce]/20 bg-[#3182ce]/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#3182ce] sm:text-xs">
-            Community Cleaning
+            Watch &amp; Get Inspired
           </span>
         </div>
       </div>
 
-      {/* Responsive video */}
       <div className="relative w-full overflow-hidden bg-[#0f172a]">
         <video
           className="block aspect-video h-auto w-full object-cover"
           controls
           playsInline
           preload="metadata"
-          aria-label="Community cleaning video"
+          aria-label="Community cleaning activities video"
         >
-          <source
-            src="/cleaning.mp4"
-            type="video/mp4"
-          />
+          <source src="/cleaning.mp4" type="video/mp4" />
 
           Your browser does not support the video element.
         </video>
       </div>
 
-      {/* Video footer */}
-      <div className="flex flex-col gap-2 border-t border-[#e2e8f0] bg-[#f8fafc] px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <p className="text-xs leading-5 text-[#64748b]">
-          Your participation makes a difference. Watch the video and join us in keeping our environment clean.
-        </p>
+      <div className="flex flex-col gap-3 border-t border-[#e2e8f0] bg-[#f8fafc] px-5 py-4 sm:px-6">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#3182ce]/10">
+            <Users className="h-4 w-4 text-[#1a365d]" />
+          </div>
 
-        <div className="flex shrink-0 items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[#94a3b8]">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-[#1e293b]">
+              Every contribution counts
+            </p>
+
+            <p className="mt-1 text-xs leading-5 text-[#64748b] sm:text-sm">
+              Your time, effort, and commitment help create a cleaner, more welcoming environment for everyone.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 border-t border-[#e2e8f0] pt-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[#94a3b8]">
           <span className="h-1.5 w-1.5 rounded-full bg-[#3182ce]" />
-          Working together
+          Serve • Participate • Make an impact
         </div>
       </div>
     </motion.section>
@@ -451,7 +460,7 @@ export default function CleaningPage() {
         type: 'success',
         message:
           result.message ||
-          "You're registered! See you on your cleaning day.",
+          "You're registered! Thank you for committing to community service.",
       });
 
       await refetch();
@@ -481,7 +490,7 @@ export default function CleaningPage() {
 
         setActionMessage({
           type: 'error',
-          message: `You're already signed up for ${existingDay}. Pick "Change to this" on another day to switch.`,
+          message: `You're already registered for ${existingDay}. Choose "Change to this" on another available day if you need to switch.`,
         });
       } else if (
         errorMessage.toLowerCase().includes('full')
@@ -489,7 +498,7 @@ export default function CleaningPage() {
         setActionMessage({
           type: 'error',
           message:
-            'This day is already full. Try a different day.',
+            'This cleaning day has reached its capacity. Please choose another available day.',
         });
       } else if (
         errorMessage.toLowerCase().includes('closed')
@@ -497,14 +506,14 @@ export default function CleaningPage() {
         setActionMessage({
           type: 'error',
           message:
-            'This day is closed for registration. Pick an open day.',
+            'Registration for this day is closed. Please select another open day.',
         });
       } else {
         setActionMessage({
           type: 'error',
           message:
             errorMessage ||
-            'Something went wrong. Try again.',
+            'Something went wrong. Please try again.',
         });
       }
 
@@ -561,7 +570,7 @@ export default function CleaningPage() {
 
       const message =
         result.message ||
-        `Done! You're now registered for ${newDay?.dayOfWeek}.`;
+        `You're now registered for ${newDay?.dayOfWeek}.`;
 
       setActionMessage({
         type: 'success',
@@ -691,7 +700,7 @@ export default function CleaningPage() {
 
       setActionMessage({
         type: 'success',
-        message: `Attendance updated - marked as ${status
+        message: `Attendance updated — marked as ${status
           .toLowerCase()
           .replace('_', ' ')}`,
       });
@@ -719,7 +728,7 @@ export default function CleaningPage() {
       <div className="min-h-screen bg-[#f8fafc] p-4 sm:p-6">
         <div className="mx-auto max-w-4xl space-y-6">
           <div className="mb-6 flex items-center justify-between gap-3">
-            <div className="h-8 w-48 animate-pulse rounded-lg bg-[#e2e8f0]" />
+            <div className="h-10 w-48 animate-pulse rounded-lg bg-[#e2e8f0]" />
             <div className="h-10 w-32 animate-pulse rounded-lg bg-[#e2e8f0]" />
           </div>
 
@@ -761,19 +770,19 @@ export default function CleaningPage() {
           </div>
 
           <h3 className="mb-2 text-xl font-semibold text-[#1e293b]">
-            Failed to Load
+            Unable to Load the Schedule
           </h3>
 
-          <p className="text-sm text-[#64748b]">
+          <p className="text-sm leading-6 text-[#64748b]">
             {(error as Error)?.message ||
-              'An error occurred'}
+              'An unexpected error occurred while loading the cleaning schedule.'}
           </p>
 
           <button
             onClick={() => refetch()}
             className="mt-5 rounded-lg bg-[#1a365d] px-6 py-2.5 font-medium text-white transition-all duration-200 hover:bg-[#153475]"
           >
-            Retry
+            Try Again
           </button>
         </div>
       </div>
@@ -816,56 +825,31 @@ export default function CleaningPage() {
 
         <div className="hidden h-8 w-px bg-[#dbe4ee] sm:block" />
 
-        <div className="flex min-w-0 items-center gap-3">
-          <motion.div
-            animate={{
-              y: [0, -2, 0],
-              rotate: [0, 1, 0],
-            }}
-            transition={{
+        {/* Single logo only */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{
+            opacity: 1,
+            scale: 1,
+            y: [0, -2, 0],
+          }}
+          transition={{
+            opacity: { duration: 0.5 },
+            scale: { duration: 0.5 },
+            y: {
               duration: 3,
               repeat: Infinity,
               ease: 'easeInOut',
-            }}
-            className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#3182ce]/15 bg-[#3182ce]/10"
-          >
-            <img
-              src="/freedom.png"
-              alt="Freedom Logo"
-              className="h-full w-full object-contain p-1.5"
-            />
-          </motion.div>
-
-          <div className="min-w-0">
-            <motion.h1
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="text-xl font-bold text-[#1a365d] sm:text-2xl"
-              style={{
-                fontFamily: 'var(--font-display)',
-              }}
-            >
-              Cleaning Schedule
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{
-                delay: 0.15,
-                duration: 0.5,
-              }}
-              className="text-xs text-[#64748b] sm:text-sm"
-            >
-              View and register for cleaning days
-              <span className="hidden sm:inline">
-                {' '}
-                (Monday to Friday)
-              </span>
-            </motion.p>
-          </div>
-        </div>
+            },
+          }}
+          className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#dbe4ee] bg-white shadow-sm"
+        >
+          <img
+            src="/freedom.png"
+            alt="Freedom"
+            className="h-full w-full object-contain p-1.5"
+          />
+        </motion.div>
       </div>
 
       {/* -------------------------------------------------- */}
@@ -873,12 +857,6 @@ export default function CleaningPage() {
       {/* -------------------------------------------------- */}
 
       <AnimatedBillboard />
-
-      {/* -------------------------------------------------- */}
-      {/* Cleaning Video */}
-      {/* -------------------------------------------------- */}
-
-      <CleaningVideo />
 
       {/* -------------------------------------------------- */}
       {/* Action Message */}
@@ -981,7 +959,7 @@ export default function CleaningPage() {
                     className="mt-2 flex items-center gap-2 text-xs font-medium text-emerald-600"
                   >
                     <ThumbsUp className="h-3.5 w-3.5" />
-                    <span>You're all set!</span>
+                    <span>Thank you for your commitment.</span>
                   </motion.div>
                 )}
               </div>
@@ -992,6 +970,7 @@ export default function CleaningPage() {
                 transition={{ delay: 0.4 }}
                 onClick={() => setActionMessage(null)}
                 className="shrink-0 rounded-lg p-1 text-[#94a3b8] transition-colors hover:bg-black/5 hover:text-[#64748b]"
+                aria-label="Dismiss message"
               >
                 <XCircle className="h-4 w-4" />
               </motion.button>
@@ -1056,25 +1035,24 @@ export default function CleaningPage() {
 
                 {statusData.hasRegistration ? (
                   <p className="mt-1 text-sm leading-6 text-[#64748b]">
-                    Registered for{' '}
-                    <span className="font-medium text-[#1a365d]">
+                    You are registered for{' '}
+                    <span className="font-semibold text-[#1a365d]">
                       {statusData.registration?.dayOfWeek}
                     </span>{' '}
-                    -{' '}
+                    —{' '}
                     {formatDate(
                       statusData.registration
                         ?.cleaningDate || ''
                     )}
 
                     <span className="mt-1 block text-xs text-[#3182ce]">
-                      You can change to another available day
-                      when registration is open.
+                      You can change to another available day while registration remains open.
                     </span>
                   </p>
                 ) : (
                   <p className="mt-1 text-sm leading-6 text-[#64748b]">
-                    Not registered for any cleaning day.
-                    Select a day below to register.
+                    You have not registered for a cleaning day yet.
+                    Select an available day below to participate.
                   </p>
                 )}
               </div>
@@ -1096,7 +1074,7 @@ export default function CleaningPage() {
               {!statusData.hasRegistration &&
                 data?.isAdmin && (
                   <span className="text-xs text-[#64748b]">
-                    Admin - No registration required
+                    Admin — No registration required
                   </span>
                 )}
             </div>
@@ -1127,7 +1105,8 @@ export default function CleaningPage() {
           </h3>
 
           <p className="text-sm text-[#64748b]">
-            Check back later for the cleaning schedule.
+            The cleaning schedule is not currently available.
+            Please check back later for upcoming opportunities.
           </p>
         </motion.div>
       ) : (
@@ -1195,7 +1174,7 @@ export default function CleaningPage() {
                         {formatDate(week.endDate)}
                         <span className="hidden sm:inline">
                           {' '}
-                          (Mon-Fri)
+                          (Monday - Friday)
                         </span>
                       </p>
                     </div>
@@ -1525,7 +1504,7 @@ export default function CleaningPage() {
                                     <div className="border-t border-[#e2e8f0] pt-4">
                                       <div className="mb-3 flex items-center justify-between gap-2">
                                         <p className="text-xs font-bold uppercase tracking-wider text-[#1a365d]">
-                                          Who's coming
+                                          Participants
                                         </p>
 
                                         <span className="flex items-center gap-1 text-xs font-semibold text-[#3182ce]">
@@ -1757,7 +1736,7 @@ export default function CleaningPage() {
                                     </div>
                                   )}
 
-                                  {/* MOBILE STATUS */}
+                                  {/* Mobile Status */}
 
                                   <div className="flex flex-wrap items-center gap-2 sm:hidden">
                                     <StatusBadge
@@ -1795,7 +1774,7 @@ export default function CleaningPage() {
       )}
 
       {/* -------------------------------------------------- */}
-      {/* Bottom information */}
+      {/* Bottom Information */}
       {/* -------------------------------------------------- */}
 
       {weeks.length > 0 && (
@@ -1821,35 +1800,70 @@ export default function CleaningPage() {
 
             <div>
               <h3 className="text-sm font-semibold text-[#1e293b]">
-                About the schedule
+                Making your commitment count
               </h3>
 
               <p className="mt-1 text-sm leading-6 text-[#64748b]">
-                Pick a day you can actually make it to. You can see who else signed up under each day.
+                Choose a cleaning day you can attend and participate
+                responsibly. You can review the participants under
+                each day and switch to another available day when
+                registration is still open.
               </p>
 
-              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-[#64748b]">
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                  Open days are available
-                </span>
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3">
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    <span className="text-xs font-semibold text-emerald-800">
+                      Open
+                    </span>
+                  </div>
 
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-red-500" />
-                  Full or closed days don't work
-                </span>
+                  <p className="text-xs leading-5 text-emerald-700">
+                    Registration is available while spaces remain.
+                  </p>
+                </div>
 
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-[#3182ce]" />
-                  You can switch days when allowed
-                </span>
+                <div className="rounded-xl border border-red-100 bg-red-50/60 p-3">
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-red-500" />
+                    <span className="text-xs font-semibold text-red-800">
+                      Full or Closed
+                    </span>
+                  </div>
+
+                  <p className="text-xs leading-5 text-red-700">
+                    Registration is not available for these days.
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-[#3182ce]/10 bg-[#3182ce]/5 p-3">
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[#3182ce]" />
+                    <span className="text-xs font-semibold text-[#1a365d]">
+                      Registered
+                    </span>
+                  </div>
+
+                  <p className="text-xs leading-5 text-[#64748b]">
+                    Your selected day is highlighted for easy reference.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </motion.div>
       )}
 
-      {/* Subtle living page indicator */}
+      {/* -------------------------------------------------- */}
+      {/* Cleaning Video — LAST CONTENT BEFORE FOOTER */}
+      {/* -------------------------------------------------- */}
+
+      <CleaningVideo />
+
+      {/* -------------------------------------------------- */}
+      {/* Footer Indicator */}
+      {/* -------------------------------------------------- */}
 
       <motion.div
         animate={{
@@ -1863,7 +1877,7 @@ export default function CleaningPage() {
         className="mx-auto mt-7 flex items-center justify-center gap-2 pb-6 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#94a3b8]"
       >
         <span className="h-1.5 w-1.5 rounded-full bg-[#3182ce]" />
-        Working together
+        Serve • Participate • Make an impact
         <span className="h-1.5 w-1.5 rounded-full bg-[#3182ce]" />
       </motion.div>
     </div>
