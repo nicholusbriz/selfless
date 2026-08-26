@@ -894,7 +894,7 @@ export default function AdminCleaningManagement() {
                                             </div>
 
                                             <div className="min-w-0">
-                                              <p className="truncate text-sm font-semibold text-slate-900">
+                                              <p className="text-sm font-semibold text-slate-900">
                                                 {
                                                   reg.user
                                                     .firstName
@@ -935,13 +935,10 @@ export default function AdminCleaningManagement() {
                                                   'ATTENDED'
                                                 )
                                               }
-                                              className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+                                              className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
                                               title="Mark as attended"
                                             >
-                                              <CheckCircle className="h-3.5 w-3.5" />
-                                              <span className="hidden md:inline">
                                                 Attended
-                                              </span>
                                             </button>
 
                                             <button
@@ -952,13 +949,10 @@ export default function AdminCleaningManagement() {
                                                   'NO_SHOW'
                                                 )
                                               }
-                                              className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
+                                              className="rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
                                               title="Mark as no-show"
                                             >
-                                              <XCircle className="h-3.5 w-3.5" />
-                                              <span className="hidden md:inline">
                                                 No Show
-                                              </span>
                                             </button>
 
                                             <button
@@ -969,13 +963,10 @@ export default function AdminCleaningManagement() {
                                                   'PENDING'
                                                 )
                                               }
-                                              className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100"
+                                              className="rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100"
                                               title="Mark as pending"
                                             >
-                                              <Clock className="h-3.5 w-3.5" />
-                                              <span className="hidden md:inline">
                                                 Pending
-                                              </span>
                                             </button>
 
                                             <button
