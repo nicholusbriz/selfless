@@ -32,14 +32,12 @@ import {
   Check,
   CheckCircle,
   ChevronDown,
-  Clock,
   Loader2,
   Lock,
   Search,
   User,
   Users,
   X,
-  XCircle,
 } from 'lucide-react';
 
 import {
@@ -51,6 +49,7 @@ import {
   formatDate,
   isDayPast,
   type CleaningDay,
+  type UnregisteredStudent,
 } from '@/hooks/useCleaningStudent';
 
 // =========================================================
@@ -560,8 +559,25 @@ function ParticipantList({
 }) {
   // TRUE means participants are visible immediately.
   const [open, setOpen] = useState(true);
+  const [markingUserIds, setMarkingUserIds] = useState<
+    Set<string>
+  >(new Set());
 
   const count = day.registrations.length;
+
+  const toggleMarking = (userId: string) => {
+    setMarkingUserIds((previous) => {
+      const next = new Set(previous);
+
+      if (next.has(userId)) {
+        next.delete(userId);
+      } else {
+        next.add(userId);
+      }
+
+      return next;
+    });
+  };
 
   if (count === 0) {
     return (
@@ -620,7 +636,7 @@ function ParticipantList({
             }}
             className="overflow-hidden"
           >
-            <ul className="grid gap-x-6 gap-y-2 border-t border-[var(--line)] pt-3 grid-cols-1 sm:grid-cols-2">
+            <ul className="grid gap-2 border-t border-[var(--line)] pt-3 grid-cols-1">
               {day.registrations.map((reg) => {
                 const attendance = (
                   day.attendanceRecords as
@@ -637,100 +653,131 @@ function ParticipantList({
                 return (
                   <li
                     key={reg.id}
-                    className="flex min-w-0 items-center gap-2.5 border border-[var(--line)] bg-[var(--surface)] px-2.5 py-2"
+                    className="border border-[var(--line)] bg-[var(--surface)] px-3 py-3"
                   >
-                    <Avatar
-                      firstName={reg.user.firstName}
-                      lastName={reg.user.lastName}
-                      src={reg.user.profileImageUrl}
-                      isSelf={isSelf}
-                    />
-
-                    <span className="min-w-0 flex-1 font-mono text-[12px] text-[var(--ink)]">
-                      {reg.user.firstName}{' '}
-                      {reg.user.lastName}
-
-                      {isSelf && (
-                        <span className="ml-1.5 text-[var(--ink-4)]">
-                          (you)
-                        </span>
-                      )}
-                    </span>
-
-                    {attendance?.status ===
-                      'ATTENDED' && (
-                      <CheckCircle
-                        className="h-4 w-4 shrink-0 text-[var(--ok)]"
-                        aria-label="Attended"
+                    <div className="flex items-start gap-3">
+                      <Avatar
+                        firstName={reg.user.firstName}
+                        lastName={reg.user.lastName}
+                        src={reg.user.profileImageUrl}
+                        isSelf={isSelf}
                       />
-                    )}
 
-                    {attendance?.status ===
-                      'NO_SHOW' && (
-                      <XCircle
-                        className="h-4 w-4 shrink-0 text-[var(--bad)]"
-                        aria-label="No show"
-                      />
-                    )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                          <p className="break-words text-sm font-semibold leading-5 text-[var(--ink)]">
+                            {reg.user.firstName}{' '}
+                            {reg.user.lastName}
 
-                    {attendance?.status ===
-                      'PENDING' && (
-                      <Clock
-                        className="h-4 w-4 shrink-0 text-[var(--warn)]"
-                        aria-label="Attendance pending"
-                      />
-                    )}
+                            {isSelf && (
+                              <span className="ml-1.5 font-normal text-[var(--ink-4)]">
+                                (you)
+                              </span>
+                            )}
+                          </p>
 
-                    {canMarkAttendance && (
-                      <span className="flex shrink-0 items-center gap-0.5 border-l border-[var(--line)] pl-2">
-                        {(
-                          [
-                            [
-                              'ATTENDED',
-                              'Attended',
-                            ],
-                            [
-                              'NO_SHOW',
-                              'No Show',
-                            ],
-                            [
-                              'PENDING',
-                              'Pending',
-                            ],
-                          ] as const
-                        ).map(
-                          ([
-                            status,
-                            label,
-                          ]) => (
+                          {canMarkAttendance && (
                             <button
-                              key={status}
                               type="button"
-                              title={`Mark ${label.toLowerCase()}`}
-                              aria-label={`Mark ${label.toLowerCase()} for ${reg.user.firstName} ${reg.user.lastName}`}
-                              aria-pressed={
-                                attendance?.status ===
-                                status
-                              }
+                              aria-expanded={markingUserIds.has(
+                                reg.userId,
+                              )}
                               onClick={() =>
-                                onMarkAttendance(
-                                  reg.userId,
-                                  day.id,
-                                  status,
-                                )
+                                toggleMarking(reg.userId)
                               }
-                              className={`rounded px-2 py-1 text-[10px] font-medium transition-colors ${focusRing} ${
-                                attendance?.status ===
-                                status
-                                  ? 'bg-[var(--surface-3)] text-[var(--ink)]'
-                                  : 'text-[var(--ink-4)] hover:bg-[var(--surface-2)] hover:text-[var(--ink-2)]'
-                              }`}
+                              className={`${btnQuiet} ml-auto shrink-0 px-2.5 py-1`}
                             >
-                              {label}
+                              {markingUserIds.has(reg.userId)
+                                ? 'Hide attendance'
+                                : 'Mark attendance'}
                             </button>
-                          ),
+                          )}
+                        </div>
+
+                        {attendance?.status && (
+                          <span
+                            className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                              attendance.status ===
+                              'ATTENDED'
+                                ? 'bg-[var(--ok-soft)] text-[var(--ok)]'
+                                : attendance.status ===
+                                    'NO_SHOW'
+                                  ? 'bg-[var(--bad-soft)] text-[var(--bad)]'
+                                  : 'bg-[var(--warn-soft)] text-[var(--warn)]'
+                            }`}
+                          >
+                            {attendance.status.replace(
+                              '_',
+                              ' ',
+                            )}
+                          </span>
                         )}
-                      </span>
+                      </div>
+                    </div>
+
+                    {canMarkAttendance &&
+                      markingUserIds.has(reg.userId) && (
+                      <div className="mt-2.5 flex flex-wrap items-center gap-1">
+                        <button
+                          type="button"
+                          title="Mark as attended"
+                          aria-label={`Mark attended for ${reg.user.firstName} ${reg.user.lastName}`}
+                          aria-pressed={
+                            attendance?.status ===
+                            'ATTENDED'
+                          }
+                          onClick={() =>
+                            onMarkAttendance(
+                              reg.userId,
+                              day.id,
+                              'ATTENDED',
+                            )
+                          }
+                          className={`rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 ${focusRing}`}
+                        >
+                          Attended
+                        </button>
+
+                        <button
+                          type="button"
+                          title="Mark as no-show"
+                          aria-label={`Mark no show for ${reg.user.firstName} ${reg.user.lastName}`}
+                          aria-pressed={
+                            attendance?.status ===
+                            'NO_SHOW'
+                          }
+                          onClick={() =>
+                            onMarkAttendance(
+                              reg.userId,
+                              day.id,
+                              'NO_SHOW',
+                            )
+                          }
+                          className={`rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 ${focusRing}`}
+                        >
+                          No Show
+                        </button>
+
+                        <button
+                          type="button"
+                          title="Mark as pending"
+                          aria-label={`Mark pending for ${reg.user.firstName} ${reg.user.lastName}`}
+                          aria-pressed={
+                            attendance?.status ===
+                            'PENDING'
+                          }
+                          onClick={() =>
+                            onMarkAttendance(
+                              reg.userId,
+                              day.id,
+                              'PENDING',
+                            )
+                          }
+                          className={`rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 ${focusRing}`}
+                        >
+                          Pending
+                        </button>
+                      </div>
                     )}
                   </li>
                 );
@@ -928,6 +975,62 @@ function ParticipantSearch({
           </motion.div>
         )}
       </AnimatePresence>
+    </section>
+  );
+}
+
+function UnregisteredStudentsList({
+  students,
+}: {
+  students: UnregisteredStudent[];
+}) {
+  return (
+    <section
+      className={`${panel} mb-4`}
+      aria-labelledby="unregistered-students-heading"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--line)] px-4 py-3.5 sm:px-5">
+        <div>
+          <h2
+            id="unregistered-students-heading"
+            className="text-sm font-semibold text-[var(--ink)]"
+          >
+            Students who have not registered for a day
+          </h2>
+
+          <p className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
+            Students with no cleaning day
+          </p>
+        </div>
+
+        <Tag tone={students.length > 0 ? 'warn' : 'ok'}>
+          {students.length}{' '}
+          {students.length === 1 ? 'student' : 'students'}
+        </Tag>
+      </div>
+
+      <div className="px-4 py-3 sm:px-5">
+        {students.length > 0 ? (
+          <ul className="divide-y divide-[var(--line)] border border-[var(--line)] bg-[var(--surface-2)]">
+            {students.map((student) => (
+              <li
+                key={student.id}
+                className="px-3 py-2 text-sm font-medium text-[var(--ink)]"
+              >
+                {student.firstName} {student.lastName}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="flex items-center gap-2 font-mono text-[12px] text-[var(--ink-3)]">
+            <CheckCircle
+              className="h-4 w-4 text-[var(--ok)]"
+              aria-hidden
+            />
+            Every student is registered for a cleaning day
+          </p>
+        )}
+      </div>
     </section>
   );
 }
@@ -1783,6 +1886,16 @@ export default function CleaningPage() {
             )}
           </div>
         )}
+
+        {/* =================================================
+            Students who have not registered
+        ================================================= */}
+
+        <UnregisteredStudentsList
+          students={
+            data?.unregisteredStudents ?? []
+          }
+        />
 
         {/* =================================================
             Participant Search
