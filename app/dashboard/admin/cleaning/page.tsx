@@ -363,6 +363,16 @@ export default function AdminCleaningManagement() {
     return colors[Math.abs(hash) % colors.length];
   };
 
+  const weeks = data?.weeks || [];
+  const students = data?.students || [];
+
+  const stats = data?.stats || {
+    totalRegistrations: 0,
+    totalAttended: 0,
+    totalNoShow: 0,
+    totalPending: 0,
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6 animate-pulse">
@@ -439,16 +449,6 @@ export default function AdminCleaningManagement() {
       </div>
     );
   }
-
-  const weeks = data?.weeks || [];
-  const students = data?.students || [];
-
-  const stats = data?.stats || {
-    totalRegistrations: 0,
-    totalAttended: 0,
-    totalNoShow: 0,
-    totalPending: 0,
-  };
 
   return (
     <motion.div

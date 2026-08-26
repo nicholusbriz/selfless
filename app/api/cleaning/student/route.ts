@@ -108,6 +108,33 @@ export async function GET() {
       }
     });
 
+    const studentsInCenter = user.techCenter?.id
+      ? await prisma.user.findMany({
+          where: {
+            techCenterId: user.techCenter.id,
+            status: 'ACTIVE',
+            role: { name: 'student' },
+          },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            cleaningRegistration: {
+              select: { id: true },
+            },
+          },
+          orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+        })
+      : [];
+
+    const unregisteredStudents = studentsInCenter
+      .filter((student) => !student.cleaningRegistration)
+      .map(({ id, firstName, lastName }) => ({
+        id,
+        firstName,
+        lastName,
+      }));
+
     return NextResponse.json({
       user: {
         id: user.id,
@@ -120,7 +147,8 @@ export async function GET() {
       },
       registration: userRegistration,
       userAttendance,
-      weeks
+      weeks,
+      unregisteredStudents,
     });
   } catch (error) {
     console.error('Error fetching student cleaning data:', error);

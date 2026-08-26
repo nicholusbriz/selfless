@@ -73,6 +73,12 @@ export interface UserAttendance {
   };
 }
 
+export interface UnregisteredStudent {
+  id: string;
+  firstName: string;
+  lastName: string;
+}
+
 export interface CleaningData {
   user: {
     id: string;
@@ -86,6 +92,7 @@ export interface CleaningData {
   weeks: Week[];
   registration: UserRegistration | null;
   userAttendance: UserAttendance[];
+  unregisteredStudents: UnregisteredStudent[];
   isAdmin: boolean;
   userId: string;
 }
@@ -252,6 +259,9 @@ export const useRegisterForCleaning = () => {
         return {
           ...old,
           weeks: updatedWeeks,
+          unregisteredStudents: (old.unregisteredStudents || []).filter(
+            (student) => student.id !== old.user.id
+          ),
           registration: {
             id: 'temp-' + Date.now(),
             userId: old.user.id,
