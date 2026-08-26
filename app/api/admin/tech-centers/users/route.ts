@@ -13,9 +13,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is admin, super_admin, or teacher (read-only for teachers)
-    if (session.user.role !== 'admin' && session.user.role !== 'super_admin' && session.user.role !== 'teacher') {
-      return NextResponse.json({ error: 'Access denied. Admin or teacher privileges required.' }, { status: 403 });
+    // Check if user is admin, super_admin, teacher, or student (read-only for teachers and students)
+    if (session.user.role !== 'admin' && session.user.role !== 'super_admin' && session.user.role !== 'teacher' && session.user.role !== 'student') {
+      return NextResponse.json({ error: 'Access denied. Admin, teacher, or student privileges required.' }, { status: 403 });
     }
 
     // Get the user with their tech center
