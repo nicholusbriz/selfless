@@ -103,5 +103,6 @@ declare module 'next-auth/jwt' {
     gender?: string | null;
     preferredTeamType?: string | null;
     preferredTeamRole?: string | null;
+    roleUpdatedAt?: string;
   }
 }

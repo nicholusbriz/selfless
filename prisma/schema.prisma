@@ -110,6 +110,7 @@ model User {
   
   // Tracking
   lastLoginAt  DateTime?
+  roleUpdatedAt DateTime? // Tracks when role was last changed for token refresh
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   

@@ -620,7 +620,7 @@ function ParticipantList({
             }}
             className="overflow-hidden"
           >
-            <ul className="grid gap-x-6 gap-y-2 border-t border-[var(--line)] pt-3 sm:grid-cols-2">
+            <ul className="grid gap-x-6 gap-y-2 border-t border-[var(--line)] pt-3 grid-cols-1 sm:grid-cols-2">
               {day.registrations.map((reg) => {
                 const attendance = (
                   day.attendanceRecords as
@@ -646,7 +646,7 @@ function ParticipantList({
                       isSelf={isSelf}
                     />
 
-                    <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-[var(--ink)]">
+                    <span className="min-w-0 flex-1 font-mono text-[12px] text-[var(--ink)]">
                       {reg.user.firstName}{' '}
                       {reg.user.lastName}
 
@@ -687,31 +687,27 @@ function ParticipantList({
                           [
                             [
                               'ATTENDED',
-                              CheckCircle,
-                              'Mark attended',
+                              'Attended',
                             ],
                             [
                               'NO_SHOW',
-                              XCircle,
-                              'Mark no-show',
+                              'No Show',
                             ],
                             [
                               'PENDING',
-                              Clock,
-                              'Mark pending',
+                              'Pending',
                             ],
                           ] as const
                         ).map(
                           ([
                             status,
-                            Icon,
                             label,
                           ]) => (
                             <button
                               key={status}
                               type="button"
-                              title={label}
-                              aria-label={`${label} for ${reg.user.firstName} ${reg.user.lastName}`}
+                              title={`Mark ${label.toLowerCase()}`}
+                              aria-label={`Mark ${label.toLowerCase()} for ${reg.user.firstName} ${reg.user.lastName}`}
                               aria-pressed={
                                 attendance?.status ===
                                 status
@@ -723,17 +719,14 @@ function ParticipantList({
                                   status,
                                 )
                               }
-                              className={`p-1 transition-colors ${focusRing} ${
+                              className={`rounded px-2 py-1 text-[10px] font-medium transition-colors ${focusRing} ${
                                 attendance?.status ===
                                 status
                                   ? 'bg-[var(--surface-3)] text-[var(--ink)]'
                                   : 'text-[var(--ink-4)] hover:bg-[var(--surface-2)] hover:text-[var(--ink-2)]'
                               }`}
                             >
-                              <Icon
-                                className="h-3.5 w-3.5"
-                                aria-hidden
-                              />
+                              {label}
                             </button>
                           ),
                         )}

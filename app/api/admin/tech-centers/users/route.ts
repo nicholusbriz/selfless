@@ -13,30 +13,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is admin or super_admin
-    if (session.user.role !== 'admin' && session.user.role !== 'super_admin') {
-      return NextResponse.json({ error: 'Access denied. Admin privileges required.' }, { status: 403 });
+    // Check if user is admin, super_admin, or teacher (read-only for teachers)
+    if (session.user.role !== 'admin' && session.user.role !== 'super_admin' && session.user.role !== 'teacher') {
+      return NextResponse.json({ error: 'Access denied. Admin or teacher privileges required.' }, { status: 403 });
     }
 
-    // Get the admin user with their tech center
-    const adminUser = await prisma.user.findUnique({
+    // Get the user with their tech center
+    const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: { techCenter: true }
     });
 
-    if (!adminUser || !adminUser.techCenter) {
+    if (!user || !user.techCenter) {
       return NextResponse.json(
-        { error: 'No tech center assigned to this admin' },
+        { error: 'No tech center assigned to this user' },
         { status: 404 }
       );
     }
 
-    const techCenterId = adminUser.techCenter.id;
+    const techCenterId = user.techCenter.id;
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || '';
+    const role = searchParams.get('role') || '';
     const sortBy = searchParams.get('sortBy') || 'createdAt';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
     const skip = (page - 1) * limit;
@@ -60,6 +61,13 @@ export async function GET(request: NextRequest) {
       where.status = status;
     }
 
+    // Filter by role
+    if (role) {
+      where.role = {
+        name: role
+      };
+    }
+
     // Get total count for pagination
     const total = await prisma.user.count({ where });
 
@@ -71,14 +79,21 @@ export async function GET(request: NextRequest) {
     // Get all users with their courses and tuition info
     const users = await prisma.user.findMany({
       where,
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        status: true,
-        isActive: true,
-        tuitionAmount: true,
-        profileImageUrl: true,
+      include: {
+        role: {
+          select: {
+            id: true,
+            name: true,
+            displayName: true,
+          }
+        },
+        techCenter: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          }
+        },
         submittedCourses: {
           select: {
             id: true,
@@ -91,6 +106,8 @@ export async function GET(request: NextRequest) {
         _count: {
           select: {
             submittedCourses: true,
+            assignedStudents: true,
+            gradesGiven: true,
           }
         }
       },
@@ -142,6 +159,18 @@ export async function GET(request: NextRequest) {
 
     const statuses = ['ACTIVE', 'INACTIVE', 'SUSPENDED'];
 
+    // Get available roles for filtering
+    const roles = await prisma.role.findMany({
+      select: {
+        id: true,
+        name: true,
+        displayName: true,
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+
     return NextResponse.json({
       users,
       pagination: {
@@ -161,7 +190,11 @@ export async function GET(request: NextRequest) {
         suspended: suspendedCount,
       },
       statuses,
-      techCenter: adminUser.techCenter
+      filters: {
+        roles,
+        statuses,
+      },
+      techCenter: user.techCenter
     });
   } catch (error) {
     console.error('Error fetching users:', error);

@@ -69,10 +69,13 @@ export async function PATCH(
       );
     }
 
-    // Update user role
+    // Update user role and set roleUpdatedAt to trigger token refresh
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { roleId },
+      data: { 
+        roleId,
+        roleUpdatedAt: new Date() // This will trigger JWT token refresh on next request
+      },
       include: {
         role: true,
         techCenter: true,

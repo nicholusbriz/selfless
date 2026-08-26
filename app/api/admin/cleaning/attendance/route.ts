@@ -12,8 +12,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (session.user.role !== 'admin' && session.user.role !== 'super_admin') {
-      return NextResponse.json({ error: 'Access denied. Admin privileges required.' }, { status: 403 });
+    if (session.user.role !== 'teacher' && session.user.role !== 'admin' && session.user.role !== 'super_admin') {
+      return NextResponse.json({ error: 'Access denied. Teacher or admin privileges required.' }, { status: 403 });
     }
 
     const body = await request.json();

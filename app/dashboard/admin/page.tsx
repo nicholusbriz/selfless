@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Home, LayoutDashboard, Users, Shield, Mail, Phone, MapPin, Calendar, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 interface AdminUser {
   id: string;
@@ -15,7 +16,17 @@ interface AdminUser {
   status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
   isActive: boolean;
   createdAt: string;
+  profileImageUrl?: string;
   techCenter?: {
+    id: string;
+    name: string;
+    code: string;
+  };
+}
+
+interface TechCenterData {
+  users: AdminUser[];
+  techCenter: {
     id: string;
     name: string;
     code: string;
@@ -24,29 +35,19 @@ interface AdminUser {
 
 export default function AdminOverviewPage() {
   const router = useRouter();
-  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchAdminUsers();
-  }, []);
-
-  const fetchAdminUsers = async () => {
-    try {
-      setLoading(true);
+  const { data: techCenterData, isLoading, error } = useQuery({
+    queryKey: ['admin-tech-center-admins'],
+    queryFn: async () => {
       const response = await fetch('/api/admin/tech-centers/users?role=admin');
       if (!response.ok) {
         throw new Error('Failed to fetch admin users');
       }
-      const data = await response.json();
-      setAdminUsers(data.users || []);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load admin users');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return response.json() as Promise<TechCenterData>;
+    },
+  });
+
+  const adminUsers = techCenterData?.users || [];
 
   return (
     <div className="min-h-screen">
@@ -83,21 +84,25 @@ export default function AdminOverviewPage() {
           </div>
           <div>
             <h2 className="text-xl font-semibold text-[#F5F0E8]">
-              Tech Center Administration
+              {adminUsers.length > 0 && adminUsers[0].techCenter ? 
+                `${adminUsers[0].techCenter.name} - Administrators` : 
+                'Tech Center Administrators'}
             </h2>
             <p className="text-[#A79C8C] text-sm">
-              Manage administrators for your tech center
+              {adminUsers.length > 0 && adminUsers[0].techCenter ? 
+                `People who are administrators on ${adminUsers[0].techCenter.name}` : 
+                'Manage administrators for your tech center'}
             </p>
           </div>
         </div>
 
-        {loading ? (
+        {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 text-[#E8A33D] animate-spin" />
           </div>
         ) : error ? (
           <div className="text-center py-12">
-            <p className="text-red-400">{error}</p>
+            <p className="text-red-400">{error instanceof Error ? error.message : 'Failed to load admin users'}</p>
           </div>
         ) : adminUsers.length === 0 ? (
           <div className="text-center py-12">
@@ -114,11 +119,22 @@ export default function AdminOverviewPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-full bg-[#E8A33D]/20 flex items-center justify-center">
-                        <span className="text-[#E8A33D] font-semibold">
-                          {admin.firstName[0]}{admin.lastName[0]}
-                        </span>
-                      </div>
+                      {admin.profileImageUrl ? (
+                        <Image
+                          src={admin.profileImageUrl}
+                          alt={`${admin.firstName} ${admin.lastName}`}
+                          width={40}
+                          height={40}
+                          unoptimized
+                          className="w-10 h-10 rounded-full object-cover border-2 border-[#E8A33D]/30"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-[#E8A33D]/20 flex items-center justify-center">
+                          <span className="text-[#E8A33D] font-semibold">
+                            {admin.firstName[0]}{admin.lastName[0]}
+                          </span>
+                        </div>
+                      )}
                       <div>
                         <h3 className="font-semibold text-[#F5F0E8]">
                           {admin.firstName} {admin.lastName}

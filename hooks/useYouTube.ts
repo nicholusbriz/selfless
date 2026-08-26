@@ -248,9 +248,9 @@ export function useLiveStreams(maxResults: number = 12) {
       }
       return response.json() as Promise<{ videos: YouTubeVideo[] }>;
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes - more frequent updates for live content
-    gcTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: 2 * 60 * 1000, // Auto-refresh every 2 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes - data considered fresh for 5 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes - garbage collect after 5 minutes
+    refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
   });
 }
 

@@ -279,7 +279,7 @@ const adminNavigation: NavSection = {
   items: [
     {
       id: 'admin-dashboard',
-      label: 'Overview',
+      label: 'Admin',
       path: '/dashboard/admin',
       icon: <Shield className={iconClass} />,
       roles: ['admin'],
@@ -324,19 +324,19 @@ const adminNavigation: NavSection = {
 
 const teacherNavigation: NavSection = {
   id: 'teaching',
-  label: 'Teaching',
+  label: 'Tutoring',
   items: [
     {
       id: 'teacher-dashboard',
       label: 'Overview',
-      path: '/dashboard/teacher',
+      path: '/dashboard/admin/teachers',
       icon: <Briefcase className={iconClass} />,
       roles: ['teacher'],
     },
     {
       id: 'manage-students',
       label: 'Students',
-      path: '/dashboard/teacher/students',
+      path: '/dashboard/admin/teachers',
       icon: <Users className={iconClass} />,
       roles: ['teacher'],
     },
@@ -586,16 +586,16 @@ function getPageInfo(pathname: string) {
       section: 'Administration',
     },
     '/dashboard/teacher': {
-      title: 'Teaching Overview',
-      section: 'Teaching',
+      title: 'Manage Teachers & Students',
+      section: 'Tutoring',
     },
     '/dashboard/teacher/students': {
-      title: 'Students',
-      section: 'Teaching',
+      title: 'Manage Teachers & Students',
+      section: 'Tutoring',
     },
     '/dashboard/teacher/grades': {
       title: 'Grades',
-      section: 'Teaching',
+      section: 'Tutoring',
     },
     '/dashboard/profile': {
       title: 'My Profile',

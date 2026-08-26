@@ -144,7 +144,7 @@ const api = {
   },
 
   markAttendance: async ({ userId, cleaningDayId, status }: { userId: string; cleaningDayId: string; status: 'ATTENDED' | 'NO_SHOW' | 'PENDING' }) => {
-    const response = await fetch('/api/cleaning/attendance', {
+    const response = await fetch('/api/admin/cleaning/attendance', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, cleaningDayId, status }),
