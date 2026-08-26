@@ -1,31 +1,3 @@
-// app/dashboard/cleaning/page.tsx
-// Public cleaning schedule page for students
-//
-// Functionality preserved:
-// - Client-side participant search
-// - Search registered students by name, day and date
-// - Participant lists expanded by default
-// - Search results open the corresponding week/day
-// - Registration
-// - Switching registration
-// - Attendance marking
-// - Confirmation modal
-// - Registration status refresh
-// - Unregistered students refresh after registration
-// - Responsive desktop/mobile layout
-// - Light institutional theme
-// - Community cleaning video
-//
-// UI improvements:
-// - More compact card hierarchy
-// - Larger readable text without excessive spacing
-// - Compact unregistered-student list
-// - Larger participant avatars
-// - Unified page rhythm
-// - Subtle scrolling information strip
-// - Less "card inside card" feeling
-// - No excessive gradients or decorative effects
-
 'use client';
 
 import {
@@ -800,6 +772,16 @@ function ParticipantList({
                     reg.userId ===
                     currentUserId;
 
+                  const fullName =
+                    `${reg.user.firstName ?? ''} ${
+                      reg.user.lastName ?? ''
+                    }`.trim();
+
+                  const isMarking =
+                    markingUserIds.has(
+                      reg.userId,
+                    );
+
                   return (
                     <li
                       key={reg.id}
@@ -809,45 +791,65 @@ function ParticipantList({
                           : ''
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <Avatar
-                          firstName={
-                            reg.user
-                              .firstName
-                          }
-                          lastName={
-                            reg.user
-                              .lastName
-                          }
-                          src={
-                            reg.user
-                              .profileImageUrl
-                          }
-                          isSelf={
-                            isSelf
-                          }
-                        />
+                      {/* 
+                        MOBILE:
+                        Use a two-row layout so the action button
+                        never competes with a long student name.
+                        
+                        DESKTOP:
+                        Keep the name/action relationship compact.
+                      */}
+                      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                        <div className="flex min-w-0 items-start gap-3">
+                          <Avatar
+                            firstName={
+                              reg.user
+                                .firstName
+                            }
+                            lastName={
+                              reg.user
+                                .lastName
+                            }
+                            src={
+                              reg.user
+                                .profileImageUrl
+                            }
+                            isSelf={
+                              isSelf
+                            }
+                          />
 
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="truncate text-[14px] font-semibold leading-5 text-[var(--ink)]">
-                              {
-                                reg
-                                  .user
-                                  .firstName
-                              }{' '}
-                              {
-                                reg
-                                  .user
-                                  .lastName
-                              }
+                          <div className="min-w-0 flex-1">
+                            <div className="min-w-0">
+                              <p className="break-words text-[14px] font-semibold leading-5 text-[var(--ink)]">
+                                {fullName}
 
-                              {isSelf && (
-                                <span className="ml-1.5 text-[11px] font-normal text-[var(--brass)]">
-                                  You
+                                {isSelf && (
+                                  <span className="ml-1.5 whitespace-nowrap text-[11px] font-normal text-[var(--brass)]">
+                                    You
+                                  </span>
+                                )}
+                              </p>
+
+                              {attendance?.status && (
+                                <span
+                                  className={`mt-1 inline-flex px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide sm:hidden ${
+                                    attendance.status ===
+                                    'ATTENDED'
+                                      ? 'bg-[var(--ok-soft)] text-[var(--ok)]'
+                                      : attendance.status ===
+                                          'NO_SHOW'
+                                        ? 'bg-[var(--bad-soft)] text-[var(--bad)]'
+                                        : 'bg-[var(--warn-soft)] text-[var(--warn)]'
+                                  }`}
+                                >
+                                  {attendance.status.replace(
+                                    '_',
+                                    ' ',
+                                  )}
                                 </span>
                               )}
-                            </p>
+                            </div>
 
                             {attendance?.status && (
                               <span
@@ -868,54 +870,33 @@ function ParticipantList({
                               </span>
                             )}
                           </div>
-
-                          {attendance?.status && (
-                            <span
-                              className={`mt-0.5 inline-flex px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide sm:hidden ${
-                                attendance.status ===
-                                'ATTENDED'
-                                  ? 'bg-[var(--ok-soft)] text-[var(--ok)]'
-                                  : attendance.status ===
-                                      'NO_SHOW'
-                                    ? 'bg-[var(--bad-soft)] text-[var(--bad)]'
-                                    : 'bg-[var(--warn-soft)] text-[var(--warn)]'
-                              }`}
-                            >
-                              {attendance.status.replace(
-                                '_',
-                                ' ',
-                              )}
-                            </span>
-                          )}
                         </div>
 
                         {canMarkAttendance && (
-                          <button
-                            type="button"
-                            aria-expanded={markingUserIds.has(
-                              reg.userId,
-                            )}
-                            onClick={() =>
-                              toggleMarking(
-                                reg.userId,
-                              )
-                            }
-                            className={`${btnQuiet} shrink-0 px-2 py-1 text-[10px]`}
-                          >
-                            {markingUserIds.has(
-                              reg.userId,
-                            )
-                              ? 'Hide'
-                              : 'Attendance'}
-                          </button>
+                          <div className="flex w-full shrink-0 sm:w-auto sm:justify-end">
+                            <button
+                              type="button"
+                              aria-expanded={
+                                isMarking
+                              }
+                              onClick={() =>
+                                toggleMarking(
+                                  reg.userId,
+                                )
+                              }
+                              className={`${btnQuiet} min-h-8 w-full px-2.5 py-1 text-[10px] sm:w-auto`}
+                            >
+                              {isMarking
+                                ? 'Hide'
+                                : 'Attendance'}
+                            </button>
+                          </div>
                         )}
                       </div>
 
                       {canMarkAttendance &&
-                        markingUserIds.has(
-                          reg.userId,
-                        ) && (
-                          <div className="mt-2 ml-[52px] flex flex-wrap gap-1.5">
+                        isMarking && (
+                          <div className="mt-2 ml-0 flex flex-wrap gap-1.5 sm:ml-[52px]">
                             <button
                               type="button"
                               aria-label={`Mark attended for ${reg.user.firstName} ${reg.user.lastName}`}
@@ -1146,7 +1127,7 @@ function ParticipantSearch({
                       />
 
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[13px] font-semibold text-[var(--ink)]">
+                        <span className="block break-words text-[13px] font-semibold text-[var(--ink)]">
                           {
                             result.firstName
                           }{' '}
@@ -1245,16 +1226,16 @@ function UnregisteredStudentsList({
               (student) => (
                 <span
                   key={student.id}
-                  className="inline-flex items-center gap-1.5 border border-[var(--line)] bg-[var(--surface-2)] px-2 py-1 text-[11px] font-medium text-[var(--ink-2)]"
+                  className="inline-flex max-w-full items-center gap-1.5 border border-[var(--line)] bg-[var(--surface-2)] px-2 py-1 text-[11px] font-medium text-[var(--ink-2)]"
                 >
-                  <span className="flex h-5 w-5 items-center justify-center bg-[var(--brand)] font-mono text-[8px] font-semibold text-white">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center bg-[var(--brand)] font-mono text-[8px] font-semibold text-white">
                     {getInitials(
                       student.firstName,
                       student.lastName,
                     )}
                   </span>
 
-                  <span>
+                  <span className="break-words">
                     {student.firstName}{' '}
                     {student.lastName}
                   </span>
@@ -1288,7 +1269,7 @@ function Shell({
   return (
     <div
       data-cleaning-scope
-      className="min-h-screen bg-[var(--surface-2)] text-[var(--ink)] antialiased"
+      className="min-h-screen overflow-x-hidden bg-[var(--surface-2)] text-[var(--ink)] antialiased"
     >
       <style
         dangerouslySetInnerHTML={{
@@ -1631,9 +1612,6 @@ export default function CleaningPage() {
           'You are registered for this cleaning day.',
       );
 
-      // Important:
-      // This refreshes both the schedule and the
-      // unregistered-student list.
       await Promise.all([
         refetch(),
         refetchStatus(),
@@ -2049,15 +2027,9 @@ export default function CleaningPage() {
       />
 
       <main className="mx-auto max-w-5xl px-4 py-5 sm:px-6">
-        {/* =================================================
-            SCROLLING MESSAGE
-        ================================================= */}
-
         <ScrollingNotice />
 
-        {/* =================================================
-            NOTICE
-        ================================================= */}
+        {/* NOTICE */}
 
         <AnimatePresence
           initial={false}
@@ -2108,9 +2080,7 @@ export default function CleaningPage() {
           )}
         </AnimatePresence>
 
-        {/* =================================================
-            STATUS
-        ================================================= */}
+        {/* STATUS */}
 
         {statusData && (
           <div
@@ -2178,9 +2148,7 @@ export default function CleaningPage() {
           </div>
         )}
 
-        {/* =================================================
-            UNREGISTERED STUDENTS
-        ================================================= */}
+        {/* UNREGISTERED STUDENTS */}
 
         <UnregisteredStudentsList
           students={
@@ -2189,9 +2157,7 @@ export default function CleaningPage() {
           }
         />
 
-        {/* =================================================
-            SEARCH
-        ================================================= */}
+        {/* SEARCH */}
 
         {weeks.length > 0 && (
           <ParticipantSearch
@@ -2215,9 +2181,7 @@ export default function CleaningPage() {
           />
         )}
 
-        {/* =================================================
-            SCHEDULE
-        ================================================= */}
+        {/* SCHEDULE */}
 
         {weeks.length === 0 ? (
           <div
@@ -2489,7 +2453,7 @@ export default function CleaningPage() {
 
                                     {/* ACTION */}
 
-                                    <div className="flex items-center lg:justify-end">
+                                    <div className="flex min-w-0 items-center lg:justify-end">
                                       {isSelf ? (
                                         <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--ok)]">
                                           <Check className="h-4 w-4" />
@@ -2554,7 +2518,7 @@ export default function CleaningPage() {
 
                                     {/* PARTICIPANTS */}
 
-                                    <div className="lg:col-span-4">
+                                    <div className="min-w-0 lg:col-span-4">
                                       <ParticipantList
                                         day={
                                           day
@@ -2587,9 +2551,7 @@ export default function CleaningPage() {
           </div>
         )}
 
-        {/* =================================================
-            GUIDANCE
-        ================================================= */}
+        {/* GUIDANCE */}
 
         {weeks.length > 0 && (
           <div className="mt-4 border-l-2 border-[var(--brass)] bg-[var(--brass-soft)] px-3 py-2.5">
@@ -2601,9 +2563,7 @@ export default function CleaningPage() {
           </div>
         )}
 
-        {/* =================================================
-            VIDEO
-        ================================================= */}
+        {/* VIDEO */}
 
         <section
           className={`${panel} mt-4 overflow-hidden`}
@@ -2635,9 +2595,7 @@ export default function CleaningPage() {
         </section>
       </main>
 
-      {/* =================================================
-          CONFIRMATION
-      ================================================= */}
+      {/* CONFIRMATION */}
 
       <ConfirmDialog
         state={confirm}
