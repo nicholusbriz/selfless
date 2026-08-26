@@ -1,17 +1,30 @@
 // app/dashboard/cleaning/page.tsx
 // Public cleaning schedule page for students
 //
-// Features:
-// - Client-side participant search — no database request while searching.
-// - Search registered students by first name, last name, full name,
-//   cleaning day, or cleaning date.
-// - Participant lists start expanded by default.
-// - Search results can open the corresponding week.
-// - Existing registration, switching, attendance and modal functionality
-//   preserved.
-// - Professional light institutional theme.
-// - Responsive desktop/mobile layout.
-// - Accessible controls and focus states.
+// Functionality preserved:
+// - Client-side participant search
+// - Search registered students by name, day and date
+// - Participant lists expanded by default
+// - Search results open the corresponding week/day
+// - Registration
+// - Switching registration
+// - Attendance marking
+// - Confirmation modal
+// - Registration status refresh
+// - Unregistered students refresh after registration
+// - Responsive desktop/mobile layout
+// - Light institutional theme
+// - Community cleaning video
+//
+// UI improvements:
+// - More compact card hierarchy
+// - Larger readable text without excessive spacing
+// - Compact unregistered-student list
+// - Larger participant avatars
+// - Unified page rhythm
+// - Subtle scrolling information strip
+// - Less "card inside card" feeling
+// - No excessive gradients or decorative effects
 
 'use client';
 
@@ -53,42 +66,39 @@ import {
 } from '@/hooks/useCleaningStudent';
 
 // =========================================================
-// Design tokens — ink/brass palette matching the rest of the app
+// DESIGN TOKENS
 // =========================================================
 
 const TOKENS = `
   [data-cleaning-scope] {
-    --ink:        #12203B;
-    --ink-2:      #3D4A61;
-    --ink-3:      #6B7268;
-    --ink-4:      #8A9088;
+    --ink: #12203B;
+    --ink-2: #3D4A61;
+    --ink-3: #6B7268;
+    --ink-4: #8A9088;
 
-    --surface:    #FFFFFF;
-    --surface-2:  #F7F6F2;
-    --surface-3:  #EDECE6;
+    --surface: #FFFFFF;
+    --surface-2: #F7F6F2;
+    --surface-3: #EDECE6;
 
-    --line:       #DADCD3;
-    --line-strong:#C8CABF;
+    --line: #DADCD3;
+    --line-strong: #C8CABF;
 
-    --brand:      #12203B;
-    --brand-hover:#1C2E4E;
+    --brand: #12203B;
+    --brand-hover: #1C2E4E;
     --brand-soft: #F0F0EB;
 
-    --brass:      #B98A3E;
-    --brass-hover:#A67A34;
+    --brass: #B98A3E;
+    --brass-hover: #A67A34;
     --brass-soft: #F8F3E8;
 
-    --ok:         #55705B;
-    --ok-soft:    #EEF3EE;
+    --ok: #55705B;
+    --ok-soft: #EEF3EE;
 
-    --warn:       #8A6E3A;
-    --warn-soft:  #F8F4EC;
+    --warn: #8A6E3A;
+    --warn-soft: #F8F4EC;
 
-    --bad:        #A4462F;
-    --bad-soft:   #FBF0EC;
-
-    --radius:     0px;
-    --radius-sm:  0px;
+    --bad: #A4462F;
+    --bad-soft: #FBF0EC;
 
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum' 1, 'cv05' 1;
@@ -101,39 +111,53 @@ const focusRing =
 const panel =
   'border border-[var(--line)] bg-[var(--surface)]';
 
-const btnBase = `inline-flex items-center justify-center gap-2 px-3.5 py-2 text-[12px] font-mono font-semibold uppercase tracking-[0.08em] transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${focusRing}`;
+const btnBase = `inline-flex items-center justify-center gap-2 px-3 py-1.5 text-[12px] font-mono font-semibold uppercase tracking-[0.06em] transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${focusRing}`;
 
-const btnPrimary = `${btnBase} bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)]`;
+const btnPrimary =
+  `${btnBase} bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)]`;
 
-const btnQuiet = `${btnBase} border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-2)] hover:border-[var(--brass)] hover:text-[var(--ink)]`;
+const btnQuiet =
+  `${btnBase} border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-2)] hover:border-[var(--brass)] hover:text-[var(--ink)]`;
 
 // =========================================================
-// Helpers
+// HELPERS
 // =========================================================
 
-const getInitials = (firstName: string, lastName: string) =>
+const getInitials = (
+  firstName: string,
+  lastName: string,
+) =>
   `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 
 const daysUntil = (iso: string) => {
   const target = new Date(iso).getTime();
   const now = Date.now();
 
-  return Math.ceil((target - now) / 86_400_000);
+  return Math.ceil(
+    (target - now) / 86_400_000,
+  );
 };
 
 const deadlineLabel = (iso: string) => {
   const days = daysUntil(iso);
 
   if (days < 0) return 'Registration closed';
-  if (days === 0) return 'Registration closes today';
-  if (days === 1) return 'Registration closes tomorrow';
+  if (days === 0) return 'Closes today';
+  if (days === 1) return 'Closes tomorrow';
 
-  return `Registration closes in ${days} days`;
+  return `Closes in ${days} days`;
 };
 
-type StatusTone = 'ok' | 'warn' | 'bad' | 'neutral';
+type StatusTone =
+  | 'ok'
+  | 'warn'
+  | 'bad'
+  | 'neutral';
 
-const toneClasses: Record<StatusTone, string> = {
+const toneClasses: Record<
+  StatusTone,
+  string
+> = {
   ok: 'border-[var(--line)] bg-[var(--ok-soft)] text-[var(--ok)]',
   warn: 'border-[var(--line)] bg-[var(--warn-soft)] text-[var(--warn)]',
   bad: 'border-[var(--line)] bg-[var(--bad-soft)] text-[var(--bad)]',
@@ -142,7 +166,7 @@ const toneClasses: Record<StatusTone, string> = {
 };
 
 // =========================================================
-// Tag
+// TAG
 // =========================================================
 
 function Tag({
@@ -154,7 +178,7 @@ function Tag({
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 border px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] font-semibold ${toneClasses[tone]}`}
+      className={`inline-flex items-center gap-1.5 border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] ${toneClasses[tone]}`}
     >
       {children}
     </span>
@@ -162,7 +186,7 @@ function Tag({
 }
 
 // =========================================================
-// Capacity
+// CAPACITY
 // =========================================================
 
 function CapacityMeter({
@@ -172,15 +196,22 @@ function CapacityMeter({
   current: number;
   limit: number;
 }) {
-  const pct = limit > 0 ? Math.min(100, (current / limit) * 100) : 0;
+  const pct =
+    limit > 0
+      ? Math.min(100, (current / limit) * 100)
+      : 0;
 
   const tone: StatusTone =
-    pct >= 100 ? 'bad' : pct >= 80 ? 'warn' : 'ok';
+    pct >= 100
+      ? 'bad'
+      : pct >= 80
+        ? 'warn'
+        : 'ok';
 
   return (
-    <div className="flex items-center gap-2.5">
+    <div className="flex items-center gap-2">
       <div
-        className="h-1.5 w-16 overflow-hidden bg-[var(--surface-3)]"
+        className="h-1.5 w-14 overflow-hidden bg-[var(--surface-3)] sm:w-16"
         role="img"
         aria-label={`${current} of ${limit} places taken`}
       >
@@ -195,21 +226,28 @@ function CapacityMeter({
                   : 'var(--ok)',
           }}
           initial={false}
-          animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.3, ease: 'easeOut' }}
+          animate={{
+            width: `${pct}%`,
+          }}
+          transition={{
+            duration: 0.3,
+            ease: 'easeOut',
+          }}
         />
       </div>
 
-      <span className="font-mono text-[12px] text-[var(--ink-2)] tabular-nums">
+      <span className="font-mono text-[12px] text-[var(--ink-2)]">
         {current}
-        <span className="text-[var(--ink-4)]">/{limit}</span>
+        <span className="text-[var(--ink-4)]">
+          /{limit}
+        </span>
       </span>
     </div>
   );
 }
 
 // =========================================================
-// Avatar
+// AVATAR
 // =========================================================
 
 function Avatar({
@@ -224,17 +262,26 @@ function Avatar({
   isSelf?: boolean;
 }) {
   return (
-    <div className="relative h-8 w-8 shrink-0 overflow-hidden border border-[var(--line)] bg-[var(--brand)]">
+    <div
+      className={`relative h-10 w-10 shrink-0 overflow-hidden border bg-[var(--brand)] ${
+        isSelf
+          ? 'border-[var(--brass)]'
+          : 'border-[var(--line)]'
+      }`}
+    >
       {src ? (
         <img
           src={src}
           alt=""
-          className="h-full w-full object-cover grayscale"
+          className="h-full w-full object-cover"
           loading="lazy"
         />
       ) : (
-        <span className="flex h-full w-full items-center justify-center font-mono text-[11px] font-semibold text-white tracking-wide">
-          {getInitials(firstName, lastName)}
+        <span className="flex h-full w-full items-center justify-center font-mono text-[11px] font-semibold tracking-wide text-white">
+          {getInitials(
+            firstName,
+            lastName,
+          )}
         </span>
       )}
 
@@ -246,7 +293,7 @@ function Avatar({
 }
 
 // =========================================================
-// Confirm dialog
+// CONFIRM DIALOG
 // =========================================================
 
 type ConfirmState = {
@@ -265,38 +312,58 @@ function ConfirmDialog({
   onClose: () => void;
   pending: boolean;
 }) {
-  const panelRef = useRef<HTMLDivElement>(null);
-  const restoreRef = useRef<HTMLElement | null>(null);
+  const panelRef =
+    useRef<HTMLDivElement>(null);
+
+  const restoreRef =
+    useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!state) return;
 
-    restoreRef.current = document.activeElement as HTMLElement | null;
+    restoreRef.current =
+      document.activeElement as HTMLElement | null;
 
     const node = panelRef.current;
 
     node
-      ?.querySelector<HTMLElement>('[data-autofocus]')
+      ?.querySelector<HTMLElement>(
+        '[data-autofocus]',
+      )
       ?.focus();
 
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !pending) {
+    const onKeyDown = (
+      event: KeyboardEvent,
+    ) => {
+      if (
+        event.key === 'Escape' &&
+        !pending
+      ) {
         onClose();
         return;
       }
 
-      if (event.key !== 'Tab' || !node) return;
+      if (
+        event.key !== 'Tab' ||
+        !node
+      ) {
+        return;
+      }
 
-      const focusables = Array.from(
-        node.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-        ),
-      );
+      const focusables =
+        Array.from(
+          node.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+          ),
+        );
 
-      if (focusables.length === 0) return;
+      if (!focusables.length) return;
 
       const first = focusables[0];
-      const last = focusables[focusables.length - 1];
+      const last =
+        focusables[
+          focusables.length - 1
+        ];
 
       if (
         event.shiftKey &&
@@ -313,14 +380,26 @@ function ConfirmDialog({
       }
     };
 
-    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener(
+      'keydown',
+      onKeyDown,
+    );
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const previousOverflow =
+      document.body.style.overflow;
+
+    document.body.style.overflow =
+      'hidden';
 
     return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = previousOverflow;
+      document.removeEventListener(
+        'keydown',
+        onKeyDown,
+      );
+
+      document.body.style.overflow =
+        previousOverflow;
+
       restoreRef.current?.focus?.();
     };
   }, [state, pending, onClose]);
@@ -335,7 +414,9 @@ function ConfirmDialog({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
             className="absolute inset-0 bg-[var(--ink)]/35"
-            onClick={() => !pending && onClose()}
+            onClick={() =>
+              !pending && onClose()
+            }
           />
 
           <motion.div
@@ -374,7 +455,7 @@ function ConfirmDialog({
 
             <p
               id="confirm-body"
-              className="mt-2 text-[13px] leading-6 text-[var(--ink-3)]"
+              className="mt-2 text-[14px] leading-6 text-[var(--ink-3)]"
             >
               {state.body}
             </p>
@@ -393,17 +474,18 @@ function ConfirmDialog({
                 type="button"
                 data-autofocus
                 className={btnPrimary}
-                onClick={() => state.onConfirm()}
+                onClick={() =>
+                  state.onConfirm()
+                }
                 disabled={pending}
               >
                 {pending && (
-                  <Loader2
-                    className="h-4 w-4 animate-spin"
-                    aria-hidden
-                  />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 )}
 
-                {pending ? 'Working…' : state.confirmLabel}
+                {pending
+                  ? 'Working…'
+                  : state.confirmLabel}
               </button>
             </div>
           </motion.div>
@@ -414,7 +496,7 @@ function ConfirmDialog({
 }
 
 // =========================================================
-// Header
+// HEADER
 // =========================================================
 
 function PageHeader({
@@ -428,33 +510,30 @@ function PageHeader({
 }) {
   return (
     <header className="border-b border-[var(--line)] bg-[var(--surface)]">
-      <div className="mx-auto max-w-5xl px-4 py-4 sm:px-6">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-3">
+      <div className="mx-auto max-w-5xl px-4 py-3 sm:px-6">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
             <button
               type="button"
               onClick={onBack}
-              className={`${btnQuiet} px-2.5`}
+              className={`${btnQuiet} h-8 w-8 px-0`}
               aria-label="Go back"
             >
-              <ArrowLeft
-                className="h-4 w-4"
-                aria-hidden
-              />
+              <ArrowLeft className="h-4 w-4" />
             </button>
 
             <div className="min-w-0">
-              <h1 className="truncate text-lg font-semibold tracking-tight text-[var(--ink)]">
+              <h1 className="truncate text-[16px] font-semibold tracking-tight text-[var(--ink)] sm:text-[17px]">
                 Cleaning Schedule
               </h1>
 
-              <p className="truncate font-mono text-[11px] text-[var(--ink-3)] uppercase tracking-[0.08em]">
+              <p className="mt-0.5 truncate text-[12px] leading-4 text-[var(--ink-3)]">
                 {registeredLabel ??
-                  'You have not registered for a day yet'}
+                  'Choose a cleaning day'}
 
                 {deadlineText && (
                   <>
-                    <span className="mx-2 text-[var(--ink-4)]">
+                    <span className="mx-1.5 text-[var(--ink-4)]">
                       ·
                     </span>
                     {deadlineText}
@@ -486,7 +565,62 @@ function PageHeader({
 }
 
 // =========================================================
-// Loading skeleton
+// SCROLLING INFORMATION STRIP
+// =========================================================
+
+const scrollingMessages = [
+  'The time is now — register for your cleaning day.',
+  'Choose a day you can genuinely attend.',
+  'Participate fully on your assigned cleaning day.',
+  'Keep in touch with your tutors and stay informed.',
+  'Submit your courses and assignments on time.',
+  'Your participation helps keep our community strong.',
+];
+
+function ScrollingNotice() {
+  return (
+    <div className="mb-4 overflow-hidden border-y border-[var(--line)] bg-[var(--brand)] text-white">
+      <div className="flex h-9 items-center overflow-hidden">
+        <div className="shrink-0 border-r border-white/15 px-3 sm:px-4">
+          <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.1em] text-white/70">
+            Important
+          </span>
+        </div>
+
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <motion.div
+            className="flex w-max items-center whitespace-nowrap"
+            animate={{
+              x: ['0%', '-50%'],
+            }}
+            transition={{
+              duration: 32,
+              repeat: Infinity,
+              ease: 'linear',
+            }}
+          >
+            {[...scrollingMessages, ...scrollingMessages].map(
+              (message, index) => (
+                <span
+                  key={`${message}-${index}`}
+                  className="mx-6 font-mono text-[11px] tracking-[0.01em] text-white/90"
+                >
+                  {message}
+                  <span className="ml-6 text-[var(--brass)]">
+                    •
+                  </span>
+                </span>
+              ),
+            )}
+          </motion.div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =========================================================
+// LOADING SKELETON
 // =========================================================
 
 function ScheduleSkeleton() {
@@ -505,23 +639,25 @@ function ScheduleSkeleton() {
           key={week}
           className={panel}
         >
-          <div className="flex items-center justify-between gap-4 border-b border-[var(--line)] px-4 py-3.5 sm:px-5">
-            <div className="h-4 w-40 animate-pulse bg-[var(--surface-3)]" />
-            <div className="h-4 w-20 animate-pulse bg-[var(--surface-3)]" />
+          <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3 sm:px-5">
+            <div className="h-4 w-36 animate-pulse bg-[var(--surface-3)]" />
+            <div className="h-4 w-16 animate-pulse bg-[var(--surface-3)]" />
           </div>
 
           {week === 0 && (
             <div>
-              {[0, 1, 2, 3, 4].map((row) => (
-                <div
-                  key={row}
-                  className="flex items-center gap-4 border-b border-[var(--line)] px-4 py-3.5 last:border-b-0 sm:px-5"
-                >
-                  <div className="h-4 w-28 animate-pulse bg-[var(--surface-3)]" />
-                  <div className="h-4 w-24 animate-pulse bg-[var(--surface-3)]" />
-                  <div className="ml-auto h-8 w-24 animate-pulse bg-[var(--surface-3)]" />
-                </div>
-              ))}
+              {[0, 1, 2, 3, 4].map(
+                (row) => (
+                  <div
+                    key={row}
+                    className="flex items-center gap-4 border-b border-[var(--line)] px-4 py-3 last:border-b-0 sm:px-5"
+                  >
+                    <div className="h-4 w-24 animate-pulse bg-[var(--surface-3)]" />
+                    <div className="h-4 w-20 animate-pulse bg-[var(--surface-3)]" />
+                    <div className="ml-auto h-7 w-20 animate-pulse bg-[var(--surface-3)]" />
+                  </div>
+                ),
+              )}
             </div>
           )}
         </div>
@@ -531,10 +667,7 @@ function ScheduleSkeleton() {
 }
 
 // =========================================================
-// Participant List
-//
-// IMPORTANT:
-// Participants are OPEN by default.
+// PARTICIPANT LIST
 // =========================================================
 
 type AttendanceRecord = {
@@ -554,51 +687,65 @@ function ParticipantList({
   onMarkAttendance: (
     userId: string,
     dayId: string,
-    status: 'ATTENDED' | 'NO_SHOW' | 'PENDING',
+    status:
+      | 'ATTENDED'
+      | 'NO_SHOW'
+      | 'PENDING',
   ) => void;
 }) {
-  // TRUE means participants are visible immediately.
-  const [open, setOpen] = useState(true);
-  const [markingUserIds, setMarkingUserIds] = useState<
-    Set<string>
-  >(new Set());
+  const [open, setOpen] =
+    useState(true);
 
-  const count = day.registrations.length;
+  const [
+    markingUserIds,
+    setMarkingUserIds,
+  ] = useState<Set<string>>(
+    new Set(),
+  );
 
-  const toggleMarking = (userId: string) => {
-    setMarkingUserIds((previous) => {
-      const next = new Set(previous);
+  const count =
+    day.registrations.length;
 
-      if (next.has(userId)) {
-        next.delete(userId);
-      } else {
-        next.add(userId);
-      }
+  const toggleMarking = (
+    userId: string,
+  ) => {
+    setMarkingUserIds(
+      (previous) => {
+        const next = new Set(
+          previous,
+        );
 
-      return next;
-    });
+        if (next.has(userId)) {
+          next.delete(userId);
+        } else {
+          next.add(userId);
+        }
+
+        return next;
+      },
+    );
   };
 
   if (count === 0) {
     return (
-      <p className="font-mono text-[11px] text-[var(--ink-4)]">
-        No participants yet
-      </p>
+      <div className="mt-1 flex items-center gap-2 text-[12px] text-[var(--ink-4)]">
+        <Users className="h-3.5 w-3.5" />
+        <span>No participants yet</span>
+      </div>
     );
   }
 
   return (
-    <div className="border border-[var(--line)] bg-[var(--surface-2)] p-3 sm:p-4">
+    <div className="mt-1 border-t border-[var(--line)] pt-2.5">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() =>
+          setOpen((v) => !v)
+        }
         aria-expanded={open}
-        className={`mb-2 inline-flex items-center gap-1.5 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)] hover:text-[var(--ink)] ${focusRing}`}
+        className={`inline-flex items-center gap-1.5 py-0.5 text-[12px] font-semibold text-[var(--ink-2)] hover:text-[var(--ink)] ${focusRing}`}
       >
-        <Users
-          className="h-3.5 w-3.5"
-          aria-hidden
-        />
+        <Users className="h-3.5 w-3.5" />
 
         <span>
           {count}{' '}
@@ -611,7 +758,6 @@ function ParticipantList({
           className={`h-3.5 w-3.5 transition-transform ${
             open ? 'rotate-180' : ''
           }`}
-          aria-hidden
         />
       </button>
 
@@ -631,157 +777,207 @@ function ParticipantList({
               opacity: 0,
             }}
             transition={{
-              duration: 0.2,
+              duration: 0.18,
               ease: [0.2, 0, 0, 1],
             }}
             className="overflow-hidden"
           >
-            <ul className="grid gap-2 border-t border-[var(--line)] pt-3 grid-cols-1">
-              {day.registrations.map((reg) => {
-                const attendance = (
-                  day.attendanceRecords as
-                    | AttendanceRecord[]
-                    | undefined
-                )?.find(
-                  (record) =>
-                    record.userId === reg.userId,
-                );
+            <ul className="mt-2 divide-y divide-[var(--line)] border-y border-[var(--line)]">
+              {day.registrations.map(
+                (reg) => {
+                  const attendance =
+                    (
+                      day.attendanceRecords as
+                        | AttendanceRecord[]
+                        | undefined
+                    )?.find(
+                      (record) =>
+                        record.userId ===
+                        reg.userId,
+                    );
 
-                const isSelf =
-                  reg.userId === currentUserId;
+                  const isSelf =
+                    reg.userId ===
+                    currentUserId;
 
-                return (
-                  <li
-                    key={reg.id}
-                    className="border border-[var(--line)] bg-[var(--surface)] px-3 py-3"
-                  >
-                    <div className="flex items-start gap-3">
-                      <Avatar
-                        firstName={reg.user.firstName}
-                        lastName={reg.user.lastName}
-                        src={reg.user.profileImageUrl}
-                        isSelf={isSelf}
-                      />
+                  return (
+                    <li
+                      key={reg.id}
+                      className={`py-2.5 ${
+                        isSelf
+                          ? 'bg-[var(--brand-soft)]/60'
+                          : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar
+                          firstName={
+                            reg.user
+                              .firstName
+                          }
+                          lastName={
+                            reg.user
+                              .lastName
+                          }
+                          src={
+                            reg.user
+                              .profileImageUrl
+                          }
+                          isSelf={
+                            isSelf
+                          }
+                        />
 
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                          <p className="break-words text-sm font-semibold leading-5 text-[var(--ink)]">
-                            {reg.user.firstName}{' '}
-                            {reg.user.lastName}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="truncate text-[14px] font-semibold leading-5 text-[var(--ink)]">
+                              {
+                                reg
+                                  .user
+                                  .firstName
+                              }{' '}
+                              {
+                                reg
+                                  .user
+                                  .lastName
+                              }
 
-                            {isSelf && (
-                              <span className="ml-1.5 font-normal text-[var(--ink-4)]">
-                                (you)
+                              {isSelf && (
+                                <span className="ml-1.5 text-[11px] font-normal text-[var(--brass)]">
+                                  You
+                                </span>
+                              )}
+                            </p>
+
+                            {attendance?.status && (
+                              <span
+                                className={`hidden shrink-0 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide sm:inline-flex ${
+                                  attendance.status ===
+                                  'ATTENDED'
+                                    ? 'bg-[var(--ok-soft)] text-[var(--ok)]'
+                                    : attendance.status ===
+                                        'NO_SHOW'
+                                      ? 'bg-[var(--bad-soft)] text-[var(--bad)]'
+                                      : 'bg-[var(--warn-soft)] text-[var(--warn)]'
+                                }`}
+                              >
+                                {attendance.status.replace(
+                                  '_',
+                                  ' ',
+                                )}
                               </span>
                             )}
-                          </p>
+                          </div>
 
-                          {canMarkAttendance && (
-                            <button
-                              type="button"
-                              aria-expanded={markingUserIds.has(
-                                reg.userId,
-                              )}
-                              onClick={() =>
-                                toggleMarking(reg.userId)
-                              }
-                              className={`${btnQuiet} ml-auto shrink-0 px-2.5 py-1`}
+                          {attendance?.status && (
+                            <span
+                              className={`mt-0.5 inline-flex px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide sm:hidden ${
+                                attendance.status ===
+                                'ATTENDED'
+                                  ? 'bg-[var(--ok-soft)] text-[var(--ok)]'
+                                  : attendance.status ===
+                                      'NO_SHOW'
+                                    ? 'bg-[var(--bad-soft)] text-[var(--bad)]'
+                                    : 'bg-[var(--warn-soft)] text-[var(--warn)]'
+                              }`}
                             >
-                              {markingUserIds.has(reg.userId)
-                                ? 'Hide attendance'
-                                : 'Mark attendance'}
-                            </button>
+                              {attendance.status.replace(
+                                '_',
+                                ' ',
+                              )}
+                            </span>
                           )}
                         </div>
 
-                        {attendance?.status && (
-                          <span
-                            className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                              attendance.status ===
-                              'ATTENDED'
-                                ? 'bg-[var(--ok-soft)] text-[var(--ok)]'
-                                : attendance.status ===
-                                    'NO_SHOW'
-                                  ? 'bg-[var(--bad-soft)] text-[var(--bad)]'
-                                  : 'bg-[var(--warn-soft)] text-[var(--warn)]'
-                            }`}
-                          >
-                            {attendance.status.replace(
-                              '_',
-                              ' ',
+                        {canMarkAttendance && (
+                          <button
+                            type="button"
+                            aria-expanded={markingUserIds.has(
+                              reg.userId,
                             )}
-                          </span>
+                            onClick={() =>
+                              toggleMarking(
+                                reg.userId,
+                              )
+                            }
+                            className={`${btnQuiet} shrink-0 px-2 py-1 text-[10px]`}
+                          >
+                            {markingUserIds.has(
+                              reg.userId,
+                            )
+                              ? 'Hide'
+                              : 'Attendance'}
+                          </button>
                         )}
                       </div>
-                    </div>
 
-                    {canMarkAttendance &&
-                      markingUserIds.has(reg.userId) && (
-                      <div className="mt-2.5 flex flex-wrap items-center gap-1">
-                        <button
-                          type="button"
-                          title="Mark as attended"
-                          aria-label={`Mark attended for ${reg.user.firstName} ${reg.user.lastName}`}
-                          aria-pressed={
-                            attendance?.status ===
-                            'ATTENDED'
-                          }
-                          onClick={() =>
-                            onMarkAttendance(
-                              reg.userId,
-                              day.id,
-                              'ATTENDED',
-                            )
-                          }
-                          className={`rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 ${focusRing}`}
-                        >
-                          Attended
-                        </button>
+                      {canMarkAttendance &&
+                        markingUserIds.has(
+                          reg.userId,
+                        ) && (
+                          <div className="mt-2 ml-[52px] flex flex-wrap gap-1.5">
+                            <button
+                              type="button"
+                              aria-label={`Mark attended for ${reg.user.firstName} ${reg.user.lastName}`}
+                              aria-pressed={
+                                attendance?.status ===
+                                'ATTENDED'
+                              }
+                              onClick={() =>
+                                onMarkAttendance(
+                                  reg.userId,
+                                  day.id,
+                                  'ATTENDED',
+                                )
+                              }
+                              className={`border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-100 ${focusRing}`}
+                            >
+                              Attended
+                            </button>
 
-                        <button
-                          type="button"
-                          title="Mark as no-show"
-                          aria-label={`Mark no show for ${reg.user.firstName} ${reg.user.lastName}`}
-                          aria-pressed={
-                            attendance?.status ===
-                            'NO_SHOW'
-                          }
-                          onClick={() =>
-                            onMarkAttendance(
-                              reg.userId,
-                              day.id,
-                              'NO_SHOW',
-                            )
-                          }
-                          className={`rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 ${focusRing}`}
-                        >
-                          No Show
-                        </button>
+                            <button
+                              type="button"
+                              aria-label={`Mark no show for ${reg.user.firstName} ${reg.user.lastName}`}
+                              aria-pressed={
+                                attendance?.status ===
+                                'NO_SHOW'
+                              }
+                              onClick={() =>
+                                onMarkAttendance(
+                                  reg.userId,
+                                  day.id,
+                                  'NO_SHOW',
+                                )
+                              }
+                              className={`border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-700 hover:bg-red-100 ${focusRing}`}
+                            >
+                              No Show
+                            </button>
 
-                        <button
-                          type="button"
-                          title="Mark as pending"
-                          aria-label={`Mark pending for ${reg.user.firstName} ${reg.user.lastName}`}
-                          aria-pressed={
-                            attendance?.status ===
-                            'PENDING'
-                          }
-                          onClick={() =>
-                            onMarkAttendance(
-                              reg.userId,
-                              day.id,
-                              'PENDING',
-                            )
-                          }
-                          className={`rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 ${focusRing}`}
-                        >
-                          Pending
-                        </button>
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
+                            <button
+                              type="button"
+                              aria-label={`Mark pending for ${reg.user.firstName} ${reg.user.lastName}`}
+                              aria-pressed={
+                                attendance?.status ===
+                                'PENDING'
+                              }
+                              onClick={() =>
+                                onMarkAttendance(
+                                  reg.userId,
+                                  day.id,
+                                  'PENDING',
+                                )
+                              }
+                              className={`border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700 hover:bg-amber-100 ${focusRing}`}
+                            >
+                              Pending
+                            </button>
+                          </div>
+                        )}
+                    </li>
+                  );
+                },
+              )}
             </ul>
           </motion.div>
         )}
@@ -791,7 +987,7 @@ function ParticipantList({
 }
 
 // =========================================================
-// Search result type
+// SEARCH RESULT TYPE
 // =========================================================
 
 type ParticipantSearchResult = {
@@ -808,10 +1004,7 @@ type ParticipantSearchResult = {
 };
 
 // =========================================================
-// Participant Search
-//
-// This component receives already-loaded data.
-// It NEVER calls the database.
+// PARTICIPANT SEARCH
 // =========================================================
 
 function ParticipantSearch({
@@ -823,38 +1016,43 @@ function ParticipantSearch({
 }: {
   results: ParticipantSearchResult[];
   search: string;
-  onSearchChange: (value: string) => void;
+  onSearchChange: (
+    value: string,
+  ) => void;
   onClear: () => void;
-  onSelect: (result: ParticipantSearchResult) => void;
+  onSelect: (
+    result: ParticipantSearchResult,
+  ) => void;
 }) {
-  const [focused, setFocused] = useState(false);
+  const [focused, setFocused] =
+    useState(false);
 
   const showResults =
-    focused && search.trim().length > 0;
+    focused &&
+    search.trim().length > 0;
 
   return (
-    <section className={`${panel} mb-4`}>
-      <div className="border-b border-[var(--line)] p-4 sm:p-5">
-        <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center border border-[var(--line)] bg-[var(--brand)] text-white">
-            <Users
-              className="h-4 w-4"
-              aria-hidden
-            />
+    <section
+      className={`${panel} mb-3`}
+    >
+      <div className="px-4 py-3 sm:px-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center bg-[var(--brand)] text-white">
+            <Search className="h-4 w-4" />
           </div>
 
-          <div className="min-w-0 flex-1">
-            <h2 className="text-[15px] font-semibold tracking-tight text-[var(--ink)]">
+          <div className="min-w-0">
+            <h2 className="text-[14px] font-semibold text-[var(--ink)]">
               Find a registered participant
             </h2>
 
-            <p className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
-              Search registered students by name or cleaning date.
+            <p className="mt-0.5 text-[12px] text-[var(--ink-3)]">
+              Search by student name, cleaning day or date.
             </p>
           </div>
         </div>
 
-        <div className="relative mt-4">
+        <div className="relative mt-3">
           <Search
             className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-4)]"
             aria-hidden
@@ -864,12 +1062,16 @@ function ParticipantSearch({
             type="search"
             value={search}
             onChange={(event) =>
-              onSearchChange(event.target.value)
+              onSearchChange(
+                event.target.value,
+              )
             }
-            onFocus={() => setFocused(true)}
-            placeholder="Search student name, day or date..."
+            onFocus={() =>
+              setFocused(true)
+            }
+            placeholder="Search student, day or date..."
             aria-label="Search registered participants"
-            className={`h-11 w-full border border-[var(--line)] bg-[var(--surface)] pl-10 pr-10 font-mono text-[13px] text-[var(--ink)] placeholder:text-[var(--ink-4)] ${focusRing}`}
+            className={`h-10 w-full border border-[var(--line)] bg-[var(--surface)] pl-10 pr-10 text-[13px] text-[var(--ink)] placeholder:text-[var(--ink-4)] ${focusRing}`}
           />
 
           {search && (
@@ -879,25 +1081,22 @@ function ParticipantSearch({
               aria-label="Clear participant search"
               className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-[var(--ink-4)] hover:text-[var(--ink)] ${focusRing}`}
             >
-              <X
-                className="h-4 w-4"
-                aria-hidden
-              />
+              <X className="h-4 w-4" />
             </button>
           )}
         </div>
 
         {search.trim() && (
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <p className="font-mono text-[11px] text-[var(--ink-3)]">
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <p className="text-[11px] text-[var(--ink-3)]">
               {results.length}{' '}
               {results.length === 1
-                ? 'registered participant'
-                : 'registered participants'}{' '}
+                ? 'participant'
+                : 'participants'}{' '}
               found
             </p>
 
-            <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--ink-4)]">
+            <span className="hidden font-mono text-[9px] uppercase tracking-wide text-[var(--ink-4)] sm:block">
               Client-side search
             </span>
           </div>
@@ -921,54 +1120,71 @@ function ParticipantSearch({
             }}
           >
             {results.length > 0 ? (
-              <div className="max-h-[420px] overflow-y-auto p-2">
-                {results.map((result) => (
-                  <button
-                    type="button"
-                    key={`${result.registrationId}-${result.dayId}`}
-                    onClick={() => onSelect(result)}
-                    className={`flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-[var(--surface-2)] ${focusRing}`}
-                  >
-                    <Avatar
-                      firstName={result.firstName}
-                      lastName={result.lastName}
-                      src={result.profileImageUrl}
-                    />
+              <div className="max-h-[360px] overflow-y-auto border-t border-[var(--line)]">
+                {results.map(
+                  (result) => (
+                    <button
+                      type="button"
+                      key={`${result.registrationId}-${result.dayId}`}
+                      onClick={() =>
+                        onSelect(
+                          result,
+                        )
+                      }
+                      className={`flex w-full items-center gap-3 border-b border-[var(--line)] px-4 py-2.5 text-left last:border-b-0 hover:bg-[var(--surface-2)] ${focusRing}`}
+                    >
+                      <Avatar
+                        firstName={
+                          result.firstName
+                        }
+                        lastName={
+                          result.lastName
+                        }
+                        src={
+                          result.profileImageUrl
+                        }
+                      />
 
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-mono text-[13px] font-semibold text-[var(--ink)]">
-                        {result.firstName}{' '}
-                        {result.lastName}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[13px] font-semibold text-[var(--ink)]">
+                          {
+                            result.firstName
+                          }{' '}
+                          {
+                            result.lastName
+                          }
+                        </span>
+
+                        <span className="mt-0.5 block text-[11px] text-[var(--ink-3)]">
+                          {
+                            result.dayOfWeek
+                          }
+                          ,{' '}
+                          {formatDate(
+                            result.cleaningDate,
+                          )}
+                        </span>
                       </span>
 
-                      <span className="mt-0.5 block font-mono text-[11px] text-[var(--ink-3)]">
-                        {result.dayOfWeek},{' '}
-                        {formatDate(
-                          result.cleaningDate,
-                        )}
+                      <span className="hidden shrink-0 text-[10px] uppercase tracking-wide text-[var(--ink-4)] sm:block">
+                        {
+                          result.weekLabel
+                        }
                       </span>
-                    </span>
-
-                    <span className="hidden shrink-0 font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--ink-4)] sm:block">
-                      {result.weekLabel}
-                    </span>
-                  </button>
-                ))}
+                    </button>
+                  ),
+                )}
               </div>
             ) : (
-              <div className="border-t border-[var(--line)] px-5 py-8 text-center">
-                <User
-                  className="mx-auto h-6 w-6 text-[var(--ink-4)]"
-                  aria-hidden
-                />
+              <div className="border-t border-[var(--line)] px-5 py-6 text-center">
+                <User className="mx-auto h-5 w-5 text-[var(--ink-4)]" />
 
-                <p className="mt-2 font-mono text-[13px] font-semibold text-[var(--ink)]">
+                <p className="mt-2 text-[13px] font-semibold text-[var(--ink)]">
                   No registered participant found
                 </p>
 
-                <p className="mt-1 font-mono text-[11px] text-[var(--ink-3)]">
-                  Try the student's first name, last
-                  name, day or date.
+                <p className="mt-1 text-[11px] text-[var(--ink-3)]">
+                  Try a first name, last name, day or date.
                 </p>
               </div>
             )}
@@ -979,6 +1195,10 @@ function ParticipantSearch({
   );
 }
 
+// =========================================================
+// UNREGISTERED STUDENTS
+// =========================================================
+
 function UnregisteredStudentsList({
   students,
 }: {
@@ -986,57 +1206,78 @@ function UnregisteredStudentsList({
 }) {
   return (
     <section
-      className={`${panel} mb-4`}
+      className={`${panel} mb-3`}
       aria-labelledby="unregistered-students-heading"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--line)] px-4 py-3.5 sm:px-5">
-        <div>
-          <h2
-            id="unregistered-students-heading"
-            className="text-sm font-semibold text-[var(--ink)]"
-          >
-            Students who have not registered for a day
-          </h2>
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-2.5 sm:px-5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <Users className="h-4 w-4 shrink-0 text-[var(--brass)]" />
 
-          <p className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
-            Students with no cleaning day
-          </p>
+          <div className="min-w-0">
+            <h2
+              id="unregistered-students-heading"
+              className="truncate text-[13px] font-semibold text-[var(--ink)]"
+            >
+              Students not yet registered
+            </h2>
+
+            <p className="mt-0.5 truncate text-[11px] text-[var(--ink-3)]">
+              Students who still need to choose a cleaning day
+            </p>
+          </div>
         </div>
 
-        <Tag tone={students.length > 0 ? 'warn' : 'ok'}>
-          {students.length}{' '}
-          {students.length === 1 ? 'student' : 'students'}
+        <Tag
+          tone={
+            students.length > 0
+              ? 'warn'
+              : 'ok'
+          }
+        >
+          {students.length}
         </Tag>
       </div>
 
-      <div className="px-4 py-3 sm:px-5">
-        {students.length > 0 ? (
-          <ul className="divide-y divide-[var(--line)] border border-[var(--line)] bg-[var(--surface-2)]">
-            {students.map((student) => (
-              <li
-                key={student.id}
-                className="px-3 py-2 text-sm font-medium text-[var(--ink)]"
-              >
-                {student.firstName} {student.lastName}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="flex items-center gap-2 font-mono text-[12px] text-[var(--ink-3)]">
-            <CheckCircle
-              className="h-4 w-4 text-[var(--ok)]"
-              aria-hidden
-            />
-            Every student is registered for a cleaning day
+      {students.length > 0 ? (
+        <div className="px-4 py-2.5 sm:px-5">
+          <div className="flex flex-wrap gap-x-2 gap-y-1.5">
+            {students.map(
+              (student) => (
+                <span
+                  key={student.id}
+                  className="inline-flex items-center gap-1.5 border border-[var(--line)] bg-[var(--surface-2)] px-2 py-1 text-[11px] font-medium text-[var(--ink-2)]"
+                >
+                  <span className="flex h-5 w-5 items-center justify-center bg-[var(--brand)] font-mono text-[8px] font-semibold text-white">
+                    {getInitials(
+                      student.firstName,
+                      student.lastName,
+                    )}
+                  </span>
+
+                  <span>
+                    {student.firstName}{' '}
+                    {student.lastName}
+                  </span>
+                </span>
+              ),
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 px-4 py-2.5 sm:px-5">
+          <CheckCircle className="h-4 w-4 text-[var(--ok)]" />
+
+          <p className="text-[11px] font-medium text-[var(--ink-3)]">
+            Every student is registered for a cleaning day.
           </p>
-        )}
-      </div>
+        </div>
+      )}
     </section>
   );
 }
 
 // =========================================================
-// Shell
+// SHELL
 // =========================================================
 
 function Shell({
@@ -1061,32 +1302,39 @@ function Shell({
 }
 
 // =========================================================
-// Main page
+// MAIN PAGE
 // =========================================================
 
 export default function CleaningPage() {
   const router = useRouter();
 
-  const [expandedWeeks, setExpandedWeeks] =
-    useState<Set<string>>(new Set());
+  const [
+    expandedWeeks,
+    setExpandedWeeks,
+  ] = useState<Set<string>>(
+    new Set(),
+  );
 
   const [confirm, setConfirm] =
     useState<ConfirmState>(null);
 
-  const [pendingDayId, setPendingDayId] =
-    useState<string | null>(null);
+  const [
+    pendingDayId,
+    setPendingDayId,
+  ] = useState<string | null>(
+    null,
+  );
 
-  const [notice, setNotice] = useState<{
-    tone: 'ok' | 'bad';
-    message: string;
-  } | null>(null);
+  const [notice, setNotice] =
+    useState<{
+      tone: 'ok' | 'bad';
+      message: string;
+    } | null>(null);
 
-  // =======================================================
-  // CLIENT-SIDE SEARCH STATE
-  // =======================================================
-
-  const [participantSearch, setParticipantSearch] =
-    useState('');
+  const [
+    participantSearch,
+    setParticipantSearch,
+  ] = useState('');
 
   const {
     data,
@@ -1115,153 +1363,183 @@ export default function CleaningPage() {
   );
 
   // =======================================================
-  // Expand ALL weeks automatically
-  //
-  // This means participants in every published week start
-  // visible rather than only the first week.
+  // EXPAND ALL WEEKS
   // =======================================================
 
   useEffect(() => {
-    if (weeks.length === 0) return;
+    if (!weeks.length) return;
 
-    setExpandedWeeks((previous) => {
-      const allWeekIds = new Set(
-        weeks.map((week) => week.id),
-      );
+    setExpandedWeeks(
+      (previous) => {
+        const allWeekIds =
+          new Set(
+            weeks.map(
+              (week) => week.id,
+            ),
+          );
 
-      // Avoid unnecessary state updates.
-      if (
-        previous.size === allWeekIds.size &&
-        Array.from(allWeekIds).every((id) =>
-          previous.has(id),
-        )
-      ) {
-        return previous;
-      }
+        if (
+          previous.size ===
+            allWeekIds.size &&
+          Array.from(
+            allWeekIds,
+          ).every((id) =>
+            previous.has(id),
+          )
+        ) {
+          return previous;
+        }
 
-      return allWeekIds;
-    });
+        return allWeekIds;
+      },
+    );
   }, [weeks]);
 
   // =======================================================
-  // Client-side participant search
-  //
-  // IMPORTANT:
-  // This only searches data already loaded into `weeks`.
-  // No fetch, axios call, API request or database query.
+  // PARTICIPANT SEARCH
   // =======================================================
 
-  const participantSearchResults = useMemo(() => {
-    const query = participantSearch
-      .trim()
-      .toLowerCase();
+  const participantSearchResults =
+    useMemo(() => {
+      const query =
+        participantSearch
+          .trim()
+          .toLowerCase();
 
-    if (!query) return [];
+      if (!query) return [];
 
-    const normalizedQuery = query.replace(/\s+/g, ' ');
+      const normalizedQuery =
+        query.replace(
+          /\s+/g,
+          ' ',
+        );
 
-    const results: ParticipantSearchResult[] = [];
+      const results: ParticipantSearchResult[] =
+        [];
 
-    for (const week of weeks) {
-      for (const day of week.days) {
-        for (const registration of day.registrations) {
-          const firstName =
-            registration.user.firstName ?? '';
+      for (const week of weeks) {
+        for (const day of week.days) {
+          for (const registration of day.registrations) {
+            const firstName =
+              registration.user
+                .firstName ?? '';
 
-          const lastName =
-            registration.user.lastName ?? '';
+            const lastName =
+              registration.user
+                .lastName ?? '';
 
-          const fullName =
-            `${firstName} ${lastName}`.trim();
+            const fullName =
+              `${firstName} ${lastName}`.trim();
 
-          const reverseName =
-            `${lastName} ${firstName}`.trim();
+            const reverseName =
+              `${lastName} ${firstName}`.trim();
 
-          const dayName =
-            day.dayOfWeek ?? '';
+            const dayName =
+              day.dayOfWeek ?? '';
 
-          const dateText =
-            formatDate(day.cleaningDate);
-
-          const rawDate =
-            day.cleaningDate ?? '';
-
-          const searchableText = [
-            firstName,
-            lastName,
-            fullName,
-            reverseName,
-            dayName,
-            dateText,
-            rawDate,
-            week.weekLabel,
-          ]
-            .join(' ')
-            .toLowerCase()
-            .replace(/\s+/g, ' ');
-
-          if (
-            searchableText.includes(
-              normalizedQuery,
-            )
-          ) {
-            results.push({
-              registrationId: registration.id,
-              userId: registration.userId,
-              firstName,
-              lastName,
-              profileImageUrl:
-                registration.user
-                  .profileImageUrl,
-              dayId: day.id,
-              dayOfWeek: day.dayOfWeek,
-              cleaningDate:
+            const dateText =
+              formatDate(
                 day.cleaningDate,
-              weekId: week.id,
-              weekLabel: week.weekLabel,
-            });
+              );
+
+            const rawDate =
+              day.cleaningDate ?? '';
+
+            const searchableText =
+              [
+                firstName,
+                lastName,
+                fullName,
+                reverseName,
+                dayName,
+                dateText,
+                rawDate,
+                week.weekLabel,
+              ]
+                .join(' ')
+                .toLowerCase()
+                .replace(
+                  /\s+/g,
+                  ' ',
+                );
+
+            if (
+              searchableText.includes(
+                normalizedQuery,
+              )
+            ) {
+              results.push({
+                registrationId:
+                  registration.id,
+                userId:
+                  registration.userId,
+                firstName,
+                lastName,
+                profileImageUrl:
+                  registration
+                    .user
+                    .profileImageUrl,
+                dayId: day.id,
+                dayOfWeek:
+                  day.dayOfWeek,
+                cleaningDate:
+                  day.cleaningDate,
+                weekId: week.id,
+                weekLabel:
+                  week.weekLabel,
+              });
+            }
           }
         }
       }
-    }
 
-    return results;
-  }, [participantSearch, weeks]);
+      return results;
+    }, [
+      participantSearch,
+      weeks,
+    ]);
 
   // =======================================================
-  // Search result selection
+  // SEARCH SELECTION
   // =======================================================
 
-  const handleParticipantSearchSelect = useCallback(
-    (result: ParticipantSearchResult) => {
-      // Expand the week containing the participant.
-      setExpandedWeeks((previous) => {
-        const next = new Set(previous);
-        next.add(result.weekId);
-        return next;
-      });
+  const handleParticipantSearchSelect =
+    useCallback(
+      (
+        result: ParticipantSearchResult,
+      ) => {
+        setExpandedWeeks(
+          (previous) => {
+            const next =
+              new Set(previous);
 
-      // Clear the search after selecting.
-      setParticipantSearch('');
+            next.add(
+              result.weekId,
+            );
 
-      // Scroll the matching day into view after React
-      // has had time to render/expand it.
-      window.setTimeout(() => {
-        const element = document.getElementById(
-          `cleaning-day-${result.dayId}`,
+            return next;
+          },
         );
 
-        element?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',
-        });
-      }, 250);
-    },
-    [],
-  );
+        setParticipantSearch('');
+
+        window.setTimeout(() => {
+          const element =
+            document.getElementById(
+              `cleaning-day-${result.dayId}`,
+            );
+
+          element?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+          });
+        }, 250);
+      },
+      [],
+    );
 
   // =======================================================
-  // Flash messages
+  // FLASH
   // =======================================================
 
   const flash = useCallback(
@@ -1276,14 +1554,16 @@ export default function CleaningPage() {
 
       window.setTimeout(
         () => setNotice(null),
-        tone === 'ok' ? 4000 : 7000,
+        tone === 'ok'
+          ? 4000
+          : 7000,
       );
     },
     [],
   );
 
   // =======================================================
-  // All days
+  // ALL DAYS
   // =======================================================
 
   const allDays = useMemo(
@@ -1294,38 +1574,42 @@ export default function CleaningPage() {
     [weeks],
   );
 
-  const registeredDay = useMemo(
-    () =>
-      allDays.find(
-        (day) =>
-          day.id ===
-          data?.registration
-            ?.cleaningDayId,
-      ) ?? null,
-    [
-      allDays,
-      data?.registration?.cleaningDayId,
-    ],
-  );
-
-  const registeredWeek = useMemo(
-    () =>
-      weeks.find((week) =>
-        week.days.some(
+  const registeredDay =
+    useMemo(
+      () =>
+        allDays.find(
           (day) =>
             day.id ===
             data?.registration
               ?.cleaningDayId,
-        ),
-      ) ?? null,
-    [
-      weeks,
-      data?.registration?.cleaningDayId,
-    ],
-  );
+        ) ?? null,
+      [
+        allDays,
+        data?.registration
+          ?.cleaningDayId,
+      ],
+    );
+
+  const registeredWeek =
+    useMemo(
+      () =>
+        weeks.find((week) =>
+          week.days.some(
+            (day) =>
+              day.id ===
+              data?.registration
+                ?.cleaningDayId,
+          ),
+        ) ?? null,
+      [
+        weeks,
+        data?.registration
+          ?.cleaningDayId,
+      ],
+    );
 
   // =======================================================
-  // Registration
+  // REGISTER
   // =======================================================
 
   const runRegister = async (
@@ -1347,6 +1631,9 @@ export default function CleaningPage() {
           'You are registered for this cleaning day.',
       );
 
+      // Important:
+      // This refreshes both the schedule and the
+      // unregistered-student list.
       await Promise.all([
         refetch(),
         refetchStatus(),
@@ -1394,7 +1681,7 @@ export default function CleaningPage() {
   };
 
   // =======================================================
-  // Change registration
+  // CHANGE REGISTRATION
   // =======================================================
 
   const runChange = async (
@@ -1446,7 +1733,7 @@ export default function CleaningPage() {
   };
 
   // =======================================================
-  // Attendance
+  // ATTENDANCE
   // =======================================================
 
   const handleMarkAttendance =
@@ -1486,7 +1773,7 @@ export default function CleaningPage() {
     };
 
   // =======================================================
-  // Confirmation dialogs
+  // CONFIRMATIONS
   // =======================================================
 
   const askRegister = (
@@ -1520,7 +1807,7 @@ export default function CleaningPage() {
     });
 
   // =======================================================
-  // Rules
+  // RULES
   // =======================================================
 
   const isDeadlinePassed = (
@@ -1617,7 +1904,7 @@ export default function CleaningPage() {
       'super_admin';
 
   // =======================================================
-  // Week toggle
+  // WEEK TOGGLE
   // =======================================================
 
   const toggleWeek = (
@@ -1629,7 +1916,9 @@ export default function CleaningPage() {
           previous,
         );
 
-        if (next.has(weekId)) {
+        if (
+          next.has(weekId)
+        ) {
           next.delete(weekId);
         } else {
           next.add(weekId);
@@ -1640,7 +1929,7 @@ export default function CleaningPage() {
     );
 
   // =======================================================
-  // Header summary
+  // HEADER SUMMARY
   // =======================================================
 
   const registeredLabel =
@@ -1667,7 +1956,7 @@ export default function CleaningPage() {
         : null;
 
   // =======================================================
-  // Loading
+  // LOADING
   // =======================================================
 
   if (isLoading) {
@@ -1681,7 +1970,8 @@ export default function CleaningPage() {
           deadlineText={null}
         />
 
-        <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+        <main className="mx-auto max-w-5xl px-4 py-5 sm:px-6">
+          <ScrollingNotice />
           <ScheduleSkeleton />
         </main>
       </Shell>
@@ -1689,7 +1979,7 @@ export default function CleaningPage() {
   }
 
   // =======================================================
-  // Error
+  // ERROR
   // =======================================================
 
   if (error) {
@@ -1703,22 +1993,21 @@ export default function CleaningPage() {
           deadlineText={null}
         />
 
-        <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+        <main className="mx-auto max-w-5xl px-4 py-5 sm:px-6">
+          <ScrollingNotice />
+
           <div
-            className={`${panel} p-6`}
+            className={`${panel} p-5`}
           >
             <div className="flex items-start gap-3">
-              <AlertCircle
-                className="mt-0.5 h-5 w-5 shrink-0 text-[var(--bad)]"
-                aria-hidden
-              />
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-[var(--bad)]" />
 
               <div>
-                <h2 className="text-base font-semibold text-[var(--ink)]">
+                <h2 className="text-[15px] font-semibold text-[var(--ink)]">
                   The schedule could not be loaded
                 </h2>
 
-                <p className="mt-1 max-w-prose font-mono text-[13px] leading-6 text-[var(--ink-3)]">
+                <p className="mt-1 max-w-prose text-[13px] leading-6 text-[var(--ink-3)]">
                   {(error as Error)
                     ?.message ??
                     'An unexpected error occurred.'}
@@ -1729,7 +2018,7 @@ export default function CleaningPage() {
                   onClick={() =>
                     refetch()
                   }
-                  className={`${btnPrimary} mt-4`}
+                  className={`${btnPrimary} mt-3`}
                 >
                   Try again
                 </button>
@@ -1742,7 +2031,7 @@ export default function CleaningPage() {
   }
 
   // =======================================================
-  // Page
+  // PAGE
   // =======================================================
 
   return (
@@ -1759,9 +2048,15 @@ export default function CleaningPage() {
         }
       />
 
-      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+      <main className="mx-auto max-w-5xl px-4 py-5 sm:px-6">
         {/* =================================================
-            Notice
+            SCROLLING MESSAGE
+        ================================================= */}
+
+        <ScrollingNotice />
+
+        {/* =================================================
+            NOTICE
         ================================================= */}
 
         <AnimatePresence
@@ -1773,7 +2068,7 @@ export default function CleaningPage() {
               aria-live="polite"
               initial={{
                 opacity: 0,
-                y: -6,
+                y: -5,
               }}
               animate={{
                 opacity: 1,
@@ -1781,30 +2076,21 @@ export default function CleaningPage() {
               }}
               exit={{
                 opacity: 0,
-                y: -6,
+                y: -5,
               }}
-              transition={{
-                duration: 0.18,
-              }}
-              className={`mb-4 flex items-start gap-2.5 border px-4 py-3 font-mono text-[12px] ${
+              className={`mb-3 flex items-start gap-2 border px-3 py-2.5 text-[12px] ${
                 notice.tone === 'ok'
                   ? toneClasses.ok
                   : toneClasses.bad
               }`}
             >
               {notice.tone === 'ok' ? (
-                <Check
-                  className="mt-0.5 h-4 w-4 shrink-0"
-                  aria-hidden
-                />
+                <Check className="mt-0.5 h-4 w-4 shrink-0" />
               ) : (
-                <AlertCircle
-                  className="mt-0.5 h-4 w-4 shrink-0"
-                  aria-hidden
-                />
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               )}
 
-              <p className="flex-1 leading-6">
+              <p className="flex-1 leading-5">
                 {notice.message}
               </p>
 
@@ -1814,26 +2100,23 @@ export default function CleaningPage() {
                   setNotice(null)
                 }
                 aria-label="Dismiss"
-                className={`shrink-0 p-0.5 opacity-70 hover:opacity-100 ${focusRing}`}
+                className={`shrink-0 p-0.5 ${focusRing}`}
               >
-                <X
-                  className="h-4 w-4"
-                  aria-hidden
-                />
+                <X className="h-4 w-4" />
               </button>
             </motion.div>
           )}
         </AnimatePresence>
 
         {/* =================================================
-            Status
+            STATUS
         ================================================= */}
 
         {statusData && (
           <div
-            className={`${panel} mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-3 sm:px-5`}
+            className={`${panel} mb-3 flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 sm:px-5`}
           >
-            <p className="font-mono text-[12px] text-[var(--ink-2)]">
+            <p className="text-[12px] text-[var(--ink-2)]">
               {statusData.hasRegistration ? (
                 <>
                   Your day:{' '}
@@ -1845,7 +2128,7 @@ export default function CleaningPage() {
                     }
                   </span>
 
-                  <span className="mx-2 text-[var(--ink-4)]">
+                  <span className="mx-1.5 text-[var(--ink-4)]">
                     ·
                   </span>
 
@@ -1879,26 +2162,35 @@ export default function CleaningPage() {
                       : 'warn'
                 }
               >
-                {(statusData.registration?.status ?? 'PENDING')
+                {(
+                  statusData
+                    .registration
+                    ?.status ??
+                  'PENDING'
+                )
                   .toLowerCase()
-                  .replace('_', ' ')}
+                  .replace(
+                    '_',
+                    ' ',
+                  )}
               </Tag>
             )}
           </div>
         )}
 
         {/* =================================================
-            Students who have not registered
+            UNREGISTERED STUDENTS
         ================================================= */}
 
         <UnregisteredStudentsList
           students={
-            data?.unregisteredStudents ?? []
+            data?.unregisteredStudents ??
+            []
           }
         />
 
         {/* =================================================
-            Participant Search
+            SEARCH
         ================================================= */}
 
         {weeks.length > 0 && (
@@ -1924,31 +2216,26 @@ export default function CleaningPage() {
         )}
 
         {/* =================================================
-            Schedule
+            SCHEDULE
         ================================================= */}
 
         {weeks.length === 0 ? (
           <div
-            className={`${panel} px-6 py-14 text-center`}
+            className={`${panel} px-5 py-12 text-center`}
           >
-            <Calendar
-              className="mx-auto h-6 w-6 text-[var(--ink-4)]"
-              aria-hidden
-            />
+            <Calendar className="mx-auto h-6 w-6 text-[var(--ink-4)]" />
 
-            <h2 className="mt-3 text-base font-semibold text-[var(--ink)]">
+            <h2 className="mt-3 text-[15px] font-semibold text-[var(--ink)]">
               No cleaning weeks published
             </h2>
 
-            <p className="mx-auto mt-1 max-w-sm font-mono text-[13px] leading-6 text-[var(--ink-3)]">
-              When your administrator
-              publishes a schedule, the
-              available days will appear
-              here.
+            <p className="mx-auto mt-1 max-w-sm text-[13px] leading-6 text-[var(--ink-3)]">
+              When your administrator publishes a schedule,
+              the available days will appear here.
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {weeks.map((week) => {
               const isExpanded =
                 expandedWeeks.has(
@@ -1976,9 +2263,7 @@ export default function CleaningPage() {
                   id={`cleaning-week-${week.id}`}
                   className={panel}
                 >
-                  {/* =======================================
-                      Week Header
-                  ======================================= */}
+                  {/* WEEK HEADER */}
 
                   <h2>
                     <button
@@ -1991,16 +2276,16 @@ export default function CleaningPage() {
                       aria-expanded={
                         isExpanded
                       }
-                      className={`flex w-full items-center justify-between gap-4 border-b border-[var(--line)] px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] sm:px-5 ${focusRing}`}
+                      className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-[var(--surface-2)] sm:px-5 ${focusRing}`}
                     >
                       <span className="min-w-0">
-                        <span className="block truncate text-[15px] font-semibold tracking-tight text-[var(--ink)]">
+                        <span className="block truncate text-[14px] font-semibold text-[var(--ink)] sm:text-[15px]">
                           {
                             week.weekLabel
                           }
                         </span>
 
-                        <span className="block truncate font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
+                        <span className="mt-0.5 block truncate text-[11px] text-[var(--ink-3)]">
                           {formatDate(
                             week.startDate,
                           )}{' '}
@@ -2009,7 +2294,7 @@ export default function CleaningPage() {
                             week.endDate,
                           )}
 
-                          <span className="mx-2 text-[var(--ink-4)]">
+                          <span className="mx-1.5 text-[var(--ink-4)]">
                             ·
                           </span>
 
@@ -2022,13 +2307,10 @@ export default function CleaningPage() {
                         </span>
                       </span>
 
-                      <span className="flex shrink-0 items-center gap-2.5">
+                      <span className="flex shrink-0 items-center gap-2">
                         {!week.isActive ? (
                           <Tag tone="bad">
-                            <Lock
-                              className="h-3 w-3"
-                              aria-hidden
-                            />
+                            <Lock className="h-3 w-3" />
                             Closed
                           </Tag>
                         ) : deadlinePassed ? (
@@ -2036,7 +2318,7 @@ export default function CleaningPage() {
                             Deadline passed
                           </Tag>
                         ) : (
-                          <span className="hidden font-mono text-[11px] text-[var(--ink-3)] sm:inline">
+                          <span className="hidden text-[11px] text-[var(--ink-3)] sm:inline">
                             {deadlineLabel(
                               week.registrationDeadline,
                             )}
@@ -2049,15 +2331,12 @@ export default function CleaningPage() {
                               ? 'rotate-180'
                               : ''
                           }`}
-                          aria-hidden
                         />
                       </span>
                     </button>
                   </h2>
 
-                  {/* =======================================
-                      Week Contents
-                  ======================================= */}
+                  {/* WEEK CONTENT */}
 
                   <AnimatePresence
                     initial={false}
@@ -2077,7 +2356,7 @@ export default function CleaningPage() {
                           opacity: 0,
                         }}
                         transition={{
-                          duration: 0.22,
+                          duration: 0.2,
                           ease: [
                             0.2,
                             0,
@@ -2087,20 +2366,12 @@ export default function CleaningPage() {
                         }}
                         className="overflow-hidden"
                       >
-                        {/* Desktop columns */}
-                        <div className="hidden grid-cols-[1fr_auto_auto_auto] items-center gap-6 border-b border-[var(--line)] bg-[var(--surface-2)] px-5 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-4)] lg:grid">
-                          <span>
-                            Day
-                          </span>
+                        {/* DESKTOP COLUMN HEADINGS */}
 
-                          <span>
-                            Places
-                          </span>
-
-                          <span>
-                            Status
-                          </span>
-
+                        <div className="hidden grid-cols-[1fr_auto_auto_auto] items-center gap-5 border-y border-[var(--line)] bg-[var(--surface-2)] px-5 py-1.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-4)] lg:grid">
+                          <span>Day</span>
+                          <span>Places</span>
+                          <span>Status</span>
                           <span className="text-right">
                             Action
                           </span>
@@ -2150,36 +2421,40 @@ export default function CleaningPage() {
                                         : ''
                                   }`}
                                 >
-                                  <div className="grid gap-3 px-4 py-3.5 sm:px-5 lg:grid-cols-[1fr_auto_auto_auto] lg:items-center lg:gap-6">
-                                    {/* Day */}
+                                  <div className="grid gap-2.5 px-4 py-3 sm:px-5 lg:grid-cols-[1fr_auto_auto_auto] lg:items-center lg:gap-5">
+                                    {/* DAY */}
+
                                     <div className="min-w-0">
-                                      <p
-                                        className={`font-mono text-[13px] font-semibold ${
-                                          past
-                                            ? 'text-[var(--ink-4)]'
-                                            : 'text-[var(--ink)]'
-                                        }`}
-                                      >
-                                        {
-                                          day.dayOfWeek
-                                        }
+                                      <div className="flex flex-wrap items-center gap-x-2">
+                                        <p
+                                          className={`text-[14px] font-semibold ${
+                                            past
+                                              ? 'text-[var(--ink-4)]'
+                                              : 'text-[var(--ink)]'
+                                          }`}
+                                        >
+                                          {
+                                            day.dayOfWeek
+                                          }
+                                        </p>
 
                                         {isSelf && (
-                                          <span className="ml-2 align-middle font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--brass)]">
+                                          <span className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--brass)]">
                                             Your day
                                           </span>
                                         )}
-                                      </p>
+                                      </div>
 
-                                      <p className="font-mono text-[11px] text-[var(--ink-3)]">
+                                      <p className="mt-0.5 text-[12px] text-[var(--ink-3)]">
                                         {formatDate(
                                           day.cleaningDate,
                                         )}
                                       </p>
                                     </div>
 
-                                    {/* Places */}
-                                    <div className="lg:w-32">
+                                    {/* PLACES */}
+
+                                    <div className="lg:w-28">
                                       <CapacityMeter
                                         current={
                                           day.currentRegistrations
@@ -2190,7 +2465,8 @@ export default function CleaningPage() {
                                       />
                                     </div>
 
-                                    {/* Status */}
+                                    {/* STATUS */}
+
                                     <div className="lg:w-24">
                                       <Tag
                                         tone={dayTone(
@@ -2211,14 +2487,12 @@ export default function CleaningPage() {
                                       </Tag>
                                     </div>
 
-                                    {/* Action */}
+                                    {/* ACTION */}
+
                                     <div className="flex items-center lg:justify-end">
                                       {isSelf ? (
-                                        <span className="inline-flex items-center gap-1.5 font-mono text-[12px] font-semibold text-[var(--ok)]">
-                                          <Check
-                                            className="h-4 w-4"
-                                            aria-hidden
-                                          />
+                                        <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--ok)]">
+                                          <Check className="h-4 w-4" />
                                           Registered
                                         </span>
                                       ) : registerable ? (
@@ -2237,10 +2511,7 @@ export default function CleaningPage() {
                                           }
                                         >
                                           {busy && (
-                                            <Loader2
-                                              className="h-4 w-4 animate-spin"
-                                              aria-hidden
-                                            />
+                                            <Loader2 className="h-4 w-4 animate-spin" />
                                           )}
 
                                           {busy
@@ -2264,10 +2535,7 @@ export default function CleaningPage() {
                                           }
                                         >
                                           {busy && (
-                                            <Loader2
-                                              className="h-4 w-4 animate-spin"
-                                              aria-hidden
-                                            />
+                                            <Loader2 className="h-4 w-4 animate-spin" />
                                           )}
 
                                           {busy
@@ -2275,7 +2543,7 @@ export default function CleaningPage() {
                                             : 'Switch here'}
                                         </button>
                                       ) : (
-                                        <span className="font-mono text-[12px] text-[var(--ink-4)]">
+                                        <span className="text-[12px] text-[var(--ink-4)]">
                                           {unavailableReason(
                                             day,
                                             week,
@@ -2284,7 +2552,8 @@ export default function CleaningPage() {
                                       )}
                                     </div>
 
-                                    {/* Participants */}
+                                    {/* PARTICIPANTS */}
+
                                     <div className="lg:col-span-4">
                                       <ParticipantList
                                         day={
@@ -2319,36 +2588,33 @@ export default function CleaningPage() {
         )}
 
         {/* =================================================
-            Guidance
+            GUIDANCE
         ================================================= */}
 
         {weeks.length > 0 && (
-          <p className="mt-6 max-w-prose font-mono text-[12px] leading-6 text-[var(--ink-3)]">
-            Choose a day you can genuinely
-            attend. While registration for a
-            week is still open you may switch to
-            any day that still has places; once
-            the deadline passes your day is fixed
-            and attendance is recorded by staff.
-          </p>
+          <div className="mt-4 border-l-2 border-[var(--brass)] bg-[var(--brass-soft)] px-3 py-2.5">
+            <p className="text-[12px] leading-5 text-[var(--ink-2)]">
+              Choose a day you can genuinely attend.
+              You may switch while registration is open
+              if another day still has space.
+            </p>
+          </div>
         )}
 
         {/* =================================================
-            Video
+            VIDEO
         ================================================= */}
 
         <section
-          className={`${panel} mt-6 overflow-hidden`}
+          className={`${panel} mt-4 overflow-hidden`}
         >
-          <div className="border-b border-[var(--line)] px-4 py-3.5 sm:px-5">
-            <h2 className="text-[15px] font-semibold tracking-tight text-[var(--ink)]">
+          <div className="border-b border-[var(--line)] px-4 py-3 sm:px-5">
+            <h2 className="text-[14px] font-semibold text-[var(--ink)]">
               Community cleaning, recorded
             </h2>
 
-            <p className="mt-0.5 max-w-prose font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
-              A short look at how a cleaning
-              session runs, so you know what to
-              expect on the day you register for.
+            <p className="mt-0.5 text-[12px] text-[var(--ink-3)]">
+              See what to expect during a community cleaning session.
             </p>
           </div>
 
@@ -2364,14 +2630,13 @@ export default function CleaningPage() {
               type="video/mp4"
             />
 
-            Your browser does not support
-            embedded video.
+            Your browser does not support embedded video.
           </video>
         </section>
       </main>
 
       {/* =================================================
-          Confirm Dialog
+          CONFIRMATION
       ================================================= */}
 
       <ConfirmDialog

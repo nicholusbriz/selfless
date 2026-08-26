@@ -1,34 +1,10 @@
 'use client';
 
 /* ============================================================
-   FONT SETUP
+   DASHBOARD PAGE
    ------------------------------------------------------------
-   Add once in app/layout.tsx:
-
-   import { IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
-
-   const plexSans = IBM_Plex_Sans({
-     subsets: ['latin'],
-     weight: ['400', '500', '600', '700'],
-     variable: '--font-sans',
-   });
-
-   const plexMono = IBM_Plex_Mono({
-     subsets: ['latin'],
-     weight: ['400', '500', '600'],
-     variable: '--font-mono',
-   });
-
-   Then on <body>:
-
-   className={`${plexSans.variable} ${plexMono.variable} font-sans`}
-
-   Tailwind:
-
-   fontFamily: {
-     sans: ['var(--font-sans)'],
-     mono: ['var(--font-mono)'],
-   }
+   UI enhancement only.
+   Existing functionality, API calls and routes are preserved.
 ============================================================ */
 
 import {
@@ -39,13 +15,15 @@ import {
   Clock,
   ArrowRight,
   User,
-  Camera,
   MapPin,
   Activity,
   Video,
   Music,
   Play,
   Sparkles,
+  Camera,
+  Copy,
+  GraduationCap,
   Headphones,
 } from 'lucide-react';
 
@@ -53,7 +31,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import VideoPlayer from '@/components/VideoPlayer';
 
 /* ============================================================
@@ -109,7 +87,7 @@ interface QuickLink {
 }
 
 /* ============================================================
-   DASHBOARD PAGE
+   MAIN PAGE
 ============================================================ */
 
 export default function DashboardPage() {
@@ -119,6 +97,7 @@ export default function DashboardPage() {
   const [techCenter, setTechCenter] = useState<TechCenter | null>(null);
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [videos, setVideos] = useState<string[]>([]);
+  const [messageIndex, setMessageIndex] = useState(0);
 
   /* ============================================================
      DATA
@@ -173,6 +152,32 @@ export default function DashboardPage() {
       console.error('Error fetching videos:', error);
     }
   };
+
+  /* ============================================================
+     ROTATING MESSAGES
+  ============================================================ */
+
+  const motivationMessages = useMemo(
+    () => [
+      'Learn with purpose. Build with confidence.',
+      'Every lesson is another step toward your future.',
+      'Use your time well. Keep learning and keep building.',
+      'Your skills grow through practice, patience and consistency.',
+      'Stay curious. Ask questions. Keep moving forward.',
+      'Small progress today can create meaningful opportunities tomorrow.',
+    ],
+    [],
+  );
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setMessageIndex((current) =>
+        current === motivationMessages.length - 1 ? 0 : current + 1,
+      );
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [motivationMessages.length]);
 
   /* ============================================================
      ACTIVITY HELPERS
@@ -266,7 +271,6 @@ export default function DashboardPage() {
       path: '/dashboard/courses',
       code: 'ACD',
     },
-
     {
       icon: <Users className="h-4 w-4" />,
       label: 'Students',
@@ -274,7 +278,6 @@ export default function DashboardPage() {
       path: '/dashboard/students',
       code: 'COM',
     },
-
     {
       icon: <Briefcase className="h-4 w-4" />,
       label: 'Internships',
@@ -282,7 +285,6 @@ export default function DashboardPage() {
       path: '/dashboard/internships',
       code: 'CAR',
     },
-
     {
       icon: <Clock className="h-4 w-4" />,
       label: 'Cleaning Rota',
@@ -290,7 +292,6 @@ export default function DashboardPage() {
       path: '/dashboard/cleaning',
       code: 'SCH',
     },
-
     {
       icon: <Trophy className="h-4 w-4" />,
       label: 'Football Team',
@@ -301,7 +302,7 @@ export default function DashboardPage() {
   ];
 
   /* ============================================================
-     LOADING STATE
+     LOADING
   ============================================================ */
 
   if (isLoading) {
@@ -345,11 +346,11 @@ export default function DashboardPage() {
         color: COLORS.ink,
       }}
     >
-      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
 
-        {/* ==================================================
-            HEADER
-        ================================================== */}
+        {/* ======================================================
+            HEADER / PROFILE COVER
+        ====================================================== */}
 
         <motion.header
           initial={{ opacity: 0, y: 6 }}
@@ -358,125 +359,217 @@ export default function DashboardPage() {
             duration: 0.35,
             ease: [0.22, 1, 0.36, 1],
           }}
-          className="border bg-white"
+          className="overflow-hidden border bg-white"
           style={{ borderColor: COLORS.line }}
         >
-          <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7">
-            <div className="flex min-w-0 items-center gap-4 sm:gap-5">
+          {/* Compact profile cover */}
 
-              {/* Avatar */}
+          <div className="relative h-[190px] overflow-hidden sm:h-[220px] md:h-[245px]">
 
+            {/* Profile image */}
+
+            {avatarUrl ? (
+              <Image
+                src={avatarUrl}
+                alt={userName}
+                fill
+                priority
+                sizes="(max-width: 768px) 100vw, 1152px"
+                className="object-cover"
+              />
+            ) : (
               <div
-                className="relative h-14 w-14 shrink-0 overflow-hidden border sm:h-16 sm:w-16"
-                style={{
-                  borderColor: COLORS.line,
-                  backgroundColor: COLORS.paper,
-                }}
+                className="flex h-full w-full items-center justify-center"
+                style={{ backgroundColor: COLORS.ink }}
               >
-                {avatarUrl ? (
-                  <Image
-                    src={avatarUrl}
-                    alt={userName}
-                    fill
-                    sizes="64px"
-                    className="object-cover"
-                  />
-                ) : (
-                  <div
-                    className="flex h-full w-full items-center justify-center"
-                    style={{ color: COLORS.muted }}
-                  >
-                    <User className="h-6 w-6" />
-                  </div>
-                )}
+                <User className="h-16 w-16 text-white/50" />
               </div>
+            )}
 
-              {/* User information */}
+            {/* Controlled image treatment */}
 
-              <div className="min-w-0">
-                <p
-                  className="font-mono text-[10px] uppercase tracking-[0.16em]"
-                  style={{ color: COLORS.brass }}
-                >
-                  {greeting}
-                </p>
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  'linear-gradient(to top, rgba(18,32,59,0.92) 0%, rgba(18,32,59,0.42) 42%, rgba(18,32,59,0.08) 100%)',
+              }}
+            />
 
-                <h1
-                  className="mt-1 truncate text-xl font-semibold tracking-tight sm:text-[27px]"
-                  style={{ color: COLORS.ink }}
-                >
-                  {userName}
-                </h1>
+            {/* Small top label */}
 
-                {techCenter && (
-                  <p
-                    className="mt-1.5 flex items-center gap-1.5 truncate font-mono text-[11px]"
-                    style={{ color: COLORS.muted }}
-                  >
-                    <MapPin className="h-3.5 w-3.5 shrink-0" />
-
-                    <span className="truncate">
-                      {techCenter.name}
-                      {techCenter.city
-                        ? ` · ${techCenter.city}`
-                        : ''}
-                    </span>
-                  </p>
-                )}
-              </div>
+            <div className="absolute left-5 top-5 sm:left-7 sm:top-6">
+              <span className="inline-flex items-center border border-white/25 bg-black/15 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-white/85 backdrop-blur-[2px]">
+                Student Dashboard
+              </span>
             </div>
 
-            {/* Profile button */}
+            {/* Cover content */}
 
-            <button
-              type="button"
-              onClick={() => router.push('/dashboard/profile')}
-              className="inline-flex shrink-0 items-center justify-center gap-2 border px-5 py-2.5 font-mono text-xs uppercase tracking-widest transition-colors"
-              style={{
-                borderColor: COLORS.ink,
-                backgroundColor: COLORS.ink,
-                color: '#FFFFFF',
-              }}
-              onMouseEnter={(event) => {
-                event.currentTarget.style.backgroundColor =
-                  COLORS.inkHover;
-              }}
-              onMouseLeave={(event) => {
-                event.currentTarget.style.backgroundColor =
-                  COLORS.ink;
-              }}
+            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7 md:p-8">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+
+                <div className="min-w-0">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/65">
+                    {greeting}
+                  </p>
+
+                  <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl md:text-4xl">
+                    {userName}
+                  </h1>
+
+                  {techCenter && (
+                    <p className="mt-2 flex items-center gap-1.5 truncate font-mono text-[11px] text-white/70">
+                      <MapPin className="h-3.5 w-3.5 shrink-0" />
+
+                      <span className="truncate">
+                        {techCenter.name}
+                        {techCenter.city
+                          ? ` · ${techCenter.city}`
+                          : ''}
+                      </span>
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => router.push('/dashboard/profile')}
+                  className="inline-flex shrink-0 items-center justify-center gap-2 self-start border border-white/70 bg-white px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-[#12203B] transition-colors hover:bg-[#F1F1EC] sm:self-auto"
+                >
+                  <Camera className="h-3.5 w-3.5" />
+
+                  Profile
+
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Small profile information bar */}
+
+          <div
+            className="flex flex-col gap-3 border-t px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-7"
+            style={{ borderColor: COLORS.line }}
+          >
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+
+              <div className="flex items-center gap-2">
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: COLORS.moss }}
+                />
+
+                <span
+                  className="font-mono text-[10px] uppercase tracking-widest"
+                  style={{ color: COLORS.muted }}
+                >
+                  Active account
+                </span>
+              </div>
+
+              {user?.role && (
+                <span
+                  className="font-mono text-[10px] uppercase tracking-widest"
+                  style={{ color: COLORS.mutedLight }}
+                >
+                  {user.role}
+                </span>
+              )}
+            </div>
+
+            <span
+              className="font-mono text-[10px] uppercase tracking-widest"
+              style={{ color: COLORS.mutedLight }}
             >
-              Profile
-
-              <ArrowRight className="h-3.5 w-3.5" />
-            </button>
+              Student portal
+            </span>
           </div>
         </motion.header>
 
-        {/* ==================================================
+        {/* ======================================================
+            MOTIVATION STRIP
+        ====================================================== */}
+
+        <motion.section
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="mt-3 overflow-hidden border bg-white"
+          style={{ borderColor: COLORS.line }}
+        >
+          <div className="flex min-h-[48px] items-center">
+
+            <div
+              className="hidden h-full min-h-[48px] items-center border-r px-4 sm:flex"
+              style={{ borderColor: COLORS.line }}
+            >
+              <span
+                className="font-mono text-[9px] font-semibold uppercase tracking-[0.16em]"
+                style={{ color: COLORS.brass }}
+              >
+                Today
+              </span>
+            </div>
+
+            <div className="min-w-0 flex-1 overflow-hidden px-4 py-3 sm:px-5">
+              <motion.p
+                key={messageIndex}
+                initial={{ opacity: 0, x: 12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.35 }}
+                className="truncate text-sm font-medium"
+                style={{ color: COLORS.ink }}
+              >
+                {motivationMessages[messageIndex]}
+              </motion.p>
+            </div>
+
+            <div className="flex items-center gap-1.5 px-4">
+              {motivationMessages.map((_, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  aria-label={`Show message ${index + 1}`}
+                  onClick={() => setMessageIndex(index)}
+                  className="h-1.5 rounded-full transition-all"
+                  style={{
+                    width: index === messageIndex ? '18px' : '5px',
+                    backgroundColor:
+                      index === messageIndex
+                        ? COLORS.brass
+                        : COLORS.lineStrong,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        </motion.section>
+
+        {/* ======================================================
             FREE EDUCATIONAL RESOURCES
-        ================================================== */}
+        ====================================================== */}
 
         <motion.section
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{
             duration: 0.4,
-            delay: 0.08,
+            delay: 0.14,
             ease: [0.22, 1, 0.36, 1],
           }}
-          className="mt-6 overflow-hidden border bg-white sm:mt-8"
+          className="mt-6 overflow-hidden border bg-white sm:mt-7"
           style={{ borderColor: COLORS.line }}
         >
-          {/* Main area */}
-
           <div className="grid lg:grid-cols-[1fr_270px]">
+
+            {/* Main */}
 
             <div className="p-5 sm:p-7 lg:p-9">
 
-              {/* Heading */}
-
               <div className="flex items-start gap-4">
+
                 <div
                   className="flex h-11 w-11 shrink-0 items-center justify-center"
                   style={{
@@ -519,10 +612,8 @@ export default function DashboardPage() {
 
               <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
 
-                {/* English */}
-
                 <div
-                  className="border px-3.5 py-3"
+                  className="border px-3.5 py-3 transition-colors hover:bg-white"
                   style={{
                     borderColor: COLORS.line,
                     backgroundColor: COLORS.surfaceSoft,
@@ -548,10 +639,8 @@ export default function DashboardPage() {
                   </p>
                 </div>
 
-                {/* Educational videos */}
-
                 <div
-                  className="border px-3.5 py-3"
+                  className="border px-3.5 py-3 transition-colors hover:bg-white"
                   style={{
                     borderColor: COLORS.line,
                     backgroundColor: COLORS.surfaceSoft,
@@ -577,10 +666,8 @@ export default function DashboardPage() {
                   </p>
                 </div>
 
-                {/* Tutorials */}
-
                 <div
-                  className="border px-3.5 py-3"
+                  className="border px-3.5 py-3 transition-colors hover:bg-white"
                   style={{
                     borderColor: COLORS.line,
                     backgroundColor: COLORS.surfaceSoft,
@@ -606,10 +693,8 @@ export default function DashboardPage() {
                   </p>
                 </div>
 
-                {/* Music */}
-
                 <div
-                  className="border px-3.5 py-3"
+                  className="border px-3.5 py-3 transition-colors hover:bg-white"
                   style={{
                     borderColor: COLORS.line,
                     backgroundColor: COLORS.surfaceSoft,
@@ -673,8 +758,6 @@ export default function DashboardPage() {
 
               <div className="mt-6 flex flex-col gap-2.5">
 
-                {/* Primary */}
-
                 <button
                   type="button"
                   onClick={() =>
@@ -701,8 +784,6 @@ export default function DashboardPage() {
 
                   <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                 </button>
-
-                {/* Secondary */}
 
                 <button
                   type="button"
@@ -739,8 +820,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Information strip */}
-
           <div
             className="flex flex-col gap-2 border-t px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-7"
             style={{ borderColor: COLORS.line }}
@@ -762,9 +841,9 @@ export default function DashboardPage() {
           </div>
         </motion.section>
 
-        {/* ==================================================
+        {/* ======================================================
             QUICK LINKS
-        ================================================== */}
+        ====================================================== */}
 
         <section className="mt-8">
           <div className="mb-3 flex items-baseline justify-between">
@@ -850,9 +929,9 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* ==================================================
+        {/* ======================================================
             RECENT ACTIVITY
-        ================================================== */}
+        ====================================================== */}
 
         {techCenter && (
           <section className="mt-8">
@@ -875,12 +954,7 @@ export default function DashboardPage() {
               style={{ borderColor: COLORS.line }}
             >
               {recentActivity.length > 0 ? (
-                <ul
-                  className="divide-y"
-                  style={{
-                    borderColor: COLORS.line,
-                  }}
-                >
+                <ul className="divide-y">
                   {recentActivity.map((item) => {
                     const meta = getActivityMeta(item.action);
 
@@ -976,9 +1050,9 @@ export default function DashboardPage() {
           </section>
         )}
 
-        {/* ==================================================
+        {/* ======================================================
             VIDEO HUB + PROFILE
-        ================================================== */}
+        ====================================================== */}
 
         <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
 
@@ -1143,9 +1217,9 @@ export default function DashboardPage() {
           </section>
         </div>
 
-        {/* ==================================================
+        {/* ======================================================
             ATBRIZ AI
-        ================================================== */}
+        ====================================================== */}
 
         <section
           className="mt-8 flex flex-col gap-5 border p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8"
@@ -1203,10 +1277,6 @@ export default function DashboardPage() {
             <ArrowRight className="h-3.5 w-3.5" />
           </button>
         </section>
-
-        {/* ==================================================
-            FOOTER SPACING
-        ================================================== */}
 
         <div className="h-4 sm:h-6" />
       </div>
