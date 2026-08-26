@@ -152,6 +152,7 @@ export const authOptions: AuthOptions = {
      * JWT Callback
      * Persists custom user data in the JWT token
      * Re-fetches user data from database on session update to ensure fresh data
+     * Automatically refreshes token when role has been changed (roleUpdatedAt check)
      */
     async jwt({ token, user, trigger }: JwtCallbackParams & { trigger?: string }) {
       // Initial sign in
@@ -175,6 +176,13 @@ export const authOptions: AuthOptions = {
         token.gender = user.gender;
         token.preferredTeamType = user.preferredTeamType;
         token.preferredTeamRole = user.preferredTeamRole;
+        
+        // Store roleUpdatedAt from database during initial sign in
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { roleUpdatedAt: true }
+        });
+        token.roleUpdatedAt = dbUser?.roleUpdatedAt?.toISOString();
       }
       
       // Re-fetch user data from database on session update
@@ -204,6 +212,54 @@ export const authOptions: AuthOptions = {
           token.gender = freshUser.gender;
           token.preferredTeamType = freshUser.preferredTeamType;
           token.preferredTeamRole = freshUser.preferredTeamRole;
+          token.roleUpdatedAt = freshUser.roleUpdatedAt?.toISOString();
+        }
+      }
+      
+      // Auto-refresh token if role has been changed (check roleUpdatedAt)
+      if (token.sub && !trigger) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.sub as string },
+          select: { 
+            roleUpdatedAt: true,
+            role: { select: { name: true } }
+          }
+        });
+        
+        if (dbUser) {
+          const tokenRoleUpdatedAt = token.roleUpdatedAt as string | undefined;
+          const dbRoleUpdatedAt = dbUser.roleUpdatedAt?.toISOString();
+          
+          // If database roleUpdatedAt is newer than token's, refresh all user data
+          if (dbRoleUpdatedAt && (!tokenRoleUpdatedAt || new Date(dbRoleUpdatedAt) > new Date(tokenRoleUpdatedAt))) {
+            const freshUser = await prisma.user.findUnique({
+              where: { id: token.sub as string },
+              include: { role: true }
+            });
+            
+            if (freshUser) {
+              token.role = freshUser.role?.name || 'student';
+              token.firstName = freshUser.firstName;
+              token.lastName = freshUser.lastName;
+              token.techCenterId = freshUser.techCenterId;
+              token.profileImageUrl = freshUser.profileImageUrl;
+              token.status = freshUser.status;
+              token.isActive = freshUser.isActive;
+              token.phoneNumber = freshUser.phoneNumber;
+              token.country = freshUser.country;
+              token.city = freshUser.city;
+              token.town = freshUser.town;
+              token.street = freshUser.street;
+              token.generalCourse = freshUser.generalCourse;
+              token.linkedinUrl = freshUser.linkedinUrl;
+              token.githubUrl = freshUser.githubUrl;
+              token.projectUrls = freshUser.projectUrls;
+              token.gender = freshUser.gender;
+              token.preferredTeamType = freshUser.preferredTeamType;
+              token.preferredTeamRole = freshUser.preferredTeamRole;
+              token.roleUpdatedAt = freshUser.roleUpdatedAt?.toISOString();
+            }
+          }
         }
       }
       
