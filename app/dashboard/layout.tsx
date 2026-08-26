@@ -192,10 +192,16 @@ const sharedNavigation: NavSection[] = [
         icon: <Briefcase className={iconClass} />,
         roles: ALL_ROLES,
       },
+    ],
+  },
+  {
+    id: 'media',
+    label: 'Media',
+    items: [
       {
         id: 'my-applications',
-        label: 'Applications',
-        path: '/dashboard/internships/applications',
+        label: 'Live Streaming',
+        path: '/dashboard/live-streaming',
         icon: <ClipboardList className={iconClass} />,
         roles: ALL_ROLES,
       },
@@ -527,9 +533,9 @@ function getPageInfo(pathname: string) {
       title: 'Internships',
       section: 'Opportunities',
     },
-    '/dashboard/internships/applications': {
-      title: 'Applications',
-      section: 'Opportunities',
+    '/dashboard/live-streaming': {
+      title: 'Live Streaming',
+      section: 'Media',
     },
     '/dashboard/support-groups': {
       title: 'Support Groups',
