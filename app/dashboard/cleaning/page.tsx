@@ -260,32 +260,41 @@ function Avatar({
   isSelf?: boolean;
 }) {
   return (
-    <div
-      className={`relative h-10 w-10 shrink-0 overflow-hidden border bg-[var(--brand)] ${
-        isSelf
-          ? 'border-[var(--brass)]'
-          : 'border-[var(--line)]'
-      }`}
-    >
-      {src ? (
-        <img
-          src={src}
-          alt=""
-          className="h-full w-full object-cover"
-          loading="lazy"
-        />
-      ) : (
-        <span className="flex h-full w-full items-center justify-center font-mono text-[11px] font-semibold tracking-wide text-white">
-          {getInitials(
-            firstName,
-            lastName,
-          )}
-        </span>
-      )}
+    <div className="relative shrink-0">
+      <div
+        className={`relative h-10 w-10 shrink-0 overflow-hidden border bg-[var(--brand)] ${
+          isSelf
+            ? 'border-[var(--brass)]'
+            : 'border-[var(--line)]'
+        }`}
+      >
+        {src ? (
+          <img
+            src={src}
+            alt=""
+            className="h-full w-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <span className="flex h-full w-full items-center justify-center font-mono text-[11px] font-semibold tracking-wide text-white">
+            {getInitials(
+              firstName,
+              lastName,
+            )}
+          </span>
+        )}
 
-      {isSelf && (
-        <span className="absolute inset-0 border-2 border-[var(--brass)]" />
-      )}
+        {isSelf && (
+          <span className="absolute inset-0 border-2 border-[var(--brass)]" />
+        )}
+      </div>
+
+      <span
+        className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 border-2 border-white ${
+          isSelf ? 'bg-[var(--ok)]' : 'bg-[var(--ink-4)]'
+        }`}
+        title={isSelf ? 'You' : 'Participant'}
+      />
     </div>
   );
 }
@@ -777,7 +786,7 @@ function ParticipantList({
             }}
             className="overflow-hidden"
           >
-            <ul className="mt-2 divide-y divide-[var(--line)] border-y border-[var(--line)]">
+            <ul className="mt-2">
               {day.registrations.map(
                 (reg) => {
                   const attendance =
@@ -810,7 +819,7 @@ function ParticipantList({
                       }`}
                     >
                       {/* PARTICIPANT */}
-                      <div className="flex min-w-0 items-start gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
                         <Avatar
                           firstName={
                             reg.user
@@ -831,8 +840,8 @@ function ParticipantList({
 
                         <div className="min-w-0 flex-1">
                           {/* NAME + MARK ATTENDANCE */}
-                          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                            <p className="min-w-0 break-words text-[14px] font-semibold leading-5 text-[var(--ink)]">
+                          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+                            <p className="min-w-0 break-words text-[14px] font-semibold leading-5 text-[var(--ink)] text-left">
                               {
                                 reg
                                   .user
@@ -923,7 +932,7 @@ function ParticipantList({
                                 duration: 0.16,
                                 ease: 'easeOut',
                               }}
-                              className="ml-[52px] mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 overflow-hidden"
+                              className="mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1.5 overflow-hidden"
                             >
                               <button
                                 type="button"
@@ -1250,24 +1259,14 @@ function UnregisteredStudentsList({
 
       {students.length > 0 ? (
         <div className="px-4 py-2.5 sm:px-5">
-          <div className="flex flex-wrap gap-x-2 gap-y-1.5">
+          <div className="flex flex-wrap gap-x-3 gap-y-1">
             {students.map(
               (student) => (
                 <span
                   key={student.id}
-                  className="inline-flex max-w-full items-center gap-1.5 border border-[var(--line)] bg-[var(--surface-2)] px-2 py-1 text-[11px] font-medium text-[var(--ink-2)]"
+                  className="text-[12px] text-[var(--ink)]"
                 >
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center bg-[var(--brand)] font-mono text-[8px] font-semibold text-white">
-                    {getInitials(
-                      student.firstName,
-                      student.lastName,
-                    )}
-                  </span>
-
-                  <span className="break-words">
-                    {student.firstName}{' '}
-                    {student.lastName}
-                  </span>
+                  {student.firstName} {student.lastName}
                 </span>
               ),
             )}
@@ -2268,7 +2267,7 @@ export default function CleaningPage() {
                 <section
                   key={week.id}
                   id={`cleaning-week-${week.id}`}
-                  className={panel}
+                  className="bg-[var(--surface)] border border-[var(--line)] rounded-lg"
                 >
                   {/* WEEK HEADER */}
 
@@ -2286,11 +2285,14 @@ export default function CleaningPage() {
                       className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-[var(--surface-2)] sm:px-5 ${focusRing}`}
                     >
                       <span className="min-w-0">
-                        <span className="block truncate text-[14px] font-semibold text-[var(--ink)] sm:text-[15px]">
-                          {
-                            week.weekLabel
-                          }
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="bg-[var(--surface-2)] text-[var(--ink-2)] px-2 py-0.5 rounded text-[11px] font-medium uppercase tracking-wide">
+                            {week.weekLabel}
+                          </span>
+                          <span className="block truncate text-[14px] font-medium text-[var(--ink)] sm:text-[15px]">
+                            Cleaning Schedule
+                          </span>
+                        </div>
 
                         <span className="mt-0.5 block truncate text-[11px] text-[var(--ink-3)]">
                           {formatDate(
@@ -2371,19 +2373,8 @@ export default function CleaningPage() {
                             1,
                           ],
                         }}
-                        className="overflow-hidden"
+                        className="overflow-hidden rounded-b-lg"
                       >
-                        {/* DESKTOP COLUMN HEADINGS */}
-
-                        <div className="hidden grid-cols-[1fr_auto_auto_auto] items-center gap-5 border-y border-[var(--line)] bg-[var(--surface-2)] px-5 py-1.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-4)] lg:grid">
-                          <span>Day</span>
-                          <span>Places</span>
-                          <span>Status</span>
-                          <span className="text-right">
-                            Action
-                          </span>
-                        </div>
-
                         <ul>
                           {week.days.map(
                             (day) => {
@@ -2420,86 +2411,69 @@ export default function CleaningPage() {
                                     day.id
                                   }
                                   id={`cleaning-day-${day.id}`}
-                                  className={`border-b border-[var(--line)] last:border-b-0 ${
-                                    isSelf
-                                      ? 'bg-[var(--brand-soft)]'
-                                      : past
-                                        ? 'bg-[var(--surface-2)]'
-                                        : ''
-                                  }`}
+                                  className="border-b border-[var(--line)] last:border-b-0"
                                 >
-                                  <div className="grid gap-2.5 px-4 py-3 sm:px-5 lg:grid-cols-[1fr_auto_auto_auto] lg:items-center lg:gap-5">
-                                    {/* DAY */}
-
-                                    <div className="min-w-0">
-                                      <div className="flex flex-wrap items-center gap-x-2">
-                                        <p
-                                          className={`text-[14px] font-semibold ${
-                                            past
-                                              ? 'text-[var(--ink-4)]'
-                                              : 'text-[var(--ink)]'
-                                          }`}
-                                        >
-                                          {
-                                            day.dayOfWeek
-                                          }
-                                        </p>
-
-                                        {isSelf && (
-                                          <span className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--brass)]">
-                                            Your day
-                                          </span>
-                                        )}
+                                  {/* CARD HEADER */}
+                                  <div className="px-4 py-3">
+                                    {/* ROW 1: Day name, week, date, capacity, status */}
+                                    <div className="flex items-center justify-between gap-3">
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        <div className="bg-[var(--surface-2)] text-[var(--ink-2)] px-2 py-0.5 rounded text-[11px] font-medium uppercase tracking-wide shrink-0">
+                                          {day.dayOfWeek}
+                                        </div>
+                                        <span className="text-[12px] text-[var(--ink-3)]">
+                                          {formatDate(day.cleaningDate)}
+                                        </span>
                                       </div>
 
-                                      <p className="mt-0.5 text-[12px] text-[var(--ink-3)]">
-                                        {formatDate(
-                                          day.cleaningDate,
-                                        )}
-                                      </p>
+                                      <div className="flex items-center gap-3 shrink-0">
+                                        {/* CAPACITY */}
+                                        <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--surface-2)] text-[var(--ink-2)]">
+                                          <span className="text-[11px] font-medium">
+                                            {day.currentRegistrations}
+                                          </span>
+                                          <span className="text-[10px] opacity-70">
+                                            /
+                                          </span>
+                                          <span className="text-[11px] font-medium">
+                                            {day.capacityLimit}
+                                          </span>
+                                        </div>
+
+                                        {/* STATUS */}
+                                        <span
+                                          className={`px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide ${
+                                            past
+                                              ? 'bg-[var(--ink-4)]/10 text-[var(--ink-4)]'
+                                              : day.status === 'OPEN'
+                                                ? 'bg-[var(--ok-soft)] text-[var(--ok)]'
+                                                : day.status === 'FULL'
+                                                  ? 'bg-[var(--bad-soft)] text-[var(--bad)]'
+                                                  : 'bg-[var(--warn-soft)] text-[var(--warn)]'
+                                          }`}
+                                        >
+                                          {past
+                                            ? 'Past'
+                                            : day.status
+                                                .charAt(0)
+                                                .toLowerCase() +
+                                              day.status
+                                                .slice(1)
+                                                .toLowerCase()}
+                                        </span>
+                                      </div>
                                     </div>
 
-                                    {/* PLACES */}
+                                    {/* ROW 2: Tech center info and action */}
+                                    <div className="mt-2 flex items-center justify-between gap-3">
+                                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[var(--surface-2)] text-[11px] text-[var(--ink-3)]">
+                                        <span>Tech Center opens</span>
+                                        <span className="font-medium text-[var(--ink-2)]">8:00 AM</span>
+                                      </div>
 
-                                    <div className="lg:w-28">
-                                      <CapacityMeter
-                                        current={
-                                          day.currentRegistrations
-                                        }
-                                        limit={
-                                          day.capacityLimit
-                                        }
-                                      />
-                                    </div>
-
-                                    {/* STATUS */}
-
-                                    <div className="lg:w-24">
-                                      <Tag
-                                        tone={dayTone(
-                                          day,
-                                        )}
-                                      >
-                                        {past
-                                          ? 'Past'
-                                          : day.status
-                                              .charAt(
-                                                0,
-                                              ) +
-                                            day.status
-                                              .slice(
-                                                1,
-                                              )
-                                              .toLowerCase()}
-                                      </Tag>
-                                    </div>
-
-                                    {/* ACTION */}
-
-                                    <div className="flex items-center lg:justify-end">
+                                      {/* ACTION */}
                                       {isSelf ? (
-                                        <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--ok)]">
-                                          <Check className="h-4 w-4" />
+                                        <span className="px-2 py-0.5 rounded bg-[var(--ok-soft)] text-[11px] font-medium text-[var(--ok)]">
                                           Registered
                                         </span>
                                       ) : registerable ? (
@@ -2513,14 +2487,8 @@ export default function CleaningPage() {
                                           disabled={
                                             busy
                                           }
-                                          className={
-                                            btnPrimary
-                                          }
+                                          className="px-2 py-0.5 rounded bg-[var(--brass-soft)] text-[11px] font-medium text-[var(--brass)] transition-colors hover:bg-[var(--brass)] disabled:opacity-50"
                                         >
-                                          {busy && (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                          )}
-
                                           {busy
                                             ? 'Registering…'
                                             : 'Register'}
@@ -2534,23 +2502,15 @@ export default function CleaningPage() {
                                               week.weekLabel,
                                             )
                                           }
-                                          disabled={
-                                            busy
-                                          }
-                                          className={
-                                            btnQuiet
-                                          }
+                                          disabled={busy}
+                                          className="px-2 py-0.5 rounded bg-[var(--brass-soft)] text-[11px] font-medium text-[var(--brass)] transition-colors hover:bg-[var(--brass)] disabled:opacity-50"
                                         >
-                                          {busy && (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                          )}
-
                                           {busy
                                             ? 'Switching…'
                                             : 'Switch here'}
                                         </button>
                                       ) : (
-                                        <span className="text-[12px] text-[var(--ink-4)]">
+                                        <span className="text-[11px] text-[var(--ink-4)]">
                                           {unavailableReason(
                                             day,
                                             week,
@@ -2558,32 +2518,18 @@ export default function CleaningPage() {
                                         </span>
                                       )}
                                     </div>
-
-                                    {/* PARTICIPANTS */}
-
-                                    <div className="lg:col-span-4">
-                                      <ParticipantList
-                                        day={
-                                          day
-                                        }
-                                        currentUserId={
-                                          data
-                                            ?.user
-                                            ?.id
-                                        }
-                                        canMarkAttendance={Boolean(
-                                          canMarkAttendance,
-                                        )}
-                                        onMarkAttendance={
-                                          handleMarkAttendance
-                                        }
-                                      />
-                                    </div>
                                   </div>
+
+                                  {/* PARTICIPANTS */}
+                                  <ParticipantList
+                                    day={day}
+                                    currentUserId={data?.user?.id}
+                                    canMarkAttendance={canMarkAttendance}
+                                    onMarkAttendance={handleMarkAttendance}
+                                  />
                                 </li>
                               );
-                            },
-                          )}
+                            })}
                         </ul>
                       </motion.div>
                     )}

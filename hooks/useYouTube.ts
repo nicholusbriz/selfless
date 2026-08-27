@@ -34,8 +34,8 @@ export function useEnglishLearningVideos(query: string = 'English language learn
       }
       return response.json() as Promise<YouTubeSearchResult>;
     },
-    staleTime: 15 * 60 * 1000, // 15 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes (renamed from cacheTime in v5)
+    staleTime: 2 * 60 * 1000, // 2 minutes - data remains fresh for 2 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes - garbage collection time
   });
 }
 
@@ -56,8 +56,8 @@ export function useMusicVideos(query: string = 'trending music videos', maxResul
       }
       return response.json() as Promise<YouTubeSearchResult>;
     },
-    staleTime: 15 * 60 * 1000, // 15 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes
+    staleTime: 2 * 60 * 1000, // 2 minutes - data remains fresh for 2 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes - garbage collection time
   });
 }
 

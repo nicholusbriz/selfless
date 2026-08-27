@@ -360,7 +360,7 @@ export default function StudentProfilePage() {
 
         <section className="overflow-hidden rounded-lg border border-[#D5DCE4] bg-white shadow-[0_2px_8px_rgba(20,33,61,0.04)]">
           {/* Cover */}
-          <div className="relative h-52 overflow-hidden bg-[#1A365D] sm:h-60 md:h-72 lg:h-80">
+          <div className="relative h-64 overflow-hidden bg-[#1A365D] sm:h-80 md:h-96">
             {student.profileImage ? (
               <Image
                 src={student.profileImage}
@@ -374,152 +374,101 @@ export default function StudentProfilePage() {
               <div className="absolute inset-0 bg-[#1A365D]" />
             )}
 
-            {/* Professional cover treatment */}
-            <div className="absolute inset-0 bg-[#0F2038]/65" />
-
-            <div className="absolute inset-0 bg-gradient-to-b from-[#0B1B30]/25 via-transparent to-[#0B1B30]/80" />
-
-            {/* Subtle institutional frame */}
+            {/* Top accent bar */}
             <div className="absolute inset-x-0 top-0 h-1 bg-[#C88A24]" />
 
-            <div className="absolute bottom-0 left-0 right-0 p-5 md:p-7">
-              <div className="flex items-center gap-2 text-white/75">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#E8A33D]" />
+            {/* Student info overlay on cover */}
+            <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/70 via-black/30 to-transparent p-6 md:p-10">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+                  <User className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/80">
+                    Student Profile
+                  </p>
+                  <p className="text-xs font-medium text-white/60">
+                    {student.role}
+                  </p>
+                </div>
+              </div>
 
-                <span className="text-[9px] font-bold uppercase tracking-[0.18em]">
-                  Student Profile
-                </span>
+              <h1 className="mt-6 break-words text-4xl font-black leading-tight tracking-tight text-white sm:text-5xl md:text-6xl">
+                {student.firstName} {student.lastName}
+              </h1>
+
+              <div className="mt-4 flex flex-wrap gap-4 text-sm text-white/90">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  <span className="break-all">{student.email}</span>
+                </div>
+                {student.techCenter && (
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    <span>
+                      {student.techCenter.name}
+                      {student.techCenter.country?.name && `, ${student.techCenter.country.name}`}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
           {/* Identity body */}
           <div className="px-5 pb-6 md:px-8 md:pb-8">
-            <div className="-mt-14 flex flex-col gap-5 md:-mt-20 md:flex-row md:items-end md:gap-7">
-              {/* Profile image */}
-              <div className="relative z-10 flex-shrink-0">
-                <div className="relative h-28 w-28 overflow-hidden rounded-xl border-4 border-white bg-[#E5E9EE] shadow-[0_5px_18px_rgba(20,33,61,0.16)] sm:h-32 sm:w-32 md:h-40 md:w-40">
-                  {student.profileImage ? (
-                    <Image
-                      src={student.profileImage}
-                      alt={`${student.firstName} ${student.lastName}`}
-                      fill
-                      sizes="160px"
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-[#1A365D]">
-                      <span className="text-4xl font-black tracking-tight text-white md:text-5xl">
-                        {getInitials()}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Status */}
-                <div
-                  className={`absolute -bottom-2 -right-2 flex items-center gap-1.5 rounded-full border-2 border-white px-2.5 py-1 shadow-sm ${
-                    student.isActive
-                      ? 'bg-[#EAF7F1] text-[#247653]'
-                      : 'bg-[#FEF0F0] text-[#C74D4D]'
-                  }`}
-                >
-                  {student.isActive ? (
-                    <CheckCircle className="h-3.5 w-3.5" />
-                  ) : (
-                    <XCircle className="h-3.5 w-3.5" />
-                  )}
-
-                  <span className="text-[9px] font-bold uppercase tracking-[0.1em]">
-                    {student.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
+            <div className="flex flex-col gap-4 pt-6 sm:flex-row sm:items-center sm:justify-between">
+              {/* Status badge */}
+              <div
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 ${
+                  student.isActive
+                    ? 'bg-[#EAF7F1] text-[#247653]'
+                    : 'bg-[#FEF0F0] text-[#C74D4D]'
+                }`}
+              >
+                {student.isActive ? (
+                  <CheckCircle className="h-4 w-4" />
+                ) : (
+                  <XCircle className="h-4 w-4" />
+                )}
+                <span className="text-xs font-bold uppercase tracking-[0.1em]">
+                  {student.isActive ? 'Active' : 'Inactive'}
+                </span>
               </div>
 
-              {/* Identity */}
-              <div className="min-w-0 flex-1 pb-1">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                  <div className="min-w-0">
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <span className="rounded bg-[#F6EBD8] px-2 py-1 font-mono text-[9px] font-bold tracking-[0.1em] text-[#9A691B]">
-                        STUDENT
-                      </span>
-
-                      <span className="text-[10px] uppercase tracking-[0.14em] text-[#8A94A3]">
-                        {student.role}
-                      </span>
-                    </div>
-
-                    <h1 className="break-words text-3xl font-black leading-[0.95] tracking-[-0.035em] text-[#14213D] sm:text-4xl md:text-5xl lg:text-6xl">
-                      {student.firstName} {student.lastName}
-                    </h1>
-
-                    <div className="mt-3 flex items-center gap-2">
-                      <Mail className="h-4 w-4 flex-shrink-0 text-[#C88A24]" />
-
-                      <span className="break-all text-sm text-[#667386]">
-                        {student.email}
-                      </span>
-                    </div>
-
-                    <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
-                      <div className="flex items-center gap-2 text-sm text-[#667386]">
-                        <MapPin className="h-4 w-4 flex-shrink-0 text-[#C88A24]" />
-
-                        <span>
-                          {student.techCenter
-                            ? `${student.techCenter.name}${
-                                student.techCenter.country?.name
-                                  ? `, ${student.techCenter.country.name}`
-                                  : ''
-                              }`
-                            : 'No tech center assigned'}
-                        </span>
-                      </div>
-
-                      {student.generalCourse && (
-                        <div className="flex items-center gap-2 text-sm text-[#667386]">
-                          <Book className="h-4 w-4 flex-shrink-0 text-[#C88A24]" />
-
-                          <span>{student.generalCourse}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Student ID */}
-                  <div className="rounded-md border border-[#E0E5EB] bg-[#F8F9FB] px-4 py-3 lg:min-w-[190px] lg:text-right">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#929CAA]">
-                      Student ID
-                    </p>
-
-                    <p className="mt-1 break-all font-mono text-sm font-bold text-[#354258]">
-                      {student.studentId}
-                    </p>
-                  </div>
-                </div>
+              {/* Student ID */}
+              <div className="rounded-md border border-[#E0E5EB] bg-[#F8F9FB] px-4 py-3">
+                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#929CAA]">
+                  Student ID
+                </p>
+                <p className="mt-1 break-all font-mono text-sm font-bold text-[#354258]">
+                  {student.studentId}
+                </p>
               </div>
             </div>
 
             {/* Metadata line */}
-            <div className="mt-7 flex flex-col gap-3 border-t border-[#E5E9EE] pt-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap gap-x-5 gap-y-2 text-[10px] uppercase tracking-[0.12em] text-[#8A94A3]">
+            <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 border-t border-[#E5E9EE] pt-5 text-[10px] uppercase tracking-[0.12em] text-[#8A94A3]">
+              <span>
+                Joined{' '}
+                <strong className="font-semibold text-[#536174]">
+                  {new Date(student.createdAt).toLocaleDateString()}
+                </strong>
+              </span>
+              <span>
+                Status{' '}
+                <strong className="font-semibold capitalize text-[#536174]">
+                  {student.status}
+                </strong>
+              </span>
+              {student.generalCourse && (
                 <span>
-                  Joined{' '}
+                  Course{' '}
                   <strong className="font-semibold text-[#536174]">
-                    {new Date(student.createdAt).toLocaleDateString()}
+                    {student.generalCourse}
                   </strong>
                 </span>
-
-                <span>
-                  Status{' '}
-                  <strong className="font-semibold capitalize text-[#536174]">
-                    {student.status}
-                  </strong>
-                </span>
-              </div>
-
-              <div className="hidden h-px flex-1 bg-[#E5E9EE] sm:block sm:max-w-[120px]" />
+              )}
             </div>
           </div>
         </section>
@@ -595,7 +544,7 @@ export default function StudentProfilePage() {
             <div className="rounded-lg border border-[#D8DDE4] bg-white px-4 shadow-[0_1px_4px_rgba(20,33,61,0.025)] md:px-6">
               <div className="grid grid-cols-1 gap-x-10 md:grid-cols-2">
                 <InfoRow
-                  label="General Course"
+                  label="General Degree Course"
                   value={student.generalCourse || 'Not provided'}
                   icon={<Book className="h-4 w-4" />}
                 />
