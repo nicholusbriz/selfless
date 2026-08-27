@@ -1,3 +1,29 @@
+// app/dashboard/cleaning/page.tsx
+// Public cleaning schedule page for students
+//
+// Functionality preserved:
+// - Client-side participant search
+// - Search registered students by name, day and date
+// - Participant lists expanded by default
+// - Search results open the corresponding week/day
+// - Registration
+// - Switching registration
+// - Attendance marking
+// - Confirmation modal
+// - Registration status refresh
+// - Unregistered students refresh after registration
+// - Responsive desktop/mobile layout
+// - Light institutional theme
+// - Community cleaning video
+//
+// Mobile participant improvements:
+// - Full participant names display on mobile
+// - No name truncation
+// - "Mark attendance" is a text-style toggle
+// - Attendance toggle stays inline with the name where possible
+// - No attendance button overflow
+// - Attendance controls remain compact
+
 'use client';
 
 import {
@@ -665,15 +691,12 @@ function ParticipantList({
       | 'PENDING',
   ) => void;
 }) {
-  const [open, setOpen] =
-    useState(true);
+  const [open, setOpen] = useState(true);
 
   const [
     markingUserIds,
     setMarkingUserIds,
-  ] = useState<Set<string>>(
-    new Set(),
-  );
+  ] = useState<Set<string>>(new Set());
 
   const count =
     day.registrations.length;
@@ -701,7 +724,7 @@ function ParticipantList({
   if (count === 0) {
     return (
       <div className="mt-1 flex items-center gap-2 text-[12px] text-[var(--ink-4)]">
-        <Users className="h-3.5 w-3.5" />
+        <Users className="h-3.5 w-3.5 shrink-0" />
         <span>No participants yet</span>
       </div>
     );
@@ -772,12 +795,7 @@ function ParticipantList({
                     reg.userId ===
                     currentUserId;
 
-                  const fullName =
-                    `${reg.user.firstName ?? ''} ${
-                      reg.user.lastName ?? ''
-                    }`.trim();
-
-                  const isMarking =
+                  const isAttendanceOpen =
                     markingUserIds.has(
                       reg.userId,
                     );
@@ -791,170 +809,181 @@ function ParticipantList({
                           : ''
                       }`}
                     >
-                      {/* 
-                        MOBILE:
-                        Use a two-row layout so the action button
-                        never competes with a long student name.
-                        
-                        DESKTOP:
-                        Keep the name/action relationship compact.
-                      */}
-                      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                        <div className="flex min-w-0 items-start gap-3">
-                          <Avatar
-                            firstName={
-                              reg.user
-                                .firstName
-                            }
-                            lastName={
-                              reg.user
-                                .lastName
-                            }
-                            src={
-                              reg.user
-                                .profileImageUrl
-                            }
-                            isSelf={
-                              isSelf
-                            }
-                          />
+                      {/* PARTICIPANT */}
+                      <div className="flex min-w-0 items-start gap-3">
+                        <Avatar
+                          firstName={
+                            reg.user
+                              .firstName
+                          }
+                          lastName={
+                            reg.user
+                              .lastName
+                          }
+                          src={
+                            reg.user
+                              .profileImageUrl
+                          }
+                          isSelf={
+                            isSelf
+                          }
+                        />
 
-                          <div className="min-w-0 flex-1">
-                            <div className="min-w-0">
-                              <p className="break-words text-[14px] font-semibold leading-5 text-[var(--ink)]">
-                                {fullName}
+                        <div className="min-w-0 flex-1">
+                          {/* NAME + MARK ATTENDANCE */}
+                          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                            <p className="min-w-0 break-words text-[14px] font-semibold leading-5 text-[var(--ink)]">
+                              {
+                                reg
+                                  .user
+                                  .firstName
+                              }{' '}
+                              {
+                                reg
+                                  .user
+                                  .lastName
+                              }
 
-                                {isSelf && (
-                                  <span className="ml-1.5 whitespace-nowrap text-[11px] font-normal text-[var(--brass)]">
-                                    You
-                                  </span>
-                                )}
-                              </p>
-
-                              {attendance?.status && (
-                                <span
-                                  className={`mt-1 inline-flex px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide sm:hidden ${
-                                    attendance.status ===
-                                    'ATTENDED'
-                                      ? 'bg-[var(--ok-soft)] text-[var(--ok)]'
-                                      : attendance.status ===
-                                          'NO_SHOW'
-                                        ? 'bg-[var(--bad-soft)] text-[var(--bad)]'
-                                        : 'bg-[var(--warn-soft)] text-[var(--warn)]'
-                                  }`}
-                                >
-                                  {attendance.status.replace(
-                                    '_',
-                                    ' ',
-                                  )}
+                              {isSelf && (
+                                <span className="ml-1.5 text-[11px] font-normal text-[var(--brass)]">
+                                  You
                                 </span>
                               )}
-                            </div>
+                            </p>
 
-                            {attendance?.status && (
-                              <span
-                                className={`hidden shrink-0 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide sm:inline-flex ${
-                                  attendance.status ===
-                                  'ATTENDED'
-                                    ? 'bg-[var(--ok-soft)] text-[var(--ok)]'
-                                    : attendance.status ===
-                                        'NO_SHOW'
-                                      ? 'bg-[var(--bad-soft)] text-[var(--bad)]'
-                                      : 'bg-[var(--warn-soft)] text-[var(--warn)]'
+                            {canMarkAttendance && (
+                              <button
+                                type="button"
+                                aria-expanded={
+                                  isAttendanceOpen
+                                }
+                                aria-label={
+                                  isAttendanceOpen
+                                    ? `Hide attendance options for ${reg.user.firstName} ${reg.user.lastName}`
+                                    : `Mark attendance for ${reg.user.firstName} ${reg.user.lastName}`
+                                }
+                                onClick={() =>
+                                  toggleMarking(
+                                    reg.userId,
+                                  )
+                                }
+                                className={`shrink-0 whitespace-nowrap border-0 bg-transparent p-0 text-[11px] font-semibold leading-5 underline decoration-1 underline-offset-2 transition-colors ${focusRing} ${
+                                  isAttendanceOpen
+                                    ? 'text-[var(--ink)] decoration-[var(--ink-4)]'
+                                    : 'text-[var(--brass)] decoration-[var(--brass)] hover:text-[var(--brand)]'
                                 }`}
                               >
-                                {attendance.status.replace(
-                                  '_',
-                                  ' ',
-                                )}
-                              </span>
+                                {isAttendanceOpen
+                                  ? 'Hide'
+                                  : 'Mark attendance'}
+                              </button>
                             )}
                           </div>
-                        </div>
 
-                        {canMarkAttendance && (
-                          <div className="flex w-full shrink-0 sm:w-auto sm:justify-end">
-                            <button
-                              type="button"
-                              aria-expanded={
-                                isMarking
-                              }
-                              onClick={() =>
-                                toggleMarking(
-                                  reg.userId,
-                                )
-                              }
-                              className={`${btnQuiet} min-h-8 w-full px-2.5 py-1 text-[10px] sm:w-auto`}
+                          {/* CURRENT ATTENDANCE STATUS */}
+                          {attendance?.status && (
+                            <span
+                              className={`mt-1 inline-flex px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${
+                                attendance.status ===
+                                'ATTENDED'
+                                  ? 'bg-[var(--ok-soft)] text-[var(--ok)]'
+                                  : attendance.status ===
+                                      'NO_SHOW'
+                                    ? 'bg-[var(--bad-soft)] text-[var(--bad)]'
+                                    : 'bg-[var(--warn-soft)] text-[var(--warn)]'
+                              }`}
                             >
-                              {isMarking
-                                ? 'Hide'
-                                : 'Attendance'}
-                            </button>
-                          </div>
-                        )}
+                              {attendance.status.replace(
+                                '_',
+                                ' ',
+                              )}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
-                      {canMarkAttendance &&
-                        isMarking && (
-                          <div className="mt-2 ml-0 flex flex-wrap gap-1.5 sm:ml-[52px]">
-                            <button
-                              type="button"
-                              aria-label={`Mark attended for ${reg.user.firstName} ${reg.user.lastName}`}
-                              aria-pressed={
-                                attendance?.status ===
-                                'ATTENDED'
-                              }
-                              onClick={() =>
-                                onMarkAttendance(
-                                  reg.userId,
-                                  day.id,
-                                  'ATTENDED',
-                                )
-                              }
-                              className={`border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-100 ${focusRing}`}
+                      {/* ATTENDANCE OPTIONS */}
+                      <AnimatePresence initial={false}>
+                        {canMarkAttendance &&
+                          isAttendanceOpen && (
+                            <motion.div
+                              initial={{
+                                opacity: 0,
+                                height: 0,
+                              }}
+                              animate={{
+                                opacity: 1,
+                                height: 'auto',
+                              }}
+                              exit={{
+                                opacity: 0,
+                                height: 0,
+                              }}
+                              transition={{
+                                duration: 0.16,
+                                ease: 'easeOut',
+                              }}
+                              className="ml-[52px] mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 overflow-hidden"
                             >
-                              Attended
-                            </button>
+                              <button
+                                type="button"
+                                aria-label={`Mark attended for ${reg.user.firstName} ${reg.user.lastName}`}
+                                aria-pressed={
+                                  attendance?.status ===
+                                  'ATTENDED'
+                                }
+                                onClick={() =>
+                                  onMarkAttendance(
+                                    reg.userId,
+                                    day.id,
+                                    'ATTENDED',
+                                  )
+                                }
+                                className={`border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-100 ${focusRing}`}
+                              >
+                                Attended
+                              </button>
 
-                            <button
-                              type="button"
-                              aria-label={`Mark no show for ${reg.user.firstName} ${reg.user.lastName}`}
-                              aria-pressed={
-                                attendance?.status ===
-                                'NO_SHOW'
-                              }
-                              onClick={() =>
-                                onMarkAttendance(
-                                  reg.userId,
-                                  day.id,
-                                  'NO_SHOW',
-                                )
-                              }
-                              className={`border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-700 hover:bg-red-100 ${focusRing}`}
-                            >
-                              No Show
-                            </button>
+                              <button
+                                type="button"
+                                aria-label={`Mark no show for ${reg.user.firstName} ${reg.user.lastName}`}
+                                aria-pressed={
+                                  attendance?.status ===
+                                  'NO_SHOW'
+                                }
+                                onClick={() =>
+                                  onMarkAttendance(
+                                    reg.userId,
+                                    day.id,
+                                    'NO_SHOW',
+                                  )
+                                }
+                                className={`border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-700 hover:bg-red-100 ${focusRing}`}
+                              >
+                                No Show
+                              </button>
 
-                            <button
-                              type="button"
-                              aria-label={`Mark pending for ${reg.user.firstName} ${reg.user.lastName}`}
-                              aria-pressed={
-                                attendance?.status ===
-                                'PENDING'
-                              }
-                              onClick={() =>
-                                onMarkAttendance(
-                                  reg.userId,
-                                  day.id,
-                                  'PENDING',
-                                )
-                              }
-                              className={`border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700 hover:bg-amber-100 ${focusRing}`}
-                            >
-                              Pending
-                            </button>
-                          </div>
-                        )}
+                              <button
+                                type="button"
+                                aria-label={`Mark pending for ${reg.user.firstName} ${reg.user.lastName}`}
+                                aria-pressed={
+                                  attendance?.status ===
+                                  'PENDING'
+                                }
+                                onClick={() =>
+                                  onMarkAttendance(
+                                    reg.userId,
+                                    day.id,
+                                    'PENDING',
+                                  )
+                                }
+                                className={`border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700 hover:bg-amber-100 ${focusRing}`}
+                              >
+                                Pending
+                              </button>
+                            </motion.div>
+                          )}
+                      </AnimatePresence>
                     </li>
                   );
                 },
@@ -1269,7 +1298,7 @@ function Shell({
   return (
     <div
       data-cleaning-scope
-      className="min-h-screen overflow-x-hidden bg-[var(--surface-2)] text-[var(--ink)] antialiased"
+      className="min-h-screen bg-[var(--surface-2)] text-[var(--ink)] antialiased"
     >
       <style
         dangerouslySetInnerHTML={{
@@ -2027,9 +2056,15 @@ export default function CleaningPage() {
       />
 
       <main className="mx-auto max-w-5xl px-4 py-5 sm:px-6">
+        {/* =================================================
+            SCROLLING MESSAGE
+        ================================================= */}
+
         <ScrollingNotice />
 
-        {/* NOTICE */}
+        {/* =================================================
+            NOTICE
+        ================================================= */}
 
         <AnimatePresence
           initial={false}
@@ -2080,7 +2115,9 @@ export default function CleaningPage() {
           )}
         </AnimatePresence>
 
-        {/* STATUS */}
+        {/* =================================================
+            STATUS
+        ================================================= */}
 
         {statusData && (
           <div
@@ -2148,7 +2185,9 @@ export default function CleaningPage() {
           </div>
         )}
 
-        {/* UNREGISTERED STUDENTS */}
+        {/* =================================================
+            UNREGISTERED STUDENTS
+        ================================================= */}
 
         <UnregisteredStudentsList
           students={
@@ -2157,7 +2196,9 @@ export default function CleaningPage() {
           }
         />
 
-        {/* SEARCH */}
+        {/* =================================================
+            SEARCH
+        ================================================= */}
 
         {weeks.length > 0 && (
           <ParticipantSearch
@@ -2181,7 +2222,9 @@ export default function CleaningPage() {
           />
         )}
 
-        {/* SCHEDULE */}
+        {/* =================================================
+            SCHEDULE
+        ================================================= */}
 
         {weeks.length === 0 ? (
           <div
@@ -2453,7 +2496,7 @@ export default function CleaningPage() {
 
                                     {/* ACTION */}
 
-                                    <div className="flex min-w-0 items-center lg:justify-end">
+                                    <div className="flex items-center lg:justify-end">
                                       {isSelf ? (
                                         <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--ok)]">
                                           <Check className="h-4 w-4" />
@@ -2518,7 +2561,7 @@ export default function CleaningPage() {
 
                                     {/* PARTICIPANTS */}
 
-                                    <div className="min-w-0 lg:col-span-4">
+                                    <div className="lg:col-span-4">
                                       <ParticipantList
                                         day={
                                           day
@@ -2551,7 +2594,9 @@ export default function CleaningPage() {
           </div>
         )}
 
-        {/* GUIDANCE */}
+        {/* =================================================
+            GUIDANCE
+        ================================================= */}
 
         {weeks.length > 0 && (
           <div className="mt-4 border-l-2 border-[var(--brass)] bg-[var(--brass-soft)] px-3 py-2.5">
@@ -2563,7 +2608,9 @@ export default function CleaningPage() {
           </div>
         )}
 
-        {/* VIDEO */}
+        {/* =================================================
+            VIDEO
+        ================================================= */}
 
         <section
           className={`${panel} mt-4 overflow-hidden`}
@@ -2595,7 +2642,9 @@ export default function CleaningPage() {
         </section>
       </main>
 
-      {/* CONFIRMATION */}
+      {/* =================================================
+          CONFIRMATION
+      ================================================= */}
 
       <ConfirmDialog
         state={confirm}
