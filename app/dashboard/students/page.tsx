@@ -304,11 +304,11 @@ const StudentCard = ({
     <article
       onClick={() => router.push(`/dashboard/students/${student.id}`)}
       className="
-        group bg-white border border-[#DADCD3]
+        group bg-white border border-[#DADCD3] rounded-lg
         overflow-hidden cursor-pointer
-        transition-colors duration-150
-        hover:border-[#B98A3E]
-        focus-within:border-[#B98A3E]
+        transition-all duration-200
+        hover:border-[#B98A3E] hover:shadow-lg hover:-translate-y-0.5
+        focus-within:border-[#B98A3E] focus-within:shadow-lg
       "
     >
       {/* ======================================================
@@ -324,7 +324,7 @@ const StudentCard = ({
                 alt={fullName}
                 width={46}
                 height={46}
-                className="w-[46px] h-[46px] object-cover grayscale border border-[#DADCD3]"
+                className="w-[46px] h-[46px] object-cover grayscale"
               />
             ) : (
               <div className="w-[46px] h-[46px] flex items-center justify-center bg-[#12203B]">
@@ -343,15 +343,9 @@ const StudentCard = ({
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-2">
-              <h3 className="text-[14px] font-semibold leading-5 text-[#12203B] break-words">
-                {fullName}
-              </h3>
-
-              <span className="shrink-0 font-mono text-[9px] text-[#B9BEB2] tabular-nums">
-                {String(index + 1).padStart(2, '0')}
-              </span>
-            </div>
+            <h3 className="text-[14px] font-semibold leading-5 text-[#12203B] break-words text-left">
+              {fullName}
+            </h3>
 
             <p className="mt-0.5 flex items-center gap-1 text-[10px] text-[#6B7268]">
               <MapPin
@@ -364,6 +358,10 @@ const StudentCard = ({
               </span>
             </p>
           </div>
+
+          <span className="shrink-0 font-mono text-[9px] text-[#B9BEB2] tabular-nums">
+            {String(index + 1).padStart(2, '0')}
+          </span>
         </div>
       </div>
 
@@ -373,7 +371,7 @@ const StudentCard = ({
 
       <div className="px-4 py-3">
         <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-          <Stat label="General Course">
+          <Stat label="General Degree Course">
             {student.generalCourse || 'Not specified'}
           </Stat>
 
@@ -413,7 +411,7 @@ const StudentCard = ({
         ==================================================== */}
 
         {student.studentCourses?.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-[#ECEDE8]">
+          <div className="mt-3">
             <div className="flex items-center justify-between gap-2">
               <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-[#8A9088]">
                 <BookOpen
@@ -430,11 +428,11 @@ const StudentCard = ({
               )}
             </div>
 
-            <div className="mt-1.5 divide-y divide-[#ECEDE8]">
+            <div className="mt-1.5 space-y-1.5">
               {student.studentCourses.slice(0, 3).map((course) => (
                 <div
                   key={course.id}
-                  className="flex items-center justify-between gap-2 py-1.5"
+                  className="flex items-center justify-between gap-2"
                 >
                   <div className="min-w-0">
                     <span className="block text-[10px] font-semibold leading-4 text-[#12203B]">
@@ -467,24 +465,9 @@ const StudentCard = ({
             e.stopPropagation();
             router.push(`/dashboard/students/${student.id}`);
           }}
-          className="
-            w-full h-8
-            border border-[#12203B]
-            bg-[#12203B] text-white
-            font-mono text-[9px] uppercase tracking-[0.12em] font-semibold
-            flex items-center justify-center gap-1.5
-            transition-colors
-            group-hover:bg-[#B98A3E]
-            group-hover:border-[#B98A3E]
-            group-hover:text-[#12203B]
-          "
+          className="text-[11px] font-medium text-[#B98A3E] underline decoration-1 underline-offset-2 transition-colors hover:text-[#12203B]"
         >
           View Profile
-
-          <ArrowRight
-            className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5"
-            strokeWidth={2.5}
-          />
         </button>
       </div>
     </article>
