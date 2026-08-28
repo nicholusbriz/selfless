@@ -49,6 +49,9 @@ import {
   User,
   Users,
   X,
+  Info,
+  Clock,
+  MapPin,
 } from 'lucide-react';
 
 import {
@@ -107,7 +110,7 @@ const focusRing =
   'outline-none focus-visible:ring-1 focus-visible:ring-[var(--brass)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--surface)]';
 
 const panel =
-  'border border-[var(--line)] bg-[var(--surface)]';
+  'border border-[var(--line)] bg-[var(--surface)] rounded-lg';
 
 const btnBase = `inline-flex items-center justify-center gap-2 px-3 py-1.5 text-[12px] font-mono font-semibold uppercase tracking-[0.06em] transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${focusRing}`;
 
@@ -176,7 +179,7 @@ function Tag({
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] ${toneClasses[tone]}`}
+      className={`inline-flex items-center gap-1.5 border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] rounded ${toneClasses[tone]}`}
     >
       {children}
     </span>
@@ -209,12 +212,12 @@ function CapacityMeter({
   return (
     <div className="flex items-center gap-2">
       <div
-        className="h-1.5 w-14 overflow-hidden bg-[var(--surface-3)] sm:w-16"
+        className="h-1.5 w-14 overflow-hidden bg-[var(--surface-3)] rounded sm:w-16"
         role="img"
         aria-label={`${current} of ${limit} places taken`}
       >
         <motion.div
-          className="h-full"
+          className="h-full rounded"
           style={{
             backgroundColor:
               tone === 'bad'
@@ -262,11 +265,11 @@ function Avatar({
   return (
     <div className="relative shrink-0">
       <div
-        className={`relative h-10 w-10 shrink-0 overflow-hidden border bg-[var(--brand)] ${
+        className={`relative h-10 w-10 shrink-0 overflow-hidden border rounded-full ${
           isSelf
             ? 'border-[var(--brass)]'
             : 'border-[var(--line)]'
-        }`}
+        } bg-[var(--brand)]`}
       >
         {src ? (
           <img
@@ -285,12 +288,12 @@ function Avatar({
         )}
 
         {isSelf && (
-          <span className="absolute inset-0 border-2 border-[var(--brass)]" />
+          <span className="absolute inset-0 border-2 border-[var(--brass)] rounded-full" />
         )}
       </div>
 
       <span
-        className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 border-2 border-white ${
+        className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 border-2 border-white rounded-full ${
           isSelf ? 'bg-[var(--ok)]' : 'bg-[var(--ink-4)]'
         }`}
         title={isSelf ? 'You' : 'Participant'}
@@ -451,7 +454,7 @@ function ConfirmDialog({
               duration: 0.18,
               ease: [0.2, 0, 0, 1],
             }}
-            className="relative w-full max-w-sm border border-[var(--line)] bg-[var(--surface)] p-5"
+            className="relative w-full max-w-sm border border-[var(--line)] bg-[var(--surface)] p-5 rounded-lg"
           >
             <h2
               id="confirm-title"
@@ -523,7 +526,7 @@ function PageHeader({
             <button
               type="button"
               onClick={onBack}
-              className={`${btnQuiet} h-8 w-8 px-0`}
+              className={`${btnQuiet} h-8 w-8 px-0 rounded`}
               aria-label="Go back"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -586,7 +589,7 @@ const scrollingMessages = [
 
 function ScrollingNotice() {
   return (
-    <div className="mb-4 overflow-hidden border-y border-[var(--line)] bg-[var(--brand)] text-white">
+    <div className="mb-4 overflow-hidden border-y border-[var(--line)] bg-[var(--brand)] text-white rounded-lg">
       <div className="flex h-9 items-center overflow-hidden">
         <div className="shrink-0 border-r border-white/15 px-3 sm:px-4">
           <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.1em] text-white/70">
@@ -647,8 +650,8 @@ function ScheduleSkeleton() {
           className={panel}
         >
           <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3 sm:px-5">
-            <div className="h-4 w-36 animate-pulse bg-[var(--surface-3)]" />
-            <div className="h-4 w-16 animate-pulse bg-[var(--surface-3)]" />
+            <div className="h-4 w-36 animate-pulse bg-[var(--surface-3)] rounded" />
+            <div className="h-4 w-16 animate-pulse bg-[var(--surface-3)] rounded" />
           </div>
 
           {week === 0 && (
@@ -659,9 +662,9 @@ function ScheduleSkeleton() {
                     key={row}
                     className="flex items-center gap-4 border-b border-[var(--line)] px-4 py-3 last:border-b-0 sm:px-5"
                   >
-                    <div className="h-4 w-24 animate-pulse bg-[var(--surface-3)]" />
-                    <div className="h-4 w-20 animate-pulse bg-[var(--surface-3)]" />
-                    <div className="ml-auto h-7 w-20 animate-pulse bg-[var(--surface-3)]" />
+                    <div className="h-4 w-24 animate-pulse bg-[var(--surface-3)] rounded" />
+                    <div className="h-4 w-20 animate-pulse bg-[var(--surface-3)] rounded" />
+                    <div className="ml-auto h-7 w-20 animate-pulse bg-[var(--surface-3)] rounded" />
                   </div>
                 ),
               )}
@@ -732,7 +735,7 @@ function ParticipantList({
 
   if (count === 0) {
     return (
-      <div className="mt-1 flex items-center gap-2 text-[12px] text-[var(--ink-4)]">
+      <div className="mt-1 flex items-center gap-2 text-[12px] text-[var(--ink-4)] px-4 pb-3 sm:px-5">
         <Users className="h-3.5 w-3.5 shrink-0" />
         <span>No participants yet</span>
       </div>
@@ -740,7 +743,7 @@ function ParticipantList({
   }
 
   return (
-    <div className="mt-1 border-t border-[var(--line)] pt-2.5">
+    <div className="mt-1 border-t border-[var(--line)] pt-2.5 px-4 pb-3 sm:px-5">
       <button
         type="button"
         onClick={() =>
@@ -786,7 +789,7 @@ function ParticipantList({
             }}
             className="overflow-hidden"
           >
-            <ul className="mt-2">
+            <ul className="mt-2 space-y-1">
               {day.registrations.map(
                 (reg) => {
                   const attendance =
@@ -812,7 +815,7 @@ function ParticipantList({
                   return (
                     <li
                       key={reg.id}
-                      className={`py-2.5 ${
+                      className={`p-3 rounded ${
                         isSelf
                           ? 'bg-[var(--brand-soft)]/60'
                           : ''
@@ -892,7 +895,7 @@ function ParticipantList({
                           {/* CURRENT ATTENDANCE STATUS */}
                           {attendance?.status && (
                             <span
-                              className={`mt-1 inline-flex px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${
+                              className={`mt-1 inline-flex px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide rounded ${
                                 attendance.status ===
                                 'ATTENDED'
                                   ? 'bg-[var(--ok-soft)] text-[var(--ok)]'
@@ -932,7 +935,7 @@ function ParticipantList({
                                 duration: 0.16,
                                 ease: 'easeOut',
                               }}
-                              className="mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1.5 overflow-hidden"
+                              className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 overflow-hidden"
                             >
                               <button
                                 type="button"
@@ -948,7 +951,7 @@ function ParticipantList({
                                     'ATTENDED',
                                   )
                                 }
-                                className={`border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-100 ${focusRing}`}
+                                className={`border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-100 rounded ${focusRing}`}
                               >
                                 Attended
                               </button>
@@ -967,7 +970,7 @@ function ParticipantList({
                                     'NO_SHOW',
                                   )
                                 }
-                                className={`border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-700 hover:bg-red-100 ${focusRing}`}
+                                className={`border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-700 hover:bg-red-100 rounded ${focusRing}`}
                               >
                                 No Show
                               </button>
@@ -986,7 +989,7 @@ function ParticipantList({
                                     'PENDING',
                                   )
                                 }
-                                className={`border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700 hover:bg-amber-100 ${focusRing}`}
+                                className={`border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700 hover:bg-amber-100 rounded ${focusRing}`}
                               >
                                 Pending
                               </button>
@@ -1056,7 +1059,7 @@ function ParticipantSearch({
     >
       <div className="px-4 py-3 sm:px-5">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center bg-[var(--brand)] text-white">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center bg-[var(--brand)] text-white rounded">
             <Search className="h-4 w-4" />
           </div>
 
@@ -1090,7 +1093,7 @@ function ParticipantSearch({
             }
             placeholder="Search student, day or date..."
             aria-label="Search registered participants"
-            className={`h-10 w-full border border-[var(--line)] bg-[var(--surface)] pl-10 pr-10 text-[13px] text-[var(--ink)] placeholder:text-[var(--ink-4)] ${focusRing}`}
+            className={`h-10 w-full border border-[var(--line)] bg-[var(--surface)] pl-10 pr-10 text-[13px] text-[var(--ink)] placeholder:text-[var(--ink-4)] rounded ${focusRing}`}
           />
 
           {search && (
@@ -2024,7 +2027,7 @@ export default function CleaningPage() {
                   onClick={() =>
                     refetch()
                   }
-                  className={`${btnPrimary} mt-3`}
+                  className={`${btnPrimary} mt-3 rounded`}
                 >
                   Try again
                 </button>
@@ -2084,7 +2087,7 @@ export default function CleaningPage() {
                 opacity: 0,
                 y: -5,
               }}
-              className={`mb-3 flex items-start gap-2 border px-3 py-2.5 text-[12px] ${
+              className={`mb-3 flex items-start gap-2 border px-3 py-2.5 text-[12px] rounded ${
                 notice.tone === 'ok'
                   ? toneClasses.ok
                   : toneClasses.bad
@@ -2168,17 +2171,9 @@ export default function CleaningPage() {
                       : 'warn'
                 }
               >
-                {(
-                  statusData
-                    .registration
-                    ?.status ??
-                  'PENDING'
-                )
+                {(statusData.registration?.status ?? 'PENDING')
                   .toLowerCase()
-                  .replace(
-                    '_',
-                    ' ',
-                  )}
+                  .replace('_', ' ')}
               </Tag>
             )}
           </div>
@@ -2267,10 +2262,9 @@ export default function CleaningPage() {
                 <section
                   key={week.id}
                   id={`cleaning-week-${week.id}`}
-                  className="bg-[var(--surface)] border border-[var(--line)] rounded-lg"
+                  className="bg-[var(--surface)] border border-[var(--line)] rounded-lg overflow-hidden"
                 >
                   {/* WEEK HEADER */}
-
                   <h2>
                     <button
                       type="button"
@@ -2346,7 +2340,6 @@ export default function CleaningPage() {
                   </h2>
 
                   {/* WEEK CONTENT */}
-
                   <AnimatePresence
                     initial={false}
                   >
@@ -2373,9 +2366,9 @@ export default function CleaningPage() {
                             1,
                           ],
                         }}
-                        className="overflow-hidden rounded-b-lg"
+                        className="overflow-hidden"
                       >
-                        <ul>
+                        <ul className="divide-y divide-[var(--line)]">
                           {week.days.map(
                             (day) => {
                               const isSelf =
@@ -2411,23 +2404,21 @@ export default function CleaningPage() {
                                     day.id
                                   }
                                   id={`cleaning-day-${day.id}`}
-                                  className="border-b border-[var(--line)] last:border-b-0"
                                 >
-                                  {/* CARD HEADER */}
-                                  <div className="px-4 py-3">
-                                    {/* ROW 1: Day name, week, date, capacity, status */}
+                                  <div className="px-4 py-3 sm:px-5">
+                                    {/* Day header */}
                                     <div className="flex items-center justify-between gap-3">
                                       <div className="flex items-center gap-2 min-w-0">
-                                        <div className="bg-[var(--surface-2)] text-[var(--ink-2)] px-2 py-0.5 rounded text-[11px] font-medium uppercase tracking-wide shrink-0">
+                                        <span className="text-[14px] font-semibold text-[var(--ink)]">
                                           {day.dayOfWeek}
-                                        </div>
+                                        </span>
                                         <span className="text-[12px] text-[var(--ink-3)]">
                                           {formatDate(day.cleaningDate)}
                                         </span>
                                       </div>
 
                                       <div className="flex items-center gap-3 shrink-0">
-                                        {/* CAPACITY */}
+                                        {/* Capacity */}
                                         <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--surface-2)] text-[var(--ink-2)]">
                                           <span className="text-[11px] font-medium">
                                             {day.currentRegistrations}
@@ -2440,7 +2431,7 @@ export default function CleaningPage() {
                                           </span>
                                         </div>
 
-                                        {/* STATUS */}
+                                        {/* Status */}
                                         <span
                                           className={`px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide ${
                                             past
@@ -2464,14 +2455,14 @@ export default function CleaningPage() {
                                       </div>
                                     </div>
 
-                                    {/* ROW 2: Tech center info and action */}
+                                    {/* Tech center info and action */}
                                     <div className="mt-2 flex items-center justify-between gap-3">
                                       <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[var(--surface-2)] text-[11px] text-[var(--ink-3)]">
+                                        <MapPin className="h-3 w-3" />
                                         <span>Tech Center opens</span>
                                         <span className="font-medium text-[var(--ink-2)]">8:00 AM</span>
                                       </div>
 
-                                      {/* ACTION */}
                                       {isSelf ? (
                                         <span className="px-2 py-0.5 rounded bg-[var(--ok-soft)] text-[11px] font-medium text-[var(--ok)]">
                                           Registered
@@ -2487,7 +2478,7 @@ export default function CleaningPage() {
                                           disabled={
                                             busy
                                           }
-                                          className="px-2 py-0.5 rounded bg-[var(--brass-soft)] text-[11px] font-medium text-[var(--brass)] transition-colors hover:bg-[var(--brass)] disabled:opacity-50"
+                                          className="px-3 py-1 rounded bg-[var(--brass)] text-[11px] font-medium text-white transition-colors hover:bg-[var(--brass-hover)] disabled:opacity-50"
                                         >
                                           {busy
                                             ? 'Registering…'
@@ -2503,7 +2494,7 @@ export default function CleaningPage() {
                                             )
                                           }
                                           disabled={busy}
-                                          className="px-2 py-0.5 rounded bg-[var(--brass-soft)] text-[11px] font-medium text-[var(--brass)] transition-colors hover:bg-[var(--brass)] disabled:opacity-50"
+                                          className="px-3 py-1 rounded bg-[var(--brand)] text-[11px] font-medium text-white transition-colors hover:bg-[var(--brand-hover)] disabled:opacity-50"
                                         >
                                           {busy
                                             ? 'Switching…'
@@ -2545,7 +2536,7 @@ export default function CleaningPage() {
         ================================================= */}
 
         {weeks.length > 0 && (
-          <div className="mt-4 border-l-2 border-[var(--brass)] bg-[var(--brass-soft)] px-3 py-2.5">
+          <div className="mt-4 border-l-2 border-[var(--brass)] bg-[var(--brass-soft)] px-3 py-2.5 rounded">
             <p className="text-[12px] leading-5 text-[var(--ink-2)]">
               Choose a day you can genuinely attend.
               You may switch while registration is open
