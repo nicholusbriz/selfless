@@ -373,7 +373,7 @@ export default function AdminTechCenterPage() {
             </div>
           </motion.button>
 
-          {/* Teachers */}
+          {/* Tutors */}
           <motion.button
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -388,11 +388,11 @@ export default function AdminTechCenterPage() {
                 </div>
 
                 <h3 className="text-[#1E293B] font-semibold">
-                  Teachers
+                  Tutors
                 </h3>
 
                 <p className="text-sm text-[#64748B] mt-1">
-                  Manage teachers in your center
+                  Manage tutors in your center
                 </p>
               </div>
 
