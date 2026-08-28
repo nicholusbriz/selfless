@@ -11,6 +11,9 @@ import {
   ArrowRight,
   AlertCircle,
   Check,
+  GraduationCap,
+  Calendar,
+  ChevronRight,
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -102,22 +105,22 @@ const SearchFilterBar = ({
   );
 
   const chipBase =
-    'inline-flex items-center justify-center gap-1.5 min-h-[34px] px-3 py-1.5 border text-[11px] font-semibold leading-tight transition-colors duration-150 focus:outline-none focus-visible:border-[#B98A3E]';
+    'inline-flex items-center justify-center gap-1.5 min-h-[34px] px-3 py-1.5 border text-[11px] font-semibold leading-tight transition-colors duration-150 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] focus-visible:ring-offset-1';
 
   const chipOn = 'bg-[#12203B] border-[#12203B] text-white';
 
   const chipOff =
-    'bg-white border-[#DADCD3] text-[#4B564C] hover:border-[#B98A3E] hover:text-[#12203B]';
+    'bg-white border-[#DADCD3] text-[#4B564C] hover:border-[#B98A3E] hover:text-[#12203B] hover:bg-[#F7F6F2]';
 
   return (
-    <section className="border border-[#DADCD3] bg-white">
+    <section className="rounded-lg border border-[#DADCD3] bg-white shadow-sm overflow-hidden">
       {/* SEARCH */}
 
       <div className="px-4 py-3.5 sm:px-5">
         <div className="flex flex-col md:flex-row md:items-center gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className="h-3.5 w-[3px] bg-[#B98A3E]" />
+              <span className="h-3.5 w-[3px] bg-[#B98A3E] rounded-full" />
 
               <h2 className="text-[15px] font-semibold tracking-tight text-[#12203B]">
                 Search students
@@ -145,7 +148,7 @@ const SearchFilterBar = ({
               className="
                 w-full h-9 pl-9 pr-9
                 bg-[#F7F6F2]
-                border border-[#DADCD3]
+                border border-[#DADCD3] rounded
                 text-[#12203B]
                 placeholder:text-[#8A9088]
                 text-[12px] font-medium
@@ -179,7 +182,7 @@ const SearchFilterBar = ({
               Tech centers
             </span>
 
-            <span className="inline-flex items-center gap-1 border border-[#DADCD3] bg-white px-2 py-1">
+            <span className="inline-flex items-center gap-1 border border-[#DADCD3] bg-white px-2 py-1 rounded">
               <Users className="w-3 h-3 text-[#12203B]" strokeWidth={2} />
 
               <span className="font-mono text-[10px] font-semibold text-[#12203B] tabular-nums">
@@ -260,7 +263,7 @@ const SearchFilterBar = ({
           <div className="mt-2 flex items-center gap-1.5">
             <span className="text-[10px] text-[#8A9088]">Showing</span>
 
-            <span className="inline-flex items-center gap-1 border border-[#DADCD3] bg-white px-2 py-1 text-[10px] font-semibold text-[#12203B]">
+            <span className="inline-flex items-center gap-1 border border-[#DADCD3] bg-white px-2 py-1 text-[10px] font-semibold text-[#12203B] rounded">
               <MapPin className="w-3 h-3" strokeWidth={2.2} />
               {activeLocation?.name || 'Selected center'}
               <Check
@@ -299,6 +302,7 @@ const StudentCard = ({
 
   const initials = getInitials(student.firstName, student.lastName);
   const fullName = `${student.firstName} ${student.lastName}`;
+  const totalCredits = getTotalCredits(student);
 
   return (
     <article
@@ -307,15 +311,15 @@ const StudentCard = ({
         group bg-white border border-[#DADCD3] rounded-lg
         overflow-hidden cursor-pointer
         transition-all duration-200
-        hover:border-[#B98A3E] hover:shadow-lg hover:-translate-y-0.5
-        focus-within:border-[#B98A3E] focus-within:shadow-lg
+        hover:border-[#B98A3E] hover:shadow-md hover:-translate-y-0.5
+        focus-within:border-[#B98A3E] focus-within:shadow-md
       "
     >
       {/* ======================================================
           COMPACT CARD HEADER
       ====================================================== */}
 
-      <div className="px-4 py-3.5 border-b border-[#DADCD3]">
+      <div className="px-4 py-3.5 border-b border-[#DADCD3] bg-[#FCFCFA]">
         <div className="flex items-center gap-3">
           <div className="relative shrink-0">
             {student.profileImageUrl ? (
@@ -324,10 +328,10 @@ const StudentCard = ({
                 alt={fullName}
                 width={46}
                 height={46}
-                className="w-[46px] h-[46px] object-cover grayscale"
+                className="w-[46px] h-[46px] object-cover rounded"
               />
             ) : (
-              <div className="w-[46px] h-[46px] flex items-center justify-center bg-[#12203B]">
+              <div className="w-[46px] h-[46px] flex items-center justify-center bg-[#12203B] rounded">
                 <span className="text-white text-[11px] font-mono font-semibold">
                   {initials}
                 </span>
@@ -335,7 +339,7 @@ const StudentCard = ({
             )}
 
             <span
-              className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 border-2 border-white ${
+              className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 border-2 border-white rounded-full ${
                 student.isActive ? 'bg-[#55705B]' : 'bg-[#B9BEB2]'
               }`}
               title={student.isActive ? 'Active' : 'Inactive'}
@@ -347,16 +351,22 @@ const StudentCard = ({
               {fullName}
             </h3>
 
-            <p className="mt-0.5 flex items-center gap-1 text-[10px] text-[#6B7268]">
+            <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-[#6B7268]">
               <MapPin
-                className="w-3 h-3 shrink-0 text-[#12203B]"
+                className="w-3 h-3 shrink-0 text-[#B98A3E]"
                 strokeWidth={2.3}
               />
 
               <span className="truncate">
                 {student.techCenter?.name || 'No location'}
               </span>
-            </p>
+
+              <span className="text-[#DADCD3]">|</span>
+
+              <span className="truncate">
+                {student.role?.name || 'Student'}
+              </span>
+            </div>
           </div>
 
           <span className="shrink-0 font-mono text-[9px] text-[#B9BEB2] tabular-nums">
@@ -377,20 +387,14 @@ const StudentCard = ({
 
           <Stat label="Status">
             <span
-              className={
-                student.isActive ? 'text-[#55705B]' : 'text-[#8A9088]'
-              }
+              className={`inline-flex px-1.5 py-0.5 text-[10px] font-medium rounded ${
+                student.isActive 
+                  ? 'bg-[#EEF3EE] text-[#55705B]' 
+                  : 'bg-[#F1F1EC] text-[#8A9088]'
+              }`}
             >
               {student.isActive ? 'Active' : 'Inactive'}
             </span>
-          </Stat>
-
-          <Stat label="Courses Taking">
-            {student.studentCourses?.length || 0}
-          </Stat>
-
-          <Stat label="Credits">
-            {getTotalCredits(student)}
           </Stat>
 
           <Stat label="Religion">
@@ -407,25 +411,28 @@ const StudentCard = ({
         </div>
 
         {/* ====================================================
-            ENROLLED COURSES
+            ENROLLED COURSES WITH TOTAL
         ==================================================== */}
 
         {student.studentCourses?.length > 0 && (
-          <div className="mt-3">
+          <div className="mt-3 pt-2.5 border-t border-[#F1F1EC]">
             <div className="flex items-center justify-between gap-2">
               <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-[#8A9088]">
                 <BookOpen
-                  className="w-3 h-3 text-[#12203B]"
+                  className="w-3 h-3 text-[#B98A3E]"
                   strokeWidth={2.2}
                 />
-                Courses
+                Enrolled Courses
               </p>
 
-              {student.studentCourses.length > 3 && (
-                <span className="font-mono text-[9px] text-[#8A9088]">
-                  +{student.studentCourses.length - 3} more
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[9px] text-[#6B7268] bg-[#F7F6F2] px-1.5 py-0.5 rounded">
+                  {student.studentCourses.length} courses
                 </span>
-              )}
+                <span className="font-mono text-[9px] text-[#B98A3E] bg-[#F8F3E8] px-1.5 py-0.5 rounded">
+                  {totalCredits} credits
+                </span>
+              </div>
             </div>
 
             <div className="mt-1.5 space-y-1.5">
@@ -434,21 +441,26 @@ const StudentCard = ({
                   key={course.id}
                   className="flex items-center justify-between gap-2"
                 >
-                  <div className="min-w-0">
-                    <span className="block text-[10px] font-semibold leading-4 text-[#12203B]">
+                  <div className="min-w-0 flex items-center gap-2">
+                    <span className="text-[9px] font-mono text-[#B98A3E] font-semibold">
                       {course.code}
                     </span>
-
-                    <span className="block truncate text-[9px] leading-3.5 text-[#6B7268]">
+                    <span className="block truncate text-[10px] leading-3.5 text-[#6B7268]">
                       {course.courseUnit}
                     </span>
                   </div>
 
-                  <span className="shrink-0 font-mono text-[9px] text-[#6B7268] tabular-nums">
+                  <span className="shrink-0 font-mono text-[9px] text-[#6B7268] tabular-nums bg-[#F7F6F2] px-1.5 py-0.5 rounded">
                     {course.credits} cr
                   </span>
                 </div>
               ))}
+
+              {student.studentCourses.length > 3 && (
+                <div className="text-[9px] text-[#8A9088] text-right pt-0.5">
+                  +{student.studentCourses.length - 3} more courses
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -458,16 +470,17 @@ const StudentCard = ({
           SMALL ACTION
       ====================================================== */}
 
-      <div className="px-4 pb-3.5">
+      <div className="px-4 pb-3.5 pt-1 border-t border-[#F1F1EC]">
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             router.push(`/dashboard/students/${student.id}`);
           }}
-          className="text-[11px] font-medium text-[#B98A3E] underline decoration-1 underline-offset-2 transition-colors hover:text-[#12203B]"
+          className="inline-flex items-center gap-1 text-[11px] font-medium text-[#B98A3E] transition-colors hover:text-[#12203B] group-hover:gap-2"
         >
           View Profile
+          <ChevronRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
         </button>
       </div>
     </article>
@@ -495,14 +508,14 @@ const StudentSection = ({
 
       <header className="mb-3 flex items-center justify-between gap-3">
         <div className="min-w-0 flex items-center gap-2">
-          <span className="h-4 w-[3px] bg-[#B98A3E] shrink-0" />
+          <span className="h-4 w-[3px] bg-[#B98A3E] shrink-0 rounded-full" />
 
           <h2 className="text-[15px] font-semibold tracking-tight text-[#12203B] truncate">
             {title}
           </h2>
         </div>
 
-        <div className="shrink-0 flex items-center gap-1.5">
+        <div className="shrink-0 flex items-center gap-1.5 bg-white px-3 py-1.5 border border-[#DADCD3] rounded">
           <span className="font-mono text-[12px] font-semibold text-[#12203B] tabular-nums">
             {students.length}
           </span>
@@ -546,7 +559,7 @@ const CommunityTicker = () => {
   const tickerItems = [...messages, ...messages];
 
   return (
-    <div className="mt-4 overflow-hidden border-y border-[#DADCD3] bg-white">
+    <div className="mt-4 overflow-hidden border-y border-[#DADCD3] bg-white rounded-lg">
       <div className="flex h-8 items-center overflow-hidden">
         <div className="shrink-0 border-r border-[#DADCD3] bg-[#12203B] px-3 h-full flex items-center">
           <span className="font-mono text-[8px] uppercase tracking-[0.13em] text-white">
@@ -706,14 +719,14 @@ export default function StudentsPage() {
     return (
       <div className="min-h-screen bg-[#F1F1EC]">
         <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-5 animate-pulse">
-          <div className="h-20 bg-white border border-[#DADCD3]" />
-          <div className="mt-3 h-24 bg-white border border-[#DADCD3]" />
+          <div className="h-20 bg-white border border-[#DADCD3] rounded-lg" />
+          <div className="mt-3 h-24 bg-white border border-[#DADCD3] rounded-lg" />
 
           <div className="mt-5 grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
               <div
                 key={i}
-                className="h-[310px] bg-white border border-[#DADCD3]"
+                className="h-[340px] bg-white border border-[#DADCD3] rounded-lg"
               />
             ))}
           </div>
@@ -729,8 +742,8 @@ export default function StudentsPage() {
   if (error) {
     return (
       <div className="min-h-screen bg-[#F1F1EC] flex items-center justify-center px-4">
-        <div className="max-w-sm w-full text-center border border-[#DADCD3] bg-white p-7">
-          <div className="mx-auto w-10 h-10 bg-[#FBF0EC] flex items-center justify-center">
+        <div className="max-w-sm w-full text-center border border-[#DADCD3] bg-white p-7 rounded-lg">
+          <div className="mx-auto w-10 h-10 bg-[#FBF0EC] flex items-center justify-center rounded">
             <AlertCircle
               className="w-5 h-5 text-[#A4462F]"
               strokeWidth={2}
@@ -749,7 +762,7 @@ export default function StudentsPage() {
 
           <button
             onClick={() => window.location.reload()}
-            className="mt-5 h-9 px-5 bg-[#12203B] text-white font-mono text-[10px] uppercase tracking-widest hover:bg-[#1C2E4E] transition-colors"
+            className="mt-5 h-9 px-5 bg-[#12203B] text-white font-mono text-[10px] uppercase tracking-widest hover:bg-[#1C2E4E] transition-colors rounded"
           >
             Retry
           </button>
@@ -777,28 +790,28 @@ export default function StudentsPage() {
               <div className="flex flex-wrap items-center gap-1.5 mb-3">
                 <Link
                   href="/dashboard"
-                  className="border border-[#DADCD3] bg-white px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-wide text-[#6B7268] hover:border-[#B98A3E] hover:text-[#12203B] transition-colors"
+                  className="border border-[#DADCD3] bg-white px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-wide text-[#6B7268] hover:border-[#B98A3E] hover:text-[#12203B] transition-colors rounded"
                 >
                   Dashboard
                 </Link>
 
                 <Link
                   href="/dashboard/courses"
-                  className="border border-[#DADCD3] bg-white px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-wide text-[#6B7268] hover:border-[#B98A3E] hover:text-[#12203B] transition-colors"
+                  className="border border-[#DADCD3] bg-white px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-wide text-[#6B7268] hover:border-[#B98A3E] hover:text-[#12203B] transition-colors rounded"
                 >
                   Courses
                 </Link>
 
                 <Link
                   href="/dashboard/cleaning"
-                  className="border border-[#DADCD3] bg-white px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-wide text-[#6B7268] hover:border-[#B98A3E] hover:text-[#12203B] transition-colors"
+                  className="border border-[#DADCD3] bg-white px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-wide text-[#6B7268] hover:border-[#B98A3E] hover:text-[#12203B] transition-colors rounded"
                 >
                   Cleaning
                 </Link>
               </div>
 
               <p className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.17em] text-[#B98A3E]">
-                <span className="h-3.5 w-[3px] bg-[#B98A3E]" />
+                <span className="h-3.5 w-[3px] bg-[#B98A3E] rounded-full" />
                 University Community
               </p>
 
@@ -814,7 +827,7 @@ export default function StudentsPage() {
 
             {/* COMMUNITY COUNT */}
 
-            <div className="shrink-0 flex items-center gap-3 border border-[#DADCD3] bg-white px-4 py-2.5">
+            <div className="shrink-0 flex items-center gap-3 border border-[#DADCD3] bg-white px-4 py-2.5 rounded-lg shadow-sm">
               <div>
                 <p className="font-mono text-[8px] uppercase tracking-[0.14em] text-[#8A9088]">
                   Community
@@ -861,7 +874,7 @@ export default function StudentsPage() {
           {/* NO STUDENTS */}
 
           {!hasStudents && (
-            <div className="border border-[#DADCD3] bg-white py-16 text-center">
+            <div className="border border-[#DADCD3] bg-white py-16 text-center rounded-lg">
               <Users
                 className="mx-auto w-8 h-8 text-[#B9BEB2]"
                 strokeWidth={1.8}
@@ -878,7 +891,7 @@ export default function StudentsPage() {
           {hasStudents && hasActiveFilters && (
             <>
               {filteredAllStudents.length === 0 ? (
-                <div className="border border-[#DADCD3] bg-white py-16 text-center px-6">
+                <div className="border border-[#DADCD3] bg-white py-16 text-center px-6 rounded-lg">
                   <Search
                     className="mx-auto w-8 h-8 text-[#B9BEB2]"
                     strokeWidth={1.8}
@@ -894,7 +907,7 @@ export default function StudentsPage() {
 
                   <button
                     onClick={clearFilter}
-                    className="mt-5 h-9 px-5 bg-[#12203B] text-white font-mono text-[10px] uppercase tracking-widest hover:bg-[#1C2E4E] transition-colors"
+                    className="mt-5 h-9 px-5 bg-[#12203B] text-white font-mono text-[10px] uppercase tracking-widest hover:bg-[#1C2E4E] transition-colors rounded"
                   >
                     Clear Filters
                   </button>
@@ -943,7 +956,7 @@ export default function StudentsPage() {
           ================================================== */}
 
           {hasStudents && (
-            <footer className="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border border-[#DADCD3] bg-white px-4 py-3">
+            <footer className="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border border-[#DADCD3] bg-white px-4 py-3 rounded-lg">
               <p className="flex items-center gap-1.5 text-[10px] font-semibold text-[#4B564C]">
                 <Users
                   className="w-3.5 h-3.5 text-[#12203B]"

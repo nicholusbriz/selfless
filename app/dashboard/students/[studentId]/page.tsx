@@ -21,6 +21,7 @@ import {
   ExternalLink,
   Briefcase,
   Mail,
+  Maximize2,
 } from 'lucide-react';
 
 interface StudentProfile {
@@ -77,18 +78,18 @@ const SectionHeading = ({
   icon: React.ReactNode;
 }) => {
   return (
-    <div className="mb-6 flex items-center gap-3 border-b border-[#DCE2E9] pb-3">
-      <span className="font-mono text-[10px] font-bold tracking-wider text-[#C88A24]">
+    <div className="mb-3 flex items-center gap-2.5 border-b border-[#E1E5EA] pb-2.5">
+      <span className="font-mono text-[9px] font-bold tracking-wider text-[#C88A24]">
         {number}
       </span>
 
-      <span className="h-4 w-px bg-[#D7DDE5]" />
+      <span className="h-4 w-px bg-[#D9DEE5]" />
 
-      <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#EEF2F7] text-[#1A365D]">
+      <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#F1F4F7] text-[#1A365D]">
         {icon}
       </span>
 
-      <h2 className="text-xs font-bold uppercase tracking-[0.16em] text-[#344154] md:text-sm">
+      <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#344154] md:text-xs">
         {title}
       </h2>
     </div>
@@ -105,19 +106,19 @@ const InfoRow = ({
   icon?: React.ReactNode;
 }) => {
   return (
-    <div className="group flex items-start gap-3 border-b border-[#E5E9EE] py-4 last:border-b-0">
+    <div className="group flex min-w-0 items-start gap-2.5 border-b border-[#E8EBEF] py-3 last:border-b-0">
       {icon && (
-        <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-[#F1F4F7] text-[#718096] transition-colors group-hover:bg-[#E8EDF3] group-hover:text-[#1A365D]">
+        <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-[#F4F6F8] text-[#7A8594] transition-colors group-hover:text-[#1A365D]">
           {icon}
         </div>
       )}
 
       <div className="min-w-0 flex-1">
-        <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#929CAA]">
+        <p className="text-[8px] font-bold uppercase tracking-[0.13em] text-[#929CAA]">
           {label}
         </p>
 
-        <div className="mt-1 break-words text-sm text-[#354258] md:text-[15px]">
+        <div className="mt-0.5 break-words text-[13px] leading-5 text-[#354258] md:text-sm">
           {value}
         </div>
       </div>
@@ -135,17 +136,17 @@ const StatItem = ({
   detail?: string;
 }) => {
   return (
-    <div className="min-w-0 p-4 md:p-5">
-      <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#929CAA]">
+    <div className="min-w-0 px-3 py-3 md:px-4 md:py-3.5">
+      <p className="text-[8px] font-bold uppercase tracking-[0.13em] text-[#929CAA]">
         {label}
       </p>
 
-      <div className="mt-1 text-xl font-black tracking-tight text-[#1A365D] md:text-2xl">
+      <div className="mt-0.5 truncate text-lg font-black tracking-tight text-[#1A365D] md:text-xl">
         {value}
       </div>
 
       {detail && (
-        <p className="mt-1 text-[10px] text-[#8993A2]">{detail}</p>
+        <p className="mt-0.5 text-[9px] text-[#8993A2]">{detail}</p>
       )}
     </div>
   );
@@ -162,6 +163,7 @@ export default function StudentProfilePage() {
   const [student, setStudent] = useState<StudentProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showFullImage, setShowFullImage] = useState(false);
 
   useEffect(() => {
     const fetchStudent = async () => {
@@ -201,14 +203,6 @@ export default function StudentProfilePage() {
     }
   }, [params.studentId]);
 
-  const getInitials = () => {
-    if (!student) return '??';
-
-    return `${student.firstName.charAt(0)}${student.lastName.charAt(
-      0
-    )}`.toUpperCase();
-  };
-
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -230,43 +224,36 @@ export default function StudentProfilePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F5F6F8]">
-        <div className="mx-auto max-w-7xl px-4 py-6 md:px-6 md:py-10">
-          <div className="mb-7 flex items-center gap-3">
-            <div className="h-10 w-10 animate-pulse rounded-md border border-[#D8DDE4] bg-white" />
-            <div className="h-8 w-px bg-[#D8DDE4]" />
-            <div className="h-3 w-32 animate-pulse rounded bg-[#D8DDE4]" />
+        <div className="mx-auto max-w-7xl px-3 py-4 sm:px-4 md:px-6 md:py-6">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="h-9 w-9 animate-pulse rounded-md border border-[#D8DDE4] bg-white" />
+            <div className="h-6 w-px bg-[#D8DDE4]" />
+            <div className="h-3 w-28 animate-pulse rounded bg-[#D8DDE4]" />
           </div>
 
           <div className="overflow-hidden rounded-lg border border-[#D8DDE4] bg-white">
-            <div className="h-56 animate-pulse bg-[#DDE2E8] md:h-72" />
+            <div className="h-[320px] animate-pulse bg-[#DDE2E8] sm:h-[400px] md:h-[480px]" />
 
-            <div className="px-5 pb-7 md:px-8">
-              <div className="-mt-16 flex flex-col gap-5 md:flex-row md:items-end">
-                <div className="h-32 w-32 flex-shrink-0 animate-pulse rounded-xl border-4 border-white bg-[#C9D0D8] md:h-40 md:w-40" />
-
-                <div className="flex-1 space-y-3 pb-2">
-                  <div className="h-3 w-24 animate-pulse rounded bg-[#D8DDE4]" />
-                  <div className="h-10 w-3/4 animate-pulse rounded bg-[#D8DDE4]" />
-                  <div className="h-4 w-2/3 animate-pulse rounded bg-[#E1E5EA]" />
-                </div>
-              </div>
+            <div className="px-4 py-5 md:px-6">
+              <div className="h-8 w-2/3 animate-pulse rounded bg-[#D8DDE4]" />
+              <div className="mt-3 h-4 w-1/2 animate-pulse rounded bg-[#E1E5EA]" />
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 divide-x divide-y divide-[#D8DDE4] overflow-hidden rounded-lg border border-[#D8DDE4] bg-white md:grid-cols-4 md:divide-y-0">
+          <div className="mt-3 grid grid-cols-2 divide-x divide-y divide-[#D8DDE4] overflow-hidden rounded-lg border border-[#D8DDE4] bg-white md:grid-cols-4 md:divide-y-0">
             {[1, 2, 3, 4].map((item) => (
-              <div key={item} className="p-5">
-                <div className="mb-3 h-2.5 w-20 animate-pulse rounded bg-[#D8DDE4]" />
-                <div className="h-7 w-24 animate-pulse rounded bg-[#D8DDE4]" />
+              <div key={item} className="p-4">
+                <div className="mb-2 h-2.5 w-16 animate-pulse rounded bg-[#D8DDE4]" />
+                <div className="h-6 w-20 animate-pulse rounded bg-[#D8DDE4]" />
               </div>
             ))}
           </div>
 
-          <div className="mt-10 space-y-5">
+          <div className="mt-6 space-y-4">
             {[1, 2, 3].map((item) => (
               <div
                 key={item}
-                className="h-40 animate-pulse rounded-lg border border-[#D8DDE4] bg-white"
+                className="h-32 animate-pulse rounded-lg border border-[#D8DDE4] bg-white"
               />
             ))}
           </div>
@@ -282,21 +269,21 @@ export default function StudentProfilePage() {
   if (error || !student) {
     return (
       <div className="min-h-screen bg-[#F5F6F8]">
-        <div className="mx-auto max-w-7xl px-4 py-6 md:px-6 md:py-10">
+        <div className="mx-auto max-w-7xl px-3 py-4 sm:px-4 md:px-6 md:py-6">
           <button
             onClick={() => router.back()}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-[#D8DDE4] bg-white text-[#596678] transition-colors hover:border-[#1A365D] hover:text-[#1A365D]"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#D8DDE4] bg-white text-[#596678] transition-colors hover:border-[#1A365D] hover:text-[#1A365D]"
             aria-label="Go back"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4" />
           </button>
 
-          <div className="mt-6 rounded-lg border border-[#D8DDE4] bg-white px-6 py-14 text-center md:px-10 md:py-20">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#FEF0F0]">
-              <XCircle className="h-7 w-7 text-[#C74D4D]" />
+          <div className="mt-4 rounded-lg border border-[#D8DDE4] bg-white px-5 py-12 text-center md:px-8">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#FEF0F0]">
+              <XCircle className="h-6 w-6 text-[#C74D4D]" />
             </div>
 
-            <h2 className="mt-5 text-xl font-bold text-[#14213D]">
+            <h2 className="mt-4 text-lg font-bold text-[#14213D]">
               Student profile unavailable
             </h2>
 
@@ -306,7 +293,7 @@ export default function StudentProfilePage() {
 
             <button
               onClick={() => router.back()}
-              className="mt-7 inline-flex items-center gap-2 rounded-md bg-[#1A365D] px-6 py-3 text-xs font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-[#14294A]"
+              className="mt-5 inline-flex items-center gap-2 rounded-md bg-[#1A365D] px-5 py-2.5 text-xs font-bold uppercase tracking-[0.1em] text-white transition-colors hover:bg-[#14294A]"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Students
@@ -323,144 +310,164 @@ export default function StudentProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#F5F6F8]">
-      <div className="mx-auto max-w-7xl px-4 py-5 md:px-6 md:py-8">
+      <div className="mx-auto max-w-7xl px-3 py-4 sm:px-4 md:px-6 md:py-6">
         {/* ======================================================
             TOP NAVIGATION
         ====================================================== */}
 
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
             <button
               onClick={() => router.back()}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-[#D8DDE4] bg-white text-[#596678] shadow-[0_1px_2px_rgba(20,33,61,0.03)] transition-all hover:border-[#1A365D] hover:text-[#1A365D]"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#D8DDE4] bg-white text-[#596678] shadow-[0_1px_2px_rgba(20,33,61,0.03)] transition-all hover:border-[#1A365D] hover:text-[#1A365D]"
               aria-label="Go back"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-4 w-4" />
             </button>
 
-            <div className="h-7 w-px bg-[#D8DDE4]" />
+            <div className="h-6 w-px bg-[#D8DDE4]" />
 
             <div className="flex items-center gap-2">
-              <GraduationCap className="h-5 w-5 text-[#C88A24]" />
+              <GraduationCap className="h-4 w-4 text-[#C88A24]" />
 
-              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#6F7B8B] md:text-xs">
+              <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#6F7B8B] md:text-[10px]">
                 Student Directory
               </span>
             </div>
           </div>
 
-          <div className="hidden font-mono text-[10px] text-[#9AA3AF] sm:block">
+          <div className="hidden font-mono text-[9px] text-[#9AA3AF] sm:block">
             PROFILE / {student.studentId.slice(0, 8)}
           </div>
         </div>
 
         {/* ======================================================
-            PROFILE COVER + IDENTITY
+            PROFILE
         ====================================================== */}
 
-        <section className="overflow-hidden rounded-lg border border-[#D5DCE4] bg-white shadow-[0_2px_8px_rgba(20,33,61,0.04)]">
-          {/* Cover */}
-          <div className="relative h-64 overflow-hidden bg-[#1A365D] sm:h-80 md:h-96">
-            {student.profileImage ? (
-              <Image
-                src={student.profileImage}
-                alt=""
-                fill
-                priority
-                sizes="(max-width: 768px) 100vw, 1200px"
-                className="object-cover object-center"
-              />
-            ) : (
-              <div className="absolute inset-0 bg-[#1A365D]" />
-            )}
+        <section className="overflow-hidden rounded-lg border border-[#D5DCE4] bg-white shadow-[0_1px_5px_rgba(20,33,61,0.035)]">
+          {/* ====================================================
+              IMAGE
+          ==================================================== */}
 
-            {/* Top accent bar */}
-            <div className="absolute inset-x-0 top-0 h-1 bg-[#C88A24]" />
-
-            {/* Student info overlay on cover */}
-            <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/70 via-black/30 to-transparent p-6 md:p-10">
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
-                  <User className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/80">
-                    Student Profile
-                  </p>
-                  <p className="text-xs font-medium text-white/60">
-                    {student.role}
-                  </p>
-                </div>
-              </div>
-
-              <h1 className="mt-6 break-words text-4xl font-black leading-tight tracking-tight text-white sm:text-5xl md:text-6xl">
-                {student.firstName} {student.lastName}
-              </h1>
-
-              <div className="mt-4 flex flex-wrap gap-4 text-sm text-white/90">
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4" />
-                  <span className="break-all">{student.email}</span>
-                </div>
-                {student.techCenter && (
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    <span>
-                      {student.techCenter.name}
-                      {student.techCenter.country?.name && `, ${student.techCenter.country.name}`}
-                    </span>
+          <div className="relative bg-[#EDF0F3]">
+            <div className="relative h-[330px] w-full sm:h-[420px] md:h-[500px]">
+              {student.profileImage ? (
+                <Image
+                  src={student.profileImage}
+                  alt={`${student.firstName} ${student.lastName}`}
+                  fill
+                  priority
+                  sizes="(max-width: 768px) 100vw, 1200px"
+                  className="object-contain object-center"
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center bg-[#EEF1F4]">
+                  <div className="flex h-24 w-24 items-center justify-center rounded-full bg-[#DCE2E8] text-[#7C8795]">
+                    <User className="h-11 w-11" />
                   </div>
-                )}
-              </div>
+                </div>
+              )}
+
+              <div className="absolute inset-x-0 top-0 h-1 bg-[#C88A24]" />
             </div>
           </div>
 
-          {/* Identity body */}
-          <div className="px-5 pb-6 md:px-8 md:pb-8">
-            <div className="flex flex-col gap-4 pt-6 sm:flex-row sm:items-center sm:justify-between">
-              {/* Status badge */}
+          {/* ====================================================
+              IMAGE ACTION + IDENTITY
+          ==================================================== */}
+
+          <div className="px-4 py-4 sm:px-5 md:px-6 md:py-5">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="min-w-0">
+                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#929CAA]">
+                  Student Profile
+                </p>
+
+                <h1 className="mt-1 break-words text-3xl font-black leading-tight tracking-tight text-[#14213D] sm:text-4xl md:text-5xl">
+                  {student.firstName} {student.lastName}
+                </h1>
+
+                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] text-[#657286]">
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <Mail className="h-3.5 w-3.5 flex-shrink-0 text-[#8993A2]" />
+                    <span className="break-all">{student.email}</span>
+                  </span>
+
+                  {student.techCenter && (
+                    <span className="flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-[#8993A2]" />
+                      <span>
+                        {student.techCenter.name}
+                        {student.techCenter.country?.name &&
+                          `, ${student.techCenter.country.name}`}
+                      </span>
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Status */}
               <div
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 ${
+                className={`inline-flex w-fit flex-shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 ${
                   student.isActive
                     ? 'bg-[#EAF7F1] text-[#247653]'
                     : 'bg-[#FEF0F0] text-[#C74D4D]'
                 }`}
               >
                 {student.isActive ? (
-                  <CheckCircle className="h-4 w-4" />
+                  <CheckCircle className="h-3.5 w-3.5" />
                 ) : (
-                  <XCircle className="h-4 w-4" />
+                  <XCircle className="h-3.5 w-3.5" />
                 )}
-                <span className="text-xs font-bold uppercase tracking-[0.1em]">
+
+                <span className="text-[9px] font-bold uppercase tracking-[0.1em]">
                   {student.isActive ? 'Active' : 'Inactive'}
                 </span>
               </div>
-
-              {/* Student ID */}
-              <div className="rounded-md border border-[#E0E5EB] bg-[#F8F9FB] px-4 py-3">
-                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#929CAA]">
-                  Student ID
-                </p>
-                <p className="mt-1 break-all font-mono text-sm font-bold text-[#354258]">
-                  {student.studentId}
-                </p>
-              </div>
             </div>
 
-            {/* Metadata line */}
-            <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 border-t border-[#E5E9EE] pt-5 text-[10px] uppercase tracking-[0.12em] text-[#8A94A3]">
+            {/* ==================================================
+                VIEW FULL IMAGE
+                Normal document flow — scrolls with the page.
+            ================================================== */}
+
+            {student.profileImage && (
+              <div className="mt-4 border-t border-[#E7EAEE] pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowFullImage(true)}
+                  className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.11em] text-[#1A365D] transition-colors hover:text-[#C88A24]"
+                >
+                  <Maximize2 className="h-3.5 w-3.5" />
+                  View full image
+                </button>
+              </div>
+            )}
+
+            {/* Student metadata */}
+            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[#E7EAEE] pt-3 text-[9px] uppercase tracking-[0.1em] text-[#8A94A3]">
+              <span>
+                ID{' '}
+                <strong className="font-mono font-semibold text-[#536174]">
+                  {student.studentId}
+                </strong>
+              </span>
+
+              <span>
+                Role{' '}
+                <strong className="font-semibold capitalize text-[#536174]">
+                  {student.role}
+                </strong>
+              </span>
+
               <span>
                 Joined{' '}
                 <strong className="font-semibold text-[#536174]">
                   {new Date(student.createdAt).toLocaleDateString()}
                 </strong>
               </span>
-              <span>
-                Status{' '}
-                <strong className="font-semibold capitalize text-[#536174]">
-                  {student.status}
-                </strong>
-              </span>
+
               {student.generalCourse && (
                 <span>
                   Course{' '}
@@ -474,10 +481,47 @@ export default function StudentProfilePage() {
         </section>
 
         {/* ======================================================
+            FULL IMAGE VIEWER
+            Normal modal only when explicitly opened.
+        ====================================================== */}
+
+        {showFullImage && student.profileImage && (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-3 sm:p-6"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Full student profile image"
+            onClick={() => setShowFullImage(false)}
+          >
+            <div
+              className="relative flex h-full w-full max-w-6xl items-center justify-center"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <Image
+                src={student.profileImage}
+                alt={`${student.firstName} ${student.lastName}`}
+                fill
+                sizes="100vw"
+                className="object-contain"
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowFullImage(false)}
+                className="absolute right-2 top-2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#1A365D] shadow-md transition-colors hover:bg-[#F1F4F7]"
+                aria-label="Close full image"
+              >
+                <XCircle className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ======================================================
             QUICK ACADEMIC STRIP
         ====================================================== */}
 
-        <section className="mt-4 grid grid-cols-2 overflow-hidden rounded-lg border border-[#D8DDE4] bg-white shadow-[0_1px_4px_rgba(20,33,61,0.03)] md:grid-cols-4">
+        <section className="mt-3 grid grid-cols-2 overflow-hidden rounded-lg border border-[#D8DDE4] bg-white shadow-[0_1px_3px_rgba(20,33,61,0.025)] md:grid-cols-4">
           <div className="border-b border-r border-[#D8DDE4] md:border-b-0">
             <StatItem
               label="Course Units"
@@ -490,7 +534,7 @@ export default function StudentProfilePage() {
             <StatItem
               label="Credits"
               value={totalCredits}
-              detail="Total academic credits"
+              detail="Academic credits"
             />
           </div>
 
@@ -507,15 +551,15 @@ export default function StudentProfilePage() {
               label="Religion"
               value={
                 student.takesReligion === null ? (
-                  <span className="text-base font-bold text-[#8993A2] md:text-lg">
+                  <span className="text-sm font-bold text-[#8993A2]">
                     Not specified
                   </span>
                 ) : student.takesReligion ? (
-                  <span className="text-base font-bold text-[#247653] md:text-lg">
+                  <span className="text-sm font-bold text-[#247653]">
                     Takes Religion
                   </span>
                 ) : (
-                  <span className="text-base font-bold text-[#C74D4D] md:text-lg">
+                  <span className="text-sm font-bold text-[#C74D4D]">
                     No Religion
                   </span>
                 )
@@ -529,24 +573,24 @@ export default function StudentProfilePage() {
             MAIN CONTENT
         ====================================================== */}
 
-        <div className="mt-10">
+        <div className="mt-7">
           {/* ====================================================
               ACADEMIC
           ==================================================== */}
 
-          <section className="mb-10">
+          <section className="mb-7">
             <SectionHeading
               number="01"
               title="Academic Information"
-              icon={<GraduationCap className="h-4 w-4" />}
+              icon={<GraduationCap className="h-3.5 w-3.5" />}
             />
 
-            <div className="rounded-lg border border-[#D8DDE4] bg-white px-4 shadow-[0_1px_4px_rgba(20,33,61,0.025)] md:px-6">
-              <div className="grid grid-cols-1 gap-x-10 md:grid-cols-2">
+            <div className="rounded-lg border border-[#D8DDE4] bg-white px-3 shadow-[0_1px_3px_rgba(20,33,61,0.02)] md:px-5">
+              <div className="grid grid-cols-1 gap-x-8 md:grid-cols-2">
                 <InfoRow
                   label="General Degree Course"
                   value={student.generalCourse || 'Not provided'}
-                  icon={<Book className="h-4 w-4" />}
+                  icon={<Book className="h-3.5 w-3.5" />}
                 />
 
                 <InfoRow
@@ -556,7 +600,7 @@ export default function StudentProfilePage() {
                       ? student.techCenter.name
                       : 'Not assigned'
                   }
-                  icon={<MapPin className="h-4 w-4" />}
+                  icon={<MapPin className="h-3.5 w-3.5" />}
                 />
 
                 <InfoRow
@@ -566,7 +610,7 @@ export default function StudentProfilePage() {
                     student.country ||
                     'Not provided'
                   }
-                  icon={<Globe className="h-4 w-4" />}
+                  icon={<Globe className="h-3.5 w-3.5" />}
                 />
 
                 <InfoRow
@@ -574,7 +618,7 @@ export default function StudentProfilePage() {
                   value={
                     <span className="capitalize">{student.status}</span>
                   }
-                  icon={<CheckCircle className="h-4 w-4" />}
+                  icon={<CheckCircle className="h-3.5 w-3.5" />}
                 />
               </div>
             </div>
@@ -584,30 +628,30 @@ export default function StudentProfilePage() {
               COURSE UNITS
           ==================================================== */}
 
-          <section className="mb-10">
+          <section className="mb-7">
             <SectionHeading
               number="02"
               title={`Course Units (${student.studentCourses.length})`}
-              icon={<Book className="h-4 w-4" />}
+              icon={<Book className="h-3.5 w-3.5" />}
             />
 
             {student.studentCourses.length > 0 ? (
-              <div className="overflow-hidden rounded-lg border border-[#D8DDE4] bg-white shadow-[0_1px_4px_rgba(20,33,61,0.025)]">
-                {/* Desktop header */}
-                <div className="hidden grid-cols-[110px_1fr_100px_120px] gap-5 bg-[#1A365D] px-5 py-3 md:grid">
-                  <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/65">
+              <div className="overflow-hidden rounded-lg border border-[#D8DDE4] bg-white shadow-[0_1px_3px_rgba(20,33,61,0.02)]">
+                {/* Desktop */}
+                <div className="hidden grid-cols-[100px_1fr_90px_110px] gap-4 bg-[#1A365D] px-4 py-2.5 md:grid">
+                  <span className="text-[8px] font-bold uppercase tracking-[0.14em] text-white/65">
                     Code
                   </span>
 
-                  <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/65">
+                  <span className="text-[8px] font-bold uppercase tracking-[0.14em] text-white/65">
                     Course Unit
                   </span>
 
-                  <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/65">
+                  <span className="text-[8px] font-bold uppercase tracking-[0.14em] text-white/65">
                     Credits
                   </span>
 
-                  <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/65">
+                  <span className="text-[8px] font-bold uppercase tracking-[0.14em] text-white/65">
                     Status
                   </span>
                 </div>
@@ -618,46 +662,46 @@ export default function StudentProfilePage() {
                     className="group border-b border-[#E4E8ED] last:border-b-0 hover:bg-[#FAFBFC]"
                   >
                     {/* Desktop */}
-                    <div className="hidden grid-cols-[110px_1fr_100px_120px] items-center gap-5 px-5 py-4 md:grid">
-                      <span className="font-mono text-xs font-bold text-[#C88A24]">
+                    <div className="hidden grid-cols-[100px_1fr_90px_110px] items-center gap-4 px-4 py-3 md:grid">
+                      <span className="font-mono text-[11px] font-bold text-[#C88A24]">
                         {course.code}
                       </span>
 
-                      <span className="text-sm font-semibold text-[#354258]">
+                      <span className="text-[13px] font-semibold text-[#354258]">
                         {course.courseUnit}
                       </span>
 
-                      <span className="text-sm text-[#657286]">
+                      <span className="text-[13px] text-[#657286]">
                         {course.credits}
                       </span>
 
-                      <span className="inline-flex w-fit rounded-full bg-[#F1F4F7] px-2.5 py-1 text-[10px] font-semibold capitalize text-[#657286]">
+                      <span className="inline-flex w-fit rounded-full bg-[#F1F4F7] px-2 py-1 text-[9px] font-semibold capitalize text-[#657286]">
                         {course.status}
                       </span>
                     </div>
 
                     {/* Mobile */}
-                    <div className="p-4 md:hidden">
-                      <div className="flex items-start justify-between gap-4">
+                    <div className="p-3.5 md:hidden">
+                      <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <span className="font-mono text-xs font-bold text-[#C88A24]">
+                          <span className="font-mono text-[11px] font-bold text-[#C88A24]">
                             {course.code}
                           </span>
 
-                          <p className="mt-1 break-words text-sm font-bold text-[#354258]">
+                          <p className="mt-0.5 break-words text-[13px] font-bold leading-5 text-[#354258]">
                             {course.courseUnit}
                           </p>
                         </div>
 
-                        <span className="whitespace-nowrap rounded-md bg-[#EEF2F7] px-2 py-1 text-[10px] font-bold text-[#1A365D]">
+                        <span className="whitespace-nowrap rounded-md bg-[#EEF2F7] px-2 py-1 text-[9px] font-bold text-[#1A365D]">
                           {course.credits} credits
                         </span>
                       </div>
 
-                      <div className="mt-3 flex items-center gap-2">
+                      <div className="mt-2 flex items-center gap-2">
                         <span className="h-1.5 w-1.5 rounded-full bg-[#8A94A3]" />
 
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#929CAA]">
+                        <p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#929CAA]">
                           {course.status}
                         </p>
                       </div>
@@ -665,19 +709,18 @@ export default function StudentProfilePage() {
                   </div>
                 ))}
 
-                {/* Total */}
-                <div className="flex items-center justify-between border-t border-[#E0E5EA] bg-[#F7F8FA] px-5 py-4">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#7B8797]">
+                <div className="flex items-center justify-between border-t border-[#E0E5EA] bg-[#F7F8FA] px-4 py-3">
+                  <span className="text-[9px] font-bold uppercase tracking-[0.13em] text-[#7B8797]">
                     Total Credits
                   </span>
 
-                  <span className="text-xl font-black text-[#1A365D]">
+                  <span className="text-lg font-black text-[#1A365D]">
                     {totalCredits}
                   </span>
                 </div>
               </div>
             ) : (
-              <div className="rounded-lg border border-[#D8DDE4] bg-white p-7 text-sm text-[#8993A2]">
+              <div className="rounded-lg border border-[#D8DDE4] bg-white p-5 text-[13px] text-[#8993A2]">
                 No course units provided.
               </div>
             )}
@@ -687,25 +730,25 @@ export default function StudentProfilePage() {
               PERSONAL + CONTACT
           ==================================================== */}
 
-          <section className="mb-10">
+          <section className="mb-7">
             <SectionHeading
               number="03"
               title="Personal & Contact"
-              icon={<User className="h-4 w-4" />}
+              icon={<User className="h-3.5 w-3.5" />}
             />
 
-            <div className="rounded-lg border border-[#D8DDE4] bg-white px-4 shadow-[0_1px_4px_rgba(20,33,61,0.025)] md:px-6">
-              <div className="grid grid-cols-1 gap-x-10 md:grid-cols-2">
+            <div className="rounded-lg border border-[#D8DDE4] bg-white px-3 shadow-[0_1px_3px_rgba(20,33,61,0.02)] md:px-5">
+              <div className="grid grid-cols-1 gap-x-8 md:grid-cols-2">
                 <InfoRow
                   label="Email Address"
                   value={student.email || 'Not provided'}
-                  icon={<Mail className="h-4 w-4" />}
+                  icon={<Mail className="h-3.5 w-3.5" />}
                 />
 
                 <InfoRow
                   label="Phone Number"
                   value={student.phoneNumber || 'Not provided'}
-                  icon={<Phone className="h-4 w-4" />}
+                  icon={<Phone className="h-3.5 w-3.5" />}
                 />
 
                 <InfoRow
@@ -717,7 +760,7 @@ export default function StudentProfilePage() {
                       'Not provided'
                     )
                   }
-                  icon={<User className="h-4 w-4" />}
+                  icon={<User className="h-3.5 w-3.5" />}
                 />
 
                 <InfoRow
@@ -727,25 +770,25 @@ export default function StudentProfilePage() {
                     student.techCenter?.country?.name ||
                     'Not provided'
                   }
-                  icon={<Globe className="h-4 w-4" />}
+                  icon={<Globe className="h-3.5 w-3.5" />}
                 />
 
                 <InfoRow
                   label="City"
                   value={student.city || 'Not provided'}
-                  icon={<Map className="h-4 w-4" />}
+                  icon={<Map className="h-3.5 w-3.5" />}
                 />
 
                 <InfoRow
                   label="Town"
                   value={student.town || 'Not provided'}
-                  icon={<MapPin className="h-4 w-4" />}
+                  icon={<MapPin className="h-3.5 w-3.5" />}
                 />
 
                 <InfoRow
                   label="Street"
                   value={student.street || 'Not provided'}
-                  icon={<MapPin className="h-4 w-4" />}
+                  icon={<MapPin className="h-3.5 w-3.5" />}
                 />
               </div>
             </div>
@@ -755,40 +798,40 @@ export default function StudentProfilePage() {
               PROFESSIONAL LINKS
           ==================================================== */}
 
-          <section className="mb-10">
+          <section className="mb-7">
             <SectionHeading
               number="04"
               title="Professional Links"
-              icon={<Briefcase className="h-4 w-4" />}
+              icon={<Briefcase className="h-3.5 w-3.5" />}
             />
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               {/* LinkedIn */}
-              <div className="rounded-lg border border-[#D8DDE4] bg-white p-5 shadow-[0_1px_4px_rgba(20,33,61,0.025)] transition-shadow hover:shadow-[0_4px_12px_rgba(20,33,61,0.06)]">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md bg-[#EAF3F8]">
-                    <LinkIcon className="h-5 w-5 text-[#0077B5]" />
+              <div className="rounded-lg border border-[#D8DDE4] bg-white p-4 shadow-[0_1px_3px_rgba(20,33,61,0.02)]">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-[#EAF3F8]">
+                    <LinkIcon className="h-4 w-4 text-[#0077B5]" />
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#929CAA]">
+                    <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-[#929CAA]">
                       LinkedIn
                     </p>
 
                     {student.linkedinUrl ? (
                       <>
-                        <p className="mt-1 truncate text-sm font-medium text-[#354258]">
+                        <p className="mt-1 truncate text-[13px] font-medium text-[#354258]">
                           {student.linkedinUrl}
                         </p>
 
-                        <div className="mt-3 flex items-center gap-4">
+                        <div className="mt-2 flex items-center gap-4">
                           <button
                             onClick={() =>
                               copyToClipboard(student.linkedinUrl!)
                             }
-                            className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[#1A365D] transition-colors hover:text-[#C88A24]"
+                            className="inline-flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.09em] text-[#1A365D] transition-colors hover:text-[#C88A24]"
                           >
-                            <Copy className="h-3.5 w-3.5" />
+                            <Copy className="h-3 w-3" />
                             Copy
                           </button>
 
@@ -796,15 +839,15 @@ export default function StudentProfilePage() {
                             href={student.linkedinUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[#1A365D] transition-colors hover:text-[#C88A24]"
+                            className="inline-flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.09em] text-[#1A365D] transition-colors hover:text-[#C88A24]"
                           >
-                            <ExternalLink className="h-3.5 w-3.5" />
+                            <ExternalLink className="h-3 w-3" />
                             Open
                           </a>
                         </div>
                       </>
                     ) : (
-                      <p className="mt-1 text-sm text-[#8993A2]">
+                      <p className="mt-1 text-[13px] text-[#8993A2]">
                         Not provided
                       </p>
                     )}
@@ -813,31 +856,31 @@ export default function StudentProfilePage() {
               </div>
 
               {/* GitHub */}
-              <div className="rounded-lg border border-[#D8DDE4] bg-white p-5 shadow-[0_1px_4px_rgba(20,33,61,0.025)] transition-shadow hover:shadow-[0_4px_12px_rgba(20,33,61,0.06)]">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md bg-[#EEF0F2]">
-                    <GitFork className="h-5 w-5 text-[#354258]" />
+              <div className="rounded-lg border border-[#D8DDE4] bg-white p-4 shadow-[0_1px_3px_rgba(20,33,61,0.02)]">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-[#EEF0F2]">
+                    <GitFork className="h-4 w-4 text-[#354258]" />
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#929CAA]">
+                    <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-[#929CAA]">
                       GitHub
                     </p>
 
                     {student.githubUrl ? (
                       <>
-                        <p className="mt-1 truncate text-sm font-medium text-[#354258]">
+                        <p className="mt-1 truncate text-[13px] font-medium text-[#354258]">
                           {student.githubUrl}
                         </p>
 
-                        <div className="mt-3 flex items-center gap-4">
+                        <div className="mt-2 flex items-center gap-4">
                           <button
                             onClick={() =>
                               copyToClipboard(student.githubUrl!)
                             }
-                            className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[#1A365D] transition-colors hover:text-[#C88A24]"
+                            className="inline-flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.09em] text-[#1A365D] transition-colors hover:text-[#C88A24]"
                           >
-                            <Copy className="h-3.5 w-3.5" />
+                            <Copy className="h-3 w-3" />
                             Copy
                           </button>
 
@@ -845,15 +888,15 @@ export default function StudentProfilePage() {
                             href={student.githubUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[#1A365D] transition-colors hover:text-[#C88A24]"
+                            className="inline-flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.09em] text-[#1A365D] transition-colors hover:text-[#C88A24]"
                           >
-                            <ExternalLink className="h-3.5 w-3.5" />
+                            <ExternalLink className="h-3 w-3" />
                             Open
                           </a>
                         </div>
                       </>
                     ) : (
-                      <p className="mt-1 text-sm text-[#8993A2]">
+                      <p className="mt-1 text-[13px] text-[#8993A2]">
                         Not provided
                       </p>
                     )}
@@ -867,53 +910,53 @@ export default function StudentProfilePage() {
               PROJECTS
           ==================================================== */}
 
-          <section className="mb-10">
+          <section className="mb-7">
             <SectionHeading
               number="05"
               title="Student Projects"
-              icon={<LinkIcon className="h-4 w-4" />}
+              icon={<LinkIcon className="h-3.5 w-3.5" />}
             />
 
             {student.projectUrls && student.projectUrls.length > 0 ? (
-              <div className="overflow-hidden rounded-lg border border-[#D8DDE4] bg-white shadow-[0_1px_4px_rgba(20,33,61,0.025)]">
+              <div className="overflow-hidden rounded-lg border border-[#D8DDE4] bg-white shadow-[0_1px_3px_rgba(20,33,61,0.02)]">
                 {student.projectUrls.map((url, index) => (
                   <div
                     key={index}
-                    className="flex items-center gap-3 border-b border-[#E1E5E9] px-4 py-4 last:border-b-0 hover:bg-[#FAFBFC] md:gap-4 md:px-5"
+                    className="flex items-center gap-2.5 border-b border-[#E1E5E9] px-3.5 py-3 last:border-b-0 hover:bg-[#FAFBFC] md:gap-3 md:px-4"
                   >
-                    <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-[#F6EBD8] font-mono text-[10px] font-bold text-[#9A691B]">
+                    <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md bg-[#F6EBD8] font-mono text-[9px] font-bold text-[#9A691B]">
                       {String(index + 1).padStart(2, '0')}
                     </span>
 
-                    <LinkIcon className="h-4 w-4 flex-shrink-0 text-[#8A94A3]" />
+                    <LinkIcon className="h-3.5 w-3.5 flex-shrink-0 text-[#8A94A3]" />
 
-                    <span className="min-w-0 flex-1 truncate text-sm text-[#354258]">
+                    <span className="min-w-0 flex-1 truncate text-[13px] text-[#354258]">
                       {url}
                     </span>
 
                     <button
                       onClick={() => copyToClipboard(url)}
-                      className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-[#7B8797] transition-colors hover:bg-[#EEF2F7] hover:text-[#1A365D]"
+                      className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-[#7B8797] transition-colors hover:bg-[#EEF2F7] hover:text-[#1A365D]"
                       title="Copy link"
                     >
-                      <Copy className="h-4 w-4" />
+                      <Copy className="h-3.5 w-3.5" />
                     </button>
 
                     <a
                       href={url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hidden h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-[#7B8797] transition-colors hover:bg-[#F6EBD8] hover:text-[#9A691B] sm:flex"
+                      className="hidden h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-[#7B8797] transition-colors hover:bg-[#F6EBD8] hover:text-[#9A691B] sm:flex"
                       title="Open project"
                     >
-                      <ExternalLink className="h-4 w-4" />
+                      <ExternalLink className="h-3.5 w-3.5" />
                     </a>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="rounded-lg border border-[#D8DDE4] bg-white p-7">
-                <p className="text-sm text-[#8993A2]">
+              <div className="rounded-lg border border-[#D8DDE4] bg-white p-5">
+                <p className="text-[13px] text-[#8993A2]">
                   No projects provided.
                 </p>
               </div>
@@ -924,25 +967,25 @@ export default function StudentProfilePage() {
               ACCOUNT
           ==================================================== */}
 
-          <section className="mb-10">
+          <section className="mb-7">
             <SectionHeading
               number="06"
               title="Account Information"
-              icon={<Calendar className="h-4 w-4" />}
+              icon={<Calendar className="h-3.5 w-3.5" />}
             />
 
-            <div className="rounded-lg border border-[#D8DDE4] bg-white px-4 shadow-[0_1px_4px_rgba(20,33,61,0.025)] md:px-6">
-              <div className="grid grid-cols-1 gap-x-10 md:grid-cols-3">
+            <div className="rounded-lg border border-[#D8DDE4] bg-white px-3 shadow-[0_1px_3px_rgba(20,33,61,0.02)] md:px-5">
+              <div className="grid grid-cols-1 gap-x-8 md:grid-cols-3">
                 <InfoRow
                   label="Joined"
                   value={new Date(student.createdAt).toLocaleDateString()}
-                  icon={<Calendar className="h-4 w-4" />}
+                  icon={<Calendar className="h-3.5 w-3.5" />}
                 />
 
                 <InfoRow
                   label="Profile Updated"
                   value={new Date(student.updatedAt).toLocaleDateString()}
-                  icon={<Calendar className="h-4 w-4" />}
+                  icon={<Calendar className="h-3.5 w-3.5" />}
                 />
 
                 <InfoRow
@@ -950,7 +993,7 @@ export default function StudentProfilePage() {
                   value={
                     <span className="capitalize">{student.status}</span>
                   }
-                  icon={<User className="h-4 w-4" />}
+                  icon={<User className="h-3.5 w-3.5" />}
                 />
               </div>
             </div>
@@ -960,12 +1003,12 @@ export default function StudentProfilePage() {
               BACK TO DIRECTORY
           ==================================================== */}
 
-          <div className="border-t border-[#D8DDE4] py-6">
+          <div className="border-t border-[#D8DDE4] py-5">
             <button
               onClick={() => router.back()}
-              className="inline-flex items-center gap-3 rounded-md bg-[#1A365D] px-5 py-3 text-xs font-bold uppercase tracking-[0.13em] text-white shadow-[0_2px_5px_rgba(26,54,93,0.12)] transition-all hover:bg-[#14294A] hover:shadow-[0_4px_10px_rgba(26,54,93,0.16)]"
+              className="inline-flex items-center gap-2.5 rounded-md bg-[#1A365D] px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.11em] text-white shadow-[0_1px_3px_rgba(26,54,93,0.12)] transition-all hover:bg-[#14294A]"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-3.5 w-3.5" />
               Back to Student Directory
             </button>
           </div>
