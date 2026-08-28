@@ -1,29 +1,27 @@
-// components/CTASection.tsx
-
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import AuthModal from "@/components/auth/AuthModal";
-import { useState } from "react";
 
 export default function CTASection() {
   const { isAuthenticated, user } = useAuth();
+
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authModalType, setAuthModalType] = useState<'login' | 'register'>('login');
-  
-  const primaryColor = '#E8A33D';
-  const accentColor = '#C97F1F';
+  const [authModalType, setAuthModalType] = useState<"login" | "register">(
+    "login"
+  );
 
   const handleSignIn = () => {
-    setAuthModalType('login');
+    setAuthModalType("login");
     setShowAuthModal(true);
   };
 
   const handleRegister = () => {
-    setAuthModalType('register');
+    setAuthModalType("register");
     setShowAuthModal(true);
   };
 
@@ -32,107 +30,81 @@ export default function CTASection() {
   };
 
   return (
-    <section className="relative overflow-hidden bg-[#0D1117] py-16">
-      {/* Background */}
-      <div 
-        className="absolute inset-0"
-        style={{
-          background: `radial-gradient(circle_at_center,${primaryColor}14,transparent_55%)`,
-        }}
-      />
-
-      <div className="relative mx-auto max-w-6xl px-6">
+    <section className="relative overflow-hidden bg-[#0D1117] py-14 sm:py-16 lg:py-20">
+      <div className="mx-auto max-w-6xl px-5 sm:px-6 lg:px-8">
         <motion.div
-          initial={{ opacity: 0, y: 25 }}
+          initial={{ opacity: 0, y: 14 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="rounded-xl border-2 p-8 md:p-10 text-center"
-          style={{
-            borderColor: `${primaryColor}40`,
-            background: `linear-gradient(to bottom, ${primaryColor}15, rgba(26, 22, 16, 0.9))`,
-            backgroundImage: `
-              linear-gradient(to bottom, ${primaryColor}15, rgba(26, 22, 16, 0.9)),
-              url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paperNoise)' opacity='0.04'/%3E%3C/svg%3E")
-            `,
-            backgroundSize: '100% 100%, 400px 400px'
-          }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.45 }}
+          className="relative overflow-hidden rounded-xl border border-[#E8A33D]/20 bg-[#111923]"
         >
-          {/* Badge */}
-          <span 
-            className="inline-flex rounded-full border-2 px-4 py-1.5 text-xs uppercase tracking-[0.25em]"
-            style={{
-              borderColor: `${primaryColor}40`,
-              backgroundColor: `${primaryColor}1A`,
-              color: primaryColor,
-            }}
-          >
-            Begin Your Journey
-          </span>
+          {/* Subtle accent line */}
+          <div className="h-1 w-full bg-[#E8A33D]" />
 
-          {/* Heading */}
-          <h2 className="mt-4 text-3xl md:text-5xl font-black text-white">
-            Ready To Start?
-          </h2>
+          <div className="px-5 py-9 text-center sm:px-8 sm:py-11 lg:px-12 lg:py-12">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#E8A33D]/20 bg-[#E8A33D]/[0.07] px-3.5 py-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#E8A33D]" />
 
-          {/* Description */}
-          <p className="mx-auto mt-3 max-w-2xl text-base leading-6 text-gray-400">
-            Access the Official Selfless Student Self Service Portal and manage 
-            every aspect of your academic journey from one intelligent platform.
-          </p>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#E8A33D]">
+                Begin Your Journey
+              </span>
+            </div>
 
-          {/* Buttons */}
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
-            {isAuthenticated && user ? (
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center gap-2 rounded-xl px-6 py-3 font-semibold text-black transition hover:scale-105"
-                style={{
-                  backgroundColor: primaryColor,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = accentColor;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = primaryColor;
-                }}
-              >
-                Go to Dashboard
-                <ArrowRight size={16} />
-              </Link>
-            ) : (
-              <>
-                <button
-                  onClick={handleRegister}
-                  className="inline-flex items-center gap-2 rounded-xl px-6 py-3 font-semibold text-black transition hover:scale-105"
-                  style={{
-                    backgroundColor: primaryColor,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = accentColor;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = primaryColor;
-                  }}
+            {/* Heading */}
+            <h2 className="mx-auto mt-5 max-w-2xl text-3xl font-bold leading-[1.1] tracking-tight text-white sm:text-4xl lg:text-[46px]">
+              Ready to take control of your
+              <span className="block text-[#E8A33D]">
+                academic journey?
+              </span>
+            </h2>
+
+            {/* Description */}
+            <p className="mx-auto mt-5 max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">
+              Access the Selfless Student Self Service Portal and keep your
+              courses, assignments, attendance, communication, and academic
+              progress organized in one place.
+            </p>
+
+            {/* Actions */}
+            <div className="mt-7 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+              {isAuthenticated && user ? (
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#E8A33D] px-5 py-3 text-sm font-semibold text-[#101010] transition-colors duration-200 hover:bg-[#C97F1F] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/50 focus:ring-offset-2 focus:ring-offset-[#111923]"
                 >
-                  Create Account
-                  <ArrowRight size={16} />
-                </button>
+                  Go to Dashboard
+                  <ArrowRight size={16} strokeWidth={2} />
+                </Link>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleRegister}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#E8A33D] px-5 py-3 text-sm font-semibold text-[#101010] transition-colors duration-200 hover:bg-[#C97F1F] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/50 focus:ring-offset-2 focus:ring-offset-[#111923]"
+                  >
+                    Create Account
+                    <ArrowRight size={16} strokeWidth={2} />
+                  </button>
 
-                <button
-                  onClick={handleSignIn}
-                  className="rounded-lg border-2 border-[#E8A33D]/30 bg-[#E8A33D]/10 px-5 py-2.5 font-medium text-white transition hover:bg-[#E8A33D]/20"
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = `${primaryColor}50`;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(232, 163, 61, 0.3)';
-                  }}
-                >
-                  Student Login
-                </button>
-              </>
-            )}
+                  <button
+                    type="button"
+                    onClick={handleSignIn}
+                    className="inline-flex items-center justify-center rounded-lg border border-white/[0.12] bg-white/[0.03] px-5 py-3 text-sm font-medium text-slate-200 transition-colors duration-200 hover:border-[#E8A33D]/30 hover:bg-[#E8A33D]/[0.07] hover:text-white focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:ring-offset-2 focus:ring-offset-[#111923]"
+                  >
+                    Student Login
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Trust points */}
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+              <TrustPoint text="Centralized academic tools" />
+              <TrustPoint text="Accessible across devices" />
+              <TrustPoint text="Built for students" />
+            </div>
           </div>
         </motion.div>
       </div>
@@ -143,5 +115,18 @@ export default function CTASection() {
         defaultType={authModalType}
       />
     </section>
+  );
+}
+
+function TrustPoint({ text }: { text: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-500">
+      <CheckCircle2
+        size={13}
+        strokeWidth={1.8}
+        className="text-[#E8A33D]"
+      />
+      {text}
+    </span>
   );
 }

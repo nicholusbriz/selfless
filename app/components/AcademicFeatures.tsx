@@ -15,118 +15,124 @@ const features = [
   {
     title: "Course Registration",
     description:
-      "Register and manage your semester courses with an organized and streamlined enrollment experience.",
+      "Register and manage your semester courses through a simple, organized enrollment experience.",
     icon: BookOpen,
   },
   {
     title: "Assignments",
     description:
-      "Keep track of upcoming assignments, submission deadlines, and completed coursework.",
+      "Keep track of coursework, submission deadlines, and completed assignments in one place.",
     icon: ClipboardList,
   },
   {
     title: "Academic Progress",
     description:
-      "Monitor grades, earned credits, GPA, and overall performance throughout your studies.",
+      "Monitor your grades, earned credits, GPA, and academic progress throughout your studies.",
     icon: GraduationCap,
   },
   {
     title: "Attendance",
     description:
-      "View attendance records and remain informed about your participation status.",
+      "Review your attendance records and stay informed about your participation status.",
     icon: CalendarCheck,
   },
   {
     title: "Announcements",
     description:
-      "Receive important academic updates, notices, and communication from administrators.",
+      "Stay updated with important academic notices and communication from administrators.",
     icon: Bell,
   },
   {
     title: "Performance Analytics",
     description:
-      "Understand your academic growth through easy-to-read reports and progress insights.",
+      "Understand your academic growth through clear reports and meaningful progress insights.",
     icon: BarChart3,
   },
 ];
 
 export default function AcademicFeatures() {
-  const primaryColor = '#E8A33D';
-  
   return (
-    <section className="relative bg-[#0D1117] py-16 overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(232,163,61,.06),transparent_45%)]" />
+    <section className="relative overflow-hidden bg-[#0D1117] py-14 sm:py-16 lg:py-20">
+      <div className="mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
+        <div className="grid items-start gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-14">
+          {/* Intro */}
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.45 }}
+            className="lg:sticky lg:top-24"
+          >
+            <div className="mb-4 flex items-center gap-3">
+              <span className="h-px w-8 bg-[#E8A33D]" />
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#E8A33D]">
+                Academic Tools
+              </span>
+            </div>
 
-      <div className="max-w-7xl mx-auto px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="grid lg:grid-cols-2 gap-8 items-center"
-        >
-          {/* Left Content */}
-          <div>
-            <h2 className="text-3xl md:text-5xl font-black leading-tight text-white">
-              Everything You Need
+            <h2 className="max-w-xl text-3xl font-bold leading-[1.1] tracking-tight text-white sm:text-4xl lg:text-[46px]">
+              Everything you need
               <span className="block text-[#E8A33D]">
-                To Stay Ahead
+                to stay ahead.
               </span>
             </h2>
 
-            <p className="mt-3 text-gray-400 leading-6 text-base">
-              Focus on learning while the portal keeps everything organized.
-              From course registration to graduation tracking, every academic
-              tool is available within one secure platform.
+            <p className="mt-5 max-w-lg text-sm leading-6 text-slate-400 sm:text-base">
+              Focus on learning while your academic tools stay organized.
+              Manage courses, assignments, attendance, progress, and important
+              updates from one secure platform.
             </p>
 
-            <div className="mt-7 flex items-center gap-3 text-[#E8A33D] font-semibold text-sm">
-              Explore Academic Tools
-              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            <div className="mt-7 inline-flex items-center gap-2 text-sm font-medium text-[#E8A33D]">
+              Explore academic tools
+              <ArrowRight
+                size={16}
+                strokeWidth={1.8}
+                className="transition-transform duration-200 group-hover:translate-x-1"
+              />
             </div>
-          </div>
+          </motion.div>
 
-          {/* Right Content - Features Grid */}
-          <div className="grid sm:grid-cols-2 gap-3">
+          {/* Features */}
+          <div className="grid gap-px overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.08] sm:grid-cols-2">
             {features.map((item, index) => {
               const Icon = item.icon;
 
               return (
                 <motion.div
                   key={item.title}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 14 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
+                  viewport={{ once: true, amount: 0.15 }}
                   transition={{
-                    delay: index * 0.06,
-                    duration: 0.4,
+                    duration: 0.35,
+                    delay: index * 0.045,
                   }}
-                  className="group rounded-xl border-2 border-[#E8A33D]/20 bg-[#1a1610] p-4 transition-all duration-300 hover:-translate-y-1 hover:border-[#E8A33D]/40"
-                  style={{
-                    backgroundImage: `
-                      linear-gradient(135deg, rgba(232, 163, 61, 0.03) 0%, transparent 50%),
-                      url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paperNoise)' opacity='0.06'/%3E%3C/svg%3E")
-                    `,
-                    backgroundSize: 'cover, 400px 400px'
-                  }}
+                  className="group bg-[#11161D] p-5 transition-colors duration-200 hover:bg-[#151B23] sm:p-6"
                 >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#E8A33D]/10 text-[#E8A33D] border border-[#E8A33D]/30">
-                    <Icon size={20} />
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#E8A33D]/20 bg-[#E8A33D]/[0.08] text-[#E8A33D]">
+                      <Icon size={19} strokeWidth={1.8} />
+                    </div>
+
+                    <ArrowRight
+                      size={15}
+                      className="mt-1 text-slate-600 opacity-0 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-[#E8A33D] group-hover:opacity-100"
+                    />
                   </div>
 
-                  <h3 className="mt-3 text-sm font-semibold text-white">
+                  <h3 className="mt-5 text-sm font-semibold text-white sm:text-[15px]">
                     {item.title}
                   </h3>
 
-                  <p className="mt-2 text-gray-400 leading-5 text-xs">
+                  <p className="mt-2 text-xs leading-5 text-slate-400 sm:text-[13px]">
                     {item.description}
                   </p>
                 </motion.div>
               );
             })}
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

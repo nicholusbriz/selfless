@@ -8,6 +8,7 @@ import {
   Globe,
   Layers3,
   Sparkles,
+  ArrowUpRight,
 } from "lucide-react";
 
 const reasons = [
@@ -15,19 +16,19 @@ const reasons = [
     icon: Clock3,
     title: "Save Time",
     description:
-      "Complete academic tasks in minutes from one centralized platform without switching between multiple systems.",
+      "Complete academic tasks from one centralized platform without switching between multiple systems.",
   },
   {
     icon: ShieldCheck,
     title: "Secure & Reliable",
     description:
-      "Your academic records and personal information are securely managed and always accessible.",
+      "Your academic records and personal information are securely managed and available when you need them.",
   },
   {
     icon: Smartphone,
     title: "Access Anywhere",
     description:
-      "Use the portal on your laptop, tablet, or mobile phone wherever you are.",
+      "Use the portal comfortably on your laptop, tablet, or mobile phone wherever you are.",
   },
   {
     icon: Globe,
@@ -39,87 +40,129 @@ const reasons = [
     icon: Layers3,
     title: "All-In-One Platform",
     description:
-      "Courses, attendance, announcements, assignments, grades, schedules, and communication—all from one dashboard.",
+      "Manage courses, attendance, assignments, grades, schedules, announcements, and communication in one place.",
   },
   {
     icon: Sparkles,
     title: "Built Around Students",
     description:
-      "Every feature has been designed to simplify student life and improve the overall learning experience.",
+      "Designed to simplify everyday student tasks and make the learning experience easier to manage.",
   },
 ];
 
 export default function WhyChoosePortal() {
-  const primaryColor = '#E8A33D';
-  
   return (
-    <section className="relative overflow-hidden bg-[#101826] py-16">
-      {/* Background */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(232,163,61,.06),transparent_45%)]" />
-
-      <div className="mx-auto max-w-7xl px-6">
+    <section className="relative overflow-hidden bg-[#101826] py-14 sm:py-16 lg:py-20">
+      <div className="mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 25 }}
+          initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="mx-auto max-w-3xl text-center"
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.4 }}
+          className="mx-auto max-w-2xl text-center"
         >
-          <h2 className="text-3xl md:text-5xl font-black text-white">
-            More Than A
+          <div className="mb-4 flex items-center justify-center gap-3">
+            <span className="h-px w-8 bg-[#E8A33D]" />
+
+            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#E8A33D]">
+              Why the Portal
+            </span>
+
+            <span className="h-px w-8 bg-[#E8A33D]" />
+          </div>
+
+          <h2 className="text-3xl font-bold leading-[1.1] tracking-tight text-white sm:text-4xl lg:text-[46px]">
+            More than a
             <span className="block text-[#E8A33D]">
-              Student Portal
+              student portal.
             </span>
           </h2>
 
-          <p className="mt-4 text-base leading-7 text-gray-400">
-            The Selfless Student Self Service Portal isn't just another
-            website. It's your academic workspace, communication hub,
-            planning assistant, and digital companion throughout your
-            educational journey.
+          <p className="mt-5 text-sm leading-6 text-slate-400 sm:text-base">
+            Your Selfless Student Self Service Portal brings the essential
+            parts of student life together in one organized digital workspace.
           </p>
         </motion.div>
 
-        {/* Reasons Grid */}
-        <div className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {reasons.map((item, index) => {
-            const Icon = item.icon;
+        {/* Reasons */}
+        <div className="mt-10 overflow-hidden rounded-xl border border-white/[0.08] bg-[#0D141E]">
+          <div className="grid md:grid-cols-2 xl:grid-cols-3">
+            {reasons.map((item, index) => {
+              const Icon = item.icon;
 
-            return (
-              <motion.div
-                key={item.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{
-                  delay: index * 0.06,
-                  duration: 0.4,
-                }}
-                className="group rounded-xl border-2 border-[#E8A33D]/20 bg-[#1a1610] p-5 transition-all duration-300 hover:-translate-y-1 hover:border-[#E8A33D]/40"
-                style={{
-                  backgroundImage: `
-                    linear-gradient(135deg, rgba(232, 163, 61, 0.03) 0%, transparent 50%),
-                    url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paperNoise)' opacity='0.06'/%3E%3C/svg%3E")
-                  `,
-                  backgroundSize: 'cover, 400px 400px'
-                }}
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#E8A33D]/10 text-[#E8A33D] border border-[#E8A33D]/30 transition group-hover:scale-110">
-                  <Icon size={22} />
-                </div>
+              return (
+                <motion.div
+                  key={item.title}
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.15 }}
+                  transition={{
+                    duration: 0.35,
+                    delay: index * 0.045,
+                  }}
+                  className={`group relative bg-[#111923] p-5 transition-colors duration-200 hover:bg-[#151F2A] sm:p-6 ${
+                    index < 3
+                      ? "border-b border-white/[0.07]"
+                      : ""
+                  } ${
+                    index % 2 === 0
+                      ? "md:border-r md:border-white/[0.07] xl:border-r-0"
+                      : ""
+                  } ${
+                    index !== 2 && index !== 5
+                      ? "xl:border-r xl:border-white/[0.07]"
+                      : ""
+                  }`}
+                >
+                  {/* Top row */}
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#E8A33D]/20 bg-[#E8A33D]/[0.08] text-[#E8A33D]">
+                      <Icon size={19} strokeWidth={1.8} />
+                    </div>
 
-                <h3 className="mt-4 text-base font-bold text-white">
-                  {item.title}
-                </h3>
+                    <ArrowUpRight
+                      size={16}
+                      strokeWidth={1.8}
+                      className="text-slate-600 opacity-0 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[#E8A33D] group-hover:opacity-100"
+                    />
+                  </div>
 
-                <p className="mt-2 leading-6 text-gray-400 text-sm">
-                  {item.description}
-                </p>
-              </motion.div>
-            );
-          })}
+                  <h3 className="mt-5 text-sm font-semibold text-white sm:text-[15px]">
+                    {item.title}
+                  </h3>
+
+                  <p className="mt-2 max-w-md text-xs leading-5 text-slate-400 sm:text-[13px]">
+                    {item.description}
+                  </p>
+
+                  {/* Subtle index */}
+                  <span className="absolute bottom-5 right-5 text-[10px] font-medium tracking-wider text-white/[0.06] transition-colors duration-200 group-hover:text-[#E8A33D]/20">
+                    0{index + 1}
+                  </span>
+                </motion.div>
+              );
+            })}
+          </div>
         </div>
+
+        {/* Closing statement */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.4, delay: 0.15 }}
+          className="mt-8 flex flex-col gap-3 border-l-2 border-[#E8A33D]/60 pl-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6"
+        >
+          <p className="max-w-2xl text-sm leading-6 text-slate-400">
+            Everything you need to stay organized, connected, and focused on
+            your education—without unnecessary complexity.
+          </p>
+
+          <span className="shrink-0 text-xs font-semibold uppercase tracking-[0.12em] text-[#E8A33D]">
+            Student focused
+          </span>
+        </motion.div>
       </div>
     </section>
   );
