@@ -8,6 +8,7 @@ import {
   BellRing,
   Sparkles,
   UserCheck,
+  ArrowUpRight,
 } from "lucide-react";
 
 const community = [
@@ -32,7 +33,7 @@ const community = [
   {
     title: "Announcements",
     description:
-      "Never miss important announcements, schedules, or updates from administrators.",
+      "Stay informed about important announcements, schedules, and updates from administrators.",
     icon: BellRing,
   },
   {
@@ -44,76 +45,100 @@ const community = [
   {
     title: "Leadership Opportunities",
     description:
-      "Grow your leadership skills through mentorship, volunteering, and student responsibilities.",
+      "Develop leadership skills through mentorship, volunteering, and student responsibilities.",
     icon: UserCheck,
   },
 ];
 
-export default function CommunityFeatures() {
-  const primaryColor = '#E8A33D';
-  
-  return (
-    <section className="relative overflow-hidden bg-[#101826] py-16">
-      {/* Background */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(232,163,61,.05),transparent_45%)]" />
+const communityHighlights = [
+  {
+    title: "Study Groups",
+    value: "Collaborative learning",
+  },
+  {
+    title: "Tutor Support",
+    value: "Stay connected",
+  },
+  {
+    title: "Activities",
+    value: "Get involved",
+  },
+  {
+    title: "Community",
+    value: "Grow together",
+  },
+];
 
-      <div className="mx-auto max-w-7xl px-6">
-        {/* Header */}
+export default function CommunityFeatures() {
+  return (
+    <section className="relative overflow-hidden bg-[#101826] py-14 sm:py-16 lg:py-20">
+      <div className="mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
+        {/* Section Header */}
         <motion.div
-          initial={{ opacity: 0, y: 25 }}
+          initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="mx-auto max-w-3xl text-center"
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.4 }}
+          className="mx-auto max-w-2xl text-center"
         >
-          <h2 className="text-3xl md:text-5xl font-black text-white">
-            Learn Together.
+          <div className="mb-4 flex items-center justify-center gap-3">
+            <span className="h-px w-8 bg-[#E8A33D]" />
+
+            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#E8A33D]">
+              Student Community
+            </span>
+
+            <span className="h-px w-8 bg-[#E8A33D]" />
+          </div>
+
+          <h2 className="text-3xl font-bold leading-[1.1] tracking-tight text-white sm:text-4xl lg:text-[46px]">
+            Learn together.
             <span className="block text-[#E8A33D]">
-              Grow Together.
+              Grow together.
             </span>
           </h2>
 
-          <p className="mt-4 text-base leading-7 text-gray-400">
-            Education is more than attending classes. Build friendships,
-            collaborate with tutors, participate in Tech Center activities,
-            and become part of a thriving student community designed to help
-            everyone succeed.
+          <p className="mt-5 text-sm leading-6 text-slate-400 sm:text-base">
+            Education is more than attending classes. Connect with other
+            students, work with tutors, participate in Tech Center activities,
+            and build a community that supports your success.
           </p>
         </motion.div>
 
-        {/* Community Cards */}
-        <div className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {/* Community Features */}
+        <div className="mt-10 grid gap-px overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.08] md:grid-cols-2 xl:grid-cols-3">
           {community.map((item, index) => {
             const Icon = item.icon;
 
             return (
               <motion.div
                 key={item.title}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 12 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
+                viewport={{ once: true, amount: 0.15 }}
                 transition={{
-                  delay: index * 0.06,
-                  duration: 0.4,
+                  duration: 0.35,
+                  delay: index * 0.045,
                 }}
-                className="group rounded-xl border-2 border-[#E8A33D]/20 bg-[#1a1610] p-5 transition-all duration-300 hover:-translate-y-1 hover:border-[#E8A33D]/40"
-                style={{
-                  backgroundImage: `
-                    linear-gradient(135deg, rgba(232, 163, 61, 0.03) 0%, transparent 50%),
-                    url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paperNoise)' opacity='0.06'/%3E%3C/svg%3E")
-                  `,
-                  backgroundSize: 'cover, 400px 400px'
-                }}
+                className="group bg-[#121A25] p-5 transition-colors duration-200 hover:bg-[#17202D] sm:p-6"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#E8A33D]/10 text-[#E8A33D] border border-[#E8A33D]/30 transition duration-300 group-hover:scale-110">
-                  <Icon size={22} />
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#E8A33D]/20 bg-[#E8A33D]/[0.08] text-[#E8A33D]">
+                    <Icon size={19} strokeWidth={1.8} />
+                  </div>
+
+                  <ArrowUpRight
+                    size={16}
+                    strokeWidth={1.8}
+                    className="mt-1 text-slate-600 opacity-0 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[#E8A33D] group-hover:opacity-100"
+                  />
                 </div>
 
-                <h3 className="mt-4 text-base font-bold text-white">
+                <h3 className="mt-5 text-sm font-semibold text-white sm:text-[15px]">
                   {item.title}
                 </h3>
 
-                <p className="mt-2 leading-6 text-gray-400 text-sm">
+                <p className="mt-2 max-w-md text-xs leading-5 text-slate-400 sm:text-[13px]">
                   {item.description}
                 </p>
               </motion.div>
@@ -121,71 +146,40 @@ export default function CommunityFeatures() {
           })}
         </div>
 
-        {/* Bottom Stats Banner */}
+        {/* Community Highlights */}
         <motion.div
-          initial={{ opacity: 0, y: 25 }}
+          initial={{ opacity: 0, y: 14 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="mt-12 rounded-xl border-2 border-[#E8A33D]/20 p-6"
-          style={{
-            background: `linear-gradient(to right, ${primaryColor}15, rgba(26, 22, 16, 0.8), ${primaryColor}15)`,
-            backgroundImage: `
-              linear-gradient(to right, ${primaryColor}15, rgba(26, 22, 16, 0.8), ${primaryColor}15),
-              url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paperNoise)' opacity='0.04'/%3E%3C/svg%3E")
-            `,
-            backgroundSize: '100% 100%, 400px 400px'
-          }}
+          viewport={{ once: true, amount: 0.15 }}
+          transition={{ duration: 0.4 }}
+          className="mt-8 overflow-hidden rounded-xl border border-white/[0.08] bg-[#0D141E]"
         >
-          <div className="grid gap-4 md:grid-cols-4">
-            <StatCard
-              title="Study Groups"
-              value="Collaborative Learning"
-            />
-            <StatCard
-              title="Tutor Support"
-              value="Always Connected"
-            />
-            <StatCard
-              title="Events"
-              value="Stay Involved"
-            />
-            <StatCard
-              title="Community"
-              value="Learn Together"
-            />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4">
+            {communityHighlights.map((item, index) => (
+              <div
+                key={item.title}
+                className={`px-5 py-5 sm:px-6 ${
+                  index !== communityHighlights.length - 1
+                    ? "border-b border-white/[0.08] sm:border-r lg:border-b-0"
+                    : ""
+                } ${
+                  index === 1
+                    ? "sm:border-r-0 lg:border-r"
+                    : ""
+                }`}
+              >
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  {item.title}
+                </p>
+
+                <p className="mt-1.5 text-sm font-semibold text-[#E8A33D]">
+                  {item.value}
+                </p>
+              </div>
+            ))}
           </div>
         </motion.div>
       </div>
     </section>
-  );
-}
-
-function StatCard({
-  title,
-  value,
-}: {
-  title: string;
-  value: string;
-}) {
-  const primaryColor = '#E8A33D';
-  
-  return (
-    <div 
-      className="rounded-lg border-2 border-[#E8A33D]/20 bg-[#E8A33D]/5 p-4 text-center transition hover:border-[#E8A33D]/40"
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = `${primaryColor}50`;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = 'rgba(232, 163, 61, 0.2)';
-      }}
-    >
-      <h4 className="text-sm font-semibold text-white">
-        {title}
-      </h4>
-      <p className="mt-1 text-[#E8A33D] text-xs">
-        {value}
-      </p>
-    </div>
   );
 }

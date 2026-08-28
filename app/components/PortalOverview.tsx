@@ -2,13 +2,15 @@
 
 "use client";
 
-import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen,
   GraduationCap,
   Users,
   CalendarDays,
   ArrowRight,
+  Check,
 } from "lucide-react";
 
 const features = [
@@ -18,7 +20,6 @@ const features = [
       "Manage your courses, assignments, academic progress, and earned credits from one personalized dashboard.",
     icon: BookOpen,
     stats: "Courses • Credits • Grades",
-    color: "from-[#E8A33D]/20 to-transparent",
   },
   {
     title: "Student Community",
@@ -26,7 +27,6 @@ const features = [
       "Collaborate with classmates, join study groups, communicate with tutors, and stay connected across Tech Centers.",
     icon: Users,
     stats: "Groups • Tutors • Chat",
-    color: "from-[#0EA5E9]/20 to-transparent",
   },
   {
     title: "Campus Activities",
@@ -34,7 +34,6 @@ const features = [
       "Never miss announcements, events, attendance updates, or daily responsibilities within your Tech Center.",
     icon: CalendarDays,
     stats: "Events • Attendance • Notices",
-    color: "from-[#22C55E]/20 to-transparent",
   },
   {
     title: "Student Success",
@@ -42,179 +41,270 @@ const features = [
       "Track milestones, receive tutor feedback, celebrate achievements, and stay focused on graduation.",
     icon: GraduationCap,
     stats: "Progress • Goals • Achievements",
-    color: "from-[#A855F7]/20 to-transparent",
   },
 ];
 
+const services = [
+  "Course Registration",
+  "Academic Progress",
+  "Assignments",
+  "Attendance",
+  "Announcements",
+  "Study Groups",
+  "Tutor Feedback",
+  "Achievements",
+];
+
 export default function PortalOverview() {
-  const primaryColor = '#E8A33D';
+  const primaryColor = "#E8A33D";
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setActiveIndex((current) => (current + 1) % features.length);
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const activeFeature = features[activeIndex];
+  const ActiveIcon = activeFeature.icon;
 
   return (
-    <section className="relative py-16 bg-[#0D1117] overflow-hidden">
-      {/* Background */}
-      <div 
-        className="absolute inset-0"
-        style={{
-          background: `radial-gradient(circle_at_center,${primaryColor}12,transparent_60%)`
-        }}
-      />
-      
-      <div className="relative max-w-7xl mx-auto px-6">
-        {/* Header */}
+    <section className="relative overflow-hidden bg-[#0D1117] py-16 sm:py-20 lg:py-24">
+      <div className="mx-auto max-w-6xl px-5 sm:px-6 lg:px-8">
+
+        {/* Section heading */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="max-w-3xl mx-auto text-center"
+          viewport={{ once: true, amount: 0.25 }}
+          transition={{ duration: 0.55 }}
+          className="max-w-3xl"
         >
-          <h2 className="mt-6 text-3xl md:text-5xl font-black tracking-tight text-white">
-            Designed Around
+          <div className="mb-5 flex items-center gap-3">
+            <span
+              className="h-px w-10"
+              style={{ backgroundColor: primaryColor }}
+            />
+
+            <span
+              className="text-xs font-semibold uppercase tracking-[0.2em]"
+              style={{ color: primaryColor }}
+            >
+              Portal Overview
+            </span>
+          </div>
+
+          <h2 className="text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl lg:text-5xl">
+            Everything you need
             <span className="block" style={{ color: primaryColor }}>
-              Student Success
+              to succeed as a student.
             </span>
           </h2>
 
-          <p className="mt-5 text-base leading-7 text-gray-400 max-w-2xl mx-auto">
-            The Selfless Student Self Service Portal provides every tool students 
-            need to stay organized, collaborate with others, monitor academic 
-            progress, and successfully complete their educational journey.
+          <p className="mt-5 max-w-2xl text-sm leading-7 text-[#9CA3AF] sm:text-base">
+            The Selfless Student Self Service Portal brings your academic
+            tools, student services, communication, and progress tracking
+            together in one secure platform.
           </p>
         </motion.div>
 
-        {/* Cards */}
-        <div className="mt-12 grid gap-4 lg:grid-cols-2">
-          {features.map((feature, index) => {
-            const Icon = feature.icon;
+        {/* Feature navigation */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.15 }}
+          className="mt-12 border-y border-white/[0.08]"
+        >
+          <div className="grid grid-cols-2 md:grid-cols-4">
+            {features.map((feature, index) => {
+              const Icon = feature.icon;
+              const isActive = index === activeIndex;
 
-            return (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{
-                  delay: index * 0.12,
-                  duration: 0.6,
-                }}
-                className="group relative overflow-hidden rounded-xl border-2 border-[#E8A33D]/20 bg-[#1a1610] transition-all duration-500 hover:-translate-y-1"
-                style={{
-                  backgroundImage: `
-                    linear-gradient(135deg, rgba(232, 163, 61, 0.03) 0%, transparent 50%),
-                    url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paperNoise)' opacity='0.06'/%3E%3C/svg%3E")
-                  `,
-                  backgroundSize: 'cover, 400px 400px'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = `${primaryColor}50`;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(232, 163, 61, 0.2)';
-                }}
-              >
-                <div
-                  className={`absolute inset-0 bg-gradient-to-br ${feature.color}`}
-                />
-
-                <div className="relative p-5">
-                  <div 
-                    className="flex h-12 w-12 items-center justify-center rounded-xl"
+              return (
+                <button
+                  key={feature.title}
+                  type="button"
+                  onClick={() => setActiveIndex(index)}
+                  className="group relative flex items-center gap-3 px-3 py-5 text-left transition-colors duration-200 sm:px-5"
+                >
+                  <Icon
+                    size={19}
+                    className="shrink-0 transition-colors duration-200"
                     style={{
-                      backgroundColor: `${primaryColor}20`,
-                      color: primaryColor,
-                      border: `1px solid ${primaryColor}30`
+                      color: isActive ? primaryColor : "#6B7280",
+                    }}
+                  />
+
+                  <span
+                    className="text-xs font-semibold transition-colors duration-200 sm:text-sm"
+                    style={{
+                      color: isActive ? "#FFFFFF" : "#9CA3AF",
                     }}
                   >
-                    <Icon size={24} />
+                    {feature.title}
+                  </span>
+
+                  {/* Active indicator */}
+                  <span
+                    className="absolute bottom-0 left-3 right-3 h-0.5 origin-left transition-transform duration-300 sm:left-5 sm:right-5"
+                    style={{
+                      backgroundColor: primaryColor,
+                      transform: isActive ? "scaleX(1)" : "scaleX(0)",
+                    }}
+                  />
+                </button>
+              );
+            })}
+          </div>
+        </motion.div>
+
+        {/* Main information area */}
+        <div className="mt-10 grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+
+          {/* Active feature */}
+          <div className="min-h-[250px]">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeFeature.title}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.35 }}
+              >
+                <div className="flex items-center gap-4">
+                  <div
+                    className="flex h-11 w-11 items-center justify-center rounded-lg border"
+                    style={{
+                      color: primaryColor,
+                      borderColor: `${primaryColor}45`,
+                      backgroundColor: `${primaryColor}0D`,
+                    }}
+                  >
+                    <ActiveIcon size={21} />
                   </div>
-                  <ArrowRight
-                    size={18}
-                    className="transition duration-300 group-hover:translate-x-1"
+
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#6B7280]">
+                      Student Services
+                    </p>
+
+                    <h3 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
+                      {activeFeature.title}
+                    </h3>
+                  </div>
+                </div>
+
+                <p className="mt-6 max-w-2xl text-sm leading-7 text-[#9CA3AF] sm:text-base">
+                  {activeFeature.description}
+                </p>
+
+                <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
+                  {activeFeature.stats.split(" • ").map((stat) => (
+                    <div
+                      key={stat}
+                      className="flex items-center gap-2 text-xs font-medium text-[#D1D5DB] sm:text-sm"
+                    >
+                      <span
+                        className="h-1.5 w-1.5 rounded-full"
+                        style={{ backgroundColor: primaryColor }}
+                      />
+                      {stat}
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Service list */}
+          <motion.div
+            initial={{ opacity: 0, x: 18 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, amount: 0.25 }}
+            transition={{ duration: 0.55 }}
+            className="border-l border-white/[0.08] pl-0 lg:pl-10"
+          >
+            <p
+              className="text-xs font-semibold uppercase tracking-[0.18em]"
+              style={{ color: primaryColor }}
+            >
+              Available Services
+            </p>
+
+            <h3 className="mt-2 text-xl font-bold text-white">
+              One portal. Multiple services.
+            </h3>
+
+            <div className="mt-6 grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
+              {services.map((service) => (
+                <div
+                  key={service}
+                  className="flex items-center gap-3 py-1.5"
+                >
+                  <Check
+                    size={15}
+                    className="shrink-0"
                     style={{ color: primaryColor }}
                   />
 
-                  <h3 className="mt-4 text-lg font-bold text-white">
-                    {feature.title}
-                  </h3>
-
-                  <p className="mt-2 leading-6 text-gray-400 text-sm">
-                    {feature.description}
-                  </p>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-
-        {/* Bottom Banner */}
-        <motion.div
-          initial={{ opacity: 0, y: 25 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="mt-12 rounded-xl border-2 p-6"
-          style={{
-            borderColor: `${primaryColor}30`,
-            background: `linear-gradient(to right, ${primaryColor}15, rgba(26, 22, 16, 0.8), ${primaryColor}15)`,
-            backgroundImage: `
-              linear-gradient(to right, ${primaryColor}15, rgba(26, 22, 16, 0.8), ${primaryColor}15),
-              url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paperNoise)' opacity='0.04'/%3E%3C/svg%3E")
-            `,
-            backgroundSize: '100% 100%, 400px 400px'
-          }}
-        >
-          <div className="grid lg:grid-cols-2 gap-6 items-center">
-            <div>
-              <span 
-                className="uppercase tracking-[0.25em] text-xs"
-                style={{ color: primaryColor }}
-              >
-                Why Students Love It
-              </span>
-
-              <h3 className="mt-2 text-xl md:text-2xl font-black text-white">
-                One Login.
-                <br />
-                Every Student Service.
-              </h3>
-
-              <p className="mt-2 leading-6 text-gray-400 text-sm">
-                Forget switching between multiple systems. Access your courses, 
-                academic records, announcements, schedules, tutor feedback, and 
-                student activities from one secure platform.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                "Course Registration",
-                "Academic Progress",
-                "Assignments",
-                "Attendance",
-                "Announcements",
-                "Study Groups",
-                "Tutor Feedback",
-                "Achievements",
-              ].map((item) => (
-                <div
-                  key={item}
-                  className="rounded-lg border border-[#E8A33D]/20 bg-[#E8A33D]/5 p-2.5 text-center transition hover:bg-[#E8A33D]/10"
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = `${primaryColor}40`;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(232, 163, 61, 0.2)';
-                  }}
-                >
-                  <p className="font-medium text-white text-xs">
-                    {item}
-                  </p>
+                  <span className="text-sm text-[#B8BEC8]">
+                    {service}
+                  </span>
                 </div>
               ))}
             </div>
+
+            <div className="mt-7 flex items-center gap-2 text-sm font-semibold text-white">
+              <span>Explore the portal</span>
+
+              <ArrowRight
+                size={17}
+                style={{ color: primaryColor }}
+                className="transition-transform duration-200 group-hover:translate-x-1"
+              />
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Bottom statement */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.25 }}
+          transition={{ duration: 0.5 }}
+          className="mt-14 border-t border-white/[0.08] pt-7"
+        >
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-white">
+                One Login. Every Student Service.
+              </p>
+
+              <p className="mt-1 max-w-2xl text-xs leading-6 text-[#6B7280] sm:text-sm">
+                Access your courses, academic records, schedules, tutor
+                feedback, announcements, and student activities from one
+                platform.
+              </p>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2">
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ backgroundColor: primaryColor }}
+              />
+
+              <span className="text-xs font-medium text-[#9CA3AF]">
+                Student services available
+              </span>
+            </div>
           </div>
         </motion.div>
+
       </div>
     </section>
   );
 }
+

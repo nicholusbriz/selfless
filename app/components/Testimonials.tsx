@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Quote, Star } from "lucide-react";
+import { Quote, Star, ArrowRight } from "lucide-react";
 
 const testimonials = [
   {
@@ -27,119 +27,161 @@ const testimonials = [
   },
 ];
 
-export default function Testimonials() {
-  const primaryColor = '#E8A33D';
-  
-  return (
-    <section className="relative overflow-hidden bg-[#0D1117] py-16">
-      {/* Background */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(232,163,61,.06),transparent_50%)]" />
+const highlights = [
+  {
+    title: "Academic Success",
+    text: "Stay focused on your educational goals.",
+  },
+  {
+    title: "Student Community",
+    text: "Connect, collaborate, and grow together.",
+  },
+  {
+    title: "Selfless Mission",
+    text: "Supporting lifelong learning through technology.",
+  },
+];
 
-      <div className="mx-auto max-w-7xl px-6">
+export default function Testimonials() {
+  return (
+    <section className="relative overflow-hidden bg-[#0D1117] py-14 sm:py-16 lg:py-20">
+      <div className="mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 25 }}
+          initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="mx-auto max-w-3xl text-center"
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.4 }}
+          className="mx-auto max-w-2xl text-center"
         >
-          <h2 className="text-3xl md:text-5xl font-black text-white">
-            Built For
+          <div className="mb-4 flex items-center justify-center gap-3">
+            <span className="h-px w-8 bg-[#E8A33D]" />
+
+            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#E8A33D]">
+              Student Voices
+            </span>
+
+            <span className="h-px w-8 bg-[#E8A33D]" />
+          </div>
+
+          <h2 className="text-3xl font-bold leading-[1.1] tracking-tight text-white sm:text-4xl lg:text-[46px]">
+            Built for
             <span className="block text-[#E8A33D]">
-              Student Success
+              student success.
             </span>
           </h2>
 
-          <p className="mt-4 text-base leading-7 text-gray-400">
-            Hear from students using the Selfless Student Self Service Portal
-            to manage their academic journey and stay connected with their
-            Tech Center community.
+          <p className="mt-5 text-sm leading-6 text-slate-400 sm:text-base">
+            See how students are using the Selfless Student Self Service
+            Portal to manage their academic journey and stay connected with
+            their Tech Center community.
           </p>
         </motion.div>
 
-        {/* Testimonials Cards */}
-        <div className="mt-12 grid gap-4 lg:grid-cols-3">
+        {/* Testimonials */}
+        <div className="mt-10 grid gap-px overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.08] lg:grid-cols-3">
           {testimonials.map((item, index) => (
-            <motion.div
+            <motion.article
               key={item.name}
-              initial={{ opacity: 0, y: 25 }}
+              initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              viewport={{ once: true, amount: 0.15 }}
               transition={{
-                delay: index * 0.1,
-                duration: 0.5,
+                duration: 0.35,
+                delay: index * 0.06,
               }}
-              className="group rounded-xl border-2 border-[#E8A33D]/20 bg-[#1a1610] p-5 transition-all duration-300 hover:-translate-y-1 hover:border-[#E8A33D]/40"
-              style={{
-                backgroundImage: `
-                  linear-gradient(135deg, rgba(232, 163, 61, 0.03) 0%, transparent 50%),
-                  url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paperNoise)' opacity='0.06'/%3E%3C/svg%3E")
-                `,
-                backgroundSize: 'cover, 400px 400px'
-              }}
+              className="group flex min-h-[280px] flex-col bg-[#11161D] p-5 transition-colors duration-200 hover:bg-[#151B23] sm:p-6"
             >
-              <Quote size={32} className="text-[#E8A33D]" />
-
-              <div className="mt-4 flex gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    size={14}
-                    fill="#E8A33D"
+              {/* Quote */}
+              <div className="flex items-start justify-between">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#E8A33D]/20 bg-[#E8A33D]/[0.08]">
+                  <Quote
+                    size={17}
+                    strokeWidth={1.8}
                     className="text-[#E8A33D]"
                   />
-                ))}
+                </div>
+
+                <div className="flex gap-0.5">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      size={12}
+                      strokeWidth={1.5}
+                      fill="currentColor"
+                      className="text-[#E8A33D]"
+                    />
+                  ))}
+                </div>
               </div>
 
-              <p className="mt-1 leading-5 text-gray-400 text-xs">
-                "{item.message}"
-              </p>
+              <blockquote className="mt-5 flex-1 text-sm leading-6 text-slate-300">
+                “{item.message}”
+              </blockquote>
 
-              <div className="mt-3 border-t border-[#E8A33D]/20 pt-3">
-                <h3 className="text-sm font-bold text-white">
-                  {item.name}
-                </h3>
-                <p className="mt-1 text-[#E8A33D] text-sm">
-                  {item.role}
-                </p>
-                <p className="mt-1 text-xs text-gray-500">
+              {/* Student */}
+              <div className="mt-6 border-t border-white/[0.07] pt-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E8A33D]/10 text-xs font-semibold text-[#E8A33D]">
+                    {getInitials(item.name)}
+                  </div>
+
+                  <div className="min-w-0">
+                    <h3 className="truncate text-sm font-semibold text-white">
+                      {item.name}
+                    </h3>
+
+                    <p className="mt-0.5 truncate text-xs text-[#E8A33D]">
+                      {item.role}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="mt-2 pl-12 text-[11px] text-slate-500">
                   {item.center}
                 </p>
               </div>
-            </motion.div>
+            </motion.article>
           ))}
         </div>
 
-        {/* Bottom Banner - Simplified */}
+        {/* Closing Highlights */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="mt-12 rounded-xl border-2 border-[#E8A33D]/20 p-5"
-          style={{
-            background: `linear-gradient(to right, ${primaryColor}15, rgba(26, 22, 16, 0.8), ${primaryColor}15)`,
-            backgroundImage: `
-              linear-gradient(to right, ${primaryColor}15, rgba(26, 22, 16, 0.8), ${primaryColor}15),
-              url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paperNoise)' opacity='0.04'/%3E%3C/svg%3E")
-            `,
-            backgroundSize: '100% 100%, 400px 400px'
-          }}
+          viewport={{ once: true, amount: 0.15 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="mt-8 overflow-hidden rounded-xl border border-white/[0.08] bg-[#101720]"
         >
-          <div className="grid items-center gap-4 lg:grid-cols-3">
-            <Stat
-              title="Academic Success"
-              text="Stay focused on your educational goals."
-            />
-            <Stat
-              title="Student Community"
-              text="Connect, collaborate, and grow together."
-            />
-            <Stat
-              title="Selfless Mission"
-              text="Supporting lifelong learning through technology."
-            />
+          <div className="grid lg:grid-cols-3">
+            {highlights.map((item, index) => (
+              <div
+                key={item.title}
+                className={`group p-5 sm:p-6 ${
+                  index !== highlights.length - 1
+                    ? "border-b border-white/[0.07] lg:border-b-0 lg:border-r"
+                    : ""
+                }`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-white">
+                      {item.title}
+                    </h3>
+
+                    <p className="mt-1.5 text-xs leading-5 text-slate-400 sm:text-[13px]">
+                      {item.text}
+                    </p>
+                  </div>
+
+                  <ArrowRight
+                    size={15}
+                    strokeWidth={1.8}
+                    className="mt-0.5 shrink-0 text-slate-600 transition-all duration-200 group-hover:translate-x-1 group-hover:text-[#E8A33D]"
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         </motion.div>
       </div>
@@ -147,21 +189,11 @@ export default function Testimonials() {
   );
 }
 
-function Stat({
-  title,
-  text,
-}: {
-  title: string;
-  text: string;
-}) {
-  return (
-    <div className="text-center">
-      <h3 className="text-lg font-bold text-white">
-        {title}
-      </h3>
-      <p className="mt-1 leading-6 text-gray-400 text-sm">
-        {text}
-      </p>
-    </div>
-  );
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
 }
