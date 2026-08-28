@@ -13,6 +13,7 @@ import {
   Loader2,
   BookOpen,
   Search,
+  SearchX,
   UserPlus,
   UserMinus,
   Trash2,
@@ -85,9 +86,22 @@ export default function ManageTeachersPage() {
   const [apiError, setApiError] = useState('');
   const [success, setSuccess] = useState('');
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
-  const [selectedStudentsForRemoval, setSelectedStudentsForRemoval] = useState<Set<string>>(new Set());
+  const [selectedUsersForRemoval, setSelectedUsersForRemoval] = useState<Set<string>>(new Set());
   const [individualRemoving, setIndividualRemoving] = useState<Set<string>>(new Set());
   const [unassignModeTeacherId, setUnassignModeTeacherId] = useState<string | null>(null);
+  const [modalSearchTerm, setModalSearchTerm] = useState('');
+
+  const toggleUserRemovalSelection = (userId: string) => {
+    setSelectedUsersForRemoval((previous) => {
+      const updated = new Set(previous);
+      if (updated.has(userId)) {
+        updated.delete(userId);
+      } else {
+        updated.add(userId);
+      }
+      return updated;
+    });
+  };
 
   const canManageAssignments = isAdmin() || isSuperAdmin();
 
@@ -143,6 +157,18 @@ export default function ManageTeachersPage() {
     [filteredUsers]
   );
 
+  // Users that can be assigned to tutors (students only, not teachers or admins)
+  const assignableUsers = useMemo(
+    () =>
+      filteredUsers.filter(
+        (user) =>
+          user.role?.name !== 'admin' &&
+          user.role?.name !== 'super_admin' &&
+          user.role?.name !== 'teacher'
+      ),
+    [filteredUsers]
+  );
+
   const assignedStudents = useMemo(
     () => students.filter((student) => student.teacherId),
     [students]
@@ -150,20 +176,24 @@ export default function ManageTeachersPage() {
 
   const unassignedStudents = useMemo(
     () =>
-      allUsers.filter(
-        (user) =>
-          user.role?.name !== 'teacher' &&
-          user.role?.name !== 'admin' &&
-          user.role?.name !== 'super_admin' &&
-          !user.teacherId
-      ),
-    [allUsers]
+      assignableUsers.filter((user) => !user.teacherId),
+    [assignableUsers]
   );
+
+  const filteredUnassignedStudents = useMemo(() => {
+    if (!modalSearchTerm.trim()) return unassignedStudents;
+    const query = modalSearchTerm.toLowerCase();
+    return unassignedStudents.filter(
+      (user) =>
+        `${user.firstName} ${user.lastName}`.toLowerCase().includes(query) ||
+        user.email.toLowerCase().includes(query)
+    );
+  }, [unassignedStudents, modalSearchTerm]);
 
   const getTeacherAssignedStudents = (teacherId: string) =>
     students.filter((student) => student.teacherId === teacherId);
 
-  const handleAssignStudent = async (studentId: string, teacherId: string) => {
+  const handleAssignUser = async (userId: string, teacherId: string) => {
     try {
       setAssigning(true);
       
@@ -175,7 +205,7 @@ export default function ManageTeachersPage() {
           return {
             ...oldData,
             users: oldData.users.map((user) =>
-              user.id === studentId ? { ...user, teacherId } : user
+              user.id === userId ? { ...user, teacherId } : user
             ),
           };
         }
@@ -187,7 +217,7 @@ export default function ManageTeachersPage() {
       setSelectedStudents(new Set());
 
       // Make API call in background
-      const response = await fetch(`/api/admin/tech-centers/users/${studentId}/assign`, {
+      const response = await fetch(`/api/admin/tech-centers/users/${userId}/assign`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ teacherId }),
@@ -196,14 +226,14 @@ export default function ManageTeachersPage() {
       if (!response.ok) {
         // Revert on error
         await refetch();
-        throw new Error('Failed to assign student');
+        throw new Error('Failed to assign user');
       }
 
-      setSuccess('Student assigned successfully');
+      setSuccess('User assigned successfully');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       console.error(error);
-      setApiError('Failed to assign student');
+      setApiError('Failed to assign user');
       setTimeout(() => setApiError(''), 3000);
       // Refetch to ensure data consistency
       await refetch();
@@ -212,7 +242,7 @@ export default function ManageTeachersPage() {
     }
   };
 
-  const handleBulkAssign = async (studentIds: string[], teacherId: string) => {
+  const handleBulkAssign = async (userIds: string[], teacherId: string) => {
     try {
       setAssigning(true);
       
@@ -224,7 +254,7 @@ export default function ManageTeachersPage() {
           return {
             ...oldData,
             users: oldData.users.map((user) =>
-              studentIds.includes(user.id) ? { ...user, teacherId } : user
+              userIds.includes(user.id) ? { ...user, teacherId } : user
             ),
           };
         }
@@ -239,19 +269,19 @@ export default function ManageTeachersPage() {
       const response = await fetch('/api/admin/tech-centers/users/bulk-assign', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentIds, teacherId }),
+        body: JSON.stringify({ userIds, teacherId }),
       });
 
       if (!response.ok) {
         await refetch();
-        throw new Error('Failed to assign students');
+        throw new Error('Failed to assign users');
       }
 
-      setSuccess('Students assigned successfully');
+      setSuccess('Users assigned successfully');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       console.error(error);
-      setApiError('Failed to assign students');
+      setApiError('Failed to assign users');
       setTimeout(() => setApiError(''), 3000);
       await refetch();
     } finally {
@@ -272,26 +302,16 @@ export default function ManageTeachersPage() {
   };
 
   const selectAllStudents = () => {
-    setSelectedStudents(new Set(unassignedStudents.map((student) => student.id)));
+    setSelectedStudents(new Set(unassignedStudents.map((user) => user.id)));
   };
 
   const clearSelection = () => {
     setSelectedStudents(new Set());
   };
 
-  const toggleStudentRemovalSelection = (studentId: string) => {
-    setSelectedStudentsForRemoval((previous) => {
-      const updated = new Set(previous);
-      if (updated.has(studentId)) {
-        updated.delete(studentId);
-      } else {
-        updated.add(studentId);
-      }
-      return updated;
-    });
-  };
 
-  const handleBulkUnassign = async (studentIds: string[], teacherId: string) => {
+
+  const handleBulkUnassign = async (userIds: string[], teacherId: string) => {
     try {
       setAssigning(true);
       
@@ -303,31 +323,31 @@ export default function ManageTeachersPage() {
           return {
             ...oldData,
             users: oldData.users.map((user) =>
-              studentIds.includes(user.id) ? { ...user, teacherId: null } : user
+              userIds.includes(user.id) ? { ...user, teacherId: null } : user
             ),
           };
         }
       );
 
-      setSelectedStudentsForRemoval(new Set());
+      setSelectedUsersForRemoval(new Set());
       setUnassignModeTeacherId(null);
 
       const response = await fetch('/api/admin/tech-centers/users/bulk-unassign', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentIds, teacherId }),
+        body: JSON.stringify({ userIds, teacherId }),
       });
 
       if (!response.ok) {
         await refetch();
-        throw new Error('Failed to unassign students');
+        throw new Error('Failed to unassign users');
       }
 
-      setSuccess('Students unassigned successfully');
+      setSuccess('Users unassigned successfully');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       console.error(error);
-      setApiError('Failed to unassign students');
+      setApiError('Failed to unassign users');
       setTimeout(() => setApiError(''), 3000);
       await refetch();
     } finally {
@@ -335,9 +355,9 @@ export default function ManageTeachersPage() {
     }
   };
 
-  const handleRemoveStudent = async (studentId: string, teacherId: string) => {
+  const handleRemoveUser = async (userId: string, teacherId: string) => {
     try {
-      setIndividualRemoving((prev) => new Set(prev).add(studentId));
+      setIndividualRemoving((prev) => new Set(prev).add(userId));
       
       // Optimistic update
       queryClient.setQueryData(
@@ -347,13 +367,13 @@ export default function ManageTeachersPage() {
           return {
             ...oldData,
             users: oldData.users.map((user) =>
-              user.id === studentId ? { ...user, teacherId: null } : user
+              user.id === userId ? { ...user, teacherId: null } : user
             ),
           };
         }
       );
 
-      const response = await fetch(`/api/admin/tech-centers/users/${studentId}/assign`, {
+      const response = await fetch(`/api/admin/tech-centers/users/${userId}/assign`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ teacherId }),
@@ -361,20 +381,20 @@ export default function ManageTeachersPage() {
 
       if (!response.ok) {
         await refetch();
-        throw new Error('Failed to remove student');
+        throw new Error('Failed to remove user');
       }
 
-      setSuccess('Student removed successfully');
+      setSuccess('User removed successfully');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       console.error(error);
-      setApiError('Failed to remove student');
+      setApiError('Failed to remove user');
       setTimeout(() => setApiError(''), 3000);
       await refetch();
     } finally {
       setIndividualRemoving((prev) => {
         const updated = new Set(prev);
-        updated.delete(studentId);
+        updated.delete(userId);
         return updated;
       });
     }
@@ -420,7 +440,7 @@ export default function ManageTeachersPage() {
                   Manage Tutors & Students
                 </h1>
 
-                <p className="mt-1.5 max-w-2xl text-sm leading-6 text-slate-500">
+                <p className="mt-1.5 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">
                   View tutors, assigned students, and manage learning support relationships.
                 </p>
               </div>
@@ -484,7 +504,7 @@ export default function ManageTeachersPage() {
           <div className="space-y-6">
 
             {/* STATISTICS */}
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
               {[
                 {
                   label: 'Total Users',
@@ -544,8 +564,8 @@ export default function ManageTeachersPage() {
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
               <div className="flex flex-col gap-3 p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
                 <div className="min-w-0">
-                  <h2 className="font-semibold text-[#1a365d]">Find a person</h2>
-                  <p className="mt-0.5 text-xs text-slate-500">
+                  <h2 className="font-semibold text-[#1a365d] sm:text-lg">Find a person</h2>
+                  <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
                     Search by name or email address.
                   </p>
                 </div>
@@ -557,7 +577,7 @@ export default function ManageTeachersPage() {
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       placeholder="Search users by name or email..."
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-10 text-sm text-slate-800 outline-none transition-all placeholder:text-slate-400 focus:border-[#3182ce] focus:bg-white focus:ring-4 focus:ring-[#3182ce]/10"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-10 text-sm text-slate-800 outline-none transition-all placeholder:text-slate-400 focus:border-[#3182ce] focus:bg-white focus:ring-4 focus:ring-[#3182ce]/10 sm:text-base"
                     />
                     {searchTerm && (
                       <button
@@ -573,7 +593,7 @@ export default function ManageTeachersPage() {
               </div>
 
               <div className="border-t border-slate-100 bg-slate-50/70 px-4 py-2.5 sm:px-5">
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 sm:text-sm">
                   Showing <span className="font-semibold text-slate-700">{filteredUsers.length}</span> of{' '}
                   <span className="font-semibold text-slate-700">{allUsers.length}</span> users
                   {searchTerm && (
@@ -597,7 +617,7 @@ export default function ManageTeachersPage() {
                         {teachers.length}
                       </span>
                     </div>
-                    <p className="mt-0.5 text-xs text-slate-500">
+                    <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
                       {assignedStudents.length} students assigned across all tutors
                     </p>
                   </div>
@@ -629,23 +649,23 @@ export default function ManageTeachersPage() {
                           }`}
                         >
                           {/* TUTOR HEADER */}
-                          <div className={`border-b p-4 ${
+                          <div className={`border-b p-4 sm:p-5 ${
                             isUnassigning ? 'border-amber-200 bg-amber-50/50' : 'border-slate-100 bg-[#f8faff]'
                           }`}>
-                            <div className="flex items-start gap-3">
+                            <div className="flex items-start gap-3 sm:gap-4">
                               {/* Avatar */}
-                              <div className="relative">
+                              <div className="relative shrink-0">
                                 {teacher.profileImageUrl ? (
                                   <Image
                                     src={teacher.profileImageUrl}
                                     alt={`${teacher.firstName} ${teacher.lastName}`}
-                                    width={52}
-                                    height={52}
+                                    width={56}
+                                    height={56}
                                     unoptimized
-                                    className="h-13 w-13 shrink-0 rounded-full border-2 border-[#1a365d]/10 object-cover shadow-sm"
+                                    className="h-14 w-14 rounded-full border-2 border-[#1a365d]/10 object-cover shadow-sm"
                                   />
                                 ) : (
-                                  <div className="flex h-13 w-13 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1a365d] to-[#2a4a7d] text-base font-bold text-white shadow-sm">
+                                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#1a365d] to-[#2a4a7d] text-base font-bold text-white shadow-sm">
                                     {getInitials(teacher.firstName, teacher.lastName)}
                                   </div>
                                 )}
@@ -663,46 +683,46 @@ export default function ManageTeachersPage() {
                               </div>
 
                               <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-start justify-between gap-1">
+                                <div className="flex flex-wrap items-start justify-between gap-2">
                                   <div className="min-w-0">
-                                    <h3 className="text-base font-bold text-[#1a365d]">
+                                    <h3 className="text-base font-bold text-[#1a365d] sm:text-lg">
                                       {teacher.firstName} {teacher.lastName}
                                     </h3>
-                                    <div className="mt-0.5 flex items-center gap-1.5">
-                                      <span className="inline-flex items-center gap-1 rounded-full bg-[#1a365d]/10 px-2 py-0.5 text-[10px] font-medium text-[#1a365d]">
-                                        <GraduationCap size={11} />
+                                    <div className="mt-1 flex items-center gap-1.5">
+                                      <span className="inline-flex items-center gap-1 rounded-full bg-[#1a365d]/10 px-2.5 py-1 text-[11px] font-medium text-[#1a365d]">
+                                        <GraduationCap size={12} />
                                         Tutor
                                       </span>
                                     </div>
                                   </div>
-                                  <span className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${
+                                  <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold ${
                                     teacher.isActive
                                       ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
                                       : 'border-red-200 bg-red-50 text-red-700'
                                   }`}>
-                                    {teacher.isActive ? <CheckCircle size={10} /> : <XCircle size={10} />}
+                                    {teacher.isActive ? <CheckCircle size={11} /> : <XCircle size={11} />}
                                     {teacher.isActive ? 'Active' : 'Inactive'}
                                   </span>
                                 </div>
 
                                 {/* Contact - Compact */}
-                                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-500">
-                                  <div className="flex items-center gap-1">
-                                    <Mail size={13} className="text-slate-400" />
+                                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-500 sm:text-sm">
+                                  <div className="flex items-center gap-1.5">
+                                    <Mail size={14} className="text-slate-400" />
                                     <span className="truncate">{teacher.email}</span>
                                   </div>
                                   {teacher.phoneNumber && (
-                                    <div className="flex items-center gap-1">
-                                      <Phone size={13} className="text-slate-400" />
+                                    <div className="flex items-center gap-1.5">
+                                      <Phone size={14} className="text-slate-400" />
                                       <span>{teacher.phoneNumber}</span>
                                     </div>
                                   )}
                                 </div>
 
                                 {/* Student Count Badge */}
-                                <div className="mt-2 inline-flex items-center gap-2 rounded-lg bg-white/80 px-3 py-1 shadow-sm border border-slate-100">
-                                  <BookOpen size={13} className="text-[#1a365d]" />
-                                  <span className="text-xs font-medium text-[#1a365d]">
+                                <div className="mt-3 inline-flex items-center gap-2 rounded-lg bg-white/80 px-3 py-1.5 shadow-sm border border-slate-100">
+                                  <BookOpen size={14} className="text-[#1a365d]" />
+                                  <span className="text-xs font-medium text-[#1a365d] sm:text-sm">
                                     {teacherStudents.length} {teacherStudents.length === 1 ? 'student' : 'students'} assigned
                                   </span>
                                 </div>
@@ -710,9 +730,9 @@ export default function ManageTeachersPage() {
                                 {/* View Tutor Profile Button - Visible to all */}
                                 <Link
                                   href={`/dashboard/students/${teacher.id}`}
-                                  className="mt-2 inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#1a365d] transition hover:border-[#3182ce]/30 hover:bg-[#eef2f8]"
+                                  className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#1a365d] transition-all hover:border-[#3182ce]/30 hover:bg-[#eef2f8] hover:shadow-sm sm:text-sm"
                                 >
-                                  <Eye size={13} />
+                                  <Eye size={14} />
                                   View Tutor Profile
                                 </Link>
                               </div>
@@ -737,79 +757,99 @@ export default function ManageTeachersPage() {
                                   </div>
                                 )}
 
-                                {selectedStudentsForRemoval.size > 0 && isUnassigning && (
+                                {selectedUsersForRemoval.size > 0 && isUnassigning && (
                                   <button
                                     onClick={() =>
-                                      handleBulkUnassign(Array.from(selectedStudentsForRemoval), teacher.id)
+                                      handleBulkUnassign(Array.from(selectedUsersForRemoval), teacher.id)
                                     }
                                     disabled={assigning}
                                     className="mb-3 flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                                   >
                                     {assigning && <Loader2 size={16} className="animate-spin" />}
-                                    Remove {selectedStudentsForRemoval.size} Student{selectedStudentsForRemoval.size > 1 ? 's' : ''}
+                                    Remove {selectedUsersForRemoval.size} User{selectedUsersForRemoval.size > 1 ? 's' : ''}
                                   </button>
                                 )}
 
-                                {/* Student List */}
-                                <div className="space-y-1.5">
-                                  {teacherStudents.map((student) => {
+                                {/* Assigned Users List */}
+                                <div className="space-y-2">
+                                  {teacherStudents.map((user) => {
                                     const showRemoveIcon = isUnassigning && canManageAssignments;
 
                                     return (
                                       <div
-                                        key={student.id}
-                                        className="flex items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-3 py-2 transition-all hover:border-[#1a365d]/20 hover:bg-slate-50/70"
+                                        key={user.id}
+                                        className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 transition-all hover:border-[#1a365d]/30 hover:bg-slate-50/80 hover:shadow-sm"
                                       >
                                         {showRemoveIcon && (
                                           <input
                                             type="checkbox"
-                                            checked={selectedStudentsForRemoval.has(student.id)}
-                                            onChange={() => toggleStudentRemovalSelection(student.id)}
-                                            className="h-4 w-4 shrink-0 rounded border-slate-300 text-[#1a365d] focus:ring-[#1a365d]"
+                                            checked={selectedUsersForRemoval.has(user.id)}
+                                            onChange={() => toggleUserRemovalSelection(user.id)}
+                                            className="h-4.5 w-4.5 shrink-0 rounded border-slate-300 text-[#1a365d] focus:ring-2 focus:ring-[#1a365d]/20"
                                           />
                                         )}
 
-                                        {student.profileImageUrl ? (
-                                          <Image
-                                            src={student.profileImageUrl}
-                                            alt={`${student.firstName} ${student.lastName}`}
-                                            width={32}
-                                            height={32}
-                                            unoptimized
-                                            className="h-8 w-8 shrink-0 rounded-full border border-slate-200 object-cover"
-                                          />
+                                        {user.profileImageUrl ? (
+                                          <div className="relative shrink-0">
+                                            <Image
+                                              src={user.profileImageUrl}
+                                              alt={`${user.firstName} ${user.lastName}`}
+                                              width={40}
+                                              height={40}
+                                              unoptimized
+                                              className="h-10 w-10 rounded-full border-2 border-slate-100 object-cover shadow-sm"
+                                            />
+                                            <div className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3 items-center justify-center rounded-full border-2 border-white bg-emerald-500">
+                                              <CheckCircle size={7} className="text-white" />
+                                            </div>
+                                          </div>
                                         ) : (
-                                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#eef2f8] text-[10px] font-bold text-[#1a365d]">
-                                            {getInitials(student.firstName, student.lastName)}
+                                          <div className="relative shrink-0">
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#1a365d] to-[#2a4a7d] text-sm font-bold text-white shadow-sm">
+                                              {getInitials(user.firstName, user.lastName)}
+                                            </div>
+                                            <div className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3 items-center justify-center rounded-full border-2 border-white bg-emerald-500">
+                                              <CheckCircle size={7} className="text-white" />
+                                            </div>
                                           </div>
                                         )}
 
                                         <div className="min-w-0 flex-1">
-                                          <p className="truncate text-sm font-medium text-[#1a365d]">
-                                            {student.firstName} {student.lastName}
+                                          <p className="text-sm font-semibold text-[#1a365d] sm:text-base">
+                                            {user.firstName} {user.lastName}
                                           </p>
+                                          <div className="flex items-center gap-2">
+                                            <p className="text-xs text-slate-500 sm:text-sm">
+                                              {user.email}
+                                            </p>
+                                            {user.role?.name === 'teacher' && (
+                                              <span className="inline-flex items-center gap-1 rounded-full bg-[#1a365d]/10 px-2 py-0.5 text-[10px] font-medium text-[#1a365d]">
+                                                <GraduationCap size={10} />
+                                                Teacher
+                                              </span>
+                                            )}
+                                          </div>
                                         </div>
 
-                                        <div className="flex shrink-0 items-center gap-1">
+                                        <div className="flex shrink-0 items-center gap-2">
                                           <Link
-                                            href={`/dashboard/students/${student.id}`}
-                                            className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] font-semibold text-[#1a365d] transition hover:border-[#3182ce]/30 hover:bg-[#eef2f8]"
+                                            href={`/dashboard/students/${user.id}`}
+                                            className="text-xs font-semibold text-[#1a365d] underline hover:text-[#153475] sm:text-sm"
                                           >
-                                            <Eye size={12} />
-                                            View
+                                            View Profile
                                           </Link>
 
                                           {showRemoveIcon && (
                                             <button
-                                              onClick={() => handleRemoveStudent(student.id, teacher.id)}
-                                              disabled={individualRemoving.has(student.id)}
-                                              className="flex h-7 w-7 items-center justify-center rounded-lg border border-red-100 bg-red-50 text-red-600 transition hover:border-red-200 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
-                                              title="Remove student"
+                                              onClick={() => handleRemoveUser(user.id, teacher.id)}
+                                              disabled={individualRemoving.has(user.id)}
+                                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-red-50 text-red-600 transition-all hover:border-red-200 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                              title="Remove user"
                                             >
-                                              {individualRemoving.has(student.id) ? (
-                                                <Loader2 size={12} className="animate-spin" />
+                                              {individualRemoving.has(user.id) ? (
+                                                <Loader2 size={14} className="animate-spin" />
                                               ) : (
-                                                <Trash2 size={12} />
+                                                <Trash2 size={14} />
                                               )}
                                             </button>
                                           )}
@@ -845,10 +885,10 @@ export default function ManageTeachersPage() {
                                     onClick={() => {
                                       if (unassignModeTeacherId === teacher.id) {
                                         setUnassignModeTeacherId(null);
-                                        setSelectedStudentsForRemoval(new Set());
+                                        setSelectedUsersForRemoval(new Set());
                                       } else {
                                         setUnassignModeTeacherId(teacher.id);
-                                        setSelectedStudentsForRemoval(new Set());
+                                        setSelectedUsersForRemoval(new Set());
                                       }
                                     }}
                                     className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
@@ -868,7 +908,7 @@ export default function ManageTeachersPage() {
               </div>
             </div>
 
-            {/* AVAILABLE STUDENTS SECTION - Only show unassigned students */}
+            {/* AVAILABLE USERS SECTION - Show unassigned students and teachers */}
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
               <div className="flex items-center justify-between border-b border-slate-100 p-4 sm:p-5">
                 <div className="flex items-center gap-3">
@@ -877,13 +917,13 @@ export default function ManageTeachersPage() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h2 className="text-base font-bold text-[#1a365d] sm:text-lg">Available Students</h2>
+                      <h2 className="text-base font-bold text-[#1a365d] sm:text-lg">Available Users</h2>
                       <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">
                         {unassignedStudents.length}
                       </span>
                     </div>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      Students without a tutor assignment
+                    <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
+                      Students and teachers available for tutor assignment
                     </p>
                   </div>
                 </div>
@@ -897,42 +937,54 @@ export default function ManageTeachersPage() {
                     <p className="mt-1 text-sm text-slate-400">Every student in your tech center is assigned to a tutor.</p>
                   </div>
                 ) : (
-                  <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {unassignedStudents.map((student) => (
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {unassignedStudents.map((user) => (
                       <div
-                        key={student.id}
-                        className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5 transition-all hover:border-[#1a365d]/20 hover:bg-slate-50/70 hover:shadow-sm"
+                        key={user.id}
+                        className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 transition-all hover:border-[#1a365d]/30 hover:bg-slate-50/80 hover:shadow-sm"
                       >
-                        {student.profileImageUrl ? (
-                          <Image
-                            src={student.profileImageUrl}
-                            alt={`${student.firstName} ${student.lastName}`}
-                            width={36}
-                            height={36}
-                            unoptimized
-                            className="h-9 w-9 shrink-0 rounded-full border border-slate-200 object-cover"
-                          />
+                        {user.profileImageUrl ? (
+                          <div className="relative shrink-0">
+                            <Image
+                              src={user.profileImageUrl}
+                              alt={`${user.firstName} ${user.lastName}`}
+                              width={40}
+                              height={40}
+                              unoptimized
+                              className="h-10 w-10 rounded-full border-2 border-slate-100 object-cover shadow-sm"
+                            />
+                            <div className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3 items-center justify-center rounded-full border-2 border-white bg-amber-500">
+                              <UserMinus size={7} className="text-white" />
+                            </div>
+                          </div>
                         ) : (
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#eef2f8] text-xs font-bold text-[#1a365d]">
-                            {getInitials(student.firstName, student.lastName)}
+                          <div className="relative shrink-0">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#1a365d] to-[#2a4a7d] text-sm font-bold text-white shadow-sm">
+                              {getInitials(user.firstName, user.lastName)}
+                            </div>
+                            <div className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3 items-center justify-center rounded-full border-2 border-white bg-amber-500">
+                              <UserMinus size={7} className="text-white" />
+                            </div>
                           </div>
                         )}
 
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-[#1a365d]">
-                            {student.firstName} {student.lastName}
+                          <p className="truncate text-sm font-semibold text-[#1a365d] sm:text-base">
+                            {user.firstName} {user.lastName}
                           </p>
-                          <p className="truncate text-[10px] text-amber-600 flex items-center gap-1">
-                            <UserMinus size={10} /> Unassigned
+                          <p className="truncate text-xs text-amber-600 font-medium flex items-center gap-1">
+                            <UserMinus size={11} /> 
+                            {user.role?.name === 'teacher' ? 'Teacher' : 'Student'} • Unassigned
                           </p>
                         </div>
 
                         <Link
-                          href={`/dashboard/students/${student.id}`}
-                          className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] font-semibold text-[#1a365d] transition hover:border-[#3182ce]/30 hover:bg-[#eef2f8]"
+                          href={`/dashboard/students/${user.id}`}
+                          className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-[#1a365d] transition-all hover:border-[#3182ce]/40 hover:bg-[#eef2f8] hover:shadow-sm sm:text-sm"
                         >
-                          <Eye size={12} />
-                          View
+                          <Eye size={14} />
+                          <span className="hidden sm:inline">View Profile</span>
+                          <span className="sm:hidden">View</span>
                         </Link>
                       </div>
                     ))}
@@ -962,23 +1014,23 @@ export default function ManageTeachersPage() {
                       <Image
                         src={selectedTeacher.profileImageUrl}
                         alt={`${selectedTeacher.firstName} ${selectedTeacher.lastName}`}
-                        width={40}
-                        height={40}
+                        width={44}
+                        height={44}
                         unoptimized
-                        className="h-10 w-10 shrink-0 rounded-full border border-slate-200 object-cover"
+                        className="h-11 w-11 shrink-0 rounded-full border-2 border-slate-100 object-cover shadow-sm"
                       />
                     ) : (
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#eef2f8] text-xs font-bold text-[#1a365d]">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1a365d] to-[#2a4a7d] text-sm font-bold text-white shadow-sm">
                         {getInitials(selectedTeacher.firstName, selectedTeacher.lastName)}
                       </div>
                     )}
 
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-base font-bold text-[#1a365d]">Assign Students</h3>
-                        <span className="rounded-full bg-[#eef2f8] px-2 py-0.5 text-[10px] font-semibold text-[#1a365d]">Tutor</span>
+                        <h3 className="text-base font-bold text-[#1a365d] sm:text-lg">Assign Students</h3>
+                        <span className="rounded-full bg-[#eef2f8] px-2.5 py-1 text-[11px] font-semibold text-[#1a365d]">Tutor</span>
                       </div>
-                      <p className="mt-0.5 truncate text-sm text-slate-500">
+                      <p className="mt-0.5 truncate text-sm text-slate-500 sm:text-base">
                         {selectedTeacher.firstName} {selectedTeacher.lastName}
                       </p>
                     </div>
@@ -996,25 +1048,38 @@ export default function ManageTeachersPage() {
 
               {/* MODAL CONTROLS */}
               <div className="shrink-0 border-b border-slate-100 bg-slate-50/70 p-3 sm:p-4">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-[#1a365d]">Available students</p>
-                    <p className="text-xs text-slate-500">{unassignedStudents.length} students available</p>
+                    <p className="text-sm font-semibold text-[#1a365d] sm:text-base">Available students</p>
+                    <p className="text-xs text-slate-500 sm:text-sm">{unassignedStudents.length} students available</p>
                   </div>
 
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={selectAllStudents}
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#1a365d] transition hover:border-slate-300 hover:bg-slate-50"
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#1a365d] transition hover:border-slate-300 hover:bg-slate-50 sm:text-sm"
                     >
                       Select all
                     </button>
                     <button
                       onClick={clearSelection}
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-500 transition hover:border-slate-300 hover:bg-slate-50"
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 sm:text-sm"
                     >
                       Clear
                     </button>
+                  </div>
+                </div>
+
+                <div className="mt-3">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" size={16} />
+                    <input
+                      type="text"
+                      placeholder="Search by name or email..."
+                      value={modalSearchTerm}
+                      onChange={(e) => setModalSearchTerm(e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#1a365d] focus:outline-none focus:ring-2 focus:ring-[#1a365d]/20"
+                    />
                   </div>
                 </div>
 
@@ -1022,7 +1087,7 @@ export default function ManageTeachersPage() {
                   <button
                     onClick={() => handleBulkAssign(Array.from(selectedStudents), selectedTeacher.id)}
                     disabled={assigning}
-                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#153475] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#153475] disabled:cursor-not-allowed disabled:opacity-50 sm:text-base"
                   >
                     {assigning && <Loader2 size={16} className="animate-spin" />}
                     Assign {selectedStudents.size} Student{selectedStudents.size > 1 ? 's' : ''}
@@ -1032,66 +1097,103 @@ export default function ManageTeachersPage() {
 
               {/* STUDENT LIST */}
               <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
-                {unassignedStudents.length === 0 ? (
+                {filteredUnassignedStudents.length === 0 ? (
                   <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/60 p-6 text-center">
                     <div>
                       <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-white border border-slate-200">
-                        <CheckCircle size={18} className="text-emerald-600" />
+                        {modalSearchTerm.trim() ? (
+                          <SearchX size={18} className="text-slate-400" />
+                        ) : (
+                          <CheckCircle size={18} className="text-emerald-600" />
+                        )}
                       </div>
-                      <p className="font-semibold text-slate-700">No unassigned students</p>
-                      <p className="mt-0.5 text-sm text-slate-400">All available students already have a tutor.</p>
+                      <p className="font-semibold text-slate-700">
+                        {modalSearchTerm.trim() ? 'No matching students found' : 'No unassigned users'}
+                      </p>
+                      <p className="mt-0.5 text-sm text-slate-400">
+                        {modalSearchTerm.trim() 
+                          ? 'Try a different search term or check if the student is already assigned'
+                          : 'All available students and teachers already have a tutor.'}
+                      </p>
                     </div>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {unassignedStudents.map((student) => (
+                    {filteredUnassignedStudents.map((user) => (
                       <div
-                        key={student.id}
-                        className={`flex items-center gap-2.5 rounded-lg border p-2.5 transition-all ${
-                          selectedStudents.has(student.id)
-                            ? 'border-[#3182ce]/30 bg-[#eef5fb]'
-                            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60'
+                        key={user.id}
+                        className={`flex items-center gap-3 rounded-xl border p-3 transition-all ${
+                          selectedStudents.has(user.id)
+                            ? 'border-[#3182ce]/40 bg-[#eef5fb] shadow-sm'
+                            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/80'
                         }`}
                       >
                         <input
                           type="checkbox"
-                          checked={selectedStudents.has(student.id)}
-                          onChange={() => toggleStudentSelection(student.id)}
-                          className="h-4 w-4 shrink-0 rounded border-slate-300 text-[#1a365d] focus:ring-[#1a365d]"
+                          checked={selectedStudents.has(user.id)}
+                          onChange={() => toggleStudentSelection(user.id)}
+                          className="h-4.5 w-4.5 shrink-0 rounded border-slate-300 text-[#1a365d] focus:ring-2 focus:ring-[#1a365d]/20"
                         />
 
-                        {student.profileImageUrl ? (
-                          <Image
-                            src={student.profileImageUrl}
-                            alt={`${student.firstName} ${student.lastName}`}
-                            width={36}
-                            height={36}
-                            unoptimized
-                            className="h-9 w-9 shrink-0 rounded-full border border-slate-200 object-cover"
-                          />
+                        {user.profileImageUrl ? (
+                          <div className="relative shrink-0">
+                            <Image
+                              src={user.profileImageUrl}
+                              alt={`${user.firstName} ${user.lastName}`}
+                              width={40}
+                              height={40}
+                              unoptimized
+                              className="h-10 w-10 rounded-full border-2 border-slate-100 object-cover shadow-sm"
+                            />
+                            <div className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3 items-center justify-center rounded-full border-2 border-white bg-amber-500">
+                              <UserMinus size={7} className="text-white" />
+                            </div>
+                          </div>
                         ) : (
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#eef2f8] text-xs font-bold text-[#1a365d]">
-                            {getInitials(student.firstName, student.lastName)}
+                          <div className="relative shrink-0">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#1a365d] to-[#2a4a7d] text-sm font-bold text-white shadow-sm">
+                              {getInitials(user.firstName, user.lastName)}
+                            </div>
+                            <div className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3 items-center justify-center rounded-full border-2 border-white bg-amber-500">
+                              <UserMinus size={7} className="text-white" />
+                            </div>
                           </div>
                         )}
 
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-[#1a365d]">
-                            {student.firstName} {student.lastName}
+                          <p className="text-sm font-semibold text-[#1a365d] sm:text-base">
+                            {user.firstName} {user.lastName}
                           </p>
-                          <p className="truncate text-xs text-slate-500">{student.email}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs text-slate-500 sm:text-sm">{user.email}</p>
+                            {user.role?.name === 'teacher' && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#1a365d]/10 px-2 py-0.5 text-[10px] font-medium text-[#1a365d]">
+                                <GraduationCap size={10} />
+                                Teacher
+                              </span>
+                            )}
+                          </div>
                         </div>
 
-                        {selectedStudents.size === 0 && (
-                          <button
-                            onClick={() => handleAssignStudent(student.id, selectedTeacher.id)}
-                            disabled={assigning}
-                            className="flex shrink-0 items-center gap-1 rounded-lg bg-[#eef2f8] px-3 py-1.5 text-xs font-semibold text-[#1a365d] transition hover:bg-[#e2e8f0] disabled:cursor-not-allowed disabled:opacity-50"
+                        <div className="flex shrink-0 items-center gap-2">
+                          <Link
+                            href={`/dashboard/students/${user.id}`}
+                            className="text-xs font-semibold text-[#1a365d] underline hover:text-[#153475] sm:text-sm"
                           >
-                            {assigning && <Loader2 size={13} className="animate-spin" />}
-                            Assign
-                          </button>
-                        )}
+                            View Profile
+                          </Link>
+
+                          {selectedStudents.size === 0 && (
+                            <button
+                              onClick={() => handleAssignUser(user.id, selectedTeacher.id)}
+                              disabled={assigning}
+                              className="flex shrink-0 items-center gap-1.5 rounded-lg bg-[#eef2f8] px-3 py-2 text-xs font-semibold text-[#1a365d] transition-all hover:bg-[#e2e8f0] hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+                            >
+                              {assigning && <Loader2 size={14} className="animate-spin" />}
+                              Assign
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1099,16 +1201,16 @@ export default function ManageTeachersPage() {
               </div>
 
               {/* MODAL FOOTER */}
-              <div className="shrink-0 border-t border-slate-100 bg-white p-3">
+              <div className="shrink-0 border-t border-slate-100 bg-white p-3 sm:p-4">
                 <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-400 sm:text-sm">
                     {selectedStudents.size > 0
                       ? `${selectedStudents.size} student${selectedStudents.size === 1 ? '' : 's'} selected`
                       : 'Select students individually or use Select all'}
                   </p>
                   <button
                     onClick={closeAssignModal}
-                    className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                    className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 sm:text-base"
                   >
                     Close
                   </button>

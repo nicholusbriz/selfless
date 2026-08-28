@@ -315,7 +315,7 @@ const adminNavigation: NavSection = {
     },
     {
       id: 'manage-teachers',
-      label: 'Teachers',
+      label: 'Tutors',
       path: '/dashboard/admin/teachers',
       icon: <UserCog className={iconClass} />,
       roles: ['admin'],
@@ -354,16 +354,9 @@ const teacherNavigation: NavSection = {
   items: [
     {
       id: 'teacher-dashboard',
-      label: 'Overview',
+      label: 'Tutors',
       path: '/dashboard/admin/teachers',
       icon: <Briefcase className={iconClass} />,
-      roles: ['teacher'],
-    },
-    {
-      id: 'manage-students',
-      label: 'Students',
-      path: '/dashboard/admin/teachers',
-      icon: <Users className={iconClass} />,
       roles: ['teacher'],
     },
     {
@@ -653,12 +646,7 @@ function getPageInfo(pathname: string) {
     },
 
     '/dashboard/teacher': {
-      title: 'Manage Teachers & Students',
-      section: 'Tutoring',
-    },
-
-    '/dashboard/teacher/students': {
-      title: 'Manage Teachers & Students',
+      title: 'Tutors',
       section: 'Tutoring',
     },
 
