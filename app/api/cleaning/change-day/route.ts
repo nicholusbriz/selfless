@@ -98,6 +98,15 @@ export async function POST(request: NextRequest) {
         throw new Error('This cleaning day is at capacity');
       }
 
+      // Check if old day has exactly 4 students (minimum threshold)
+      const oldDayRegistrations = await tx.cleaningRegistration.count({
+        where: { cleaningDayId: oldDayId }
+      });
+
+      if (oldDayRegistrations === 4) {
+        throw new Error('Cannot leave this day - it has exactly 4 students (minimum required). A day must have at least 4 students.');
+      }
+
       // Delete old registration
       await tx.cleaningRegistration.delete({
         where: { userId: user.id }
@@ -206,6 +215,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
     if (error.message.includes('at capacity')) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    if (error.message.includes('minimum required')) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
     if (error.message.includes('Transaction')) {
