@@ -65,11 +65,6 @@ export async function GET() {
       },
       include: {
         days: {
-          where: {
-            cleaningDate: {
-              gte: new Date()
-            }
-          },
           include: {
             registrations: {
               include: {
