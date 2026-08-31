@@ -1835,7 +1835,6 @@ export default function CleaningPage() {
     !data?.registration &&
     week.isActive &&
     day.status === 'OPEN' &&
-    !isDayPast(day.cleaningDate) &&
     !isDeadlinePassed(
       week.registrationDeadline,
     );
@@ -1856,7 +1855,6 @@ export default function CleaningPage() {
         ?.cleaningDayId &&
     week.isActive &&
     day.status === 'OPEN' &&
-    !isDayPast(day.cleaningDate) &&
     !isDeadlinePassed(
       week.registrationDeadline,
     ) &&
@@ -1874,11 +1872,6 @@ export default function CleaningPage() {
     const currentDayAtMinimum = registeredDay && isAtMinimumThreshold(registeredDay);
     if (currentDayAtMinimum && day.id !== data?.registration?.cleaningDayId)
       return 'Current day at minimum (4 students)';
-
-    if (
-      isDayPast(day.cleaningDate)
-    )
-      return 'Past';
 
     if (day.status === 'FULL')
       return 'Full';
@@ -1902,11 +1895,6 @@ export default function CleaningPage() {
   const dayTone = (
     day: CleaningDay,
   ): StatusTone => {
-    if (
-      isDayPast(day.cleaningDate)
-    )
-      return 'neutral';
-
     if (day.status === 'OPEN')
       return 'ok';
 
@@ -2407,11 +2395,6 @@ export default function CleaningPage() {
                                 pendingDayId ===
                                 day.id;
 
-                              const past =
-                                isDayPast(
-                                  day.cleaningDate,
-                                );
-
                               return (
                                 <li
                                   key={
@@ -2451,18 +2434,14 @@ export default function CleaningPage() {
                                         {/* Status */}
                                         <span
                                           className={`px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide ${
-                                            past
-                                              ? 'bg-[var(--ink-4)]/10 text-[var(--ink-4)]'
-                                              : day.status === 'OPEN'
+                                            day.status === 'OPEN'
                                                 ? 'bg-[var(--ok-soft)] text-[var(--ok)]'
                                                 : day.status === 'FULL'
                                                   ? 'bg-[var(--bad-soft)] text-[var(--bad)]'
                                                   : 'bg-[var(--warn-soft)] text-[var(--warn)]'
                                           }`}
                                         >
-                                          {past
-                                            ? 'Past'
-                                            : day.status
+                                          {day.status
                                                 .charAt(0)
                                                 .toLowerCase() +
                                               day.status
