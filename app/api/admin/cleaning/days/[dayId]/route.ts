@@ -65,7 +65,8 @@ export async function PUT(
         where: { id: dayId },
         data: {
           ...(capacityLimit !== undefined && { capacityLimit: newCapacity }),
-          ...(status !== undefined && { status: newStatus }),
+          // Always update status when capacity changes, or when explicitly provided
+          ...(capacityLimit !== undefined || status !== undefined ? { status: newStatus } : {}),
           currentRegistrations,
         },
       });
