@@ -42,18 +42,22 @@ export async function PUT(
       let newStatus = status;
       const newCapacity = capacityLimit !== undefined ? capacityLimit : day.capacityLimit;
 
-      if (status === undefined) {
-        // Auto-determine status based on capacity
+      if (capacityLimit !== undefined) {
+        // When capacity is changed, auto-determine status based on new capacity
         if (currentRegistrations >= newCapacity) {
           newStatus = 'FULL';
         } else {
           newStatus = 'OPEN';
         }
-      } else if (capacityLimit !== undefined) {
-        // If both capacity and status are provided, validate
-        if (status === 'OPEN' && currentRegistrations >= newCapacity) {
+      } else if (status !== undefined) {
+        // If only status is provided (no capacity change), validate
+        if (status === 'OPEN' && currentRegistrations >= day.capacityLimit) {
           throw new Error('Cannot set status to OPEN when capacity is reached');
         }
+        newStatus = status;
+      } else {
+        // If neither is provided, keep current status
+        newStatus = day.status;
       }
 
       // Update day
