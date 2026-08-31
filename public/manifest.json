@@ -2,6 +2,7 @@
   "name": "Selfless CE Student Self Service Portal",
   "short_name": "Selfless CE",
   "description": "The official centralized multi-tenant platform for students across all Selfless CE Tech Centers. Track BYU-Idaho courses, receive tutor feedback, manage academic progress, and collaborate with peers.",
+  "version": "0.4.0",
   "start_url": "/",
   "display": "standalone",
   "display_override": ["standalone", "window-controls-overlay"],
