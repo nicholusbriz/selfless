@@ -108,6 +108,15 @@ export async function POST(request: NextRequest) {
 
     // Use transaction to move registration
     const result = await prisma.$transaction(async (tx) => {
+      // Check if old day has exactly 4 students (minimum threshold)
+      const oldDayRegistrations = await tx.cleaningRegistration.count({
+        where: { cleaningDayId: oldDayId }
+      });
+
+      if (oldDayRegistrations === 4) {
+        throw new Error('Cannot change from this day - it has exactly 4 students (minimum required). A day must have at least 4 students.');
+      }
+
       // 1. Delete old registration
       await tx.cleaningRegistration.delete({
         where: { id: registration.id }
@@ -203,8 +212,14 @@ export async function POST(request: NextRequest) {
         status: result.newDay.status
       }
     }, { status: 200 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error changing cleaning registration:', error);
+    
+    // Handle specific error messages
+    if (error.message.includes('minimum required')) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    
     return NextResponse.json(
       { error: 'Failed to change cleaning day' },
       { status: 500 }

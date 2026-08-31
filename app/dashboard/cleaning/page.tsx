@@ -1846,8 +1846,11 @@ export default function CleaningPage() {
       registrationDeadline: string;
       isActive: boolean;
     },
-  ) =>
-    Boolean(data?.registration) &&
+  ) => {
+    // Check if current day is at minimum threshold (4 students)
+    const currentDayAtMinimum = registeredDay && isAtMinimumThreshold(registeredDay);
+    
+    return Boolean(data?.registration) &&
     day.id !==
       data?.registration
         ?.cleaningDayId &&
@@ -1856,7 +1859,9 @@ export default function CleaningPage() {
     !isDayPast(day.cleaningDate) &&
     !isDeadlinePassed(
       week.registrationDeadline,
-    );
+    ) &&
+    !currentDayAtMinimum; // Prevent switching if current day has exactly 4 students
+  };
 
   const unavailableReason = (
     day: CleaningDay,
@@ -1865,6 +1870,11 @@ export default function CleaningPage() {
       isActive: boolean;
     },
   ) => {
+    // Check if current day is at minimum threshold (4 students)
+    const currentDayAtMinimum = registeredDay && isAtMinimumThreshold(registeredDay);
+    if (currentDayAtMinimum && day.id !== data?.registration?.cleaningDayId)
+      return 'Current day at minimum (4 students)';
+
     if (
       isDayPast(day.cleaningDate)
     )
@@ -1911,6 +1921,10 @@ export default function CleaningPage() {
     data?.user?.role === 'teacher' ||
     data?.user?.role ===
       'super_admin';
+
+  const isAtMinimumThreshold = (
+    day: CleaningDay,
+  ) => day.currentRegistrations === 4;
 
   // =======================================================
   // WEEK TOGGLE
@@ -2420,6 +2434,9 @@ export default function CleaningPage() {
                                       <div className="flex items-center gap-3 shrink-0">
                                         {/* Capacity */}
                                         <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--surface-2)] text-[var(--ink-2)]">
+                                          {isAtMinimumThreshold(day) && (
+                                            <Lock className="h-3 w-3 text-[var(--warn)]" />
+                                          )}
                                           <span className="text-[11px] font-medium">
                                             {day.currentRegistrations}
                                           </span>

@@ -77,6 +77,15 @@ export async function POST(request: NextRequest) {
           return { message: 'Student already assigned to this day' };
         }
 
+        // Check if old day has exactly 4 students (minimum threshold)
+        const oldDayRegistrations = await tx.cleaningRegistration.count({
+          where: { cleaningDayId: oldCleaningDayId },
+        });
+
+        if (oldDayRegistrations === 4) {
+          throw new Error('Cannot move student - the current day has exactly 4 students (minimum required). A day must have at least 4 students.');
+        }
+
         // Delete old registration
         await tx.cleaningRegistration.delete({
           where: { userId: studentUserId },
@@ -158,6 +167,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 404 });
     }
     if (error.message.includes('full') || error.message.includes('at capacity')) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    if (error.message.includes('minimum required')) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
