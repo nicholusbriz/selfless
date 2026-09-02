@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { generateEmbedding, chunkText } from '@/lib/services/embedding-service';
 import { clearRAGCache } from '@/lib/services/rag-service';
+import { requireAuth, hasRole } from '@/lib/auth/server';
 
 const prisma = new PrismaClient();
 
@@ -22,10 +23,19 @@ const prisma = new PrismaClient();
  * - total: number - Total matching entries
  * - hasMore: boolean - Whether more results are available
  * 
- * Authentication: Not required (public endpoint)
+ * Authentication: Dev role required
  */
 export async function GET(request: NextRequest) {
   try {
+    // Verify user is authenticated and is dev
+    const user = await requireAuth();
+    
+    if (!hasRole(user, 'dev')) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized. Dev role access required.' },
+        { status: 403 }
+      );
+    }
     const searchParams = request.nextUrl.searchParams;
     const category = searchParams.get('category');
     const subcategory = searchParams.get('subcategory');
@@ -111,10 +121,19 @@ export async function GET(request: NextRequest) {
  * - embeddingGenerated: boolean - Whether embedding was generated
  * - chunksCreated: number - Number of chunks created (if applicable)
  * 
- * Authentication: Not required (public endpoint)
+ * Authentication: Dev role required
  */
 export async function POST(request: NextRequest) {
   try {
+    // Verify user is authenticated and is dev
+    const user = await requireAuth();
+    
+    if (!hasRole(user, 'dev')) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized. Dev role access required.' },
+        { status: 403 }
+      );
+    }
     const body = await request.json();
     
     const {

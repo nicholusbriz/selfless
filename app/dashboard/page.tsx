@@ -93,6 +93,10 @@ interface ActivityItem {
     lastName: string;
     profileImageUrl?: string | null;
   } | null;
+  techCenter?: {
+    id: string;
+    name: string;
+  } | null;
 }
 
 interface QuickLink {
@@ -122,9 +126,14 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user?.techCenterId) {
       fetchTechCenter(user.techCenterId);
+    }
+    // Fetch activity based on user role - only super_admin sees all tech centers
+    if (user?.role === 'super_admin') {
+      fetchAllActivity();
+    } else if (user?.techCenterId) {
       fetchRecentActivity(user.techCenterId);
     }
-  }, [user?.techCenterId]);
+  }, [user?.techCenterId, user?.role]);
 
   useEffect(() => {
     fetchVideos();
@@ -153,6 +162,55 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error('Error fetching recent activity:', error);
+    }
+  };
+
+  const fetchAllActivity = async () => {
+    try {
+      // Try to fetch from multiple tech centers by fetching all tech centers first
+      const techCentersResponse = await fetch('/api/admin/tech-centers');
+      
+      if (techCentersResponse.ok) {
+        const techCenters = await techCentersResponse.json();
+        console.log('Fetched tech centers:', techCenters.length);
+        
+        // Fetch activity from each tech center
+        const activityPromises = techCenters.map(async (techCenter: any) => {
+          try {
+            const activityResponse = await fetch(`/api/tech-centers/${techCenter.id}/activity?limit=5`);
+            if (activityResponse.ok) {
+              const activities = await activityResponse.json();
+              console.log(`Fetched ${activities.length} activities for ${techCenter.name}`);
+              // Add tech center info to each activity
+              return (activities || []).map((activity: any) => ({
+                ...activity,
+                techCenter: {
+                  id: techCenter.id,
+                  name: techCenter.name
+                }
+              }));
+            }
+            console.log(`Failed to fetch activity for ${techCenter.name}`);
+            return [];
+          } catch (error) {
+            console.error(`Error fetching activity for ${techCenter.name}:`, error);
+            return [];
+          }
+        });
+        
+        const allActivities = await Promise.all(activityPromises);
+        // Flatten and sort by date
+        const flattenedActivities = allActivities.flat().sort((a: any, b: any) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        
+        console.log('Total activities after merge:', flattenedActivities.length);
+        setRecentActivity(flattenedActivities.slice(0, 10));
+      } else {
+        console.error('Failed to fetch tech centers:', techCentersResponse.status);
+      }
+    } catch (error) {
+      console.error('Error fetching all activity:', error);
     }
   };
 
@@ -259,6 +317,26 @@ export default function DashboardPage() {
       label: 'created cleaning day',
       color: COLORS.ink,
     },
+    change_user_role: {
+      label: 'changed user role',
+      color: COLORS.purple,
+    },
+    create_user: {
+      label: 'created new user',
+      color: COLORS.moss,
+    },
+    delete_user: {
+      label: 'deleted user',
+      color: COLORS.rust,
+    },
+    create_tech_center: {
+      label: 'created tech center',
+      color: COLORS.brass,
+    },
+    update_tech_center: {
+      label: 'updated tech center',
+      color: COLORS.slate,
+    },
   };
 
   const getActivityMeta = (action: string) =>
@@ -304,38 +382,67 @@ export default function DashboardPage() {
      QUICK LINKS
   ============================================================ */
 
-  const quickLinks: QuickLink[] = [
-    {
-      icon: <BookOpen className="h-5 w-5" />,
-      label: 'My Courses',
-      description: 'Access your enrolled courses',
-      path: '/dashboard/courses',
-    },
-    {
-      icon: <Users className="h-5 w-5" />,
-      label: 'Students',
-      description: 'Connect with your peers',
-      path: '/dashboard/students',
-    },
-    {
-      icon: <Briefcase className="h-5 w-5" />,
-      label: 'Internships',
-      description: 'Discover opportunities',
-      path: '/dashboard/internships',
-    },
-    {
-      icon: <Clock className="h-5 w-5" />,
-      label: 'Cleaning Rota',
-      description: 'View your schedule',
-      path: '/dashboard/cleaning',
-    },
-    {
-      icon: <Trophy className="h-5 w-5" />,
-      label: 'Football Team',
-      description: 'Join activities',
-      path: '/dashboard/football-team',
-    },
-  ];
+  const quickLinks: QuickLink[] = useMemo(() => {
+    const userRole = user?.role;
+    
+    // Super admin specific links
+    if (userRole === 'super_admin') {
+      return [
+        {
+          icon: <Users className="h-5 w-5" />,
+          label: 'Tech Centers',
+          description: 'Manage all tech centers',
+          path: '/dashboard/super-admin/centers',
+        },
+        {
+          icon: <Users className="h-5 w-5" />,
+          label: 'All Users',
+          description: 'Manage system users',
+          path: '/dashboard/super-admin/users',
+        },
+        {
+          icon: <Briefcase className="h-5 w-5" />,
+          label: 'Internships',
+          description: 'Discover opportunities',
+          path: '/dashboard/internships',
+        },
+      ];
+    }
+    
+    // Default links for other roles
+    return [
+      {
+        icon: <BookOpen className="h-5 w-5" />,
+        label: 'My Courses',
+        description: 'Access your enrolled courses',
+        path: '/dashboard/courses',
+      },
+      {
+        icon: <Users className="h-5 w-5" />,
+        label: 'Students',
+        description: 'Connect with your peers',
+        path: '/dashboard/students',
+      },
+      {
+        icon: <Briefcase className="h-5 w-5" />,
+        label: 'Internships',
+        description: 'Discover opportunities',
+        path: '/dashboard/internships',
+      },
+      {
+        icon: <Clock className="h-5 w-5" />,
+        label: 'Cleaning Rota',
+        description: 'View your schedule',
+        path: '/dashboard/cleaning',
+      },
+      {
+        icon: <Trophy className="h-5 w-5" />,
+        label: 'Football Team',
+        description: 'Join activities',
+        path: '/dashboard/football-team',
+      },
+    ];
+  }, [user?.role]);
 
   /* ============================================================
      LOADING
@@ -473,7 +580,7 @@ export default function DashboardPage() {
             </div>
 
             <span className="font-mono text-[10px] uppercase tracking-widest text-[#8A9088]">
-              Student Portal
+              {user?.role === 'super_admin' ? 'Super Admin Portal' : 'Student Portal'}
             </span>
           </div>
         </motion.header>
@@ -538,7 +645,7 @@ export default function DashboardPage() {
             YOUR TUTORS - Filtered by Tech Center
         ====================================================== */}
 
-        {tutors.length > 0 && (
+        {tutors.length > 0 && user?.role !== 'super_admin' && (
           <section className="mt-6">
             <div className="flex items-center gap-2 mb-1">
               <GraduationCap className="h-4 w-4 text-[#B98A3E]" />
@@ -587,7 +694,7 @@ export default function DashboardPage() {
             RECENT ACTIVITY
         ====================================================== */}
 
-        {techCenter && recentActivity.length > 0 && (
+        {recentActivity.length > 0 && (user?.role === 'super_admin' || techCenter) && (
           <section className="mt-6">
             <h2 className="mb-3 font-mono text-xs uppercase tracking-[0.15em] text-[#6B7268]">
               Recent Activity
@@ -621,6 +728,11 @@ export default function DashboardPage() {
                         <span className="text-[#6B7268]">
                           {' '}{meta.label}
                         </span>
+                        {item.techCenter && user?.role === 'super_admin' && (
+                          <span className="text-[#6B7268] ml-2">
+                            {' '}· {item.techCenter.name}
+                          </span>
+                        )}
                       </p>
                     </div>
                   </div>

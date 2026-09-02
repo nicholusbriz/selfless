@@ -1,41 +1,43 @@
 // app/dashboard/super-admin/centers/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Plus, 
-  Search, 
-  Building2, 
-  MapPin, 
-  Phone, 
+import { motion } from 'framer-motion';
+import {
+  Plus,
+  Search,
+  Building2,
+  MapPin,
+  Phone,
   Mail,
   Users,
   Check,
-  Trash2,
   X,
   Globe,
   ArrowLeft,
   Home,
   School,
   Loader2,
-  AlertTriangle
+  ArrowRight,
+  MousePointerClick,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { techCentersApi, type TechCenter } from '@/lib/api/tech-centers';
 
+const focusRing =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#12203B]/20 focus-visible:ring-offset-2';
+
+const iconButton =
+  `inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#DADCD3] bg-white text-[#3D4A61] transition-colors hover:border-[#C8CABF] hover:bg-[#F7F6F2] hover:text-[#12203B] ${focusRing}`;
+
 export default function TechCentersPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  
-  // State
+
   const [searchTerm, setSearchTerm] = useState('');
-  const [showDeleteForm, setShowDeleteForm] = useState<string | null>(null);
-  const [selectedCenter, setSelectedCenter] = useState<TechCenter | null>(null);
   const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('all');
-  
-  // Queries
+
   const {
     data: techCenters = [],
     isLoading: loadingCenters,
@@ -45,7 +47,6 @@ export default function TechCentersPage() {
     queryFn: techCentersApi.getTechCenters,
   });
 
-  // Mutations
   const updateStatusMutation = useMutation({
     mutationFn: techCentersApi.updateTechCenterStatus,
     onSuccess: () => {
@@ -56,67 +57,43 @@ export default function TechCentersPage() {
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: techCentersApi.deleteTechCenter,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['techCenters'] });
-      setShowDeleteForm(null);
-      setSelectedCenter(null);
-    },
-    onError: (error: any) => {
-      alert(error.message || 'Failed to delete tech center');
-    },
-  });
-
-  // Handlers
   const handleToggleActive = (center: TechCenter) => {
-    updateStatusMutation.mutate({ id: center.id, isActive: !center.isActive });
+    updateStatusMutation.mutate({
+      id: center.id,
+      isActive: !center.isActive,
+    });
   };
 
-  const handleDeleteTechCenter = () => {
-    if (selectedCenter) {
-      deleteMutation.mutate(selectedCenter.id);
-    }
-  };
+  const filteredCenters = techCenters.filter((center) => {
+    const normalizedSearch = searchTerm.toLowerCase();
 
-  const toggleDeleteForm = (centerId: string) => {
-    if (showDeleteForm === centerId) {
-      setShowDeleteForm(null);
-      setSelectedCenter(null);
-    } else {
-      const center = techCenters.find(c => c.id === centerId);
-      if (center) {
-        setSelectedCenter(center);
-        setShowDeleteForm(centerId);
-      }
-    }
-  };
+    const matchesSearch =
+      center.name.toLowerCase().includes(normalizedSearch) ||
+      center.code.toLowerCase().includes(normalizedSearch) ||
+      (center.city && center.city.toLowerCase().includes(normalizedSearch));
 
-  // Filter tech centers
-  const filteredCenters = techCenters.filter(center => {
-    const matchesSearch = center.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         center.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (center.city && center.city.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesFilter = filterActive === 'all' || 
-                         (filterActive === 'active' && center.isActive) ||
-                         (filterActive === 'inactive' && !center.isActive);
-    
+    const matchesFilter =
+      filterActive === 'all' ||
+      (filterActive === 'active' && center.isActive) ||
+      (filterActive === 'inactive' && !center.isActive);
+
     return matchesSearch && matchesFilter;
   });
 
-  // Statistics
   const totalCenters = techCenters.length;
-  const activeCenters = techCenters.filter(c => c.isActive).length;
-  const totalStudents = techCenters.reduce((acc, c) => acc + (c._count?.users || c.users?.length || 0), 0);
+  const activeCenters = techCenters.filter((center) => center.isActive).length;
+  const inactiveCenters = totalCenters - activeCenters;
+  const totalStudents = techCenters.reduce(
+    (acc, center) => acc + (center._count?.users || center.users?.length || 0),
+    0
+  );
 
-  // Loading state
   if (loadingCenters) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-[#E8A33D] animate-spin mx-auto mb-4" />
-          <p className="text-[#A79C8C]">Loading tech centers...</p>
+      <div className="min-h-[70vh] bg-[#F7F6F2] flex items-center justify-center px-4">
+        <div className="rounded-xl border border-[#DADCD3] bg-white px-8 py-7 text-center shadow-sm">
+          <Loader2 className="mx-auto mb-3 h-7 w-7 animate-spin text-[#12203B]" />
+          <p className="text-sm font-medium text-[#3D4A61]">Loading tech centers...</p>
         </div>
       </div>
     );
@@ -124,16 +101,20 @@ export default function TechCentersPage() {
 
   if (centersError) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 rounded-full bg-[#F87171]/10 flex items-center justify-center mx-auto mb-4">
-            <X className="w-8 h-8 text-[#F87171]" />
+      <div className="min-h-[70vh] bg-[#F7F6F2] flex items-center justify-center px-4">
+        <div className="w-full max-w-md rounded-xl border border-[#E6D5CF] bg-white p-7 text-center shadow-sm">
+          <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-[#FBF0EC]">
+            <X className="h-5 w-5 text-[#A4462F]" />
           </div>
-          <h3 className="text-xl font-semibold text-[#F5F0E8] mb-2">Failed to Load</h3>
-          <p className="text-[#A79C8C]">{(centersError as Error)?.message || 'An error occurred'}</p>
+
+          <h3 className="text-lg font-semibold text-[#12203B]">Failed to load tech centers</h3>
+          <p className="mt-2 text-sm leading-6 text-[#6B7268]">
+            {(centersError as Error)?.message || 'An error occurred while loading the tech centers.'}
+          </p>
+
           <button
             onClick={() => queryClient.invalidateQueries({ queryKey: ['techCenters'] })}
-            className="mt-4 px-6 py-2 bg-[#E8A33D] text-[#0B0912] rounded-lg hover:bg-[#C97F1F] transition-colors"
+            className={`mt-5 inline-flex items-center justify-center rounded-lg bg-[#12203B] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#1C2E4E] ${focusRing}`}
           >
             Retry
           </button>
@@ -143,294 +124,352 @@ export default function TechCentersPage() {
   }
 
   return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <button
-          onClick={() => router.back()}
-          className="p-2 rounded-lg bg-[#2A2438]/50 hover:bg-[#2A2438] text-[#A79C8C] hover:text-[#F5F0E8] transition-all duration-200"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        
-        <button
-          onClick={() => router.push('/')}
-          className="p-2 rounded-lg bg-[#2A2438]/50 hover:bg-[#2A2438] text-[#A79C8C] hover:text-[#F5F0E8] transition-all duration-200"
-        >
-          <Home className="w-5 h-5" />
-        </button>
-        
-        <div className="h-8 w-px bg-[#2A2438]" />
-        
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#E8A33D]/20 to-[#C97F1F]/10 border border-[#E8A33D]/20">
-            <School className="w-6 h-6 text-[#E8A33D]" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-[#F5F0E8]" style={{ fontFamily: 'var(--font-display)' }}>
-              Tech Centers
-            </h1>
-            <p className="text-sm text-[#A79C8C]">Manage all tech centers across the platform</p>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#F7F6F2]">
+      <div className="mx-auto w-full max-w-[1500px] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+        {/* Page heading */}
+        <header className="mb-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="flex items-center gap-2 pt-0.5">
+                <button
+                  onClick={() => router.back()}
+                  className={iconButton}
+                  aria-label="Go back"
+                  title="Go back"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </button>
+              </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="bg-[#150F20] border border-[#2A2438] rounded-xl p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-[#6B6358]">Total Centers</p>
-              <p className="text-2xl font-bold text-[#F5F0E8] mt-1">{totalCenters}</p>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-[#E8A33D]/10 flex items-center justify-center">
-              <Building2 className="w-6 h-6 text-[#E8A33D]" />
-            </div>
-          </div>
-        </div>
+              <div className="hidden h-9 w-px bg-[#DADCD3] sm:block" />
 
-        <div className="bg-[#150F20] border border-[#2A2438] rounded-xl p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-[#6B6358]">Active Centers</p>
-              <p className="text-2xl font-bold text-[#34D399] mt-1">{activeCenters}</p>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-[#34D399]/10 flex items-center justify-center">
-              <Check className="w-6 h-6 text-[#34D399]" />
-            </div>
-          </div>
-        </div>
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#DADCD3] bg-white sm:flex">
+                  <School className="h-5 w-5 text-[#12203B]" />
+                </div>
 
-        <div className="bg-[#150F20] border border-[#2A2438] rounded-xl p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-[#6B6358]">Inactive Centers</p>
-              <p className="text-2xl font-bold text-[#F87171] mt-1">{totalCenters - activeCenters}</p>
+                <div className="min-w-0">
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#8A9088]">
+                    Administration
+                  </p>
+                  <h1 className="text-2xl font-semibold tracking-tight text-[#12203B] sm:text-[28px]">
+                    Tech Centers
+                  </h1>
+                  <p className="mt-1 max-w-2xl text-sm leading-6 text-[#6B7268]">
+                    Manage center information, availability, and student membership across the platform.
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-[#F87171]/10 flex items-center justify-center">
-              <X className="w-6 h-6 text-[#F87171]" />
-            </div>
-          </div>
-        </div>
 
-        <div className="bg-[#150F20] border border-[#2A2438] rounded-xl p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-[#6B6358]">Total Students</p>
-              <p className="text-2xl font-bold text-[#F5F0E8] mt-1">{totalStudents}</p>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-[#6366F1]/10 flex items-center justify-center">
-              <Users className="w-6 h-6 text-[#6366F1]" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B6358]" />
-          <input
-            type="text"
-            placeholder="Search tech centers by name, code, or city..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-[#150F20] border border-[#2A2438] rounded-lg text-[#F5F0E8] placeholder-[#6B6358] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-colors duration-200"
-          />
-        </div>
-
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <select
-            value={filterActive}
-            onChange={(e) => setFilterActive(e.target.value as 'all' | 'active' | 'inactive')}
-            className="px-4 py-2.5 bg-[#150F20] border border-[#2A2438] rounded-lg text-[#F5F0E8] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-colors duration-200"
-          >
-            <option value="all">All Centers</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-
-          <button
-            onClick={() => router.push('/dashboard/super-admin/centers/create')}
-            className="px-4 py-2.5 bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] text-[#0B0912] font-medium rounded-lg hover:shadow-lg hover:shadow-[#E8A33D]/30 transition-all duration-200 flex items-center gap-2 whitespace-nowrap"
-          >
-            <Plus className="w-4 h-4" />
-            New Center
-          </button>
-        </div>
-      </div>
-
-      {/* Tech Centers Grid */}
-      {filteredCenters.length === 0 ? (
-        <div className="bg-[#150F20] border border-[#2A2438] rounded-2xl p-12 text-center">
-          <div className="w-20 h-20 rounded-2xl bg-[#E8A33D]/10 border border-[#E8A33D]/20 flex items-center justify-center mx-auto mb-4">
-            <Building2 className="w-10 h-10 text-[#E8A33D] opacity-60" />
-          </div>
-          <h3 className="text-xl font-semibold text-[#F5F0E8] mb-2">No Tech Centers Found</h3>
-          <p className="text-[#A79C8C] mb-6">
-            {searchTerm ? 'Try adjusting your search or filters' : 'Create your first tech center to get started'}
-          </p>
-          {!searchTerm && (
             <button
               onClick={() => router.push('/dashboard/super-admin/centers/create')}
-              className="px-6 py-2.5 bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] text-[#0B0912] font-medium rounded-lg hover:shadow-lg hover:shadow-[#E8A33D]/30 transition-all duration-200"
+              className={`inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#12203B] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#1C2E4E] sm:w-auto ${focusRing}`}
             >
-              Create Tech Center
+              <Plus className="h-4 w-4" />
+              New Center
             </button>
-          )}
+          </div>
+        </header>
+
+        {/* Statistics */}
+        <section className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Tech center statistics">
+          <StatCard
+            label="Total Centers"
+            value={totalCenters}
+            icon={<Building2 className="h-5 w-5" />}
+          />
+          <StatCard
+            label="Active Centers"
+            value={activeCenters}
+            icon={<Check className="h-5 w-5" />}
+            tone="success"
+          />
+          <StatCard
+            label="Inactive Centers"
+            value={inactiveCenters}
+            icon={<X className="h-5 w-5" />}
+            tone="danger"
+          />
+          <StatCard
+            label="Total Students"
+            value={totalStudents}
+            icon={<Users className="h-5 w-5" />}
+          />
+        </section>
+
+        {/* Search and filters */}
+        <section className="mb-4 rounded-xl border border-[#DADCD3] bg-white p-3 shadow-sm">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <div className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8A9088]" />
+              <input
+                type="search"
+                placeholder="Search by center name, code, or city"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                className={`h-10 w-full rounded-lg border border-[#DADCD3] bg-white pl-10 pr-4 text-sm text-[#12203B] placeholder:text-[#8A9088] transition-colors hover:border-[#C8CABF] focus:border-[#12203B]/40 ${focusRing}`}
+              />
+            </div>
+
+            <select
+              value={filterActive}
+              onChange={(event) =>
+                setFilterActive(event.target.value as 'all' | 'active' | 'inactive')
+              }
+              className={`h-10 w-full rounded-lg border border-[#DADCD3] bg-white px-3 text-sm font-medium text-[#3D4A61] transition-colors hover:border-[#C8CABF] focus:border-[#12203B]/40 md:w-[170px] ${focusRing}`}
+              aria-label="Filter tech centers by status"
+            >
+              <option value="all">All Centers</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+        </section>
+
+        {/* Card instruction + result count */}
+        <div className="mb-3 flex flex-col gap-2 px-0.5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-sm text-[#6B7268]">
+            <MousePointerClick className="h-4 w-4 shrink-0 text-[#12203B]" />
+            <span>
+              Click on a center card to view its full details.
+            </span>
+          </div>
+
+          <p className="text-xs font-medium text-[#8A9088]">
+            {filteredCenters.length} {filteredCenters.length === 1 ? 'center' : 'centers'} shown
+          </p>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCenters.map((center) => (
-            <div key={center.id}>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-[#150F20] border border-[#2A2438] rounded-2xl overflow-hidden hover:border-[#E8A33D]/30 transition-all duration-300 group"
+
+        {/* Tech center cards */}
+        {filteredCenters.length === 0 ? (
+          <div className="rounded-xl border border-[#DADCD3] bg-white px-6 py-12 text-center shadow-sm">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-[#F0F0EB]">
+              <Building2 className="h-6 w-6 text-[#3D4A61]" />
+            </div>
+
+            <h3 className="text-lg font-semibold text-[#12203B]">No tech centers found</h3>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#6B7268]">
+              {searchTerm || filterActive !== 'all'
+                ? 'No centers match the current search and filter. Try changing your criteria.'
+                : 'There are no tech centers yet. Create the first center to get started.'}
+            </p>
+
+            {!searchTerm && filterActive === 'all' && (
+              <button
+                onClick={() => router.push('/dashboard/super-admin/centers/create')}
+                className={`mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-[#12203B] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#1C2E4E] ${focusRing}`}
               >
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-lg font-semibold text-[#F5F0E8]">{center.name}</h3>
-                        <span className={`px-2 py-0.5 text-xs rounded-full ${center.isActive ? 'bg-[#34D399]/20 text-[#34D399]' : 'bg-[#F87171]/20 text-[#F87171]'}`}>
-                          {center.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                      <p className="text-sm text-[#6B6358] font-mono">{center.code}</p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleToggleActive(center)}
-                        disabled={updateStatusMutation.isPending}
-                        className="p-1.5 rounded-lg hover:bg-[#2A2438] text-[#6B6358] hover:text-[#F5F0E8] transition-colors duration-200 disabled:opacity-50"
-                        title={center.isActive ? 'Deactivate' : 'Activate'}
-                      >
-                        {updateStatusMutation.isPending ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : center.isActive ? (
-                          <Check className="w-4 h-4 text-[#34D399]" />
-                        ) : (
-                          <X className="w-4 h-4 text-[#F87171]" />
-                        )}
-                      </button>
-                      <button
-                        onClick={() => toggleDeleteForm(center.id)}
-                        disabled={deleteMutation.isPending}
-                        className={`p-1.5 rounded-lg hover:bg-[#2A2438] text-[#6B6358] hover:text-[#F87171] transition-colors duration-200 disabled:opacity-50 ${showDeleteForm === center.id ? 'bg-[#F87171]/10 text-[#F87171]' : ''}`}
-                        title="Delete"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
+                <Plus className="h-4 w-4" />
+                Create Tech Center
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {filteredCenters.map((center, index) => {
+              const studentCount = center._count?.users || center.users?.length || 0;
 
-                  {center.description && (
-                    <p className="text-sm text-[#A79C8C] mb-4 line-clamp-2">{center.description}</p>
-                  )}
+              return (
+                <motion.article
+                  key={center.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: 0.22,
+                    delay: Math.min(index * 0.025, 0.15),
+                    ease: 'easeOut',
+                  }}
+                  onClick={() =>
+                    router.push(`/dashboard/super-admin/centers/${center.id}`)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      router.push(`/dashboard/super-admin/centers/${center.id}`);
+                    }
+                  }}
+                  tabIndex={0}
+                  role="link"
+                  aria-label={`View ${center.name} details`}
+                  className={`group cursor-pointer rounded-xl border border-[#DADCD3] bg-white shadow-sm transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-[#BFC3B8] hover:shadow-md ${focusRing}`}
+                >
+                  <div className="p-4 sm:p-5">
+                    <div className="mb-4 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                          <h2 className="min-w-0 truncate text-base font-semibold text-[#12203B] sm:text-[17px]">
+                            {center.name}
+                          </h2>
 
-                  <div className="space-y-2 text-sm">
-                    {center.country && (
-                      <div className="flex items-center gap-2 text-[#A79C8C]">
-                        <Globe className="w-4 h-4 text-[#6B6358]" />
-                        <span>{center.country.name}</span>
-                      </div>
-                    )}
-                    {center.city && (
-                      <div className="flex items-center gap-2 text-[#A79C8C]">
-                        <MapPin className="w-4 h-4 text-[#6B6358]" />
-                        <span>{center.city}</span>
-                      </div>
-                    )}
-                    {center.phone && (
-                      <div className="flex items-center gap-2 text-[#A79C8C]">
-                        <Phone className="w-4 h-4 text-[#6B6358]" />
-                        <span>{center.phone}</span>
-                      </div>
-                    )}
-                    {center.email && (
-                      <div className="flex items-center gap-2 text-[#A79C8C]">
-                        <Mail className="w-4 h-4 text-[#6B6358]" />
-                        <span className="text-sm truncate">{center.email}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-4 pt-4 border-t border-[#2A2438] flex items-center justify-between text-xs text-[#6B6358]">
-                    <div className="flex items-center gap-4">
-                      <span>Created: {new Date(center.createdAt).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Users className="w-3 h-3" />
-                      <span>{center._count?.users || center.users?.length || 0} students</span>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Inline Delete Confirmation */}
-              <AnimatePresence>
-                {showDeleteForm === center.id && selectedCenter && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0, y: -10 }}
-                    animate={{ opacity: 1, height: 'auto', y: 0 }}
-                    exit={{ opacity: 0, height: 0, y: -10 }}
-                    transition={{ duration: 0.3 }}
-                    className="overflow-hidden mt-2"
-                  >
-                    <div className="bg-[#F87171]/5 border border-[#F87171]/30 rounded-xl p-4 sm:p-6">
-                      <div className="flex items-start gap-4">
-                        <div className="w-10 h-10 rounded-full bg-[#F87171]/10 flex items-center justify-center flex-shrink-0 mt-1">
-                          <AlertTriangle className="w-5 h-5 text-[#F87171]" />
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                              center.isActive
+                                ? 'bg-[#EEF3EE] text-[#55705B]'
+                                : 'bg-[#FBF0EC] text-[#A4462F]'
+                            }`}
+                          >
+                            {center.isActive ? 'Active' : 'Inactive'}
+                          </span>
                         </div>
-                        <div className="flex-1">
-                          <h4 className="text-base font-semibold text-[#F5F0E8] mb-1">
-                            Delete {selectedCenter.name}?
-                          </h4>
-                          <p className="text-sm text-[#A79C8C] mb-4">
-                            This action cannot be undone. All associated data will be permanently removed.
-                          </p>
-                          <div className="flex flex-col sm:flex-row gap-3">
-                            <button
-                              onClick={() => toggleDeleteForm(center.id)}
-                              className="w-full sm:flex-1 px-4 py-2 bg-[#2A2438] text-[#A79C8C] rounded-lg hover:bg-[#3A3448] hover:text-[#F5F0E8] transition-colors duration-200"
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              onClick={handleDeleteTechCenter}
-                              disabled={deleteMutation.isPending}
-                              className="w-full sm:flex-1 px-4 py-2 bg-[#F87171] text-[#0B0912] font-medium rounded-lg hover:bg-[#EF4444] transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2"
-                            >
-                              {deleteMutation.isPending ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                  Deleting...
-                                </>
-                              ) : (
-                                <>
-                                  <Trash2 className="w-4 h-4" />
-                                  Delete Center
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        </div>
+
+                        <p className="font-mono text-xs font-medium tracking-wide text-[#8A9088]">
+                          {center.code}
+                        </p>
+                      </div>
+
+                      <div
+                        className="shrink-0"
+                        onClick={(event) => event.stopPropagation()}
+                        onKeyDown={(event) => event.stopPropagation()}
+                      >
                         <button
-                          onClick={() => toggleDeleteForm(center.id)}
-                          className="p-1.5 rounded-lg hover:bg-[#2A2438] text-[#A79C8C] hover:text-[#F5F0E8] transition-colors duration-200 flex-shrink-0"
+                          onClick={() => handleToggleActive(center)}
+                          disabled={updateStatusMutation.isPending}
+                          className={`inline-flex h-8 w-8 items-center justify-center rounded-md border border-transparent text-[#6B7268] transition-colors hover:border-[#DADCD3] hover:bg-[#F7F6F2] hover:text-[#12203B] disabled:cursor-not-allowed disabled:opacity-50 ${focusRing}`}
+                          title={center.isActive ? 'Deactivate center' : 'Activate center'}
+                          aria-label={
+                            center.isActive
+                              ? `Deactivate ${center.name}`
+                              : `Activate ${center.name}`
+                          }
                         >
-                          <X className="w-4 h-4" />
+                          {updateStatusMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : center.isActive ? (
+                            <Check className="h-4 w-4 text-[#55705B]" />
+                          ) : (
+                            <X className="h-4 w-4 text-[#A4462F]" />
+                          )}
                         </button>
                       </div>
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          ))}
+
+                    {center.description && (
+                      <p className="mb-4 line-clamp-2 text-sm leading-6 text-[#6B7268]">
+                        {center.description}
+                      </p>
+                    )}
+
+                    <div className="space-y-2.5">
+                      {center.country && (
+                        <DetailRow
+                          icon={<Globe className="h-4 w-4" />}
+                          value={center.country.name}
+                        />
+                      )}
+
+                      {center.city && (
+                        <DetailRow
+                          icon={<MapPin className="h-4 w-4" />}
+                          value={center.city}
+                        />
+                      )}
+
+                      {center.phone && (
+                        <DetailRow
+                          icon={<Phone className="h-4 w-4" />}
+                          value={center.phone}
+                        />
+                      )}
+
+                      {center.email && (
+                        <DetailRow
+                          icon={<Mail className="h-4 w-4" />}
+                          value={center.email}
+                          truncate
+                        />
+                      )}
+                    </div>
+
+                    <div className="mt-5 border-t border-[#EDECE6] pt-3">
+                      <div className="flex items-center justify-between gap-3 text-xs text-[#8A9088]">
+                        <span className="truncate">
+                          Created {new Date(center.createdAt).toLocaleDateString()}
+                        </span>
+
+                        <span className="inline-flex shrink-0 items-center gap-1.5">
+                          <Users className="h-3.5 w-3.5" />
+                          {studentCount} {studentCount === 1 ? 'student' : 'students'}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-between">
+                        <span className="text-xs font-medium text-[#6B7268]">
+                          View center details
+                        </span>
+                        <ArrowRight className="h-4 w-4 text-[#8A9088] transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-[#12203B]" />
+                      </div>
+                    </div>
+                  </div>
+                </motion.article>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  icon,
+  tone = 'default',
+}: {
+  label: string;
+  value: number;
+  icon: ReactNode;
+  tone?: 'default' | 'success' | 'danger';
+}) {
+  const iconTone =
+    tone === 'success'
+      ? 'bg-[#EEF3EE] text-[#55705B]'
+      : tone === 'danger'
+        ? 'bg-[#FBF0EC] text-[#A4462F]'
+        : 'bg-[#F0F0EB] text-[#12203B]';
+
+  const valueTone =
+    tone === 'success'
+      ? 'text-[#55705B]'
+      : tone === 'danger'
+        ? 'text-[#A4462F]'
+        : 'text-[#12203B]';
+
+  return (
+    <div className="rounded-xl border border-[#DADCD3] bg-white p-4 shadow-sm sm:p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-medium text-[#6B7268] sm:text-sm">{label}</p>
+          <p className={`mt-1 text-2xl font-semibold tracking-tight ${valueTone}`}>
+            {value}
+          </p>
         </div>
-      )}
+
+        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${iconTone}`}>
+          {icon}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailRow({
+  icon,
+  value,
+  truncate = false,
+}: {
+  icon: ReactNode;
+  value: string;
+  truncate?: boolean;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2.5 text-sm text-[#3D4A61]">
+      <span className="shrink-0 text-[#8A9088]">{icon}</span>
+      <span className={truncate ? 'min-w-0 truncate' : 'min-w-0'}>
+        {value}
+      </span>
     </div>
   );
 }

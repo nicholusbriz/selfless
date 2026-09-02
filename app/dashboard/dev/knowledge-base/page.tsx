@@ -160,7 +160,7 @@ export default function KnowledgeBaseManagementPage() {
       {/* Header */}
       <div className="mb-6">
         <button
-          onClick={() => router.push('/dashboard/super-admin/settings')}
+          onClick={() => router.push('/dashboard/dev/settings')}
           className="flex items-center gap-2 text-[#A89F96] hover:text-white mb-4 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />

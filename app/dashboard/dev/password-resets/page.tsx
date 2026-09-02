@@ -282,7 +282,7 @@ export default function PasswordResetsPage() {
           <h3 className="text-xl font-semibold text-[#F5F0E8] mb-2">Access Denied</h3>
           <p className="text-[#A79C8C]">{error}</p>
           <button
-            onClick={() => router.push('/dashboard/super-admin')}
+            onClick={() => router.push('/dashboard/dev')}
             className="mt-4 px-6 py-2 bg-[#E8A33D] text-[#0B0912] rounded-lg hover:bg-[#C97F1F] transition-colors"
           >
             Return to Dashboard
@@ -523,8 +523,13 @@ export default function PasswordResetsPage() {
 
                   <div className="flex items-center gap-2 text-sm">
                     <Clock className="w-4 h-4 text-[#6B6358]" />
-                    <span className="text-[#F5F0E8]">{getTimeRemaining(user.resetTokenExpiry)}</span>
+                    <span className="text-[#F5F0E8]">
+                      {getTimeRemaining(user.resetTokenExpiry)}
+                    </span>
                   </div>
+                  <p className="text-xs text-[#6B6358]">
+                    {formatDate(user.resetTokenExpiry)}
+                  </p>
                 </div>
               </div>
             ))}

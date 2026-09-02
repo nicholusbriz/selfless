@@ -2,7 +2,7 @@
 /**
  * ACTIVITY LOGS API ROUTE
  * 
- * Fetches activity logs with filtering capabilities for super admin.
+ * Fetches activity logs with filtering capabilities for dev and super_admin roles.
  * Supports filtering by user, tech center, action type, date range, and pagination.
  * 
  * Endpoint: GET /api/admin/logs
@@ -23,12 +23,12 @@ import { requireAuth, hasRole } from '@/lib/auth/server';
 
 export async function GET(req: NextRequest) {
   try {
-    // Verify user is authenticated and is super admin
+    // Verify user is authenticated and is dev or super_admin
     const user = await requireAuth();
     
-    if (!hasRole(user, 'super_admin')) {
+    if (!hasRole(user, 'dev') && !hasRole(user, 'super_admin')) {
       return NextResponse.json(
-        { error: 'Unauthorized. Super admin access required.' },
+        { error: 'Unauthorized. Dev or super_admin role access required.' },
         { status: 403 }
       );
     }

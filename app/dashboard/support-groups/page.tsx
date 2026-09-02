@@ -1,22 +1,114 @@
+'use client';
+
+import {
+  ArrowRight,
+  Clock3,
+  MessageCircle,
+  UsersRound,
+  UserRoundCheck,
+} from 'lucide-react';
+
 export default function SupportGroupsPage() {
   return (
-    <div className="min-h-screen">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Support Groups</h1>
-        <p className="text-[#8A8278]">Connect with support groups and mentoring programs</p>
+    <div className="min-h-screen bg-[#F7F8FA] text-[#12203B]">
+      {/* Header */}
+      <div className="mb-6">
+        <p className="mb-1 text-xs font-medium uppercase tracking-[0.08em] text-[#7A8495]">
+          Student Community
+        </p>
+
+        <h1 className="text-xl font-semibold tracking-tight text-[#12203B] md:text-2xl">
+          Support Groups
+        </h1>
+
+        <p className="mt-1 text-sm text-[#667085]">
+          Connect with support groups, mentoring programs, and other students.
+        </p>
       </div>
 
-      <div className="bg-gradient-to-br from-[#1A1228] to-[#0F0A1A] rounded-2xl p-8 border border-[#1A1228]">
-        <div className="flex flex-col items-center justify-center py-16">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#E8A33D] to-[#14B8A6] flex items-center justify-center mb-6">
-            <svg className="w-10 h-10 text-[#0F0A1A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
+      {/* Main placeholder */}
+      <div className="overflow-hidden rounded-2xl border border-[#DADDE3] bg-white">
+        <div className="flex min-h-[500px] items-center justify-center px-5 py-12 md:px-8">
+          <div className="w-full max-w-2xl text-center">
+            {/* Icon */}
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-[#D9E0EA] bg-[#F4F7FA]">
+              <UsersRound className="h-8 w-8 text-[#1A365D]" />
+            </div>
+
+            {/* Status */}
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#E5D8BC] bg-[#FBF7EE] px-3 py-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#B98A3E]" />
+              <span className="text-xs font-medium text-[#80652F]">
+                Currently under development
+              </span>
+            </div>
+
+            {/* Heading */}
+            <h2 className="text-2xl font-semibold tracking-tight text-[#12203B] md:text-3xl">
+              Support groups will be available here
+            </h2>
+
+            {/* Description */}
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-[#667085] md:text-base">
+              You will be able to discover support groups and mentoring
+              programs, learn more about each group, and connect with
+              communities that can support your academic journey.
+            </p>
+
+            {/* Feature preview */}
+            <div className="mx-auto mt-8 grid max-w-lg grid-cols-1 gap-3 text-left sm:grid-cols-2">
+              <div className="rounded-xl border border-[#E1E4E8] bg-[#FAFBFC] p-4">
+                <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-[#EEF3F8]">
+                  <UsersRound className="h-4 w-4 text-[#1A365D]" />
+                </div>
+
+                <p className="text-sm font-semibold text-[#25344D]">
+                  Find support groups
+                </p>
+
+                <p className="mt-1 text-xs leading-5 text-[#7A8495]">
+                  Explore groups and communities available to students.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-[#E1E4E8] bg-[#FAFBFC] p-4">
+                <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-[#EEF3F8]">
+                  <UserRoundCheck className="h-4 w-4 text-[#1A365D]" />
+                </div>
+
+                <p className="text-sm font-semibold text-[#25344D]">
+                  Connect &amp; get support
+                </p>
+
+                <p className="mt-1 text-xs leading-5 text-[#7A8495]">
+                  Connect with mentors and fellow students through relevant
+                  groups.
+                </p>
+              </div>
+            </div>
+
+            {/* Development notice */}
+            <div className="mx-auto mt-8 max-w-xl rounded-xl border border-[#E5E7EB] bg-[#F8F9FA] px-5 py-4">
+              <div className="flex items-start gap-3 text-left">
+                <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-[#7A8495]" />
+
+                <p className="text-sm leading-6 text-[#667085]">
+                  <span className="font-medium text-[#25344D]">
+                    This section is being prepared.
+                  </span>{' '}
+                  Support groups and mentoring opportunities will be added here
+                  once the feature is ready.
+                </p>
+              </div>
+            </div>
+
+            {/* Future action */}
+            <div className="mt-7 inline-flex items-center gap-2 text-sm font-medium text-[#1A365D]">
+              <MessageCircle className="h-4 w-4" />
+              <span>Community support coming soon</span>
+              <ArrowRight className="h-4 w-4" />
+            </div>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-3">Support Groups Coming Soon</h2>
-          <p className="text-[#8A8278] text-center max-w-md">
-            This page is under development. Check back later to access support groups and mentoring programs.
-          </p>
         </div>
       </div>
     </div>

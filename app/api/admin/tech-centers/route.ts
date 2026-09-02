@@ -9,8 +9,8 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     
-    // Check if user is authenticated and is super admin
-    if (!session?.user?.id || session.user.role !== 'super_admin') {
+    // Check if user is authenticated and is super admin or dev
+    if (!session?.user?.id || (session.user.role !== 'super_admin' && session.user.role !== 'dev')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -50,8 +50,8 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
-    // Check if user is authenticated and is super admin
-    if (!session?.user?.id || session.user.role !== 'super_admin') {
+    // Check if user is authenticated and is super admin or dev
+    if (!session?.user?.id || (session.user.role !== 'super_admin' && session.user.role !== 'dev')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

@@ -1,11 +1,57 @@
-// app/api/admin/tech-centers/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
-import { logUserAction } from '@/lib/logger';
 
-// PATCH - Update tech center (toggle active status)
+// GET - Fetch a single tech center by ID
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    // Check if user is authenticated and is super admin or dev
+    if (!session?.user?.id || (session.user.role !== 'super_admin' && session.user.role !== 'dev')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    const techCenter = await prisma.techCenter.findUnique({
+      where: { id },
+      include: {
+        country: true,
+        users: {
+          select: { id: true }
+        },
+        _count: {
+          select: {
+            users: true,
+            studentCourses: true,
+            weeks: true,
+            cleaningDays: true,
+            announcements: true,
+          }
+        }
+      }
+    });
+
+    if (!techCenter) {
+      return NextResponse.json({ error: 'Tech center not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(techCenter);
+  } catch (error) {
+    console.error('Error fetching tech center:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch tech center' },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH - Update a tech center
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -13,66 +59,57 @@ export async function PATCH(
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session?.user?.id || session.user.role !== 'super_admin') {
+    // Check if user is authenticated and is super admin or dev
+    if (!session?.user?.id || (session.user.role !== 'super_admin' && session.user.role !== 'dev')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { id } = await params;
-    
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Tech center ID is required' },
-        { status: 400 }
-      );
-    }
-
     const body = await request.json();
-    const { isActive } = body;
+    const { name, code, description, countryId, city, address, phone, email, isActive } = body;
 
-    if (typeof isActive !== 'boolean') {
-      return NextResponse.json(
-        { error: 'isActive must be a boolean' },
-        { status: 400 }
-      );
-    }
-
-    // First check if the tech center exists
+    // Check if tech center exists
     const existingCenter = await prisma.techCenter.findUnique({
       where: { id }
     });
 
     if (!existingCenter) {
-      return NextResponse.json(
-        { error: 'Tech center not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Tech center not found' }, { status: 404 });
     }
 
-    // Update the tech center
+    // If code is being changed, check if new code already exists
+    if (code && code !== existingCenter.code) {
+      const codeExists = await prisma.techCenter.findUnique({
+        where: { code }
+      });
+
+      if (codeExists) {
+        return NextResponse.json(
+          { error: 'A tech center with this code already exists' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Update tech center
     const techCenter = await prisma.techCenter.update({
       where: { id },
       data: {
-        isActive,
+        ...(name !== undefined && { name }),
+        ...(code !== undefined && { code }),
+        ...(description !== undefined && { description }),
+        ...(countryId !== undefined && { countryId }),
+        ...(city !== undefined && { city }),
+        ...(address !== undefined && { address }),
+        ...(phone !== undefined && { phone }),
+        ...(email !== undefined && { email }),
+        ...(isActive !== undefined && { isActive }),
         updatedById: session.user.id,
       },
       include: {
         country: true,
       }
     });
-
-    // Log the tech center update activity
-    await logUserAction(
-      session.user.id,
-      'update',
-      'tech_center',
-      techCenter.id,
-      { 
-        name: techCenter.name, 
-        code: techCenter.code,
-        isActive 
-      },
-      techCenter.id
-    );
 
     return NextResponse.json(techCenter);
   } catch (error) {
@@ -84,7 +121,7 @@ export async function PATCH(
   }
 }
 
-// DELETE - Delete tech center
+// DELETE - Delete a tech center
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -92,80 +129,26 @@ export async function DELETE(
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session?.user?.id || session.user.role !== 'super_admin') {
+    // Check if user is authenticated and is super admin or dev
+    if (!session?.user?.id || (session.user.role !== 'super_admin' && session.user.role !== 'dev')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { id } = await params;
-    
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Tech center ID is required' },
-        { status: 400 }
-      );
-    }
 
-    // Check if tech center exists with all relations
+    // Check if tech center exists
     const existingCenter = await prisma.techCenter.findUnique({
-      where: { id },
-      include: {
-        users: { select: { id: true } },
-        studentCourses: { select: { id: true } },
-        weeks: { select: { id: true } },
-        cleaningDays: { select: { id: true } },
-        announcements: { select: { id: true } },
-        activityLogs: { select: { id: true } }, // Include activity logs
-      }
-    });
-
-    if (!existingCenter) {
-      return NextResponse.json(
-        { error: 'Tech center not found' },
-        { status: 404 }
-      );
-    }
-
-    // Check if center has associated data
-    const hasAssociatedData = 
-      existingCenter.users.length > 0 ||
-      existingCenter.studentCourses.length > 0 ||
-      existingCenter.weeks.length > 0 ||
-      existingCenter.cleaningDays.length > 0 ||
-      existingCenter.announcements.length > 0;
-
-    if (hasAssociatedData) {
-      return NextResponse.json(
-        { 
-          error: 'Cannot delete tech center with associated data. Remove all users, courses, weeks, cleaning days, and announcements first.' 
-        },
-        { status: 400 }
-      );
-    }
-
-    // Delete all associated activity logs first (since they have a required relation)
-    if (existingCenter.activityLogs.length > 0) {
-      await prisma.activityLog.deleteMany({
-        where: { techCenterId: id }
-      });
-    }
-
-    // Now delete the tech center
-    await prisma.techCenter.delete({
       where: { id }
     });
 
-    // Log the tech center deletion activity
-    await logUserAction(
-      session.user.id,
-      'delete',
-      'tech_center',
-      id,
-      { 
-        name: existingCenter.name, 
-        code: existingCenter.code 
-      }
-      // Note: techCenterId is intentionally omitted since the center is deleted
-    );
+    if (!existingCenter) {
+      return NextResponse.json({ error: 'Tech center not found' }, { status: 404 });
+    }
+
+    // Delete tech center
+    await prisma.techCenter.delete({
+      where: { id }
+    });
 
     return NextResponse.json({ message: 'Tech center deleted successfully' });
   } catch (error) {

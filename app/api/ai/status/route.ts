@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { isRAGAvailable } from '@/lib/services/rag-service';
+import { requireAuth, hasRole } from '@/lib/auth/server';
 
 type ProviderStatus = {
   provider: string;
@@ -30,7 +31,7 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
  * - data.ragAvailable: boolean - Whether RAG is available
  * - data.timestamp: string - When the status was checked
  * 
- * Authentication: Not required (public endpoint)
+ * Authentication: Dev role required
  */
 async function testOpenAI(): Promise<ProviderStatus> {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
@@ -139,6 +140,16 @@ async function testGroq(): Promise<ProviderStatus> {
 }
 
 export async function GET(request: Request) {
+  // Verify user is authenticated and is dev
+  const user = await requireAuth();
+  
+  if (!hasRole(user, 'dev')) {
+    return NextResponse.json(
+      { success: false, error: 'Unauthorized. Dev role access required.' },
+      { status: 403 }
+    );
+  }
+  
   const { searchParams } = new URL(request.url);
   const forceRefresh = searchParams.get('refresh') === 'true';
   const now = Date.now();

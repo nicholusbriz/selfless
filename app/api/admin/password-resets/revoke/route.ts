@@ -3,7 +3,7 @@
  * REVOKE PASSWORD RESET TOKEN API ROUTE
  * 
  * Revokes a password reset token for a specific user.
- * Only accessible by super admins.
+ * Only accessible by dev role.
  * 
  * Endpoint: POST /api/admin/password-resets/revoke
  * Request Body: { userId: string }
@@ -16,12 +16,12 @@ import { revokeResetToken } from '@/lib/auth/server';
 
 export async function POST(req: NextRequest) {
   try {
-    // Require authentication and super admin role
+    // Require authentication and dev role
     const user = await requireAuth();
     
-    if (!hasRole(user, 'super_admin')) {
+    if (!hasRole(user, 'dev')) {
       return NextResponse.json(
-        { error: 'Unauthorized. Super admin access required.' },
+        { error: 'Unauthorized. Dev role access required.' },
         { status: 403 }
       );
     }
