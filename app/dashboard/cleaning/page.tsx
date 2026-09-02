@@ -1374,6 +1374,13 @@ export default function CleaningPage() {
     [data],
   );
 
+  const reassignment = data?.reassignment ?? {
+    changesUsed: 0,
+    maximumChanges: 3,
+    changesRemaining: 3,
+    canReassign: true,
+  };
+
   // =======================================================
   // EXPAND ALL WEEKS
   // =======================================================
@@ -1381,7 +1388,7 @@ export default function CleaningPage() {
   useEffect(() => {
     if (!weeks.length) return;
 
-    setExpandedWeeks(
+    queueMicrotask(() => setExpandedWeeks(
       (previous) => {
         const allWeekIds =
           new Set(
@@ -1404,7 +1411,7 @@ export default function CleaningPage() {
 
         return allWeekIds;
       },
-    );
+    ));
   }, [weeks]);
 
   // =======================================================
@@ -1792,7 +1799,7 @@ export default function CleaningPage() {
       title: `Register for ${day.dayOfWeek}?`,
       body: `${formatDate(
         day.cleaningDate,
-      )}. You are expected to attend the day you select. You can switch days while registration stays open.`,
+      )}. You are expected to attend the day you select. Initial registration does not use any of your three permitted changes.`,
       confirmLabel: 'Register',
       onConfirm: () =>
         runRegister(day.id),
@@ -1809,7 +1816,7 @@ export default function CleaningPage() {
         'your current day'
       } to ${day.dayOfWeek}, ${formatDate(
         day.cleaningDate,
-      )} (${weekLabel}).`,
+      )} (${weekLabel}). This successful change will use one allowance, leaving ${Math.max(0, reassignment.changesRemaining - 1)}.`,
       confirmLabel: 'Switch day',
       onConfirm: () =>
         runChange(day.id),
@@ -1850,6 +1857,7 @@ export default function CleaningPage() {
     const currentDayAtMinimum = registeredDay && isAtMinimumThreshold(registeredDay);
     
     return Boolean(data?.registration) &&
+    reassignment.canReassign &&
     day.id !==
       data?.registration
         ?.cleaningDayId &&
@@ -1870,6 +1878,13 @@ export default function CleaningPage() {
   ) => {
     // Check if current day is at minimum threshold (4 students)
     const currentDayAtMinimum = registeredDay && isAtMinimumThreshold(registeredDay);
+    if (
+      data?.registration &&
+      !reassignment.canReassign &&
+      day.id !== data.registration.cleaningDayId
+    ) {
+      return 'Change limit reached';
+    }
     if (currentDayAtMinimum && day.id !== data?.registration?.cleaningDayId)
       return 'Current day at minimum (4 students)';
 
@@ -2184,6 +2199,38 @@ export default function CleaningPage() {
         {/* =================================================
             UNREGISTERED STUDENTS
         ================================================= */}
+
+        {data?.registration && (
+          <section
+            className={`${panel} mb-3 px-4 py-3 sm:px-5`}
+            aria-labelledby="reassignment-allowance-heading"
+            aria-live="polite"
+          >
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2
+                  id="reassignment-allowance-heading"
+                  className="text-[13px] font-semibold text-[var(--ink)]"
+                >
+                  Cleaning assignment changes
+                </h2>
+                <p className="mt-0.5 text-[12px] leading-5 text-[var(--ink-3)]">
+                  You may make up to {reassignment.maximumChanges} successful changes while registration remains open.
+                </p>
+              </div>
+
+              <Tag tone={reassignment.canReassign ? 'ok' : 'bad'}>
+                {reassignment.changesUsed} used · {reassignment.changesRemaining} remaining
+              </Tag>
+            </div>
+
+            {!reassignment.canReassign && (
+              <p className="mt-2 text-[12px] font-medium text-[var(--bad)]">
+                You have used all three permitted assignment changes.
+              </p>
+            )}
+          </section>
+        )}
 
         <UnregisteredStudentsList
           students={
@@ -2535,8 +2582,7 @@ export default function CleaningPage() {
           <div className="mt-4 border-l-2 border-[var(--brass)] bg-[var(--brass-soft)] px-3 py-2.5 rounded">
             <p className="text-[12px] leading-5 text-[var(--ink-2)]">
               Choose a day you can genuinely attend.
-              You may switch while registration is open
-              if another day still has space.
+              You may complete up to three successful changes while registration is open and another eligible day has space.
             </p>
           </div>
         )}
