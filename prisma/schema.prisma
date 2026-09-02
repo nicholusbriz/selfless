@@ -420,9 +420,34 @@ model CleaningRegistration {
   cleaningDay   CleaningDay @relation(fields: [cleaningDayId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   registeredAt  DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  reassignmentCount Int      @default(0)
   
   @@index([cleaningDayId])
   @@map("cleaning_registrations")
+}
+
+model CleaningReassignmentHistory {
+  id                       String   @id @default(auto()) @map("_id") @db.ObjectId
+  cleaningRegistrationId   String   @db.ObjectId
+  userId                   String   @db.ObjectId
+  previousCleaningDayId    String   @db.ObjectId
+  replacementCleaningDayId String   @db.ObjectId
+  initiatedById            String   @db.ObjectId
+  techCenterId             String   @db.ObjectId
+  sequence                 Int
+  source                   String
+  reason                   String?
+  createdAt                DateTime @default(now())
+
+  @@unique([cleaningRegistrationId, sequence])
+  @@index([userId])
+  @@index([previousCleaningDayId])
+  @@index([replacementCleaningDayId])
+  @@index([initiatedById])
+  @@index([techCenterId])
+  @@index([source])
+  @@index([createdAt])
+  @@map("cleaning_reassignment_history")
 }
 
 // ATTENDANCE RECORD
