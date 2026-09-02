@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Home, LayoutDashboard, Activity, Database, Cpu, Server, RefreshCw, CheckCircle, XCircle, AlertCircle, BookOpen, Zap, Clock, TrendingUp, Users, MessageSquare, Settings, Trash2, Plus } from 'lucide-react';
+import { ArrowLeft, Home, LayoutDashboard, Activity, Database, Cpu, Server, RefreshCw, CheckCircle, XCircle, AlertCircle, BookOpen, Zap, Clock, TrendingUp, Users, MessageSquare, Settings, Trash2, Plus, Video, Upload, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import VideoUpload from '@/components/VideoUpload';
 
 interface ProviderStatus {
   provider: string;
@@ -32,16 +33,23 @@ interface AIUsageStats {
 
 export default function SystemSettingsPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'overview' | 'providers' | 'knowledge' | 'usage' | 'endpoints'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'providers' | 'knowledge' | 'usage' | 'endpoints' | 'videos'>('overview');
   const [loading, setLoading] = useState(true);
   const [providerStatus, setProviderStatus] = useState<any>(null);
   const [embeddingStats, setEmbeddingStats] = useState<EmbeddingStats | null>(null);
   const [ragEnabled, setRagEnabled] = useState(false);
   const [generatingEmbeddings, setGeneratingEmbeddings] = useState(false);
   const [embeddingProgress, setEmbeddingProgress] = useState<any>(null);
+  
+  // Video management state
+  const [showVideoUpload, setShowVideoUpload] = useState(false);
+  const [videos, setVideos] = useState<string[]>([]);
+  const [isLoadingVideos, setIsLoadingVideos] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     loadAIStatus();
+    fetchVideos();
   }, []);
 
   const loadAIStatus = async () => {
@@ -71,6 +79,55 @@ export default function SystemSettingsPage() {
 
   const refreshStatus = () => {
     loadAIStatus();
+  };
+
+  // Video management functions
+  const fetchVideos = async () => {
+    try {
+      setIsLoadingVideos(true);
+      const response = await fetch('/api/videos');
+
+      if (response.ok) {
+        const data = await response.json();
+        setVideos(data.videos || []);
+      }
+    } catch (error) {
+      console.error('Error fetching videos:', error);
+    } finally {
+      setIsLoadingVideos(false);
+    }
+  };
+
+  const handleVideoUploadComplete = (videoUrl: string) => {
+    setUploadMessage({ type: 'success', text: 'Video uploaded successfully!' });
+    setShowVideoUpload(false);
+    fetchVideos();
+    setTimeout(() => setUploadMessage(null), 5000);
+  };
+
+  const handleUploadError = (error: string) => {
+    setUploadMessage({ type: 'error', text: error });
+    setTimeout(() => setUploadMessage(null), 5000);
+  };
+
+  const handleDeleteVideo = async (videoUrl: string) => {
+    try {
+      const response = await fetch('/api/videos/delete', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ videoUrl }),
+      });
+
+      if (response.ok) {
+        fetchVideos();
+      } else {
+        console.error('Failed to delete video');
+      }
+    } catch (error) {
+      console.error('Error deleting video:', error);
+    }
   };
 
   const generateEmbeddings = async () => {
@@ -104,6 +161,7 @@ export default function SystemSettingsPage() {
     { id: 'knowledge' as const, label: 'Knowledge Base', icon: Database },
     { id: 'usage' as const, label: 'Usage Stats', icon: Activity },
     { id: 'endpoints' as const, label: 'API Endpoints', icon: Settings },
+    { id: 'videos' as const, label: 'Video Management', icon: Video },
   ];
 
   const endpoints = [
@@ -524,6 +582,112 @@ export default function SystemSettingsPage() {
                       Rate limiting and input validation
                     </li>
                   </ul>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'videos' && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-semibold text-[#F5F0E8] mb-4">Video Management</h2>
+                
+                <div className="bg-[#150F20] border border-[#2A2438] rounded-2xl p-8">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-12 h-12 rounded-xl bg-[#E8A33D]/10 border border-[#E8A33D]/20 flex items-center justify-center">
+                      <Video className="w-6 h-6 text-[#E8A33D]" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-[#F5F0E8]">
+                        Dashboard Videos
+                      </h3>
+                      <p className="text-[#A79C8C] text-sm">
+                        Upload and manage videos for the dashboard
+                      </p>
+                    </div>
+                  </div>
+
+                  {!showVideoUpload ? (
+                    <button
+                      onClick={() => setShowVideoUpload(true)}
+                      className="
+                        inline-flex items-center justify-center gap-2
+                        rounded-lg bg-[#E8A33D] px-6 py-3
+                        text-sm font-semibold text-[#150F20]
+                        transition-colors hover:bg-[#D69235]
+                      "
+                    >
+                      <Upload className="w-4 h-4" />
+                      Upload New Video
+                    </button>
+                  ) : (
+                    <>
+                      {uploadMessage && (
+                        <div
+                          className={`mb-4 flex items-start gap-2 rounded-lg border p-3 ${
+                            uploadMessage.type === 'success'
+                              ? 'border-green-500/20 bg-green-500/10 text-green-400'
+                              : 'border-red-500/20 bg-red-500/10 text-red-400'
+                          }`}
+                        >
+                          {uploadMessage.type === 'success' ? (
+                            <Play className="w-4 h-4 mt-0.5" />
+                          ) : (
+                            <Upload className="w-4 h-4 mt-0.5" />
+                          )}
+                          <p className="text-sm">{uploadMessage.text}</p>
+                        </div>
+                      )}
+                      <VideoUpload
+                        onUploadComplete={handleVideoUploadComplete}
+                        onError={handleUploadError}
+                      />
+                    </>
+                  )}
+
+                  {/* Video List */}
+                  {videos.length > 0 && (
+                    <div className="mt-8">
+                      <h3 className="text-lg font-semibold text-[#F5F0E8] mb-4">
+                        Current Videos ({videos.length})
+                      </h3>
+                      <div className="grid gap-4">
+                        {videos.map((videoUrl, index) => (
+                          <div
+                            key={videoUrl}
+                            className="bg-[#2A2438]/30 border border-[#2A2438] rounded-xl p-4"
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Play className="w-4 h-4 text-[#E8A33D]" />
+                                  <p className="text-sm font-medium text-[#F5F0E8]">
+                                    Video {index + 1}
+                                  </p>
+                                </div>
+                                <p className="text-xs text-[#A79C8C] break-all mb-3">
+                                  {videoUrl}
+                                </p>
+                                <video
+                                  controls
+                                  preload="metadata"
+                                  className="w-full rounded-lg border border-[#2A2438]"
+                                >
+                                  <source src={videoUrl} type="video/mp4" />
+                                  Your browser does not support the video element.
+                                </video>
+                              </div>
+                              <button
+                                onClick={() => handleDeleteVideo(videoUrl)}
+                                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

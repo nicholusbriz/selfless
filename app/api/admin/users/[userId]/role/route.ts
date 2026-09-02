@@ -13,7 +13,8 @@ export async function PATCH(
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session?.user?.id || session.user.role !== 'super_admin') {
+    // Allow both dev and super_admin to change roles
+    if (!session?.user?.id || (session.user.role !== 'super_admin' && session.user.role !== 'dev')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -49,7 +50,7 @@ export async function PATCH(
       );
     }
 
-    // Check if role exists
+    // Check if role exists and is not the dev role
     const role = await prisma.role.findUnique({
       where: { id: roleId }
     });
@@ -61,8 +62,16 @@ export async function PATCH(
       );
     }
 
-    // Prevent demoting super admin
-    if (user.role?.name === 'super_admin') {
+    // Prevent assigning dev role through UI
+    if (role.name === 'dev') {
+      return NextResponse.json(
+        { error: 'Cannot assign dev role through UI.' },
+        { status: 403 }
+      );
+    }
+
+    // Prevent demoting super admin (only allowed for dev users)
+    if (user.role?.name === 'super_admin' && session.user.role !== 'dev') {
       return NextResponse.json(
         { error: 'Cannot change a Super Admin\'s role' },
         { status: 400 }
@@ -70,12 +79,33 @@ export async function PATCH(
     }
 
     // Update user role and set roleUpdatedAt to trigger token refresh
+    // Handle tech center changes based on role transitions
+    const updateData: { 
+      roleId: string; 
+      roleUpdatedAt: Date; 
+      techCenterId?: string | null;
+      previousTechCenterId?: string | null;
+    } = {
+      roleId,
+      roleUpdatedAt: new Date() // This will trigger JWT token refresh on next request
+    };
+    
+    // Handle super_admin promotion - store previous tech center and clear current
+    if (role.name === 'super_admin') {
+      if (user.techCenterId) {
+        updateData.previousTechCenterId = user.techCenterId;
+      }
+      updateData.techCenterId = null;
+    }
+    // Handle demotion from super_admin - restore previous tech center if available
+    else if (user.role?.name === 'super_admin' && user.previousTechCenterId) {
+      updateData.techCenterId = user.previousTechCenterId;
+      updateData.previousTechCenterId = null;
+    }
+    
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { 
-        roleId,
-        roleUpdatedAt: new Date() // This will trigger JWT token refresh on next request
-      },
+      data: updateData,
       include: {
         role: true,
         techCenter: true,
@@ -92,13 +122,23 @@ export async function PATCH(
         targetUser: `${updatedUser.firstName} ${updatedUser.lastName}`,
         oldRole: user.role?.name,
         newRole: role.name,
-        action: 'change_role'
+        action: 'change_role',
+        techCenterCleared: role.name === 'super_admin' ? true : undefined,
+        techCenterRestored: user.role?.name === 'super_admin' && user.previousTechCenterId ? true : undefined
       },
       updatedUser.techCenterId || undefined
     );
 
+    // Build appropriate message based on tech center changes
+    let message = `User role changed from ${user.role?.name} to ${role.name}`;
+    if (role.name === 'super_admin') {
+      message += ' and tech center cleared (previous tech center stored for restoration)';
+    } else if (user.role?.name === 'super_admin' && user.previousTechCenterId) {
+      message += ' and previous tech center restored';
+    }
+    
     return NextResponse.json({
-      message: `User role changed from ${user.role?.name} to ${role.name}`,
+      message,
       user: updatedUser
     });
   } catch (error) {

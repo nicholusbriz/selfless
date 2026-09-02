@@ -8,8 +8,8 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
-    // Check if user is authenticated and is super admin
-    if (!session?.user?.id || session.user.role !== 'super_admin') {
+    // Check if user is authenticated and is super admin or dev
+    if (!session?.user?.id || (session.user.role !== 'super_admin' && session.user.role !== 'dev')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -114,6 +114,7 @@ export async function GET(request: NextRequest) {
     });
 
     const roles = await prisma.role.findMany({
+      where: { name: { not: 'dev' } },
       select: { id: true, name: true, displayName: true },
       orderBy: { name: 'asc' }
     });

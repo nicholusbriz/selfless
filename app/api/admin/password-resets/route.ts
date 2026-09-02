@@ -3,7 +3,7 @@
  * GET PASSWORD RESET REQUESTS API ROUTE
  * 
  * Fetches all users with active password reset tokens.
- * Only accessible by super admins.
+ * Only accessible by dev role.
  * 
  * Endpoint: GET /api/admin/password-resets
  * Response: { users: Array }
@@ -15,12 +15,12 @@ import { getUsersWithActiveResetTokens } from '@/lib/auth/server';
 
 export async function GET(req: NextRequest) {
   try {
-    // Require authentication and super admin role
+    // Require authentication and dev role
     const user = await requireAuth();
     
-    if (!hasRole(user, 'super_admin')) {
+    if (!hasRole(user, 'dev')) {
       return NextResponse.json(
-        { error: 'Unauthorized. Super admin access required.' },
+        { error: 'Unauthorized. Dev role access required.' },
         { status: 403 }
       );
     }

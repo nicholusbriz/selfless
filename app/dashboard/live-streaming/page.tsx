@@ -1,39 +1,62 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, {
+  FormEvent,
+  MutableRefObject,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   BookOpen,
-  Clock,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
   Eye,
-  Monitor,
-  Music,
+  GraduationCap,
+  Loader2,
   Play,
-  RefreshCw,
   Search,
-  Sparkles,
-} from 'lucide-react';
-
+  Volume2,
+  X,
+  ArrowUp,
+} from "lucide-react";
 import {
   useEnglishLearningVideos,
-  useMusicVideos,
-} from '@/hooks/useYouTube';
+  // useMusicVideos,
+} from "@/hooks/useYouTube";
 
 type VideoItem = {
   id: string;
-  title?: string;
-  description?: string;
-  thumbnail?: string;
+  title: string;
+  thumbnail: string;
+  channelTitle?: string;
+  publishedAt?: string;
   duration?: string;
   viewCount?: string | number;
-  channelTitle?: string;
-  channelId?: string;
-  publishedAt?: string;
-  categoryId?: string;
 };
 
-type TabType = 'english' | 'music';
+type TabType = "english";
+// type TabType = "english" | "music";
+
+type Category = {
+  id: string;
+  label: string;
+  query: string;
+};
+
+type YouTubePlayerState = {
+  UNSTARTED: -1;
+  ENDED: 0;
+  PLAYING: 1;
+  PAUSED: 2;
+  BUFFERING: 3;
+  CUED: 5;
+};
 
 type YouTubePlayer = {
   destroy: () => void;
@@ -41,53 +64,37 @@ type YouTubePlayer = {
   loadVideoById: (videoId: string) => void;
   playVideo: () => void;
   pauseVideo: () => void;
-};
-
-type YouTubePlayerEvent = {
-  target: YouTubePlayer;
-  data: number;
+  mute: () => void;
+  unMute: () => void;
+  isMuted: () => boolean;
+  getPlayerState: () => number;
 };
 
 type YouTubePlayerConstructor = new (
   element: HTMLElement,
   options: {
-    videoId: string;
-    playerVars?: {
-      autoplay?: number;
-      controls?: number;
-      rel?: number;
-      modestbranding?: number;
-      iv_load_policy?: number;
-      playsinline?: number;
-    };
+    videoId?: string;
+    playerVars?: Record<string, number>;
     events?: {
-      onReady?: (event: YouTubePlayerEvent) => void;
-      onStateChange?: (event: YouTubePlayerEvent) => void;
+      onReady?: () => void;
+      onStateChange?: (event: { data: number }) => void;
+      onError?: (event: { data: number }) => void;
     };
   }
 ) => YouTubePlayer;
 
-type YouTubeNamespace = {
-  Player: YouTubePlayerConstructor;
-  PlayerState: {
-    UNSTARTED: number;
-    ENDED: number;
-    PLAYING: number;
-    PAUSED: number;
-    BUFFERING: number;
-    CUED: number;
-  };
-};
-
 declare global {
   interface Window {
-    YT?: YouTubeNamespace;
+    YT?: {
+      Player: YouTubePlayerConstructor;
+      PlayerState: YouTubePlayerState;
+    };
     onYouTubeIframeAPIReady?: () => void;
   }
 }
 
 const TOKENS = `
-  [data-streaming-scope] {
+  :root {
     --ink: #10192b;
     --ink-2: #3d4a61;
     --ink-3: #6b7789;
@@ -104,10 +111,6 @@ const TOKENS = `
     --brand-hover: #14294a;
     --brand-soft: #eef2f8;
 
-    --music-brand: #7c3aed;
-    --music-brand-hover: #6d28d9;
-    --music-brand-soft: #ede9fe;
-
     --ok: #17734b;
     --ok-soft: #eaf6f0;
 
@@ -116,1620 +119,1041 @@ const TOKENS = `
 
     --radius: 12px;
     --radius-sm: 8px;
-
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: 'tnum' 1, 'cv05' 1;
   }
 `;
 
-const focusRing =
-  'outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-2)]';
+const ENGLISH_CATEGORIES: Category[] = [
+  {
+    id: "all",
+    label: "All",
+    query: "English language learning",
+  },
+  {
+    id: "grammar",
+    label: "Grammar",
+    query: "English grammar tutorial",
+  },
+  {
+    id: "pronunciation",
+    label: "Pronunciation",
+    query: "English pronunciation guide",
+  },
+  {
+    id: "conversation",
+    label: "Conversation",
+    query: "conversational English",
+  },
+  {
+    id: "vocabulary",
+    label: "Vocabulary",
+    query: "English vocabulary",
+  },
+  {
+    id: "listening",
+    label: "Listening",
+    query: "English listening practice",
+  },
+  {
+    id: "beginners",
+    label: "Beginners",
+    query: "English for beginners",
+  },
+  {
+    id: "series",
+    label: "English Series",
+    query: "English TV series educational",
+  },
+];
 
-const panel =
-  'rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface)]';
+// Music categories are intentionally kept commented out.
+// They can be enabled later without changing the English implementation.
+//
+// const MUSIC_CATEGORIES: Category[] = [
+//   {
+//     id: "trending",
+//     label: "Trending",
+//     query: "trending music videos 2026",
+//   },
+//   {
+//     id: "rnb",
+//     label: "R&B",
+//     query: "R&B music",
+//   },
+//   {
+//     id: "hiphop",
+//     label: "Hip Hop",
+//     query: "hip hop music",
+//   },
+//   {
+//     id: "gospel",
+//     label: "Gospel",
+//     query: "gospel music",
+//   },
+//   {
+//     id: "pop",
+//     label: "Pop",
+//     query: "pop music",
+//   },
+//   {
+//     id: "afrobeats",
+//     label: "Afrobeats",
+//     query: "Afrobeats music",
+//   },
+//   {
+//     id: "reggae",
+//     label: "Reggae",
+//     query: "reggae music",
+//   },
+//   {
+//     id: "classic",
+//     label: "Classic",
+//     query: "classic music",
+//   },
+// ];
 
-const buttonBase = `
-  inline-flex items-center justify-center gap-2
-  rounded-[var(--radius-sm)]
-  px-3.5 py-2
-  text-sm font-medium
-  transition-colors duration-200
-  disabled:cursor-not-allowed
-  disabled:opacity-50
-  ${focusRing}
-`;
+function safeText(value: unknown, fallback = "") {
+  if (typeof value !== "string") return fallback;
+  return value.trim() || fallback;
+}
 
-const primaryButton = `
-  ${buttonBase}
-  bg-[var(--brand)]
-  text-white
-  hover:bg-[var(--brand-hover)]
-`;
+function formatViews(value: string | number | undefined) {
+  if (value === undefined || value === null || value === "") {
+    return "";
+  }
 
-const musicButton = `
-  ${buttonBase}
-  bg-[var(--music-brand)]
-  text-white
-  hover:bg-[var(--music-brand-hover)]
-`;
+  const numeric =
+    typeof value === "number"
+      ? value
+      : Number(String(value).replace(/,/g, ""));
 
-const englishCategories = [
-  {
-    id: 'all',
-    label: 'All Content',
-    query: 'English language learning',
-  },
-  {
-    id: 'grammar',
-    label: 'Grammar',
-    query: 'English grammar tutorial',
-  },
-  {
-    id: 'pronunciation',
-    label: 'Pronunciation',
-    query: 'English pronunciation guide',
-  },
-  {
-    id: 'conversation',
-    label: 'Conversation',
-    query: 'conversational English',
-  },
-  {
-    id: 'vocabulary',
-    label: 'Vocabulary',
-    query: 'English vocabulary',
-  },
-  {
-    id: 'listening',
-    label: 'Listening',
-    query: 'English listening practice',
-  },
-  {
-    id: 'beginners',
-    label: 'For Beginners',
-    query: 'English for beginners',
-  },
-  {
-    id: 'series',
-    label: 'TV Series',
-    query: 'English TV series educational',
-  },
-] as const;
-
-const musicCategories = [
-  {
-    id: 'trending',
-    label: 'Trending',
-    query: 'trending music videos 2026',
-  },
-  {
-    id: 'rnb',
-    label: 'R&B',
-    query: 'R&B music videos lyrics',
-  },
-  {
-    id: 'hiphop',
-    label: 'Hip Hop',
-    query: 'hip hop music videos lyrics',
-  },
-  {
-    id: 'gospel',
-    label: 'Gospel',
-    query: 'gospel music videos lyrics',
-  },
-  {
-    id: 'pop',
-    label: 'Pop',
-    query: 'pop music videos lyrics',
-  },
-  {
-    id: 'afrobeats',
-    label: 'Afrobeats',
-    query: 'afrobeats music videos',
-  },
-  {
-    id: 'reggae',
-    label: 'Reggae',
-    query: 'reggae music videos lyrics',
-  },
-  {
-    id: 'classic',
-    label: 'Classic',
-    query: 'classic music videos lyrics',
-  },
-] as const;
-
-function safeText(value: unknown, fallback = ''): string {
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number') return String(value);
-  if (value == null) return fallback;
-
-  try {
+  if (!Number.isFinite(numeric)) {
     return String(value);
-  } catch {
-    return fallback;
   }
+
+  if (numeric >= 1_000_000_000) {
+    return `${(numeric / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}B`;
+  }
+
+  if (numeric >= 1_000_000) {
+    return `${(numeric / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  }
+
+  if (numeric >= 1_000) {
+    return `${(numeric / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
+  }
+
+  return String(numeric);
 }
 
-function formatViews(value: unknown): string {
-  const raw = safeText(value, '0');
-
-  if (!raw) return '0 views';
-
-  const numeric = Number(raw.replace(/,/g, ''));
-
-  if (!Number.isNaN(numeric)) {
-    if (numeric >= 1_000_000) {
-      return `${(numeric / 1_000_000)
-        .toFixed(1)
-        .replace('.0', '')}M views`;
+function loadYouTubeAPI() {
+  return new Promise<void>((resolve, reject) => {
+    if (typeof window === "undefined") {
+      reject(new Error("YouTube player is only available in the browser."));
+      return;
     }
 
-    if (numeric >= 1_000) {
-      return `${(numeric / 1_000)
-        .toFixed(1)
-        .replace('.0', '')}K views`;
+    if (window.YT?.Player) {
+      resolve();
+      return;
     }
 
-    return `${numeric} views`;
-  }
-
-  return `${raw} views`;
-}
-
-/* ============================================================
-   YOUTUBE API LOADER
-   ------------------------------------------------------------
-   Loads the YouTube IFrame API once for the whole page.
-============================================================ */
-
-let youtubeApiPromise: Promise<YouTubeNamespace> | null = null;
-
-function loadYouTubeAPI(): Promise<YouTubeNamespace> {
-  if (typeof window === 'undefined') {
-    return Promise.reject(
-      new Error('YouTube API is only available in the browser.')
-    );
-  }
-
-  if (window.YT?.Player) {
-    return Promise.resolve(window.YT);
-  }
-
-  if (youtubeApiPromise) {
-    return youtubeApiPromise;
-  }
-
-  youtubeApiPromise = new Promise((resolve, reject) => {
     const existingScript = document.querySelector(
       'script[src="https://www.youtube.com/iframe_api"]'
     );
 
-    const previousReady = window.onYouTubeIframeAPIReady;
+    const previousCallback = window.onYouTubeIframeAPIReady;
 
     window.onYouTubeIframeAPIReady = () => {
-      if (typeof previousReady === 'function') {
-        previousReady();
-      }
-
-      if (window.YT?.Player) {
-        resolve(window.YT);
-      } else {
-        reject(
-          new Error(
-            'YouTube IFrame API loaded without the Player constructor.'
-          )
-        );
-      }
+      previousCallback?.();
+      resolve();
     };
 
     if (existingScript) {
       return;
     }
 
-    const script = document.createElement('script');
-
-    script.src = 'https://www.youtube.com/iframe_api';
+    const script = document.createElement("script");
+    script.src = "https://www.youtube.com/iframe_api";
     script.async = true;
 
     script.onerror = () => {
-      youtubeApiPromise = null;
-      reject(new Error('Failed to load the YouTube IFrame API.'));
+      reject(new Error("Unable to load the YouTube player."));
     };
 
     document.head.appendChild(script);
   });
-
-  return youtubeApiPromise;
 }
-
-/* ============================================================
-   VIDEO CARD
-============================================================ */
 
 function VideoCard({
   video,
-  onSelect,
-  isMusic = false,
-  isSelected = false,
+  selected,
+  onClick,
 }: {
   video: VideoItem;
-  onSelect: (video: VideoItem) => void;
-  isMusic?: boolean;
-  isSelected?: boolean;
+  selected: boolean;
+  onClick: () => void;
 }) {
-  const title = safeText(video.title, 'Untitled video');
-  const channel = safeText(video.channelTitle, 'YouTube');
-  const views = formatViews(video.viewCount);
-
   return (
-    <article
-      className={`
-        ${panel}
-        group
-        overflow-hidden
-        transition-[border-color,box-shadow,transform]
-        duration-200
-        hover:-translate-y-0.5
-        hover:border-[var(--line-strong)]
-        hover:shadow-md
-        ${
-          isSelected
-            ? isMusic
-              ? 'border-[var(--music-brand)] shadow-sm'
-              : 'border-[var(--brand)] shadow-sm'
-            : ''
-        }
-      `}
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "group w-full overflow-hidden rounded-xl border bg-white text-left",
+        "transition duration-200",
+        "hover:-translate-y-0.5 hover:shadow-md",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a365d]/30",
+        selected
+          ? "border-[#1a365d] shadow-sm ring-1 ring-[#1a365d]/10"
+          : "border-[#e2e6ec]",
+      ].join(" ")}
     >
-      <button
-        type="button"
-        onClick={() => onSelect(video)}
-        className={`block w-full text-left ${focusRing}`}
-        aria-label={`Play ${title}`}
-        aria-pressed={isSelected}
-      >
-        <div className="relative aspect-video overflow-hidden bg-[var(--surface-3)]">
-          {video.thumbnail ? (
-            <img
-              src={video.thumbnail}
-              alt={title}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.025]"
-              loading="lazy"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center">
-              {isMusic ? (
-                <Music className="h-10 w-10 text-[var(--ink-4)]" />
-              ) : (
-                <Monitor className="h-10 w-10 text-[var(--ink-4)]" />
-              )}
-            </div>
-          )}
-
-          <div
-            className={`
-              absolute inset-0
-              flex items-center justify-center
-              transition-colors duration-200
-              ${
-                isSelected
-                  ? 'bg-black/25'
-                  : 'bg-black/0 group-hover:bg-black/20'
-              }
-            `}
-          >
-            <span
-              className={`
-                flex h-11 w-11
-                items-center justify-center
-                rounded-full
-                bg-white
-                shadow-lg
-                transition-[opacity,transform]
-                duration-200
-                ${
-                  isSelected
-                    ? 'scale-100 opacity-100'
-                    : 'translate-y-1 opacity-0 group-hover:translate-y-0 group-hover:opacity-100'
-                }
-              `}
-              style={{
-                color: isMusic
-                  ? 'var(--music-brand)'
-                  : 'var(--brand)',
-              }}
-            >
-              <Play
-                className="ml-0.5 h-5 w-5 fill-current"
-                aria-hidden
-              />
-            </span>
+      <div className="relative aspect-video w-full overflow-hidden bg-[#eef1f5]">
+        {video.thumbnail ? (
+          <img
+            src={video.thumbnail}
+            alt=""
+            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <Play className="h-8 w-8 text-[#98a2b3]" />
           </div>
+        )}
 
-          {isSelected && (
-            <span
-              className="absolute bottom-2 left-2 rounded-md bg-white/95 px-2 py-1 text-[11px] font-bold shadow-sm"
-              style={{
-                color: isMusic
-                  ? 'var(--music-brand)'
-                  : 'var(--brand)',
-              }}
-            >
-              Selected
-            </span>
-          )}
-
-          {video.duration && (
-            <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-md bg-black/80 px-2 py-1 text-[11px] font-semibold text-white">
-              <Clock
-                className="h-3 w-3"
-                aria-hidden
-              />
-              {video.duration}
-            </span>
-          )}
-
-          <span
-            className="absolute left-2 top-2 rounded-md bg-white/95 px-2 py-1 text-[11px] font-semibold shadow-sm"
-            style={{
-              color: isMusic
-                ? 'var(--music-brand)'
-                : 'var(--brand)',
-            }}
-          >
-            {isMusic ? 'Music' : 'Learning'}
+        {video.duration && (
+          <span className="absolute bottom-2 right-2 rounded bg-black/80 px-1.5 py-0.5 text-[11px] font-medium text-white">
+            {video.duration}
           </span>
-        </div>
-      </button>
+        )}
 
-      <div className="p-3">
-        <h3 className="line-clamp-2 min-h-[36px] text-[14px] font-semibold leading-5 text-[var(--ink)]">
-          {title}
+        {selected && (
+          <div className="absolute left-2 top-2 flex items-center gap-1.5 rounded-md bg-[#1a365d] px-2 py-1 text-[11px] font-semibold text-white">
+            <Volume2 className="h-3 w-3" />
+            Playing
+          </div>
+        )}
+      </div>
+
+      <div className="p-4 sm:p-3.5">
+        <h3 className="min-h-0 line-clamp-2 text-[15px] font-semibold leading-5 text-[#10192b] sm:text-[14px]">
+          {safeText(video.title, "Untitled video")}
         </h3>
 
-        <div className="mt-2 flex items-center justify-between gap-2 text-xs">
-          <span
-            className="min-w-0 truncate font-medium"
-            style={{
-              color: isMusic
-                ? 'var(--music-brand)'
-                : 'var(--brand)',
-            }}
-          >
-            {channel}
-          </span>
+        <div className="mt-2 flex min-w-0 items-center gap-2 text-xs text-[#6b7789]">
+          {video.channelTitle && (
+            <span className="min-w-0 truncate">
+              {safeText(video.channelTitle)}
+            </span>
+          )}
 
-          <span className="inline-flex shrink-0 items-center gap-1 text-[var(--ink-3)]">
-            <Eye
-              className="h-3 w-3 shrink-0"
-              aria-hidden
-            />
-            {views}
-          </span>
+          {video.viewCount !== undefined && (
+            <>
+              <span className="shrink-0 text-[#cfd6e0]">•</span>
+              <span className="flex shrink-0 items-center gap-1">
+                <Eye className="h-3 w-3" />
+                {formatViews(video.viewCount)}
+              </span>
+            </>
+          )}
         </div>
       </div>
-    </article>
+    </button>
   );
 }
-
-/* ============================================================
-   SINGLE GLOBAL PLAYER
-   ------------------------------------------------------------
-   IMPORTANT:
-   There is ONLY ONE YouTube player instance.
-
-   Initial/default video:
-     cueVideoById()
-     -> loads the video without playing.
-
-   After user manually presses Play:
-     hasUserStartedRef = true
-
-   Clicking another video:
-     loadVideoById()
-     -> automatically plays ONLY after user has previously
-        started playback.
-============================================================ */
 
 function VideoPlayer({
   video,
-  isMusic,
   hasUserStartedRef,
+  shouldAutoplay,
   onStarted,
+  onPlayingStateChange,
 }: {
-  video: VideoItem;
-  isMusic: boolean;
-  hasUserStartedRef: React.MutableRefObject<boolean>;
+  video: VideoItem | null;
+  hasUserStartedRef: MutableRefObject<boolean>;
+  shouldAutoplay: boolean;
   onStarted: () => void;
+  onPlayingStateChange: (playing: boolean) => void;
 }) {
-  const playerHostRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
-  const currentVideoIdRef = useRef<string | null>(null);
-  const initialVideoIdRef = useRef(video.id);
+  const playerHostRef = useRef<HTMLDivElement | null>(null);
+
   const readyRef = useRef(false);
+  const loadedVideoIdRef = useRef<string | null>(null);
 
-  const title = safeText(
-    video.title,
-    isMusic ? 'Music video' : 'Learning video'
+  const latestVideoIdRef = useRef<string | null>(null);
+  const latestAutoplayRef = useRef(false);
+
+  const [playerReady, setPlayerReady] = useState(false);
+  const [playerHasStarted, setPlayerHasStarted] = useState(false);
+  const [playerIsPlaying, setPlayerIsPlaying] = useState(false);
+  const [playerError, setPlayerError] = useState(false);
+
+  const handleStarted = useCallback(() => {
+    hasUserStartedRef.current = true;
+    setPlayerHasStarted(true);
+    onStarted();
+  }, [hasUserStartedRef, onStarted]);
+
+  const handlePlayingStateChange = useCallback(
+    (playing: boolean) => {
+      setPlayerIsPlaying(playing);
+      onPlayingStateChange(playing);
+    },
+    [onPlayingStateChange]
   );
 
-  const channel = safeText(
-    video.channelTitle,
-    'YouTube'
-  );
-
-  const views = formatViews(video.viewCount);
-
-  /*
-   * Keep the latest selected video id available to the
-   * YouTube API callbacks without recreating the player.
-   */
   useEffect(() => {
-    currentVideoIdRef.current = video.id;
-  }, [video.id]);
+    latestVideoIdRef.current = video?.id ?? null;
+    latestAutoplayRef.current = shouldAutoplay;
+  }, [video?.id, shouldAutoplay]);
 
-  /*
-   * Create the SINGLE player.
-   *
-   * This effect intentionally runs only once for this
-   * component instance.
-   */
   useEffect(() => {
     let cancelled = false;
 
-    const createPlayer = async () => {
+    async function createPlayer() {
       try {
-        const YT = await loadYouTubeAPI();
+        await loadYouTubeAPI();
 
-        if (
-          cancelled ||
-          !playerHostRef.current ||
-          playerRef.current
-        ) {
+        if (cancelled || !playerHostRef.current || !window.YT?.Player) {
           return;
         }
 
-        const initialVideoId = initialVideoIdRef.current;
+        if (playerRef.current) {
+          return;
+        }
 
-        const player = new YT.Player(
-          playerHostRef.current,
-          {
-            videoId: initialVideoId,
+        const initialVideoId = video?.id ?? undefined;
 
-            playerVars: {
-              autoplay: 0,
-              controls: 1,
-              rel: 0,
-              modestbranding: 1,
-              iv_load_policy: 3,
-              playsinline: 1,
+        playerRef.current = new window.YT.Player(playerHostRef.current, {
+          videoId: initialVideoId,
+          playerVars: {
+            autoplay: 0,
+            controls: 1,
+            rel: 0,
+            modestbranding: 1,
+            iv_load_policy: 3,
+            playsinline: 1,
+          },
+          events: {
+            onReady: () => {
+              readyRef.current = true;
+              setPlayerReady(true);
+              setPlayerError(false);
+
+              const currentVideoId = latestVideoIdRef.current;
+
+              if (!currentVideoId || !playerRef.current) {
+                return;
+              }
+
+              loadedVideoIdRef.current = currentVideoId;
+
+              if (
+                latestAutoplayRef.current &&
+                hasUserStartedRef.current
+              ) {
+                playerRef.current.loadVideoById(currentVideoId);
+              } else {
+                playerRef.current.cueVideoById(currentVideoId);
+              }
             },
 
-            events: {
-              onReady: () => {
-                readyRef.current = true;
+            onStateChange: (event) => {
+              if (!window.YT) return;
 
-                /*
-                 * Explicitly cue instead of play.
-                 * This guarantees the first video does
-                 * NOT autoplay.
-                 */
-                player.cueVideoById(initialVideoId);
-              },
+              const state = event.data;
 
-              onStateChange: (event) => {
-                if (
-                  event.data === YT.PlayerState.PLAYING
-                ) {
-                  /*
-                   * This is the important interaction:
-                   * the user has manually started the player.
-                   */
-                  if (!hasUserStartedRef.current) {
-                    hasUserStartedRef.current = true;
-                    onStarted();
-                  }
+              if (state === window.YT.PlayerState.PLAYING) {
+                if (!hasUserStartedRef.current) {
+                  hasUserStartedRef.current = true;
+                  setPlayerHasStarted(true);
+                  onStarted();
                 }
-              },
+
+                handlePlayingStateChange(true);
+              }
+
+              if (
+                state === window.YT.PlayerState.PAUSED ||
+                state === window.YT.PlayerState.ENDED ||
+                state === window.YT.PlayerState.CUED
+              ) {
+                handlePlayingStateChange(false);
+              }
             },
-          }
-        );
 
-        playerRef.current = player;
-      } catch (error) {
-        console.error(
-          'Unable to initialize YouTube player:',
-          error
-        );
+            onError: () => {
+              setPlayerError(true);
+              handlePlayingStateChange(false);
+            },
+          },
+        });
+      } catch {
+        if (!cancelled) {
+          setPlayerError(true);
+        }
       }
-    };
+    }
 
-    void createPlayer();
+    createPlayer();
 
     return () => {
       cancelled = true;
+    };
+  }, [
+    handlePlayingStateChange,
+    onStarted,
+    video?.id,
+    hasUserStartedRef,
+  ]);
 
-      if (playerRef.current) {
-        try {
-          playerRef.current.destroy();
-        } catch {
-          // Ignore cleanup errors from the YouTube iframe.
-        }
+  useEffect(() => {
+    if (!readyRef.current || !playerRef.current || !video?.id) {
+      return;
+    }
 
-        playerRef.current = null;
-      }
+    const nextVideoId = video.id;
 
+    if (loadedVideoIdRef.current === nextVideoId) {
+      return;
+    }
+
+    loadedVideoIdRef.current = nextVideoId;
+    setPlayerError(false);
+
+    if (shouldAutoplay && hasUserStartedRef.current) {
+      playerRef.current.loadVideoById(nextVideoId);
+    } else {
+      playerRef.current.cueVideoById(nextVideoId);
+    }
+  }, [video?.id, shouldAutoplay, hasUserStartedRef]);
+
+  useEffect(() => {
+    return () => {
+      playerRef.current?.destroy();
+      playerRef.current = null;
       readyRef.current = false;
     };
-  }, [hasUserStartedRef, onStarted]);
+  }, []);
 
-  /*
-   * When the selected video changes, update the EXISTING
-   * player rather than creating another iframe/player.
-   *
-   * This is what makes the whole page use one player.
-   */
-  useEffect(() => {
-    if (
-      !readyRef.current ||
-      !playerRef.current ||
-      !video.id
-    ) {
-      return;
-    }
-
-    const currentId = currentVideoIdRef.current;
-
-    if (!currentId) {
-      currentVideoIdRef.current = video.id;
-
-      playerRef.current.cueVideoById(video.id);
-      return;
-    }
-
-    /*
-     * Do not reload the same video unnecessarily.
-     */
-    if (currentId === video.id) {
-      return;
-    }
-
-    currentVideoIdRef.current = video.id;
-
-    /*
-     * If the user has already pressed Play somewhere in
-     * this session, a manually selected new video starts
-     * immediately.
-     *
-     * If the user has not started playback yet, the new
-     * selection is merely loaded/cued and remains paused.
-     */
-    if (hasUserStartedRef.current) {
-      playerRef.current.loadVideoById(video.id);
-    } else {
-      playerRef.current.cueVideoById(video.id);
-    }
-  }, [video.id, hasUserStartedRef]);
+  if (!video) {
+    return (
+      <section className="overflow-hidden rounded-xl border border-[#e2e6ec] bg-white">
+        <div className="flex aspect-video items-center justify-center bg-[#f7f8fa]">
+          <div className="text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#eef2f8]">
+              <Play className="h-5 w-5 text-[#1a365d]" />
+            </div>
+            <p className="mt-3 text-sm font-medium text-[#3d4a61]">
+              Select a video to start learning
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
-    <section
-      className={`${panel} mb-8 overflow-hidden shadow-sm`}
-      aria-label="Video player"
-    >
-      <div className="flex items-center justify-between gap-4 border-b border-[var(--line)] px-4 py-3 sm:px-5">
-        <div className="flex min-w-0 items-center gap-2">
-          <span
-            className="h-2 w-2 shrink-0 rounded-full"
-            style={{
-              backgroundColor: isMusic
-                ? 'var(--music-brand)'
-                : 'var(--brand)',
-            }}
-          />
+    <section className="overflow-hidden rounded-xl border border-[#e2e6ec] bg-white shadow-sm">
+      <div className="relative aspect-video w-full bg-black">
+        <div
+          ref={playerHostRef}
+          className="absolute inset-0 h-full w-full"
+        />
 
-          <span className="truncate text-xs font-semibold uppercase tracking-[0.08em] text-[var(--ink-3)]">
-            {hasUserStartedRef.current
-              ? 'Now playing'
-              : 'Ready to play'}
-          </span>
-        </div>
+        {!playerReady && !playerError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-[#10192b]">
+            <div className="text-center">
+              <Loader2 className="mx-auto h-7 w-7 animate-spin text-white" />
+              <p className="mt-3 text-sm text-white/75">
+                Loading video...
+              </p>
+            </div>
+          </div>
+        )}
 
-        <span className="shrink-0 text-xs text-[var(--ink-4)]">
-          {hasUserStartedRef.current
-            ? 'Select another video to continue'
-            : 'Press play to start'}
-        </span>
+        {playerError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-[#10192b] px-5">
+            <div className="text-center">
+              <p className="text-sm font-medium text-white">
+                Unable to load this video
+              </p>
+              <p className="mt-1 text-xs text-white/65">
+                Please select another video.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="grid lg:grid-cols-[minmax(0,1.7fr)_minmax(280px,0.8fr)]">
-        <div className="relative aspect-video bg-black lg:aspect-auto lg:min-h-[420px]">
-          {/*
-            The YouTube API replaces this DIV with the ONE iframe.
-            No second player is rendered anywhere else.
-          */}
-          <div
-            ref={playerHostRef}
-            className="absolute inset-0 h-full w-full"
-          />
-        </div>
+      <div className="border-t border-[#e2e6ec] px-4 py-4 sm:px-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="mb-1 flex items-center gap-2 text-xs font-medium text-[#1a365d]">
+              <BookOpen className="h-3.5 w-3.5" />
+              English Learning
+            </div>
 
-        <div className="flex flex-col justify-center p-5 sm:p-6 lg:p-7">
-          <div className="mb-4 flex items-center gap-2">
-            <span
-              className="rounded-md px-2 py-1 text-[11px] font-semibold"
-              style={{
-                backgroundColor: isMusic
-                  ? 'var(--music-brand-soft)'
-                  : 'var(--brand-soft)',
-                color: isMusic
-                  ? 'var(--music-brand)'
-                  : 'var(--brand)',
-              }}
-            >
-              {isMusic
-                ? 'Music'
-                : 'English Learning'}
-            </span>
+            <h2 className="line-clamp-2 text-base font-semibold leading-6 text-[#10192b] sm:text-lg">
+              {safeText(video.title, "Untitled video")}
+            </h2>
 
-            <span className="text-xs text-[var(--ink-4)]">
-              {hasUserStartedRef.current
-                ? 'Playing'
-                : 'Selected'}
-            </span>
+            {video.channelTitle && (
+              <p className="mt-1 truncate text-xs text-[#6b7789]">
+                {safeText(video.channelTitle)}
+              </p>
+            )}
           </div>
 
-          <h2 className="text-lg font-semibold leading-6 text-[var(--ink)] sm:text-xl">
-            {title}
-          </h2>
-
-          <div className="mt-3 flex items-center gap-2 text-sm text-[var(--ink-3)]">
-            <Eye
-              className="h-4 w-4 shrink-0"
-              aria-hidden
-            />
-
-            <span>{views}</span>
+          <div className="hidden shrink-0 items-center gap-1.5 rounded-md bg-[#f7f8fa] px-2.5 py-1.5 text-xs text-[#6b7789] sm:flex">
+            <Play className="h-3.5 w-3.5" />
+            {playerIsPlaying
+              ? "Playing"
+              : playerHasStarted
+                ? "Paused"
+                : "Ready"}
           </div>
-
-          <div className="mt-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--ink-4)]">
-              Channel
-            </p>
-
-            <p
-              className="mt-1 truncate text-sm font-semibold"
-              style={{
-                color: isMusic
-                  ? 'var(--music-brand)'
-                  : 'var(--brand)',
-              }}
-            >
-              {channel}
-            </p>
-          </div>
-
-          <p className="mt-5 text-sm leading-6 text-[var(--ink-3)]">
-            {hasUserStartedRef.current
-              ? 'Choose another video below and it will continue playing here.'
-              : 'The first video is ready. Press the YouTube play button when you are ready to begin.'}
-          </p>
         </div>
       </div>
     </section>
   );
 }
-
-/* ============================================================
-   CATEGORY NAVIGATION
-============================================================ */
 
 function CategoryNavigation({
   categories,
-  selectedCategory,
-  activeTab,
-  onChange,
+  activeCategory,
+  onSelect,
 }: {
-  categories:
-    | readonly {
-        id: string;
-        label: string;
-        query: string;
-      }[];
-
-  selectedCategory: string;
-  activeTab: TabType;
-
-  onChange: (category: {
-    id: string;
-    label: string;
-    query: string;
-  }) => void;
+  categories: Category[];
+  activeCategory: string;
+  onSelect: (category: Category) => void;
 }) {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  const scroll = (direction: "left" | "right") => {
+    if (!scrollRef.current) return;
+
+    scrollRef.current.scrollBy({
+      left: direction === "left" ? -260 : 260,
+      behavior: "smooth",
+    });
+  };
+
   return (
-    <section
-      className="mb-7"
-      aria-label="Browse categories"
-    >
-      <div className="mb-3 flex items-end justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--ink-4)]">
-            Explore
-          </p>
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => scroll("left")}
+        aria-label="Scroll categories left"
+        className="absolute left-0 top-1/2 z-10 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-[#e2e6ec] bg-white text-[#3d4a61] shadow-sm hover:bg-[#f7f8fa] sm:flex"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </button>
 
-          <h2 className="mt-1 text-base font-semibold text-[var(--ink)]">
-            {activeTab === 'english'
-              ? 'Browse English topics'
-              : 'Browse music'}
-          </h2>
-        </div>
+      <div
+        ref={scrollRef}
+        className="flex gap-2 overflow-x-auto px-0 pb-1 scrollbar-none sm:px-10"
+      >
+        {categories.map((category) => {
+          const active = category.id === activeCategory;
+
+          return (
+            <button
+              key={category.id}
+              type="button"
+              onClick={() => onSelect(category)}
+              className={[
+                "shrink-0 rounded-full border px-3.5 py-2 text-sm font-medium transition",
+                active
+                  ? "border-[#1a365d] bg-[#1a365d] text-white"
+                  : "border-[#e2e6ec] bg-white text-[#3d4a61] hover:border-[#cfd6e0] hover:bg-[#f7f8fa]",
+              ].join(" ")}
+            >
+              {category.label}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="overflow-x-auto pb-1">
-        <div className="flex min-w-max gap-1 border-b border-[var(--line)]">
-          {categories.map((category) => {
-            const active =
-              selectedCategory === category.id;
-
-            return (
-              <button
-                key={category.id}
-                type="button"
-                onClick={() => onChange(category)}
-                aria-pressed={active}
-                className={`
-                  relative
-                  whitespace-nowrap
-                  px-3 py-3
-                  text-sm font-medium
-                  transition-colors duration-200
-                  ${focusRing}
-                  ${
-                    active
-                      ? 'text-[var(--brand)]'
-                      : 'text-[var(--ink-3)] hover:text-[var(--ink)]'
-                  }
-                `}
-                style={
-                  active && activeTab === 'music'
-                    ? {
-                        color:
-                          'var(--music-brand)',
-                      }
-                    : undefined
-                }
-              >
-                {category.label}
-
-                {active && (
-                  <span
-                    className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full"
-                    style={{
-                      backgroundColor:
-                        activeTab === 'music'
-                          ? 'var(--music-brand)'
-                          : 'var(--brand)',
-                    }}
-                  />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </section>
+      <button
+        type="button"
+        onClick={() => scroll("right")}
+        aria-label="Scroll categories right"
+        className="absolute right-0 top-1/2 z-10 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-[#e2e6ec] bg-white text-[#3d4a61] shadow-sm hover:bg-[#f7f8fa] sm:flex"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
+    </div>
   );
 }
-
-/* ============================================================
-   LOADING GRID
-============================================================ */
 
 function LoadingGrid() {
   return (
-    <section
-      className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
-      aria-busy="true"
-      aria-live="polite"
-    >
-      {[
-        0, 1, 2, 3, 4,
-        5, 6, 7, 8, 9,
-      ].map((item) => (
+    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      {Array.from({ length: 10 }).map((_, index) => (
         <div
-          key={item}
-          className={`${panel} overflow-hidden`}
+          key={index}
+          className="overflow-hidden rounded-xl border border-[#e2e6ec] bg-white"
         >
-          <div className="aspect-video animate-pulse bg-[var(--surface-3)]" />
+          <div className="aspect-video animate-pulse bg-[#eef1f5]" />
 
-          <div className="space-y-2 p-3">
-            <div className="h-3 w-4/5 animate-pulse rounded bg-[var(--surface-3)]" />
-
-            <div className="h-2.5 w-full animate-pulse rounded bg-[var(--surface-3)]" />
+          <div className="space-y-2 p-4 sm:p-3.5">
+            <div className="h-4 w-full animate-pulse rounded bg-[#eef1f5]" />
+            <div className="h-4 w-4/5 animate-pulse rounded bg-[#eef1f5]" />
+            <div className="h-3 w-2/5 animate-pulse rounded bg-[#eef1f5]" />
           </div>
         </div>
       ))}
-    </section>
+    </div>
   );
 }
-
-/* ============================================================
-   STREAMING PAGE
-============================================================ */
 
 export default function StreamingPage() {
   const router = useRouter();
 
-  const [activeTab, setActiveTab] =
-    useState<TabType>('english');
+  const [activeTab] = useState<TabType>("english");
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [searchInput, setSearchInput] = useState("");
 
-  const [searchQuery, setSearchQuery] =
-    useState('English language learning');
+  const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
 
-  const [selectedCategory, setSelectedCategory] =
-    useState('all');
-
-  const [selectedVideo, setSelectedVideo] =
-    useState<VideoItem | null>(null);
-
-  /*
-   * This ref intentionally survives video changes.
-   *
-   * false:
-   *   The user has not pressed Play yet.
-   *
-   * true:
-   *   The user has manually started playback.
-   *
-   * Once true, clicking another video will make that
-   * video play immediately.
-   */
-  const hasUserStartedRef = useRef(false);
-
-  const [playerHasStarted, setPlayerHasStarted] =
+  const [shouldAutoplaySelected, setShouldAutoplaySelected] =
     useState(false);
 
-  const categories =
-    activeTab === 'english'
-      ? englishCategories
-      : musicCategories;
+  const hasUserStartedRef = useRef(false);
 
-  const englishHook = useEnglishLearningVideos(
-    activeTab === 'english'
-      ? searchQuery
-      : '',
-    12
+  const [playerHasStarted, setPlayerHasStarted] = useState(false);
+  const [, setPlayerIsPlaying] = useState(false);
+
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  const englishCategory = useMemo(
+    () =>
+      ENGLISH_CATEGORIES.find(
+        (category) => category.id === activeCategory
+      ) ?? ENGLISH_CATEGORIES[0],
+    [activeCategory]
   );
 
-  const musicHook = useMusicVideos(
-    activeTab === 'music'
-      ? searchQuery
-      : '',
-    12
-  );
+  /*
+   * MUSIC FUNCTIONALITY — COMMENTED OUT
+   *
+   * const musicCategory = useMemo(
+   *   () =>
+   *     MUSIC_CATEGORIES.find(
+   *       (category) => category.id === activeCategory
+   *     ) ?? MUSIC_CATEGORIES[0],
+   *   [activeCategory]
+   * );
+   */
+
+  const query = useMemo(() => {
+    if (searchInput.trim()) {
+      return searchInput.trim();
+    }
+
+    return englishCategory.query;
+  }, [searchInput, englishCategory.query]);
 
   const {
-    data,
-    isLoading,
-    error,
-    refetch,
-  } =
-    activeTab === 'english'
-      ? englishHook
-      : musicHook;
-
-  const videos = useMemo<VideoItem[]>(() => {
-    if (
-      !data ||
-      !Array.isArray(data.videos)
-    ) {
-      return [];
-    }
-
-    return data.videos;
-  }, [data]);
+    data: englishData,
+    isLoading: englishLoading,
+    error: englishError,
+    refetch: refetchEnglish,
+  } = useEnglishLearningVideos(query, 12);
 
   /*
-   * On the initial page load, select the first video.
+   * MUSIC DATA — COMMENTED OUT
    *
-   * This does NOT play it.
+   * const {
+   *   data: musicData,
+   *   isLoading: musicLoading,
+   *   error: musicError,
+   *   refetch: refetchMusic,
+   * } = useMusicVideos(
+   *   searchInput.trim()
+   *     ? searchInput.trim()
+   *     : musicCategory.query,
+   *   12
+   * );
    */
-  useEffect(() => {
-    if (
-      videos.length > 0 &&
-      !selectedVideo
-    ) {
-      setSelectedVideo(videos[0]);
-    }
-  }, [videos, selectedVideo]);
+
+  const videos = useMemo(() => {
+    return (englishData?.videos ?? []) as VideoItem[];
+  }, [englishData]);
 
   /*
-   * When a new category/search result arrives, load its
-   * first video into the SAME player.
+   * When music is enabled again, this can become:
    *
-   * We deliberately reset the selection to the first
-   * video, but we DO NOT call play.
-   *
-   * The VideoPlayer will cue the video rather than play it
-   * because this is a collection change rather than an
-   * explicit video-card click.
+   * const videos =
+   *   activeTab === "english"
+   *     ? ((englishData?.videos ?? []) as VideoItem[])
+   *     : ((musicData?.videos ?? []) as VideoItem[]);
    */
-  const previousVideosRef =
-    useRef<VideoItem[]>([]);
+
+  const isLoading = englishLoading;
+
+  /*
+   * MUSIC LOADING — COMMENTED OUT
+   *
+   * const isLoading =
+   *   activeTab === "english" ? englishLoading : musicLoading;
+   */
+
+  const error = englishError;
+
+  /*
+   * MUSIC ERROR — COMMENTED OUT
+   *
+   * const error =
+   *   activeTab === "english" ? englishError : musicError;
+   */
+
+  const handleStarted = useCallback(() => {
+    hasUserStartedRef.current = true;
+    setPlayerHasStarted(true);
+  }, []);
+
+  const handlePlayingStateChange = useCallback((playing: boolean) => {
+    setPlayerIsPlaying(playing);
+  }, []);
 
   useEffect(() => {
-    if (videos.length === 0) {
+    if (!videos.length) {
+      setSelectedVideo(null);
       return;
     }
 
-    const previousFirstId =
-      previousVideosRef.current[0]?.id;
+    setSelectedVideo((current) => {
+      const stillExists = current
+        ? videos.some((video) => video.id === current.id)
+        : false;
 
-    const newFirstId = videos[0].id;
+      return stillExists ? current : videos[0];
+    });
 
-    if (
-      previousFirstId &&
-      previousFirstId !== newFirstId
-    ) {
-      setSelectedVideo(videos[0]);
-    }
-
-    previousVideosRef.current = videos;
+    // A new category/search result should load into the player
+    // without unexpectedly starting playback.
+    setShouldAutoplaySelected(false);
   }, [videos]);
 
-  /*
-   * The selected video is removed from the grid so it does
-   * not appear twice as both the player and a card.
-   */
-  const gridVideos = videos.filter(
-    (video) =>
-      video.id !== selectedVideo?.id
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 400);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  const handleVideoClick = useCallback(
+    (video: VideoItem) => {
+      const isSameVideo = selectedVideo?.id === video.id;
+
+      if (isSameVideo) {
+        return;
+      }
+
+      setSelectedVideo(video);
+
+      /*
+       * Important playback behavior:
+       * - Before the user has played anything: cue the selected video.
+       * - After the user has started playback: autoplay newly selected videos.
+       */
+      setShouldAutoplaySelected(hasUserStartedRef.current);
+    },
+    [selectedVideo?.id]
   );
 
-  const handleCategoryChange = (
-    category: {
-      id: string;
-      label: string;
-      query: string;
-    }
-  ) => {
-    setSelectedCategory(category.id);
-    setSearchQuery(category.query);
+  const handleCategorySelect = useCallback((category: Category) => {
+    setActiveCategory(category.id);
+    setSearchInput("");
+    setShouldAutoplaySelected(false);
+  }, []);
 
-    /*
-     * Do NOT reset hasUserStartedRef here.
-     *
-     * However, the category's first video is loaded through
-     * the collection-change effect and is cued rather than
-     * explicitly played.
-     */
-    refetch();
-  };
+  const handleSearch = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
 
-  const handleSearch = (
-    event: React.FormEvent<HTMLFormElement>
-  ) => {
-    event.preventDefault();
+      const value = searchInput.trim();
 
-    refetch();
-  };
+      if (!value) {
+        setActiveCategory("all");
+        setShouldAutoplaySelected(false);
+        await refetchEnglish();
+        return;
+      }
+
+      setShouldAutoplaySelected(false);
+      await refetchEnglish();
+    },
+    [searchInput, refetchEnglish]
+  );
+
+  const clearSearch = useCallback(() => {
+    setSearchInput("");
+    setActiveCategory("all");
+    setShouldAutoplaySelected(false);
+  }, []);
 
   /*
-   * This is the ONLY place where a video card changes
-   * the current video.
+   * MUSIC TAB HANDLER — COMMENTED OUT
    *
-   * Notice that there is NO scrollIntoView().
+   * const handleTabChange = useCallback(
+   *   (tab: TabType) => {
+   *     if (tab === activeTab) return;
    *
-   * The user's current scroll position remains untouched.
+   *     setActiveTab(tab);
+   *     setActiveCategory(tab === "english" ? "all" : "trending");
+   *     setSearchInput("");
+   *     setShouldAutoplaySelected(false);
+   *   },
+   *   [activeTab]
+   * );
    */
-  const handleVideoClick = (
-    video: VideoItem
-  ) => {
-    setSelectedVideo(video);
-  };
 
-  const handleTabChange = (
-    tab: TabType
-  ) => {
-    setActiveTab(tab);
+  const displayedVideos = useMemo(() => {
+    if (!selectedVideo) return videos;
 
-    setSelectedCategory(
-      tab === 'english'
-        ? 'all'
-        : 'trending'
-    );
-
-    setSearchQuery(
-      tab === 'english'
-        ? 'English language learning'
-        : 'trending music videos 2026'
-    );
-
-    /*
-     * Changing the main tab is a content navigation
-     * action, not a direct video click.
-     *
-     * Therefore the first video from the new collection
-     * will be loaded without autoplay.
-     */
-  };
-
-  const handlePlayerStarted = () => {
-    hasUserStartedRef.current = true;
-    setPlayerHasStarted(true);
-  };
-
-  const isMusic =
-    activeTab === 'music';
+    return videos.filter((video) => video.id !== selectedVideo.id);
+  }, [videos, selectedVideo]);
 
   return (
-    <div
-      data-streaming-scope
-      className="min-h-screen bg-[var(--surface-2)] text-[var(--ink)] antialiased"
-    >
-      <style
-        dangerouslySetInnerHTML={{
-          __html: TOKENS,
-        }}
-      />
+    <>
+      <style jsx global>
+        {TOKENS}
+      </style>
 
-      <main className="mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8">
+      <main className="min-h-screen bg-[#f7f8fa] text-[#10192b]">
+        <div className="mx-auto w-full max-w-[1600px] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+          {/* Header */}
+          <header className="mb-5">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => router.back()}
+                  aria-label="Go back"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#e2e6ec] bg-white text-[#3d4a61] transition hover:bg-[#f7f8fa]"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </button>
 
-        {/* =====================================================
-            HEADER
-        ====================================================== */}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#1a365d] text-white">
+                      <GraduationCap className="h-4 w-4" />
+                    </div>
 
-        <header className="mb-7">
-          <div className="flex items-start gap-3">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              aria-label="Go back"
-              className={`
-                ${buttonBase}
-                mt-0.5
-                shrink-0
-                border
-                border-[var(--line-strong)]
-                bg-[var(--surface)]
-                px-2.5
-                text-[var(--ink-2)]
-                shadow-sm
-                hover:bg-[var(--surface-2)]
-                hover:text-[var(--ink)]
-              `}
-            >
-              <ArrowLeft
-                className="h-4 w-4"
-                aria-hidden
-              />
-            </button>
+                    <h1 className="truncate text-xl font-semibold tracking-tight text-[#10192b] sm:text-2xl">
+                      English Learning
+                    </h1>
+                  </div>
 
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--brand)]">
-                  Learning & Media
-                </span>
-
-                <span className="h-1 w-1 rounded-full bg-[var(--line-strong)]" />
-
-                <span className="text-[11px] font-medium text-[var(--ink-4)]">
-                  Student Hub
-                </span>
+                  <p className="mt-1 text-sm text-[#6b7789]">
+                    Improve your grammar, vocabulary, pronunciation and
+                    everyday English.
+                  </p>
+                </div>
               </div>
-
-              <h1 className="mt-2 text-2xl font-bold tracking-[-0.025em] text-[var(--ink)] sm:text-3xl">
-                Streaming Hub
-              </h1>
-
-              <p className="mt-1.5 max-w-2xl text-sm leading-6 text-[var(--ink-3)] sm:text-[15px]">
-                Learn, explore and take a break with carefully
-                organized English learning and music content.
-              </p>
             </div>
-          </div>
-        </header>
+          </header>
 
-        {/* =====================================================
-            EXPERIENCE SWITCHER
-        ====================================================== */}
-
-        <section
-          className={`${panel} mb-7 p-1.5 shadow-sm`}
-          aria-label="Choose content type"
-        >
-          <div className="grid grid-cols-2 gap-1">
-
-            <button
-              type="button"
-              onClick={() =>
-                handleTabChange('english')
-              }
-              aria-pressed={
-                activeTab === 'english'
-              }
-              className={`
-                ${focusRing}
-                flex min-h-[58px]
-                items-center justify-center
-                gap-3
-                rounded-[9px]
-                px-3 py-2
-                text-left
-                transition-colors
-                duration-200
-                sm:justify-start
-                sm:px-5
-                ${
-                  activeTab === 'english'
-                    ? 'bg-[var(--brand)] text-white'
-                    : 'text-[var(--ink-2)] hover:bg-[var(--surface-2)]'
-                }
-              `}
-            >
-              <span
-                className={`
-                  flex h-9 w-9 shrink-0
-                  items-center justify-center
-                  rounded-lg
-                  ${
-                    activeTab === 'english'
-                      ? 'bg-white/10'
-                      : 'bg-[var(--brand-soft)]'
-                  }
-                `}
-              >
-                <BookOpen
-                  className="h-4 w-4"
-                  aria-hidden
-                />
-              </span>
-
-              <span className="min-w-0">
-                <span className="block text-sm font-semibold">
-                  English Learning
-                </span>
-
-                <span
-                  className={`
-                    mt-0.5
-                    hidden
-                    text-xs
-                    sm:block
-                    ${
-                      activeTab === 'english'
-                        ? 'text-white/70'
-                        : 'text-[var(--ink-4)]'
-                    }
-                  `}
-                >
-                  Improve your language skills
-                </span>
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                handleTabChange('music')
-              }
-              aria-pressed={
-                activeTab === 'music'
-              }
-              className={`
-                ${focusRing}
-                flex min-h-[58px]
-                items-center justify-center
-                gap-3
-                rounded-[9px]
-                px-3 py-2
-                text-left
-                transition-colors
-                duration-200
-                sm:justify-start
-                sm:px-5
-                ${
-                  activeTab === 'music'
-                    ? 'bg-[var(--music-brand)] text-white'
-                    : 'text-[var(--ink-2)] hover:bg-[var(--surface-2)]'
-                }
-              `}
-            >
-              <span
-                className={`
-                  flex h-9 w-9 shrink-0
-                  items-center justify-center
-                  rounded-lg
-                  ${
-                    activeTab === 'music'
-                      ? 'bg-white/10'
-                      : 'bg-[var(--music-brand-soft)]'
-                  }
-                `}
-              >
-                <Music
-                  className="h-4 w-4"
-                  aria-hidden
-                />
-              </span>
-
-              <span className="min-w-0">
-                <span className="block text-sm font-semibold">
-                  Music
-                </span>
-
-                <span
-                  className={`
-                    mt-0.5
-                    hidden
-                    text-xs
-                    sm:block
-                    ${
-                      activeTab === 'music'
-                        ? 'text-white/70'
-                        : 'text-[var(--ink-4)]'
-                    }
-                  `}
-                >
-                  Discover music and lyrics
-                </span>
-              </span>
-            </button>
-          </div>
-        </section>
-
-        {/* =====================================================
-            THE ONLY VIDEO PLAYER ON THE PAGE
-        ====================================================== */}
-
-        {selectedVideo && (
-          <VideoPlayer
-            video={selectedVideo}
-            isMusic={isMusic}
-            hasUserStartedRef={
-              hasUserStartedRef
-            }
-            onStarted={
-              handlePlayerStarted
-            }
-          />
-        )}
-
-        {/* =====================================================
-            SEARCH
-        ====================================================== */}
-
-        <section
-          className={`${panel} mb-7 p-4 sm:p-5`}
-        >
-          <div className="mb-3">
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--ink-4)]">
-              Find something
-            </p>
-
-            <p className="mt-1 text-sm text-[var(--ink-3)]">
-              Search across the current{' '}
-              {isMusic
-                ? 'music'
-                : 'learning'}{' '}
-              collection.
-            </p>
-          </div>
-
-          <form
-            onSubmit={handleSearch}
-            className="flex flex-col gap-2.5 sm:flex-row"
-          >
-            <div className="relative min-w-0 flex-1">
-              <Search
-                className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-4)]"
-                aria-hidden
-              />
+          {/* Search */}
+          <section className="mb-5">
+            <form onSubmit={handleSearch} className="relative">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98a2b3]" />
 
               <input
                 type="search"
-                value={searchQuery}
-                onChange={(event) =>
-                  setSearchQuery(
-                    event.target.value
-                  )
-                }
-                placeholder={
-                  isMusic
-                    ? 'Search music, artists or songs...'
-                    : 'Search lessons, topics or English skills...'
-                }
-                aria-label={
-                  isMusic
-                    ? 'Search music videos'
-                    : 'Search English learning videos'
-                }
-                className={`
-                  h-11
-                  w-full
-                  rounded-[var(--radius-sm)]
-                  border
-                  border-[var(--line-strong)]
-                  bg-[var(--surface)]
-                  pl-10
-                  pr-4
-                  text-sm
-                  text-[var(--ink)]
-                  placeholder:text-[var(--ink-4)]
-                  transition-colors
-                  ${
-                    isMusic
-                      ? 'focus:border-[var(--music-brand)]'
-                      : 'focus:border-[var(--brand)]'
-                  }
-                  ${focusRing}
-                `}
-              />
-            </div>
-
-            <button
-              type="submit"
-              className={`
-                ${
-                  isMusic
-                    ? musicButton
-                    : primaryButton
-                }
-                h-11
-                shrink-0
-                px-5
-              `}
-            >
-              <Search
-                className="h-4 w-4"
-                aria-hidden
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder="Search English lessons..."
+                className="h-11 w-full rounded-xl border border-[#e2e6ec] bg-white pl-10 pr-24 text-sm text-[#10192b] outline-none transition placeholder:text-[#98a2b3] focus:border-[#1a365d] focus:ring-2 focus:ring-[#1a365d]/10"
               />
 
-              Search
-            </button>
+              {searchInput && (
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  aria-label="Clear search"
+                  className="absolute right-16 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-[#6b7789] hover:bg-[#f7f8fa]"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
 
-            <button
-              type="button"
-              onClick={() => refetch()}
-              className={`
-                ${buttonBase}
-                h-11
-                shrink-0
-                border
-                border-[var(--line-strong)]
-                bg-[var(--surface)]
-                px-3
-                text-[var(--ink-2)]
-                hover:bg-[var(--surface-2)]
-              `}
-              aria-label="Refresh results"
-              title="Refresh results"
-            >
-              <RefreshCw
-                className="h-4 w-4"
-                aria-hidden
-              />
-            </button>
-          </form>
-        </section>
-
-        {/* =====================================================
-            LOADING
-        ====================================================== */}
-
-        {isLoading && <LoadingGrid />}
-
-        {/* =====================================================
-            ERROR
-        ====================================================== */}
-
-        {!isLoading && error && (
-          <section
-            className={`${panel} p-8 text-center sm:p-12`}
-            role="alert"
-          >
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bad-soft)]">
-              <Monitor
-                className="h-6 w-6 text-[var(--bad)]"
-                aria-hidden
-              />
-            </div>
-
-            <h2 className="mt-4 text-base font-semibold text-[var(--ink)]">
-              {isMusic
-                ? 'Music'
-                : 'Learning videos'}{' '}
-              could not be loaded
-            </h2>
-
-            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--ink-3)]">
-              We could not retrieve the content right now.
-              Please check your connection and try again.
-            </p>
-
-            <button
-              type="button"
-              onClick={() => refetch()}
-              className={`
-                ${
-                  isMusic
-                    ? musicButton
-                    : primaryButton
-                }
-                mt-5
-              `}
-            >
-              <RefreshCw
-                className="h-4 w-4"
-                aria-hidden
-              />
-
-              Try again
-            </button>
+              <button
+                type="submit"
+                className="absolute right-1.5 top-1/2 flex h-8 -translate-y-1/2 items-center gap-1.5 rounded-lg bg-[#1a365d] px-3 text-xs font-semibold text-white transition hover:bg-[#14294a]"
+              >
+                <Search className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Search</span>
+              </button>
+            </form>
           </section>
-        )}
 
-        {/* =====================================================
-            EMPTY
-        ====================================================== */}
+          {/* English category navigation */}
+          <section className="mb-6">
+            <CategoryNavigation
+              categories={ENGLISH_CATEGORIES}
+              activeCategory={activeCategory}
+              onSelect={handleCategorySelect}
+            />
+          </section>
 
-        {!isLoading &&
-          !error &&
-          videos.length === 0 && (
-            <section
-              className={`${panel} p-8 text-center sm:p-12`}
-            >
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--brand-soft)]">
-                {isMusic ? (
-                  <Music
-                    className="h-7 w-7 text-[var(--music-brand)]"
-                    aria-hidden
-                  />
-                ) : (
-                  <Monitor
-                    className="h-7 w-7 text-[var(--brand)]"
-                    aria-hidden
-                  />
-                )}
+          {/* MUSIC TAB / NAVIGATION — COMMENTED OUT */}
+          {/*
+          <section className="mb-6">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleTabChange("english")}
+              >
+                English
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleTabChange("music")}
+              >
+                Music
+              </button>
+            </div>
+          </section>
+          */}
+
+          {/* Player */}
+          <section className="mb-7">
+            <VideoPlayer
+              video={selectedVideo}
+              hasUserStartedRef={hasUserStartedRef}
+              shouldAutoplay={shouldAutoplaySelected}
+              onStarted={handleStarted}
+              onPlayingStateChange={handlePlayingStateChange}
+            />
+          </section>
+
+          {/* Current category heading */}
+          <section className="mb-4">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <BookOpen className="h-4 w-4 text-[#1a365d]" />
+                  <h2 className="text-base font-semibold text-[#10192b]">
+                    {searchInput.trim()
+                      ? `Search results for "${searchInput.trim()}"`
+                      : englishCategory.label}
+                  </h2>
+                </div>
+
+                <p className="mt-1 text-xs text-[#6b7789]">
+                  Select a video to load it into the player.
+                  {playerHasStarted &&
+                    " New videos will start automatically when selected."}
+                </p>
               </div>
 
-              <h2 className="mt-4 text-lg font-semibold text-[var(--ink)]">
-                No{' '}
-                {isMusic
-                  ? 'music'
-                  : 'learning videos'}{' '}
-                found
-              </h2>
+              {!isLoading && videos.length > 0 && (
+                <span className="shrink-0 text-xs text-[#6b7789]">
+                  {videos.length} videos
+                </span>
+              )}
+            </div>
+          </section>
 
-              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--ink-3)]">
-                Try another search phrase or select a different
-                category.
+          {/* Loading */}
+          {isLoading && <LoadingGrid />}
+
+          {/* Error */}
+          {!isLoading && error && (
+            <div className="rounded-xl border border-[#e2e6ec] bg-white px-5 py-10 text-center">
+              <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-[#fdeeee]">
+                <X className="h-5 w-5 text-[#a52121]" />
+              </div>
+
+              <h3 className="mt-3 text-sm font-semibold text-[#10192b]">
+                Unable to load videos
+              </h3>
+
+              <p className="mx-auto mt-1 max-w-md text-xs leading-5 text-[#6b7789]">
+                There was a problem loading the English learning videos.
+                Please try again.
               </p>
 
               <button
                 type="button"
-                onClick={() => {
-                  setSearchQuery(
-                    isMusic
-                      ? 'trending music videos 2026'
-                      : 'English language learning'
-                  );
-
-                  setSelectedCategory(
-                    isMusic
-                      ? 'trending'
-                      : 'all'
-                  );
-                }}
-                className={`
-                  ${
-                    isMusic
-                      ? musicButton
-                      : primaryButton
-                  }
-                  mt-5
-                `}
+                onClick={() => refetchEnglish()}
+                className="mt-4 inline-flex h-9 items-center gap-2 rounded-lg bg-[#1a365d] px-4 text-xs font-semibold text-white hover:bg-[#14294a]"
               >
-                Reset search
+                Try again
               </button>
+            </div>
+          )}
+
+          {/* Empty */}
+          {!isLoading && !error && videos.length === 0 && (
+            <div className="rounded-xl border border-[#e2e6ec] bg-white px-5 py-12 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#eef2f8]">
+                <Search className="h-5 w-5 text-[#1a365d]" />
+              </div>
+
+              <h3 className="mt-3 text-sm font-semibold text-[#10192b]">
+                No videos found
+              </h3>
+
+              <p className="mx-auto mt-1 max-w-md text-xs leading-5 text-[#6b7789]">
+                Try a different search term or choose another English
+                learning category.
+              </p>
+            </div>
+          )}
+
+          {/* Video grid */}
+          {!isLoading && !error && displayedVideos.length > 0 && (
+            <section>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                {displayedVideos.map((video) => (
+                  <VideoCard
+                    key={video.id}
+                    video={video}
+                    selected={selectedVideo?.id === video.id}
+                    onClick={() => handleVideoClick(video)}
+                  />
+                ))}
+              </div>
             </section>
           )}
 
-        {/* =====================================================
-            CONTENT
-        ====================================================== */}
-
-        {!isLoading &&
-          !error &&
-          videos.length > 0 && (
-            <>
-              <CategoryNavigation
-                categories={categories}
-                selectedCategory={
-                  selectedCategory
-                }
-                activeTab={activeTab}
-                onChange={
-                  handleCategoryChange
-                }
-              />
-
-              {/* Results Header */}
-              <section
-                aria-label={
-                  isMusic
-                    ? 'Music videos'
-                    : 'English learning videos'
-                }
-              >
-                <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Sparkles
-                        className="h-4 w-4"
-                        style={{
-                          color: isMusic
-                            ? 'var(--music-brand)'
-                            : 'var(--brand)',
-                        }}
-                        aria-hidden
-                      />
-
-                      <h2 className="text-base font-semibold text-[var(--ink)]">
-                        {isMusic
-                          ? 'Music videos'
-                          : 'Learning videos'}
-                      </h2>
-                    </div>
-
-                    <p className="mt-1 text-sm text-[var(--ink-3)]">
-                      {videos.length}{' '}
-                      {isMusic
-                        ? 'songs and videos'
-                        : 'videos'}{' '}
-                      available
-                    </p>
-                  </div>
-
-                  <div className="text-xs font-medium text-[var(--ink-4)]">
-                    {playerHasStarted
-                      ? 'Select a video to play it in the player'
-                      : 'Press Play first, then select videos to continue playback'}
-                  </div>
-                </div>
-              </section>
-
-              {/* =================================================
-                  VIDEO GRID
-
-                  The selected video is removed from this grid,
-                  so it exists only once on the page.
-              ================================================== */}
-
-              <section
-                className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
-                aria-label="Video results"
-              >
-                {gridVideos.map(
-                  (video) => (
-                    <VideoCard
-                      key={video.id}
-                      video={video}
-                      onSelect={
-                        handleVideoClick
-                      }
-                      isMusic={isMusic}
-                      isSelected={
-                        video.id ===
-                        selectedVideo?.id
-                      }
-                    />
-                  )
-                )}
-              </section>
-            </>
+          {/* Small footer note */}
+          {!isLoading && videos.length > 0 && (
+            <div className="mt-8 flex items-center justify-center gap-2 text-xs text-[#98a2b3]">
+              <Clock3 className="h-3.5 w-3.5" />
+              <span>
+                Choose a lesson and continue learning at your own pace.
+              </span>
+            </div>
           )}
+        </div>
       </main>
-    </div>
+
+      {/* Back to Top Button - Left Side */}
+      {showBackToTop && (
+        <button
+          type="button"
+          onClick={scrollToTop}
+          aria-label="Back to top"
+          className="fixed bottom-6 left-6 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-[#1a365d] text-white shadow-lg transition hover:bg-[#14294a] hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a365d]/30"
+        >
+          <ArrowUp className="h-5 w-5" />
+        </button>
+      )}
+    </>
   );
 }

@@ -92,18 +92,40 @@ export async function PATCH(
 
     if (role.name === 'super_admin') {
       return NextResponse.json(
-        { error: 'Cannot assign Super Admin role' },
+        { error: 'Cannot assign Super Admin role through tech center admin. Use global admin route.' },
         { status: 400 }
       );
     }
 
+    // Prevent assigning dev role through UI
+    if (role.name === 'dev') {
+      return NextResponse.json(
+        { error: 'Cannot assign dev role through UI. Manage this role directly in the database.' },
+        { status: 403 }
+      );
+    }
+
     // Update user role and set roleUpdatedAt to trigger token refresh
+    // Handle demotion from super_admin - restore previous tech center if available
+    // (This shouldn't normally happen through tech center admin route, but handled for safety)
+    const updateData: { 
+      roleId: string; 
+      roleUpdatedAt: Date; 
+      techCenterId?: string | null;
+      previousTechCenterId?: string | null;
+    } = {
+      roleId,
+      roleUpdatedAt: new Date() // This will trigger JWT token refresh on next request
+    };
+    
+    if (user.role?.name === 'super_admin' && user.previousTechCenterId) {
+      updateData.techCenterId = user.previousTechCenterId;
+      updateData.previousTechCenterId = null;
+    }
+    
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { 
-        roleId,
-        roleUpdatedAt: new Date() // This will trigger JWT token refresh on next request
-      },
+      data: updateData,
       include: {
         role: true,
         techCenter: true,
@@ -119,14 +141,21 @@ export async function PATCH(
         details: {
           targetUser: `${updatedUser.firstName} ${updatedUser.lastName}`,
           oldRole: user.role?.name,
-          newRole: role.name
+          newRole: role.name,
+          techCenterRestored: user.role?.name === 'super_admin' && user.previousTechCenterId ? true : undefined
         },
         techCenterId: updatedUser.techCenterId,
       }
     });
 
+    // Build appropriate message based on tech center changes
+    let message = `User role changed from ${user.role?.name} to ${role.name}`;
+    if (user.role?.name === 'super_admin' && user.previousTechCenterId) {
+      message += ' and previous tech center restored';
+    }
+    
     return NextResponse.json({
-      message: `User role changed from ${user.role?.name} to ${role.name}`,
+      message,
       user: updatedUser
     });
   } catch (error) {

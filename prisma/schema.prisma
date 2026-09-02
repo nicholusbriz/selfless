@@ -81,6 +81,7 @@ model User {
   // Tech Center Association
   techCenterId String? @db.ObjectId
   techCenter   TechCenter? @relation("UserTechCenter", fields: [techCenterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  previousTechCenterId String? @db.ObjectId // Stores previous tech center before super_admin promotion for restoration
   
   // Location - Not in registration, set by default
   country     String?  @default("Uganda")
@@ -152,6 +153,7 @@ model User {
   aiLearningProfile AILearningProfile?
   
   @@index([techCenterId])
+  @@index([previousTechCenterId])
   @@index([roleId])
   @@index([teacherId])
   @@index([status])

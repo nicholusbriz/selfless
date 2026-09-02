@@ -55,6 +55,17 @@ async function main() {
         ]
       },
       {
+        name: 'dev',
+        displayName: 'Developer',
+        description: 'Developer with access to developer tools and resources',
+        permissions: [
+          'view_developer_tools',
+          'access_developer_resources',
+          'view_system_logs',
+          'view_api_documentation'
+        ]
+      },
+      {
         name: 'teacher',
         displayName: 'Teacher',
         description: 'Can assign grades to students in their tech center',

@@ -62,6 +62,7 @@ import {
   MessageCircle,
   Radio,
   BookMarked,
+  Code,
 } from 'lucide-react';
 
 import {
@@ -130,7 +131,8 @@ interface NavSection {
   items: NavItem[];
 }
 
-const ALL_ROLES = ['student', 'teacher', 'admin', 'super_admin'];
+const ALL_ROLES = ['student', 'teacher', 'admin', 'dev', 'super_admin'];
+const NON_SUPER_ADMIN_ROLES = ['student', 'teacher', 'admin', 'dev'];
 
 const iconClass = 'w-[18px] h-[18px] flex-shrink-0';
 
@@ -176,14 +178,14 @@ const sharedNavigation: NavSection[] = [
         label: 'Courses',
         path: '/dashboard/courses',
         icon: <BookOpen className={iconClass} />,
-        roles: ALL_ROLES,
+        roles: NON_SUPER_ADMIN_ROLES,
       },
       {
         id: 'grades',
         label: 'Grades',
         path: '/dashboard/grades',
         icon: <BarChart3 className={iconClass} />,
-        roles: ALL_ROLES,
+        roles: NON_SUPER_ADMIN_ROLES,
       },
 
       // --------------------------------------------------------
@@ -250,7 +252,7 @@ const sharedNavigation: NavSection[] = [
         label: 'Football Team',
         path: '/dashboard/football-team',
         icon: <Trophy className={iconClass} />,
-        roles: ALL_ROLES,
+        roles: NON_SUPER_ADMIN_ROLES,
       },
     ],
   },
@@ -264,7 +266,7 @@ const sharedNavigation: NavSection[] = [
         label: 'Cleaning',
         path: '/dashboard/cleaning',
         icon: <Calendar className={iconClass} />,
-        roles: ALL_ROLES,
+        roles: NON_SUPER_ADMIN_ROLES,
       },
     ],
   },
@@ -285,7 +287,7 @@ const sharedNavigation: NavSection[] = [
         label: 'Notifications',
         path: '/dashboard/notifications',
         icon: <Bell className={iconClass} />,
-        roles: ALL_ROLES,
+        roles: NON_SUPER_ADMIN_ROLES,
       },
     ],
   },
@@ -398,40 +400,72 @@ const superAdminNavigation: NavSection = {
       icon: <School className={iconClass} />,
       roles: ['super_admin'],
     },
+  ],
+};
+
+// ============================================================
+// DEVELOPER NAVIGATION
+// ============================================================
+
+const devNavigation: NavSection = {
+  id: 'developers',
+  label: 'Developers',
+  items: [
+    {
+      id: 'dev-dashboard',
+      label: 'Dev Dashboard',
+      path: '/dashboard/dev',
+      icon: <Code className={iconClass} />,
+      roles: ['dev'],
+    },
+    {
+      id: 'super-admin-overview',
+      label: 'System Overview',
+      path: '/dashboard/super-admin',
+      icon: <Shield className={iconClass} />,
+      roles: ['dev'],
+    },
+    {
+      id: 'all-centers',
+      label: 'Tech Centers',
+      path: '/dashboard/super-admin/centers',
+      icon: <School className={iconClass} />,
+      roles: ['dev'],
+    },
     {
       id: 'all-users',
       label: 'Users',
       path: '/dashboard/super-admin/users',
       icon: <Users className={iconClass} />,
-      roles: ['super_admin'],
+      roles: ['dev'],
     },
     {
       id: 'password-resets',
       label: 'Password Resets',
-      path: '/dashboard/super-admin/password-resets',
+      path: '/dashboard/dev/password-resets',
       icon: <Key className={iconClass} />,
-      roles: ['super_admin'],
+      roles: ['dev'],
     },
     {
       id: 'knowledge-base',
       label: 'Knowledge Base',
-      path: '/dashboard/super-admin/knowledge-base',
+      path: '/dashboard/dev/knowledge-base',
       icon: <Database className={iconClass} />,
-      roles: ['super_admin'],
+      roles: ['dev'],
     },
     {
       id: 'activity-logs',
       label: 'Activity Logs',
-      path: '/dashboard/super-admin/logs',
+      path: '/dashboard/dev/logs',
       icon: <FileText className={iconClass} />,
-      roles: ['super_admin'],
+      roles: ['dev'],
     },
     {
       id: 'system-settings',
       label: 'System Settings',
-      path: '/dashboard/super-admin/settings',
+      path: '/dashboard/dev/settings',
       icon: <Settings className={iconClass} />,
-      roles: ['super_admin'],
+      roles: ['dev'],
     },
   ],
 };
@@ -486,6 +520,15 @@ function getNavigation(userRole: string): NavSection[] {
     navigation.push({
       ...teacherNavigation,
       items: teacherNavigation.items.filter((item) =>
+        item.roles.includes(userRole)
+      ),
+    });
+  }
+
+  if (userRole === 'dev') {
+    navigation.push({
+      ...devNavigation,
+      items: devNavigation.items.filter((item) =>
         item.roles.includes(userRole)
       ),
     });
@@ -942,40 +985,42 @@ function TopBar({
             </Link>
           </motion.div>
 
-          {/* NOTIFICATIONS */}
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Link
-              href="/dashboard/notifications"
-              aria-label="Notifications"
-              className={cn(
-                'relative flex items-center justify-center',
-                'w-9 h-9 rounded-lg',
-                'text-[#6B7268]',
-                'hover:text-[#12203B]',
-                'hover:bg-[#F5F4EE]',
-                'transition-all duration-200',
-                'focus:outline-none focus:ring-2 focus:ring-[#B98A3E]/20'
-              )}
+          {/* NOTIFICATIONS - Hide for super_admin */}
+          {userRole !== 'super_admin' && (
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              <Bell className="w-[18px] h-[18px]" />
+              <Link
+                href="/dashboard/notifications"
+                aria-label="Notifications"
+                className={cn(
+                  'relative flex items-center justify-center',
+                  'w-9 h-9 rounded-lg',
+                  'text-[#6B7268]',
+                  'hover:text-[#12203B]',
+                  'hover:bg-[#F5F4EE]',
+                  'transition-all duration-200',
+                  'focus:outline-none focus:ring-2 focus:ring-[#B98A3E]/20'
+                )}
+              >
+                <Bell className="w-[18px] h-[18px]" />
 
-              {unreadCount &&
-              unreadCount > 0 ? (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute top-1 right-1 min-w-[15px] h-[15px] px-1 rounded-full bg-[#A4462F] text-white text-[9px] font-mono font-semibold flex items-center justify-center border-2 border-white"
-                >
-                  {unreadCount > 99
-                    ? '99+'
-                    : unreadCount}
-                </motion.span>
-              ) : null}
-            </Link>
-          </motion.div>
+                {unreadCount &&
+                unreadCount > 0 ? (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute top-1 right-1 min-w-[15px] h-[15px] px-1 rounded-full bg-[#A4462F] text-white text-[9px] font-mono font-semibold flex items-center justify-center border-2 border-white"
+                  >
+                    {unreadCount > 99
+                      ? '99+'
+                      : unreadCount}
+                  </motion.span>
+                ) : null}
+              </Link>
+            </motion.div>
+          )}
 
           {/* USER */}
           <motion.div

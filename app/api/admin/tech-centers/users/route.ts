@@ -159,8 +159,9 @@ export async function GET(request: NextRequest) {
 
     const statuses = ['ACTIVE', 'INACTIVE', 'SUSPENDED'];
 
-    // Get available roles for filtering
+    // Get available roles for filtering (excluding dev role)
     const roles = await prisma.role.findMany({
+      where: { name: { not: 'dev' } },
       select: {
         id: true,
         name: true,

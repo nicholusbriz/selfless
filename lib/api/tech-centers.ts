@@ -44,6 +44,16 @@ export const techCentersApi = {
     return response.json();
   },
 
+  // Fetch a single tech center by ID
+  getTechCenterById: async (id: string): Promise<TechCenter> => {
+    const response = await fetch(`/api/admin/tech-centers/${id}`);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to fetch tech center');
+    }
+    return response.json();
+  },
+
   // Fetch countries
   getCountries: async (): Promise<Country[]> => {
     const response = await fetch('/api/admin/countries');

@@ -10,7 +10,7 @@ const prisma = new PrismaClient();
 /**
  * POST /api/admin/embed-knowledge
  * 
- * Generate embeddings for existing knowledge base entries (admin only)
+ * Generate embeddings for existing knowledge base entries (dev only)
  * This is useful for bulk embedding generation after adding the RAG system
  * 
  * Request Body:
@@ -28,7 +28,7 @@ const prisma = new PrismaClient();
  * - data.errors: number - Number of errors encountered
  * - data.errorDetails: array - Details of any errors
  * 
- * Authentication: Required (admin only)
+ * Authentication: Required (dev only)
  */
 export async function POST(request: NextRequest) {
   try {
@@ -38,14 +38,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is admin
+    // Check if user is dev
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: { role: true }
     });
 
-    if (!user || user.role?.name !== 'super_admin') {
-      return NextResponse.json({ error: 'Forbidden - admin only' }, { status: 403 });
+    if (!user || user.role?.name !== 'dev') {
+      return NextResponse.json({ error: 'Forbidden - dev only' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
  * - data.totalChunks: number - Total chunks in database
  * - data.percentageEmbedded: number - Percentage of entries with embeddings
  * 
- * Authentication: Required (admin only)
+ * Authentication: Required (dev only)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -215,14 +215,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is admin
+    // Check if user is dev
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: { role: true }
     });
 
-    if (!user || user.role?.name !== 'super_admin') {
-      return NextResponse.json({ error: 'Forbidden - admin only' }, { status: 403 });
+    if (!user || user.role?.name !== 'dev') {
+      return NextResponse.json({ error: 'Forbidden - dev only' }, { status: 403 });
     }
 
     const searchParams = request.nextUrl.searchParams;

@@ -3,16 +3,14 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   Search,
   Users as UsersIcon,
   UserCheck,
   UserX,
   UserCog,
   ArrowLeft,
-  Home,
   Shield,
-  Loader2,
   ChevronDown,
   ChevronUp,
   Edit,
@@ -27,112 +25,267 @@ import {
   ChevronRight,
   Calendar,
   RefreshCw,
-  Save
+  Save,
 } from 'lucide-react';
-import { 
-  useSuperAdminUsers, 
-  useUpdateSuperAdminUser, 
-  useUpdateSuperAdminUserRole, 
+
+import {
+  useSuperAdminUsers,
+  useUpdateSuperAdminUser,
+  useUpdateSuperAdminUserRole,
   useUpdateSuperAdminUserStatus,
-  useDeleteSuperAdminUser
+  useDeleteSuperAdminUser,
 } from '@/hooks/useSuperAdminUsers';
 
-// Status badge component
+/* -------------------------------------------------------------------------- */
+/* Design tokens                                                               */
+/* -------------------------------------------------------------------------- */
+
+const TOKENS = {
+  ink: '#12203B',
+  ink2: '#43516A',
+  muted: '#6F7B8D',
+  subtle: '#8993A3',
+
+  surface: '#FFFFFF',
+  surface2: '#F7F8FA',
+  surface3: '#F0F2F5',
+
+  line: '#E2E6EB',
+  lineStrong: '#D2D8E0',
+
+  brand: '#12203B',
+  brandHover: '#1C2E4E',
+  brandSoft: '#EEF2F7',
+
+  accent: '#B98A3E',
+  accentHover: '#A67A34',
+  accentSoft: '#F8F3E8',
+
+  success: '#55705B',
+  successSoft: '#EEF4EF',
+
+  warning: '#8A6E3A',
+  warningSoft: '#F8F4EC',
+
+  danger: '#A4462F',
+  dangerSoft: '#FBF0EC',
+};
+
+/* -------------------------------------------------------------------------- */
+/* Shared classes                                                              */
+/* -------------------------------------------------------------------------- */
+
+const inputClass =
+  'w-full rounded-lg border border-[#E2E6EB] bg-white px-3.5 py-2.5 text-sm text-[#12203B] outline-none transition placeholder:text-[#8993A3] focus:border-[#B98A3E] focus:ring-2 focus:ring-[#B98A3E]/15';
+
+const selectClass =
+  'w-full rounded-lg border border-[#E2E6EB] bg-white px-3.5 py-2.5 text-sm text-[#12203B] outline-none transition focus:border-[#B98A3E] focus:ring-2 focus:ring-[#B98A3E]/15';
+
+const buttonBase =
+  'inline-flex items-center justify-center gap-2 rounded-lg transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50';
+
+const quietButton = `${buttonBase} border border-[#E2E6EB] bg-white text-[#43516A] hover:border-[#D2D8E0] hover:bg-[#F7F8FA] hover:text-[#12203B]`;
+
+const primaryButton = `${buttonBase} bg-[#12203B] text-white hover:bg-[#1C2E4E]`;
+
+const dangerButton = `${buttonBase} bg-[#A4462F] text-white hover:bg-[#8E3C28]`;
+
+/* -------------------------------------------------------------------------- */
+/* Badges                                                                      */
+/* -------------------------------------------------------------------------- */
+
 const StatusBadge = ({ status }: { status: string }) => {
-  const styles = {
-    ACTIVE: 'bg-[#34D399]/20 text-[#34D399]',
-    INACTIVE: 'bg-[#6B6358]/20 text-[#6B6358]',
-    SUSPENDED: 'bg-[#F87171]/20 text-[#F87171]',
+  const styles: Record<string, string> = {
+    ACTIVE: 'border-[#D7E7D9] bg-[#EEF4EF] text-[#55705B]',
+    INACTIVE: 'border-[#E2E6EB] bg-[#F3F4F6] text-[#6F7B8D]',
+    SUSPENDED: 'border-[#F0D7D0] bg-[#FBF0EC] text-[#A4462F]',
   };
+
   return (
-    <span className={`px-2 py-1 text-xs rounded-full ${styles[status as keyof typeof styles] || styles.INACTIVE}`}>
+    <span
+      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium tracking-wide ${
+        styles[status] || styles.INACTIVE
+      }`}
+    >
       {status}
     </span>
   );
 };
 
-// Role badge component
 const RoleBadge = ({ role }: { role: string }) => {
-  const styles = {
-    super_admin: 'bg-[#E8A33D]/20 text-[#E8A33D]',
-    admin: 'bg-[#6366F1]/20 text-[#6366F1]',
-    teacher: 'bg-[#34D399]/20 text-[#34D399]',
-    student: 'bg-[#F59E0B]/20 text-[#F59E0B]',
+  const styles: Record<string, string> = {
+    super_admin: 'border-[#E8DABF] bg-[#F8F3E8] text-[#8A6E3A]',
+    admin: 'border-[#D9DFEA] bg-[#EEF2F7] text-[#43516A]',
+    teacher: 'border-[#D7E7D9] bg-[#EEF4EF] text-[#55705B]',
+    student: 'border-[#E8DABF] bg-[#F8F3E8] text-[#8A6E3A]',
   };
+
   return (
-    <span className={`px-2 py-1 text-xs rounded-full ${styles[role as keyof typeof styles] || styles.student}`}>
+    <span
+      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium tracking-wide ${
+        styles[role] || styles.student
+      }`}
+    >
       {role.replace('_', ' ').toUpperCase()}
     </span>
   );
 };
 
-// Stats Card Component
-const StatsCard = ({ title, value, icon, color, subtitle }: any) => (
+/* -------------------------------------------------------------------------- */
+/* Avatar                                                                       */
+/* -------------------------------------------------------------------------- */
+
+const UserAvatar = ({
+  user,
+  size = 'md',
+}: {
+  user: any;
+  size?: 'sm' | 'md';
+}) => {
+  const sizeClass = size === 'sm' ? 'h-10 w-10 text-xs' : 'h-11 w-11 text-sm';
+
+  if (user.profileImageUrl) {
+    return (
+      <img
+        src={user.profileImageUrl}
+        alt={`${user.firstName} ${user.lastName}`}
+        className={`${sizeClass} flex-shrink-0 rounded-full border border-[#E2E6EB] object-cover`}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`${sizeClass} flex flex-shrink-0 items-center justify-center rounded-full bg-[#EEF2F7] font-semibold text-[#12203B]`}
+    >
+      {user.firstName?.charAt(0).toUpperCase()}
+      {user.lastName?.charAt(0).toUpperCase()}
+    </div>
+  );
+};
+
+/* -------------------------------------------------------------------------- */
+/* Stats card                                                                   */
+/* -------------------------------------------------------------------------- */
+
+const StatsCard = ({
+  title,
+  value,
+  icon,
+  subtitle,
+}: {
+  title: string;
+  value: number;
+  icon: React.ReactNode;
+  subtitle?: string;
+}) => (
   <motion.div
-    initial={{ opacity: 0, y: 20 }}
+    initial={{ opacity: 0, y: 8 }}
     animate={{ opacity: 1, y: 0 }}
-    className="bg-[#150F20] border border-[#2A2438] rounded-xl p-6 hover:border-[#E8A33D]/30 transition-all duration-300"
+    className="rounded-xl border border-[#E2E6EB] bg-white p-4"
   >
-    <div className="flex items-center justify-between">
-      <div className="flex-1 min-w-0">
-        <p className="text-sm text-[#6B6358] truncate">{title}</p>
-        <p className="text-2xl font-bold text-[#F5F0E8] mt-1">{value}</p>
+    <div className="flex items-center justify-between gap-3">
+      <div className="min-w-0">
+        <p className="truncate text-xs font-medium uppercase tracking-wide text-[#6F7B8D]">
+          {title}
+        </p>
+
+        <p className="mt-1 text-2xl font-semibold tracking-tight text-[#12203B]">
+          {value}
+        </p>
+
         {subtitle && (
-          <p className="text-xs text-[#6B6358] mt-1">{subtitle}</p>
+          <p className="mt-0.5 text-xs text-[#8993A3]">{subtitle}</p>
         )}
       </div>
-      <div className={`w-12 h-12 rounded-xl bg-[#${color}]/10 flex items-center justify-center flex-shrink-0 ml-3`}>
-        <div className={`text-[#${color}] w-6 h-6`}>{icon}</div>
+
+      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[#F7F8FA] text-[#12203B]">
+        {icon}
       </div>
     </div>
   </motion.div>
 );
 
-// ===== SKELETON COMPONENTS (Integrated) =====
+/* -------------------------------------------------------------------------- */
+/* Skeletons                                                                    */
+/* -------------------------------------------------------------------------- */
 
-// Stats Skeleton
+const Skeleton = ({ className }: { className: string }) => (
+  <div className={`animate-pulse rounded-md bg-[#E9EDF1] ${className}`} />
+);
+
+const HeaderSkeleton = () => (
+  <div className="mb-6 flex items-center gap-3">
+    <Skeleton className="h-9 w-9 rounded-lg" />
+    <div className="space-y-2">
+      <Skeleton className="h-6 w-44" />
+      <Skeleton className="h-3.5 w-64" />
+    </div>
+  </div>
+);
+
 const StatsSkeleton = () => (
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+  <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
     {Array.from({ length: 4 }).map((_, index) => (
-      <div key={index} className="bg-[#150F20] border border-[#2A2438] rounded-xl p-6">
+      <div
+        key={index}
+        className="rounded-xl border border-[#E2E6EB] bg-white p-4"
+      >
         <div className="flex items-center justify-between">
-          <div className="flex-1 min-w-0">
-            <div className="h-4 w-20 bg-[#2A2438] rounded animate-pulse" />
-            <div className="h-8 w-12 bg-[#2A2438] rounded animate-pulse mt-2" />
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-7 w-12" />
           </div>
-          <div className="w-12 h-12 rounded-xl bg-[#2A2438] animate-pulse flex-shrink-0" />
+          <Skeleton className="h-10 w-10 rounded-lg" />
         </div>
       </div>
     ))}
   </div>
 );
 
-// Table Skeleton
+const SearchFiltersSkeleton = () => (
+  <div className="mb-5 rounded-xl border border-[#E2E6EB] bg-white p-3">
+    <div className="flex flex-col gap-3 lg:flex-row">
+      <Skeleton className="h-10 flex-1" />
+      <Skeleton className="h-10 w-full lg:w-28" />
+      <Skeleton className="h-10 w-full lg:w-28" />
+    </div>
+  </div>
+);
+
 const UserTableSkeleton = () => (
-  <div className="bg-[#150F20] border border-[#2A2438] rounded-2xl overflow-hidden">
-    {Array.from({ length: 5 }).map((_, index) => (
-      <div key={index} className="p-4 border-b border-[#2A2438] last:border-b-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4 flex-1">
-            <div className="w-10 h-10 rounded-full bg-[#2A2438] animate-pulse flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 flex-wrap">
-                <div className="h-4 w-32 bg-[#2A2438] rounded animate-pulse" />
-                <div className="h-5 w-16 bg-[#2A2438] rounded-full animate-pulse" />
-                <div className="h-5 w-16 bg-[#2A2438] rounded-full animate-pulse" />
-              </div>
-              <div className="flex items-center gap-4 mt-1">
-                <div className="h-3 w-48 bg-[#2A2438] rounded animate-pulse" />
-                <div className="h-3 w-32 bg-[#2A2438] rounded animate-pulse" />
-                <div className="h-3 w-24 bg-[#2A2438] rounded animate-pulse" />
-              </div>
+  <div className="hidden overflow-hidden rounded-xl border border-[#E2E6EB] bg-white lg:block">
+    <div className="border-b border-[#E2E6EB] bg-[#F7F8FA] px-4 py-3">
+      <div className="grid grid-cols-[minmax(260px,1.5fr)_1fr_1fr_140px] gap-4">
+        <Skeleton className="h-3 w-20" />
+        <Skeleton className="h-3 w-16" />
+        <Skeleton className="h-3 w-20" />
+        <Skeleton className="h-3 w-16" />
+      </div>
+    </div>
+
+    {Array.from({ length: 7 }).map((_, index) => (
+      <div
+        key={index}
+        className="border-b border-[#E2E6EB] px-4 py-4 last:border-b-0"
+      >
+        <div className="grid grid-cols-[minmax(260px,1.5fr)_1fr_1fr_140px] items-center gap-4">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-10 w-10 rounded-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-3.5 w-32" />
+              <Skeleton className="h-3 w-48" />
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0 ml-4">
-            <div className="w-8 h-8 bg-[#2A2438] rounded-lg animate-pulse" />
-            <div className="w-8 h-8 bg-[#2A2438] rounded-lg animate-pulse" />
-            <div className="w-8 h-8 bg-[#2A2438] rounded-lg animate-pulse" />
-            <div className="w-8 h-8 bg-[#2A2438] rounded-lg animate-pulse" />
+
+          <Skeleton className="h-5 w-16 rounded-full" />
+          <Skeleton className="h-5 w-16 rounded-full" />
+
+          <div className="flex justify-end gap-1.5">
+            <Skeleton className="h-8 w-8 rounded-lg" />
+            <Skeleton className="h-8 w-8 rounded-lg" />
+            <Skeleton className="h-8 w-8 rounded-lg" />
+            <Skeleton className="h-8 w-8 rounded-lg" />
           </div>
         </div>
       </div>
@@ -140,72 +293,65 @@ const UserTableSkeleton = () => (
   </div>
 );
 
-// Card Skeleton (Mobile)
 const UserCardSkeleton = () => (
-  <div className="bg-[#150F20] border border-[#2A2438] rounded-2xl p-4">
-    <div className="flex items-start justify-between mb-3">
+  <div className="rounded-xl border border-[#E2E6EB] bg-white p-4">
+    <div className="flex items-start justify-between gap-3">
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-full bg-[#2A2438] animate-pulse flex-shrink-0" />
-        <div>
-          <div className="h-4 w-32 bg-[#2A2438] rounded animate-pulse" />
-          <div className="h-3 w-48 bg-[#2A2438] rounded animate-pulse mt-1" />
+        <Skeleton className="h-11 w-11 rounded-full" />
+        <div className="space-y-2">
+          <Skeleton className="h-3.5 w-32" />
+          <Skeleton className="h-3 w-40" />
         </div>
       </div>
-      <div className="flex flex-col items-end gap-1">
-        <div className="h-5 w-16 bg-[#2A2438] rounded-full animate-pulse" />
-        <div className="h-5 w-20 bg-[#2A2438] rounded-full animate-pulse" />
+
+      <div className="space-y-1">
+        <Skeleton className="h-5 w-16 rounded-full" />
+        <Skeleton className="h-5 w-20 rounded-full" />
       </div>
     </div>
-    <div className="space-y-2">
-      <div className="h-3 w-40 bg-[#2A2438] rounded animate-pulse" />
-      <div className="h-3 w-32 bg-[#2A2438] rounded animate-pulse" />
-      <div className="h-3 w-36 bg-[#2A2438] rounded animate-pulse" />
+
+    <div className="mt-4 space-y-2">
+      <Skeleton className="h-3 w-40" />
+      <Skeleton className="h-3 w-32" />
+      <Skeleton className="h-3 w-36" />
     </div>
-    <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-[#2A2438]">
-      <div className="h-8 w-16 bg-[#2A2438] rounded-lg animate-pulse" />
-      <div className="h-8 w-16 bg-[#2A2438] rounded-lg animate-pulse" />
-      <div className="h-8 w-16 bg-[#2A2438] rounded-lg animate-pulse" />
-      <div className="h-8 w-16 bg-[#2A2438] rounded-lg animate-pulse" />
+
+    <div className="mt-4 flex justify-end gap-2 border-t border-[#E2E6EB] pt-3">
+      <Skeleton className="h-8 w-14 rounded-lg" />
+      <Skeleton className="h-8 w-14 rounded-lg" />
+      <Skeleton className="h-8 w-16 rounded-lg" />
+      <Skeleton className="h-8 w-16 rounded-lg" />
     </div>
   </div>
 );
 
-// Search & Filters Skeleton
-const SearchFiltersSkeleton = () => (
-  <div className="bg-[#150F20] border border-[#2A2438] rounded-2xl p-4 mb-6">
-    <div className="flex flex-col lg:flex-row gap-4">
-      <div className="flex-1 h-11 bg-[#2A2438] rounded-lg animate-pulse" />
-      <div className="w-32 h-11 bg-[#2A2438] rounded-lg animate-pulse" />
-      <div className="w-32 h-11 bg-[#2A2438] rounded-lg animate-pulse" />
-    </div>
-  </div>
-);
-
-// Header Skeleton
-const HeaderSkeleton = () => (
-  <div className="flex items-center gap-4 mb-8">
-    <div className="w-10 h-10 bg-[#2A2438] rounded-lg animate-pulse" />
-    <div className="w-10 h-10 bg-[#2A2438] rounded-lg animate-pulse" />
-    <div className="h-8 w-px bg-[#2A2438]" />
-    <div>
-      <div className="h-8 w-48 bg-[#2A2438] rounded animate-pulse" />
-      <div className="h-4 w-64 bg-[#2A2438] rounded animate-pulse mt-1" />
-    </div>
-  </div>
-);
+/* -------------------------------------------------------------------------- */
+/* Main page                                                                    */
+/* -------------------------------------------------------------------------- */
 
 export default function SuperAdminUsersPage() {
   const router = useRouter();
-  
-  // State
+
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
+
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
-  const [expandedAction, setExpandedAction] = useState<'edit' | 'role' | 'status' | 'delete' | null>(null);
-  
-  // Edit form state
+
+  const [expandedAction, setExpandedAction] = useState<
+    'edit' | 'role' | 'status' | 'delete' | null
+  >(null);
+
+  const [showFilters, setShowFilters] = useState(false);
+
+  const [filters, setFilters] = useState({
+    techCenterId: '',
+    country: '',
+    role: '',
+    status: '',
+  });
+
   const [editFormData, setEditFormData] = useState({
     firstName: '',
     lastName: '',
@@ -216,18 +362,7 @@ export default function SuperAdminUsersPage() {
     techCenterId: '',
     profileImageUrl: '',
   });
-  
-  // Filters
-  const [filters, setFilters] = useState({
-    techCenterId: '',
-    country: '',
-    role: '',
-    status: '',
-  });
-  
-  const [showFilters, setShowFilters] = useState(false);
 
-  // Fetch ALL users once on page load
   const {
     data: usersData,
     isLoading,
@@ -242,71 +377,79 @@ export default function SuperAdminUsersPage() {
     status: filters.status || undefined,
   });
 
-  // Client-side search and pagination
   const filteredUsers = useMemo(() => {
     if (!usersData?.users) return [];
-    
-    let filtered = usersData.users;
-    
-    // Client-side search
+
+    let users = usersData.users;
+
     if (searchTerm.trim()) {
       const search = searchTerm.toLowerCase().trim();
-      filtered = filtered.filter(user => 
-        user.firstName?.toLowerCase().includes(search) ||
-        user.lastName?.toLowerCase().includes(search) ||
-        user.email?.toLowerCase().includes(search) ||
-        user.phoneNumber?.toLowerCase().includes(search) ||
-        `${user.firstName} ${user.lastName}`.toLowerCase().includes(search)
+
+      users = users.filter(
+        (user) =>
+          user.firstName?.toLowerCase().includes(search) ||
+          user.lastName?.toLowerCase().includes(search) ||
+          user.email?.toLowerCase().includes(search) ||
+          user.phoneNumber?.toLowerCase().includes(search) ||
+          `${user.firstName} ${user.lastName}`
+            .toLowerCase()
+            .includes(search)
       );
     }
-    
-    return filtered;
+
+    return users;
   }, [usersData?.users, searchTerm]);
 
-  // Paginated data (client-side)
   const paginatedUsers = useMemo(() => {
     const start = (page - 1) * limit;
-    const end = start + limit;
-    return filteredUsers.slice(start, end);
+    return filteredUsers.slice(start, start + limit);
   }, [filteredUsers, page, limit]);
 
-  // Total pages (client-side)
   const totalPages = Math.ceil(filteredUsers.length / limit);
 
-  // Get stats from filtered users
   const stats = useMemo(() => {
     if (!usersData) return null;
+
     const users = usersData.users;
+
     return {
       total: usersData.pagination.total || users.length,
-      active: users.filter(u => u.status === 'ACTIVE').length,
-      inactive: users.filter(u => u.status === 'INACTIVE').length,
-      suspended: users.filter(u => u.status === 'SUSPENDED').length,
+      active: users.filter((u) => u.status === 'ACTIVE').length,
+      inactive: users.filter((u) => u.status === 'INACTIVE').length,
+      suspended: users.filter((u) => u.status === 'SUSPENDED').length,
     };
   }, [usersData]);
 
-  // Mutations
   const deleteMutation = useDeleteSuperAdminUser();
   const updateRoleMutation = useUpdateSuperAdminUserRole();
   const updateStatusMutation = useUpdateSuperAdminUserStatus();
   const updateUserMutation = useUpdateSuperAdminUser();
 
-  // Handlers
-  const toggleExpand = (userId: string, action: 'edit' | 'role' | 'status' | 'delete') => {
-    const user = usersData?.users.find(u => u.id === userId);
+  const hasFilters = Object.values(filters).some(Boolean);
+
+  const closeExpanded = () => {
+    setExpandedUserId(null);
+    setExpandedAction(null);
+    setSelectedUser(null);
+  };
+
+  const toggleExpand = (
+    userId: string,
+    action: 'edit' | 'role' | 'status' | 'delete'
+  ) => {
+    const user = usersData?.users.find((u) => u.id === userId);
+
     if (!user) return;
 
     if (expandedUserId === userId && expandedAction === action) {
-      setExpandedUserId(null);
-      setExpandedAction(null);
-      setSelectedUser(null);
+      closeExpanded();
       return;
     }
 
     setSelectedUser(user);
     setExpandedUserId(userId);
     setExpandedAction(action);
-    
+
     if (action === 'edit') {
       setEditFormData({
         firstName: user.firstName || '',
@@ -321,1060 +464,1394 @@ export default function SuperAdminUsersPage() {
     }
   };
 
-  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleEditInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
-    setEditFormData(prev => ({ ...prev, [name]: value }));
+
+    setEditFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!selectedUser) return;
+
     updateUserMutation.mutate(
-      { 
-        userId: selectedUser.id, 
-        data: editFormData 
+      {
+        userId: selectedUser.id,
+        data: editFormData,
       },
       {
-        onSuccess: (data) => {
-          setExpandedUserId(null);
-          setExpandedAction(null);
-          setSelectedUser(null);
+        onSuccess: () => {
+          closeExpanded();
           refetch();
-          alert(data.message);
         },
         onError: (error: any) => {
-          alert(error.message || 'Failed to update user');
+          window.alert(error.message || 'Failed to update user');
         },
       }
     );
   };
 
   const handleDeleteUser = () => {
-    if (selectedUser) {
-      deleteMutation.mutate(
-        selectedUser.id,
-        {
-          onSuccess: (data) => {
-            setExpandedUserId(null);
-            setExpandedAction(null);
-            setSelectedUser(null);
-            refetch();
-            alert(data.message);
-          },
-          onError: (error: any) => {
-            alert(error.message || 'Failed to delete user');
-          },
-        }
-      );
-    }
+    if (!selectedUser) return;
+
+    deleteMutation.mutate(selectedUser.id, {
+      onSuccess: () => {
+        closeExpanded();
+        refetch();
+      },
+      onError: (error: any) => {
+        window.alert(error.message || 'Failed to delete user');
+      },
+    });
   };
 
   const handleChangeRole = (roleId: string) => {
-    if (selectedUser) {
-      updateRoleMutation.mutate(
-        { userId: selectedUser.id, roleId },
-        {
-          onSuccess: (data) => {
-            setExpandedUserId(null);
-            setExpandedAction(null);
-            setSelectedUser(null);
-            refetch();
-            alert(data.message);
-          },
-          onError: (error: any) => {
-            alert(error.message || 'Failed to update user role');
-          },
-        }
-      );
-    }
+    if (!selectedUser) return;
+
+    updateRoleMutation.mutate(
+      {
+        userId: selectedUser.id,
+        roleId,
+      },
+      {
+        onSuccess: () => {
+          closeExpanded();
+          refetch();
+        },
+        onError: (error: any) => {
+          window.alert(error.message || 'Failed to update user role');
+        },
+      }
+    );
   };
 
   const handleChangeStatus = (status: string) => {
-    if (selectedUser) {
-      updateStatusMutation.mutate(
-        { userId: selectedUser.id, status },
-        {
-          onSuccess: (data) => {
-            setExpandedUserId(null);
-            setExpandedAction(null);
-            setSelectedUser(null);
-            refetch();
-            alert(data.message);
-          },
-          onError: (error: any) => {
-            alert(error.message || 'Failed to update user status');
-          },
-        }
-      );
-    }
+    if (!selectedUser) return;
+
+    updateStatusMutation.mutate(
+      {
+        userId: selectedUser.id,
+        status,
+      },
+      {
+        onSuccess: () => {
+          closeExpanded();
+          refetch();
+        },
+        onError: (error: any) => {
+          window.alert(error.message || 'Failed to update user status');
+        },
+      }
+    );
   };
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
   };
 
-  // Format date
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', {
+  const formatDate = (date: string) =>
+    new Date(date).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
     });
-  };
 
-  // Reset page when search or filters change
   useEffect(() => {
     setPage(1);
   }, [searchTerm, filters]);
 
-  // Skeleton loading on initial load
+  /* ------------------------------------------------------------------------ */
+  /* Initial loading                                                           */
+  /* ------------------------------------------------------------------------ */
+
   if (isLoading && !usersData) {
     return (
-      <div className="min-h-screen">
-        <HeaderSkeleton />
-        <StatsSkeleton />
-        <SearchFiltersSkeleton />
-        <div className="hidden lg:block">
+      <main className="min-h-screen bg-[#F7F8FA] px-3 py-4 sm:px-5 lg:px-6">
+        <div className="mx-auto max-w-[1500px]">
+          <HeaderSkeleton />
+          <StatsSkeleton />
+          <SearchFiltersSkeleton />
+
           <UserTableSkeleton />
+
+          <div className="space-y-3 lg:hidden">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <UserCardSkeleton key={index} />
+            ))}
+          </div>
         </div>
-        <div className="lg:hidden space-y-4">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <UserCardSkeleton key={index} />
-          ))}
-        </div>
-      </div>
+      </main>
     );
   }
 
+  /* ------------------------------------------------------------------------ */
+  /* Error                                                                     */
+  /* ------------------------------------------------------------------------ */
+
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 rounded-full bg-[#F87171]/10 flex items-center justify-center mx-auto mb-4">
-            <UsersIcon className="w-8 h-8 text-[#F87171]" />
+      <main className="flex min-h-screen items-center justify-center bg-[#F7F8FA] px-4">
+        <div className="w-full max-w-md rounded-xl border border-[#E2E6EB] bg-white p-6 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#FBF0EC]">
+            <UsersIcon className="h-6 w-6 text-[#A4462F]" />
           </div>
-          <h3 className="text-xl font-semibold text-[#F5F0E8] mb-2">Failed to Load</h3>
-          <p className="text-[#A79C8C]">{(error as Error)?.message || 'An error occurred'}</p>
+
+          <h2 className="text-lg font-semibold text-[#12203B]">
+            Unable to load users
+          </h2>
+
+          <p className="mt-1 text-sm text-[#6F7B8D]">
+            {(error as Error)?.message ||
+              'Something went wrong while loading users.'}
+          </p>
+
           <button
             onClick={() => refetch()}
-            className="mt-4 px-6 py-2 bg-[#E8A33D] text-[#0B0912] rounded-lg hover:bg-[#C97F1F] transition-colors"
+            className={`${primaryButton} mt-5 px-4 py-2 text-sm`}
           >
-            Retry
+            <RefreshCw className="h-4 w-4" />
+            Try again
           </button>
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <button
-          onClick={() => router.back()}
-          className="p-2 rounded-lg bg-[#2A2438]/50 hover:bg-[#2A2438] text-[#A79C8C] hover:text-[#F5F0E8] transition-all duration-200"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        
-        <button
-          onClick={() => router.push('/')}
-          className="p-2 rounded-lg bg-[#2A2438]/50 hover:bg-[#2A2438] text-[#A79C8C] hover:text-[#F5F0E8] transition-all duration-200"
-        >
-          <Home className="w-5 h-5" />
-        </button>
-        
-        <div className="h-8 w-px bg-[#2A2438]" />
-        
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#E8A33D]/20 to-[#C97F1F]/10 border border-[#E8A33D]/20">
-            <UsersIcon className="w-6 h-6 text-[#E8A33D]" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-[#F5F0E8]" style={{ fontFamily: 'var(--font-display)' }}>
-              User Management
-            </h1>
-            <p className="text-sm text-[#A79C8C]">Manage all users across the platform</p>
-          </div>
-        </div>
-      </div>
+    <main className="min-h-screen bg-[#F7F8FA]">
+      <div className="mx-auto max-w-[1500px] px-3 py-4 sm:px-5 lg:px-6 lg:py-5">
+        {/* ---------------------------------------------------------------- */}
+        {/* Header                                                            */}
+        {/* ---------------------------------------------------------------- */}
 
-      {/* Stats */}
-      {stats && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatsCard
-            title="Total Users"
-            value={stats.total}
-            icon={<UsersIcon className="w-6 h-6" />}
-            color="E8A33D"
-          />
-          <StatsCard
-            title="Active"
-            value={stats.active}
-            icon={<UserCheck className="w-6 h-6" />}
-            color="34D399"
-          />
-          <StatsCard
-            title="Inactive"
-            value={stats.inactive}
-            icon={<UserX className="w-6 h-6" />}
-            color="6B6358"
-          />
-          <StatsCard
-            title="Suspended"
-            value={stats.suspended}
-            icon={<Shield className="w-6 h-6" />}
-            color="F87171"
-          />
-        </div>
-      )}
+        <header className="mb-6 flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            aria-label="Go back"
+            className={`${quietButton} h-9 w-9`}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
 
-      {/* Search and Filters */}
-      <div className="bg-[#150F20] border border-[#2A2438] rounded-2xl p-4 mb-6">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B6358]" />
-            <input
-              type="text"
-              placeholder="Search users by name, email, or phone..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-[#0B0912] border border-[#2A2438] rounded-lg text-[#F5F0E8] placeholder-[#6B6358] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-colors duration-200"
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B6358] hover:text-[#F5F0E8] transition-colors"
+          <div className="h-7 w-px bg-[#E2E6EB]" />
+
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[#EEF2F7] text-[#12203B]">
+              <UsersIcon className="h-5 w-5" />
+            </div>
+
+            <div className="min-w-0">
+              <h1
+                className="truncate text-xl font-semibold tracking-tight text-[#12203B] sm:text-2xl"
+                style={{ fontFamily: 'var(--font-display)' }}
               >
-                <X className="w-4 h-4" />
+                User Management
+              </h1>
+
+              <p className="truncate text-xs text-[#6F7B8D] sm:text-sm">
+                Manage users, roles and account access
+              </p>
+            </div>
+          </div>
+        </header>
+
+        {/* ---------------------------------------------------------------- */}
+        {/* Stats                                                             */}
+        {/* ---------------------------------------------------------------- */}
+
+        {stats && (
+          <section className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <StatsCard
+              title="Total Users"
+              value={stats.total}
+              icon={<UsersIcon className="h-5 w-5" />}
+            />
+
+            <StatsCard
+              title="Active"
+              value={stats.active}
+              icon={<UserCheck className="h-5 w-5" />}
+            />
+
+            <StatsCard
+              title="Inactive"
+              value={stats.inactive}
+              icon={<UserX className="h-5 w-5" />}
+            />
+
+            <StatsCard
+              title="Suspended"
+              value={stats.suspended}
+              icon={<Shield className="h-5 w-5" />}
+            />
+          </section>
+        )}
+
+        {/* ---------------------------------------------------------------- */}
+        {/* Search + Filters                                                  */}
+        {/* ---------------------------------------------------------------- */}
+
+        <section className="mb-5 rounded-xl border border-[#E2E6EB] bg-white p-3">
+          <div className="flex flex-col gap-2.5 lg:flex-row">
+            <div className="relative min-w-0 flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8993A3]" />
+
+              <input
+                type="text"
+                placeholder="Search by name, email or phone..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={`${inputClass} pl-9 pr-9`}
+              />
+
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  aria-label="Clear search"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8993A3] transition hover:text-[#12203B]"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            <button
+              onClick={() => setShowFilters((value) => !value)}
+              className={`${quietButton} h-10 px-3.5 text-sm`}
+            >
+              <Filter className="h-4 w-4" />
+              Filters
+
+              {hasFilters && (
+                <span className="h-1.5 w-1.5 rounded-full bg-[#B98A3E]" />
+              )}
+
+              {showFilters ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </button>
+
+            <button
+              onClick={() => refetch()}
+              className={`${quietButton} h-10 px-3.5 text-sm`}
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </button>
+          </div>
+
+          <AnimatePresence initial={false}>
+            {showFilters && usersData && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.18 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-3 grid grid-cols-1 gap-3 border-t border-[#E2E6EB] pt-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-[#43516A]">
+                      Tech Center
+                    </label>
+
+                    <select
+                      value={filters.techCenterId}
+                      onChange={(e) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          techCenterId: e.target.value,
+                        }))
+                      }
+                      className={selectClass}
+                    >
+                      <option value="">All Centers</option>
+
+                      {usersData.filters.techCenters.map((tc) => (
+                        <option key={tc.id} value={tc.id}>
+                          {tc.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-[#43516A]">
+                      Country
+                    </label>
+
+                    <select
+                      value={filters.country}
+                      onChange={(e) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          country: e.target.value,
+                        }))
+                      }
+                      className={selectClass}
+                    >
+                      <option value="">All Countries</option>
+
+                      {usersData.filters.countries.map((country) => (
+                        <option key={country.id} value={country.name}>
+                          {country.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-[#43516A]">
+                      Role
+                    </label>
+
+                    <select
+                      value={filters.role}
+                      onChange={(e) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          role: e.target.value,
+                        }))
+                      }
+                      className={selectClass}
+                    >
+                      <option value="">All Roles</option>
+
+                      {usersData.filters.roles.map((role) => (
+                        <option key={role.id} value={role.name}>
+                          {role.displayName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-[#43516A]">
+                      Status
+                    </label>
+
+                    <select
+                      value={filters.status}
+                      onChange={(e) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          status: e.target.value,
+                        }))
+                      }
+                      className={selectClass}
+                    >
+                      <option value="">All Statuses</option>
+
+                      {usersData.filters.statuses.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {hasFilters && (
+                  <div className="mt-3 flex justify-end">
+                    <button
+                      onClick={() =>
+                        setFilters({
+                          techCenterId: '',
+                          country: '',
+                          role: '',
+                          status: '',
+                        })
+                      }
+                      className="text-xs font-medium text-[#8A6E3A] hover:text-[#A67A34]"
+                    >
+                      Clear all filters
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </section>
+
+        {/* ---------------------------------------------------------------- */}
+        {/* Results summary                                                   */}
+        {/* ---------------------------------------------------------------- */}
+
+        {usersData && filteredUsers.length > 0 && (
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-[#6F7B8D] sm:text-sm">
+              Showing{' '}
+              <span className="font-medium text-[#43516A]">
+                {(page - 1) * limit + 1}–
+                {Math.min(page * limit, filteredUsers.length)}
+              </span>{' '}
+              of{' '}
+              <span className="font-medium text-[#43516A]">
+                {filteredUsers.length}
+              </span>{' '}
+              users
+            </p>
+
+            {(searchTerm || hasFilters) && (
+              <span className="text-xs text-[#8993A3]">
+                Filtered results
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* ---------------------------------------------------------------- */}
+        {/* Empty state                                                       */}
+        {/* ---------------------------------------------------------------- */}
+
+        {usersData && filteredUsers.length === 0 && (
+          <div className="rounded-xl border border-[#E2E6EB] bg-white px-5 py-14 text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#F7F8FA] text-[#6F7B8D]">
+              <UsersIcon className="h-6 w-6" />
+            </div>
+
+            <h2 className="text-base font-semibold text-[#12203B]">
+              No users found
+            </h2>
+
+            <p className="mx-auto mt-1 max-w-sm text-sm text-[#6F7B8D]">
+              {searchTerm || hasFilters
+                ? 'Try adjusting your search or filters.'
+                : 'There are no registered users yet.'}
+            </p>
+
+            {(searchTerm || hasFilters) && (
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setFilters({
+                    techCenterId: '',
+                    country: '',
+                    role: '',
+                    status: '',
+                  });
+                }}
+                className={`${quietButton} mt-5 px-4 py-2 text-sm`}
+              >
+                Clear search and filters
               </button>
             )}
           </div>
-          
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="px-4 py-2.5 bg-[#2A2438] text-[#A79C8C] rounded-lg hover:bg-[#3A3448] hover:text-[#F5F0E8] transition-colors duration-200 flex items-center gap-2 whitespace-nowrap"
-          >
-            <Filter className="w-4 h-4" />
-            Filters
-            {Object.values(filters).some(v => v) && (
-              <span className="w-2 h-2 rounded-full bg-[#E8A33D]" />
-            )}
-            {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
-          
-          <button
-            onClick={() => refetch()}
-            className="px-4 py-2.5 bg-[#2A2438] text-[#A79C8C] rounded-lg hover:bg-[#3A3448] hover:text-[#F5F0E8] transition-colors duration-200 flex items-center gap-2 whitespace-nowrap"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Refresh
-          </button>
-        </div>
+        )}
 
-        {/* Filter dropdown */}
-        <AnimatePresence>
-          {showFilters && usersData && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
-            >
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 mt-4 border-t border-[#2A2438]">
-                <div>
-                  <label className="block text-sm font-medium text-[#A79C8C] mb-1.5">
-                    Tech Center
-                  </label>
-                  <select
-                    value={filters.techCenterId}
-                    onChange={(e) => setFilters(prev => ({ ...prev, techCenterId: e.target.value }))}
-                    className="w-full px-4 py-2 bg-[#0B0912] border border-[#2A2438] rounded-lg text-[#F5F0E8] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-colors duration-200"
-                  >
-                    <option value="">All Centers</option>
-                    {usersData.filters.techCenters.map((tc) => (
-                      <option key={tc.id} value={tc.id}>{tc.name}</option>
-                    ))}
-                  </select>
-                </div>
+        {/* ---------------------------------------------------------------- */}
+        {/* Desktop users table                                               */}
+        {/* ---------------------------------------------------------------- */}
 
-                <div>
-                  <label className="block text-sm font-medium text-[#A79C8C] mb-1.5">
-                    Country
-                  </label>
-                  <select
-                    value={filters.country}
-                    onChange={(e) => setFilters(prev => ({ ...prev, country: e.target.value }))}
-                    className="w-full px-4 py-2 bg-[#0B0912] border border-[#2A2438] rounded-lg text-[#F5F0E8] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-colors duration-200"
-                  >
-                    <option value="">All Countries</option>
-                    {usersData.filters.countries.map((c) => (
-                      <option key={c.id} value={c.name}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[#A79C8C] mb-1.5">
-                    Role
-                  </label>
-                  <select
-                    value={filters.role}
-                    onChange={(e) => setFilters(prev => ({ ...prev, role: e.target.value }))}
-                    className="w-full px-4 py-2 bg-[#0B0912] border border-[#2A2438] rounded-lg text-[#F5F0E8] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-colors duration-200"
-                  >
-                    <option value="">All Roles</option>
-                    {usersData.filters.roles.map((r) => (
-                      <option key={r.id} value={r.name}>{r.displayName}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[#A79C8C] mb-1.5">
-                    Status
-                  </label>
-                  <select
-                    value={filters.status}
-                    onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                    className="w-full px-4 py-2 bg-[#0B0912] border border-[#2A2438] rounded-lg text-[#F5F0E8] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-colors duration-200"
-                  >
-                    <option value="">All Statuses</option>
-                    {usersData.filters.statuses.map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </div>
+        {usersData && filteredUsers.length > 0 && (
+          <>
+            <div className="hidden overflow-hidden rounded-xl border border-[#E2E6EB] bg-white lg:block">
+              {/* Table heading */}
+              <div className="grid grid-cols-[minmax(280px,1.5fr)_160px_minmax(180px,1fr)_150px] gap-4 border-b border-[#E2E6EB] bg-[#F7F8FA] px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-[#6F7B8D]">
+                <span>User</span>
+                <span>Role</span>
+                <span>Account</span>
+                <span className="text-right">Actions</span>
               </div>
 
-              {Object.values(filters).some(v => v) && (
-                <div className="mt-4 text-right">
-                  <button
-                    onClick={() => setFilters({ techCenterId: '', country: '', role: '', status: '' })}
-                    className="text-sm text-[#E8A33D] hover:text-[#F2C879] transition-colors duration-200"
+              {paginatedUsers.map((user) => {
+                const isExpanded = expandedUserId === user.id;
+
+                return (
+                  <div
+                    key={user.id}
+                    className="border-b border-[#E2E6EB] last:border-b-0"
                   >
-                    Clear all filters
-                  </button>
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+                    <div className="grid grid-cols-[minmax(280px,1.5fr)_160px_minmax(180px,1fr)_150px] items-center gap-4 px-4 py-3.5">
+                      {/* User */}
+                      <div className="flex min-w-0 items-center gap-3">
+                        <UserAvatar user={user} size="sm" />
 
-      {/* Users Table */}
-      {usersData && (
-        <>
-          {filteredUsers.length === 0 ? (
-            <div className="bg-[#150F20] border border-[#2A2438] rounded-2xl p-12 text-center">
-              <div className="w-20 h-20 rounded-2xl bg-[#E8A33D]/10 border border-[#E8A33D]/20 flex items-center justify-center mx-auto mb-4">
-                <UsersIcon className="w-10 h-10 text-[#E8A33D] opacity-60" />
-              </div>
-              <h3 className="text-xl font-semibold text-[#F5F0E8] mb-2">No Users Found</h3>
-              <p className="text-[#A79C8C]">
-                {searchTerm || Object.values(filters).some(v => v) 
-                  ? 'Try adjusting your search or filters' 
-                  : 'No users registered yet'}
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* Results count */}
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-sm text-[#6B6358]">
-                  Showing {paginatedUsers.length} of {filteredUsers.length} users
-                  {searchTerm && ` (filtered from ${usersData.users.length} total)`}
-                </p>
-              </div>
-
-              {/* Table - Desktop */}
-              <div className="hidden lg:block">
-                {paginatedUsers.map((user) => (
-                  <div key={user.id} className="mb-4">
-                    <div className="bg-[#150F20] border border-[#2A2438] rounded-2xl overflow-hidden hover:border-[#E8A33D]/30 transition-all duration-300">
-                      <div className="flex items-center justify-between p-4">
-                        <div className="flex items-center gap-4 flex-1">
-                          {user.profileImageUrl ? (
-                            <img
-                              src={user.profileImageUrl}
-                              alt={`${user.firstName} ${user.lastName}`}
-                              className="w-10 h-10 rounded-full object-cover flex-shrink-0"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#E8A33D] to-[#C97F1F] flex items-center justify-center text-[#0B0912] font-semibold text-sm flex-shrink-0">
-                              {user.firstName.charAt(0).toUpperCase()}
-                              {user.lastName.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-3 flex-wrap">
-                              <p className="text-sm font-medium text-[#F5F0E8]">
-                                {user.firstName} {user.lastName}
-                              </p>
-                              <RoleBadge role={user.role?.name || 'student'} />
-                              <StatusBadge status={user.status} />
-                            </div>
-                            <div className="flex items-center gap-4 mt-1 text-xs text-[#6B6358] flex-wrap">
-                              <span>{user.email}</span>
-                              {user.phoneNumber && <span>• {user.phoneNumber}</span>}
-                              <span>• {user.techCenter?.name || 'N/A'}</span>
-                              <span>• Joined {formatDate(user.createdAt)}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0 ml-4">
-                          <button
-                            onClick={() => toggleExpand(user.id, 'edit')}
-                            className={`p-2 rounded-lg transition-colors duration-200 ${
-                              expandedUserId === user.id && expandedAction === 'edit'
-                                ? 'bg-[#E8A33D]/20 text-[#E8A33D]'
-                                : 'hover:bg-[#2A2438] text-[#6B6358] hover:text-[#F5F0E8]'
-                            }`}
-                            title="Edit User"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => toggleExpand(user.id, 'role')}
-                            className={`p-2 rounded-lg transition-colors duration-200 ${
-                              expandedUserId === user.id && expandedAction === 'role'
-                                ? 'bg-[#E8A33D]/20 text-[#E8A33D]'
-                                : 'hover:bg-[#2A2438] text-[#6B6358] hover:text-[#F5F0E8]'
-                            }`}
-                            title="Change Role"
-                          >
-                            <Shield className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => toggleExpand(user.id, 'status')}
-                            className={`p-2 rounded-lg transition-colors duration-200 ${
-                              expandedUserId === user.id && expandedAction === 'status'
-                                ? 'bg-[#E8A33D]/20 text-[#E8A33D]'
-                                : 'hover:bg-[#2A2438] text-[#6B6358] hover:text-[#F5F0E8]'
-                            }`}
-                            title="Change Status"
-                          >
-                            <UserCog className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => toggleExpand(user.id, 'delete')}
-                            className={`p-2 rounded-lg transition-colors duration-200 ${
-                              expandedUserId === user.id && expandedAction === 'delete'
-                                ? 'bg-[#F87171]/20 text-[#F87171]'
-                                : 'hover:bg-[#2A2438] text-[#6B6358] hover:text-[#F87171]'
-                            }`}
-                            title="Delete User"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Expanded Action Content */}
-                      <AnimatePresence>
-                        {expandedUserId === user.id && selectedUser && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.3 }}
-                            className="overflow-hidden border-t border-[#2A2438]"
-                          >
-                            <div className="p-4 bg-[#0B0912]/50">
-                              {/* Edit Form */}
-                              {expandedAction === 'edit' && (
-                                <form onSubmit={handleEditSubmit} className="space-y-4">
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                      <label className="block text-sm font-medium text-[#A79C8C] mb-1.5">
-                                        First Name
-                                      </label>
-                                      <input
-                                        type="text"
-                                        name="firstName"
-                                        value={editFormData.firstName}
-                                        onChange={handleEditInputChange}
-                                        className="w-full px-4 py-2 bg-[#150F20] border border-[#2A2438] rounded-lg text-[#F5F0E8] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-colors duration-200"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-sm font-medium text-[#A79C8C] mb-1.5">
-                                        Last Name
-                                      </label>
-                                      <input
-                                        type="text"
-                                        name="lastName"
-                                        value={editFormData.lastName}
-                                        onChange={handleEditInputChange}
-                                        className="w-full px-4 py-2 bg-[#150F20] border border-[#2A2438] rounded-lg text-[#F5F0E8] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-colors duration-200"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-sm font-medium text-[#A79C8C] mb-1.5">
-                                        Email
-                                      </label>
-                                      <input
-                                        type="email"
-                                        name="email"
-                                        value={editFormData.email}
-                                        onChange={handleEditInputChange}
-                                        className="w-full px-4 py-2 bg-[#150F20] border border-[#2A2438] rounded-lg text-[#F5F0E8] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-colors duration-200"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-sm font-medium text-[#A79C8C] mb-1.5">
-                                        Phone
-                                      </label>
-                                      <input
-                                        type="text"
-                                        name="phoneNumber"
-                                        value={editFormData.phoneNumber}
-                                        onChange={handleEditInputChange}
-                                        className="w-full px-4 py-2 bg-[#150F20] border border-[#2A2438] rounded-lg text-[#F5F0E8] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-colors duration-200"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-sm font-medium text-[#A79C8C] mb-1.5">
-                                        Country
-                                      </label>
-                                      <input
-                                        type="text"
-                                        name="country"
-                                        value={editFormData.country}
-                                        onChange={handleEditInputChange}
-                                        className="w-full px-4 py-2 bg-[#150F20] border border-[#2A2438] rounded-lg text-[#F5F0E8] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-colors duration-200"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-sm font-medium text-[#A79C8C] mb-1.5">
-                                        City
-                                      </label>
-                                      <input
-                                        type="text"
-                                        name="city"
-                                        value={editFormData.city}
-                                        onChange={handleEditInputChange}
-                                        className="w-full px-4 py-2 bg-[#150F20] border border-[#2A2438] rounded-lg text-[#F5F0E8] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-colors duration-200"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-sm font-medium text-[#A79C8C] mb-1.5">
-                                        Tech Center
-                                      </label>
-                                      <select
-                                        name="techCenterId"
-                                        value={editFormData.techCenterId}
-                                        onChange={handleEditInputChange}
-                                        className="w-full px-4 py-2 bg-[#150F20] border border-[#2A2438] rounded-lg text-[#F5F0E8] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-colors duration-200"
-                                      >
-                                        <option value="">Select Tech Center</option>
-                                        {usersData.filters.techCenters.map((tc) => (
-                                          <option key={tc.id} value={tc.id}>{tc.name}</option>
-                                        ))}
-                                      </select>
-                                    </div>
-                                    <div>
-                                      <label className="block text-sm font-medium text-[#A79C8C] mb-1.5">
-                                        Profile Image URL
-                                      </label>
-                                      <input
-                                        type="url"
-                                        name="profileImageUrl"
-                                        value={editFormData.profileImageUrl}
-                                        onChange={handleEditInputChange}
-                                        placeholder="https://example.com/image.jpg"
-                                        className="w-full px-4 py-2 bg-[#150F20] border border-[#2A2438] rounded-lg text-[#F5F0E8] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-colors duration-200"
-                                      />
-                                    </div>
-                                  </div>
-                                  <div className="flex gap-3">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setExpandedUserId(null);
-                                        setExpandedAction(null);
-                                      }}
-                                      className="px-4 py-2 bg-[#2A2438] text-[#A79C8C] rounded-lg hover:bg-[#3A3448] hover:text-[#F5F0E8] transition-colors duration-200"
-                                    >
-                                      Cancel
-                                    </button>
-                                    <button
-                                      type="submit"
-                                      disabled={updateUserMutation.isPending}
-                                      className="px-4 py-2 bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] text-[#0B0912] font-medium rounded-lg hover:shadow-lg hover:shadow-[#E8A33D]/30 transition-all duration-200 disabled:opacity-50 flex items-center gap-2"
-                                    >
-                                      {updateUserMutation.isPending ? (
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                      ) : (
-                                        <Save className="w-4 h-4" />
-                                      )}
-                                      Save Changes
-                                    </button>
-                                  </div>
-                                </form>
-                              )}
-
-                              {/* Change Role */}
-                              {expandedAction === 'role' && usersData && (
-                                <div className="space-y-2">
-                                  <p className="text-sm text-[#A79C8C] mb-3">
-                                    Select new role for {selectedUser.firstName} {selectedUser.lastName}
-                                  </p>
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    {usersData.filters.roles.map((role) => (
-                                      <button
-                                        key={role.id}
-                                        onClick={() => handleChangeRole(role.id)}
-                                        disabled={updateRoleMutation.isPending || selectedUser.role?.id === role.id}
-                                        className={`text-left px-4 py-3 rounded-lg transition-all duration-200 flex items-center justify-between text-[#F5F0E8] ${
-                                          selectedUser.role?.id === role.id
-                                            ? 'bg-[#E8A33D]/10 border border-[#E8A33D]/30 cursor-default'
-                                            : 'bg-[#150F20] border border-[#2A2438] hover:border-[#E8A33D]/30 hover:bg-[#2A2438]/30'
-                                        } disabled:opacity-50 disabled:cursor-not-allowed`}
-                                      >
-                                        <div>
-                                          <p className="text-[#F5F0E8] font-medium">{role.displayName}</p>
-                                          <p className="text-xs text-[#A79C8C]">{role.name}</p>
-                                        </div>
-                                        {selectedUser.role?.id === role.id && (
-                                          <Check className="w-5 h-5 text-[#E8A33D]" />
-                                        )}
-                                      </button>
-                                    ))}
-                                  </div>
-                                  {updateRoleMutation.isPending && (
-                                    <div className="flex items-center justify-center gap-2 mt-3">
-                                      <Loader2 className="w-4 h-4 animate-spin text-[#E8A33D]" />
-                                      <span className="text-sm text-[#A79C8C]">Updating role...</span>
-                                    </div>
-                                  )}
-                                  <button
-                                    onClick={() => {
-                                      setExpandedUserId(null);
-                                      setExpandedAction(null);
-                                    }}
-                                    className="mt-3 px-4 py-2 bg-[#2A2438] text-[#A79C8C] rounded-lg hover:bg-[#3A3448] hover:text-[#F5F0E8] transition-colors duration-200"
-                                  >
-                                    Close
-                                  </button>
-                                </div>
-                              )}
-
-                              {/* Change Status */}
-                              {expandedAction === 'status' && (
-                                <div className="space-y-2">
-                                  <p className="text-sm text-[#A79C8C] mb-3">
-                                    Select new status for {selectedUser.firstName} {selectedUser.lastName}
-                                  </p>
-                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                    {['ACTIVE', 'INACTIVE', 'SUSPENDED'].map((status) => (
-                                      <button
-                                        key={status}
-                                        onClick={() => handleChangeStatus(status)}
-                                        disabled={updateStatusMutation.isPending || selectedUser.status === status}
-                                        className={`text-left px-4 py-3 rounded-lg transition-all duration-200 flex items-center justify-between ${
-                                          selectedUser.status === status
-                                            ? 'bg-[#E8A33D]/10 border border-[#E8A33D]/30 cursor-default'
-                                            : 'bg-[#150F20] border border-[#2A2438] hover:border-[#E8A33D]/30 hover:bg-[#2A2438]/30'
-                                        } disabled:opacity-50 disabled:cursor-not-allowed`}
-                                      >
-                                        <div>
-                                          <p className="text-[#F5F0E8] font-medium">{status}</p>
-                                          <p className="text-xs text-[#6B6358]">
-                                            {status === 'ACTIVE' ? 'Full access' :
-                                             status === 'INACTIVE' ? 'Cannot login' :
-                                             'Temporarily blocked'}
-                                          </p>
-                                        </div>
-                                        {selectedUser.status === status && (
-                                          <Check className="w-5 h-5 text-[#E8A33D]" />
-                                        )}
-                                      </button>
-                                    ))}
-                                  </div>
-                                  {updateStatusMutation.isPending && (
-                                    <div className="flex items-center justify-center gap-2 mt-3">
-                                      <Loader2 className="w-4 h-4 animate-spin text-[#E8A33D]" />
-                                      <span className="text-sm text-[#A79C8C]">Updating status...</span>
-                                    </div>
-                                  )}
-                                  <button
-                                    onClick={() => {
-                                      setExpandedUserId(null);
-                                      setExpandedAction(null);
-                                    }}
-                                    className="mt-3 px-4 py-2 bg-[#2A2438] text-[#A79C8C] rounded-lg hover:bg-[#3A3448] hover:text-[#F5F0E8] transition-colors duration-200"
-                                  >
-                                    Close
-                                  </button>
-                                </div>
-                              )}
-
-                              {/* Delete Confirmation */}
-                              {expandedAction === 'delete' && (
-                                <div className="space-y-3">
-                                  <div className="flex items-start gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-[#F87171]/10 flex items-center justify-center flex-shrink-0">
-                                      <AlertTriangle className="w-5 h-5 text-[#F87171]" />
-                                    </div>
-                                    <div>
-                                      <h4 className="text-base font-semibold text-[#F5F0E8]">
-                                        Delete {selectedUser.firstName} {selectedUser.lastName}?
-                                      </h4>
-                                      <p className="text-sm text-[#A79C8C]">
-                                        This action cannot be undone. All associated data including courses, grades, and activity logs will be permanently removed.
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <div className="flex gap-3">
-                                    <button
-                                      onClick={() => {
-                                        setExpandedUserId(null);
-                                        setExpandedAction(null);
-                                      }}
-                                      className="px-4 py-2 bg-[#2A2438] text-[#A79C8C] rounded-lg hover:bg-[#3A3448] hover:text-[#F5F0E8] transition-colors duration-200"
-                                    >
-                                      Cancel
-                                    </button>
-                                    <button
-                                      onClick={handleDeleteUser}
-                                      disabled={deleteMutation.isPending}
-                                      className="px-4 py-2 bg-[#F87171] text-[#0B0912] font-medium rounded-lg hover:bg-[#EF4444] transition-all duration-200 disabled:opacity-50 flex items-center gap-2"
-                                    >
-                                      {deleteMutation.isPending ? (
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                      ) : (
-                                        <Trash2 className="w-4 h-4" />
-                                      )}
-                                      Delete User
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Cards - Mobile */}
-              <div className="lg:hidden space-y-4">
-                {paginatedUsers.map((user) => (
-                  <div key={user.id}>
-                    <div className="bg-[#150F20] border border-[#2A2438] rounded-2xl p-4">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          {user.profileImageUrl ? (
-                            <img
-                              src={user.profileImageUrl}
-                              alt={`${user.firstName} ${user.lastName}`}
-                              className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                            />
-                          ) : (
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#E8A33D] to-[#C97F1F] flex items-center justify-center text-[#0B0912] font-semibold text-base flex-shrink-0">
-                              {user.firstName.charAt(0).toUpperCase()}
-                              {user.lastName.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <div>
-                            <p className="text-sm font-semibold text-[#F5F0E8]">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="truncate text-sm font-semibold text-[#12203B]">
                               {user.firstName} {user.lastName}
                             </p>
-                            <p className="text-xs text-[#6B6358]">{user.email}</p>
                           </div>
-                        </div>
-                        <div className="flex flex-col items-end gap-1">
-                          <StatusBadge status={user.status} />
-                          <RoleBadge role={user.role?.name || 'student'} />
+
+                          <p className="truncate text-xs text-[#6F7B8D]">
+                            {user.email}
+                          </p>
+
+                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-[#8993A3]">
+                            {user.phoneNumber && (
+                              <span>{user.phoneNumber}</span>
+                            )}
+
+                            <span>
+                              Joined {formatDate(user.createdAt)}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="space-y-2 text-sm">
+                      {/* Role */}
+                      <div>
+                        <RoleBadge
+                          role={user.role?.name || 'student'}
+                        />
+                      </div>
+
+                      {/* Account */}
+                      <div className="min-w-0">
+                        <StatusBadge status={user.status} />
+
+                        <div className="mt-1.5 flex min-w-0 items-center gap-1.5 text-xs text-[#6F7B8D]">
+                          <Building2 className="h-3.5 w-3.5 flex-shrink-0 text-[#8993A3]" />
+                          <span className="truncate">
+                            {user.techCenter?.name || 'No tech center'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex justify-end gap-1">
+                        <button
+                          onClick={() => toggleExpand(user.id, 'edit')}
+                          aria-label={`Edit ${user.firstName}`}
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+                            isExpanded && expandedAction === 'edit'
+                              ? 'bg-[#F8F3E8] text-[#8A6E3A]'
+                              : 'text-[#6F7B8D] hover:bg-[#F7F8FA] hover:text-[#12203B]'
+                          }`}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+
+                        <button
+                          onClick={() => toggleExpand(user.id, 'role')}
+                          aria-label={`Change role for ${user.firstName}`}
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+                            isExpanded && expandedAction === 'role'
+                              ? 'bg-[#F8F3E8] text-[#8A6E3A]'
+                              : 'text-[#6F7B8D] hover:bg-[#F7F8FA] hover:text-[#12203B]'
+                          }`}
+                        >
+                          <Shield className="h-4 w-4" />
+                        </button>
+
+                        <button
+                          onClick={() => toggleExpand(user.id, 'status')}
+                          aria-label={`Change status for ${user.firstName}`}
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+                            isExpanded && expandedAction === 'status'
+                              ? 'bg-[#F8F3E8] text-[#8A6E3A]'
+                              : 'text-[#6F7B8D] hover:bg-[#F7F8FA] hover:text-[#12203B]'
+                          }`}
+                        >
+                          <UserCog className="h-4 w-4" />
+                        </button>
+
+                        <button
+                          onClick={() => toggleExpand(user.id, 'delete')}
+                          aria-label={`Delete ${user.firstName}`}
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+                            isExpanded && expandedAction === 'delete'
+                              ? 'bg-[#FBF0EC] text-[#A4462F]'
+                              : 'text-[#6F7B8D] hover:bg-[#FBF0EC] hover:text-[#A4462F]'
+                          }`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Desktop expanded panel */}
+                    <AnimatePresence initial={false}>
+                      {isExpanded && selectedUser?.id === user.id && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.18 }}
+                          className="overflow-hidden border-t border-[#E2E6EB] bg-[#F7F8FA]"
+                        >
+                          <div className="p-4">
+                            {/* Edit */}
+                            {expandedAction === 'edit' && (
+                              <form
+                                onSubmit={handleEditSubmit}
+                                className="rounded-lg border border-[#E2E6EB] bg-white p-4"
+                              >
+                                <div className="mb-4 flex items-center justify-between">
+                                  <div>
+                                    <h3 className="text-sm font-semibold text-[#12203B]">
+                                      Edit user
+                                    </h3>
+                                    <p className="mt-0.5 text-xs text-[#6F7B8D]">
+                                      Update the user's profile information.
+                                    </p>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={closeExpanded}
+                                    className="text-[#8993A3] hover:text-[#12203B]"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+                                  {[
+                                    ['firstName', 'First name', 'text'],
+                                    ['lastName', 'Last name', 'text'],
+                                    ['email', 'Email', 'email'],
+                                    ['phoneNumber', 'Phone', 'text'],
+                                    ['country', 'Country', 'text'],
+                                    ['city', 'City', 'text'],
+                                    [
+                                      'profileImageUrl',
+                                      'Profile image URL',
+                                      'url',
+                                    ],
+                                  ].map(([name, label, type]) => (
+                                    <div key={name}>
+                                      <label className="mb-1.5 block text-xs font-medium text-[#43516A]">
+                                        {label}
+                                      </label>
+
+                                      <input
+                                        type={type}
+                                        name={name}
+                                        value={
+                                          editFormData[
+                                            name as keyof typeof editFormData
+                                          ]
+                                        }
+                                        onChange={handleEditInputChange}
+                                        className={inputClass}
+                                      />
+                                    </div>
+                                  ))}
+
+                                  <div>
+                                    <label className="mb-1.5 block text-xs font-medium text-[#43516A]">
+                                      Tech center
+                                    </label>
+
+                                    <select
+                                      name="techCenterId"
+                                      value={editFormData.techCenterId}
+                                      onChange={handleEditInputChange}
+                                      className={selectClass}
+                                    >
+                                      <option value="">
+                                        Select Tech Center
+                                      </option>
+
+                                      {usersData.filters.techCenters.map(
+                                        (tc) => (
+                                          <option
+                                            key={tc.id}
+                                            value={tc.id}
+                                          >
+                                            {tc.name}
+                                          </option>
+                                        )
+                                      )}
+                                    </select>
+                                  </div>
+                                </div>
+
+                                <div className="mt-4 flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={closeExpanded}
+                                    className={`${quietButton} px-4 py-2 text-sm`}
+                                  >
+                                    Cancel
+                                  </button>
+
+                                  <button
+                                    type="submit"
+                                    disabled={updateUserMutation.isPending}
+                                    className={`${primaryButton} px-4 py-2 text-sm`}
+                                  >
+                                    {updateUserMutation.isPending ? (
+                                      <>
+                                        <span className="h-4 w-4 animate-pulse rounded-full bg-white/60" />
+                                        Saving...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Save className="h-4 w-4" />
+                                        Save changes
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                              </form>
+                            )}
+
+                            {/* Role */}
+                            {expandedAction === 'role' && (
+                              <div className="rounded-lg border border-[#E2E6EB] bg-white p-4">
+                                <div className="mb-4">
+                                  <h3 className="text-sm font-semibold text-[#12203B]">
+                                    Change role
+                                  </h3>
+
+                                  <p className="mt-0.5 text-xs text-[#6F7B8D]">
+                                    Select a new role for{' '}
+                                    {selectedUser.firstName}{' '}
+                                    {selectedUser.lastName}.
+                                  </p>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                                  {usersData.filters.roles.map((role) => {
+                                    const selected =
+                                      selectedUser.role?.id === role.id;
+
+                                    return (
+                                      <button
+                                        key={role.id}
+                                        onClick={() =>
+                                          handleChangeRole(role.id)
+                                        }
+                                        disabled={
+                                          updateRoleMutation.isPending ||
+                                          selected
+                                        }
+                                        className={`flex items-center justify-between rounded-lg border p-3 text-left transition ${
+                                          selected
+                                            ? 'border-[#D8C59F] bg-[#F8F3E8]'
+                                            : 'border-[#E2E6EB] bg-white hover:border-[#D2D8E0] hover:bg-[#F7F8FA]'
+                                        }`}
+                                      >
+                                        <div>
+                                          <p className="text-sm font-medium text-[#12203B]">
+                                            {role.displayName}
+                                          </p>
+                                          <p className="mt-0.5 text-[11px] text-[#8993A3]">
+                                            {role.name}
+                                          </p>
+                                        </div>
+
+                                        {selected && (
+                                          <Check className="h-4 w-4 text-[#8A6E3A]" />
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+
+                                <button
+                                  onClick={closeExpanded}
+                                  className={`${quietButton} mt-4 px-4 py-2 text-sm`}
+                                >
+                                  Close
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Status */}
+                            {expandedAction === 'status' && (
+                              <div className="rounded-lg border border-[#E2E6EB] bg-white p-4">
+                                <div className="mb-4">
+                                  <h3 className="text-sm font-semibold text-[#12203B]">
+                                    Change account status
+                                  </h3>
+
+                                  <p className="mt-0.5 text-xs text-[#6F7B8D]">
+                                    Choose the access status for{' '}
+                                    {selectedUser.firstName}{' '}
+                                    {selectedUser.lastName}.
+                                  </p>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                                  {[
+                                    {
+                                      value: 'ACTIVE',
+                                      description: 'Full platform access',
+                                    },
+                                    {
+                                      value: 'INACTIVE',
+                                      description: 'User cannot log in',
+                                    },
+                                    {
+                                      value: 'SUSPENDED',
+                                      description: 'Temporarily blocked',
+                                    },
+                                  ].map((item) => {
+                                    const selected =
+                                      selectedUser.status === item.value;
+
+                                    return (
+                                      <button
+                                        key={item.value}
+                                        onClick={() =>
+                                          handleChangeStatus(item.value)
+                                        }
+                                        disabled={
+                                          updateStatusMutation.isPending ||
+                                          selected
+                                        }
+                                        className={`flex items-center justify-between rounded-lg border p-3 text-left transition ${
+                                          selected
+                                            ? 'border-[#D8C59F] bg-[#F8F3E8]'
+                                            : 'border-[#E2E6EB] bg-white hover:border-[#D2D8E0] hover:bg-[#F7F8FA]'
+                                        }`}
+                                      >
+                                        <div>
+                                          <p className="text-sm font-medium text-[#12203B]">
+                                            {item.value}
+                                          </p>
+                                          <p className="mt-0.5 text-[11px] text-[#8993A3]">
+                                            {item.description}
+                                          </p>
+                                        </div>
+
+                                        {selected && (
+                                          <Check className="h-4 w-4 text-[#8A6E3A]" />
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+
+                                <button
+                                  onClick={closeExpanded}
+                                  className={`${quietButton} mt-4 px-4 py-2 text-sm`}
+                                >
+                                  Close
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Delete */}
+                            {expandedAction === 'delete' && (
+                              <div className="rounded-lg border border-[#F0D7D0] bg-white p-4">
+                                <div className="flex items-start gap-3">
+                                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#FBF0EC]">
+                                    <AlertTriangle className="h-4 w-4 text-[#A4462F]" />
+                                  </div>
+
+                                  <div className="min-w-0">
+                                    <h3 className="text-sm font-semibold text-[#12203B]">
+                                      Delete {selectedUser.firstName}{' '}
+                                      {selectedUser.lastName}?
+                                    </h3>
+
+                                    <p className="mt-1 max-w-2xl text-xs leading-5 text-[#6F7B8D]">
+                                      This action cannot be undone. The user's
+                                      account and associated platform data may
+                                      be permanently removed.
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="mt-4 flex gap-2">
+                                  <button
+                                    onClick={closeExpanded}
+                                    className={`${quietButton} px-4 py-2 text-sm`}
+                                  >
+                                    Cancel
+                                  </button>
+
+                                  <button
+                                    onClick={handleDeleteUser}
+                                    disabled={deleteMutation.isPending}
+                                    className={`${dangerButton} px-4 py-2 text-sm`}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                    {deleteMutation.isPending
+                                      ? 'Deleting...'
+                                      : 'Delete user'}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* ---------------------------------------------------------------- */}
+            {/* Mobile cards                                                     */}
+            {/* ---------------------------------------------------------------- */}
+
+            <div className="space-y-3 lg:hidden">
+              {paginatedUsers.map((user) => {
+                const isExpanded = expandedUserId === user.id;
+
+                return (
+                  <div
+                    key={user.id}
+                    className="overflow-hidden rounded-xl border border-[#E2E6EB] bg-white"
+                  >
+                    <div className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <UserAvatar user={user} />
+
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-[#12203B]">
+                              {user.firstName} {user.lastName}
+                            </p>
+
+                            <p className="truncate text-xs text-[#6F7B8D]">
+                              {user.email}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-shrink-0 flex-col items-end gap-1">
+                          <StatusBadge status={user.status} />
+                          <RoleBadge
+                            role={user.role?.name || 'student'}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-4 space-y-2">
                         {user.techCenter && (
-                          <div className="flex items-center gap-2 text-[#A79C8C]">
-                            <Building2 className="w-4 h-4 text-[#6B6358]" />
-                            <span>{user.techCenter.name}</span>
+                          <div className="flex items-center gap-2 text-xs text-[#6F7B8D]">
+                            <Building2 className="h-3.5 w-3.5 text-[#8993A3]" />
+                            <span className="truncate">
+                              {user.techCenter.name}
+                            </span>
                           </div>
                         )}
+
                         {user.country && (
-                          <div className="flex items-center gap-2 text-[#A79C8C]">
-                            <Globe className="w-4 h-4 text-[#6B6358]" />
+                          <div className="flex items-center gap-2 text-xs text-[#6F7B8D]">
+                            <Globe className="h-3.5 w-3.5 text-[#8993A3]" />
                             <span>{user.country}</span>
                           </div>
                         )}
-                        <div className="flex items-center gap-2 text-[#A79C8C]">
-                          <Calendar className="w-4 h-4 text-[#6B6358]" />
+
+                        <div className="flex items-center gap-2 text-xs text-[#6F7B8D]">
+                          <Calendar className="h-3.5 w-3.5 text-[#8993A3]" />
                           <span>Joined {formatDate(user.createdAt)}</span>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-[#2A2438]">
+                      <div className="mt-4 flex items-center justify-end gap-1.5 border-t border-[#E2E6EB] pt-3">
                         <button
                           onClick={() => toggleExpand(user.id, 'edit')}
-                          className={`px-3 py-1.5 rounded-lg transition-colors duration-200 text-xs flex items-center gap-1 ${
-                            expandedUserId === user.id && expandedAction === 'edit'
-                              ? 'bg-[#E8A33D]/20 text-[#E8A33D]'
-                              : 'bg-[#2A2438] text-[#A79C8C] hover:bg-[#3A3448] hover:text-[#F5F0E8]'
+                          className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
+                            isExpanded && expandedAction === 'edit'
+                              ? 'bg-[#F8F3E8] text-[#8A6E3A]'
+                              : 'bg-[#F7F8FA] text-[#43516A] hover:bg-[#EEF2F7]'
                           }`}
                         >
-                          <Edit className="w-3 h-3" />
+                          <Edit className="h-3.5 w-3.5" />
                           Edit
                         </button>
+
                         <button
                           onClick={() => toggleExpand(user.id, 'role')}
-                          className={`px-3 py-1.5 rounded-lg transition-colors duration-200 text-xs flex items-center gap-1 ${
-                            expandedUserId === user.id && expandedAction === 'role'
-                              ? 'bg-[#E8A33D]/20 text-[#E8A33D]'
-                              : 'bg-[#2A2438] text-[#A79C8C] hover:bg-[#3A3448] hover:text-[#F5F0E8]'
+                          className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
+                            isExpanded && expandedAction === 'role'
+                              ? 'bg-[#F8F3E8] text-[#8A6E3A]'
+                              : 'bg-[#F7F8FA] text-[#43516A] hover:bg-[#EEF2F7]'
                           }`}
                         >
-                          <Shield className="w-3 h-3" />
+                          <Shield className="h-3.5 w-3.5" />
                           Role
                         </button>
+
                         <button
                           onClick={() => toggleExpand(user.id, 'status')}
-                          className={`px-3 py-1.5 rounded-lg transition-colors duration-200 text-xs flex items-center gap-1 ${
-                            expandedUserId === user.id && expandedAction === 'status'
-                              ? 'bg-[#E8A33D]/20 text-[#E8A33D]'
-                              : 'bg-[#2A2438] text-[#A79C8C] hover:bg-[#3A3448] hover:text-[#F5F0E8]'
+                          className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
+                            isExpanded && expandedAction === 'status'
+                              ? 'bg-[#F8F3E8] text-[#8A6E3A]'
+                              : 'bg-[#F7F8FA] text-[#43516A] hover:bg-[#EEF2F7]'
                           }`}
                         >
-                          <UserCog className="w-3 h-3" />
+                          <UserCog className="h-3.5 w-3.5" />
                           Status
                         </button>
+
                         <button
                           onClick={() => toggleExpand(user.id, 'delete')}
-                          className={`px-3 py-1.5 rounded-lg transition-colors duration-200 text-xs flex items-center gap-1 ${
-                            expandedUserId === user.id && expandedAction === 'delete'
-                              ? 'bg-[#F87171]/20 text-[#F87171]'
-                              : 'bg-[#2A2438] text-[#A79C8C] hover:bg-[#3A3448] hover:text-[#F87171]'
+                          className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
+                            isExpanded && expandedAction === 'delete'
+                              ? 'bg-[#FBF0EC] text-[#A4462F]'
+                              : 'bg-[#F7F8FA] text-[#43516A] hover:bg-[#FBF0EC] hover:text-[#A4462F]'
                           }`}
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="h-3.5 w-3.5" />
                           Delete
                         </button>
                       </div>
+                    </div>
 
-                      {/* Expanded content for mobile */}
-                      <AnimatePresence>
-                        {expandedUserId === user.id && selectedUser && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.3 }}
-                            className="overflow-hidden mt-3 pt-3 border-t border-[#2A2438]"
-                          >
+                    {/* Mobile expanded actions */}
+                    <AnimatePresence initial={false}>
+                      {isExpanded && selectedUser?.id === user.id && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.18 }}
+                          className="overflow-hidden border-t border-[#E2E6EB] bg-[#F7F8FA]"
+                        >
+                          <div className="p-4">
                             {expandedAction === 'edit' && (
-                              <form onSubmit={handleEditSubmit} className="space-y-3">
-                                <div className="space-y-3">
+                              <form
+                                onSubmit={handleEditSubmit}
+                                className="space-y-3"
+                              >
+                                <div className="grid grid-cols-1 gap-3">
                                   <input
                                     type="text"
                                     name="firstName"
                                     value={editFormData.firstName}
                                     onChange={handleEditInputChange}
-                                    placeholder="First Name"
-                                    className="w-full px-4 py-2 bg-[#150F20] border border-[#2A2438] rounded-lg text-[#F5F0E8] placeholder-[#6B6358] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-colors duration-200 text-sm"
+                                    placeholder="First name"
+                                    className={inputClass}
                                   />
+
                                   <input
                                     type="text"
                                     name="lastName"
                                     value={editFormData.lastName}
                                     onChange={handleEditInputChange}
-                                    placeholder="Last Name"
-                                    className="w-full px-4 py-2 bg-[#150F20] border border-[#2A2438] rounded-lg text-[#F5F0E8] placeholder-[#6B6358] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-colors duration-200 text-sm"
+                                    placeholder="Last name"
+                                    className={inputClass}
                                   />
+
                                   <input
                                     type="email"
                                     name="email"
                                     value={editFormData.email}
                                     onChange={handleEditInputChange}
                                     placeholder="Email"
-                                    className="w-full px-4 py-2 bg-[#150F20] border border-[#2A2438] rounded-lg text-[#F5F0E8] placeholder-[#6B6358] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-colors duration-200 text-sm"
+                                    className={inputClass}
                                   />
+
                                   <input
                                     type="text"
                                     name="phoneNumber"
                                     value={editFormData.phoneNumber}
                                     onChange={handleEditInputChange}
                                     placeholder="Phone"
-                                    className="w-full px-4 py-2 bg-[#150F20] border border-[#2A2438] rounded-lg text-[#F5F0E8] placeholder-[#6B6358] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/40 focus:border-[#E8A33D]/40 transition-colors duration-200 text-sm"
+                                    className={inputClass}
+                                  />
+
+                                  <input
+                                    type="text"
+                                    name="country"
+                                    value={editFormData.country}
+                                    onChange={handleEditInputChange}
+                                    placeholder="Country"
+                                    className={inputClass}
+                                  />
+
+                                  <input
+                                    type="text"
+                                    name="city"
+                                    value={editFormData.city}
+                                    onChange={handleEditInputChange}
+                                    placeholder="City"
+                                    className={inputClass}
+                                  />
+
+                                  <select
+                                    name="techCenterId"
+                                    value={editFormData.techCenterId}
+                                    onChange={handleEditInputChange}
+                                    className={selectClass}
+                                  >
+                                    <option value="">
+                                      Select Tech Center
+                                    </option>
+
+                                    {usersData.filters.techCenters.map(
+                                      (tc) => (
+                                        <option
+                                          key={tc.id}
+                                          value={tc.id}
+                                        >
+                                          {tc.name}
+                                        </option>
+                                      )
+                                    )}
+                                  </select>
+
+                                  <input
+                                    type="url"
+                                    name="profileImageUrl"
+                                    value={editFormData.profileImageUrl}
+                                    onChange={handleEditInputChange}
+                                    placeholder="Profile image URL"
+                                    className={inputClass}
                                   />
                                 </div>
-                                <div className="flex gap-2">
+
+                                <div className="flex gap-2 pt-1">
                                   <button
                                     type="button"
-                                    onClick={() => {
-                                      setExpandedUserId(null);
-                                      setExpandedAction(null);
-                                    }}
-                                    className="flex-1 px-4 py-2 bg-[#2A2438] text-[#A79C8C] rounded-lg hover:bg-[#3A3448] hover:text-[#F5F0E8] transition-colors duration-200 text-sm"
+                                    onClick={closeExpanded}
+                                    className={`${quietButton} flex-1 px-4 py-2 text-sm`}
                                   >
                                     Cancel
                                   </button>
+
                                   <button
                                     type="submit"
                                     disabled={updateUserMutation.isPending}
-                                    className="flex-1 px-4 py-2 bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] text-[#0B0912] font-medium rounded-lg hover:shadow-lg hover:shadow-[#E8A33D]/30 transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
+                                    className={`${primaryButton} flex-1 px-4 py-2 text-sm`}
                                   >
-                                    {updateUserMutation.isPending ? (
-                                      <Loader2 className="w-4 h-4 animate-spin" />
-                                    ) : (
-                                      <Save className="w-4 h-4" />
-                                    )}
-                                    Save
+                                    <Save className="h-4 w-4" />
+                                    {updateUserMutation.isPending
+                                      ? 'Saving...'
+                                      : 'Save'}
                                   </button>
                                 </div>
                               </form>
                             )}
 
-                            {expandedAction === 'role' && usersData && (
-                              <div className="space-y-2">
-                                <p className="text-sm text-[#A79C8C] mb-2">
-                                  Select role for {selectedUser.firstName}
+                            {expandedAction === 'role' && (
+                              <div>
+                                <p className="mb-3 text-xs text-[#6F7B8D]">
+                                  Select a role for{' '}
+                                  <span className="font-medium text-[#43516A]">
+                                    {selectedUser.firstName}
+                                  </span>
+                                  .
                                 </p>
-                                {usersData.filters.roles.map((role) => (
-                                  <button
-                                    key={role.id}
-                                    onClick={() => handleChangeRole(role.id)}
-                                    disabled={updateRoleMutation.isPending || selectedUser.role?.id === role.id}
-                                    className={`w-full text-left px-4 py-2 rounded-lg transition-all duration-200 flex items-center justify-between text-sm ${
-                                      selectedUser.role?.id === role.id
-                                        ? 'bg-[#E8A33D]/10 border border-[#E8A33D]/30 cursor-default'
-                                        : 'bg-[#150F20] border border-[#2A2438] hover:border-[#E8A33D]/30'
-                                    } disabled:opacity-50`}
-                                  >
-                                    <span className="text-[#F5F0E8]">{role.displayName}</span>
-                                    {selectedUser.role?.id === role.id && (
-                                      <Check className="w-4 h-4 text-[#E8A33D]" />
-                                    )}
-                                  </button>
-                                ))}
+
+                                <div className="space-y-2">
+                                  {usersData.filters.roles.map((role) => {
+                                    const selected =
+                                      selectedUser.role?.id === role.id;
+
+                                    return (
+                                      <button
+                                        key={role.id}
+                                        onClick={() =>
+                                          handleChangeRole(role.id)
+                                        }
+                                        disabled={
+                                          updateRoleMutation.isPending ||
+                                          selected
+                                        }
+                                        className={`flex w-full items-center justify-between rounded-lg border p-3 text-left ${
+                                          selected
+                                            ? 'border-[#D8C59F] bg-[#F8F3E8]'
+                                            : 'border-[#E2E6EB] bg-white hover:bg-[#F7F8FA]'
+                                        }`}
+                                      >
+                                        <span className="text-sm font-medium text-[#12203B]">
+                                          {role.displayName}
+                                        </span>
+
+                                        {selected && (
+                                          <Check className="h-4 w-4 text-[#8A6E3A]" />
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+
+                                <button
+                                  onClick={closeExpanded}
+                                  className={`${quietButton} mt-3 w-full px-4 py-2 text-sm`}
+                                >
+                                  Close
+                                </button>
                               </div>
                             )}
 
                             {expandedAction === 'status' && (
-                              <div className="space-y-2">
-                                <p className="text-sm text-[#A79C8C] mb-2">
-                                  Select status for {selectedUser.firstName}
+                              <div>
+                                <p className="mb-3 text-xs text-[#6F7B8D]">
+                                  Select a new status for{' '}
+                                  <span className="font-medium text-[#43516A]">
+                                    {selectedUser.firstName}
+                                  </span>
+                                  .
                                 </p>
-                                {['ACTIVE', 'INACTIVE', 'SUSPENDED'].map((status) => (
-                                  <button
-                                    key={status}
-                                    onClick={() => handleChangeStatus(status)}
-                                    disabled={updateStatusMutation.isPending || selectedUser.status === status}
-                                    className={`w-full text-left px-4 py-2 rounded-lg transition-all duration-200 flex items-center justify-between text-sm ${
-                                      selectedUser.status === status
-                                        ? 'bg-[#E8A33D]/10 border border-[#E8A33D]/30 cursor-default'
-                                        : 'bg-[#150F20] border border-[#2A2438] hover:border-[#E8A33D]/30'
-                                    } disabled:opacity-50`}
-                                  >
-                                    <span className="text-[#F5F0E8]">{status}</span>
-                                    {selectedUser.status === status && (
-                                      <Check className="w-4 h-4 text-[#E8A33D]" />
-                                    )}
-                                  </button>
-                                ))}
+
+                                <div className="space-y-2">
+                                  {['ACTIVE', 'INACTIVE', 'SUSPENDED'].map(
+                                    (status) => {
+                                      const selected =
+                                        selectedUser.status === status;
+
+                                      return (
+                                        <button
+                                          key={status}
+                                          onClick={() =>
+                                            handleChangeStatus(status)
+                                          }
+                                          disabled={
+                                            updateStatusMutation.isPending ||
+                                            selected
+                                          }
+                                          className={`flex w-full items-center justify-between rounded-lg border p-3 text-left ${
+                                            selected
+                                              ? 'border-[#D8C59F] bg-[#F8F3E8]'
+                                              : 'border-[#E2E6EB] bg-white hover:bg-[#F7F8FA]'
+                                          }`}
+                                        >
+                                          <div>
+                                            <p className="text-sm font-medium text-[#12203B]">
+                                              {status}
+                                            </p>
+
+                                            <p className="mt-0.5 text-[11px] text-[#8993A3]">
+                                              {status === 'ACTIVE'
+                                                ? 'Full access'
+                                                : status === 'INACTIVE'
+                                                ? 'Cannot login'
+                                                : 'Temporarily blocked'}
+                                            </p>
+                                          </div>
+
+                                          {selected && (
+                                            <Check className="h-4 w-4 text-[#8A6E3A]" />
+                                          )}
+                                        </button>
+                                      );
+                                    }
+                                  )}
+                                </div>
+
+                                <button
+                                  onClick={closeExpanded}
+                                  className={`${quietButton} mt-3 w-full px-4 py-2 text-sm`}
+                                >
+                                  Close
+                                </button>
                               </div>
                             )}
 
                             {expandedAction === 'delete' && (
-                              <div className="space-y-3">
+                              <div>
                                 <div className="flex items-start gap-3">
-                                  <AlertTriangle className="w-5 h-5 text-[#F87171] flex-shrink-0 mt-0.5" />
+                                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#FBF0EC]">
+                                    <AlertTriangle className="h-4 w-4 text-[#A4462F]" />
+                                  </div>
+
                                   <div>
-                                    <p className="text-sm text-[#F5F0E8] font-medium">
+                                    <p className="text-sm font-semibold text-[#12203B]">
                                       Delete {selectedUser.firstName}?
                                     </p>
-                                    <p className="text-xs text-[#A79C8C]">
-                                      This cannot be undone.
+
+                                    <p className="mt-1 text-xs leading-5 text-[#6F7B8D]">
+                                      This action cannot be undone.
                                     </p>
                                   </div>
                                 </div>
-                                <div className="flex gap-2">
+
+                                <div className="mt-4 flex gap-2">
                                   <button
-                                    onClick={() => {
-                                      setExpandedUserId(null);
-                                      setExpandedAction(null);
-                                    }}
-                                    className="flex-1 px-4 py-2 bg-[#2A2438] text-[#A79C8C] rounded-lg hover:bg-[#3A3448] hover:text-[#F5F0E8] transition-colors duration-200 text-sm"
+                                    onClick={closeExpanded}
+                                    className={`${quietButton} flex-1 px-4 py-2 text-sm`}
                                   >
                                     Cancel
                                   </button>
+
                                   <button
                                     onClick={handleDeleteUser}
                                     disabled={deleteMutation.isPending}
-                                    className="flex-1 px-4 py-2 bg-[#F87171] text-[#0B0912] font-medium rounded-lg hover:bg-[#EF4444] transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
+                                    className={`${dangerButton} flex-1 px-4 py-2 text-sm`}
                                   >
-                                    {deleteMutation.isPending ? (
-                                      <Loader2 className="w-4 h-4 animate-spin" />
-                                    ) : (
-                                      <Trash2 className="w-4 h-4" />
-                                    )}
-                                    Delete
+                                    <Trash2 className="h-4 w-4" />
+                                    {deleteMutation.isPending
+                                      ? 'Deleting...'
+                                      : 'Delete'}
                                   </button>
                                 </div>
                               </div>
                             )}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
-                ))}
-              </div>
+                );
+              })}
+            </div>
 
-              {/* Pagination - Client-side */}
-              {totalPages > 1 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
-                  <p className="text-sm text-[#6B6358] order-2 sm:order-1">
-                    Showing {(page - 1) * limit + 1} to{' '}
-                    {Math.min(page * limit, filteredUsers.length)} of {filteredUsers.length} users
-                    {searchTerm && ` (filtered from ${usersData.users.length} total)`}
-                  </p>
-                  <div className="flex items-center gap-2 order-1 sm:order-2">
-                    <button
-                      onClick={() => handlePageChange(page - 1)}
-                      disabled={page === 1}
-                      className="p-2 rounded-lg bg-[#2A2438] text-[#A79C8C] hover:bg-[#3A3448] hover:text-[#F5F0E8] transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      const pageNum = i + Math.max(1, Math.min(page - 2, totalPages - 4));
+            {/* ---------------------------------------------------------------- */}
+            {/* Pagination                                                        */}
+            {/* ---------------------------------------------------------------- */}
+
+            {totalPages > 1 && (
+              <div className="mt-5 flex flex-col items-center justify-between gap-3 sm:flex-row">
+                <p className="text-xs text-[#6F7B8D] sm:text-sm">
+                  Page {page} of {totalPages}
+                </p>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => handlePageChange(page - 1)}
+                    disabled={page === 1}
+                    aria-label="Previous page"
+                    className={`${quietButton} h-9 w-9`}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+
+                  {Array.from(
+                    { length: Math.min(5, totalPages) },
+                    (_, index) => {
+                      const pageNum =
+                        index +
+                        Math.max(
+                          1,
+                          Math.min(page - 2, totalPages - 4)
+                        );
+
                       return (
                         <button
                           key={pageNum}
                           onClick={() => handlePageChange(pageNum)}
-                          className={`w-10 h-10 rounded-lg transition-colors duration-200 ${
+                          className={`flex h-9 w-9 items-center justify-center rounded-lg text-xs font-medium transition-colors ${
                             pageNum === page
-                              ? 'bg-[#E8A33D] text-[#0B0912]'
-                              : 'bg-[#2A2438] text-[#A79C8C] hover:bg-[#3A3448] hover:text-[#F5F0E8]'
+                              ? 'bg-[#12203B] text-white'
+                              : 'border border-[#E2E6EB] bg-white text-[#43516A] hover:bg-[#F7F8FA]'
                           }`}
                         >
                           {pageNum}
                         </button>
                       );
-                    })}
-                    <button
-                      onClick={() => handlePageChange(page + 1)}
-                      disabled={page === totalPages}
-                      className="p-2 rounded-lg bg-[#2A2438] text-[#A79C8C] hover:bg-[#3A3448] hover:text-[#F5F0E8] transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
+                    }
+                  )}
+
+                  <button
+                    onClick={() => handlePageChange(page + 1)}
+                    disabled={page === totalPages}
+                    aria-label="Next page"
+                    className={`${quietButton} h-9 w-9`}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
                 </div>
-              )}
-            </>
-          )}
-        </>
-      )}
-    </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </main>
   );
 }
+
