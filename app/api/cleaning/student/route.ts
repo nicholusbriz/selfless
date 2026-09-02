@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import { getReassignmentAllowance } from '@/lib/cleaning/reassignment-policy';
 
 // GET - Get student's cleaning data
 export async function GET() {
@@ -141,6 +142,7 @@ export async function GET() {
         techCenterId: user.techCenter?.id
       },
       registration: userRegistration,
+      reassignment: getReassignmentAllowance(userRegistration?.reassignmentCount ?? 0),
       userAttendance,
       weeks,
       unregisteredStudents,

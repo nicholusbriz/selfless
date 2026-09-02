@@ -16,7 +16,7 @@ export function useAuth() {
       password,
       redirect: false,
     });
-    if (result?.error) throw new Error(result.error);
+    if (result?.error) throw new Error('Sign-in could not be completed. Verify your credentials and try again.');
     return result;
   };
 
@@ -25,7 +25,7 @@ export function useAuth() {
     router.push('/');
   };
 
-  const updateUser = async (updates: any) => {
+  const updateUser = async (updates: Record<string, unknown>) => {
     const response = await fetch('/api/user/update', {
       method: 'POST',
       headers: {

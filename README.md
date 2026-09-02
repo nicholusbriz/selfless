@@ -493,9 +493,10 @@ my-app/
 - **Response**: `{ registration }`
 
 #### `/api/cleaning/change-day` (POST)
-- **Purpose**: Change cleaning day
+- **Purpose**: Change the authenticated student’s cleaning day, subject to a maximum of three successful changes
 - **Request**: `{ newDayId }`
-- **Response**: `{ registration }`
+- **Response**: `{ success, message, registration, reassignment: { changesUsed, maximumChanges, changesRemaining, canReassign } }`
+- **Controls**: Authentication, session-derived ownership, tech-center scope, registration deadline, day status, capacity, minimum participants, atomic counter enforcement, and audit history
 
 #### `/api/cleaning/student` (GET)
 - **Purpose**: Get student cleaning info
@@ -584,7 +585,8 @@ The platform uses MongoDB with Prisma ORM. Key models include:
 - **Grade**: Academic performance tracking
 
 ### Operations Models
-- **CleaningRegistration**: Cleaning schedule management
+- **CleaningRegistration**: Cleaning schedule management with a three-change student reassignment allowance
+- **CleaningReassignmentHistory**: Immutable audit history for successful cleaning-assignment changes
 - **AttendanceRecord**: Attendance tracking
 - **FootballTeam**: Sports team management
 - **TeamMembership**: Team membership system

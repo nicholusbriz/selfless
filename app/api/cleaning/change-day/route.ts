@@ -1,235 +1,126 @@
-// app/api/cleaning/change-day/route.ts
-import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
-import { logCleaningDayChange } from '@/lib/logger';
+import { ReassignmentError } from '@/lib/cleaning/reassignment-errors';
+import {
+  assertReassignmentAllowed,
+  getReassignmentAllowance,
+} from '@/lib/cleaning/reassignment-policy';
 
-// POST - Change student's cleaning day (any week)
+function errorResponse(error: ReassignmentError) {
+  return NextResponse.json({ error: error.message, code: error.code }, { status: error.status });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!session?.user?.id) return NextResponse.json({ error: 'Authentication is required.', code: 'UNAUTHORIZED' }, { status: 401 });
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      include: { role: true }
-    });
-    
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
+    const body = (await request.json()) as { newDayId?: unknown; userId?: unknown };
+    if (body.userId !== undefined) return NextResponse.json({ error: 'Ownership is derived from the authenticated session.', code: 'CALLER_OWNERSHIP_REJECTED' }, { status: 400 });
+    if (typeof body.newDayId !== 'string' || !body.newDayId.trim()) return NextResponse.json({ error: 'A replacement cleaning day is required.', code: 'NEW_DAY_REQUIRED' }, { status: 400 });
+    const newDayId = body.newDayId.trim();
 
-    const body = await request.json();
-    const { newDayId } = body;
+    const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { id: true, techCenterId: true } });
+    if (!user) return NextResponse.json({ error: 'The authenticated user was not found.', code: 'USER_NOT_FOUND' }, { status: 404 });
 
-    if (!newDayId) {
-      return NextResponse.json(
-        { error: 'Missing required field: newDayId' },
-        { status: 400 }
-      );
-    }
-
-    // Use transaction with increased timeout
     const result = await prisma.$transaction(async (tx) => {
-      // Get existing registration
-      const existingRegistration = await tx.cleaningRegistration.findUnique({
+      const registration = await tx.cleaningRegistration.findUnique({
         where: { userId: user.id },
-        include: {
-          cleaningDay: {
-            include: { week: true }
-          }
-        }
+        include: { cleaningDay: { include: { week: true } } },
+      });
+      if (!registration) throw new ReassignmentError('REGISTRATION_NOT_FOUND', 'No current cleaning assignment exists.', 404);
+
+      const replacementDay = await tx.cleaningDay.findUnique({ where: { id: newDayId }, include: { week: true } });
+      if (!replacementDay) throw new ReassignmentError('DAY_NOT_OPEN', 'The selected cleaning day was not found.', 404);
+
+      const [replacementRegistrations, currentDayRegistrations] = await Promise.all([
+        tx.cleaningRegistration.count({ where: { cleaningDayId: newDayId } }),
+        tx.cleaningRegistration.count({ where: { cleaningDayId: registration.cleaningDayId } }),
+      ]);
+
+      assertReassignmentAllowed({
+        changesUsed: registration.reassignmentCount,
+        currentDayId: registration.cleaningDayId,
+        replacementDayId: newDayId,
+        userTechCenterId: user.techCenterId,
+        replacementTechCenterId: replacementDay.techCenterId,
+        weekIsActive: replacementDay.week.isActive,
+        registrationDeadline: replacementDay.week.registrationDeadline,
+        replacementStatus: replacementDay.status,
+        replacementDate: replacementDay.cleaningDate,
+        replacementRegistrations,
+        replacementCapacity: replacementDay.capacityLimit,
+        currentDayRegistrations,
       });
 
-      if (!existingRegistration) {
-        throw new Error('You are not registered for any cleaning day');
-      }
-
-      const oldDayId = existingRegistration.cleaningDayId;
-
-      // Get new day
-      const newDay = await tx.cleaningDay.findUnique({
-        where: { id: newDayId },
-        include: { week: true }
-      });
-
-      if (!newDay) {
-        throw new Error('New cleaning day not found');
-      }
-
-      // REMOVED: Same week restriction - User can change to any week
-      // Now allowing changes across different weeks
-
-      // Validate: Cannot change to the same day
-      if (newDayId === oldDayId) {
-        throw new Error('You are already registered for this day');
-      }
-
-      // Validate: Week must allow registration
-      if (!newDay.week.isActive) {
-        throw new Error('This week is closed for registration');
-      }
-
-      // Validate: Registration deadline not passed
-      if (new Date() > new Date(newDay.week.registrationDeadline)) {
-        throw new Error('Registration deadline has passed');
-      }
-
-      // Validate: New day must be OPEN
-      if (newDay.status !== 'OPEN') {
-        throw new Error('This cleaning day is not open for registration');
-      }
-
-      // Validate: Cannot change to past dates
-      if (new Date(newDay.cleaningDate) < new Date()) {
-        throw new Error('You cannot change to a past date');
-      }
-
-      // Check capacity on new day
-      const newDayRegistrations = await tx.cleaningRegistration.count({
-        where: { cleaningDayId: newDayId }
-      });
-
-      if (newDayRegistrations >= newDay.capacityLimit) {
-        throw new Error('This cleaning day is at capacity');
-      }
-
-      // Check if old day has exactly 4 students (minimum threshold)
-      const oldDayRegistrations = await tx.cleaningRegistration.count({
-        where: { cleaningDayId: oldDayId }
-      });
-
-      if (oldDayRegistrations === 4) {
-        throw new Error('Cannot leave this day - it has exactly 4 students (minimum required). A day must have at least 4 students.');
-      }
-
-      // Delete old registration
-      await tx.cleaningRegistration.delete({
-        where: { userId: user.id }
-      });
-
-      // Update old day's count and status (decrease count)
-      const oldDayNewCount = await tx.cleaningRegistration.count({
-        where: { cleaningDayId: oldDayId }
-      });
-
-      const oldDay = await tx.cleaningDay.findUnique({
-        where: { id: oldDayId }
-      });
-
-      if (oldDay) {
-        const isOldDayFull = oldDayNewCount >= oldDay.capacityLimit;
-        await tx.cleaningDay.update({
-          where: { id: oldDayId },
-          data: {
-            currentRegistrations: oldDayNewCount,
-            status: isOldDayFull ? 'FULL' : 'OPEN'
-          }
-        });
-      }
-
-      // Create new registration
-      const newRegistration = await tx.cleaningRegistration.create({
-        data: {
+      const sequence = registration.reassignmentCount + 1;
+      const updateResult = await tx.cleaningRegistration.updateMany({
+        where: {
+          id: registration.id,
           userId: user.id,
-          cleaningDayId: newDayId
+          cleaningDayId: registration.cleaningDayId,
+          reassignmentCount: registration.reassignmentCount,
         },
-        include: {
-          cleaningDay: {
-            include: { week: true }
-          }
-        }
+        data: { cleaningDayId: newDayId, reassignmentCount: { increment: 1 } },
       });
+      if (updateResult.count !== 1) throw new ReassignmentError('REASSIGNMENT_CONFLICT', 'The assignment changed during this request. Refresh and try again.', 409);
 
-      // Update new day's count and status (increase count)
-      const newDayNewCount = newDayRegistrations + 1;
-      const isNewDayFull = newDayNewCount >= newDay.capacityLimit;
+      const [oldDayCount, newDayCount] = await Promise.all([
+        tx.cleaningRegistration.count({ where: { cleaningDayId: registration.cleaningDayId } }),
+        tx.cleaningRegistration.count({ where: { cleaningDayId: newDayId } }),
+      ]);
+      if (newDayCount > replacementDay.capacityLimit) throw new ReassignmentError('REASSIGNMENT_CONFLICT', 'The selected cleaning day reached capacity during this request.', 409);
 
-      await tx.cleaningDay.update({
-        where: { id: newDayId },
-        data: {
-          currentRegistrations: newDayNewCount,
-          status: isNewDayFull ? 'FULL' : 'OPEN'
-        }
+      await Promise.all([
+        tx.cleaningDay.update({
+          where: { id: registration.cleaningDayId },
+          data: { currentRegistrations: oldDayCount, status: oldDayCount >= registration.cleaningDay.capacityLimit ? 'FULL' : 'OPEN' },
+        }),
+        tx.cleaningDay.update({
+          where: { id: newDayId },
+          data: { currentRegistrations: newDayCount, status: newDayCount >= replacementDay.capacityLimit ? 'FULL' : 'OPEN' },
+        }),
+        tx.cleaningReassignmentHistory.create({
+          data: {
+            cleaningRegistrationId: registration.id,
+            userId: user.id,
+            previousCleaningDayId: registration.cleaningDayId,
+            replacementCleaningDayId: newDayId,
+            initiatedById: user.id,
+            techCenterId: user.techCenterId!,
+            sequence,
+            source: 'student',
+          },
+        }),
+        tx.activityLog.create({
+          data: {
+            userId: user.id,
+            action: 'cleaning_day_change',
+            entityType: 'cleaning_registration',
+            entityId: registration.id,
+            techCenterId: user.techCenterId,
+            details: { previousCleaningDayId: registration.cleaningDayId, replacementCleaningDayId: newDayId, sequence },
+          },
+        }),
+      ]);
+
+      const updatedRegistration = await tx.cleaningRegistration.findUniqueOrThrow({
+        where: { id: registration.id },
+        include: { cleaningDay: { include: { week: true } } },
       });
-
-      return {
-        oldDayId,
-        newDayId,
-        registration: newRegistration,
-        oldDayName: existingRegistration.cleaningDay.dayOfWeek,
-        newDayName: newRegistration.cleaningDay.dayOfWeek,
-        oldWeekLabel: existingRegistration.cleaningDay.week.weekLabel,
-        newWeekLabel: newRegistration.cleaningDay.week.weekLabel,
-      };
-    }, {
-      // Increase transaction timeout to 20 seconds
-      timeout: 20000,
-      // Increase max wait time
-      maxWait: 20000
-    });
-
-    // Log the cleaning day change activity
-    await logCleaningDayChange(
-      user.id,
-      user.techCenterId || undefined,
-      {
-        oldDayId: result.oldDayId,
-        newDayId: result.newDayId,
-        oldDayName: result.oldDayName,
-        newDayName: result.newDayName,
-        oldWeekLabel: result.oldWeekLabel,
-        newWeekLabel: result.newWeekLabel,
-      }
-    );
+      return { registration: updatedRegistration, reassignment: getReassignmentAllowance(sequence) };
+    }, { timeout: 20000, maxWait: 20000 });
 
     return NextResponse.json({
       success: true,
-      message: 'Successfully changed cleaning day',
-      ...result
+      message: `Cleaning assignment changed successfully. You have ${result.reassignment.changesRemaining} changes remaining.`,
+      ...result,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (error instanceof ReassignmentError) return errorResponse(error);
     console.error('Error changing cleaning day:', error);
-    
-    // Handle specific error messages
-    if (error.message.includes('not registered')) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-    if (error.message.includes('already registered')) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-    if (error.message.includes('closed for registration')) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-    if (error.message.includes('deadline')) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-    if (error.message.includes('not open')) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-    if (error.message.includes('past date')) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-    if (error.message.includes('at capacity')) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-    if (error.message.includes('minimum required')) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-    if (error.message.includes('Transaction')) {
-      return NextResponse.json(
-        { error: 'Server is busy, please try again' },
-        { status: 503 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: 'Failed to change cleaning day' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'The cleaning assignment could not be changed.', code: 'REASSIGNMENT_FAILED' }, { status: 500 });
   }
 }
