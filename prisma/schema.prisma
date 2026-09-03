@@ -152,6 +152,19 @@ model User {
   aiConversations AIConversation[]
   aiLearningProfile AILearningProfile?
   
+  // ============================================
+  // MESSAGING RELATIONS - Add these
+  // ============================================
+  
+  // Messages sent by this user
+  sentMessages Message[] @relation("SenderMessages")
+  
+  // Read status for messages
+  messageReadStatus MessageReadStatus[]
+  
+  // Message delivery status
+  messageDeliveryStatus MessageDeliveryStatus[]
+  
   @@index([techCenterId])
   @@index([previousTechCenterId])
   @@index([roleId])
@@ -744,4 +757,143 @@ model AIKnowledgeChunk {
   @@index([knowledgeBaseId])
   @@index([chunkIndex])
   @@map("ai_knowledge_chunks")
+}
+
+// ============================================
+// MESSAGING MODELS
+// ============================================
+
+// CONVERSATIONS - Tracks chat threads between users
+model Conversation {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Participants - array of user IDs
+  participantIds String[] // Store user IDs directly
+  
+  // Last message preview for conversation list
+  lastMessage    String?  // Preview text
+  lastMessageAt  DateTime? // When last message was sent
+  lastMessageId  String?  @db.ObjectId // Reference to last message
+  
+  // Status
+  isActive      Boolean  @default(true)
+  isArchived    Boolean  @default(false)
+  
+  // Tracking
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  messages      Message[] // All messages in this conversation
+  readStatus    MessageReadStatus[] // Read status per user
+  
+  @@index([participantIds])
+  @@index([lastMessageAt])
+  @@index([isActive])
+  @@index([isArchived])
+  @@map("conversations")
+}
+
+// MESSAGES - Individual messages in conversations
+model Message {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Conversation reference
+  conversationId String @db.ObjectId
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  // Sender
+  senderId    String   @db.ObjectId
+  sender      User     @relation("SenderMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  
+  // Message content
+  content     String
+  attachments String[] // Array of file URLs or IDs
+  
+  // Read status
+  isRead      Boolean  @default(false)
+  readAt      DateTime?
+  readBy      String[] // Array of user IDs who have read the message
+  
+  // Message status
+  isDeleted   Boolean  @default(false) // Soft delete for sender
+  isEdited    Boolean  @default(false)
+  editedAt    DateTime?
+  replyToId   String?  @db.ObjectId // For threaded replies
+  
+  // Tracking
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Reactions (optional)
+  reactions   Json?    // Store reactions as JSON: { "👍": ["user1", "user2"], "❤️": ["user3"] }
+  
+  // Relations - Self-relation for replies
+  replies     Message[] @relation("MessageReplies")
+  replyTo     Message?  @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  
+  // Delivery status
+  deliveryStatus MessageDeliveryStatus[]
+  
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@index([isRead])
+  @@index([isDeleted])
+  @@index([replyToId])
+  @@map("messages")
+}
+
+// MESSAGE READ STATUS - Track read status per user per conversation
+model MessageReadStatus {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Conversation context
+  conversationId String @db.ObjectId
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  // User context
+  userId      String   @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Last read timestamp
+  lastReadAt  DateTime @default(now())
+  
+  // Unread count
+  unreadCount Int      @default(0)
+  
+  // Tracking
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@index([conversationId])
+  @@map("message_read_status")
+}
+
+// MESSAGE DELIVERY STATUS - Track delivery for each user
+model MessageDeliveryStatus {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Message reference
+  messageId   String   @db.ObjectId
+  message     Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  
+  // User reference
+  userId      String   @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Delivery status
+  deliveredAt DateTime?
+  readAt      DateTime?
+  
+  // Tracking
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([messageId, userId])
+  @@index([userId])
+  @@index([messageId])
+  @@map("message_delivery_status")
 }
