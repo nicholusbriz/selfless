@@ -63,6 +63,7 @@ import {
   Radio,
   BookMarked,
   Code,
+  MessageSquare,
 } from 'lucide-react';
 
 import {
@@ -1021,6 +1022,28 @@ function TopBar({
               </Link>
             </motion.div>
           )}
+
+          {/* MESSAGES */}
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Link
+              href="/dashboard/messages"
+              aria-label="Messages"
+              className={cn(
+                'relative flex items-center justify-center',
+                'w-9 h-9 rounded-lg',
+                'text-[#6B7268]',
+                'hover:text-[#12203B]',
+                'hover:bg-[#F5F4EE]',
+                'transition-all duration-200',
+                'focus:outline-none focus:ring-2 focus:ring-[#B98A3E]/20'
+              )}
+            >
+              <MessageSquare className="w-[18px] h-[18px]" />
+            </Link>
+          </motion.div>
 
           {/* USER */}
           <motion.div
