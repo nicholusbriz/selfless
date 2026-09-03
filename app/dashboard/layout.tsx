@@ -401,6 +401,14 @@ const superAdminNavigation: NavSection = {
       icon: <School className={iconClass} />,
       roles: ['super_admin'],
     },
+    // ADDED: Users link for super_admin
+    {
+      id: 'all-users',
+      label: 'Users',
+      path: '/dashboard/super-admin/users',
+      icon: <Users className={iconClass} />,
+      roles: ['super_admin'],
+    },
   ],
 };
 
@@ -721,26 +729,6 @@ function getPageInfo(pathname: string) {
 
     '/dashboard/super-admin/users': {
       title: 'Users',
-      section: 'System',
-    },
-
-    '/dashboard/super-admin/password-resets': {
-      title: 'Password Resets',
-      section: 'System',
-    },
-
-    '/dashboard/super-admin/knowledge-base': {
-      title: 'Knowledge Base',
-      section: 'System',
-    },
-
-    '/dashboard/super-admin/logs': {
-      title: 'Activity Logs',
-      section: 'System',
-    },
-
-    '/dashboard/super-admin/settings': {
-      title: 'System Settings',
       section: 'System',
     },
   };
