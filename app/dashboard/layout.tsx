@@ -70,6 +70,7 @@ import {
   useUnreadNotificationCount,
   useAnnouncementCount,
 } from '@/hooks/useNotifications';
+import { useUnreadMessageCount } from '@/hooks/useMessages';
 
 // ============================================================
 // DESIGN TOKENS
@@ -825,6 +826,9 @@ function TopBar({
   const { data: announcementCount } =
     useAnnouncementCount();
 
+  const { data: unreadMessageCount } =
+    useUnreadMessageCount();
+
   const pathname = usePathname();
   const pageInfo = getPageInfo(pathname);
 
@@ -1030,6 +1034,19 @@ function TopBar({
               )}
             >
               <MessageSquare className="w-[18px] h-[18px]" />
+
+              {unreadMessageCount &&
+              unreadMessageCount > 0 ? (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute top-1 right-1 min-w-[15px] h-[15px] px-1 rounded-full bg-[#55705B] text-white text-[9px] font-mono font-semibold flex items-center justify-center border-2 border-white"
+                >
+                  {unreadMessageCount > 99
+                    ? '99+'
+                    : unreadMessageCount}
+                </motion.span>
+              ) : null}
             </Link>
           </motion.div>
 

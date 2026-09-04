@@ -15,6 +15,8 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { Chat } from './components/Chat';
+import Link from 'next/link';
+import { useUnreadMessageCount } from '@/hooks/useMessages';
 
 // ============================================================
 // INTERFACES
@@ -25,6 +27,7 @@ interface User {
   firstName: string;
   lastName: string;
   email: string;
+  image?: string | null;
   techCenter?: {
     id: string;
     name: string;
@@ -44,11 +47,13 @@ interface Conversation {
     firstName: string;
     lastName: string;
     fullName: string;
+    image?: string | null;
     techCenter?: {
       id: string;
       name: string;
     };
   } | null;
+  unreadCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -154,6 +159,7 @@ export default function MessagesPage() {
   };
 
   const handleUserClick = (user: User) => {
+    // Open chat immediately - instant UI update
     setSelectedUser(user);
     
     // Check if conversation already exists
@@ -174,6 +180,7 @@ export default function MessagesPage() {
     const otherUser = users.find((u: User) => u.id === otherUserId);
     
     if (otherUser) {
+      // Open chat immediately - instant UI update
       setSelectedUser(otherUser);
       setSelectedConversation(conversation);
     }
@@ -214,10 +221,10 @@ export default function MessagesPage() {
 
   if (!currentUserId) {
     return (
-      <div className="min-h-screen bg-[#F1F1EC] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-[#F7F9FC] flex items-center justify-center px-4">
         <div className="text-center">
-          <AlertCircle className="mx-auto w-8 h-8 text-[#B98A3E]" />
-          <p className="mt-2 text-[13px] text-[#6B7268]">Please sign in to view messages</p>
+          <AlertCircle className="mx-auto w-8 h-8 text-[#3182CE]" />
+          <p className="mt-2 text-[13px] text-[#4A5568]">Please sign in to view messages</p>
         </div>
       </div>
     );
@@ -226,31 +233,49 @@ export default function MessagesPage() {
   // Show Chat component when a user is selected
   if (selectedUser && selectedConversation) {
     return (
-      <div className="min-h-screen bg-[#F1F1EC]">
-        <div className="max-w-4xl mx-auto bg-white min-h-screen">
+      <div className="h-screen bg-[#F7F9FC] overflow-hidden">
+        <div className="max-w-4xl mx-auto bg-white h-screen flex flex-col">
           {/* Chat Header */}
-          <div className="bg-[#12203B] px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
-            <button
-              onClick={handleBackToList}
-              className="text-white hover:text-[#B98A3E] transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h2 className="text-white font-semibold">
-                {selectedUser.firstName} {selectedUser.lastName}
-              </h2>
-              <p className="text-white/70 text-xs">
-                {selectedUser.techCenter?.name || 'No location'}
-              </p>
+          <div className="bg-[#1A365D] px-4 py-3 flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleBackToList}
+                className="text-white hover:text-[#3182CE] transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              {selectedUser.image ? (
+                <img
+                  src={selectedUser.image}
+                  alt={`${selectedUser.firstName} ${selectedUser.lastName}`}
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+              ) : null}
+              <div>
+                <h2 className="text-white font-semibold">
+                  {selectedUser.firstName} {selectedUser.lastName}
+                </h2>
+                <p className="text-white/70 text-xs">
+                  {selectedUser.techCenter?.name || 'No location'}
+                </p>
+              </div>
             </div>
+            <Link
+              href={`/dashboard/students/${selectedUser.id}`}
+              className="text-white/80 hover:text-white text-sm font-medium transition-colors"
+            >
+              View Profile
+            </Link>
           </div>
 
           {/* Chat Component */}
-          <Chat 
-            conversationId={selectedConversation.id}
-            currentUserId={currentUserId}
-          />
+          <div className="flex-1 overflow-hidden">
+            <Chat 
+              conversationId={selectedConversation.id}
+              currentUserId={currentUserId}
+              otherUserId={selectedUser.id}
+            />
+          </div>
         </div>
       </div>
     );
@@ -258,10 +283,10 @@ export default function MessagesPage() {
 
   // Show main view with tabs
   return (
-    <div className="min-h-screen bg-[#F1F1EC]">
-      <div className="max-w-4xl mx-auto bg-white min-h-screen">
+    <div className="h-screen bg-[#F7F9FC] overflow-hidden">
+      <div className="max-w-4xl mx-auto bg-white h-screen flex flex-col">
         {/* Header */}
-        <div className="bg-[#12203B] px-4 py-3 flex items-center justify-between sticky top-0 z-10">
+        <div className="bg-[#1A365D] px-4 py-3 flex items-center justify-between flex-shrink-0">
           <h1 className="text-white text-lg font-semibold">Messages</h1>
           <div className="flex items-center gap-2">
             <span className="text-white/70 text-sm">
@@ -274,7 +299,7 @@ export default function MessagesPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-[#DADCD3] bg-white">
+        <div className="flex border-b border-[#E2E8F0] bg-white flex-shrink-0">
           <button
             onClick={() => {
               setActiveTab('chats');
@@ -282,13 +307,13 @@ export default function MessagesPage() {
             }}
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors relative ${
               activeTab === 'chats'
-                ? 'text-[#12203B]'
-                : 'text-[#8A9088] hover:text-[#12203B]'
+                ? 'text-[#1A365D]'
+                : 'text-[#718096] hover:text-[#1A365D]'
             }`}
           >
             Chats
             {activeTab === 'chats' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#B98A3E]" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#3182CE]" />
             )}
           </button>
           <button
@@ -298,22 +323,22 @@ export default function MessagesPage() {
             }}
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors relative ${
               activeTab === 'users'
-                ? 'text-[#12203B]'
-                : 'text-[#8A9088] hover:text-[#12203B]'
+                ? 'text-[#1A365D]'
+                : 'text-[#718096] hover:text-[#1A365D]'
             }`}
           >
             All Users
             {activeTab === 'users' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#B98A3E]" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#3182CE]" />
             )}
           </button>
         </div>
 
         {/* Search Bar */}
-        <div className="bg-white px-3 py-2 border-b border-[#DADCD3]">
+        <div className="bg-white px-3 py-2 border-b border-[#E2E8F0] flex-shrink-0">
           <div className="relative">
             <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8A9088] pointer-events-none"
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#718096] pointer-events-none"
               strokeWidth={2}
             />
             <input
@@ -323,18 +348,18 @@ export default function MessagesPage() {
               placeholder={activeTab === 'chats' ? 'Search conversations...' : 'Search users...'}
               className="
                 w-full pl-9 pr-9 py-2
-                bg-[#F1F1EC]
+                bg-[#F7F9FC]
                 border-none rounded-lg
-                text-[#12203B] text-sm
-                placeholder:text-[#8A9088]
-                focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#B98A3E]
+                text-[#1A365D] text-sm
+                placeholder:text-[#718096]
+                focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#3182CE]
                 transition-all
               "
             />
             {searchQuery && (
               <button
                 onClick={handleClearSearch}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-[#8A9088] hover:text-[#12203B]"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-[#718096] hover:text-[#1A365D]"
               >
                 <X className="w-4 h-4" strokeWidth={2.5} />
               </button>
@@ -343,36 +368,37 @@ export default function MessagesPage() {
         </div>
 
         {/* Content */}
-        {activeTab === 'chats' ? (
+        <div className="flex-1 overflow-y-auto">
+          {activeTab === 'chats' ? (
           // Chats Tab
           <>
             {conversationsLoading ? (
-              <div className="divide-y divide-[#F1F1EC]">
+              <div className="divide-y divide-[#F7F9FC]">
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="flex items-center gap-3 px-4 py-3 animate-pulse">
-                    <div className="w-12 h-12 rounded-full bg-[#F1F1EC]" />
+                    <div className="w-12 h-12 rounded-full bg-[#F7F9FC]" />
                     <div className="flex-1">
-                      <div className="h-4 w-32 bg-[#F1F1EC] rounded" />
-                      <div className="h-3 w-48 bg-[#F1F1EC] rounded mt-1" />
+                      <div className="h-4 w-32 bg-[#F7F9FC] rounded" />
+                      <div className="h-3 w-48 bg-[#F7F9FC] rounded mt-1" />
                     </div>
                   </div>
                 ))}
               </div>
             ) : filteredConversations.length === 0 ? (
               <div className="py-16 text-center">
-                <MessageSquare className="mx-auto w-12 h-12 text-[#B9BEB2]" strokeWidth={1.5} />
-                <p className="mt-3 text-sm text-[#6B7268]">No conversations yet</p>
-                <p className="text-xs text-[#8A9088] mt-1">Start a new chat to connect with someone</p>
+                <MessageSquare className="mx-auto w-12 h-12 text-[#A0AEC0]" strokeWidth={1.5} />
+                <p className="mt-3 text-sm text-[#4A5568]">No conversations yet</p>
+                <p className="text-xs text-[#718096] mt-1">Start a new chat to connect with someone</p>
                 <button
                   onClick={handleStartNewChat}
-                  className="mt-4 px-4 py-2 bg-[#12203B] text-white text-sm rounded-lg hover:bg-[#1C2E4E] transition-colors flex items-center gap-2 mx-auto"
+                  className="mt-4 px-4 py-2 bg-[#1A365D] text-white text-sm rounded-lg hover:bg-[#153475] transition-colors flex items-center gap-2 mx-auto"
                 >
                   <Plus className="w-4 h-4" />
                   Start New Chat
                 </button>
               </div>
             ) : (
-              <div className="divide-y divide-[#F1F1EC]">
+              <div className="divide-y divide-[#F7F9FC]">
                 {filteredConversations.map((conversation: Conversation) => {
                   const otherUser = conversation.otherUser;
                   const fullName = otherUser?.fullName || 'Unknown User';
@@ -386,44 +412,58 @@ export default function MessagesPage() {
                     <div
                       key={conversation.id}
                       onClick={() => handleConversationClick(conversation)}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-[#F7F6F2] cursor-pointer transition-colors group"
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-[#F7FAFC] cursor-pointer transition-colors group"
                     >
                       {/* Avatar */}
-                      <div className="w-12 h-12 flex items-center justify-center bg-[#12203B] rounded-full flex-shrink-0">
-                        <span className="text-white text-sm font-medium">
-                          {initials}
-                        </span>
-                      </div>
+                      {otherUser?.image ? (
+                        <img
+                          src={otherUser.image}
+                          alt={fullName}
+                          className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 flex items-center justify-center bg-[#1A365D] rounded-full flex-shrink-0">
+                          <span className="text-white text-sm font-medium">
+                            {initials}
+                          </span>
+                        </div>
+                      )}
 
                       {/* Chat Info */}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between">
-                          <h3 className={`text-sm font-medium truncate ${isUnread ? 'text-[#12203B] font-semibold' : 'text-[#12203B]'}`}>
+                          <h3 className={`text-sm font-medium truncate ${isUnread ? 'text-[#1A365D] font-semibold' : 'text-[#1A365D]'}`}>
                             {fullName}
                           </h3>
                           {lastMessage && (
-                            <span className="text-xs text-[#8A9088] flex-shrink-0">
+                            <span className="text-xs text-[#718096] flex-shrink-0">
                               {formatTime(lastMessage.createdAt)}
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1 text-xs text-[#6B7268]">
-                          <MapPin className="w-3 h-3 text-[#B98A3E]" strokeWidth={2} />
+                        <div className="flex items-center gap-1 text-xs text-[#4A5568]">
+                          <MapPin className="w-3 h-3 text-[#3182CE]" strokeWidth={2} />
                           <span className="truncate">
                             {otherUser?.techCenter?.name || 'No location'}
                           </span>
                         </div>
                         {lastMessage && (
-                          <p className={`text-xs truncate mt-0.5 ${isUnread ? 'text-[#12203B] font-medium' : 'text-[#8A9088]'}`}>
+                          <p className={`text-xs truncate mt-0.5 ${isUnread ? 'text-[#1A365D] font-medium' : 'text-[#718096]'}`}>
                             {lastMessage.senderId === currentUserId ? 'You: ' : ''}
                             {lastMessage.content}
                           </p>
                         )}
                       </div>
 
-                      {/* Unread indicator */}
-                      {isUnread && (
-                        <div className="w-2.5 h-2.5 bg-[#B98A3E] rounded-full flex-shrink-0" />
+                      {/* Unread count badge */}
+                      {conversation.unreadCount && conversation.unreadCount > 0 ? (
+                        <div className="min-w-[20px] h-5 px-1.5 bg-[#3182CE] rounded-full flex items-center justify-center flex-shrink-0 pointer-events-none">
+                          <span className="text-white text-[10px] font-semibold">
+                            {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
+                          </span>
+                        </div>
+                      ) : isUnread && (
+                        <div className="w-2.5 h-2.5 bg-[#3182CE] rounded-full flex-shrink-0 pointer-events-none" />
                       )}
                     </div>
                   );
@@ -435,27 +475,27 @@ export default function MessagesPage() {
           // All Users Tab
           <>
             {usersLoading ? (
-              <div className="divide-y divide-[#F1F1EC]">
+              <div className="divide-y divide-[#F7F9FC]">
                 {[1, 2, 3, 4, 5].map((i) => (
                   <div key={i} className="flex items-center gap-3 px-4 py-3 animate-pulse">
-                    <div className="w-12 h-12 rounded-full bg-[#F1F1EC]" />
+                    <div className="w-12 h-12 rounded-full bg-[#F7F9FC]" />
                     <div className="flex-1">
-                      <div className="h-4 w-32 bg-[#F1F1EC] rounded" />
-                      <div className="h-3 w-24 bg-[#F1F1EC] rounded mt-1" />
+                      <div className="h-4 w-32 bg-[#F7F9FC] rounded" />
+                      <div className="h-3 w-24 bg-[#F7F9FC] rounded mt-1" />
                     </div>
                   </div>
                 ))}
               </div>
             ) : filteredUsers.length === 0 ? (
               <div className="py-16 text-center">
-                <Users className="mx-auto w-12 h-12 text-[#B9BEB2]" strokeWidth={1.5} />
-                <p className="mt-3 text-sm text-[#6B7268]">No users found</p>
+                <Users className="mx-auto w-12 h-12 text-[#A0AEC0]" strokeWidth={1.5} />
+                <p className="mt-3 text-sm text-[#4A5568]">No users found</p>
                 {searchQuery && (
-                  <p className="text-xs text-[#8A9088] mt-1">Try a different search term</p>
+                  <p className="text-xs text-[#718096] mt-1">Try a different search term</p>
                 )}
               </div>
             ) : (
-              <div className="divide-y divide-[#F1F1EC]">
+              <div className="divide-y divide-[#F7F9FC]">
                 {filteredUsers.map((user: User) => {
                   const fullName = `${user.firstName} ${user.lastName}`;
                   const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
@@ -465,29 +505,37 @@ export default function MessagesPage() {
                     <div
                       key={user.id}
                       onClick={() => handleUserClick(user)}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-[#F7F6F2] cursor-pointer transition-colors group"
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-[#F7FAFC] cursor-pointer transition-colors group"
                     >
                       {/* Avatar */}
-                      <div className="w-12 h-12 flex items-center justify-center bg-[#12203B] rounded-full flex-shrink-0">
-                        <span className="text-white text-sm font-medium">
-                          {initials}
-                        </span>
-                      </div>
+                      {user?.image ? (
+                        <img
+                          src={user.image}
+                          alt={fullName}
+                          className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 flex items-center justify-center bg-[#1A365D] rounded-full flex-shrink-0">
+                          <span className="text-white text-sm font-medium">
+                            {initials}
+                          </span>
+                        </div>
+                      )}
 
                       {/* User Info */}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between">
-                          <h3 className="text-sm font-medium text-[#12203B] truncate">
+                          <h3 className="text-sm font-medium text-[#1A365D] truncate">
                             {fullName}
                           </h3>
                           {hasConversation && (
-                            <span className="text-xs text-[#55705B] bg-[#EEF3EE] px-2 py-0.5 rounded-full">
+                            <span className="text-xs text-[#2C5282] bg-[#EBF8FF] px-2 py-0.5 rounded-full">
                               Chat
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1 text-xs text-[#6B7268]">
-                          <MapPin className="w-3 h-3 text-[#B98A3E]" strokeWidth={2} />
+                        <div className="flex items-center gap-1 text-xs text-[#4A5568]">
+                          <MapPin className="w-3 h-3 text-[#3182CE]" strokeWidth={2} />
                           <span className="truncate">
                             {user.techCenter?.name || 'No location'}
                           </span>
@@ -500,7 +548,7 @@ export default function MessagesPage() {
                           e.stopPropagation();
                           handleUserClick(user);
                         }}
-                        className="p-2 bg-[#12203B] text-white rounded-full hover:bg-[#1C2E4E] transition-colors opacity-0 group-hover:opacity-100"
+                        className="p-2 bg-[#1A365D] text-white rounded-full hover:bg-[#153475] transition-colors opacity-0 group-hover:opacity-100"
                       >
                         <MessageSquare className="w-4 h-4" />
                       </button>
@@ -511,11 +559,12 @@ export default function MessagesPage() {
             )}
           </>
         )}
+        </div>
 
         {/* Footer */}
         {(filteredConversations.length > 0 || filteredUsers.length > 0) && (
-          <div className="sticky bottom-0 bg-white border-t border-[#DADCD3] px-4 py-2 flex justify-between items-center">
-            <span className="text-xs text-[#8A9088]">
+          <div className="bg-white border-t border-[#E2E8F0] px-4 py-2 flex justify-between items-center flex-shrink-0">
+            <span className="text-xs text-[#718096]">
               {activeTab === 'chats' 
                 ? `${filteredConversations.length} conversations`
                 : `${filteredUsers.length} contacts`
@@ -524,14 +573,14 @@ export default function MessagesPage() {
             {activeTab === 'chats' && filteredConversations.length === 0 && !searchQuery && (
               <button
                 onClick={handleStartNewChat}
-                className="text-xs text-[#B98A3E] font-medium hover:text-[#12203B] transition-colors flex items-center gap-1"
+                className="text-xs text-[#3182CE] font-medium hover:text-[#1A365D] transition-colors flex items-center gap-1"
               >
                 <Plus className="w-3 h-3" />
                 Start New Chat
               </button>
             )}
             {activeTab === 'users' && searchQuery && (
-              <span className="text-xs text-[#8A9088]">
+              <span className="text-xs text-[#718096]">
                 {filteredUsers.length} of {users.length} users
               </span>
             )}

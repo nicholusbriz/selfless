@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
         firstName: true,
         lastName: true,
         email: true,
+        profileImageUrl: true,
         techCenter: {
           select: {
             id: true,
@@ -47,7 +48,13 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ users });
+    // Map profileImageUrl to image for frontend compatibility
+    const usersWithImage = users.map(user => ({
+      ...user,
+      image: user.profileImageUrl,
+    }));
+
+    return NextResponse.json({ users: usersWithImage });
   } catch (error) {
     console.error('Error fetching users:', error);
     return NextResponse.json(
