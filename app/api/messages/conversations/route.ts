@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
               id: true,
               firstName: true,
               lastName: true,
+              profileImageUrl: true,
               techCenter: {
                 select: {
                   id: true,
@@ -56,6 +57,16 @@ export async function GET(request: NextRequest) {
         }
 
         const lastMessage = conv.messages[0];
+
+        // Calculate unread count for this conversation
+        // Count messages sent by others that the current user hasn't read
+        const unreadCount = await prisma.message.count({
+          where: {
+            conversationId: conv.id,
+            senderId: { not: userId },
+            isRead: false,
+          },
+        });
 
         return {
           id: conv.id,
@@ -70,8 +81,10 @@ export async function GET(request: NextRequest) {
             firstName: otherUser.firstName,
             lastName: otherUser.lastName,
             fullName: `${otherUser.firstName} ${otherUser.lastName}`,
+            image: otherUser.profileImageUrl,
             techCenter: otherUser.techCenter,
           } : null,
+          unreadCount,
           createdAt: conv.createdAt,
           updatedAt: conv.updatedAt,
         };
@@ -125,6 +138,7 @@ export async function POST(request: NextRequest) {
           id: true,
           firstName: true,
           lastName: true,
+          profileImageUrl: true,
           techCenter: {
             select: {
               id: true,
@@ -144,6 +158,7 @@ export async function POST(request: NextRequest) {
             firstName: otherUser.firstName,
             lastName: otherUser.lastName,
             fullName: `${otherUser.firstName} ${otherUser.lastName}`,
+            image: otherUser.profileImageUrl,
             techCenter: otherUser.techCenter,
           } : null,
           createdAt: existingConversation.createdAt,
@@ -166,6 +181,7 @@ export async function POST(request: NextRequest) {
         id: true,
         firstName: true,
         lastName: true,
+        profileImageUrl: true,
         techCenter: {
           select: {
             id: true,
@@ -185,6 +201,7 @@ export async function POST(request: NextRequest) {
           firstName: otherUser.firstName,
           lastName: otherUser.lastName,
           fullName: `${otherUser.firstName} ${otherUser.lastName}`,
+          image: otherUser.profileImageUrl,
           techCenter: otherUser.techCenter,
         } : null,
         createdAt: newConversation.createdAt,

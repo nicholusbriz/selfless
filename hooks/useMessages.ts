@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSession } from 'next-auth/react';
 
 interface Message {
   id: string;
@@ -91,4 +92,32 @@ export function useMessages({ conversationId, currentUserId }: UseMessagesProps)
     isSending: sendMessageMutation.isPending,
     refetch,
   };
+}
+
+// Hook to fetch total unread message count for the current user
+export function useUnreadMessageCount() {
+  const { data: session } = useSession();
+  const currentUserId = session?.user?.id || '';
+
+  return useQuery({
+    queryKey: ['messages', 'unread-count', currentUserId],
+    queryFn: async () => {
+      if (!currentUserId) return 0;
+      try {
+        const response = await fetch('/api/messages/unread-count');
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to fetch unread count');
+        }
+        const data = await response.json();
+        return data.unreadCount || 0;
+      } catch (error) {
+        console.error('Error fetching unread message count:', error);
+        return 0;
+      }
+    },
+    enabled: !!currentUserId,
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 2 * 60 * 1000, // 2 minutes
+  });
 }
