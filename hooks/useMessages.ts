@@ -119,5 +119,6 @@ export function useUnreadMessageCount() {
     enabled: !!currentUserId,
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 2 * 60 * 1000, // 2 minutes
+    refetchInterval: 10 * 1000, // Poll every 10 seconds for real-time updates
   });
 }
