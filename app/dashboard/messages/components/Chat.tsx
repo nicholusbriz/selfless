@@ -1,16 +1,19 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Send, User } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { useMessages } from '@/hooks/useMessages';
 import { useQueryClient } from '@tanstack/react-query';
-import { useSession } from 'next-auth/react';
-import Link from 'next/link';
 
 interface ChatProps {
   conversationId: string;
   currentUserId: string;
-  otherUserId?: string;
+}
+
+interface ConversationCacheItem {
+  id: string;
+  unreadCount?: number;
+  [key: string]: unknown;
 }
 
 interface Message {
@@ -25,12 +28,11 @@ interface Message {
   updatedAt: string;
 }
 
-export function Chat({ conversationId, currentUserId, otherUserId }: ChatProps) {
+export function Chat({ conversationId, currentUserId }: ChatProps) {
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
 
   // Track if we've already marked as read for this conversation
   const [hasMarkedRead, setHasMarkedRead] = useState(false);
@@ -48,11 +50,11 @@ export function Chat({ conversationId, currentUserId, otherUserId }: ChatProps) 
     if (!conversationId || !currentUserId || hasMarkedRead) return;
 
     // Optimistically update the unread count in the UI immediately
-    queryClient.setQueryData(
+    queryClient.setQueryData<ConversationCacheItem[] | undefined>(
       ['conversations', currentUserId],
-      (oldData: any) => {
+      (oldData) => {
         if (!oldData) return oldData;
-        return oldData.map((conv: any) => 
+        return oldData.map((conv) =>
           conv.id === conversationId 
             ? { ...conv, unreadCount: 0 }
             : conv
@@ -259,6 +261,7 @@ export function Chat({ conversationId, currentUserId, otherUserId }: ChatProps) 
           <input
             ref={inputRef}
             type="text"
+            autoFocus
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={handleKeyPress}

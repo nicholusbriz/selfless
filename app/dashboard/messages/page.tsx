@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   Users,
   Search,
@@ -10,13 +10,13 @@ import {
   AlertCircle,
   ArrowLeft,
   Plus,
-  Clock,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
 import { Chat } from './components/Chat';
 import Link from 'next/link';
-import { useUnreadMessageCount } from '@/hooks/useMessages';
+import Image from 'next/image';
 
 // ============================================================
 // INTERFACES
@@ -67,7 +67,10 @@ type TabType = 'chats' | 'users';
 export default function MessagesPage() {
   const queryClient = useQueryClient();
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
   const currentUserId = session?.user?.id || '';
+  const requestedUserId = searchParams.get('userId');
+  const openedRequestedUserRef = useRef<string | null>(null);
 
   const [activeTab, setActiveTab] = useState<TabType>('chats');
   const [searchQuery, setSearchQuery] = useState('');
@@ -94,8 +97,7 @@ export default function MessagesPage() {
   // Fetch conversations
   const { 
     data: conversations = [], 
-    isLoading: conversationsLoading,
-    refetch: refetchConversations
+    isLoading: conversationsLoading
   } = useQuery({
     queryKey: ['conversations', currentUserId],
     queryFn: async () => {
@@ -105,8 +107,9 @@ export default function MessagesPage() {
       return data.conversations || [];
     },
     enabled: !!currentUserId,
-    refetchOnWindowFocus: false,
-    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: true,
+    refetchInterval: 10 * 1000,
+    staleTime: 0,
   });
 
   // Create conversation mutation
@@ -158,7 +161,7 @@ export default function MessagesPage() {
     setSearchQuery('');
   };
 
-  const handleUserClick = (user: User) => {
+  const handleUserClick = useCallback((user: User) => {
     // Open chat immediately - instant UI update
     setSelectedUser(user);
     
@@ -173,7 +176,33 @@ export default function MessagesPage() {
       // Create new conversation
       createConversationMutation.mutate(user.id);
     }
-  };
+  }, [conversations, createConversationMutation]);
+
+  useEffect(() => {
+    if (
+      !requestedUserId ||
+      !currentUserId ||
+      usersLoading ||
+      conversationsLoading ||
+      openedRequestedUserRef.current === `${currentUserId}:${requestedUserId}`
+    ) return;
+
+    const requestedUser = users.find(
+      (user: User) => user.id === requestedUserId
+    );
+
+    if (requestedUser) {
+      openedRequestedUserRef.current = `${currentUserId}:${requestedUserId}`;
+      void Promise.resolve().then(() => handleUserClick(requestedUser));
+    }
+  }, [
+    requestedUserId,
+    currentUserId,
+    users,
+    usersLoading,
+    conversationsLoading,
+    handleUserClick,
+  ]);
 
   const handleConversationClick = (conversation: Conversation) => {
     const otherUserId = conversation.participants.find(id => id !== currentUserId);
@@ -245,9 +274,12 @@ export default function MessagesPage() {
                 <ArrowLeft className="w-5 h-5" />
               </button>
               {selectedUser.image ? (
-                <img
+                <Image
                   src={selectedUser.image}
                   alt={`${selectedUser.firstName} ${selectedUser.lastName}`}
+                  width={40}
+                  height={40}
+                  unoptimized
                   className="w-10 h-10 rounded-full object-cover"
                 />
               ) : null}
@@ -273,7 +305,6 @@ export default function MessagesPage() {
             <Chat 
               conversationId={selectedConversation.id}
               currentUserId={currentUserId}
-              otherUserId={selectedUser.id}
             />
           </div>
         </div>
@@ -406,7 +437,7 @@ export default function MessagesPage() {
                     ? `${otherUser.firstName.charAt(0)}${otherUser.lastName.charAt(0)}`.toUpperCase()
                     : '??';
                   const lastMessage = conversation.lastMessage;
-                  const isUnread = lastMessage && lastMessage.senderId !== currentUserId;
+                  const isUnread = (conversation.unreadCount ?? 0) > 0;
 
                   return (
                     <div
@@ -416,9 +447,12 @@ export default function MessagesPage() {
                     >
                       {/* Avatar */}
                       {otherUser?.image ? (
-                        <img
+                        <Image
                           src={otherUser.image}
                           alt={fullName}
+                          width={48}
+                          height={48}
+                          unoptimized
                           className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                         />
                       ) : (
@@ -462,9 +496,9 @@ export default function MessagesPage() {
                             {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
                           </span>
                         </div>
-                      ) : isUnread && (
+                      ) : isUnread ? (
                         <div className="w-2.5 h-2.5 bg-[#3182CE] rounded-full flex-shrink-0 pointer-events-none" />
-                      )}
+                      ) : null}
                     </div>
                   );
                 })}
@@ -509,9 +543,12 @@ export default function MessagesPage() {
                     >
                       {/* Avatar */}
                       {user?.image ? (
-                        <img
+                        <Image
                           src={user.image}
                           alt={fullName}
+                          width={48}
+                          height={48}
+                          unoptimized
                           className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                         />
                       ) : (

@@ -21,6 +21,7 @@ import {
   ExternalLink,
   Briefcase,
   Mail,
+  MessageSquare,
   Maximize2,
 } from 'lucide-react';
 
@@ -406,6 +407,19 @@ export default function StudentProfilePage() {
                   )}
                 </div>
               </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  router.push(
+                    `/dashboard/messages?userId=${encodeURIComponent(student._id)}`
+                  )
+                }
+                className="inline-flex w-fit items-center gap-2 rounded-md bg-[#1A365D] px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-white transition-colors hover:bg-[#14294A]"
+              >
+                <MessageSquare className="h-3.5 w-3.5" />
+                Message
+              </button>
 
               {/* Status */}
               <div

@@ -85,6 +85,7 @@ export async function PATCH(
       roleUpdatedAt: Date; 
       techCenterId?: string | null;
       previousTechCenterId?: string | null;
+      teacherId?: string | null;
     } = {
       roleId,
       roleUpdatedAt: new Date() // This will trigger JWT token refresh on next request
@@ -101,6 +102,21 @@ export async function PATCH(
     else if (user.role?.name === 'super_admin' && user.previousTechCenterId) {
       updateData.techCenterId = user.previousTechCenterId;
       updateData.previousTechCenterId = null;
+    }
+
+    // Clear teacherId when role changes to maintain data integrity
+    // If user is becoming a teacher, they should not have a teacher assigned to them
+    // If user is becoming an admin, they should not have a teacher assigned to them
+    if (role.name === 'teacher' || role.name === 'admin' || role.name === 'super_admin') {
+      updateData.teacherId = null;
+    }
+
+    // If user is changing from teacher to another role, clear their assigned students
+    if (user.role?.name === 'teacher' && role.name !== 'teacher') {
+      await prisma.user.updateMany({
+        where: { teacherId: userId },
+        data: { teacherId: null }
+      });
     }
     
     const updatedUser = await prisma.user.update({

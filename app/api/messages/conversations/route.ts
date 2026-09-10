@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     
@@ -32,9 +32,19 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // Hide legacy duplicate records while the unique participant key is rolled out.
+    const uniqueConversations = Array.from(
+      new Map(
+        conversations.map((conversation) => [
+          [...conversation.participantIds].sort().join(':'),
+          conversation,
+        ])
+      ).values()
+    );
+
     // Get other user info for each conversation
     const conversationsWithUsers = await Promise.all(
-      conversations.map(async (conv) => {
+      uniqueConversations.map(async (conv) => {
         const otherUserId = conv.participantIds.find(id => id !== userId);
         
         let otherUser = null;
@@ -119,6 +129,7 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = session.user.id;
+    const participantKey = [userId, participantId].sort().join(':');
 
     // Check if conversation already exists
     const existingConversation = await prisma.conversation.findFirst({
@@ -167,10 +178,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Create new conversation
-    const newConversation = await prisma.conversation.create({
-      data: {
+    // Use the unique pair key so concurrent requests reuse one conversation.
+    const newConversation = await prisma.conversation.upsert({
+      where: { participantKey },
+      update: {},
+      create: {
         participantIds: [userId, participantId],
+        participantKey,
         lastMessageAt: new Date(),
       },
     });

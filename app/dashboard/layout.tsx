@@ -43,7 +43,6 @@ import {
   UserCog,
   School,
   Briefcase,
-  ClipboardList,
   Clock,
   Award,
   Trophy,
@@ -59,11 +58,11 @@ import {
   GraduationCap,
   ArrowUpRight,
   CircleDot,
-  MessageCircle,
   Radio,
   BookMarked,
   Code,
   MessageSquare,
+  Images,
 } from 'lucide-react';
 
 import {
@@ -71,32 +70,6 @@ import {
   useAnnouncementCount,
 } from '@/hooks/useNotifications';
 import { useUnreadMessageCount } from '@/hooks/useMessages';
-
-// ============================================================
-// DESIGN TOKENS
-// ============================================================
-
-const COLORS = {
-  page: '#F1F1EC',
-  surface: '#FFFFFF',
-  surfaceSoft: '#F7F6F2',
-  surfaceWarm: '#F7F1E4',
-  border: '#DADCD3',
-  borderSoft: '#E8E9E3',
-
-  ink: '#12203B',
-  body: '#4B564C',
-  muted: '#6B7268',
-  subtle: '#8A9088',
-  faint: '#B9BEB2',
-
-  brass: '#B98A3E',
-  brassDark: '#936B2B',
-
-  moss: '#55705B',
-  rust: '#A4462F',
-  slate: '#3E5C76',
-};
 
 // ============================================================
 // TYPES
@@ -228,6 +201,13 @@ const sharedNavigation: NavSection[] = [
         icon: <Radio className={iconClass} />,
         roles: ALL_ROLES,
       },
+      {
+        id: 'gallery',
+        label: 'Selfless CE Gallery',
+        path: '/dashboard/gallery',
+        icon: <Images className={iconClass} />,
+        roles: ALL_ROLES,
+      },
     ],
   },
 
@@ -290,6 +270,20 @@ const sharedNavigation: NavSection[] = [
         path: '/dashboard/notifications',
         icon: <Bell className={iconClass} />,
         roles: NON_SUPER_ADMIN_ROLES,
+      },
+    ],
+  },
+
+  {
+    id: 'information',
+    label: 'Information',
+    items: [
+      {
+        id: 'policy-book',
+        label: 'Policy Book',
+        path: '/dashboard/policies',
+        icon: <BookMarked className={iconClass} />,
+        roles: ALL_ROLES,
       },
     ],
   },
@@ -493,13 +487,6 @@ const accountNavigation: NavSection = {
       label: 'My Profile',
       path: '/dashboard/profile',
       icon: <User className={iconClass} />,
-      roles: ALL_ROLES,
-    },
-    {
-      id: 'settings',
-      label: 'Settings',
-      path: '/dashboard/settings',
-      icon: <Settings className={iconClass} />,
       roles: ALL_ROLES,
     },
   ],
@@ -713,9 +700,9 @@ function getPageInfo(pathname: string) {
       section: 'Account',
     },
 
-    '/dashboard/settings': {
-      title: 'Settings',
-      section: 'Account',
+    '/dashboard/gallery': {
+      title: 'Gallery',
+      section: 'Media',
     },
 
     '/dashboard/super-admin': {
@@ -1502,14 +1489,6 @@ function Sidebar({
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    setExpandedSections(
-      navigation.map(
-        (section) => section.id
-      )
-    );
-  }, [navigation]);
-
   const toggleSection = (
     sectionId: string
   ) => {
@@ -2281,7 +2260,11 @@ export default function DashboardLayout({
   // ----------------------------------------------------------
 
   useEffect(() => {
-    setMobileMenuOpen(false);
+    const frame = window.requestAnimationFrame(() => {
+      setMobileMenuOpen(false);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, [pathname]);
 
   // ----------------------------------------------------------
@@ -2475,6 +2458,7 @@ export default function DashboardLayout({
 
         <div className="hidden lg:flex fixed inset-y-0 left-0 z-[100]">
           <Sidebar
+            key={userRole}
             sidebarOpen={sidebarOpen}
             pathname={pathname}
             user={user}
@@ -2765,6 +2749,7 @@ export default function DashboardLayout({
                 className="fixed inset-y-0 left-0 w-[88%] max-w-[330px] z-[9999] lg:hidden shadow-[12px_0_40px_rgba(18,32,59,0.18)]"
               >
                 <Sidebar
+                  key={userRole}
                   sidebarOpen
                   pathname={pathname}
                   user={user}

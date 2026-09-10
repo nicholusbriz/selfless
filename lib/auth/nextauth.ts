@@ -53,7 +53,18 @@ export const authOptions: AuthOptions = {
         // 2. Find user in database
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
-          include: { role: true }
+          include: { 
+            role: true,
+            teacher: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                profileImageUrl: true,
+              }
+            }
+          }
         });
 
         // 3. Check if user exists
@@ -108,6 +119,7 @@ export const authOptions: AuthOptions = {
           gender: user.gender,
           preferredTeamType: user.preferredTeamType,
           preferredTeamRole: user.preferredTeamRole,
+          teacherId: (user as any).teacherId || null,
         };
       }
     })
@@ -144,6 +156,8 @@ export const authOptions: AuthOptions = {
         session.user.gender = token.gender as string | null;
         session.user.preferredTeamType = token.preferredTeamType as string | null;
         session.user.preferredTeamRole = token.preferredTeamRole as string | null;
+        // Add teacherId to session user
+        (session.user as any).teacherId = token.teacherId as string | null;
       }
       return session;
     },
@@ -176,20 +190,39 @@ export const authOptions: AuthOptions = {
         token.gender = user.gender;
         token.preferredTeamType = user.preferredTeamType;
         token.preferredTeamRole = user.preferredTeamRole;
+        // Use type assertion for teacherId
+        (token as any).teacherId = (user as any).teacherId || null;
         
         // Store roleUpdatedAt from database during initial sign in
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
-          select: { roleUpdatedAt: true }
+          select: { 
+            roleUpdatedAt: true,
+            teacherId: true
+          }
         });
-        token.roleUpdatedAt = dbUser?.roleUpdatedAt?.toISOString();
+        (token as any).roleUpdatedAt = dbUser?.roleUpdatedAt?.toISOString();
+        if (dbUser?.teacherId) {
+          (token as any).teacherId = dbUser.teacherId;
+        }
       }
       
       // Re-fetch user data from database on session update
       if (trigger === 'update' && token.sub) {
         const freshUser = await prisma.user.findUnique({
           where: { id: token.sub as string },
-          include: { role: true }
+          include: { 
+            role: true,
+            teacher: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                profileImageUrl: true,
+              }
+            }
+          }
         });
         
         if (freshUser) {
@@ -212,7 +245,8 @@ export const authOptions: AuthOptions = {
           token.gender = freshUser.gender;
           token.preferredTeamType = freshUser.preferredTeamType;
           token.preferredTeamRole = freshUser.preferredTeamRole;
-          token.roleUpdatedAt = freshUser.roleUpdatedAt?.toISOString();
+          (token as any).teacherId = freshUser.teacherId || null;
+          (token as any).roleUpdatedAt = freshUser.roleUpdatedAt?.toISOString();
         }
       }
       
@@ -222,19 +256,31 @@ export const authOptions: AuthOptions = {
           where: { id: token.sub as string },
           select: { 
             roleUpdatedAt: true,
-            role: { select: { name: true } }
+            role: { select: { name: true } },
+            teacherId: true
           }
         });
         
         if (dbUser) {
-          const tokenRoleUpdatedAt = token.roleUpdatedAt as string | undefined;
+          const tokenRoleUpdatedAt = (token as any).roleUpdatedAt as string | undefined;
           const dbRoleUpdatedAt = dbUser.roleUpdatedAt?.toISOString();
           
           // If database roleUpdatedAt is newer than token's, refresh all user data
           if (dbRoleUpdatedAt && (!tokenRoleUpdatedAt || new Date(dbRoleUpdatedAt) > new Date(tokenRoleUpdatedAt))) {
             const freshUser = await prisma.user.findUnique({
               where: { id: token.sub as string },
-              include: { role: true }
+              include: { 
+                role: true,
+                teacher: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                    profileImageUrl: true,
+                  }
+                }
+              }
             });
             
             if (freshUser) {
@@ -257,7 +303,8 @@ export const authOptions: AuthOptions = {
               token.gender = freshUser.gender;
               token.preferredTeamType = freshUser.preferredTeamType;
               token.preferredTeamRole = freshUser.preferredTeamRole;
-              token.roleUpdatedAt = freshUser.roleUpdatedAt?.toISOString();
+              (token as any).teacherId = freshUser.teacherId || null;
+              (token as any).roleUpdatedAt = freshUser.roleUpdatedAt?.toISOString();
             }
           }
         }

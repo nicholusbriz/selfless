@@ -16,11 +16,8 @@ import {
   User,
   MapPin,
   Video,
-  Music,
-  Sparkles,
   Camera,
   GraduationCap,
-  Headphones,
   ChevronRight,
   Library,
   Star,
@@ -31,7 +28,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import VideoPlayer from '@/components/VideoPlayer';
 import { useQuery } from '@tanstack/react-query';
 
@@ -83,6 +80,24 @@ interface Tutor {
   };
 }
 
+interface Student {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  profileImageUrl: string | null;
+  status: string;
+  isActive: boolean;
+}
+
+interface AssignmentData {
+  isTeacher: boolean;
+  hasTutor?: boolean;
+  tutor?: Tutor | null;
+  studentCount?: number;
+  students?: Student[];
+}
+
 interface ActivityItem {
   id: string;
   action: string;
@@ -118,71 +133,58 @@ export default function DashboardPage() {
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [videos, setVideos] = useState<string[]>([]);
   const [messageIndex, setMessageIndex] = useState(0);
+  const [currentTime] = useState(() => Date.now());
 
   /* ============================================================
-     DATA FETCHING
+     FETCH FUNCTIONS
   ============================================================ */
 
-  useEffect(() => {
-    if (user?.techCenterId) {
-      fetchTechCenter(user.techCenterId);
-    }
-    // Fetch activity based on user role - only super_admin sees all tech centers
-    if (user?.role === 'super_admin') {
-      fetchAllActivity();
-    } else if (user?.techCenterId) {
-      fetchRecentActivity(user.techCenterId);
-    }
-  }, [user?.techCenterId, user?.role]);
-
-  useEffect(() => {
-    fetchVideos();
-  }, []);
-
-  const fetchTechCenter = async (techCenterId: string) => {
+  const fetchTechCenter = useCallback(async (techCenterId: string) => {
     try {
       const response = await fetch(`/api/tech-centers/${techCenterId}`);
 
       if (response.ok) {
-        setTechCenter(await response.json());
+        const data = await response.json();
+        setTechCenter(data);
       }
     } catch (error) {
       console.error('Error fetching tech center:', error);
     }
-  };
+  }, []);
 
-  const fetchRecentActivity = async (techCenterId: string) => {
+  const fetchRecentActivity = useCallback(async (techCenterId: string) => {
     try {
       const response = await fetch(
         `/api/tech-centers/${techCenterId}/activity?limit=10`,
       );
 
       if (response.ok) {
-        setRecentActivity(await response.json());
+        const data = await response.json();
+        setRecentActivity(data);
       }
     } catch (error) {
       console.error('Error fetching recent activity:', error);
     }
-  };
+  }, []);
 
-  const fetchAllActivity = async () => {
+  const fetchAllActivity = useCallback(async () => {
     try {
       // Try to fetch from multiple tech centers by fetching all tech centers first
       const techCentersResponse = await fetch('/api/admin/tech-centers');
       
       if (techCentersResponse.ok) {
-        const techCenters = await techCentersResponse.json();
+        const techCenters: TechCenter[] = await techCentersResponse.json();
         console.log('Fetched tech centers:', techCenters.length);
         
         // Fetch activity from each tech center
-        const activityPromises = techCenters.map(async (techCenter: any) => {
+        const activityPromises = techCenters.map(async (techCenter) => {
           try {
             const activityResponse = await fetch(`/api/tech-centers/${techCenter.id}/activity?limit=5`);
             if (activityResponse.ok) {
-              const activities = await activityResponse.json();
+              const activities: ActivityItem[] = await activityResponse.json();
               console.log(`Fetched ${activities.length} activities for ${techCenter.name}`);
               // Add tech center info to each activity
-              return (activities || []).map((activity: any) => ({
+              return (activities || []).map((activity) => ({
                 ...activity,
                 techCenter: {
                   id: techCenter.id,
@@ -200,7 +202,7 @@ export default function DashboardPage() {
         
         const allActivities = await Promise.all(activityPromises);
         // Flatten and sort by date
-        const flattenedActivities = allActivities.flat().sort((a: any, b: any) => 
+        const flattenedActivities = allActivities.flat().sort((a, b) => 
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
         
@@ -212,9 +214,9 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('Error fetching all activity:', error);
     }
-  };
+  }, []);
 
-  const fetchVideos = async () => {
+  const fetchVideos = useCallback(async () => {
     try {
       const response = await fetch('/api/videos');
 
@@ -225,7 +227,35 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('Error fetching videos:', error);
     }
-  };
+  }, []);
+
+  /* ============================================================
+     DATA FETCHING
+  ============================================================ */
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (user?.techCenterId) {
+        await fetchTechCenter(user.techCenterId);
+      }
+      // Fetch activity based on user role - only super_admin sees all tech centers
+      if (user?.role === 'super_admin') {
+        await fetchAllActivity();
+      } else if (user?.techCenterId) {
+        await fetchRecentActivity(user.techCenterId);
+      }
+    };
+
+    loadData();
+  }, [user?.techCenterId, user?.role, fetchTechCenter, fetchRecentActivity, fetchAllActivity]);
+
+  useEffect(() => {
+    const loadVideos = async () => {
+      await fetchVideos();
+    };
+
+    loadVideos();
+  }, [fetchVideos]);
 
   /* ============================================================
      TUTORS WITH TANSTACK QUERY (CACHED)
@@ -259,6 +289,28 @@ export default function DashboardPage() {
   });
 
   const tutors = tutorsData || [];
+
+  /* ============================================================
+     TUTOR ASSIGNMENT WITH TANSTACK QUERY
+  ============================================================ */
+
+  const { data: assignmentData, isLoading: loadingAssignment } = useQuery({
+    queryKey: ['assignment-info', user?.id, user?.role],
+    queryFn: async () => {
+      const response = await fetch('/api/user/tutor');
+      if (!response.ok) {
+        throw new Error('Failed to fetch assignment information');
+      }
+      return response.json() as Promise<AssignmentData>;
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    enabled: !!user?.id && (user?.role === 'student' || user?.role === 'teacher'),
+  });
+
+  const isTeacher = assignmentData?.isTeacher || false;
+  const tutorInfo = assignmentData?.tutor || null;
+  const studentCount = assignmentData?.studentCount || 0;
 
   /* ============================================================
      ROTATING MESSAGES
@@ -352,7 +404,7 @@ export default function DashboardPage() {
       return '';
     }
 
-    const diffInMs = Date.now() - timestamp;
+    const diffInMs = currentTime - timestamp;
 
     const mins = Math.floor(diffInMs / 60000);
     const hours = Math.floor(diffInMs / 3600000);
@@ -405,6 +457,41 @@ export default function DashboardPage() {
           label: 'Internships',
           description: 'Discover opportunities',
           path: '/dashboard/internships',
+        },
+      ];
+    }
+
+    if (userRole === 'admin') {
+      return [
+        {
+          icon: <GraduationCap className="h-5 w-5" />,
+          label: 'Tutor Assignments',
+          description: 'Assign students to tutors',
+          path: '/dashboard/admin/teachers',
+        },
+        {
+          icon: <BookOpen className="h-5 w-5" />,
+          label: 'My Courses',
+          description: 'Access your enrolled courses',
+          path: '/dashboard/courses',
+        },
+        {
+          icon: <Users className="h-5 w-5" />,
+          label: 'Students',
+          description: 'Connect with your peers',
+          path: '/dashboard/students',
+        },
+        {
+          icon: <Briefcase className="h-5 w-5" />,
+          label: 'Internships',
+          description: 'Discover opportunities',
+          path: '/dashboard/internships',
+        },
+        {
+          icon: <Clock className="h-5 w-5" />,
+          label: 'Cleaning Rota',
+          description: 'View your schedule',
+          path: '/dashboard/cleaning',
         },
       ];
     }
@@ -641,6 +728,38 @@ export default function DashboardPage() {
           </div>
         </section>
 
+        {user?.role === 'admin' && (
+          <section className="mt-6">
+            <div className="flex flex-col gap-4 border border-[#B98A3E]/35 bg-[#FBF7EE] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center bg-[#B98A3E]/15 text-[#8A6328]">
+                  <GraduationCap className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8A6328]">
+                    Admin action needed
+                  </p>
+                  <h2 className="mt-1 text-base font-semibold text-[#12203B] sm:text-lg">
+                    Assign students to tutors
+                  </h2>
+                  <p className="mt-1 max-w-2xl text-sm text-[#6B7268]">
+                    Help students receive regular support by assigning them to tutors who can follow up on their progress.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => router.push('/dashboard/admin/teachers')}
+                className="inline-flex shrink-0 items-center justify-center gap-2 bg-[#12203B] px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-white transition-colors hover:bg-[#B98A3E]"
+              >
+                Open Tutors Page
+                <ArrowRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </section>
+        )}
+
         {/* ======================================================
             YOUR TUTORS - Filtered by Tech Center
         ====================================================== */}
@@ -667,9 +786,11 @@ export default function DashboardPage() {
                   style={{ borderColor: COLORS.line }}
                 >
                   {tutor.profileImageUrl ? (
-                    <img
+                    <Image
                       src={tutor.profileImageUrl}
                       alt={`${tutor.firstName} ${tutor.lastName}`}
+                      width={24}
+                      height={24}
                       className="h-6 w-6 rounded-full object-cover"
                     />
                   ) : (
@@ -687,6 +808,156 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
+          </section>
+        )}
+
+        {/* ======================================================
+            TUTOR ASSIGNMENT STATUS - For Students and Teachers
+        ====================================================== */}
+
+        {(user?.role === 'student' || user?.role === 'teacher') && (
+          <section className="mt-6">
+            <div className="flex items-center gap-2 mb-1">
+              <GraduationCap className="h-4 w-4 text-[#B98A3E]" />
+              <h2 className="font-mono text-xs uppercase tracking-[0.15em] text-[#6B7268]">
+                {isTeacher ? 'Student Assignment' : 'Tutor Assignment'}
+              </h2>
+            </div>
+
+            {loadingAssignment ? (
+              <div className="bg-white border p-4" style={{ borderColor: COLORS.line }}>
+                <div className="flex items-center gap-2">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2" style={{ borderColor: COLORS.line, borderTopColor: COLORS.ink }} />
+                  <span className="text-sm text-[#8A9088]">Loading assignment information...</span>
+                </div>
+              </div>
+            ) : isTeacher ? (
+              // Teacher View
+              studentCount > 0 ? (
+                <div className="bg-white border p-4" style={{ borderColor: COLORS.line }}>
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#55705B]/10">
+                      <Users className="h-5 w-5 text-[#55705B]" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-[#12203B]">
+                        You are assigned to {studentCount} student{studentCount > 1 ? 's' : ''}
+                      </p>
+                      <p className="text-[11px] text-[#8A9088] mt-1">
+                        {studentCount} student{studentCount > 1 ? 's are' : ' is'} under your mentorship
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => router.push('/dashboard/admin/teachers')}
+                        className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-[#B98A3E] hover:text-[#A67A2E] transition-colors"
+                      >
+                        View Tutors Page
+                        <ArrowRight className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#55705B]/10 px-3 py-1 text-[10px] font-medium text-[#55705B]">
+                      <Users className="h-3 w-3" />
+                      {studentCount}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white border p-4" style={{ borderColor: COLORS.line }}>
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#A4462F]/10">
+                      <GraduationCap className="h-5 w-5 text-[#A4462F]" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-[#12203B]">
+                        You are a tutor but haven&apos;t been assigned to students yet
+                      </p>
+                      <p className="text-[11px] text-[#8A9088] mt-1">
+                        Contact your tech center administration so that you are assigned to the students you will follow up on.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => router.push('/dashboard/admin/teachers')}
+                        className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-[#B98A3E] hover:text-[#A67A2E] transition-colors"
+                      >
+                        View Tutors Page
+                        <ArrowRight className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )
+            ) : tutorInfo ? (
+              // Student View - Has Tutor
+              <div className="bg-white border p-4" style={{ borderColor: COLORS.line }}>
+                <div className="flex items-center gap-3">
+                  {tutorInfo.profileImageUrl ? (
+                    <Image
+                      src={tutorInfo.profileImageUrl}
+                      alt={`${tutorInfo.firstName} ${tutorInfo.lastName}`}
+                      width={40}
+                      height={40}
+                      className="h-10 w-10 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div
+                      className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
+                      style={{ backgroundColor: COLORS.ink }}
+                    >
+                      {tutorInfo.firstName.charAt(0)}
+                      {tutorInfo.lastName.charAt(0)}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-[#12203B]">
+                      You are assigned to tutor
+                    </p>
+                    <p className="text-[13px] font-medium text-[#55705B]">
+                      {tutorInfo.firstName} {tutorInfo.lastName}
+                    </p>
+                    <p className="text-[11px] text-[#8A9088]">
+                      {tutorInfo.email}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => router.push('/dashboard/admin/teachers')}
+                      className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-[#B98A3E] hover:text-[#A67A2E] transition-colors"
+                    >
+                      View Tutors Page
+                      <ArrowRight className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#55705B]/10 px-3 py-1 text-[10px] font-medium text-[#55705B]">
+                    <GraduationCap className="h-3 w-3" />
+                    Assigned
+                  </span>
+                </div>
+              </div>
+            ) : (
+              // Student View - No Tutor
+              <div className="bg-white border p-4" style={{ borderColor: COLORS.line }}>
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#A4462F]/10">
+                    <GraduationCap className="h-5 w-5 text-[#A4462F]" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-[#12203B]">
+                      You are not yet assigned to a tutor
+                    </p>
+                    <p className="text-[11px] text-[#8A9088] mt-1">
+                      Contact your tech center administration so that you are assigned to a tutor for better learning support.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => router.push('/dashboard/admin/teachers')}
+                      className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-[#B98A3E] hover:text-[#A67A2E] transition-colors"
+                    >
+                      View Tutors Page
+                      <ArrowRight className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
         )}
 
@@ -751,7 +1022,7 @@ export default function DashboardPage() {
             Learning Resources
           </h2>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <button
               type="button"
               onClick={() => router.push('/dashboard/live-streaming')}
@@ -781,16 +1052,6 @@ export default function DashboardPage() {
               <Library className="h-5 w-5 text-[#B98A3E]" />
               <span className="text-xs font-medium text-[#12203B]">Tutorials</span>
             </button>
-
-            <button
-              type="button"
-              onClick={() => router.push('/dashboard/live-streaming?tab=music')}
-              className="flex flex-col items-center gap-2 bg-white p-4 border transition-colors hover:bg-[#F7F6F2]"
-              style={{ borderColor: COLORS.line }}
-            >
-              <Music className="h-5 w-5 text-[#7C3AED]" />
-              <span className="text-xs font-medium text-[#12203B]">Music</span>
-            </button>
           </div>
         </section>
 
@@ -804,7 +1065,10 @@ export default function DashboardPage() {
               Video Hub ({videos.length})
             </h2>
 
-            <div className="bg-white border p-4" style={{ borderColor: COLORS.line }}>
+            <div
+              className="overflow-hidden border bg-white"
+              style={{ borderColor: COLORS.line }}
+            >
               <VideoPlayer videos={videos} />
             </div>
           </section>

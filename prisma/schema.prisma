@@ -769,6 +769,7 @@ model Conversation {
   
   // Participants - array of user IDs
   participantIds String[] // Store user IDs directly
+  participantKey String @unique // Sorted pair key to prevent duplicate direct conversations
   
   // Last message preview for conversation list
   lastMessage    String?  // Preview text
