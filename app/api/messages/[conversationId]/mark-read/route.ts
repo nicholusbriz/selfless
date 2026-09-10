@@ -31,26 +31,6 @@ export async function POST(
       },
     });
 
-    // Update or create message read status for this user using upsert
-    await prisma.messageReadStatus.upsert({
-      where: {
-        conversationId_userId: {
-          conversationId,
-          userId,
-        },
-      },
-      update: {
-        lastReadAt: new Date(),
-        unreadCount: 0,
-      },
-      create: {
-        conversationId,
-        userId,
-        lastReadAt: new Date(),
-        unreadCount: 0,
-      },
-    });
-
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error marking messages as read:', error);

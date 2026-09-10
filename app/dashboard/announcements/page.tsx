@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
@@ -21,6 +22,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { AnnouncementComments } from './components/AnnouncementComments';
 
 interface Announcement {
   id: string;
@@ -45,6 +47,15 @@ interface Announcement {
   } | null;
 }
 
+interface AnnouncementsQueryData {
+  announcements: Announcement[];
+  currentUser: {
+    id: string;
+    isAdmin: boolean;
+    techCenterId: string | null;
+  };
+}
+
 const INITIAL_FORM = {
   title: '',
   content: '',
@@ -59,8 +70,8 @@ export default function AnnouncementsPage() {
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
-  const [expandedAnnouncement, setExpandedAnnouncement] =
-    useState<string | null>(null);
+  const [collapsedAnnouncements, setCollapsedAnnouncements] =
+    useState<Set<string>>(new Set());
   const [editingAnnouncement, setEditingAnnouncement] =
     useState<Announcement | null>(null);
 
@@ -74,7 +85,7 @@ export default function AnnouncementsPage() {
     data,
     isLoading,
     error,
-  } = useQuery({
+  } = useQuery<AnnouncementsQueryData>({
     queryKey: ['announcements'],
     queryFn: async () => {
       const response = await fetch('/api/announcements');
@@ -205,13 +216,13 @@ export default function AnnouncementsPage() {
         queryKey: ['announcements'],
       });
 
-      const previousData = queryClient.getQueryData([
+      const previousData = queryClient.getQueryData<AnnouncementsQueryData>([
         'announcements',
       ]);
 
-      queryClient.setQueryData(
+      queryClient.setQueryData<AnnouncementsQueryData>(
         ['announcements'],
-        (old: any) => {
+        (old) => {
           if (!old) return old;
 
           return {
@@ -291,13 +302,13 @@ export default function AnnouncementsPage() {
         queryKey: ['announcements'],
       });
 
-      const previousData = queryClient.getQueryData([
+      const previousData = queryClient.getQueryData<AnnouncementsQueryData>([
         'announcements',
       ]);
 
-      queryClient.setQueryData(
+      queryClient.setQueryData<AnnouncementsQueryData>(
         ['announcements'],
-        (old: any) => {
+        (old) => {
           if (!old) return old;
 
           return {
@@ -446,11 +457,17 @@ export default function AnnouncementsPage() {
   // ---------------------------------------------------------
 
   const toggleExpand = (announcementId: string) => {
-    setExpandedAnnouncement(
-      expandedAnnouncement === announcementId
-        ? null
-        : announcementId
-    );
+    setCollapsedAnnouncements((current) => {
+      const next = new Set(current);
+
+      if (next.has(announcementId)) {
+        next.delete(announcementId);
+      } else {
+        next.add(announcementId);
+      }
+
+      return next;
+    });
   };
 
   const formatDate = (dateString: string) => {
@@ -688,6 +705,7 @@ export default function AnnouncementsPage() {
                 onCancel={closeCreateForm}
                 isPending={createMutation.isPending}
                 submitLabel="Create Announcement"
+                allowGlobal={currentUser?.isAdmin === true}
               />
             </motion.div>
           )}
@@ -725,6 +743,7 @@ export default function AnnouncementsPage() {
                 onCancel={closeEditForm}
                 isPending={updateMutation.isPending}
                 submitLabel="Save Changes"
+                allowGlobal={currentUser?.isAdmin === true}
               />
             </motion.div>
           )}
@@ -784,12 +803,15 @@ export default function AnnouncementsPage() {
                       {/* Author avatar */}
                       {announcement.author
                         .profileImageUrl ? (
-                        <img
+                        <Image
                           src={
                             announcement.author
                               .profileImageUrl
                           }
                           alt={`${announcement.author.firstName} ${announcement.author.lastName}`}
+                          width={44}
+                          height={44}
+                          unoptimized
                           className="h-11 w-11 shrink-0 rounded-full border-2 border-[#E2E8F0] object-cover"
                         />
                       ) : (
@@ -870,15 +892,17 @@ export default function AnnouncementsPage() {
                             )
                           }
                           aria-label={
-                            expandedAnnouncement ===
-                            announcement.id
+                            !collapsedAnnouncements.has(
+                              announcement.id
+                            )
                               ? 'Collapse announcement'
                               : 'Expand announcement'
                           }
                           className="flex h-9 w-9 items-center justify-center rounded-lg text-[#64748B] transition-colors hover:bg-[#F1F5F9] hover:text-[#1A365D]"
                         >
-                          {expandedAnnouncement ===
-                          announcement.id ? (
+                          {!collapsedAnnouncements.has(
+                            announcement.id
+                          ) ? (
                             <ChevronUp className="h-5 w-5" />
                           ) : (
                             <ChevronDown className="h-5 w-5" />
@@ -925,8 +949,9 @@ export default function AnnouncementsPage() {
 
                   {/* Expandable content */}
                   <AnimatePresence initial={false}>
-                    {expandedAnnouncement ===
-                      announcement.id && (
+                    {!collapsedAnnouncements.has(
+                      announcement.id
+                    ) && (
                       <motion.div
                         initial={{
                           height: 0,
@@ -973,6 +998,7 @@ export default function AnnouncementsPage() {
                             </div>
                           </div>
                         </div>
+                        <AnnouncementComments announcementId={announcement.id} />
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -1010,6 +1036,7 @@ interface AnnouncementFormProps {
   onCancel: () => void;
   isPending: boolean;
   submitLabel: string;
+  allowGlobal: boolean;
 }
 
 function AnnouncementForm({
@@ -1020,6 +1047,7 @@ function AnnouncementForm({
   onCancel,
   isPending,
   submitLabel,
+  allowGlobal,
 }: AnnouncementFormProps) {
   return (
     <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm sm:p-6">
@@ -1128,35 +1156,39 @@ function AnnouncementForm({
           </p>
         </div>
 
-        {/* Global */}
-        <label
-          htmlFor={`global-${title}`}
-          className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 transition-colors hover:bg-[#F1F5F9]"
-        >
-          <input
-            id={`global-${title}`}
-            type="checkbox"
-            checked={formData.isGlobal}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                isGlobal: e.target.checked,
-              })
-            }
-            className="mt-0.5 h-4 w-4 rounded border-[#CBD5E1] text-[#1A365D] focus:ring-[#3182CE]"
-          />
+        {allowGlobal ? (
+          <label
+            htmlFor={`global-${title}`}
+            className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 transition-colors hover:bg-[#F1F5F9]"
+          >
+            <input
+              id={`global-${title}`}
+              type="checkbox"
+              checked={formData.isGlobal}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  isGlobal: e.target.checked,
+                })
+              }
+              className="mt-0.5 h-4 w-4 rounded border-[#CBD5E1] text-[#1A365D] focus:ring-[#3182CE]"
+            />
 
-          <span>
-            <span className="block text-sm font-semibold text-[#334155]">
-              Global announcement
-            </span>
+            <span>
+              <span className="block text-sm font-semibold text-[#334155]">
+                Global announcement
+              </span>
 
-            <span className="mt-0.5 block text-xs leading-5 text-[#64748B]">
-              Make this announcement visible to all tech
-              centers.
+              <span className="mt-0.5 block text-xs leading-5 text-[#64748B]">
+                Mark this to show the announcement to all students and teachers across every tech center.
+              </span>
             </span>
-          </span>
-        </label>
+          </label>
+        ) : (
+          <p className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 text-xs leading-5 text-[#64748B]">
+            This announcement will be visible to users in your tech center.
+          </p>
+        )}
 
         {/* Buttons */}
         <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row">

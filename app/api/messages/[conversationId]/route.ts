@@ -128,17 +128,6 @@ export async function POST(
       },
     });
 
-    // Create delivery status for other participants
-    const otherParticipants = conversation.participantIds.filter(id => id !== userId);
-    if (otherParticipants.length > 0) {
-      await prisma.messageDeliveryStatus.createMany({
-        data: otherParticipants.map(participantId => ({
-          messageId: newMessage.id,
-          userId: participantId,
-        })),
-      });
-    }
-
     return NextResponse.json({ message: newMessage });
   } catch (error) {
     console.error('Error sending message:', error);

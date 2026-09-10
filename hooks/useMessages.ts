@@ -1,18 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-
-interface Message {
-  id: string;
-  conversationId: string;
-  senderId: string;
-  content: string;
-  isRead: boolean;
-  readAt: string | null;
-  attachments: string[];
-  createdAt: string;
-  updatedAt: string;
-}
+import type { Message } from '@/types/messaging';
 
 interface UseMessagesProps {
   conversationId: string;
@@ -22,7 +11,7 @@ interface UseMessagesProps {
 export function useMessages({ conversationId, currentUserId }: UseMessagesProps) {
   const queryClient = useQueryClient();
 
-  // Fetch messages
+  // Fetch messages with cache-first strategy
   const { 
     data: messages = [], 
     isLoading,
@@ -33,13 +22,20 @@ export function useMessages({ conversationId, currentUserId }: UseMessagesProps)
     queryFn: async () => {
       if (!conversationId) return [];
       const response = await fetch(`/api/messages/${conversationId}`);
-      if (!response.ok) throw new Error('Failed to fetch messages');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to fetch messages');
+      }
       const data = await response.json();
       return data.messages || [];
     },
     enabled: !!conversationId && !!currentUserId,
     refetchOnWindowFocus: false,
     staleTime: 30 * 1000, // 30 seconds
+    retry: 1,
+    retryDelay: 1000,
+    // Cache-first: Use cached data immediately, then refetch in background
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
   });
 
   // Send message mutation
@@ -50,7 +46,10 @@ export function useMessages({ conversationId, currentUserId }: UseMessagesProps)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content, attachments }),
       });
-      if (!response.ok) throw new Error('Failed to send message');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to send message');
+      }
       return response.json();
     },
     onSuccess: (data) => {
@@ -64,6 +63,9 @@ export function useMessages({ conversationId, currentUserId }: UseMessagesProps)
       
       // Invalidate conversations to update last message preview
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    },
+    onError: (error) => {
+      console.error('Failed to send message:', error);
     },
   });
 

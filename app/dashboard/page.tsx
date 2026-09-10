@@ -31,6 +31,7 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import VideoPlayer from '@/components/VideoPlayer';
 import { useQuery } from '@tanstack/react-query';
+import { DiscoverStudents, type DiscoverStudent } from './components/DiscoverStudents';
 
 /* ============================================================
    DESIGN TOKENS
@@ -262,7 +263,7 @@ export default function DashboardPage() {
      - Filtered by tech center ID
   ============================================================ */
 
-  const { data: tutorsData } = useQuery({
+  const { data: tutorsData, isLoading: tutorsLoading } = useQuery({
     queryKey: ['tutors', user?.techCenterId],
     queryFn: async () => {
       const response = await fetch('/api/tech-centers/tutors?limit=100');
@@ -289,6 +290,38 @@ export default function DashboardPage() {
   });
 
   const tutors = tutorsData || [];
+
+  const { data: discoverStudents = [], isLoading: discoverStudentsLoading } = useQuery<DiscoverStudent[]>({
+    queryKey: ['dashboard-discover-students'],
+    queryFn: async () => {
+      const response = await fetch('/api/students');
+      if (!response.ok) throw new Error('Failed to fetch discover students');
+
+      const data = await response.json();
+      const students = Object.values(data.studentsByTechCenter || {}).flat() as Array<{
+        id: string;
+        firstName: string;
+        lastName: string;
+        profileImageUrl: string | null;
+        generalCourse: string | null;
+        techCenter: { id: string; name: string } | null;
+      }>;
+
+      return students
+        .filter((student) => student.profileImageUrl)
+        .map((student) => ({
+          id: student.id,
+          firstName: student.firstName,
+          lastName: student.lastName,
+          profileImageUrl: student.profileImageUrl as string,
+          generalCourse: student.generalCourse,
+          techCenter: student.techCenter,
+        }));
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    enabled: !!user?.id,
+  });
 
   /* ============================================================
      TUTOR ASSIGNMENT WITH TANSTACK QUERY
@@ -458,6 +491,12 @@ export default function DashboardPage() {
           description: 'Discover opportunities',
           path: '/dashboard/internships',
         },
+        {
+          icon: <Library className="h-5 w-5" />,
+          label: 'Policy Book',
+          description: 'Read Selfless CE policies',
+          path: '/dashboard/policies',
+        },
       ];
     }
 
@@ -493,6 +532,12 @@ export default function DashboardPage() {
           description: 'View your schedule',
           path: '/dashboard/cleaning',
         },
+        {
+          icon: <Library className="h-5 w-5" />,
+          label: 'Policy Book',
+          description: 'Read Selfless CE policies',
+          path: '/dashboard/policies',
+        },
       ];
     }
     
@@ -521,6 +566,12 @@ export default function DashboardPage() {
         label: 'Cleaning Rota',
         description: 'View your schedule',
         path: '/dashboard/cleaning',
+      },
+      {
+        icon: <Library className="h-5 w-5" />,
+        label: 'Policy Book',
+        description: 'Read Selfless CE policies',
+        path: '/dashboard/policies',
       },
       {
         icon: <Trophy className="h-5 w-5" />,
@@ -728,6 +779,11 @@ export default function DashboardPage() {
           </div>
         </section>
 
+        <DiscoverStudents
+          students={discoverStudents}
+          isLoading={discoverStudentsLoading}
+        />
+
         {user?.role === 'admin' && (
           <section className="mt-6">
             <div className="flex flex-col gap-4 border border-[#B98A3E]/35 bg-[#FBF7EE] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
@@ -764,7 +820,7 @@ export default function DashboardPage() {
             YOUR TUTORS - Filtered by Tech Center
         ====================================================== */}
 
-        {tutors.length > 0 && user?.role !== 'super_admin' && (
+        {(tutorsLoading || tutors.length > 0) && user?.role !== 'super_admin' && (
           <section className="mt-6">
             <div className="flex items-center gap-2 mb-1">
               <GraduationCap className="h-4 w-4 text-[#B98A3E]" />
@@ -773,13 +829,24 @@ export default function DashboardPage() {
               </h2>
             </div>
 
-            <p className="text-[11px] text-[#8A9088] mb-3 flex items-center gap-1.5">
-              <MessageCircle className="h-3 w-3" />
-              Reach out to them whenever you need more guidance and help
-            </p>
+            {tutorsLoading ? (
+              <div className="flex flex-wrap gap-2" aria-label="Loading tutors">
+                {[1, 2, 3].map((item) => (
+                  <div key={item} className="flex items-center gap-2 border bg-white px-3 py-1.5" style={{ borderColor: COLORS.line }}>
+                    <div className="h-6 w-6 animate-pulse rounded-full bg-[#E8E9E3]" />
+                    <div className="h-3 w-24 animate-pulse bg-[#E8E9E3]" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <>
+                <p className="mb-3 flex items-center gap-1.5 text-[11px] text-[#8A9088]">
+                  <MessageCircle className="h-3 w-3" />
+                  Reach out to them whenever you need more guidance and help
+                </p>
 
-            <div className="flex flex-wrap gap-2">
-              {tutors.map((tutor: Tutor) => (
+                <div className="flex flex-wrap gap-2">
+                  {tutors.map((tutor: Tutor) => (
                 <div
                   key={tutor.id}
                   className="flex items-center gap-2 bg-white px-3 py-1.5 border"
@@ -806,8 +873,10 @@ export default function DashboardPage() {
                     {tutor.firstName} {tutor.lastName}
                   </span>
                 </div>
-              ))}
-            </div>
+                  ))}
+                </div>
+              </>
+            )}
           </section>
         )}
 
@@ -825,10 +894,15 @@ export default function DashboardPage() {
             </div>
 
             {loadingAssignment ? (
-              <div className="bg-white border p-4" style={{ borderColor: COLORS.line }}>
-                <div className="flex items-center gap-2">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2" style={{ borderColor: COLORS.line, borderTopColor: COLORS.ink }} />
-                  <span className="text-sm text-[#8A9088]">Loading assignment information...</span>
+              <div className="border bg-white p-4" style={{ borderColor: COLORS.line }} aria-label="Loading assignment information">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 animate-pulse rounded-full bg-[#E8E9E3]" />
+                  <div className="min-w-0 flex-1">
+                    <div className="h-4 w-48 max-w-full animate-pulse bg-[#E8E9E3]" />
+                    <div className="mt-2 h-3 w-64 max-w-full animate-pulse bg-[#F1F1EC]" />
+                    <div className="mt-2 h-3 w-28 animate-pulse bg-[#F1F1EC]" />
+                  </div>
+                  <div className="hidden h-6 w-16 animate-pulse rounded-full bg-[#F1F1EC] sm:block" />
                 </div>
               </div>
             ) : isTeacher ? (

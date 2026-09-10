@@ -1,5 +1,5 @@
 // lib/auth/nextauth.ts
-import NextAuth, { AuthOptions, Session, User as NextAuthUser } from 'next-auth';
+import NextAuth, { Account, AuthOptions, Session, User as NextAuthUser } from 'next-auth';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { JWT } from 'next-auth/jwt';
@@ -22,17 +22,15 @@ interface JwtCallbackParams {
 }
 
 // ============================================
-// ADAPTER (Cast to any to bypass type issues)
+// ADAPTER
 // ============================================
-
-const adapter = PrismaAdapter(prisma) as any;
 
 // ============================================
 // AUTH OPTIONS
 // ============================================
 
 export const authOptions: AuthOptions = {
-  adapter: adapter,
+  adapter: PrismaAdapter(prisma) as unknown as AuthOptions['adapter'],
   
   providers: [
     // ============================================
@@ -55,6 +53,9 @@ export const authOptions: AuthOptions = {
           where: { email: credentials.email },
           include: { 
             role: true,
+            techCenter: {
+              select: { id: true, name: true }
+            },
             teacher: {
               select: {
                 id: true,
@@ -104,6 +105,7 @@ export const authOptions: AuthOptions = {
           lastName: user.lastName,
           role: user.role?.name || 'student',
           techCenterId: user.techCenterId,
+          techCenter: user.techCenter,
           profileImageUrl: user.profileImageUrl,
           status: user.status,
           isActive: user.isActive,
@@ -119,7 +121,7 @@ export const authOptions: AuthOptions = {
           gender: user.gender,
           preferredTeamType: user.preferredTeamType,
           preferredTeamRole: user.preferredTeamRole,
-          teacherId: (user as any).teacherId || null,
+          teacherId: user.teacherId || null,
         };
       }
     })
@@ -141,6 +143,7 @@ export const authOptions: AuthOptions = {
         session.user.firstName = token.firstName as string;
         session.user.lastName = token.lastName as string;
         session.user.techCenterId = token.techCenterId as string;
+        session.user.techCenter = token.techCenter as { id: string; name: string } | null;
         session.user.profileImageUrl = token.profileImageUrl as string;
         session.user.status = token.status as string;
         session.user.isActive = token.isActive as boolean;
@@ -157,7 +160,7 @@ export const authOptions: AuthOptions = {
         session.user.preferredTeamType = token.preferredTeamType as string | null;
         session.user.preferredTeamRole = token.preferredTeamRole as string | null;
         // Add teacherId to session user
-        (session.user as any).teacherId = token.teacherId as string | null;
+        session.user.teacherId = token.teacherId as string | null;
       }
       return session;
     },
@@ -175,6 +178,7 @@ export const authOptions: AuthOptions = {
         token.firstName = user.firstName;
         token.lastName = user.lastName;
         token.techCenterId = user.techCenterId;
+        token.techCenter = user.techCenter;
         token.profileImageUrl = user.profileImageUrl;
         token.status = user.status;
         token.isActive = user.isActive;
@@ -191,7 +195,7 @@ export const authOptions: AuthOptions = {
         token.preferredTeamType = user.preferredTeamType;
         token.preferredTeamRole = user.preferredTeamRole;
         // Use type assertion for teacherId
-        (token as any).teacherId = (user as any).teacherId || null;
+        token.teacherId = user.teacherId || null;
         
         // Store roleUpdatedAt from database during initial sign in
         const dbUser = await prisma.user.findUnique({
@@ -201,9 +205,9 @@ export const authOptions: AuthOptions = {
             teacherId: true
           }
         });
-        (token as any).roleUpdatedAt = dbUser?.roleUpdatedAt?.toISOString();
+        token.roleUpdatedAt = dbUser?.roleUpdatedAt?.toISOString();
         if (dbUser?.teacherId) {
-          (token as any).teacherId = dbUser.teacherId;
+          token.teacherId = dbUser.teacherId;
         }
       }
       
@@ -213,6 +217,9 @@ export const authOptions: AuthOptions = {
           where: { id: token.sub as string },
           include: { 
             role: true,
+            techCenter: {
+              select: { id: true, name: true }
+            },
             teacher: {
               select: {
                 id: true,
@@ -230,6 +237,7 @@ export const authOptions: AuthOptions = {
           token.firstName = freshUser.firstName;
           token.lastName = freshUser.lastName;
           token.techCenterId = freshUser.techCenterId;
+          token.techCenter = freshUser.techCenter;
           token.profileImageUrl = freshUser.profileImageUrl;
           token.status = freshUser.status;
           token.isActive = freshUser.isActive;
@@ -245,8 +253,8 @@ export const authOptions: AuthOptions = {
           token.gender = freshUser.gender;
           token.preferredTeamType = freshUser.preferredTeamType;
           token.preferredTeamRole = freshUser.preferredTeamRole;
-          (token as any).teacherId = freshUser.teacherId || null;
-          (token as any).roleUpdatedAt = freshUser.roleUpdatedAt?.toISOString();
+          token.teacherId = freshUser.teacherId || null;
+          token.roleUpdatedAt = freshUser.roleUpdatedAt?.toISOString();
         }
       }
       
@@ -257,12 +265,19 @@ export const authOptions: AuthOptions = {
           select: { 
             roleUpdatedAt: true,
             role: { select: { name: true } },
-            teacherId: true
+            teacherId: true,
+            techCenter: {
+              select: { id: true, name: true }
+            }
           }
         });
         
         if (dbUser) {
-          const tokenRoleUpdatedAt = (token as any).roleUpdatedAt as string | undefined;
+          if (!token.techCenter && dbUser.techCenter) {
+            token.techCenter = dbUser.techCenter;
+          }
+
+          const tokenRoleUpdatedAt = token.roleUpdatedAt;
           const dbRoleUpdatedAt = dbUser.roleUpdatedAt?.toISOString();
           
           // If database roleUpdatedAt is newer than token's, refresh all user data
@@ -271,6 +286,9 @@ export const authOptions: AuthOptions = {
               where: { id: token.sub as string },
               include: { 
                 role: true,
+                techCenter: {
+                  select: { id: true, name: true }
+                },
                 teacher: {
                   select: {
                     id: true,
@@ -288,6 +306,7 @@ export const authOptions: AuthOptions = {
               token.firstName = freshUser.firstName;
               token.lastName = freshUser.lastName;
               token.techCenterId = freshUser.techCenterId;
+              token.techCenter = freshUser.techCenter;
               token.profileImageUrl = freshUser.profileImageUrl;
               token.status = freshUser.status;
               token.isActive = freshUser.isActive;
@@ -303,8 +322,8 @@ export const authOptions: AuthOptions = {
               token.gender = freshUser.gender;
               token.preferredTeamType = freshUser.preferredTeamType;
               token.preferredTeamRole = freshUser.preferredTeamRole;
-              (token as any).teacherId = freshUser.teacherId || null;
-              (token as any).roleUpdatedAt = freshUser.roleUpdatedAt?.toISOString();
+              token.teacherId = freshUser.teacherId || null;
+              token.roleUpdatedAt = freshUser.roleUpdatedAt?.toISOString();
             }
           }
         }
@@ -317,7 +336,7 @@ export const authOptions: AuthOptions = {
      * Sign In Callback
      * Controls what happens when a user signs in
      */
-    async signIn({ user, account }: { user: NextAuthUser; account: any }) {
+    async signIn({ account }: { account: Account | null }) {
       // Allow credentials provider
       if (account?.provider === 'credentials') return true;
       return true;

@@ -1,35 +1,20 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Send } from 'lucide-react';
+import { MoreVertical, Send, Trash2, AlertCircle } from 'lucide-react';
 import { useMessages } from '@/hooks/useMessages';
 import { useQueryClient } from '@tanstack/react-query';
+import type { Message, ConversationCacheItem } from '@/types/messaging';
 
 interface ChatProps {
   conversationId: string;
   currentUserId: string;
 }
 
-interface ConversationCacheItem {
-  id: string;
-  unreadCount?: number;
-  [key: string]: unknown;
-}
-
-interface Message {
-  id: string;
-  conversationId: string;
-  senderId: string;
-  content: string;
-  isRead: boolean;
-  readAt: string | null;
-  attachments: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-
 export function Chat({ conversationId, currentUserId }: ChatProps) {
   const [newMessage, setNewMessage] = useState('');
+  const [openMessageMenuId, setOpenMessageMenuId] = useState<string | null>(null);
+  const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
@@ -37,7 +22,7 @@ export function Chat({ conversationId, currentUserId }: ChatProps) {
   // Track if we've already marked as read for this conversation
   const [hasMarkedRead, setHasMarkedRead] = useState(false);
 
-  const { messages, isLoading, sendMessage, isSending } = useMessages({
+  const { messages, isLoading, error, sendMessage, isSending } = useMessages({
     conversationId,
     currentUserId,
   });
@@ -105,15 +90,51 @@ export function Chat({ conversationId, currentUserId }: ChatProps) {
     const trimmed = newMessage.trim();
     if (!trimmed || isSending) return;
 
-    await sendMessage(trimmed);
     setNewMessage('');
     inputRef.current?.focus();
+    await sendMessage(trimmed);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (deletingMessageId || !window.confirm('Delete this message?')) return;
+
+    setDeletingMessageId(messageId);
+    setOpenMessageMenuId(null);
+    const previousMessages = queryClient.getQueryData<Message[]>([
+      'messages',
+      conversationId,
+    ]);
+    queryClient.setQueryData<Message[]>(
+      ['messages', conversationId],
+      (oldMessages = []) => oldMessages.filter((message) => message.id !== messageId)
+    );
+
+    try {
+      const response = await fetch(
+        `/api/messages/${conversationId}/${messageId}`,
+        { method: 'DELETE' }
+      );
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to delete message');
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    } catch (error) {
+      console.error('Failed to delete message:', error);
+      if (previousMessages) {
+        queryClient.setQueryData(['messages', conversationId], previousMessages);
+      }
+    } finally {
+      setDeletingMessageId(null);
     }
   };
 
@@ -134,6 +155,24 @@ export function Chat({ conversationId, currentUserId }: ChatProps) {
 
     return msgDate.toLocaleDateString();
   };
+
+  if (error) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center bg-white px-6 text-center">
+        <AlertCircle className="mb-3 h-12 w-12 text-[#E53E3E]" strokeWidth={1.5} />
+        <p className="text-sm font-semibold text-[#1A365D]">Unable to load messages</p>
+        <p className="mt-1 text-xs text-[#64748B]">
+          {error instanceof Error ? error.message : 'Something went wrong'}
+        </p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 rounded-lg bg-[#1A365D] px-4 py-2 text-sm text-white transition-colors hover:bg-[#153475]"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -214,12 +253,42 @@ export function Chat({ conversationId, currentUserId }: ChatProps) {
                     }`}
                   >
                     <div
-                      className={`max-w-[86%] px-3.5 py-2.5 shadow-sm sm:max-w-[72%] ${
+                      className={`relative max-w-[86%] px-3.5 py-2.5 shadow-sm sm:max-w-[72%] ${
                         isOwn
-                          ? 'rounded-2xl rounded-br-md bg-[#1A365D] text-white'
+                          ? 'rounded-2xl rounded-br-md bg-[#1A365D] pt-7 pr-9 text-white'
                           : 'rounded-2xl rounded-bl-md border border-[#E2E8F0] bg-white text-[#1A365D]'
                       }`}
                     >
+                      {isOwn && (
+                        <div className="absolute right-1 top-1">
+                          <button
+                            type="button"
+                            onClick={() => setOpenMessageMenuId((currentId) => (
+                              currentId === message.id ? null : message.id
+                            ))}
+                            aria-label="Message actions"
+                            aria-expanded={openMessageMenuId === message.id}
+                            className="rounded-full p-1 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </button>
+
+                          {openMessageMenuId === message.id && (
+                            <div className="absolute right-0 top-8 z-10 min-w-[150px] rounded-lg border border-[#E2E8F0] bg-white p-1 text-[#1A365D] shadow-lg">
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteMessage(message.id)}
+                                disabled={deletingMessageId === message.id}
+                                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-xs font-medium text-[#C53030] transition-colors hover:bg-[#FFF5F5] disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                {deletingMessageId === message.id ? 'Deleting...' : 'Delete message'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       <p className="break-words text-[13px] leading-5 sm:text-sm">
                         {message.content}
                       </p>
@@ -257,12 +326,12 @@ export function Chat({ conversationId, currentUserId }: ChatProps) {
 
       {/* Message Input */}
       <div className="shrink-0 border-t border-[#E2E8F0] bg-white px-3 py-3 sm:px-4">
-        <div className="mx-auto flex max-w-3xl items-center gap-2">
+        <div className="flex w-full items-center gap-2">
           <input
             ref={inputRef}
             type="text"
             autoFocus
-            value={newMessage}
+            value={isSending ? '' : newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={handleKeyPress}
             placeholder="Type a message..."

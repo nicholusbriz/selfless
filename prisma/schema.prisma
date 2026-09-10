@@ -131,6 +131,7 @@ model User {
   
   // Communication
   authoredAnnouncements Announcement[] @relation("AnnouncementAuthor")
+  announcementComments  AnnouncementComment[] @relation("AnnouncementCommentAuthor")
   notifications         Notification[]
   activityLogs          ActivityLog[]
   
@@ -159,11 +160,7 @@ model User {
   // Messages sent by this user
   sentMessages Message[] @relation("SenderMessages")
   
-  // Read status for messages
-  messageReadStatus MessageReadStatus[]
-  
-  // Message delivery status
-  messageDeliveryStatus MessageDeliveryStatus[]
+
   
   @@index([techCenterId])
   @@index([previousTechCenterId])
@@ -471,6 +468,7 @@ model Announcement {
   
   authorId    String   @db.ObjectId
   author      User     @relation("AnnouncementAuthor", fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  comments    AnnouncementComment[]
   
   isGlobal    Boolean  @default(false)
   techCenterId String? @db.ObjectId
@@ -490,6 +488,25 @@ model Announcement {
   @@index([publishedAt])
   @@index([deadline])
   @@map("announcements")
+}
+
+model AnnouncementComment {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  announcementId String   @db.ObjectId
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  authorId       String   @db.ObjectId
+  author         User     @relation("AnnouncementCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  parentId       String?  @db.ObjectId
+  parent         AnnouncementComment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies        AnnouncementComment[] @relation("CommentReplies")
+  content        String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([announcementId])
+  @@index([parentId])
+  @@index([authorId])
+  @@map("announcement_comments")
 }
 
 // NOTIFICATIONS
@@ -786,7 +803,6 @@ model Conversation {
   
   // Relations
   messages      Message[] // All messages in this conversation
-  readStatus    MessageReadStatus[] // Read status per user
   
   @@index([participantIds])
   @@index([lastMessageAt])
@@ -809,92 +825,24 @@ model Message {
   
   // Message content
   content     String
-  attachments String[] // Array of file URLs or IDs
+  attachments String[]
   
   // Read status
   isRead      Boolean  @default(false)
   readAt      DateTime?
-  readBy      String[] // Array of user IDs who have read the message
   
   // Message status
   isDeleted   Boolean  @default(false) // Soft delete for sender
-  isEdited    Boolean  @default(false)
-  editedAt    DateTime?
-  replyToId   String?  @db.ObjectId // For threaded replies
   
   // Tracking
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
-  // Reactions (optional)
-  reactions   Json?    // Store reactions as JSON: { "👍": ["user1", "user2"], "❤️": ["user3"] }
-  
-  // Relations - Self-relation for replies
-  replies     Message[] @relation("MessageReplies")
-  replyTo     Message?  @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  
-  // Delivery status
-  deliveryStatus MessageDeliveryStatus[]
   
   @@index([conversationId])
   @@index([senderId])
   @@index([createdAt])
   @@index([isRead])
   @@index([isDeleted])
-  @@index([replyToId])
+  @@index([conversationId, isRead]) // Composite index for unread message queries (most common pattern)
   @@map("messages")
-}
-
-// MESSAGE READ STATUS - Track read status per user per conversation
-model MessageReadStatus {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  
-  // Conversation context
-  conversationId String @db.ObjectId
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  
-  // User context
-  userId      String   @db.ObjectId
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Last read timestamp
-  lastReadAt  DateTime @default(now())
-  
-  // Unread count
-  unreadCount Int      @default(0)
-  
-  // Tracking
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  @@unique([conversationId, userId])
-  @@index([userId])
-  @@index([conversationId])
-  @@map("message_read_status")
-}
-
-// MESSAGE DELIVERY STATUS - Track delivery for each user
-model MessageDeliveryStatus {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  
-  // Message reference
-  messageId   String   @db.ObjectId
-  message     Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  
-  // User reference
-  userId      String   @db.ObjectId
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Delivery status
-  deliveredAt DateTime?
-  readAt      DateTime?
-  
-  // Tracking
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  @@unique([messageId, userId])
-  @@index([userId])
-  @@index([messageId])
-  @@map("message_delivery_status")
 }

@@ -14,6 +14,7 @@ export async function GET() {
     const userId = session.user.id;
 
     // Get all conversations where user is a participant
+    // Database constraints prevent duplicates via participantKey
     const conversations = await prisma.conversation.findMany({
       where: {
         participantIds: { has: userId },
@@ -32,19 +33,9 @@ export async function GET() {
       },
     });
 
-    // Hide legacy duplicate records while the unique participant key is rolled out.
-    const uniqueConversations = Array.from(
-      new Map(
-        conversations.map((conversation) => [
-          [...conversation.participantIds].sort().join(':'),
-          conversation,
-        ])
-      ).values()
-    );
-
     // Get other user info for each conversation
     const conversationsWithUsers = await Promise.all(
-      uniqueConversations.map(async (conv) => {
+      conversations.map(async (conv) => {
         const otherUserId = conv.participantIds.find(id => id !== userId);
         
         let otherUser = null;
@@ -131,63 +122,25 @@ export async function POST(request: NextRequest) {
     const userId = session.user.id;
     const participantKey = [userId, participantId].sort().join(':');
 
-    // Check if conversation already exists
-    const existingConversation = await prisma.conversation.findFirst({
-      where: {
-        AND: [
-          { participantIds: { has: userId } },
-          { participantIds: { has: participantId } },
-        ],
-        isActive: true,
-      },
-    });
-
-    if (existingConversation) {
-      const otherUser = await prisma.user.findUnique({
-        where: { id: participantId },
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          profileImageUrl: true,
-          techCenter: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
-      });
-
-      return NextResponse.json({
-        conversation: {
-          id: existingConversation.id,
-          participants: existingConversation.participantIds,
-          lastMessage: null,
-          otherUser: otherUser ? {
-            id: otherUser.id,
-            firstName: otherUser.firstName,
-            lastName: otherUser.lastName,
-            fullName: `${otherUser.firstName} ${otherUser.lastName}`,
-            image: otherUser.profileImageUrl,
-            techCenter: otherUser.techCenter,
-          } : null,
-          createdAt: existingConversation.createdAt,
-          updatedAt: existingConversation.updatedAt,
-        },
-      });
-    }
-
-    // Use the unique pair key so concurrent requests reuse one conversation.
-    const newConversation = await prisma.conversation.upsert({
+    // Use upsert to either find existing conversation or create new one
+    // The participantKey unique constraint prevents duplicates for the same user pair
+    const conversation = await prisma.conversation.upsert({
       where: { participantKey },
-      update: {},
+      update: {}, // Don't update anything if it exists
       create: {
         participantIds: [userId, participantId],
         participantKey,
         lastMessageAt: new Date(),
       },
     });
+
+    // Validate that the conversation is one-to-one (exactly 2 participants)
+    if (conversation.participantIds.length !== 2) {
+      return NextResponse.json(
+        { error: 'Conversation must be one-to-one' },
+        { status: 400 }
+      );
+    }
 
     const otherUser = await prisma.user.findUnique({
       where: { id: participantId },
@@ -207,8 +160,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       conversation: {
-        id: newConversation.id,
-        participants: newConversation.participantIds,
+        id: conversation.id,
+        participants: conversation.participantIds,
         lastMessage: null,
         otherUser: otherUser ? {
           id: otherUser.id,
@@ -218,8 +171,8 @@ export async function POST(request: NextRequest) {
           image: otherUser.profileImageUrl,
           techCenter: otherUser.techCenter,
         } : null,
-        createdAt: newConversation.createdAt,
-        updatedAt: newConversation.updatedAt,
+        createdAt: conversation.createdAt,
+        updatedAt: conversation.updatedAt,
       },
     });
   } catch (error) {

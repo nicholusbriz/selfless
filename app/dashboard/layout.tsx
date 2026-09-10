@@ -70,17 +70,24 @@ import {
   useAnnouncementCount,
 } from '@/hooks/useNotifications';
 import { useUnreadMessageCount } from '@/hooks/useMessages';
+import { OnlineUsers } from '@/components/OnlineUsers';
+import { useOnlineUsers } from '@/lib/hooks/useOnlineUsers';
 
 // ============================================================
 // TYPES
 // ============================================================
 
 interface UserInfo {
+  id?: string;
   profileImageUrl?: string | null;
   firstName?: string | null;
   lastName?: string | null;
   email?: string | null;
   role?: string | null;
+  techCenter?: {
+    id: string;
+    name: string;
+  } | null;
 }
 
 interface TopBarProps {
@@ -816,6 +823,8 @@ function TopBar({
   const { data: unreadMessageCount } =
     useUnreadMessageCount();
 
+  const onlineUsers = useOnlineUsers(user);
+
   const pathname = usePathname();
   const pageInfo = getPageInfo(pathname);
 
@@ -856,9 +865,9 @@ function TopBar({
           'shadow-[0_4px_24px_rgba(18,32,59,0.08)]'
       )}
     >
-      <div className="h-full flex items-center justify-between px-4 sm:px-6 lg:px-7">
+      <div className="h-full flex items-center justify-between gap-1 px-2 sm:gap-2 sm:px-6 lg:px-7">
         {/* LEFT */}
-        <div className="flex items-center min-w-0">
+        <div className="flex min-w-0 flex-1 items-center overflow-hidden">
           <motion.button
             type="button"
             whileTap={{ scale: 0.92 }}
@@ -873,7 +882,7 @@ function TopBar({
             }
             className={cn(
               'flex items-center justify-center',
-              'w-9 h-9 rounded-lg',
+              'w-9 h-9 shrink-0 rounded-lg',
               'text-[#6B7268]',
               'hover:text-[#12203B]',
               'hover:bg-[#F5F4EE]',
@@ -895,7 +904,8 @@ function TopBar({
             )}
           </motion.button>
 
-          <div className="ml-3 pl-3 border-l border-[#DADCD3] min-w-0">
+          {/* Breadcrumb - Hidden on smaller screens to save space */}
+          <div className="hidden md:block ml-3 pl-3 border-l border-[#DADCD3] min-w-0">
             <div className="flex items-center gap-2 font-mono text-[11px] text-[#8A9088]">
               {pageInfo.section && (
                 <>
@@ -926,10 +936,18 @@ function TopBar({
               </motion.span>
             </div>
           </div>
+
+          {/* ONLINE USERS - Placed here, flex-1 allows it to take available space */}
+          <div className="ml-auto mr-2 min-w-0 sm:mr-4">
+            <OnlineUsers 
+              onlineUsers={onlineUsers} 
+              currentUserId={user?.id} 
+            />
+          </div>
         </div>
 
         {/* RIGHT */}
-        <div className="flex items-center gap-1 sm:gap-2 ml-3">
+        <div className="ml-1 flex shrink-0 items-center gap-0.5 sm:ml-3 sm:gap-2">
           {/* ANNOUNCEMENTS */}
           <motion.div
             whileHover={{ scale: 1.05 }}
@@ -1768,62 +1786,6 @@ function Sidebar({
           )}
           aria-label="Dashboard navigation"
         >
-          {/* BACK HOME */}
-          <motion.div
-            initial={{
-              opacity: 0,
-            }}
-            animate={{
-              opacity: 1,
-            }}
-            className="mb-3"
-          >
-            <Link
-              href="/"
-              className={cn(
-                'relative group flex items-center gap-3',
-                'h-10 px-3 rounded-lg',
-                'text-[13px]',
-                'text-[#6B7268]',
-                'font-medium',
-                'hover:text-[#12203B]',
-                'hover:bg-[#F5F4EE]',
-                'transition-all duration-200',
-                !sidebarOpen &&
-                  'justify-center px-0'
-              )}
-            >
-              <Home className="w-[18px] h-[18px] flex-shrink-0" />
-
-              {sidebarOpen && (
-                <span>Back to Home</span>
-              )}
-
-              {!sidebarOpen && (
-                <span
-                  className={cn(
-                    'absolute left-full ml-3',
-                    'top-1/2 -translate-y-1/2',
-                    'whitespace-nowrap',
-                    'bg-[#12203B] text-white',
-                    'text-xs font-medium',
-                    'px-3 py-2 rounded-lg',
-                    'shadow-xl',
-                    'opacity-0 invisible',
-                    'group-hover:opacity-100',
-                    'group-hover:visible',
-                    'transition-all duration-200',
-                    'pointer-events-none z-[300]'
-                  )}
-                >
-                  Back to Home
-                </span>
-              )}
-            </Link>
-          </motion.div>
-
-          <div className="h-px bg-[#DADCD3] mb-3" />
-
           {/* COLLAPSED */}
           {!sidebarOpen && (
             <div className="space-y-1">
@@ -2060,6 +2022,35 @@ function Sidebar({
               </div>
             </motion.div>
           )}
+
+          {/* ================================================== */}
+          {/* BACK TO HOME */}
+          {/* ================================================== */}
+
+          <div className="mt-4 pt-3 border-t border-[#DADCD3]">
+            <Link
+              href="/"
+              aria-label="Back to Home"
+              className={cn(
+                'relative group w-full flex items-center gap-3',
+                'h-10 px-3 rounded-lg',
+                'text-[13px] text-[#6B7268] font-medium',
+                'hover:text-[#12203B] hover:bg-[#F5F4EE]',
+                'transition-all duration-200',
+                !sidebarOpen && 'justify-center px-0'
+              )}
+            >
+              <Home className="w-[18px] h-[18px] flex-shrink-0" />
+
+              {sidebarOpen && <span>Back to Home</span>}
+
+              {!sidebarOpen && (
+                <span className="absolute left-full ml-3 top-1/2 -translate-y-1/2 whitespace-nowrap bg-[#12203B] text-white text-xs font-medium px-3 py-2 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-[300]">
+                  Back to Home
+                </span>
+              )}
+            </Link>
+          </div>
 
           {/* ================================================== */}
           {/* LOGOUT */}
