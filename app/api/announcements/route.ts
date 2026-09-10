@@ -118,8 +118,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Determine tech center ID
-    const finalTechCenterId = isGlobal ? null : (techCenterId || user.techCenterId);
+    const isAdmin = user.role?.name === 'admin' || user.role?.name === 'super_admin';
+    const canCreateGlobal = isAdmin && isGlobal === true;
+    const finalTechCenterId = canCreateGlobal
+      ? null
+      : isAdmin
+        ? (techCenterId || user.techCenterId)
+        : user.techCenterId;
 
     // Create announcement
     const announcement = await prisma.announcement.create({
@@ -128,7 +133,7 @@ export async function POST(request: NextRequest) {
         title,
         content,
         deadline: deadline ? new Date(deadline) : null,
-        isGlobal: isGlobal || false,
+        isGlobal: canCreateGlobal,
         techCenterId: finalTechCenterId
       },
       include: {

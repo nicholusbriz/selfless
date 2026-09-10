@@ -11,8 +11,21 @@ type ProviderStatus = {
   lastChecked?: string;
 };
 
+type StatusResponse = {
+  providers: ProviderStatus[];
+  summary: {
+    total: number;
+    working: number;
+    quotaExceeded: number;
+    notConfigured: number;
+    recommended: string;
+  };
+  ragAvailable: boolean;
+  timestamp: string;
+};
+
 // Cache status for 5 minutes to avoid excessive API calls
-const statusCache = new Map<string, { data: any; timestamp: number }>();
+const statusCache = new Map<string, { data: StatusResponse; timestamp: number }>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 /**
@@ -34,108 +47,41 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
  * Authentication: Dev role required
  */
 async function testOpenAI(): Promise<ProviderStatus> {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
   
   if (!apiKey) {
-    return { provider: 'openai', configured: false, status: 'not_configured', error: 'API key not set' };
+    return { provider: 'openrouter', configured: false, status: 'not_configured', error: 'API key not set' };
   }
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': 'http://localhost:3000',
+        'X-Title': 'Selfless CE'
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: process.env.OPENROUTER_MODEL?.trim() || 'openai/gpt-4.1-mini',
         messages: [{ role: 'user', content: 'Hello' }],
-        max_tokens: 5
+        max_completion_tokens: 5
       })
     });
 
     const data = await response.json();
 
     if (response.ok) {
-      return { provider: 'openai', configured: true, status: 'working', model: 'gpt-3.5-turbo' };
+      return { provider: 'openrouter', configured: true, status: 'working', model: process.env.OPENROUTER_MODEL?.trim() || 'openai/gpt-4.1-mini' };
     } else {
       const errorMessage = data.error?.message || 'Unknown error';
       if (errorMessage.includes('quota') || errorMessage.includes('billing') || errorMessage.includes('exceeded')) {
-        return { provider: 'openai', configured: true, status: 'quota_exceeded', error: errorMessage };
+        return { provider: 'openrouter', configured: true, status: 'quota_exceeded', error: errorMessage };
       }
-      return { provider: 'openai', configured: true, status: 'error', error: errorMessage };
+      return { provider: 'openrouter', configured: true, status: 'error', error: errorMessage };
     }
   } catch (error) {
-    return { provider: 'openai', configured: true, status: 'error', error: error instanceof Error ? error.message : 'Unknown error' };
-  }
-}
-
-async function testGemini(): Promise<ProviderStatus> {
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
-  
-  if (!apiKey) {
-    return { provider: 'gemini', configured: false, status: 'not_configured', error: 'API key not set' };
-  }
-
-  try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: 'Hello' }] }]
-      })
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      return { provider: 'gemini', configured: true, status: 'working', model: 'gemini-2.0-flash' };
-    } else {
-      const errorMessage = data.error?.message || 'Unknown error';
-      if (errorMessage.includes('quota') || errorMessage.includes('limit') || errorMessage.includes('exceeded')) {
-        return { provider: 'gemini', configured: true, status: 'quota_exceeded', error: errorMessage };
-      }
-      return { provider: 'gemini', configured: true, status: 'error', error: errorMessage };
-    }
-  } catch (error) {
-    return { provider: 'gemini', configured: true, status: 'error', error: error instanceof Error ? error.message : 'Unknown error' };
-  }
-}
-
-async function testGroq(): Promise<ProviderStatus> {
-  const apiKey = process.env.GROQ_API_KEY?.trim();
-  
-  if (!apiKey) {
-    return { provider: 'groq', configured: false, status: 'not_configured', error: 'API key not set' };
-  }
-
-  try {
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [{ role: 'user', content: 'Hello' }],
-        max_tokens: 5
-      })
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      return { provider: 'groq', configured: true, status: 'working', model: 'llama-3.3-70b-versatile' };
-    } else {
-      const errorMessage = data.error?.message || 'Unknown error';
-      if (errorMessage.includes('rate limit') || errorMessage.includes('quota') || errorMessage.includes('exceeded')) {
-        return { provider: 'groq', configured: true, status: 'quota_exceeded', error: errorMessage };
-      }
-      return { provider: 'groq', configured: true, status: 'error', error: errorMessage };
-    }
-  } catch (error) {
-    return { provider: 'groq', configured: true, status: 'error', error: error instanceof Error ? error.message : 'Unknown error' };
+    return { provider: 'openrouter', configured: true, status: 'error', error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
@@ -170,12 +116,7 @@ export async function GET(request: Request) {
 
   console.log('[StatusRoute] Refreshing provider status');
 
-  // Test all providers
-  const results = await Promise.all([
-    testOpenAI(),
-    testGemini(),
-    testGroq()
-  ]);
+  const results = await Promise.all([testOpenAI()]);
 
   const workingProviders = results.filter(r => r.status === 'working');
   const quotaExceeded = results.filter(r => r.status === 'quota_exceeded');

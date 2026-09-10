@@ -2,7 +2,8 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { ArrowUp } from 'lucide-react';
 import CoverSection from "@/components/CoverContent";
 import TrustedSection from "@/app/components/TrustedSection";
 import PortalOverview from "@/components/PortalOverview";
@@ -20,9 +21,33 @@ import Footer from "@/app/components/Footer";
 
 export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 400);
+    };
+
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <>
+      {showBackToTop && (
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          aria-label="Back to top"
+          title="Back to top"
+          className="fixed bottom-5 left-3 z-50 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-[#12203B] text-white shadow-lg transition-all hover:-translate-y-0.5 hover:bg-[#B98A3E] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D1117] sm:left-5"
+        >
+          <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
+        </button>
+      )}
+
       <LoadingScreen 
         onComplete={() => setIsLoading(false)} 
         delay={4000}

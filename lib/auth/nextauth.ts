@@ -1,5 +1,5 @@
 // lib/auth/nextauth.ts
-import NextAuth, { AuthOptions, Session, User as NextAuthUser } from 'next-auth';
+import NextAuth, { Account, AuthOptions, Session, User as NextAuthUser } from 'next-auth';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { JWT } from 'next-auth/jwt';
@@ -22,17 +22,15 @@ interface JwtCallbackParams {
 }
 
 // ============================================
-// ADAPTER (Cast to any to bypass type issues)
+// ADAPTER
 // ============================================
-
-const adapter = PrismaAdapter(prisma) as any;
 
 // ============================================
 // AUTH OPTIONS
 // ============================================
 
 export const authOptions: AuthOptions = {
-  adapter: adapter,
+  adapter: PrismaAdapter(prisma) as unknown as AuthOptions['adapter'],
   
   providers: [
     // ============================================
@@ -53,7 +51,21 @@ export const authOptions: AuthOptions = {
         // 2. Find user in database
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
-          include: { role: true }
+          include: { 
+            role: true,
+            techCenter: {
+              select: { id: true, name: true }
+            },
+            teacher: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                profileImageUrl: true,
+              }
+            }
+          }
         });
 
         // 3. Check if user exists
@@ -93,6 +105,7 @@ export const authOptions: AuthOptions = {
           lastName: user.lastName,
           role: user.role?.name || 'student',
           techCenterId: user.techCenterId,
+          techCenter: user.techCenter,
           profileImageUrl: user.profileImageUrl,
           status: user.status,
           isActive: user.isActive,
@@ -108,6 +121,7 @@ export const authOptions: AuthOptions = {
           gender: user.gender,
           preferredTeamType: user.preferredTeamType,
           preferredTeamRole: user.preferredTeamRole,
+          teacherId: user.teacherId || null,
         };
       }
     })
@@ -129,6 +143,7 @@ export const authOptions: AuthOptions = {
         session.user.firstName = token.firstName as string;
         session.user.lastName = token.lastName as string;
         session.user.techCenterId = token.techCenterId as string;
+        session.user.techCenter = token.techCenter as { id: string; name: string } | null;
         session.user.profileImageUrl = token.profileImageUrl as string;
         session.user.status = token.status as string;
         session.user.isActive = token.isActive as boolean;
@@ -144,6 +159,8 @@ export const authOptions: AuthOptions = {
         session.user.gender = token.gender as string | null;
         session.user.preferredTeamType = token.preferredTeamType as string | null;
         session.user.preferredTeamRole = token.preferredTeamRole as string | null;
+        // Add teacherId to session user
+        session.user.teacherId = token.teacherId as string | null;
       }
       return session;
     },
@@ -161,6 +178,7 @@ export const authOptions: AuthOptions = {
         token.firstName = user.firstName;
         token.lastName = user.lastName;
         token.techCenterId = user.techCenterId;
+        token.techCenter = user.techCenter;
         token.profileImageUrl = user.profileImageUrl;
         token.status = user.status;
         token.isActive = user.isActive;
@@ -176,20 +194,42 @@ export const authOptions: AuthOptions = {
         token.gender = user.gender;
         token.preferredTeamType = user.preferredTeamType;
         token.preferredTeamRole = user.preferredTeamRole;
+        // Use type assertion for teacherId
+        token.teacherId = user.teacherId || null;
         
         // Store roleUpdatedAt from database during initial sign in
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
-          select: { roleUpdatedAt: true }
+          select: { 
+            roleUpdatedAt: true,
+            teacherId: true
+          }
         });
         token.roleUpdatedAt = dbUser?.roleUpdatedAt?.toISOString();
+        if (dbUser?.teacherId) {
+          token.teacherId = dbUser.teacherId;
+        }
       }
       
       // Re-fetch user data from database on session update
       if (trigger === 'update' && token.sub) {
         const freshUser = await prisma.user.findUnique({
           where: { id: token.sub as string },
-          include: { role: true }
+          include: { 
+            role: true,
+            techCenter: {
+              select: { id: true, name: true }
+            },
+            teacher: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                profileImageUrl: true,
+              }
+            }
+          }
         });
         
         if (freshUser) {
@@ -197,6 +237,7 @@ export const authOptions: AuthOptions = {
           token.firstName = freshUser.firstName;
           token.lastName = freshUser.lastName;
           token.techCenterId = freshUser.techCenterId;
+          token.techCenter = freshUser.techCenter;
           token.profileImageUrl = freshUser.profileImageUrl;
           token.status = freshUser.status;
           token.isActive = freshUser.isActive;
@@ -212,6 +253,7 @@ export const authOptions: AuthOptions = {
           token.gender = freshUser.gender;
           token.preferredTeamType = freshUser.preferredTeamType;
           token.preferredTeamRole = freshUser.preferredTeamRole;
+          token.teacherId = freshUser.teacherId || null;
           token.roleUpdatedAt = freshUser.roleUpdatedAt?.toISOString();
         }
       }
@@ -222,19 +264,41 @@ export const authOptions: AuthOptions = {
           where: { id: token.sub as string },
           select: { 
             roleUpdatedAt: true,
-            role: { select: { name: true } }
+            role: { select: { name: true } },
+            teacherId: true,
+            techCenter: {
+              select: { id: true, name: true }
+            }
           }
         });
         
         if (dbUser) {
-          const tokenRoleUpdatedAt = token.roleUpdatedAt as string | undefined;
+          if (!token.techCenter && dbUser.techCenter) {
+            token.techCenter = dbUser.techCenter;
+          }
+
+          const tokenRoleUpdatedAt = token.roleUpdatedAt;
           const dbRoleUpdatedAt = dbUser.roleUpdatedAt?.toISOString();
           
           // If database roleUpdatedAt is newer than token's, refresh all user data
           if (dbRoleUpdatedAt && (!tokenRoleUpdatedAt || new Date(dbRoleUpdatedAt) > new Date(tokenRoleUpdatedAt))) {
             const freshUser = await prisma.user.findUnique({
               where: { id: token.sub as string },
-              include: { role: true }
+              include: { 
+                role: true,
+                techCenter: {
+                  select: { id: true, name: true }
+                },
+                teacher: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                    profileImageUrl: true,
+                  }
+                }
+              }
             });
             
             if (freshUser) {
@@ -242,6 +306,7 @@ export const authOptions: AuthOptions = {
               token.firstName = freshUser.firstName;
               token.lastName = freshUser.lastName;
               token.techCenterId = freshUser.techCenterId;
+              token.techCenter = freshUser.techCenter;
               token.profileImageUrl = freshUser.profileImageUrl;
               token.status = freshUser.status;
               token.isActive = freshUser.isActive;
@@ -257,6 +322,7 @@ export const authOptions: AuthOptions = {
               token.gender = freshUser.gender;
               token.preferredTeamType = freshUser.preferredTeamType;
               token.preferredTeamRole = freshUser.preferredTeamRole;
+              token.teacherId = freshUser.teacherId || null;
               token.roleUpdatedAt = freshUser.roleUpdatedAt?.toISOString();
             }
           }
@@ -270,7 +336,7 @@ export const authOptions: AuthOptions = {
      * Sign In Callback
      * Controls what happens when a user signs in
      */
-    async signIn({ user, account }: { user: NextAuthUser; account: any }) {
+    async signIn({ account }: { account: Account | null }) {
       // Allow credentials provider
       if (account?.provider === 'credentials') return true;
       return true;

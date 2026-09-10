@@ -335,117 +335,45 @@ async function callAIProvider(
   temperature: number,
   maxTokens: number
 ): Promise<{ text: string; provider: string; tokenUsage?: { prompt: number; completion: number; total: number } }> {
-  // Check which AI service to use
-  const aiService = (process.env.AI_SERVICE || 'groq').toLowerCase();
-
-  const providerOrder =
-    aiService === 'groq'
-      ? ['groq']
-      : aiService === 'openai'
-        ? ['openai']
-        : aiService === 'gemini'
-          ? ['gemini']
-          : ['groq'];
-
-  const providers = {
-    gemini: {
-      configured: () => typeof process.env.GEMINI_API_KEY === 'string' && process.env.GEMINI_API_KEY.trim().length > 0,
-      call: () => callGemini(prompt, temperature, maxTokens)
-    },
-    openai: {
-      configured: () => typeof process.env.OPENAI_API_KEY === 'string' && process.env.OPENAI_API_KEY.trim().length > 0,
-      call: () => callOpenAI(prompt, temperature, maxTokens)
-    },
-    groq: {
-      configured: () => typeof process.env.GROQ_API_KEY === 'string' && process.env.GROQ_API_KEY.trim().length > 0,
-      call: () => callGroq(prompt, temperature, maxTokens)
-    }
-  };
-
-  // Try providers in order
-  for (const providerName of providerOrder) {
-    const provider = providers[providerName as keyof typeof providers];
-    if (provider.configured()) {
-      try {
-        console.log(`[RAGService] Using ${providerName} provider`);
-        const response = await provider.call();
-        return { text: response.text, provider: providerName, tokenUsage: response.tokenUsage };
-      } catch (error) {
-        console.error(`[RAGService] ${providerName} provider failed:`, error);
-        // Continue to next provider
-      }
-    }
+  if (!process.env.OPENROUTER_API_KEY?.trim()) {
+    throw new Error('OpenRouter API key not configured');
   }
 
-  throw new Error('No AI providers are configured or available');
+  try {
+    console.log('[RAGService] Using openrouter provider');
+    const response = await callOpenAI(prompt, temperature, maxTokens);
+    return { text: response.text, provider: 'openrouter', tokenUsage: response.tokenUsage };
+  } catch (error) {
+    console.error('[RAGService] openrouter provider failed:', error);
+    throw error;
+  }
 }
 
 /**
- * Call Gemini API
- */
-async function callGemini(
-  prompt: string,
-  temperature: number,
-  maxTokens: number
-): Promise<{ text: string; tokenUsage?: { prompt: number; completion: number; total: number } }> {
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
-  if (!apiKey) throw new Error('Gemini API key not configured');
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature,
-          maxOutputTokens: maxTokens
-        }
-      })
-    }
-  );
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error?.message || 'Gemini API error');
-  }
-
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  const tokenUsage = data.usageMetadata ? {
-    prompt: data.usageMetadata.promptTokenCount || 0,
-    completion: data.usageMetadata.candidatesTokenCount || 0,
-    total: data.usageMetadata.totalTokenCount || 0
-  } : undefined;
-
-  console.log(`[RAGService] Gemini token usage:`, tokenUsage);
-
-  return { text, tokenUsage };
-}
-
-/**
- * Call OpenAI API
+ * Call OpenRouter API
  */
 async function callOpenAI(
   prompt: string,
   temperature: number,
   maxTokens: number
 ): Promise<{ text: string; tokenUsage?: { prompt: number; completion: number; total: number } }> {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) throw new Error('OpenAI API key not configured');
+  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
+  if (!apiKey) throw new Error('OpenRouter API key not configured');
+  const model = process.env.OPENROUTER_MODEL?.trim() || 'openai/gpt-4.1-mini';
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
+      'Authorization': `Bearer ${apiKey}`,
+      'HTTP-Referer': 'http://localhost:3000',
+      'X-Title': 'Selfless CE'
     },
     body: JSON.stringify({
-      model: 'gpt-3.5-turbo',
+      model,
       messages: [{ role: 'user', content: prompt }],
       temperature,
-      max_tokens: maxTokens
+      max_completion_tokens: maxTokens
     })
   });
 
@@ -463,51 +391,6 @@ async function callOpenAI(
   } : undefined;
 
   console.log(`[RAGService] OpenAI token usage:`, tokenUsage);
-
-  return { text, tokenUsage };
-}
-
-/**
- * Call Groq API
- * ✅ FIXED: Updated to use the latest supported model
- */
-async function callGroq(
-  prompt: string,
-  temperature: number,
-  maxTokens: number
-): Promise<{ text: string; tokenUsage?: { prompt: number; completion: number; total: number } }> {
-  const apiKey = process.env.GROQ_API_KEY?.trim();
-  if (!apiKey) throw new Error('Groq API key not configured');
-
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      // ✅ FIXED: Updated to use the latest supported model
-      model: 'llama-3.1-70b-versatile', // Alternative: 'mixtral-8x7b-32768' or 'llama3-8b-8192'
-      messages: [{ role: 'user', content: prompt }],
-      temperature,
-      max_tokens: maxTokens
-    })
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error?.message || 'Groq API error');
-  }
-
-  const text = data.choices?.[0]?.message?.content || '';
-  const tokenUsage = data.usage ? {
-    prompt: data.usage.prompt_tokens || 0,
-    completion: data.usage.completion_tokens || 0,
-    total: data.usage.total_tokens || 0
-  } : undefined;
-
-  console.log(`[RAGService] Groq token usage:`, tokenUsage);
 
   return { text, tokenUsage };
 }

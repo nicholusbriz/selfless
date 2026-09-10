@@ -43,14 +43,38 @@ export async function verifyPassword(plainPassword: string, hashedPassword: stri
 export async function getUserById(userId: string) {
   return prisma.user.findUnique({
     where: { id: userId },
-    include: { role: true, techCenter: true }
+    include: { 
+      role: true, 
+      techCenter: true,
+      teacher: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          profileImageUrl: true,
+        }
+      }
+    }
   });
 }
 
 export async function getUserByEmail(email: string) {
   return prisma.user.findUnique({
     where: { email },
-    include: { role: true, techCenter: true }
+    include: { 
+      role: true, 
+      techCenter: true,
+      teacher: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          profileImageUrl: true,
+        }
+      }
+    }
   });
 }
 
