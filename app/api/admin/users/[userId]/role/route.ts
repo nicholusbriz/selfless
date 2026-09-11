@@ -70,6 +70,13 @@ export async function PATCH(
       );
     }
 
+    if (role.name === 'super_admin' && session.user.role !== 'dev') {
+      return NextResponse.json(
+        { error: 'Only a developer can assign the Super Admin role' },
+        { status: 403 }
+      );
+    }
+
     // Prevent demoting super admin (only allowed for dev users)
     if (user.role?.name === 'super_admin' && session.user.role !== 'dev') {
       return NextResponse.json(

@@ -73,8 +73,24 @@ export function ChatsList({
   }
 
   return (
-    <div className="divide-y divide-[#F7F9FC]">
-      {conversations.map((conversation) => {
+    <div>
+      <div className="flex items-center justify-between border-b border-[#F7F9FC] px-4 py-2">
+        <span className="text-xs font-semibold uppercase tracking-wide text-[#718096]">
+          Recent chats
+        </span>
+        <button
+          type="button"
+          onClick={onStartNewChat}
+          aria-label="Start a new chat"
+          title="Start a new chat"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-[#3182CE] transition-colors hover:bg-[#EBF8FF] hover:text-[#1A365D] focus:outline-none focus:ring-2 focus:ring-[#3182CE] focus:ring-offset-1"
+        >
+          <Plus className="h-4 w-4" strokeWidth={2.5} />
+        </button>
+      </div>
+
+      <div className="divide-y divide-[#F7F9FC]">
+        {conversations.map((conversation) => {
         const otherUser = conversation.otherUser;
         const fullName = otherUser?.fullName || 'Unknown User';
         const initials = otherUser 
@@ -84,8 +100,8 @@ export function ChatsList({
         const isUnread = (conversation.unreadCount ?? 0) > 0;
         const isOnline = otherUser ? onlineUserIds.has(otherUser.id) : false;
 
-        return (
-          <div
+          return (
+            <div
             key={conversation.id}
             onClick={() => onConversationClick(conversation)}
             onMouseEnter={() => prefetchConversation?.(conversation.id)}
@@ -157,9 +173,10 @@ export function ChatsList({
             ) : isUnread ? (
               <div className="w-2.5 h-2.5 bg-[#3182CE] rounded-full flex-shrink-0 pointer-events-none" />
             ) : null}
-          </div>
-        );
-      })}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

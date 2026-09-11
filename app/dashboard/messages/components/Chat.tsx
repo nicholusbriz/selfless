@@ -20,9 +20,9 @@ export function Chat({ conversationId, currentUserId }: ChatProps) {
   const queryClient = useQueryClient();
 
   // Track if we've already marked as read for this conversation
-  const [hasMarkedRead, setHasMarkedRead] = useState(false);
+  const markedReadConversationRef = useRef<string | null>(null);
 
-  const { messages, isLoading, error, sendMessage, isSending } = useMessages({
+  const { messages, isLoading, error, sendMessage, sendRealtimeEvent, markMessagesAsRead, isSending } = useMessages({
     conversationId,
     currentUserId,
   });
@@ -32,7 +32,13 @@ export function Chat({ conversationId, currentUserId }: ChatProps) {
   // ============================================================
   useEffect(() => {
     // Skip if already marked or missing required data
-    if (!conversationId || !currentUserId || hasMarkedRead) return;
+    if (
+      !conversationId ||
+      !currentUserId ||
+      markedReadConversationRef.current === conversationId
+    ) return;
+
+    markedReadConversationRef.current = conversationId;
 
     // Optimistically update the unread count in the UI immediately
     queryClient.setQueryData<ConversationCacheItem[] | undefined>(
@@ -48,27 +54,11 @@ export function Chat({ conversationId, currentUserId }: ChatProps) {
     );
 
     // Mark as read in the background - DON'T wait for this to complete
-    fetch(`/api/messages/${conversationId}/mark-read`, {
-      method: 'POST',
-    })
-      .then(() => {
-        setHasMarkedRead(true);
-        // Sync with server in background
-        queryClient.invalidateQueries({ 
-          queryKey: ['conversations', currentUserId] 
-        });
-        queryClient.invalidateQueries({ 
-          queryKey: ['messages', 'unread-count', currentUserId] 
-        });
-      })
-      .catch((error) => {
-        console.error('Failed to mark messages as read:', error);
-        // On error, revert the optimistic update
-        queryClient.invalidateQueries({ 
-          queryKey: ['conversations', currentUserId] 
-        });
-      });
-  }, [conversationId, currentUserId, queryClient, hasMarkedRead]);
+    void markMessagesAsRead().catch((error) => {
+      markedReadConversationRef.current = null;
+      console.error('Failed to mark messages as read:', error);
+    });
+  }, [conversationId, currentUserId, markMessagesAsRead, queryClient]);
 
   // Keep the message list stable even if the API/realtime layer returns a duplicate.
   const uniqueMessages = useMemo(() => {
@@ -127,7 +117,24 @@ export function Chat({ conversationId, currentUserId }: ChatProps) {
         throw new Error(data.error || 'Failed to delete message');
       }
 
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      const data = await response.json();
+
+      queryClient.setQueryData(['conversations', currentUserId], (oldConversations: ConversationCacheItem[] = []) =>
+        oldConversations.map((conversation) =>
+          conversation.id === conversationId
+            ? { ...conversation, lastMessage: data.lastMessage || null }
+            : conversation
+        )
+      );
+
+      sendRealtimeEvent({
+        type: 'message:deleted',
+        conversationId,
+        messageId,
+        recipientIds: data.recipientIds || [],
+        wasUnread: data.wasUnread === true,
+        lastMessage: data.lastMessage || null,
+      });
     } catch (error) {
       console.error('Failed to delete message:', error);
       if (previousMessages) {

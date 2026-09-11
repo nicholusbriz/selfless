@@ -118,6 +118,14 @@ const NON_SUPER_ADMIN_ROLES = ['student', 'teacher', 'admin', 'dev'];
 
 const iconClass = 'w-[18px] h-[18px] flex-shrink-0';
 
+const DASHBOARD_FOOTER_LINKS = [
+  { label: 'Dashboard', href: '/dashboard' },
+  { label: 'Messages', href: '/dashboard/messages' },
+  { label: 'Announcements', href: '/dashboard/announcements' },
+  { label: 'Cleaning Rota', href: '/dashboard/cleaning' },
+  { label: 'English Hub', href: '/dashboard/english-hub' },
+];
+
 // ============================================================
 // SHARED NAVIGATION
 // ============================================================
@@ -146,6 +154,13 @@ const sharedNavigation: NavSection[] = [
         label: 'Atbriz AI',
         path: '/dashboard/ai',
         icon: <Sparkles className={iconClass} />,
+        roles: ALL_ROLES,
+      },
+      {
+        id: 'english-hub',
+        label: 'English Hub',
+        path: '/dashboard/english-hub',
+        icon: <BookOpen className={iconClass} />,
         roles: ALL_ROLES,
       },
     ],
@@ -252,7 +267,7 @@ const sharedNavigation: NavSection[] = [
     items: [
       {
         id: 'cleaning',
-        label: 'Cleaning',
+        label: 'Cleaning Rota',
         path: '/dashboard/cleaning',
         icon: <Calendar className={iconClass} />,
         roles: NON_SUPER_ADMIN_ROLES,
@@ -334,7 +349,7 @@ const adminNavigation: NavSection = {
     },
     {
       id: 'manage-tech-centers',
-      label: 'Tech Centers',
+      label: 'Tech Center',
       path: '/dashboard/admin/tech-centers',
       icon: <School className={iconClass} />,
       roles: ['admin'],
@@ -612,6 +627,11 @@ function getPageInfo(pathname: string) {
       section: 'Workspace',
     },
 
+    '/dashboard/english-hub': {
+      title: 'English Hub',
+      section: 'Workspace',
+    },
+
     '/dashboard/courses': {
       title: 'Courses',
       section: 'Academics',
@@ -653,7 +673,7 @@ function getPageInfo(pathname: string) {
     },
 
     '/dashboard/cleaning': {
-      title: 'Cleaning',
+      title: 'Cleaning Rota',
       section: 'Campus',
     },
 
@@ -2555,28 +2575,19 @@ export default function DashboardLayout({
               <div className="max-w-[1440px] mx-auto px-7 xl:px-8 py-5">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-3">
                   <p className="font-mono text-xs text-[#8A9088]">
-                    © 2026 Selfless CE
-                    Organization
+                    Selfless CE Portal - Learn, connect, grow.
                   </p>
 
                   <div className="flex items-center gap-5 text-xs text-[#8A9088]">
-                    {[
-                      'About',
-                      'FAQ',
-                      'Contact',
-                      'Privacy',
-                      'Terms',
-                    ].map(
-                      (label) => (
-                        <button
-                          key={label}
-                          type="button"
-                          className="hover:text-[#12203B] transition-colors duration-200"
-                        >
-                          {label}
-                        </button>
-                      )
-                    )}
+                    {DASHBOARD_FOOTER_LINKS.map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className="hover:text-[#12203B] transition-colors duration-200"
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -2669,29 +2680,18 @@ export default function DashboardLayout({
             <footer className="border-t border-[#DADCD3] bg-white">
               <div className="px-4 py-4">
                 <div className="flex flex-col items-center gap-3 font-mono text-[10px] text-[#8A9088]">
-                  <p>
-                    © 2026 Selfless CE
-                    Organization
-                  </p>
+                  <p>Selfless CE Portal - Learn, connect, grow.</p>
 
                   <div className="flex flex-wrap justify-center gap-4">
-                    {[
-                      'About',
-                      'FAQ',
-                      'Contact',
-                      'Privacy',
-                      'Terms',
-                    ].map(
-                      (label) => (
-                        <button
-                          key={label}
-                          type="button"
-                          className="hover:text-[#12203B] transition-colors duration-200"
-                        >
-                          {label}
-                        </button>
-                      )
-                    )}
+                    {DASHBOARD_FOOTER_LINKS.map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className="hover:text-[#12203B] transition-colors duration-200"
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
                   </div>
                 </div>
               </div>

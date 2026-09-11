@@ -30,6 +30,10 @@ export async function DELETE(
       select: {
         id: true,
         conversationId: true,
+        isRead: true,
+        conversation: {
+          select: { participantIds: true },
+        },
       },
     });
 
@@ -39,6 +43,8 @@ export async function DELETE(
         { status: 404 }
       );
     }
+
+    let lastMessage: { content: string; senderId: string; createdAt: Date } | null = null;
 
     await prisma.$transaction(async (transaction) => {
       await transaction.message.delete({
@@ -54,8 +60,10 @@ export async function DELETE(
         const previousMessage = await transaction.message.findFirst({
           where: { conversationId: message.conversationId },
           orderBy: { createdAt: 'desc' },
-          select: { id: true, content: true, createdAt: true },
+          select: { id: true, content: true, senderId: true, createdAt: true },
         });
+
+        lastMessage = previousMessage;
 
         await transaction.conversation.update({
           where: { id: message.conversationId },
@@ -68,7 +76,13 @@ export async function DELETE(
       }
     });
 
-    return NextResponse.json({ success: true, messageId: message.id });
+    return NextResponse.json({
+      success: true,
+      messageId: message.id,
+      recipientIds: message.conversation.participantIds.filter((participantId) => participantId !== userId),
+      wasUnread: !message.isRead,
+      lastMessage,
+    });
   } catch (error) {
     console.error('Error deleting message:', error);
     return NextResponse.json(

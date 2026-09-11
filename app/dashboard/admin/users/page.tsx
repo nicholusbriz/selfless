@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
@@ -185,6 +186,8 @@ const SkeletonUserRow = () => (
 
 export default function AdminUsersPage() {
   const router = useRouter();
+  const { data: session } = useSession();
+  const canManageSuperAdmin = session?.user?.role === 'dev';
 
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
@@ -231,6 +234,14 @@ export default function AdminUsersPage() {
     page: 1,
     limit: 1000,
   });
+
+  const manageableRoles = useMemo(
+    () =>
+      (usersData?.filters.roles || []).filter(
+        (role) => canManageSuperAdmin || role.name !== 'super_admin'
+      ),
+    [usersData?.filters.roles, canManageSuperAdmin]
+  );
 
   const updateRoleMutation = useUpdateUserRole();
   const updateStatusMutation = useUpdateUserStatus();
@@ -733,7 +744,7 @@ export default function AdminUsersPage() {
                         All Roles
                       </option>
 
-                      {usersData.filters.roles.map(
+                      {manageableRoles.map(
                         (role) => (
                           <option
                             key={role.id}
@@ -1186,7 +1197,7 @@ export default function AdminUsersPage() {
                                         </div>
 
                                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                                          {usersData.filters.roles.map(
+                                          {manageableRoles.map(
                                             (role) => {
                                               const isCurrent =
                                                 selectedUser
@@ -1676,7 +1687,7 @@ export default function AdminUsersPage() {
                                         </p>
                                       </div>
 
-                                      {usersData.filters.roles.map(
+                                      {manageableRoles.map(
                                         (role) => {
                                           const isCurrent =
                                             selectedUser

@@ -36,6 +36,15 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
       return;
     }
 
+    const partyKitHost = process.env.NEXT_PUBLIC_PARTYKIT_HOST;
+
+    if (!partyKitHost && process.env.NODE_ENV === 'production') {
+      console.warn(
+        'PartyKit presence is disabled because NEXT_PUBLIC_PARTYKIT_HOST is not configured.'
+      );
+      return;
+    }
+
     const userInfo = {
       userId: user.id,
       firstName: user.firstName || '',
@@ -48,7 +57,7 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
 
     const socket = new PartySocket({
       room: 'online-users',
-      host: process.env.NEXT_PUBLIC_PARTYKIT_HOST || 'localhost:1999',
+      host: partyKitHost || 'localhost:1999',
       query: { user: JSON.stringify(userInfo) },
     });
 
@@ -75,8 +84,13 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
     };
 
     const handleError = (error: Event) => {
-      console.error('PartyKit presence error:', error);
-      setOnlineUsers([]);
+      console.warn(
+        'PartyKit presence connection interrupted; the client will reconnect.',
+        {
+          eventType: error.type,
+          readyState: socket.readyState,
+        }
+      );
     };
 
     socket.addEventListener('message', handleMessage);
