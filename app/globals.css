@@ -96,6 +96,11 @@
 }
 
 @layer utilities {
+    .animate-header-breathe {
+        animation: headerBreathe 1.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+        transform-origin: top center;
+    }
+
     .animate-fade-in {
         animation: fadeIn 0.5s ease-in-out;
     }
@@ -148,6 +153,18 @@
     .text-bright {
         color: #f8fafc;
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+}
+
+@keyframes headerBreathe {
+    from {
+        opacity: 0.8;
+        transform: scale(1.035);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
     }
 }
 

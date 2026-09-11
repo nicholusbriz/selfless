@@ -1,24 +1,25 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 
 interface LoadingScreenProps {
   onComplete: () => void;
   delay?: number;
 }
 
+const loadingMessages = [
+  "Initializing platform...",
+  "Connecting tech center...",
+  "Checking network security...",
+  "Loading educational resources...",
+  "Preparing your dashboard...",
+];
+
 export default function LoadingScreen({ onComplete, delay = 2000 }: LoadingScreenProps) {
   const [isVisible, setIsVisible] = useState(true);
   const [progress, setProgress] = useState(0);
   const [currentMessage, setCurrentMessage] = useState(0);
-
-  const loadingMessages = [
-    "Initializing platform...",
-    "Connecting tech center...",
-    "Checking network security...",
-    "Loading educational resources...",
-    "Preparing your dashboard..."
-  ];
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -49,16 +50,18 @@ export default function LoadingScreen({ onComplete, delay = 2000 }: LoadingScree
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0D1117]">
+    <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-[#0D1117]">
       <div className="text-center space-y-8">
         {/* Logo */}
         <div className="relative">
           <div className="w-32 h-32 mx-auto mb-6 relative">
             <div className="absolute inset-0 rounded-full border-4 border-[#E8A33D] opacity-20 animate-ping" />
             <div className="absolute inset-2 rounded-full border-4 border-[#E8A33D] opacity-40 animate-pulse" />
-            <img
+            <Image
               src="/icon-512x512.png"
               alt="Selfless CE Logo"
+              width={128}
+              height={128}
               className="relative w-full h-full object-contain"
               style={{
                 animation: 'fadeIn 0.8s ease-out forwards'
