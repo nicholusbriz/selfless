@@ -83,7 +83,43 @@ export default {
     }
   },
 
-  async onRequest() {
+  async onMessage(message, _sender, room) {
+    try {
+      const event = JSON.parse(typeof message === 'string' ? message : new TextDecoder().decode(message));
+
+      if (event.type !== 'message:new' && event.type !== 'message:deleted') return;
+
+      room.broadcast(JSON.stringify(event));
+
+      for (const recipientId of event.recipientIds || []) {
+        const recipientRoom = room.context.parties.main?.get(`user:${recipientId}`);
+        if (!recipientRoom) continue;
+
+        await recipientRoom.fetch('/', {
+          method: 'POST',
+          body: JSON.stringify({
+            type: event.type === 'message:new' ? 'message:unread' : 'message:deleted',
+            recipientId,
+            conversationId: event.conversationId,
+            messageId: event.type === 'message:new' ? event.message?.id : event.messageId,
+            senderId: event.message?.senderId,
+            message: event.message,
+            lastMessage: event.lastMessage,
+            wasUnread: event.wasUnread,
+          }),
+        });
+      }
+    } catch (error) {
+      console.error('Failed to relay message event:', error);
+    }
+  },
+
+  async onRequest(request, room) {
+    if (request.method === 'POST') {
+      room.broadcast(await request.text());
+      return new Response(null, { status: 204 });
+    }
+
     return new Response("PartyKit server running");
   },
 } satisfies PartyKitServer;

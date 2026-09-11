@@ -76,9 +76,9 @@ export default function MessagesPage() {
       return data.conversations || [];
     },
     enabled: !!currentUserId,
-    refetchOnWindowFocus: true,
-    refetchInterval: 10 * 1000,
-    staleTime: 0,
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
+    staleTime: Infinity,
     retry: 1,
   });
 
@@ -192,7 +192,7 @@ export default function MessagesPage() {
         const data = await response.json();
         return data.messages || [];
       },
-      staleTime: 30 * 1000,
+      staleTime: Infinity,
     });
   }, [queryClient]);
 

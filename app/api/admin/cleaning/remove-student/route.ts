@@ -48,15 +48,6 @@ export async function DELETE(request: NextRequest) {
 
       const cleaningDayId = existingRegistration.cleaningDayId;
 
-      // Check if day has exactly 4 students (minimum threshold)
-      const dayRegistrations = await tx.cleaningRegistration.count({
-        where: { cleaningDayId }
-      });
-
-      if (dayRegistrations === 4) {
-        throw new Error('Cannot remove student - this day has exactly 4 students (minimum required). A day must have at least 4 students.');
-      }
-
       // Delete registration
       await tx.cleaningRegistration.delete({
         where: { userId: studentUserId },
@@ -96,10 +87,6 @@ export async function DELETE(request: NextRequest) {
     if (error.message.includes('not found')) {
       return NextResponse.json({ error: error.message }, { status: 404 });
     }
-    if (error.message.includes('minimum required')) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-
     return NextResponse.json(
       { error: 'Failed to remove student from day' },
       { status: 500 }

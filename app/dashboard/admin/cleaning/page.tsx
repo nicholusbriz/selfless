@@ -3,7 +3,8 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Calendar,
@@ -20,6 +21,10 @@ import {
   UserPlus,
   Lock,
   Unlock,
+  MoreVertical,
+  UserCheck,
+  UserX,
+  Hourglass,
 } from 'lucide-react';
 
 import {
@@ -32,9 +37,193 @@ import {
   useManualAssign,
   useMarkAttendance,
   useRemoveStudent,
+  type CleaningDay,
+  type CleaningWeek,
+  type CleaningRegistration,
+  type AttendanceRecord,
 } from '@/hooks/useCleaning';
 
-// Helper to get next Monday
+/* ============================================================
+   TYPES
+============================================================ */
+
+type MenuType =
+  | `week-${string}`
+  | `day-${string}`
+  | `student-${string}`
+  | null;
+
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback;
+
+/* ============================================================
+   ACTION MENU
+============================================================ */
+
+interface ActionMenuProps {
+  menuId: string;
+  activeMenu: MenuType;
+  setActiveMenu: (menu: MenuType) => void;
+  children: React.ReactNode;
+  align?: 'left' | 'right';
+}
+
+function ActionMenu({
+  menuId,
+  activeMenu,
+  setActiveMenu,
+  children,
+  align = 'right',
+}: ActionMenuProps) {
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const isOpen = activeMenu === menuId;
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node)
+      ) {
+        setActiveMenu(null);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setActiveMenu(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener(
+        'mousedown',
+        handleOutsideClick
+      );
+      document.removeEventListener(
+        'keydown',
+        handleEscape
+      );
+    };
+  }, [isOpen, setActiveMenu]);
+
+  return (
+    <div ref={menuRef} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() =>
+          setActiveMenu(isOpen ? null : (menuId as MenuType))
+        }
+        aria-label="Open actions"
+        aria-expanded={isOpen}
+        className={`flex h-9 w-9 items-center justify-center rounded-lg border transition ${
+          isOpen
+            ? 'border-slate-300 bg-slate-100 text-slate-900'
+            : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800'
+        }`}
+      >
+        <MoreVertical className="h-4 w-4" />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{
+              opacity: 0,
+              y: -4,
+              scale: 0.98,
+            }}
+            animate={{
+              opacity: 1,
+              y: 0,
+              scale: 1,
+            }}
+            exit={{
+              opacity: 0,
+              y: -4,
+              scale: 0.98,
+            }}
+            transition={{
+              duration: 0.12,
+            }}
+            className={`absolute top-[calc(100%+8px)] z-[100] w-56 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl ${
+              align === 'right'
+                ? 'right-0'
+                : 'left-0'
+            }`}
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* ============================================================
+   MENU ITEM
+============================================================ */
+
+interface MenuItemProps {
+  children: React.ReactNode;
+  onClick: () => void;
+  danger?: boolean;
+  disabled?: boolean;
+  icon?: React.ReactNode;
+}
+
+function MenuItem({
+  children,
+  onClick,
+  danger = false,
+  disabled = false,
+  icon,
+}: MenuItemProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition ${
+        disabled
+          ? 'cursor-not-allowed opacity-50'
+          : danger
+            ? 'text-red-700 hover:bg-red-50'
+            : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
+      }`}
+    >
+      <span
+        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${
+          danger
+            ? 'bg-red-50'
+            : 'bg-slate-100'
+        }`}
+      >
+        {icon}
+      </span>
+
+      <span className="flex-1">{children}</span>
+    </button>
+  );
+}
+
+/* ============================================================
+   MENU DIVIDER
+============================================================ */
+
+function MenuDivider() {
+  return <div className="my-1.5 h-px bg-slate-100" />;
+}
+
+/* ============================================================
+   HELPER - NEXT MONDAY
+============================================================ */
+
 const getNextMonday = () => {
   const date = new Date();
   const day = date.getDay();
@@ -50,8 +239,13 @@ const getNextMonday = () => {
   return date.toISOString().split('T')[0];
 };
 
+/* ============================================================
+   MAIN COMPONENT
+============================================================ */
+
 export default function AdminCleaningManagement() {
-  const { data, isLoading, error, refetch } = useAdminCleaning();
+  const { data, isLoading, error, refetch } =
+    useAdminCleaning();
 
   const createWeekMutation = useCreateWeek();
   const updateWeekMutation = useUpdateWeek();
@@ -62,24 +256,49 @@ export default function AdminCleaningManagement() {
   const markAttendanceMutation = useMarkAttendance();
   const removeStudentMutation = useRemoveStudent();
 
-  const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(
-    new Set()
-  );
+  const [expandedWeeks, setExpandedWeeks] = useState<
+    Set<string>
+  >(new Set());
 
-  const [showCreateWeek, setShowCreateWeek] = useState(false);
-  const [showAssignModal, setShowAssignModal] = useState(false);
-  const [showCapacityModal, setShowCapacityModal] = useState(false);
+  const [activeMenu, setActiveMenu] =
+    useState<MenuType>(null);
 
-  const [selectedDayForAssignment, setSelectedDayForAssignment] =
-    useState<any>(null);
+  const [showCreateWeek, setShowCreateWeek] =
+    useState(false);
 
-  const [selectedDayForCapacity, setSelectedDayForCapacity] =
-    useState<any>(null);
+  const [showAssignModal, setShowAssignModal] =
+    useState(false);
 
-  const [selectedStudentForAssignment, setSelectedStudentForAssignment] =
-    useState('');
+  const [showCapacityModal, setShowCapacityModal] =
+    useState(false);
 
-  const [newCapacityLimit, setNewCapacityLimit] = useState<number>(0);
+  const [
+    selectedDayForAssignment,
+    setSelectedDayForAssignment,
+  ] = useState<CleaningDay | null>(null);
+
+  const [
+    selectedDayForCapacity,
+    setSelectedDayForCapacity,
+  ] = useState<CleaningDay | null>(null);
+
+  const [
+    selectedStudentForAssignment,
+    setSelectedStudentForAssignment,
+  ] = useState('');
+
+  const [newCapacityLimit, setNewCapacityLimit] =
+    useState<number>(0);
+
+  const [defaultRegistrationDeadline] = useState(() => {
+    const deadline = new Date();
+    deadline.setDate(deadline.getDate() + 7);
+    return deadline.toISOString().slice(0, 16);
+  });
+
+  /* ============================================================
+     WEEK TOGGLE
+  ============================================================ */
 
   const toggleWeek = (weekId: string) => {
     const newExpanded = new Set(expandedWeeks);
@@ -93,7 +312,13 @@ export default function AdminCleaningManagement() {
     setExpandedWeeks(newExpanded);
   };
 
+  /* ============================================================
+     DELETE WEEK
+  ============================================================ */
+
   const handleDeleteWeek = async (weekId: string) => {
+    setActiveMenu(null);
+
     if (
       confirm(
         'Are you sure you want to delete this week?\n\nThis will permanently delete:\n• All 5 days (Monday to Friday)\n• All student registrations\n• All attendance records\n\nThis action CANNOT be undone!'
@@ -108,14 +333,28 @@ export default function AdminCleaningManagement() {
           'Week deleted successfully with all registrations and attendance records.'
         );
       } catch (error) {
-        console.error('Error deleting week:', error);
+        console.error(
+          'Error deleting week:',
+          error
+        );
 
-        alert('Failed to delete week. Please try again.');
+        alert(
+          'Failed to delete week. Please try again.'
+        );
       }
     }
   };
 
-  const handleDeleteDay = async (dayId: string, dayName: string) => {
+  /* ============================================================
+     DELETE DAY
+  ============================================================ */
+
+  const handleDeleteDay = async (
+    dayId: string,
+    dayName: string
+  ) => {
+    setActiveMenu(null);
+
     if (
       confirm(
         `Are you sure you want to delete ${dayName}?\n\nThis will permanently delete:\n• All student registrations for this day\n• All attendance records for this day\n\nThis action CANNOT be undone!`
@@ -130,22 +369,36 @@ export default function AdminCleaningManagement() {
           `${dayName} deleted successfully with all registrations and attendance records.`
         );
       } catch (error) {
-        console.error('Error deleting day:', error);
+        console.error(
+          'Error deleting day:',
+          error
+        );
 
-        alert('Failed to delete day. Please try again.');
+        alert(
+          'Failed to delete day. Please try again.'
+        );
       }
     }
   };
 
+  /* ============================================================
+     MANUAL ASSIGN
+  ============================================================ */
+
   const handleManualAssign = async () => {
-    if (!selectedDayForAssignment || !selectedStudentForAssignment) {
+    if (
+      !selectedDayForAssignment ||
+      !selectedStudentForAssignment
+    ) {
       return;
     }
 
     try {
       await manualAssignMutation.mutateAsync({
-        studentUserId: selectedStudentForAssignment,
-        cleaningDayId: selectedDayForAssignment.id,
+        studentUserId:
+          selectedStudentForAssignment,
+        cleaningDayId:
+          selectedDayForAssignment.id,
       });
 
       setShowAssignModal(false);
@@ -155,18 +408,32 @@ export default function AdminCleaningManagement() {
       await refetch();
 
       alert('Student assigned successfully!');
-    } catch (error: any) {
-      console.error('Error assigning student:', error);
+    } catch (error: unknown) {
+      console.error(
+        'Error assigning student:',
+        error
+      );
 
-      alert(error.message || 'Failed to assign student');
+      alert(
+        getErrorMessage(error, 'Failed to assign student')
+      );
     }
   };
+
+  /* ============================================================
+     ATTENDANCE
+  ============================================================ */
 
   const handleMarkAttendance = async (
     userId: string,
     cleaningDayId: string,
-    status: 'ATTENDED' | 'NO_SHOW' | 'PENDING'
+    status:
+      | 'ATTENDED'
+      | 'NO_SHOW'
+      | 'PENDING'
   ) => {
+    setActiveMenu(null);
+
     try {
       await markAttendanceMutation.mutateAsync({
         userId,
@@ -175,39 +442,69 @@ export default function AdminCleaningManagement() {
       });
 
       await refetch();
-    } catch (error: any) {
-      console.error('Error marking attendance:', error);
+    } catch (error: unknown) {
+      console.error(
+        'Error marking attendance:',
+        error
+      );
 
-      alert(error.message || 'Failed to mark attendance');
+      alert(
+        getErrorMessage(error, 'Failed to mark attendance')
+      );
     }
   };
+
+  /* ============================================================
+     REMOVE STUDENT
+  ============================================================ */
 
   const handleRemoveStudent = async (
     studentUserId: string,
     studentName: string
   ) => {
+    setActiveMenu(null);
+
     if (
       confirm(
         `Are you sure you want to remove ${studentName} from this cleaning day?`
       )
     ) {
       try {
-        await removeStudentMutation.mutateAsync(studentUserId);
+        await removeStudentMutation.mutateAsync(
+          studentUserId
+        );
 
         await refetch();
 
-        alert(`${studentName} removed successfully!`);
-      } catch (error: any) {
-        console.error('Error removing student:', error);
+        alert(
+          `${studentName} removed successfully!`
+        );
+      } catch (error: unknown) {
+        console.error(
+          'Error removing student:',
+          error
+        );
 
-        alert(error.message || 'Failed to remove student');
+        alert(
+          getErrorMessage(error, 'Failed to remove student')
+        );
       }
     }
   };
 
+  /* ============================================================
+     UPDATE CAPACITY
+  ============================================================ */
+
   const handleUpdateCapacity = async () => {
-    if (!selectedDayForCapacity || newCapacityLimit < 1) {
-      alert('Please enter a valid capacity limit (minimum 1)');
+    if (
+      !selectedDayForCapacity ||
+      newCapacityLimit < 1
+    ) {
+      alert(
+        'Please enter a valid capacity limit (minimum 1)'
+      );
+
       return;
     }
 
@@ -238,17 +535,28 @@ export default function AdminCleaningManagement() {
       alert(
         `Capacity updated to ${newCapacityLimit} successfully!`
       );
-    } catch (error: any) {
-      console.error('Error updating capacity:', error);
+    } catch (error: unknown) {
+      console.error(
+        'Error updating capacity:',
+        error
+      );
 
-      alert(error.message || 'Failed to update capacity limit');
+      alert(
+        getErrorMessage(error, 'Failed to update capacity limit')
+      );
     }
   };
+
+  /* ============================================================
+     TOGGLE WEEK
+  ============================================================ */
 
   const handleToggleWeekRegistration = async (
     weekId: string,
     isActive: boolean
   ) => {
+    setActiveMenu(null);
+
     try {
       await updateWeekMutation.mutateAsync({
         weekId,
@@ -256,14 +564,27 @@ export default function AdminCleaningManagement() {
       });
 
       await refetch();
-    } catch (error: any) {
-      console.error('Error toggling week:', error);
+    } catch (error: unknown) {
+      console.error(
+        'Error toggling week:',
+        error
+      );
 
-      alert(error.message || 'Failed to update week');
+      alert(
+        getErrorMessage(error, 'Failed to update week')
+      );
     }
   };
 
-  const handleExtendDeadline = async (weekId: string) => {
+  /* ============================================================
+     EXTEND DEADLINE
+  ============================================================ */
+
+  const handleExtendDeadline = async (
+    weekId: string
+  ) => {
+    setActiveMenu(null);
+
     const newDeadline = prompt(
       'Enter new registration deadline (YYYY-MM-DD HH:MM):'
     );
@@ -273,7 +594,8 @@ export default function AdminCleaningManagement() {
     }
 
     try {
-      const deadlineDate = new Date(newDeadline);
+      const deadlineDate =
+        new Date(newDeadline);
 
       if (isNaN(deadlineDate.getTime())) {
         alert(
@@ -286,26 +608,42 @@ export default function AdminCleaningManagement() {
       await updateWeekMutation.mutateAsync({
         weekId,
         data: {
-          registrationDeadline: deadlineDate.toISOString(),
+          registrationDeadline:
+            deadlineDate.toISOString(),
         },
       });
 
       await refetch();
 
-      alert('Registration deadline extended successfully!');
-    } catch (error: any) {
-      console.error('Error extending deadline:', error);
+      alert(
+        'Registration deadline extended successfully!'
+      );
+    } catch (error: unknown) {
+      console.error(
+        'Error extending deadline:',
+        error
+      );
 
-      alert(error.message || 'Failed to extend deadline');
+      alert(
+        getErrorMessage(error, 'Failed to extend deadline')
+      );
     }
   };
+
+  /* ============================================================
+     TOGGLE DAY STATUS
+  ============================================================ */
 
   const handleToggleDayStatus = async (
     dayId: string,
     currentStatus: string
   ) => {
+    setActiveMenu(null);
+
     const newStatus =
-      currentStatus === 'OPEN' ? 'CLOSED' : 'OPEN';
+      currentStatus === 'OPEN'
+        ? 'CLOSED'
+        : 'OPEN';
 
     try {
       await updateDayMutation.mutateAsync({
@@ -316,23 +654,60 @@ export default function AdminCleaningManagement() {
       });
 
       await refetch();
-    } catch (error: any) {
-      console.error('Error toggling day:', error);
+    } catch (error: unknown) {
+      console.error(
+        'Error toggling day:',
+        error
+      );
 
-      alert(error.message || 'Failed to update day');
+      alert(
+        getErrorMessage(error, 'Failed to update day')
+      );
     }
   };
+
+  /* ============================================================
+     OPEN CAPACITY MODAL
+  ============================================================ */
+
+  const openCapacityModal = (day: CleaningDay) => {
+    setActiveMenu(null);
+    setSelectedDayForCapacity(day);
+    setNewCapacityLimit(day.capacityLimit);
+    setShowCapacityModal(true);
+  };
+
+  /* ============================================================
+     OPEN ASSIGN MODAL
+  ============================================================ */
+
+  const openAssignModal = (day: CleaningDay) => {
+    setActiveMenu(null);
+    setSelectedDayForAssignment(day);
+    setShowAssignModal(true);
+  };
+
+  /* ============================================================
+     FORMAT DATE
+  ============================================================ */
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
 
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    return date.toLocaleDateString(
+      'en-US',
+      {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }
+    );
   };
+
+  /* ============================================================
+     USER INITIALS
+  ============================================================ */
 
   const getUserInitials = (
     firstName: string,
@@ -342,6 +717,10 @@ export default function AdminCleaningManagement() {
       lastName?.charAt(0) || ''
     }`.toUpperCase();
   };
+
+  /* ============================================================
+     AVATAR COLOR
+  ============================================================ */
 
   const getAvatarColor = (
     firstName: string,
@@ -373,10 +752,14 @@ export default function AdminCleaningManagement() {
     totalPending: 0,
   };
 
+  /* ============================================================
+     LOADING
+  ============================================================ */
+
   if (isLoading) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <div className="h-11 w-11 rounded-xl bg-slate-200" />
 
@@ -389,7 +772,7 @@ export default function AdminCleaningManagement() {
           <div className="h-10 w-40 rounded-lg bg-slate-200" />
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[1, 2, 3, 4].map((item) => (
             <div
               key={item}
@@ -427,6 +810,10 @@ export default function AdminCleaningManagement() {
     );
   }
 
+  /* ============================================================
+     ERROR
+  ============================================================ */
+
   if (error) {
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
@@ -442,13 +829,17 @@ export default function AdminCleaningManagement() {
 
         <button
           onClick={() => refetch()}
-          className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+          className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700"
         >
           Try Again
         </button>
       </div>
     );
   }
+
+  /* ============================================================
+     PAGE
+  ============================================================ */
 
   return (
     <motion.div
@@ -457,22 +848,25 @@ export default function AdminCleaningManagement() {
       transition={{ duration: 0.35 }}
       className="space-y-6 pb-8"
     >
-      {/* PAGE HEADER */}
+      {/* ========================================================
+          PAGE HEADER
+      ======================================================== */}
+
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 border border-blue-100">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-blue-100 bg-blue-50">
               <Sparkles className="h-5 w-5 text-[#1a365d]" />
             </div>
 
-            <div>
+            <div className="min-w-0">
               <h2 className="text-xl font-bold tracking-tight text-slate-900">
                 Cleaning Management
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Manage cleaning schedules, registrations and
-                attendance.
+                Manage cleaning schedules,
+                registrations and attendance.
               </p>
             </div>
           </div>
@@ -487,14 +881,17 @@ export default function AdminCleaningManagement() {
         </div>
       </div>
 
-      {/* STATS */}
+      {/* ========================================================
+          STATS
+      ======================================================== */}
+
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
                 Registered
@@ -505,7 +902,7 @@ export default function AdminCleaningManagement() {
               </p>
             </div>
 
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50">
               <Users className="h-5 w-5 text-blue-600" />
             </div>
           </div>
@@ -517,7 +914,7 @@ export default function AdminCleaningManagement() {
           transition={{ delay: 0.05 }}
           className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
                 Attended
@@ -528,7 +925,7 @@ export default function AdminCleaningManagement() {
               </p>
             </div>
 
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50">
               <CheckCircle className="h-5 w-5 text-emerald-600" />
             </div>
           </div>
@@ -540,7 +937,7 @@ export default function AdminCleaningManagement() {
           transition={{ delay: 0.1 }}
           className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
                 Pending
@@ -551,7 +948,7 @@ export default function AdminCleaningManagement() {
               </p>
             </div>
 
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-50">
               <Clock className="h-5 w-5 text-amber-600" />
             </div>
           </div>
@@ -563,7 +960,7 @@ export default function AdminCleaningManagement() {
           transition={{ delay: 0.15 }}
           className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
                 No Show
@@ -574,14 +971,17 @@ export default function AdminCleaningManagement() {
               </p>
             </div>
 
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-50">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-50">
               <XCircle className="h-5 w-5 text-red-600" />
             </div>
           </div>
         </motion.div>
       </div>
 
-      {/* WEEKS */}
+      {/* ========================================================
+          WEEKS
+      ======================================================== */}
+
       {weeks.length === 0 ? (
         <motion.div
           initial={{ opacity: 0, y: 15 }}
@@ -597,13 +997,13 @@ export default function AdminCleaningManagement() {
           </h3>
 
           <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-            Create a new cleaning week from Monday to Friday
-            to get started.
+            Create a new cleaning week from Monday
+            to Friday to get started.
           </p>
 
           <button
             onClick={() => setShowCreateWeek(true)}
-            className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#153475]"
+            className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#153475]"
           >
             <Plus className="h-4 w-4" />
             Create First Week
@@ -611,37 +1011,45 @@ export default function AdminCleaningManagement() {
         </motion.div>
       ) : (
         <div className="space-y-4">
-          {weeks.map((week: any) => {
-            const isExpanded = expandedWeeks.has(week.id);
+          {weeks.map((week: CleaningWeek) => {
+            const isExpanded =
+              expandedWeeks.has(week.id);
 
             return (
               <motion.div
                 key={week.id}
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+                className="relative rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md"
               >
-                {/* WEEK HEADER */}
-                <div className="p-4 sm:p-5">
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <button
-                        onClick={() => toggleWeek(week.id)}
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#1a365d] text-white transition hover:bg-[#153475]"
-                        aria-label={
-                          isExpanded
-                            ? 'Collapse week'
-                            : 'Expand week'
-                        }
-                      >
-                        {isExpanded ? (
-                          <ChevronUp className="h-5 w-5" />
-                        ) : (
-                          <ChevronDown className="h-5 w-5" />
-                        )}
-                      </button>
+                {/* ==================================================
+                    WEEK HEADER
+                ================================================== */}
 
-                      <div className="min-w-0">
+                <div className="relative z-20 p-4">
+                  <div className="flex items-center gap-3">
+                    {/* Expand toggle */}
+                    <button
+                      onClick={() =>
+                        toggleWeek(week.id)
+                      }
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#1a365d] text-white transition hover:bg-[#153475]"
+                      aria-label={
+                        isExpanded
+                          ? 'Collapse week'
+                          : 'Expand week'
+                      }
+                    >
+                      {isExpanded ? (
+                        <ChevronUp className="h-5 w-5" />
+                      ) : (
+                        <ChevronDown className="h-5 w-5" />
+                      )}
+                    </button>
+
+                    {/* Week info - takes remaining space */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
                         <h3 className="truncate text-base font-bold text-slate-900">
                           {week.weekLabel ||
                             `Week of ${formatDate(
@@ -649,239 +1057,354 @@ export default function AdminCleaningManagement() {
                             )}`}
                         </h3>
 
-                        <p className="mt-0.5 text-xs text-slate-500">
-                          {formatDate(week.startDate)} –{' '}
-                          {formatDate(week.endDate)}
-                        </p>
+                        <span
+                          className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                            week.isActive
+                              ? 'bg-emerald-50 text-emerald-700'
+                              : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {week.isActive
+                            ? 'OPEN'
+                            : 'LOCKED'}
+                        </span>
                       </div>
+
+                      <p className="mt-0.5 truncate text-xs text-slate-500">
+                        {formatDate(
+                          week.startDate
+                        )}{' '}
+                        –{' '}
+                        {formatDate(
+                          week.endDate
+                        )}
+                      </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
+                    {/* Desktop-only registration text */}
+                    <div className="hidden text-right lg:block">
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                        Registration
+                      </p>
+
+                      <p
+                        className={`mt-0.5 text-xs font-semibold ${
+                          week.isActive
+                            ? 'text-emerald-700'
+                            : 'text-slate-500'
+                        }`}
+                      >
+                        {week.isActive
+                          ? 'Open for registration'
+                          : 'Registration locked'}
+                      </p>
+                    </div>
+
+                    {/* Three-dot action menu - pinned right */}
+                    <ActionMenu
+                      menuId={`week-${week.id}`}
+                      activeMenu={activeMenu}
+                      setActiveMenu={setActiveMenu}
+                    >
+                      <div className="px-3 py-2">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          Week actions
+                        </p>
+                      </div>
+
+                      <MenuItem
                         onClick={() =>
                           handleToggleWeekRegistration(
                             week.id,
                             !week.isActive
                           )
                         }
-                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                          week.isActive
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                            : 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
-                        }`}
-                      >
-                        {week.isActive ? (
-                          <Unlock className="h-3.5 w-3.5" />
-                        ) : (
-                          <Lock className="h-3.5 w-3.5" />
-                        )}
-
-                        {week.isActive ? 'Open' : 'Closed'}
-                      </button>
-
-                      <button
-                        onClick={() =>
-                          handleExtendDeadline(week.id)
+                        icon={
+                          week.isActive ? (
+                            <Lock className="h-4 w-4 text-slate-600" />
+                          ) : (
+                            <Unlock className="h-4 w-4 text-emerald-600" />
+                          )
                         }
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
                       >
-                        <Clock className="h-3.5 w-3.5" />
-                        Extend Deadline
-                      </button>
+                        {week.isActive ? 'Lock week' : 'Open week'}
+                      </MenuItem>
 
-                      <button
-                        onClick={() =>
-                          handleDeleteWeek(week.id)
-                        }
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100"
+                      <MenuItem
+                        onClick={() => handleExtendDeadline(week.id)}
+                        icon={<Clock className="h-4 w-4 text-blue-600" />}
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        <span className="hidden sm:inline">
-                          Delete
-                        </span>
-                      </button>
-                    </div>
+                        Extend deadline
+                      </MenuItem>
+
+                      <MenuDivider />
+
+                      <MenuItem
+                        danger
+                        onClick={() => handleDeleteWeek(week.id)}
+                        icon={<Trash2 className="h-4 w-4 text-red-600" />}
+                      >
+                        Delete week
+                      </MenuItem>
+                    </ActionMenu>
                   </div>
                 </div>
 
-                {/* DAYS */}
+                {/* ==================================================
+                    DAYS
+                ================================================== */}
+
                 <AnimatePresence>
                   {isExpanded && (
                     <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.25 }}
-                      className="border-t border-slate-200 bg-slate-50"
+                      initial={{
+                        height: 0,
+                        opacity: 0,
+                      }}
+                      animate={{
+                        height: 'auto',
+                        opacity: 1,
+                      }}
+                      exit={{
+                        height: 0,
+                        opacity: 0,
+                      }}
+                      transition={{
+                        duration: 0.25,
+                      }}
+                      className="relative z-10 border-t border-slate-200 bg-slate-50"
                     >
                       <div className="space-y-4 p-4 sm:p-5">
-                        {week.days.map((day: any) => (
-                          <div
-                            key={day.id}
-                            className="rounded-xl border border-slate-200 bg-white shadow-sm"
-                          >
-                            {/* DAY HEADER */}
-                            <div className="border-b border-slate-100 p-4">
-                              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                                <div>
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <h4 className="font-bold text-slate-900">
-                                      {day.dayOfWeek}
-                                    </h4>
+                        {week.days.map(
+                          (day: CleaningDay) => (
+                            <div
+                              key={day.id}
+                              className="relative rounded-xl border border-slate-200 bg-white shadow-sm"
+                            >
+                              {/* DAY HEADER */}
 
-                                    <span
-                                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                                        day.status === 'OPEN'
-                                          ? 'bg-emerald-50 text-emerald-700'
-                                          : day.status === 'FULL'
-                                            ? 'bg-amber-50 text-amber-700'
-                                            : 'bg-red-50 text-red-700'
-                                      }`}
-                                    >
-                                      {day.status}
-                                    </span>
+                              <div className="relative z-20 border-b border-slate-100 p-4">
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                  <div className="min-w-0">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <h4 className="font-bold text-slate-900">
+                                        {
+                                          day.dayOfWeek
+                                        }
+                                      </h4>
+
+                                      <span
+                                        className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                                          day.status ===
+                                          'OPEN'
+                                            ? 'bg-emerald-50 text-emerald-700'
+                                            : day.status ===
+                                                'FULL'
+                                              ? 'bg-amber-50 text-amber-700'
+                                              : 'bg-red-50 text-red-700'
+                                        }`}
+                                      >
+                                        {day.status}
+                                      </span>
+                                    </div>
+
+                                    <p className="mt-1 text-xs text-slate-500">
+                                      {formatDate(
+                                        day.cleaningDate
+                                      )}
+                                    </p>
                                   </div>
 
-                                  <p className="mt-1 text-xs text-slate-500">
-                                    {formatDate(
-                                      day.cleaningDate
-                                    )}
-                                  </p>
-                                </div>
+                                  {/* DAY ACTION AREA */}
 
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
-                                    <Users className="h-3.5 w-3.5" />
+                                  <div className="flex items-center justify-between gap-3 sm:justify-end">
+                                    <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
+                                      <Users className="h-3.5 w-3.5" />
 
-                                    {day.currentRegistrations} /{' '}
-                                    {day.capacityLimit}
-                                  </div>
+                                      <span>
+                                        {
+                                          day.currentRegistrations
+                                        }{' '}
+                                        /{' '}
+                                        {
+                                          day.capacityLimit
+                                        }
+                                      </span>
+                                    </div>
 
-                                  <button
-                                    onClick={() =>
-                                      handleToggleDayStatus(
-                                        day.id,
-                                        day.status
-                                      )
-                                    }
-                                    className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
-                                      day.status === 'OPEN' ||
-                                      day.status === 'FULL'
-                                        ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
-                                        : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                                    }`}
-                                  >
-                                    {day.status === 'OPEN' ||
-                                    day.status === 'FULL' ? (
-                                      <>
-                                        <Lock className="h-3.5 w-3.5" />
-                                        Close Day
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Unlock className="h-3.5 w-3.5" />
-                                        Open Day
-                                      </>
-                                    )}
-                                  </button>
-
-                                  <button
-                                    onClick={() => {
-                                      setSelectedDayForCapacity(
-                                        day
-                                      );
-                                      setNewCapacityLimit(
-                                        day.capacityLimit
-                                      );
-                                      setShowCapacityModal(true);
-                                    }}
-                                    className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
-                                  >
-                                    <Edit className="h-3.5 w-3.5" />
-                                    Capacity
-                                  </button>
-
-                                  {day.status !== 'FULL' && (
-                                    <button
-                                      onClick={() => {
-                                        setSelectedDayForAssignment(
-                                          day
-                                        );
-                                        setShowAssignModal(true);
-                                      }}
-                                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#1a365d]/20 bg-[#1a365d]/5 px-3 py-1.5 text-xs font-semibold text-[#1a365d] hover:bg-[#1a365d]/10"
+                                    <ActionMenu
+                                      menuId={`day-${day.id}`}
+                                      activeMenu={
+                                        activeMenu
+                                      }
+                                      setActiveMenu={
+                                        setActiveMenu
+                                      }
                                     >
-                                      <UserPlus className="h-3.5 w-3.5" />
-                                      Assign
-                                    </button>
-                                  )}
+                                      <div className="px-3 py-2">
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                          Day actions
+                                        </p>
+                                      </div>
 
-                                  <button
-                                    onClick={() =>
-                                      handleDeleteDay(
-                                        day.id,
-                                        day.dayOfWeek
-                                      )
-                                    }
-                                    className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
+                                      <MenuItem
+                                        onClick={() =>
+                                          handleToggleDayStatus(
+                                            day.id,
+                                            day.status
+                                          )
+                                        }
+                                        icon={
+                                          day.status ===
+                                            'OPEN' ||
+                                          day.status ===
+                                            'FULL' ? (
+                                            <Lock className="h-4 w-4 text-red-600" />
+                                          ) : (
+                                            <Unlock className="h-4 w-4 text-emerald-600" />
+                                          )
+                                        }
+                                      >
+                                        {day.status ===
+                                          'OPEN' ||
+                                        day.status ===
+                                          'FULL'
+                                          ? 'Close day'
+                                          : 'Open day'}
+                                      </MenuItem>
 
-                                    <span className="hidden sm:inline">
-                                      Delete
-                                    </span>
-                                  </button>
+                                      <MenuItem
+                                        onClick={() =>
+                                          openCapacityModal(
+                                            day
+                                          )
+                                        }
+                                        icon={
+                                          <Edit className="h-4 w-4 text-blue-600" />
+                                        }
+                                      >
+                                        Edit capacity
+                                      </MenuItem>
+
+                                      <MenuItem
+                                        onClick={() =>
+                                          openAssignModal(
+                                            day
+                                          )
+                                        }
+                                        icon={
+                                          <UserPlus className="h-4 w-4 text-[#1a365d]" />
+                                        }
+                                      >
+                                        Assign student
+                                      </MenuItem>
+
+                                      <MenuDivider />
+
+                                      <MenuItem
+                                        danger
+                                        onClick={() =>
+                                          handleDeleteDay(
+                                            day.id,
+                                            day.dayOfWeek
+                                          )
+                                        }
+                                        icon={
+                                          <Trash2 className="h-4 w-4 text-red-600" />
+                                        }
+                                      >
+                                        Delete day
+                                      </MenuItem>
+                                    </ActionMenu>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
 
-                            {/* REGISTERED STUDENTS */}
-                            <div className="p-4">
-                              {day.registrations &&
-                              day.registrations.length > 0 ? (
-                                <div className="space-y-2">
-                                  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                    Registered Students
-                                  </div>
+                              {/* ==================================================
+                                  REGISTERED STUDENTS
+                              ================================================== */}
 
-                                  {day.registrations.map(
-                                    (reg: any) => {
-                                      const attendance =
-                                        day.attendanceRecords?.find(
-                                          (a: any) =>
-                                            a.userId ===
-                                            reg.userId
-                                        );
+                              <div className="p-4">
+                                {day.registrations &&
+                                day.registrations
+                                  .length > 0 ? (
+                                  <div className="space-y-2">
+                                    <div className="mb-3 flex items-center justify-between">
+                                      <div>
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                          Registered
+                                          Students
+                                        </p>
 
-                                      const initials =
-                                        getUserInitials(
-                                          reg.user.firstName,
-                                          reg.user.lastName
-                                        );
+                                        <p className="mt-0.5 text-xs text-slate-400">
+                                          {
+                                            day.currentRegistrations
+                                          }{' '}
+                                          student
+                                          {day.currentRegistrations !==
+                                          1
+                                            ? 's'
+                                            : ''}{' '}
+                                          registered
+                                        </p>
+                                      </div>
+                                    </div>
 
-                                      return (
-                                        <div
-                                          key={reg.id}
-                                          className="flex flex-col gap-3 rounded-lg border border-slate-100 bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between"
-                                        >
-                                          <div className="flex min-w-0 items-center gap-3">
+                                    {day.registrations.map(
+                                      (
+                                        reg: CleaningRegistration
+                                      ) => {
+                                        const attendance =
+                                          day.attendanceRecords?.find(
+                                            (
+                                              a: AttendanceRecord
+                                            ) =>
+                                              a.userId ===
+                                              reg.userId
+                                          );
+
+                                        const initials =
+                                          getUserInitials(
+                                            reg
+                                              .user
+                                              .firstName,
+                                            reg
+                                              .user
+                                              .lastName
+                                          );
+
+                                        return (
+                                          <div
+                                            key={
+                                              reg.id
+                                            }
+                                            className="relative flex min-w-0 items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 p-3 transition hover:border-slate-200 hover:bg-slate-100/70"
+                                          >
+                                            {/* STUDENT */}
+
                                             <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-white">
                                               {reg.user
                                                 .profileImageUrl ? (
-                                                <img
+                                                <Image
                                                   src={
-                                                    reg.user
+                                                    reg
+                                                      .user
                                                       .profileImageUrl
                                                   }
                                                   alt={`${reg.user.firstName} ${reg.user.lastName}`}
+                                                  width={36}
+                                                  height={36}
+                                                  unoptimized
                                                   className="h-full w-full object-cover"
                                                 />
                                               ) : (
                                                 <div
                                                   className={`flex h-full w-full items-center justify-center ${getAvatarColor(
-                                                    reg.user
+                                                    reg
+                                                      .user
                                                       .firstName,
-                                                    reg.user
+                                                    reg
+                                                      .user
                                                       .lastName
                                                   )}`}
                                                 >
@@ -893,120 +1416,166 @@ export default function AdminCleaningManagement() {
                                               )}
                                             </div>
 
-                                            <div className="min-w-0">
-                                              <p className="text-sm font-semibold text-slate-900">
-                                                {
-                                                  reg.user
-                                                    .firstName
-                                                }{' '}
-                                                {
-                                                  reg.user
-                                                    .lastName
-                                                }
+                                            <div className="min-w-0 flex-1">
+                                              <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                                                <p className="text-sm font-semibold text-slate-900">
+                                                  {
+                                                    reg
+                                                      .user
+                                                      .firstName
+                                                  }{' '}
+                                                  {
+                                                    reg
+                                                      .user
+                                                      .lastName
+                                                  }
+                                                </p>
+
+                                                {attendance && (
+                                                  <span
+                                                    className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                                      attendance.status ===
+                                                      'ATTENDED'
+                                                        ? 'bg-emerald-50 text-emerald-700'
+                                                        : attendance.status ===
+                                                            'NO_SHOW'
+                                                          ? 'bg-red-50 text-red-700'
+                                                          : 'bg-amber-50 text-amber-700'
+                                                    }`}
+                                                  >
+                                                    {attendance.status.replace(
+                                                      '_',
+                                                      ' '
+                                                    )}
+                                                  </span>
+                                                )}
+                                              </div>
+
+                                              <p className="mt-0.5 text-xs text-slate-400">
+                                                Cleaning
+                                                participant
                                               </p>
-
-                                              {attendance && (
-                                                <span
-                                                  className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                                                    attendance.status ===
-                                                    'ATTENDED'
-                                                      ? 'bg-emerald-50 text-emerald-700'
-                                                      : attendance.status ===
-                                                          'NO_SHOW'
-                                                        ? 'bg-red-50 text-red-700'
-                                                        : 'bg-amber-50 text-amber-700'
-                                                  }`}
-                                                >
-                                                  {attendance.status.replace(
-                                                    '_',
-                                                    ' '
-                                                  )}
-                                                </span>
-                                              )}
                                             </div>
+
+                                            {/* STUDENT ACTION MENU */}
+
+                                            <ActionMenu
+                                              menuId={`student-${reg.id}`}
+                                              activeMenu={
+                                                activeMenu
+                                              }
+                                              setActiveMenu={
+                                                setActiveMenu
+                                              }
+                                            >
+                                              <div className="px-3 py-2">
+                                                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                                  Student
+                                                  actions
+                                                </p>
+
+                                                <p className="mt-0.5 truncate text-xs font-medium text-slate-600">
+                                                  {
+                                                    reg
+                                                      .user
+                                                      .firstName
+                                                  }{' '}
+                                                  {
+                                                    reg
+                                                      .user
+                                                      .lastName
+                                                  }
+                                                </p>
+                                              </div>
+
+                                              <MenuItem
+                                                onClick={() =>
+                                                  handleMarkAttendance(
+                                                    reg.userId,
+                                                    day.id,
+                                                    'ATTENDED'
+                                                  )
+                                                }
+                                                icon={
+                                                  <UserCheck className="h-4 w-4 text-emerald-600" />
+                                                }
+                                              >
+                                                Mark attended
+                                              </MenuItem>
+
+                                              <MenuItem
+                                                onClick={() =>
+                                                  handleMarkAttendance(
+                                                    reg.userId,
+                                                    day.id,
+                                                    'NO_SHOW'
+                                                  )
+                                                }
+                                                icon={
+                                                  <UserX className="h-4 w-4 text-red-600" />
+                                                }
+                                              >
+                                                Mark no show
+                                              </MenuItem>
+
+                                              <MenuItem
+                                                onClick={() =>
+                                                  handleMarkAttendance(
+                                                    reg.userId,
+                                                    day.id,
+                                                    'PENDING'
+                                                  )
+                                                }
+                                                icon={
+                                                  <Hourglass className="h-4 w-4 text-amber-600" />
+                                                }
+                                              >
+                                                Mark pending
+                                              </MenuItem>
+
+                                              <MenuDivider />
+
+                                              <MenuItem
+                                                danger
+                                                onClick={() =>
+                                                  handleRemoveStudent(
+                                                    reg.userId,
+                                                    `${reg.user.firstName} ${reg.user.lastName}`
+                                                  )
+                                                }
+                                                icon={
+                                                  <Trash2 className="h-4 w-4 text-red-600" />
+                                                }
+                                              >
+                                                Remove student
+                                              </MenuItem>
+                                            </ActionMenu>
                                           </div>
+                                        );
+                                      }
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center">
+                                    <Users className="mx-auto h-8 w-8 text-slate-300" />
 
-                                          <div className="flex flex-wrap items-center gap-1">
-                                            <button
-                                              onClick={() =>
-                                                handleMarkAttendance(
-                                                  reg.userId,
-                                                  day.id,
-                                                  'ATTENDED'
-                                                )
-                                              }
-                                              className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
-                                              title="Mark as attended"
-                                            >
-                                                Attended
-                                            </button>
+                                    <p className="mt-2 text-sm font-medium text-slate-600">
+                                      No students
+                                      registered
+                                    </p>
 
-                                            <button
-                                              onClick={() =>
-                                                handleMarkAttendance(
-                                                  reg.userId,
-                                                  day.id,
-                                                  'NO_SHOW'
-                                                )
-                                              }
-                                              className="rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
-                                              title="Mark as no-show"
-                                            >
-                                                No Show
-                                            </button>
-
-                                            <button
-                                              onClick={() =>
-                                                handleMarkAttendance(
-                                                  reg.userId,
-                                                  day.id,
-                                                  'PENDING'
-                                                )
-                                              }
-                                              className="rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100"
-                                              title="Mark as pending"
-                                            >
-                                                Pending
-                                            </button>
-
-                                            <button
-                                              onClick={() =>
-                                                handleRemoveStudent(
-                                                  reg.userId,
-                                                  `${reg.user.firstName} ${reg.user.lastName}`
-                                                )
-                                              }
-                                              className="inline-flex items-center gap-1 rounded-md border border-orange-200 bg-orange-50 px-2 py-1.5 text-xs font-medium text-orange-700 hover:bg-orange-100"
-                                              title="Remove student"
-                                            >
-                                              <Trash2 className="h-3.5 w-3.5" />
-                                              <span className="hidden md:inline">
-                                                Remove
-                                              </span>
-                                            </button>
-                                          </div>
-                                        </div>
-                                      );
-                                    }
-                                  )}
-                                </div>
-                              ) : (
-                                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center">
-                                  <Users className="mx-auto h-8 w-8 text-slate-300" />
-
-                                  <p className="mt-2 text-sm font-medium text-slate-600">
-                                    No students registered
-                                  </p>
-
-                                  <p className="mt-1 text-xs text-slate-400">
-                                    Students assigned to this
-                                    cleaning day will appear here.
-                                  </p>
-                                </div>
-                              )}
+                                    <p className="mt-1 text-xs text-slate-400">
+                                      Students assigned
+                                      to this cleaning
+                                      day will appear
+                                      here.
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          )
+                        )}
                       </div>
                     </motion.div>
                   )}
@@ -1017,7 +1586,10 @@ export default function AdminCleaningManagement() {
         </div>
       )}
 
-      {/* CREATE WEEK MODAL */}
+      {/* ========================================================
+          CREATE WEEK MODAL
+      ======================================================== */}
+
       <AnimatePresence>
         {showCreateWeek && (
           <motion.div
@@ -1025,14 +1597,30 @@ export default function AdminCleaningManagement() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
-            onClick={() => setShowCreateWeek(false)}
+            onClick={() =>
+              setShowCreateWeek(false)
+            }
           >
             <motion.div
-              initial={{ scale: 0.96, opacity: 0, y: 10 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.96, opacity: 0, y: 10 }}
+              initial={{
+                scale: 0.96,
+                opacity: 0,
+                y: 10,
+              }}
+              animate={{
+                scale: 1,
+                opacity: 1,
+                y: 0,
+              }}
+              exit={{
+                scale: 0.96,
+                opacity: 0,
+                y: 10,
+              }}
               className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) =>
+                e.stopPropagation()
+              }
             >
               <div className="mb-5">
                 <h3 className="text-xl font-bold text-slate-900">
@@ -1040,8 +1628,8 @@ export default function AdminCleaningManagement() {
                 </h3>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  This will create five cleaning days from Monday
-                  to Friday.
+                  This will create five cleaning
+                  days from Monday to Friday.
                 </p>
               </div>
 
@@ -1049,18 +1637,27 @@ export default function AdminCleaningManagement() {
                 onSubmit={async (e) => {
                   e.preventDefault();
 
-                  const form = e.currentTarget;
-                  const formData = new FormData(form);
+                  const form =
+                    e.currentTarget;
+
+                  const formData =
+                    new FormData(form);
 
                   const startDate =
-                    formData.get('startDate') as string;
+                    formData.get(
+                      'startDate'
+                    ) as string;
 
                   const weekLabel =
-                    formData.get('weekLabel') as string;
+                    formData.get(
+                      'weekLabel'
+                    ) as string;
 
                   const capacityLimit =
                     parseInt(
-                      formData.get('capacityLimit') as string
+                      formData.get(
+                        'capacityLimit'
+                      ) as string
                     ) || 5;
 
                   const registrationDeadline =
@@ -1069,20 +1666,28 @@ export default function AdminCleaningManagement() {
                     ) as string;
 
                   if (!startDate) {
-                    alert('Please select a start date');
+                    alert(
+                      'Please select a start date'
+                    );
                     return;
                   }
 
-                  if (!registrationDeadline) {
+                  if (
+                    !registrationDeadline
+                  ) {
                     alert(
                       'Please select a registration deadline'
                     );
                     return;
                   }
 
-                  const selectedDate = new Date(startDate);
+                  const selectedDate =
+                    new Date(startDate);
 
-                  if (selectedDate.getDay() !== 1) {
+                  if (
+                    selectedDate.getDay() !==
+                    1
+                  ) {
                     const dayNames = [
                       'Sunday',
                       'Monday',
@@ -1102,7 +1707,8 @@ export default function AdminCleaningManagement() {
 
                   const payload = {
                     startDate,
-                    weekLabel: weekLabel || undefined,
+                    weekLabel:
+                      weekLabel || undefined,
                     capacityLimit,
                     registrationDeadline,
                   };
@@ -1112,22 +1718,26 @@ export default function AdminCleaningManagement() {
                       payload
                     );
 
-                    setShowCreateWeek(false);
+                    setShowCreateWeek(
+                      false
+                    );
 
                     await refetch();
 
                     alert(
                       'Week created successfully with 5 days (Monday to Friday)!'
                     );
-                  } catch (error: any) {
+                  } catch (error: unknown) {
                     console.error(
                       'Error creating week:',
                       error
                     );
 
                     alert(
-                      error.message ||
+                      getErrorMessage(
+                        error,
                         'Failed to create week. Please try again.'
+                      )
                     );
                   }
                 }}
@@ -1179,7 +1789,8 @@ export default function AdminCleaningManagement() {
                   />
 
                   <p className="mt-1 text-xs text-slate-400">
-                    Maximum students allowed per day.
+                    Maximum students allowed
+                    per day.
                   </p>
                 </div>
 
@@ -1192,12 +1803,7 @@ export default function AdminCleaningManagement() {
                     type="datetime-local"
                     name="registrationDeadline"
                     required
-                    defaultValue={new Date(
-                      Date.now() +
-                        7 * 24 * 60 * 60 * 1000
-                    )
-                      .toISOString()
-                      .slice(0, 16)}
+                    defaultValue={defaultRegistrationDeadline}
                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3182ce] focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
@@ -1206,9 +1812,11 @@ export default function AdminCleaningManagement() {
                   <button
                     type="button"
                     onClick={() =>
-                      setShowCreateWeek(false)
+                      setShowCreateWeek(
+                        false
+                      )
                     }
-                    className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                    className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                   >
                     Cancel
                   </button>
@@ -1218,7 +1826,7 @@ export default function AdminCleaningManagement() {
                     disabled={
                       createWeekMutation.isPending
                     }
-                    className="flex-1 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#153475] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex-1 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#153475] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {createWeekMutation.isPending
                       ? 'Creating...'
@@ -1231,7 +1839,10 @@ export default function AdminCleaningManagement() {
         )}
       </AnimatePresence>
 
-      {/* ASSIGN STUDENT MODAL */}
+      {/* ========================================================
+          ASSIGN STUDENT MODAL
+      ======================================================== */}
+
       <AnimatePresence>
         {showAssignModal &&
           selectedDayForAssignment && (
@@ -1240,7 +1851,9 @@ export default function AdminCleaningManagement() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
-              onClick={() => setShowAssignModal(false)}
+              onClick={() =>
+                setShowAssignModal(false)
+              }
             >
               <motion.div
                 initial={{
@@ -1259,7 +1872,9 @@ export default function AdminCleaningManagement() {
                   y: 10,
                 }}
                 className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) =>
+                  e.stopPropagation()
+                }
               >
                 <h3 className="text-xl font-bold text-slate-900">
                   Assign Student
@@ -1268,7 +1883,9 @@ export default function AdminCleaningManagement() {
                 <p className="mt-1 text-sm text-slate-500">
                   Assign a student to{' '}
                   <strong>
-                    {selectedDayForAssignment.dayOfWeek}
+                    {
+                      selectedDayForAssignment.dayOfWeek
+                    }
                   </strong>{' '}
                   (
                   {formatDate(
@@ -1298,35 +1915,47 @@ export default function AdminCleaningManagement() {
                         Choose a student...
                       </option>
 
-                      {students.map((student: any) => (
-                        <option
-                          key={student.id}
-                          value={student.id}
-                        >
-                          {student.firstName}{' '}
-                          {student.lastName}
-                        </option>
-                      ))}
+                      {students.map(
+                        (student) => (
+                          <option
+                            key={student.id}
+                            value={
+                              student.id
+                            }
+                          >
+                            {
+                              student.firstName
+                            }{' '}
+                            {
+                              student.lastName
+                            }
+                          </option>
+                        )
+                      )}
                     </select>
                   </div>
 
                   <div className="flex gap-3">
                     <button
                       onClick={() =>
-                        setShowAssignModal(false)
+                        setShowAssignModal(
+                          false
+                        )
                       }
-                      className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                      className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                     >
                       Cancel
                     </button>
 
                     <button
-                      onClick={handleManualAssign}
+                      onClick={
+                        handleManualAssign
+                      }
                       disabled={
                         !selectedStudentForAssignment ||
                         manualAssignMutation.isPending
                       }
-                      className="flex-1 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#153475] disabled:opacity-50"
+                      className="flex-1 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#153475] disabled:opacity-50"
                     >
                       {manualAssignMutation.isPending
                         ? 'Assigning...'
@@ -1339,7 +1968,10 @@ export default function AdminCleaningManagement() {
           )}
       </AnimatePresence>
 
-      {/* CAPACITY MODAL */}
+      {/* ========================================================
+          CAPACITY MODAL
+      ======================================================== */}
+
       <AnimatePresence>
         {showCapacityModal &&
           selectedDayForCapacity && (
@@ -1349,7 +1981,9 @@ export default function AdminCleaningManagement() {
               exit={{ opacity: 0 }}
               className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
               onClick={() =>
-                setShowCapacityModal(false)
+                setShowCapacityModal(
+                  false
+                )
               }
             >
               <motion.div
@@ -1369,7 +2003,9 @@ export default function AdminCleaningManagement() {
                   y: 10,
                 }}
                 className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) =>
+                  e.stopPropagation()
+                }
               >
                 <h3 className="text-xl font-bold text-slate-900">
                   Update Capacity
@@ -1378,7 +2014,9 @@ export default function AdminCleaningManagement() {
                 <p className="mt-1 text-sm text-slate-500">
                   Update the capacity for{' '}
                   <strong>
-                    {selectedDayForCapacity.dayOfWeek}
+                    {
+                      selectedDayForCapacity.dayOfWeek
+                    }
                   </strong>{' '}
                   (
                   {formatDate(
@@ -1395,10 +2033,14 @@ export default function AdminCleaningManagement() {
 
                     <input
                       type="number"
-                      value={newCapacityLimit}
+                      value={
+                        newCapacityLimit
+                      }
                       onChange={(e) =>
                         setNewCapacityLimit(
-                          parseInt(e.target.value) || 0
+                          parseInt(
+                            e.target.value
+                          ) || 0
                         )
                       }
                       min={1}
@@ -1416,7 +2058,8 @@ export default function AdminCleaningManagement() {
                       </p>
 
                       <p className="text-xs text-slate-400">
-                        Capacity cannot be lower than current
+                        Capacity cannot be lower
+                        than current
                         registrations.
                       </p>
                     </div>
@@ -1425,22 +2068,27 @@ export default function AdminCleaningManagement() {
                   <div className="flex gap-3">
                     <button
                       onClick={() =>
-                        setShowCapacityModal(false)
+                        setShowCapacityModal(
+                          false
+                        )
                       }
-                      className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                      className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                     >
                       Cancel
                     </button>
 
                     <button
-                      onClick={handleUpdateCapacity}
+                      onClick={
+                        handleUpdateCapacity
+                      }
                       disabled={
-                        newCapacityLimit < 1 ||
+                        newCapacityLimit <
+                          1 ||
                         newCapacityLimit <
                           selectedDayForCapacity.currentRegistrations ||
                         updateDayMutation.isPending
                       }
-                      className="flex-1 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#153475] disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex-1 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#153475] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {updateDayMutation.isPending
                         ? 'Updating...'

@@ -114,7 +114,9 @@ export async function GET(request: NextRequest) {
     });
 
     const roles = await prisma.role.findMany({
-      where: { name: { not: 'dev' } },
+      where: session.user.role === 'dev'
+        ? { name: { not: 'dev' } }
+        : { name: { notIn: ['dev', 'super_admin'] } },
       select: { id: true, name: true, displayName: true },
       orderBy: { name: 'asc' }
     });
