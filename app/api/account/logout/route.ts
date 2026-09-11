@@ -5,7 +5,7 @@
  * Handles user logout.
  * Clears the HTTP-only cookie.
  * 
- * Endpoint: POST /api/auth/logout
+ * Endpoint: POST /api/account/logout
  * Response: { success: true }
  */
 

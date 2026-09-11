@@ -1,6 +1,14 @@
 /** @type {import('next').NextConfig} */
 
+const path = require('path');
+
 const nextConfig = {
+
+  // Prevent Turbopack from picking a parent lockfile as the workspace root
+  // (e.g. /Users/mac/package-lock.json), which breaks App Router API routes.
+  turbopack: {
+    root: path.join(__dirname),
+  },
 
   experimental: {
 

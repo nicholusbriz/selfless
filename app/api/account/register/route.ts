@@ -1,4 +1,4 @@
-// app/api/auth/register/route.ts
+// app/api/account/register/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { registerUser } from '@/lib/auth/server';
 import { AUTH_CONSTANTS } from '@/lib/auth/types';

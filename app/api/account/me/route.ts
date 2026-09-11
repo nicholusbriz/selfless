@@ -5,7 +5,7 @@
  * Gets the currently authenticated user from the session cookie.
  * Used by client to fetch user data on page load.
  * 
- * Endpoint: GET /api/auth/me
+ * Endpoint: GET /api/account/me
  * Response: { user: AuthUser | null }
  */
 
