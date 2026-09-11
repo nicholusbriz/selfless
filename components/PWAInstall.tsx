@@ -27,12 +27,27 @@ export default function PWAInstall() {
 
     if (isInstalled) return;
 
+    let removeControllerListener = () => {};
+
     // Register service worker for PWA
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
+      const hadController = Boolean(navigator.serviceWorker.controller);
+
+      const handleControllerChange = () => {
+        if (hadController) {
+          window.location.reload();
+        }
+      };
+
+      navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+      removeControllerListener = () => {
+        navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+      };
+
+      navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
         .then((registration) => {
           console.log('[SW] Service Worker registered:', registration);
-          // Force update the service worker
+          // Check the deployment version immediately instead of waiting for the browser interval.
           registration.update();
         })
         .catch((error) => {
@@ -42,7 +57,9 @@ export default function PWAInstall() {
 
     // Check if we showed it in last 2 minutes
     const now = Date.now();
-    if (lastShownRef.current && (now - lastShownRef.current) < 2 * 60 * 1000) return;
+    if (lastShownRef.current && (now - lastShownRef.current) < 2 * 60 * 1000) {
+      return removeControllerListener;
+    }
 
     const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     setIsIOS(iOS);
@@ -64,10 +81,16 @@ export default function PWAInstall() {
         setShowIOSGuide(true);
         lastShownRef.current = Date.now();
       }, 2000);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        removeControllerListener();
+      };
     }
 
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      removeControllerListener();
+    };
   }, [isHomePage]);
 
   const handleInstall = async () => {
