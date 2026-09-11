@@ -4,10 +4,17 @@ import {
   Phone,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="border-t border-white/10 bg-[#0A0F18]">
+    <footer
+      className="border-t border-white/10 bg-[#0A0F18] bg-cover bg-center"
+      style={{
+        backgroundImage:
+          "linear-gradient(rgba(7, 16, 24, 0.12), rgba(10, 15, 24, 0.2)), url('/header-image.jpg')",
+      }}
+    >
       <div className="mx-auto max-w-7xl px-6 py-14">
         <div className="grid gap-10 lg:grid-cols-4">
           {/* Brand */}
@@ -40,17 +47,21 @@ export default function Footer() {
             </h4>
 
             <div className="mt-4 space-y-3 text-gray-400">
-              <button className="block hover:text-white text-left text-sm transition-colors">
+              <Link href="/" className="block text-sm transition-colors hover:text-white">
+                Home
+              </Link>
+              <Link href="/about" className="block text-sm transition-colors hover:text-white">
                 About
-              </button>
-
-              <button className="block hover:text-white text-left text-sm transition-colors">
-                FAQ
-              </button>
-
-              <button className="block hover:text-white text-left text-sm transition-colors">
-                Contact
-              </button>
+              </Link>
+              <Link href="/tech-centers" className="block text-sm transition-colors hover:text-white">
+                Tech Centers
+              </Link>
+              <Link href="/features" className="block text-sm transition-colors hover:text-white">
+                Features
+              </Link>
+              <Link href="/help" className="block text-sm transition-colors hover:text-white">
+                Help
+              </Link>
             </div>
           </div>
 
@@ -61,13 +72,13 @@ export default function Footer() {
             </h4>
 
             <div className="mt-4 space-y-3 text-gray-400">
-              <button className="block hover:text-white text-left text-sm transition-colors">
+              <Link href="/privacy" className="block text-left text-sm transition-colors hover:text-white">
                 Privacy
-              </button>
+              </Link>
 
-              <button className="block hover:text-white text-left text-sm transition-colors">
+              <Link href="/terms" className="block text-left text-sm transition-colors hover:text-white">
                 Terms
-              </button>
+              </Link>
             </div>
           </div>
 

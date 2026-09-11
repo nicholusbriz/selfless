@@ -16,6 +16,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied. Admin or Teacher privileges required.' }, { status: 403 });
     }
 
+    const isAdmin = session.user.role === 'admin' || session.user.role === 'super_admin';
+
     const body = await request.json();
     const { studentUserId, cleaningDayId } = body;
 
@@ -48,8 +50,8 @@ export async function POST(request: NextRequest) {
         throw new Error('Cleaning day not found');
       }
 
-      // Check if day is full
-      if (cleaningDay.status === 'FULL') {
+      // Teachers follow capacity rules; admins can override them.
+      if (!isAdmin && cleaningDay.status === 'FULL') {
         throw new Error('This cleaning day is full');
       }
 
@@ -58,7 +60,7 @@ export async function POST(request: NextRequest) {
         where: { cleaningDayId },
       });
 
-      if (currentRegistrations >= cleaningDay.capacityLimit) {
+      if (!isAdmin && currentRegistrations >= cleaningDay.capacityLimit) {
         throw new Error('This cleaning day is at capacity');
       }
 
@@ -77,12 +79,12 @@ export async function POST(request: NextRequest) {
           return { message: 'Student already assigned to this day' };
         }
 
-        // Check if old day has exactly 4 students (minimum threshold)
+        // Teachers cannot move the last student below the minimum threshold.
         const oldDayRegistrations = await tx.cleaningRegistration.count({
           where: { cleaningDayId: oldCleaningDayId },
         });
 
-        if (oldDayRegistrations === 4) {
+        if (!isAdmin && oldDayRegistrations === 4) {
           throw new Error('Cannot move student - the current day has exactly 4 students (minimum required). A day must have at least 4 students.');
         }
 

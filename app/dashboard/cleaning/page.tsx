@@ -39,6 +39,7 @@ import Link from 'next/link';
 import {
   AlertCircle,
   ArrowLeft,
+  ArrowUp,
   Calendar,
   Check,
   CheckCircle,
@@ -1319,6 +1320,18 @@ function Shell({
 
 export default function CleaningPage() {
   const router = useRouter();
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 400);
+    };
+
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const [
     expandedWeeks,
@@ -2047,6 +2060,18 @@ export default function CleaningPage() {
 
   return (
     <Shell>
+      {showBackToTop && (
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          aria-label="Back to top"
+          title="Back to top"
+          className="fixed bottom-5 left-3 z-40 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#DADCD3] bg-white text-[#12203B] shadow-md transition-all hover:-translate-y-0.5 hover:border-[#B98A3E] hover:bg-[#F7F6F2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] focus-visible:ring-offset-2 sm:left-5"
+        >
+          <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
+        </button>
+      )}
+
       <PageHeader
         onBack={() =>
           router.back()

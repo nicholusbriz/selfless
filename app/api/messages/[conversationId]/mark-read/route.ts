@@ -17,9 +17,25 @@ export async function POST(
     const userId = session.user.id;
     const { conversationId } = await params;
 
+    const conversation = await prisma.conversation.findFirst({
+      where: {
+        id: conversationId,
+        participantIds: { has: userId },
+        isActive: true,
+      },
+      select: { id: true },
+    });
+
+    if (!conversation) {
+      return NextResponse.json(
+        { error: 'Conversation not found' },
+        { status: 404 }
+      );
+    }
+
     // Mark all unread messages in this conversation as read
     // Only messages sent by others (not by the current user)
-    await prisma.message.updateMany({
+    const result = await prisma.message.updateMany({
       where: {
         conversationId,
         senderId: { not: userId },
@@ -31,27 +47,7 @@ export async function POST(
       },
     });
 
-    // Update or create message read status for this user using upsert
-    await prisma.messageReadStatus.upsert({
-      where: {
-        conversationId_userId: {
-          conversationId,
-          userId,
-        },
-      },
-      update: {
-        lastReadAt: new Date(),
-        unreadCount: 0,
-      },
-      create: {
-        conversationId,
-        userId,
-        lastReadAt: new Date(),
-        unreadCount: 0,
-      },
-    });
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, markedCount: result.count });
   } catch (error) {
     console.error('Error marking messages as read:', error);
     return NextResponse.json(

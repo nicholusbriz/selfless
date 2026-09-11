@@ -1,64 +1,23 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
-  Users,
   Search,
   X,
-  MapPin,
-  MessageSquare,
   AlertCircle,
   ArrowLeft,
   Plus,
-  Clock,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
 import { Chat } from './components/Chat';
+import { ChatsList } from './components/ChatsList';
+import { AllUsersList } from './components/AllUsersList';
 import Link from 'next/link';
-import { useUnreadMessageCount } from '@/hooks/useMessages';
-
-// ============================================================
-// INTERFACES
-// ============================================================
-
-interface User {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  image?: string | null;
-  techCenter?: {
-    id: string;
-    name: string;
-  };
-}
-
-interface Conversation {
-  id: string;
-  participants: string[];
-  lastMessage: {
-    content: string;
-    senderId: string;
-    createdAt: string;
-  } | null;
-  otherUser?: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    fullName: string;
-    image?: string | null;
-    techCenter?: {
-      id: string;
-      name: string;
-    };
-  } | null;
-  unreadCount?: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-type TabType = 'chats' | 'users';
+import Image from 'next/image';
+import type { User, Conversation, TabType } from '@/types/messaging';
+import { useOnlineUsers } from '@/lib/hooks/useOnlineUsers';
 
 // ============================================================
 // MAIN PAGE
@@ -67,7 +26,11 @@ type TabType = 'chats' | 'users';
 export default function MessagesPage() {
   const queryClient = useQueryClient();
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
   const currentUserId = session?.user?.id || '';
+  const onlineUsers = useOnlineUsers(session?.user);
+  const requestedUserId = searchParams.get('userId');
+  const openedRequestedUserRef = useRef<string | null>(null);
 
   const [activeTab, setActiveTab] = useState<TabType>('chats');
   const [searchQuery, setSearchQuery] = useState('');
@@ -77,37 +40,49 @@ export default function MessagesPage() {
   // Fetch users
   const { 
     data: users = [], 
-    isLoading: usersLoading 
+    isLoading: usersLoading,
+    error: usersError
   } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
       const response = await fetch('/api/users');
-      if (!response.ok) throw new Error('Failed to fetch users');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to fetch users');
+      }
       const data = await response.json();
       return data.users || [];
     },
     enabled: !!currentUserId,
     refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000,
+    retry: 1,
   });
 
   // Fetch conversations
   const { 
     data: conversations = [], 
     isLoading: conversationsLoading,
-    refetch: refetchConversations
+    error: conversationsError
   } = useQuery({
     queryKey: ['conversations', currentUserId],
     queryFn: async () => {
       const response = await fetch('/api/messages/conversations');
-      if (!response.ok) throw new Error('Failed to fetch conversations');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to fetch conversations');
+      }
       const data = await response.json();
       return data.conversations || [];
     },
     enabled: !!currentUserId,
     refetchOnWindowFocus: false,
-    staleTime: 2 * 60 * 1000,
+    refetchInterval: false,
+    staleTime: Infinity,
+    retry: 1,
   });
+
+
 
   // Create conversation mutation
   const createConversationMutation = useMutation({
@@ -158,13 +133,17 @@ export default function MessagesPage() {
     setSearchQuery('');
   };
 
-  const handleUserClick = (user: User) => {
+  const handleUserClick = useCallback((user: User) => {
     // Open chat immediately - instant UI update
     setSelectedUser(user);
     
-    // Check if conversation already exists
+    // Check if conversation already exists with this specific user
+    // For one-to-one conversations, we need both participants to match
     const existing = conversations.find(
-      (conv: Conversation) => conv.participants.includes(user.id)
+      (conv: Conversation) => 
+        conv.participants.includes(currentUserId) && 
+        conv.participants.includes(user.id) &&
+        conv.participants.length === 2 // Ensure it's a one-to-one conversation
     );
     
     if (existing) {
@@ -173,18 +152,87 @@ export default function MessagesPage() {
       // Create new conversation
       createConversationMutation.mutate(user.id);
     }
-  };
+  }, [conversations, createConversationMutation, currentUserId]);
 
-  const handleConversationClick = (conversation: Conversation) => {
-    const otherUserId = conversation.participants.find(id => id !== currentUserId);
-    const otherUser = users.find((u: User) => u.id === otherUserId);
+  useEffect(() => {
+    if (
+      !requestedUserId ||
+      !currentUserId ||
+      usersLoading ||
+      conversationsLoading ||
+      openedRequestedUserRef.current === `${currentUserId}:${requestedUserId}`
+    ) return;
+
+    const requestedUser = users.find(
+      (user: User) => user.id === requestedUserId
+    );
+
+    if (requestedUser) {
+      openedRequestedUserRef.current = `${currentUserId}:${requestedUserId}`;
+      void Promise.resolve().then(() => handleUserClick(requestedUser));
+    }
+  }, [
+    requestedUserId,
+    currentUserId,
+    users,
+    usersLoading,
+    conversationsLoading,
+    handleUserClick,
+  ]);
+
+  const prefetchConversationMessages = useCallback((conversationId: string) => {
+    queryClient.prefetchQuery({
+      queryKey: ['messages', conversationId],
+      queryFn: async () => {
+        const response = await fetch(`/api/messages/${conversationId}`);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to fetch messages');
+        }
+        const data = await response.json();
+        return data.messages || [];
+      },
+      staleTime: Infinity,
+    });
+  }, [queryClient]);
+
+  const handleConversationClick = useCallback((conversation: Conversation) => {
+    // Use the otherUser data from the conversation directly
+    // The API already populates this with the correct user info
+    const otherUser = conversation.otherUser;
     
     if (otherUser) {
       // Open chat immediately - instant UI update
       setSelectedUser(otherUser);
       setSelectedConversation(conversation);
+    } else {
+      // Fallback: try to find in users array if otherUser is not available
+      const otherUserId = conversation.participants.find(id => id !== currentUserId);
+      const fallbackUser = users.find((u: User) => u.id === otherUserId);
+      
+      if (fallbackUser) {
+        setSelectedUser(fallbackUser);
+        setSelectedConversation(conversation);
+      }
     }
-  };
+  }, [users, currentUserId]);
+
+  // Prefetch messages for conversations with unread messages or recent activity
+  useEffect(() => {
+    if (conversations.length > 0 && currentUserId) {
+      // Only prefetch conversations that have unread messages or recent activity
+      const conversationsToPrefetch = conversations.filter((conv: Conversation) => {
+        const hasUnread = (conv.unreadCount ?? 0) > 0;
+        const hasRecentActivity = conv.lastMessage ? 
+          new Date(conv.lastMessage.createdAt).getTime() > Date.now() - 24 * 60 * 60 * 1000 : false; // Last 24 hours
+        return hasUnread || hasRecentActivity;
+      });
+
+      conversationsToPrefetch.forEach((conversation: Conversation) => {
+        prefetchConversationMessages(conversation.id);
+      });
+    }
+  }, [conversations, currentUserId, prefetchConversationMessages]);
 
   const handleBackToList = () => {
     setSelectedUser(null);
@@ -199,24 +247,11 @@ export default function MessagesPage() {
   // Get conversation for selected user
   const getConversationForUser = (userId: string) => {
     return conversations.find(
-      (conv: Conversation) => conv.participants.includes(userId)
+      (conv: Conversation) => 
+        conv.participants.includes(currentUserId) && 
+        conv.participants.includes(userId) &&
+        conv.participants.length === 2 // Ensure it's a one-to-one conversation
     );
-  };
-
-  // Format time for last message
-  const formatTime = (date: string) => {
-    const msgDate = new Date(date);
-    const now = new Date();
-    const diff = now.getTime() - msgDate.getTime();
-    const hours = diff / (1000 * 60 * 60);
-    
-    if (hours < 24) {
-      return msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } else if (hours < 48) {
-      return 'Yesterday';
-    } else {
-      return msgDate.toLocaleDateString();
-    }
   };
 
   if (!currentUserId) {
@@ -230,8 +265,32 @@ export default function MessagesPage() {
     );
   }
 
+  if (usersError || conversationsError) {
+    const errorMessage = usersError instanceof Error ? usersError.message : 
+                        conversationsError instanceof Error ? conversationsError.message : 
+                        'Failed to load data';
+    return (
+      <div className="min-h-screen bg-[#F7F9FC] flex items-center justify-center px-4">
+        <div className="text-center">
+          <AlertCircle className="mx-auto w-8 h-8 text-[#E53E3E]" />
+          <p className="mt-2 text-[13px] text-[#4A5568]">{errorMessage}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-3 px-4 py-2 bg-[#1A365D] text-white text-sm rounded-lg hover:bg-[#153475] transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Show Chat component when a user is selected
   if (selectedUser && selectedConversation) {
+    const selectedUserIsOnline = onlineUsers.some(
+      (onlineUser) => onlineUser.userId === selectedUser.id
+    );
+
     return (
       <div className="h-screen bg-[#F7F9FC] overflow-hidden">
         <div className="max-w-4xl mx-auto bg-white h-screen flex flex-col">
@@ -245,9 +304,12 @@ export default function MessagesPage() {
                 <ArrowLeft className="w-5 h-5" />
               </button>
               {selectedUser.image ? (
-                <img
+                <Image
                   src={selectedUser.image}
                   alt={`${selectedUser.firstName} ${selectedUser.lastName}`}
+                  width={40}
+                  height={40}
+                  unoptimized
                   className="w-10 h-10 rounded-full object-cover"
                 />
               ) : null}
@@ -255,9 +317,14 @@ export default function MessagesPage() {
                 <h2 className="text-white font-semibold">
                   {selectedUser.firstName} {selectedUser.lastName}
                 </h2>
-                <p className="text-white/70 text-xs">
-                  {selectedUser.techCenter?.name || 'No location'}
-                </p>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className={selectedUserIsOnline ? 'text-[#9AE6B4]' : 'text-white/60'}>
+                    {selectedUserIsOnline ? 'Online' : 'Offline'}
+                  </span>
+                  <span className="text-white/70">
+                    {selectedUser.techCenter?.name || 'No location'}
+                  </span>
+                </div>
               </div>
             </div>
             <Link
@@ -273,7 +340,6 @@ export default function MessagesPage() {
             <Chat 
               conversationId={selectedConversation.id}
               currentUserId={currentUserId}
-              otherUserId={selectedUser.id}
             />
           </div>
         </div>
@@ -370,195 +436,24 @@ export default function MessagesPage() {
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
           {activeTab === 'chats' ? (
-          // Chats Tab
-          <>
-            {conversationsLoading ? (
-              <div className="divide-y divide-[#F7F9FC]">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="flex items-center gap-3 px-4 py-3 animate-pulse">
-                    <div className="w-12 h-12 rounded-full bg-[#F7F9FC]" />
-                    <div className="flex-1">
-                      <div className="h-4 w-32 bg-[#F7F9FC] rounded" />
-                      <div className="h-3 w-48 bg-[#F7F9FC] rounded mt-1" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : filteredConversations.length === 0 ? (
-              <div className="py-16 text-center">
-                <MessageSquare className="mx-auto w-12 h-12 text-[#A0AEC0]" strokeWidth={1.5} />
-                <p className="mt-3 text-sm text-[#4A5568]">No conversations yet</p>
-                <p className="text-xs text-[#718096] mt-1">Start a new chat to connect with someone</p>
-                <button
-                  onClick={handleStartNewChat}
-                  className="mt-4 px-4 py-2 bg-[#1A365D] text-white text-sm rounded-lg hover:bg-[#153475] transition-colors flex items-center gap-2 mx-auto"
-                >
-                  <Plus className="w-4 h-4" />
-                  Start New Chat
-                </button>
-              </div>
-            ) : (
-              <div className="divide-y divide-[#F7F9FC]">
-                {filteredConversations.map((conversation: Conversation) => {
-                  const otherUser = conversation.otherUser;
-                  const fullName = otherUser?.fullName || 'Unknown User';
-                  const initials = otherUser 
-                    ? `${otherUser.firstName.charAt(0)}${otherUser.lastName.charAt(0)}`.toUpperCase()
-                    : '??';
-                  const lastMessage = conversation.lastMessage;
-                  const isUnread = lastMessage && lastMessage.senderId !== currentUserId;
-
-                  return (
-                    <div
-                      key={conversation.id}
-                      onClick={() => handleConversationClick(conversation)}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-[#F7FAFC] cursor-pointer transition-colors group"
-                    >
-                      {/* Avatar */}
-                      {otherUser?.image ? (
-                        <img
-                          src={otherUser.image}
-                          alt={fullName}
-                          className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 flex items-center justify-center bg-[#1A365D] rounded-full flex-shrink-0">
-                          <span className="text-white text-sm font-medium">
-                            {initials}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Chat Info */}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between">
-                          <h3 className={`text-sm font-medium truncate ${isUnread ? 'text-[#1A365D] font-semibold' : 'text-[#1A365D]'}`}>
-                            {fullName}
-                          </h3>
-                          {lastMessage && (
-                            <span className="text-xs text-[#718096] flex-shrink-0">
-                              {formatTime(lastMessage.createdAt)}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-[#4A5568]">
-                          <MapPin className="w-3 h-3 text-[#3182CE]" strokeWidth={2} />
-                          <span className="truncate">
-                            {otherUser?.techCenter?.name || 'No location'}
-                          </span>
-                        </div>
-                        {lastMessage && (
-                          <p className={`text-xs truncate mt-0.5 ${isUnread ? 'text-[#1A365D] font-medium' : 'text-[#718096]'}`}>
-                            {lastMessage.senderId === currentUserId ? 'You: ' : ''}
-                            {lastMessage.content}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Unread count badge */}
-                      {conversation.unreadCount && conversation.unreadCount > 0 ? (
-                        <div className="min-w-[20px] h-5 px-1.5 bg-[#3182CE] rounded-full flex items-center justify-center flex-shrink-0 pointer-events-none">
-                          <span className="text-white text-[10px] font-semibold">
-                            {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
-                          </span>
-                        </div>
-                      ) : isUnread && (
-                        <div className="w-2.5 h-2.5 bg-[#3182CE] rounded-full flex-shrink-0 pointer-events-none" />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </>
-        ) : (
-          // All Users Tab
-          <>
-            {usersLoading ? (
-              <div className="divide-y divide-[#F7F9FC]">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="flex items-center gap-3 px-4 py-3 animate-pulse">
-                    <div className="w-12 h-12 rounded-full bg-[#F7F9FC]" />
-                    <div className="flex-1">
-                      <div className="h-4 w-32 bg-[#F7F9FC] rounded" />
-                      <div className="h-3 w-24 bg-[#F7F9FC] rounded mt-1" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : filteredUsers.length === 0 ? (
-              <div className="py-16 text-center">
-                <Users className="mx-auto w-12 h-12 text-[#A0AEC0]" strokeWidth={1.5} />
-                <p className="mt-3 text-sm text-[#4A5568]">No users found</p>
-                {searchQuery && (
-                  <p className="text-xs text-[#718096] mt-1">Try a different search term</p>
-                )}
-              </div>
-            ) : (
-              <div className="divide-y divide-[#F7F9FC]">
-                {filteredUsers.map((user: User) => {
-                  const fullName = `${user.firstName} ${user.lastName}`;
-                  const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
-                  const hasConversation = getConversationForUser(user.id);
-
-                  return (
-                    <div
-                      key={user.id}
-                      onClick={() => handleUserClick(user)}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-[#F7FAFC] cursor-pointer transition-colors group"
-                    >
-                      {/* Avatar */}
-                      {user?.image ? (
-                        <img
-                          src={user.image}
-                          alt={fullName}
-                          className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 flex items-center justify-center bg-[#1A365D] rounded-full flex-shrink-0">
-                          <span className="text-white text-sm font-medium">
-                            {initials}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* User Info */}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-sm font-medium text-[#1A365D] truncate">
-                            {fullName}
-                          </h3>
-                          {hasConversation && (
-                            <span className="text-xs text-[#2C5282] bg-[#EBF8FF] px-2 py-0.5 rounded-full">
-                              Chat
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-[#4A5568]">
-                          <MapPin className="w-3 h-3 text-[#3182CE]" strokeWidth={2} />
-                          <span className="truncate">
-                            {user.techCenter?.name || 'No location'}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Message button */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleUserClick(user);
-                        }}
-                        className="p-2 bg-[#1A365D] text-white rounded-full hover:bg-[#153475] transition-colors opacity-0 group-hover:opacity-100"
-                      >
-                        <MessageSquare className="w-4 h-4" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </>
-        )}
+            <ChatsList
+              conversations={filteredConversations}
+              isLoading={conversationsLoading}
+              currentUserId={currentUserId}
+              onlineUserIds={new Set(onlineUsers.map((onlineUser) => onlineUser.userId))}
+              onConversationClick={handleConversationClick}
+              onStartNewChat={handleStartNewChat}
+            />
+          ) : (
+            <AllUsersList
+              users={filteredUsers}
+              isLoading={usersLoading}
+              onlineUserIds={new Set(onlineUsers.map((onlineUser) => onlineUser.userId))}
+              getConversationForUser={getConversationForUser}
+              onUserClick={handleUserClick}
+              searchQuery={searchQuery}
+            />
+          )}
         </div>
 
         {/* Footer */}

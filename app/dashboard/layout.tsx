@@ -43,7 +43,6 @@ import {
   UserCog,
   School,
   Briefcase,
-  ClipboardList,
   Clock,
   Award,
   Trophy,
@@ -59,11 +58,11 @@ import {
   GraduationCap,
   ArrowUpRight,
   CircleDot,
-  MessageCircle,
   Radio,
   BookMarked,
   Code,
   MessageSquare,
+  Images,
 } from 'lucide-react';
 
 import {
@@ -71,43 +70,24 @@ import {
   useAnnouncementCount,
 } from '@/hooks/useNotifications';
 import { useUnreadMessageCount } from '@/hooks/useMessages';
-
-// ============================================================
-// DESIGN TOKENS
-// ============================================================
-
-const COLORS = {
-  page: '#F1F1EC',
-  surface: '#FFFFFF',
-  surfaceSoft: '#F7F6F2',
-  surfaceWarm: '#F7F1E4',
-  border: '#DADCD3',
-  borderSoft: '#E8E9E3',
-
-  ink: '#12203B',
-  body: '#4B564C',
-  muted: '#6B7268',
-  subtle: '#8A9088',
-  faint: '#B9BEB2',
-
-  brass: '#B98A3E',
-  brassDark: '#936B2B',
-
-  moss: '#55705B',
-  rust: '#A4462F',
-  slate: '#3E5C76',
-};
+import { OnlineUsers } from '@/components/OnlineUsers';
+import { useOnlineUsers } from '@/lib/hooks/useOnlineUsers';
 
 // ============================================================
 // TYPES
 // ============================================================
 
 interface UserInfo {
+  id?: string;
   profileImageUrl?: string | null;
   firstName?: string | null;
   lastName?: string | null;
   email?: string | null;
   role?: string | null;
+  techCenter?: {
+    id: string;
+    name: string;
+  } | null;
 }
 
 interface TopBarProps {
@@ -138,6 +118,14 @@ const NON_SUPER_ADMIN_ROLES = ['student', 'teacher', 'admin', 'dev'];
 
 const iconClass = 'w-[18px] h-[18px] flex-shrink-0';
 
+const DASHBOARD_FOOTER_LINKS = [
+  { label: 'Dashboard', href: '/dashboard' },
+  { label: 'Messages', href: '/dashboard/messages' },
+  { label: 'Announcements', href: '/dashboard/announcements' },
+  { label: 'Cleaning Rota', href: '/dashboard/cleaning' },
+  { label: 'English Hub', href: '/dashboard/english-hub' },
+];
+
 // ============================================================
 // SHARED NAVIGATION
 // ============================================================
@@ -166,6 +154,13 @@ const sharedNavigation: NavSection[] = [
         label: 'Atbriz AI',
         path: '/dashboard/ai',
         icon: <Sparkles className={iconClass} />,
+        roles: ALL_ROLES,
+      },
+      {
+        id: 'english-hub',
+        label: 'English Hub',
+        path: '/dashboard/english-hub',
+        icon: <BookOpen className={iconClass} />,
         roles: ALL_ROLES,
       },
     ],
@@ -228,6 +223,13 @@ const sharedNavigation: NavSection[] = [
         icon: <Radio className={iconClass} />,
         roles: ALL_ROLES,
       },
+      {
+        id: 'gallery',
+        label: 'Selfless CE Gallery',
+        path: '/dashboard/gallery',
+        icon: <Images className={iconClass} />,
+        roles: ALL_ROLES,
+      },
     ],
   },
 
@@ -265,7 +267,7 @@ const sharedNavigation: NavSection[] = [
     items: [
       {
         id: 'cleaning',
-        label: 'Cleaning',
+        label: 'Cleaning Rota',
         path: '/dashboard/cleaning',
         icon: <Calendar className={iconClass} />,
         roles: NON_SUPER_ADMIN_ROLES,
@@ -290,6 +292,20 @@ const sharedNavigation: NavSection[] = [
         path: '/dashboard/notifications',
         icon: <Bell className={iconClass} />,
         roles: NON_SUPER_ADMIN_ROLES,
+      },
+    ],
+  },
+
+  {
+    id: 'information',
+    label: 'Information',
+    items: [
+      {
+        id: 'policy-book',
+        label: 'Policy Book',
+        path: '/dashboard/policies',
+        icon: <BookMarked className={iconClass} />,
+        roles: ALL_ROLES,
       },
     ],
   },
@@ -340,7 +356,7 @@ const adminNavigation: NavSection = {
     },
     {
       id: 'manage-tech-centers',
-      label: 'Tech Centers',
+      label: 'Tech Center',
       path: '/dashboard/admin/tech-centers',
       icon: <School className={iconClass} />,
       roles: ['admin'],
@@ -502,13 +518,6 @@ const accountNavigation: NavSection = {
       icon: <User className={iconClass} />,
       roles: ALL_ROLES,
     },
-    {
-      id: 'settings',
-      label: 'Settings',
-      path: '/dashboard/settings',
-      icon: <Settings className={iconClass} />,
-      roles: ALL_ROLES,
-    },
   ],
 };
 
@@ -625,6 +634,11 @@ function getPageInfo(pathname: string) {
       section: 'Workspace',
     },
 
+    '/dashboard/english-hub': {
+      title: 'English Hub',
+      section: 'Workspace',
+    },
+
     '/dashboard/courses': {
       title: 'Courses',
       section: 'Academics',
@@ -666,7 +680,7 @@ function getPageInfo(pathname: string) {
     },
 
     '/dashboard/cleaning': {
-      title: 'Cleaning',
+      title: 'Cleaning Rota',
       section: 'Campus',
     },
 
@@ -720,9 +734,9 @@ function getPageInfo(pathname: string) {
       section: 'Account',
     },
 
-    '/dashboard/settings': {
-      title: 'Settings',
-      section: 'Account',
+    '/dashboard/gallery': {
+      title: 'Gallery',
+      section: 'Media',
     },
 
     '/dashboard/super-admin': {
@@ -836,6 +850,8 @@ function TopBar({
   const { data: unreadMessageCount } =
     useUnreadMessageCount();
 
+  const onlineUsers = useOnlineUsers(user);
+
   const pathname = usePathname();
   const pageInfo = getPageInfo(pathname);
 
@@ -876,9 +892,9 @@ function TopBar({
           'shadow-[0_4px_24px_rgba(18,32,59,0.08)]'
       )}
     >
-      <div className="h-full flex items-center justify-between px-4 sm:px-6 lg:px-7">
+      <div className="h-full flex items-center justify-between gap-1 px-2 sm:gap-2 sm:px-6 lg:px-7">
         {/* LEFT */}
-        <div className="flex items-center min-w-0">
+        <div className="flex min-w-0 flex-1 items-center overflow-hidden">
           <motion.button
             type="button"
             whileTap={{ scale: 0.92 }}
@@ -893,7 +909,7 @@ function TopBar({
             }
             className={cn(
               'flex items-center justify-center',
-              'w-9 h-9 rounded-lg',
+              'w-9 h-9 shrink-0 rounded-lg',
               'text-[#6B7268]',
               'hover:text-[#12203B]',
               'hover:bg-[#F5F4EE]',
@@ -915,7 +931,8 @@ function TopBar({
             )}
           </motion.button>
 
-          <div className="ml-3 pl-3 border-l border-[#DADCD3] min-w-0">
+          {/* Breadcrumb - Hidden on smaller screens to save space */}
+          <div className="hidden md:block ml-3 pl-3 border-l border-[#DADCD3] min-w-0">
             <div className="flex items-center gap-2 font-mono text-[11px] text-[#8A9088]">
               {pageInfo.section && (
                 <>
@@ -946,10 +963,18 @@ function TopBar({
               </motion.span>
             </div>
           </div>
+
+          {/* ONLINE USERS - Placed here, flex-1 allows it to take available space */}
+          <div className="ml-auto mr-2 min-w-0 sm:mr-4">
+            <OnlineUsers 
+              onlineUsers={onlineUsers} 
+              currentUserId={user?.id} 
+            />
+          </div>
         </div>
 
         {/* RIGHT */}
-        <div className="flex items-center gap-1 sm:gap-2 ml-3">
+        <div className="ml-1 flex shrink-0 items-center gap-0.5 sm:ml-3 sm:gap-2">
           {/* ANNOUNCEMENTS */}
           <motion.div
             whileHover={{ scale: 1.05 }}
@@ -1509,14 +1534,6 @@ function Sidebar({
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    setExpandedSections(
-      navigation.map(
-        (section) => section.id
-      )
-    );
-  }, [navigation]);
-
   const toggleSection = (
     sectionId: string
   ) => {
@@ -1796,62 +1813,6 @@ function Sidebar({
           )}
           aria-label="Dashboard navigation"
         >
-          {/* BACK HOME */}
-          <motion.div
-            initial={{
-              opacity: 0,
-            }}
-            animate={{
-              opacity: 1,
-            }}
-            className="mb-3"
-          >
-            <Link
-              href="/"
-              className={cn(
-                'relative group flex items-center gap-3',
-                'h-10 px-3 rounded-lg',
-                'text-[13px]',
-                'text-[#6B7268]',
-                'font-medium',
-                'hover:text-[#12203B]',
-                'hover:bg-[#F5F4EE]',
-                'transition-all duration-200',
-                !sidebarOpen &&
-                  'justify-center px-0'
-              )}
-            >
-              <Home className="w-[18px] h-[18px] flex-shrink-0" />
-
-              {sidebarOpen && (
-                <span>Back to Home</span>
-              )}
-
-              {!sidebarOpen && (
-                <span
-                  className={cn(
-                    'absolute left-full ml-3',
-                    'top-1/2 -translate-y-1/2',
-                    'whitespace-nowrap',
-                    'bg-[#12203B] text-white',
-                    'text-xs font-medium',
-                    'px-3 py-2 rounded-lg',
-                    'shadow-xl',
-                    'opacity-0 invisible',
-                    'group-hover:opacity-100',
-                    'group-hover:visible',
-                    'transition-all duration-200',
-                    'pointer-events-none z-[300]'
-                  )}
-                >
-                  Back to Home
-                </span>
-              )}
-            </Link>
-          </motion.div>
-
-          <div className="h-px bg-[#DADCD3] mb-3" />
-
           {/* COLLAPSED */}
           {!sidebarOpen && (
             <div className="space-y-1">
@@ -2090,6 +2051,35 @@ function Sidebar({
           )}
 
           {/* ================================================== */}
+          {/* BACK TO HOME */}
+          {/* ================================================== */}
+
+          <div className="mt-4 pt-3 border-t border-[#DADCD3]">
+            <Link
+              href="/"
+              aria-label="Back to Home"
+              className={cn(
+                'relative group w-full flex items-center gap-3',
+                'h-10 px-3 rounded-lg',
+                'text-[13px] text-[#6B7268] font-medium',
+                'hover:text-[#12203B] hover:bg-[#F5F4EE]',
+                'transition-all duration-200',
+                !sidebarOpen && 'justify-center px-0'
+              )}
+            >
+              <Home className="w-[18px] h-[18px] flex-shrink-0" />
+
+              {sidebarOpen && <span>Back to Home</span>}
+
+              {!sidebarOpen && (
+                <span className="absolute left-full ml-3 top-1/2 -translate-y-1/2 whitespace-nowrap bg-[#12203B] text-white text-xs font-medium px-3 py-2 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-[300]">
+                  Back to Home
+                </span>
+              )}
+            </Link>
+          </div>
+
+          {/* ================================================== */}
           {/* LOGOUT */}
           {/* ================================================== */}
 
@@ -2288,7 +2278,11 @@ export default function DashboardLayout({
   // ----------------------------------------------------------
 
   useEffect(() => {
-    setMobileMenuOpen(false);
+    const frame = window.requestAnimationFrame(() => {
+      setMobileMenuOpen(false);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, [pathname]);
 
   // ----------------------------------------------------------
@@ -2482,6 +2476,7 @@ export default function DashboardLayout({
 
         <div className="hidden lg:flex fixed inset-y-0 left-0 z-[100]">
           <Sidebar
+            key={userRole}
             sidebarOpen={sidebarOpen}
             pathname={pathname}
             user={user}
@@ -2587,28 +2582,19 @@ export default function DashboardLayout({
               <div className="max-w-[1440px] mx-auto px-7 xl:px-8 py-5">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-3">
                   <p className="font-mono text-xs text-[#8A9088]">
-                    © 2026 Selfless CE
-                    Organization
+                    Selfless CE Portal - Learn, connect, grow.
                   </p>
 
                   <div className="flex items-center gap-5 text-xs text-[#8A9088]">
-                    {[
-                      'About',
-                      'FAQ',
-                      'Contact',
-                      'Privacy',
-                      'Terms',
-                    ].map(
-                      (label) => (
-                        <button
-                          key={label}
-                          type="button"
-                          className="hover:text-[#12203B] transition-colors duration-200"
-                        >
-                          {label}
-                        </button>
-                      )
-                    )}
+                    {DASHBOARD_FOOTER_LINKS.map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className="hover:text-[#12203B] transition-colors duration-200"
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -2701,29 +2687,18 @@ export default function DashboardLayout({
             <footer className="border-t border-[#DADCD3] bg-white">
               <div className="px-4 py-4">
                 <div className="flex flex-col items-center gap-3 font-mono text-[10px] text-[#8A9088]">
-                  <p>
-                    © 2026 Selfless CE
-                    Organization
-                  </p>
+                  <p>Selfless CE Portal - Learn, connect, grow.</p>
 
                   <div className="flex flex-wrap justify-center gap-4">
-                    {[
-                      'About',
-                      'FAQ',
-                      'Contact',
-                      'Privacy',
-                      'Terms',
-                    ].map(
-                      (label) => (
-                        <button
-                          key={label}
-                          type="button"
-                          className="hover:text-[#12203B] transition-colors duration-200"
-                        >
-                          {label}
-                        </button>
-                      )
-                    )}
+                    {DASHBOARD_FOOTER_LINKS.map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className="hover:text-[#12203B] transition-colors duration-200"
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -2772,6 +2747,7 @@ export default function DashboardLayout({
                 className="fixed inset-y-0 left-0 w-[88%] max-w-[330px] z-[9999] lg:hidden shadow-[12px_0_40px_rgba(18,32,59,0.18)]"
               >
                 <Sidebar
+                  key={userRole}
                   sidebarOpen
                   pathname={pathname}
                   user={user}

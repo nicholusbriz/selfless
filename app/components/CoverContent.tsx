@@ -712,7 +712,7 @@ export default function CoverContent() {
 
       ctx.revert();
     };
-  }, []);
+  }, );
 
   return (
     <div

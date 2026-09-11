@@ -5,25 +5,49 @@ import { usePathname } from 'next/navigation';
 import { Download, X, Apple } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
 export default function PWAInstall() {
   const pathname = usePathname();
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
   const [showInstall, setShowInstall] = useState(false);
   const [showIOSGuide, setShowIOSGuide] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
   const lastShownRef = useRef<number>(0);
 
   const isHomePage = pathname === '/';
 
   useEffect(() => {
     const isInstalled = window.matchMedia('(display-mode: standalone)').matches ||
-                        (window.navigator as any).standalone === true;
+              (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+    if (isInstalled) return;
+
+    let removeControllerListener = () => {};
 
     // Register service worker for PWA
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
+      const hadController = Boolean(navigator.serviceWorker.controller);
+
+      const handleControllerChange = () => {
+        if (hadController) {
+          window.location.reload();
+        }
+      };
+
+      navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+      removeControllerListener = () => {
+        navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+      };
+
+      navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
         .then((registration) => {
           console.log('[SW] Service Worker registered:', registration);
-          // Force update the service worker
+          // Check the deployment version immediately instead of waiting for the browser interval.
           registration.update();
         })
         .catch((error) => {
@@ -33,13 +57,17 @@ export default function PWAInstall() {
 
     // Check if we showed it in last 2 minutes
     const now = Date.now();
-    if (lastShownRef.current && (now - lastShownRef.current) < 2 * 60 * 1000) return;
+    if (lastShownRef.current && (now - lastShownRef.current) < 2 * 60 * 1000) {
+      return removeControllerListener;
+    }
 
     const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    setIsIOS(iOS);
 
-    const handler = (e: any) => {
+    const handler = (e: Event) => {
+      const installEvent = e as BeforeInstallPromptEvent;
       e.preventDefault();
-      setDeferredPrompt(e);
+      setDeferredPrompt(installEvent);
       if (isHomePage) {
         setShowInstall(true);
         lastShownRef.current = Date.now();
@@ -53,16 +81,17 @@ export default function PWAInstall() {
         setShowIOSGuide(true);
         lastShownRef.current = Date.now();
       }, 2000);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        removeControllerListener();
+      };
     }
 
-    if (!iOS && isHomePage && deferredPrompt) {
-      setShowInstall(true);
-      lastShownRef.current = Date.now();
-    }
-
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, [isHomePage, deferredPrompt]);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      removeControllerListener();
+    };
+  }, [isHomePage]);
 
   const handleInstall = async () => {
     if (deferredPrompt) {
@@ -86,37 +115,59 @@ export default function PWAInstall() {
     <AnimatePresence>
       {(showInstall || showIOSGuide) && (
         <motion.div
-          initial={{ x: -100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: -100, opacity: 0 }}
-          transition={{ duration: 0.3 }}
-          className="fixed top-16 left-2 sm:top-20 sm:left-4 z-50"
+          initial={{ y: 24, opacity: 0, scale: 0.96 }}
+          animate={{ y: 0, opacity: 1, scale: 1 }}
+          exit={{ y: 24, opacity: 0, scale: 0.96 }}
+          transition={{ duration: 0.24, ease: 'easeOut' }}
+          role="dialog"
+          aria-label="Install Selfless"
+          className="fixed inset-x-4 bottom-4 z-50 sm:left-auto sm:right-5 sm:w-[min(22rem,calc(100vw-2.5rem))]"
         >
-          <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl shadow-2xl px-3 py-2 sm:px-4 sm:py-3 flex items-center gap-2 sm:gap-4 border border-white/20">
-            {!/iPad|iPhone|iPod/.test(navigator.userAgent) ? (
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_18px_50px_-18px_rgba(15,23,42,0.45)]">
+            <div className="flex items-start gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3.5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#1A365D] text-white shadow-sm">
+                {isIOS ? <Apple className="h-5 w-5" /> : <Download className="h-5 w-5" />}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-slate-900">Install Selfless</p>
+                <p className="mt-0.5 text-xs leading-5 text-slate-500">
+                  Keep your learning portal one tap away.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleDismiss}
+                aria-label="Dismiss install prompt"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white hover:text-slate-700"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="px-4 py-3.5">
+            {!isIOS ? (
               <>
                 <button
+                  type="button"
                   onClick={handleInstall}
-                  className="flex items-center gap-2 text-white text-sm font-medium hover:opacity-90"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1A365D] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#153475] focus:outline-none focus:ring-2 focus:ring-[#3182CE]/40 focus:ring-offset-2"
                 >
-                  <Download className="w-4 h-4" />
+                  <Download className="h-4 w-4" />
                   Install App
-                </button>
-                <button onClick={handleDismiss} className="text-white/60 hover:text-white">
-                  <X className="w-3.5 h-3.5" />
                 </button>
               </>
             ) : (
               <>
-                <div className="flex items-center gap-2 text-white text-xs">
-                  <Apple className="w-4 h-4" />
-                  <span>Share → Add to Home Screen</span>
+                <p className="text-xs leading-5 text-slate-600">
+                  Tap <span className="font-semibold text-slate-900">Share</span>, then choose <span className="font-semibold text-slate-900">Add to Home Screen</span>.
+                </p>
+                <div className="mt-3 flex items-center gap-2 text-[11px] font-medium text-slate-400">
+                  <Apple className="h-3.5 w-3.5" />
+                  <span>Available in Safari on iPhone and iPad</span>
                 </div>
-                <button onClick={handleDismiss} className="text-white/60 hover:text-white">
-                  <X className="w-3.5 h-3.5" />
-                </button>
               </>
             )}
+            </div>
           </div>
         </motion.div>
       )}

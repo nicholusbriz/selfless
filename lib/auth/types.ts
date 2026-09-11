@@ -14,6 +14,7 @@ export type AuthUser = {
   lastName: string;
   role: string;
   techCenterId: string | null;
+  techCenter?: { id: string; name: string } | null;
   profileImageUrl: string | null;
   status: string;
   isActive: boolean;
@@ -29,6 +30,7 @@ export type AuthUser = {
   gender?: string | null;
   preferredTeamType?: string | null;
   preferredTeamRole?: string | null;
+  teacherId?: string | null;
 };
 
 declare module 'next-auth' {
@@ -39,6 +41,7 @@ declare module 'next-auth' {
       lastName: string;
       role: string;
       techCenterId: string | null;
+      techCenter?: { id: string; name: string } | null;
       profileImageUrl: string | null;
       status: string;
       isActive: boolean;
@@ -54,6 +57,7 @@ declare module 'next-auth' {
       gender?: string | null;
       preferredTeamType?: string | null;
       preferredTeamRole?: string | null;
+      teacherId?: string | null;
     } & DefaultSession['user'];
   }
 
@@ -63,6 +67,7 @@ declare module 'next-auth' {
     lastName: string;
     role: string;
     techCenterId: string | null;
+    techCenter?: { id: string; name: string } | null;
     profileImageUrl: string | null;
     status: string;
     isActive: boolean;
@@ -78,6 +83,7 @@ declare module 'next-auth' {
     gender?: string | null;
     preferredTeamType?: string | null;
     preferredTeamRole?: string | null;
+    teacherId?: string | null;
   }
 }
 
@@ -88,6 +94,7 @@ declare module 'next-auth/jwt' {
     lastName: string;
     role: string;
     techCenterId: string | null;
+    techCenter?: { id: string; name: string } | null;
     profileImageUrl: string | null;
     status: string;
     isActive: boolean;
@@ -103,6 +110,7 @@ declare module 'next-auth/jwt' {
     gender?: string | null;
     preferredTeamType?: string | null;
     preferredTeamRole?: string | null;
+    teacherId?: string | null;
     roleUpdatedAt?: string;
   }
 }

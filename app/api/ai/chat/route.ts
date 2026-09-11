@@ -226,6 +226,7 @@ USER CONTEXT:
     let response: string = '';
     let ragData: RAGResponse | null = null;
     let ragEnabled = false;
+    let aiQuotaExceeded = false;
 
     // Use RAG if enabled and available
     if (useRAG) {
@@ -248,13 +249,13 @@ USER CONTEXT:
         console.log('[ChatRoute] RAG generation successful');
       } catch (ragError) {
         console.error('[ChatRoute] RAG generation failed, falling back to traditional chat:', ragError);
-        // Fall back to traditional chat if RAG fails
+        aiQuotaExceeded = isOpenAIQuotaError(ragError);
         ragEnabled = false;
       }
     }
 
     // Fallback to traditional chat if RAG is disabled or failed
-    if (!ragEnabled) {
+    if (!ragEnabled && !aiQuotaExceeded) {
       // Get relevant knowledge base content (keyword-based fallback)
       let knowledgeBaseContext = '';
       try {
@@ -277,68 +278,17 @@ ${k.tags.length > 0 ? `**Tags:** ${k.tags.join(', ')}` : ''}
         // Continue without knowledge base if it fails
       }
 
-      // Check which AI service to use. Default to Groq only.
-      const aiService = (process.env.AI_SERVICE || 'groq').toLowerCase();
-
       try {
-        const providerOrder =
-          aiService === 'groq'
-            ? ['groq']
-            : aiService === 'openai'
-              ? ['openai']
-              : aiService === 'gemini'
-                ? ['gemini']
-                : ['groq'];
-
-        const providerMap = {
-          gemini: {
-            configured: () => Boolean(process.env.GEMINI_API_KEY?.trim()),
-            call: callGeminiAPI,
-          },
-          openai: {
-            configured: () => Boolean(process.env.OPENAI_API_KEY?.trim()),
-            call: callOpenAIAPI,
-          },
-          groq: {
-            configured: () => Boolean(process.env.GROQ_API_KEY?.trim()),
-            call: callGroqAPI,
-          },
-        } as const;
-
-        for (const providerName of providerOrder) {
-          const provider = providerMap[providerName as keyof typeof providerMap];
-
-          if (!provider?.configured()) {
-            continue;
-          }
-
-          try {
-            response = await provider.call(message, relevantHistory, userContext, knowledgeBaseContext);
-            console.log(`[ChatRoute] Using ${providerName} provider (traditional mode)`);
-            break;
-          } catch (providerError) {
-            // Distinguish between quota errors (try next provider) and network errors (skip to fallback)
-            if (providerError instanceof QuotaExceededError) {
-              console.warn(`AI provider ${providerName} quota exceeded, trying next provider`);
-              continue; // Try next provider
-            } else if (providerError instanceof NetworkError) {
-              console.warn(`AI provider ${providerName} network error, trying next provider`);
-              continue; // Try next provider
-            } else {
-              const errorMessage = providerError instanceof Error ? providerError.message : 'Unknown error';
-              console.warn(`AI provider ${providerName} error: ${errorMessage}`);
-              continue; // Try next provider for any other error
-            }
-          }
-        }
-
-        if (!response) {
-          response = generateFallbackResponse(message);
-        }
+        response = await callOpenAIAPI(message, relevantHistory, userContext, knowledgeBaseContext);
+        console.log('[ChatRoute] Using OpenRouter provider (traditional mode)');
       } catch (error) {
         console.error('AI request error:', error);
         response = generateFallbackResponse(message);
       }
+    }
+
+    if (aiQuotaExceeded) {
+      response = generateFallbackResponse(message);
     }
 
     // Store conversation if userId is provided
@@ -662,72 +612,14 @@ function assessDifficulty(message: string): string {
   return 'medium';
 }
 
-async function callGeminiAPI(message: string, conversationHistory: ChatHistoryMessage[] = [], userContext: string = '', knowledgeBaseContext: string = '') {
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
-
-  if (!apiKey) {
-    throw new Error('Gemini API key is not configured');
-  }
-
-  const systemContent = AI_IDENTITY + userContext + knowledgeBaseContext;
-  const historyPrompt = conversationHistory.length > 0
-    ? `\n\nConversation history:\n${conversationHistory.map((msg) => `${msg.role}: ${msg.content}`).join('\n')}`
-    : '';
-
-  const prompt = `${systemContent}${historyPrompt}\n\nUser message:\n${message}`;
-
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: prompt }],
-        },
-      ],
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 1000,
-      },
-    }),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    const errorMessage = data?.error?.message || 'Gemini API request failed';
-    
-    // Check if it's a quota/limit error
-    if (errorMessage.includes('quota') || errorMessage.includes('limit') || errorMessage.includes('exceeded')) {
-      throw new QuotaExceededError(errorMessage);
-    }
-    
-    // Check if it's a network-related error
-    if (errorMessage.includes('network') || errorMessage.includes('connection') || errorMessage.includes('timeout')) {
-      throw new NetworkError(errorMessage);
-    }
-    
-    throw new Error(errorMessage);
-  }
-
-  const content = data?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text).join('') || '';
-
-  if (!content) {
-    throw new Error('Gemini returned an empty response');
-  }
-
-  return content;
-}
-
 async function callOpenAIAPI(message: string, conversationHistory: ChatHistoryMessage[] = [], userContext: string = '', knowledgeBaseContext: string = '') {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
   
   if (!apiKey) {
-    throw new Error('OpenAI API key is not configured');
+    throw new Error('OpenRouter API key is not configured');
   }
+
+  const model = process.env.OPENROUTER_MODEL?.trim() || 'openai/gpt-4.1-mini';
 
   const systemContent = AI_IDENTITY + userContext + knowledgeBaseContext;
 
@@ -746,16 +638,18 @@ async function callOpenAIAPI(message: string, conversationHistory: ChatHistoryMe
     }
   ];
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
+      'Authorization': `Bearer ${apiKey}`,
+      'HTTP-Referer': 'http://localhost:3000',
+      'X-Title': 'Selfless CE'
     },
     body: JSON.stringify({
-      model: 'gpt-3.5-turbo',
+      model,
       messages,
-      max_tokens: 1000,
+      max_completion_tokens: 1000,
       temperature: 0.7
     })
   });
@@ -781,69 +675,6 @@ async function callOpenAIAPI(message: string, conversationHistory: ChatHistoryMe
   return data.choices[0].message.content;
 }
 
-/**
- * ✅ FIXED: Updated Groq API call with the latest supported model
- */
-async function callGroqAPI(message: string, conversationHistory: ChatHistoryMessage[] = [], userContext: string = '', knowledgeBaseContext: string = '') {
-  const apiKey = process.env.GROQ_API_KEY?.trim();
-  
-  if (!apiKey) {
-    throw new Error('Groq API key is not configured');
-  }
-
-  const systemContent = AI_IDENTITY + userContext + knowledgeBaseContext;
-
-  const messages = [
-    {
-      role: 'system',
-      content: systemContent
-    },
-    ...conversationHistory.map((msg) => ({
-      role: msg.role,
-      content: msg.content
-    })),
-    {
-      role: 'user',
-      content: message
-    }
-  ];
-
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      // ✅ FIXED: Updated to use the latest supported model
-      model: 'llama-3.1-70b-versatile', // Alternative: 'mixtral-8x7b-32768' or 'llama3-8b-8192'
-      messages,
-      max_tokens: 1000,
-      temperature: 0.7
-    })
-  });
-
-  const data = await response.json();
-
-  if (data.error) {
-    const errorMessage = data.error.message;
-    
-    // Check if it's a quota/limit error
-    if (errorMessage.includes('quota') || errorMessage.includes('limit') || errorMessage.includes('rate limit') || errorMessage.includes('exceeded')) {
-      throw new QuotaExceededError(errorMessage);
-    }
-    
-    // Check if it's a network-related error
-    if (errorMessage.includes('network') || errorMessage.includes('connection') || errorMessage.includes('timeout')) {
-      throw new NetworkError(errorMessage);
-    }
-    
-    throw new Error(errorMessage);
-  }
-
-  return data.choices[0].message.content;
-}
-
 function generateFallbackResponse(message: string): string {
   const lowerMessage = message.toLowerCase();
   
@@ -853,12 +684,17 @@ function generateFallbackResponse(message: string): string {
   }
   
   if (lowerMessage.includes('assignment') || lowerMessage.includes('homework') || lowerMessage.includes('help')) {
-    return "I'd be happy to help you with your assignments! Currently, I'm experiencing high network demand, which may affect my response capabilities.\n\nFor the best experience, please wait a moment and try again. I'll be able to provide:\n• Detailed explanations of concepts\n• Step-by-step problem solving\n• Code debugging and help\n• Research assistance\n\nIn the meantime, what specific topic or problem are you working on?";
+    return "I'd be happy to help with your assignment, but the AI service is temporarily unavailable because the OpenAI account has no remaining credits. Please add API credits and try again.\n\nI can provide:\n• Detailed explanations of concepts\n• Step-by-step problem solving\n• Code debugging and help\n• Research assistance";
   }
   
   if (lowerMessage.includes('grade') || lowerMessage.includes('gpa')) {
     return "You can view your grades and GPA by navigating to the Grades section in the dashboard (/dashboard/grades). There you'll see:\n\n• All your course grades\n• Current GPA calculation\n• Academic progress tracking\n• Grade history\n\nIf you have questions about a specific grade or need help understanding your academic standing, feel free to ask!";
   }
   
-  return "I'm your AI assistant for Selfless CE! I'm currently experiencing high network demand, but I'm still here to help you with:\n\n• Platform navigation and features\n• Assignment questions and explanations\n• Course information and requirements\n• General questions about any topic\n• Coding help and debugging\n\nPlease wait a moment and try again for full AI capabilities. What would you like to know?";
+  return "I'm your AI assistant for Selfless CE. The AI service is temporarily unavailable because the OpenAI account has no remaining credits. Please add API credits and try again.\n\nI can help with:\n• Platform navigation and features\n• Assignment questions and explanations\n• Course information and requirements\n• General questions about any topic\n• Coding help and debugging";
+}
+
+function isOpenAIQuotaError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  return message.includes('no credits') || message.includes('quota') || message.includes('billing') || message.includes('exceeded');
 }

@@ -16,9 +16,32 @@
  */
 
 // Try to import transformers, but handle serverless environments gracefully
-let transformers: any = null;
+interface TransformersEnvironment {
+  allowLocalModels: boolean;
+  allowRemoteModels: boolean;
+}
+
+interface ProgressUpdate {
+  status?: string;
+  progress?: number;
+}
+
+interface EmbeddingPipeline {
+  (text: string, options?: Record<string, unknown>): Promise<unknown>;
+}
+
+interface TransformersModule {
+  env?: TransformersEnvironment;
+  pipeline: (
+    task: string,
+    model: string,
+    options?: { progress_callback?: (progress: ProgressUpdate) => void }
+  ) => Promise<EmbeddingPipeline>;
+}
+
+let transformers: TransformersModule | null = null;
 let transformersAvailable = false;
-let transformersImportPromise: Promise<any> | null = null;
+let transformersImportPromise: Promise<TransformersModule> | null = null;
 
 // Function to initialize transformers import
 async function initializeTransformers() {
@@ -28,8 +51,10 @@ async function initializeTransformers() {
   
   transformersImportPromise = (async () => {
     try {
-      const module = await import('@xenova/transformers');
-      transformers = module;
+      const transformersModule = (await import(
+        '@xenova/transformers'
+      )) as unknown as TransformersModule;
+      transformers = transformersModule;
       transformersAvailable = true;
       
       // Configure transformers.js to use local cache
@@ -52,12 +77,34 @@ async function initializeTransformers() {
 }
 
 // Cache for the embedding pipeline to avoid reloading
-let embeddingPipeline: any = null;
-let pipelineInitPromise: Promise<any> | null = null;
+let embeddingPipeline: EmbeddingPipeline | null = null;
+let pipelineInitPromise: Promise<EmbeddingPipeline> | null = null;
 let isPipelineInitialized = false;
 
 // Cache for generated embeddings to avoid regeneration
 const embeddingCache = new Map<string, number[]>();
+
+function toEmbeddingArray(value: unknown): number[] {
+  if (Array.isArray(value)) {
+    return value.filter(
+      (item): item is number => typeof item === 'number'
+    );
+  }
+
+  if (value instanceof Float32Array) {
+    return Array.from(value);
+  }
+
+  if (ArrayBuffer.isView(value)) {
+    return Array.from(value as unknown as ArrayLike<number>);
+  }
+
+  if (typeof value === 'object' && value !== null && 'data' in value) {
+    return toEmbeddingArray(value.data);
+  }
+
+  throw new Error('Embedding output has an unsupported format');
+}
 
 /**
  * Initialize the embedding pipeline
@@ -66,12 +113,12 @@ const embeddingCache = new Map<string, number[]>();
  * @returns Promise that resolves to the embedding pipeline
  * @throws Error if model loading fails or transformers not available
  */
-async function getEmbeddingPipeline(): Promise<any> {
+async function getEmbeddingPipeline(): Promise<EmbeddingPipeline> {
   // Initialize transformers first
   await initializeTransformers();
   
   // Check if transformers is available
-  if (!transformersAvailable) {
+  if (!transformersAvailable || !transformers) {
     throw new Error('Transformers library not available in this environment');
   }
 
@@ -94,9 +141,12 @@ async function getEmbeddingPipeline(): Promise<any> {
     'feature-extraction',
     'Xenova/all-MiniLM-L6-v2',
     {
-      progress_callback: (progress: any) => {
+      progress_callback: (progress: ProgressUpdate) => {
         if (progress.status === 'progress') {
-          const currentProgress = Math.round(progress.progress * 100);
+          const progressValue = progress.progress ?? 0;
+          const currentProgress = Math.round(
+            progressValue > 1 ? progressValue : progressValue * 100
+          );
           // Only log every 10% to reduce log spam
           if (currentProgress - lastLoggedProgress >= 10 || currentProgress === 100) {
             console.log(`[EmbeddingService] Model loading: ${currentProgress}%`);
@@ -147,21 +197,7 @@ export async function generateEmbedding(text: string, useCache: boolean = true):
     const pipeline = await getEmbeddingPipeline();
     const embedding = await pipeline(text, { pooling: 'mean', normalize: true });
 
-    // Extract array data from complex object or convert Float32Array
-    let embeddingArray: number[];
-    if (embedding && typeof embedding === 'object' && 'data' in embedding) {
-      // Handle complex object with data property
-      embeddingArray = Array.from((embedding as any).data);
-    } else if (embedding instanceof Float32Array) {
-      // Handle Float32Array
-      embeddingArray = Array.from(embedding);
-    } else if (Array.isArray(embedding)) {
-      // Handle regular array
-      embeddingArray = embedding as number[];
-    } else {
-      // Fallback: try to convert to array
-      embeddingArray = Array.from(embedding as any);
-    }
+    const embeddingArray = toEmbeddingArray(embedding);
 
     if (useCache) {
       embeddingCache.set(text, embeddingArray);
@@ -203,24 +239,14 @@ export async function generateBatchEmbeddings(texts: string[], useCache: boolean
       } else {
         const embedding = await pipeline(text);
         
-        // Extract array data from complex object or convert Float32Array
-        let embeddingArray: number[];
-        if (embedding && typeof embedding === 'object' && 'data' in embedding) {
-          embeddingArray = Array.from((embedding as any).data);
-        } else if (embedding instanceof Float32Array) {
-          embeddingArray = Array.from(embedding);
-        } else if (Array.isArray(embedding)) {
-          embeddingArray = embedding as number[];
-        } else {
-          embeddingArray = Array.from(embedding as any);
-        }
+        const embeddingArray = toEmbeddingArray(embedding);
         
         embeddings.push(embeddingArray);
         if (useCache) {
           embeddingCache.set(text, embeddingArray);
         }
       }
-    } catch (error) {
+    } catch {
       console.error(`[EmbeddingService] Failed to generate embedding for text: ${text.substring(0, 50)}...`);
       // Continue with next text instead of failing entire batch
       embeddings.push(new Array(384).fill(0)); // Fallback zero embedding

@@ -94,6 +94,15 @@ export async function GET(request: NextRequest) {
             code: true,
           }
         },
+        teacher: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            profileImageUrl: true,
+          }
+        },
         submittedCourses: {
           select: {
             id: true,

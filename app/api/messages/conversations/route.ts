@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     
@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
     const userId = session.user.id;
 
     // Get all conversations where user is a participant
+    // Database constraints prevent duplicates via participantKey
     const conversations = await prisma.conversation.findMany({
       where: {
         participantIds: { has: userId },
@@ -119,61 +120,27 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = session.user.id;
+    const participantKey = [userId, participantId].sort().join(':');
 
-    // Check if conversation already exists
-    const existingConversation = await prisma.conversation.findFirst({
-      where: {
-        AND: [
-          { participantIds: { has: userId } },
-          { participantIds: { has: participantId } },
-        ],
-        isActive: true,
-      },
-    });
-
-    if (existingConversation) {
-      const otherUser = await prisma.user.findUnique({
-        where: { id: participantId },
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          profileImageUrl: true,
-          techCenter: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
-      });
-
-      return NextResponse.json({
-        conversation: {
-          id: existingConversation.id,
-          participants: existingConversation.participantIds,
-          lastMessage: null,
-          otherUser: otherUser ? {
-            id: otherUser.id,
-            firstName: otherUser.firstName,
-            lastName: otherUser.lastName,
-            fullName: `${otherUser.firstName} ${otherUser.lastName}`,
-            image: otherUser.profileImageUrl,
-            techCenter: otherUser.techCenter,
-          } : null,
-          createdAt: existingConversation.createdAt,
-          updatedAt: existingConversation.updatedAt,
-        },
-      });
-    }
-
-    // Create new conversation
-    const newConversation = await prisma.conversation.create({
-      data: {
+    // Use upsert to either find existing conversation or create new one
+    // The participantKey unique constraint prevents duplicates for the same user pair
+    const conversation = await prisma.conversation.upsert({
+      where: { participantKey },
+      update: {}, // Don't update anything if it exists
+      create: {
         participantIds: [userId, participantId],
+        participantKey,
         lastMessageAt: new Date(),
       },
     });
+
+    // Validate that the conversation is one-to-one (exactly 2 participants)
+    if (conversation.participantIds.length !== 2) {
+      return NextResponse.json(
+        { error: 'Conversation must be one-to-one' },
+        { status: 400 }
+      );
+    }
 
     const otherUser = await prisma.user.findUnique({
       where: { id: participantId },
@@ -193,8 +160,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       conversation: {
-        id: newConversation.id,
-        participants: newConversation.participantIds,
+        id: conversation.id,
+        participants: conversation.participantIds,
         lastMessage: null,
         otherUser: otherUser ? {
           id: otherUser.id,
@@ -204,8 +171,8 @@ export async function POST(request: NextRequest) {
           image: otherUser.profileImageUrl,
           techCenter: otherUser.techCenter,
         } : null,
-        createdAt: newConversation.createdAt,
-        updatedAt: newConversation.updatedAt,
+        createdAt: conversation.createdAt,
+        updatedAt: conversation.updatedAt,
       },
     });
   } catch (error) {

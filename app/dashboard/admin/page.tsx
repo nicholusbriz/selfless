@@ -3,7 +3,6 @@
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft,
-  Home,
   Users,
   Shield,
   Mail,

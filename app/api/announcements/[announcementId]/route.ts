@@ -51,6 +51,11 @@ export async function PUT(
       return NextResponse.json({ error: 'You can only edit your own announcements' }, { status: 403 });
     }
 
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: { select: { name: true } } },
+    });
+    const isAdmin = currentUser?.role?.name === 'admin' || currentUser?.role?.name === 'super_admin';
     // Update announcement
     const updatedAnnouncement = await prisma.announcement.update({
       where: { id: announcementId },
@@ -58,7 +63,9 @@ export async function PUT(
         title: title || announcement.title,
         content: content || announcement.content,
         deadline: deadline ? new Date(deadline) : (announcement.deadline || null),
-        isGlobal: isGlobal !== undefined ? isGlobal : announcement.isGlobal
+        isGlobal: isGlobal !== undefined
+          ? (isAdmin ? isGlobal === true : announcement.isGlobal)
+          : announcement.isGlobal
       },
       include: {
         author: {
@@ -150,7 +157,17 @@ export async function DELETE(
       return NextResponse.json({ error: 'You can only delete your own announcements' }, { status: 403 });
     }
 
-    // Delete announcement
+    // Detach replies before removing comments because the self-referencing
+    // relation prevents deleting a comment that still has child replies.
+    await prisma.announcementComment.updateMany({
+      where: { announcementId },
+      data: { parentId: null },
+    });
+
+    await prisma.announcementComment.deleteMany({
+      where: { announcementId },
+    });
+
     await prisma.announcement.delete({
       where: { id: announcementId }
     });

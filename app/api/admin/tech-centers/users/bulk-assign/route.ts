@@ -19,10 +19,10 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { studentIds, teacherId } = body;
+    const { userIds, teacherId } = body;
 
-    if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
-      return NextResponse.json({ error: 'Student IDs array is required' }, { status: 400 });
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+      return NextResponse.json({ error: 'User IDs array is required' }, { status: 400 });
     }
 
     if (!teacherId) {
@@ -63,23 +63,23 @@ export async function PATCH(request: NextRequest) {
     // Verify all students exist and belong to the same tech center
     const students = await prisma.user.findMany({
       where: {
-        id: { in: studentIds },
+        id: { in: userIds },
         techCenterId: adminUser.techCenter.id
       }
     });
 
-    if (students.length !== studentIds.length) {
+    if (students.length !== userIds.length) {
       return NextResponse.json({ 
         error: 'Some students not found or do not belong to your tech center',
         foundCount: students.length,
-        requestedCount: studentIds.length
+        requestedCount: userIds.length
       }, { status: 400 });
     }
 
     // Bulk assign students to teacher
     const result = await prisma.user.updateMany({
       where: {
-        id: { in: studentIds }
+        id: { in: userIds }
       },
       data: { teacherId }
     });
