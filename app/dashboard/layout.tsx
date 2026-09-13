@@ -70,7 +70,7 @@ import {
   useAnnouncementCount,
 } from '@/hooks/useNotifications';
 import { useUnreadMessageCount } from '@/hooks/useMessages';
-import { OnlineUsers } from '@/components/OnlineUsers';
+import { GlobalOnlineUsersPopup } from '@/components/GlobalOnlineUsersPopup';
 import { useOnlineUsers } from '@/lib/hooks/useOnlineUsers';
 
 // ============================================================
@@ -843,8 +843,6 @@ function TopBar({
   const { data: unreadMessageCount } =
     useUnreadMessageCount();
 
-  const onlineUsers = useOnlineUsers(user);
-
   const pathname = usePathname();
   const pageInfo = getPageInfo(pathname);
 
@@ -955,14 +953,6 @@ function TopBar({
                 {pageInfo.title}
               </motion.span>
             </div>
-          </div>
-
-          {/* ONLINE USERS - Placed here, flex-1 allows it to take available space */}
-          <div className="ml-auto mr-2 min-w-0 sm:mr-4">
-            <OnlineUsers 
-              onlineUsers={onlineUsers} 
-              currentUserId={user?.id} 
-            />
           </div>
         </div>
 
@@ -2266,6 +2256,8 @@ export default function DashboardLayout({
       '/dashboard/ai/'
     );
 
+  const onlineUsers = useOnlineUsers(user);
+
   // ----------------------------------------------------------
   // CLOSE MOBILE NAV AFTER ROUTE CHANGE
   // ----------------------------------------------------------
@@ -2856,6 +2848,12 @@ export default function DashboardLayout({
           </motion.div>
         )}
       </div>
+
+      {/* Global Online Users Popup - Fixed overlay at top */}
+      <GlobalOnlineUsersPopup
+        onlineUsers={onlineUsers}
+        currentUserId={user?.id}
+      />
     </>
   );
 }
