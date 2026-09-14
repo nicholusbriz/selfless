@@ -240,11 +240,21 @@ export default function HomePage() {
   const [authModalType, setAuthModalType] = useState<"login" | "register">(
     "login"
   );
+  const [imageLoadErrors, setImageLoadErrors] = useState<Set<number>>(new Set());
 
   const { isAuthenticated } = useAuth();
   const prefersReducedMotion = useReducedMotion();
 
   const heroImage = heroImages[heroImageIndex];
+
+  // Debug logging for development
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Current hero image index:', heroImageIndex);
+      console.log('Current hero image:', heroImage.src);
+      console.log('Images with errors:', Array.from(imageLoadErrors));
+    }
+  }, [heroImageIndex, imageLoadErrors]);
 
   /* =========================================================
      LOADING
@@ -268,10 +278,28 @@ export default function HomePage() {
   ========================================================= */
 
   useEffect(() => {
-    heroImages.forEach((image) => {
-      const img = new window.Image();
-      img.src = image.src;
-    });
+    // Preload images using a more reliable approach
+    const preloadImages = async () => {
+      const imagePromises = heroImages.map((image) => {
+        return new Promise<void>((resolve) => {
+          const img = new window.Image();
+          img.onload = () => resolve();
+          img.onerror = () => resolve(); // Resolve even on error to continue
+          img.src = image.src;
+        });
+      });
+
+      try {
+        await Promise.all(imagePromises);
+      } catch (error) {
+        console.warn('Some images failed to preload:', error);
+      }
+    };
+
+    // Only preload on client side
+    if (typeof window !== 'undefined') {
+      preloadImages();
+    }
   }, []);
 
   /* =========================================================
@@ -279,14 +307,26 @@ export default function HomePage() {
   ========================================================= */
 
   useEffect(() => {
+    // Ensure we're on client side before setting interval
+    if (typeof window === 'undefined') return;
+
     const interval = window.setInterval(() => {
       setHeroImageIndex(
-        (currentIndex) => (currentIndex + 1) % heroImages.length
+        (currentIndex) => {
+          let nextIndex = (currentIndex + 1) % heroImages.length;
+          // Skip images that have failed to load
+          let attempts = 0;
+          while (imageLoadErrors.has(nextIndex) && attempts < heroImages.length) {
+            nextIndex = (nextIndex + 1) % heroImages.length;
+            attempts++;
+          }
+          return nextIndex;
+        }
       );
     }, 10000);
 
     return () => window.clearInterval(interval);
-  }, []);
+  }, [imageLoadErrors]);
 
   /* =========================================================
      CAROUSEL CONTROLS
@@ -301,7 +341,16 @@ export default function HomePage() {
 
   const showNextHeroImage = () => {
     setHeroImageIndex(
-      (currentIndex) => (currentIndex + 1) % heroImages.length
+      (currentIndex) => {
+        let nextIndex = (currentIndex + 1) % heroImages.length;
+        // Skip images that have failed to load
+        let attempts = 0;
+        while (imageLoadErrors.has(nextIndex) && attempts < heroImages.length) {
+          nextIndex = (nextIndex + 1) % heroImages.length;
+          attempts++;
+        }
+        return nextIndex;
+      }
     );
   };
 
@@ -390,6 +439,11 @@ export default function HomePage() {
                       sizes="100vw"
                       className="object-cover object-center"
                       priority={heroImageIndex === 0}
+                      quality={90}
+                      unoptimized={false}
+                      onError={() => {
+                        setImageLoadErrors(prev => new Set(prev).add(heroImageIndex));
+                      }}
                     />
 
                     <div className="absolute inset-0 bg-[#12203B]/10" />
@@ -658,6 +712,11 @@ export default function HomePage() {
                       sizes="(min-width: 1024px) 55vw, 100vw"
                       className="object-cover object-center"
                       priority={heroImageIndex === 0}
+                      quality={90}
+                      unoptimized={false}
+                      onError={() => {
+                        setImageLoadErrors(prev => new Set(prev).add(heroImageIndex));
+                      }}
                     />
 
                     <div className="absolute inset-0 bg-[#12203B]/10" />
