@@ -21,6 +21,8 @@ import {
   Network,
   Users,
   LayoutDashboard,
+  Play,
+  Building2,
 } from "lucide-react";
 
 const features = [
@@ -69,9 +71,9 @@ const heroImages = [
     src: "/cover page.jpg",
     alt: "SELFLESS CE student community",
     eyebrow: "One place for your academic life",
-    title: "Everything important, in one student portal.",
+    title: "Where challenge meets possibility",
     description:
-      "Your personal dashboard brings together the academic information, services, and support that matter most to your student journey.",
+      "Earn an accredited online degree from our partners while you keep working, managing life, and moving forward.",
   },
   {
     src: "/cover image.jpg",
@@ -173,307 +175,327 @@ export default function HomePage() {
         style={{ opacity: isLoading ? 0 : 1 }}
       >
         {/* =====================================================
-          HERO
-          - One continuous full-bleed carousel image
-          - Text remains readable through a soft overlay
+          HERO - RESPONSIVE SPLIT SCREEN
         ====================================================== */}
-        <section className="relative isolate min-h-screen overflow-hidden bg-[#0D1117]">
-          {/* Hero background image (full bleed) */}
-          <motion.div
-            initial={{ scale: 1.04, opacity: 0 }}
-            animate={
-              isLoading ? { scale: 1.04, opacity: 0 } : { scale: 1, opacity: 1 }
-            }
-            transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute inset-0"
-          >
-            <Image
-              key={heroImage.src}
-              src={heroImage.src}
-              alt={heroImage.alt}
-              fill
-              sizes="100vw"
-              className="object-cover object-center"
-            />
-          </motion.div>
-
-          {/* Base dark overlay */}
-          <div className="absolute inset-0 bg-[#071018]/60" />
-
-          {/* Soft readability gradient without dividing the image */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#071018]/75 via-[#071018]/35 to-[#071018]/15" />
-
-          {/* Subtle bottom fade */}
-          <div className="absolute inset-x-0 bottom-0 h-32 bg-[#0D1117]/70" />
-
-          <div className="absolute bottom-8 left-5 z-20 flex items-center gap-2 sm:left-8 lg:left-12">
-            <button
-              type="button"
-              onClick={showPreviousHeroImage}
-              aria-label="Show previous hero image"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-[#071018]/65 text-white backdrop-blur-md transition hover:border-[#E8A33D] hover:text-[#E8A33D] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A33D]"
-            >
-              <ChevronLeft size={18} />
-            </button>
-            <span className="px-2 text-[11px] font-semibold tracking-[0.16em] text-white/75">
-              {String(heroImageIndex + 1).padStart(2, "0")} / {String(heroImages.length).padStart(2, "0")}
-            </span>
-            <button
-              type="button"
-              onClick={showNextHeroImage}
-              aria-label="Show next hero image"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-[#071018]/65 text-white backdrop-blur-md transition hover:border-[#E8A33D] hover:text-[#E8A33D] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A33D]"
-            >
-              <ChevronRight size={18} />
-            </button>
-          </div>
-
-          {/* =====================================================
-              HERO CONTENT — pinned to LEFT half on lg+
-          ====================================================== */}
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            animate={isLoading ? "hidden" : "visible"}
-            className="
-              relative
-              z-10
-              mx-auto
-              flex
-              min-h-screen
-              w-full
-              max-w-7xl
-              items-center
-              px-5
-              pb-28
-              pt-36
-              sm:px-8
-              sm:pb-32
-              sm:pt-40
-              lg:px-12
-              lg:pt-44
-            "
-          >
-            <div className="w-full lg:w-1/2 lg:pr-12">
-              <div className="max-w-2xl">
-                <motion.div variants={reveal}>
-                  <div className="mb-7 flex items-center gap-3">
-                    <span className="h-px w-8 bg-[#E8A33D]" />
-                    <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-white/75">
-                      {heroImage.eyebrow}
-                    </p>
-                  </div>
-                </motion.div>
-
-                <motion.h1
-                  key={`hero-title-${heroImage.src}`}
-                  variants={reveal}
-                  className="
-                    max-w-xl
-                    text-[2.6rem]
-                    font-semibold
-                    leading-[1.02]
-                    tracking-[-0.045em]
-                    text-white
-                    sm:text-5xl
-                    md:text-[3.4rem]
-                    lg:text-[3.9rem]
-                    xl:text-[4.4rem]
-                  "
+        <section className="relative isolate w-full overflow-hidden bg-[#12203B] lg:min-h-screen">
+          
+          {/* Mobile Layout: Flex Column */}
+          <div className="flex flex-col lg:hidden">
+            {/* Top: Image Section */}
+            <div className="relative h-[45vh] min-h-[300px] w-full overflow-hidden">
+              <motion.div
+                key={heroImage.src}
+                initial={{ opacity: 0, scale: 1.05 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute inset-0"
+              >
+                <Image
+                  src={heroImage.src}
+                  alt={heroImage.alt}
+                  fill
+                  sizes="100vw"
+                  className="object-cover object-center"
+                  priority
+                />
+              </motion.div>
+              
+              <div 
+                className="absolute inset-x-0 bottom-0 h-16 pointer-events-none z-10"
+                style={{
+                  background: '#12203B',
+                  clipPath: 'polygon(0 100%, 100% 0, 100% 100%, 0 100%)'
+                }}
+              />
+              
+              <div className="absolute bottom-6 left-0 right-0 z-20 flex justify-center items-center gap-2">
+                <button
+                  type="button"
+                  onClick={showPreviousHeroImage}
+                  aria-label="Show previous hero image"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-[#12203B]/65 text-white backdrop-blur-md transition hover:border-[#FFC107] hover:text-[#FFC107] focus:outline-none"
                 >
-                  {heroImage.title}
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="px-2 text-[10px] font-semibold tracking-[0.16em] text-white/75">
+                  {String(heroImageIndex + 1).padStart(2, "0")} / {String(heroImages.length).padStart(2, "0")}
+                </span>
+                <button
+                  type="button"
+                  onClick={showNextHeroImage}
+                  aria-label="Show next hero image"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-[#12203B]/65 text-white backdrop-blur-md transition hover:border-[#FFC107] hover:text-[#FFC107] focus:outline-none"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Bottom: Content Section */}
+            <motion.div
+              variants={staggerContainer}
+              initial="hidden"
+              animate={isLoading ? "hidden" : "visible"}
+              className="relative z-20 flex-1 bg-[#12203B] px-6 pb-12 pt-2"
+            >
+              <div className="mx-auto max-w-md text-center">
+                <motion.h1
+                  key={`hero-title-mobile-${heroImage.src}`}
+                  variants={reveal}
+                  className="text-3xl font-light leading-[1.1] tracking-[-0.03em] text-white sm:text-4xl"
+                >
+                  {heroImage.title.split(' ').map((word, i) => (
+                    <span key={i} className={i === 1 ? "italic underline decoration-[#FFC107] decoration-2 underline-offset-[6px]" : ""}>
+                      {word}{' '}
+                    </span>
+                  ))}
                 </motion.h1>
 
                 <motion.p
-                  key={`hero-description-${heroImage.src}`}
+                  key={`hero-description-mobile-${heroImage.src}`}
                   variants={reveal}
-                  className="
-                    mt-7
-                    max-w-xl
-                    text-[15px]
-                    font-medium
-                    leading-7
-                    text-white/[0.78]
-                    sm:mt-8
-                    sm:text-lg
-                    sm:leading-8
-                  "
+                  className="mt-5 text-[14px] font-medium leading-6 text-white/90"
                 >
                   {heroImage.description}
                 </motion.p>
 
+                {/* Mobile CTA Links */}
                 <motion.div
                   variants={reveal}
-                  className="
-                    mt-8
-                    flex
-                    flex-col
-                    gap-3
-                    sm:mt-9
-                    sm:flex-row
-                    sm:items-center
-                  "
+                  className="mt-8 flex flex-col gap-4"
                 >
                   <Link
                     href="/features"
-                    className="
-                      group
-                      inline-flex
-                      items-center
-                      justify-center
-                      gap-2.5
-                      rounded-xl
-                      bg-[#E8A33D]
-                      px-5
-                      py-3.5
-                      text-[13px]
-                      font-bold
-                      tracking-wide
-                      text-[#0D1117]
-                      shadow-[0_10px_30px_rgba(0,0,0,0.18)]
-                      transition-all
-                      duration-300
-                      hover:bg-[#F2B359]
-                      hover:shadow-[0_14px_35px_rgba(0,0,0,0.25)]
-                      active:scale-[0.98]
-                    "
+                    className="group inline-flex w-full items-center justify-center gap-2.5 rounded-md bg-[#FFC107] px-6 py-3.5 text-[15px] font-bold tracking-wide text-[#12203B] shadow-lg transition-all duration-300 hover:bg-[#FFD54F] active:scale-[0.98]"
                   >
-                    <span>Explore the portal</span>
-                    <ArrowRight
-                      size={16}
-                      className="transition-transform duration-300 group-hover:translate-x-1"
-                    />
+                    <span>Explore Portal Features</span>
+                  </Link>
+
+                  <Link
+                    href="/tech-centers"
+                    className="group inline-flex w-full items-center justify-center gap-2.5 rounded-md border border-white/20 bg-white/5 px-6 py-3.5 text-[14px] font-bold tracking-wide text-white transition-all duration-300 hover:bg-white/10 active:scale-[0.98]"
+                  >
+                    <Building2 size={16} />
+                    <span>View Tech Centers</span>
                   </Link>
 
                   <Link
                     href="/about"
-                    className="
-                      inline-flex
-                      items-center
-                      justify-center
-                      rounded-xl
-                      border
-                      border-white/20
-                      bg-white/[0.06]
-                      px-5
-                      py-3.5
-                      text-[13px]
-                      font-semibold
-                      tracking-wide
-                      text-white/90
-                      backdrop-blur-md
-                      transition-all
-                      duration-300
-                      hover:border-white/35
-                      hover:bg-white/[0.11]
-                      hover:text-white
-                    "
+                    className="group inline-flex w-full items-center justify-center gap-3 text-[14px] font-semibold text-white transition-colors hover:text-[#FFC107]"
                   >
-                    Learn about SELFLESS CE
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FFC107] text-[#12203B] transition-transform group-hover:scale-110">
+                      <Play size={12} fill="currentColor" />
+                    </div>
+                    <span>Why Choose SELFLESS CE?</span>
                   </Link>
                 </motion.div>
 
+                {/* Auth / Dashboard Buttons (Conditional) */}
                 <motion.div
                   variants={reveal}
-                  className="mt-4 flex flex-wrap items-center gap-3"
+                  className="mt-10 border-t border-white/10 pt-6"
                 >
                   {isAuthenticated ? (
                     <Link
                       href="/dashboard"
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#E8A33D]/60 bg-[#E8A33D]/15 px-5 py-3 text-[13px] font-bold tracking-wide text-white transition-all duration-300 hover:bg-[#E8A33D]/25"
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-white/20 bg-white/5 px-5 py-3.5 text-[14px] font-bold tracking-wide text-white transition-all duration-300 hover:bg-white/10"
                     >
-                      <LayoutDashboard size={16} />
-                      Dashboard
+                      <LayoutDashboard size={18} />
+                      Go to Dashboard
                     </Link>
                   ) : (
-                    <>
+                    <div className="flex flex-col items-center gap-3 text-center">
                       <button
                         type="button"
                         onClick={() => openAuthModal("login")}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/[0.06] px-5 py-3 text-[13px] font-semibold tracking-wide text-white/90 backdrop-blur-md transition-all duration-300 hover:border-white/35 hover:bg-white/[0.11] hover:text-white"
+                        className="text-[14px] font-semibold text-white/70 underline decoration-white/30 underline-offset-4 transition-colors hover:text-white hover:decoration-white"
                       >
-                        Login
+                        Log in to your portal
                       </button>
                       <button
                         type="button"
                         onClick={() => openAuthModal("register")}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#E8A33D] px-5 py-3 text-[13px] font-bold tracking-wide text-[#0D1117] transition-all duration-300 hover:bg-[#F2B359]"
+                        className="text-[14px] font-semibold text-[#FFC107] transition-colors hover:text-[#FFD54F]"
                       >
-                        Get Started
-                        <ArrowRight size={16} />
+                        Create an account
                       </button>
-                    </>
+                    </div>
                   )}
                 </motion.div>
-
-                <motion.div
-                  variants={reveal}
-                  className="mt-9 max-w-xl border-l-2 border-[#E8A33D] pl-4"
-                >
-                  <p className="text-[12px] font-medium leading-6 text-white/[0.62] sm:text-[13px]">
-                    We support the journey around your education, so you can
-                    keep your attention on learning, growth, and a brighter
-                    future.
-                  </p>
-                </motion.div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
 
-          {/* =====================================================
-              MOBILE IMAGE (below lg only)
-          ====================================================== */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={isLoading ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.8,
-              delay: 0.35,
-              ease: [0.22, 1, 0.36, 1],
-            }}
-            className="relative z-10 mx-5 pb-28 sm:mx-8 lg:hidden"
-          >
-            <div className="relative h-[22rem] overflow-hidden rounded-2xl sm:h-[28rem]">
-              <Image
+          {/* Desktop Layout: Absolute Split */}
+          <div className="hidden lg:block">
+            {/* RIGHT SIDE: Rotating Images */}
+            <div className="absolute inset-y-0 right-0 w-[55%] z-0">
+              <motion.div
                 key={heroImage.src}
-                src={heroImage.src}
-                alt={heroImage.alt}
-                fill
-                sizes="(min-width: 640px) calc(100vw - 4rem), calc(100vw - 2.5rem)"
-                className="object-cover object-center"
-              />
+                initial={{ opacity: 0, scale: 1.05 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute inset-0"
+              >
+                <Image
+                  src={heroImage.src}
+                  alt={heroImage.alt}
+                  fill
+                  sizes="(min-width: 1024px) 55vw, 100vw"
+                  className="object-cover object-center"
+                  priority
+                />
+              </motion.div>
+              <div className="absolute inset-0 bg-[#12203B]/10 lg:bg-transparent" />
+            </div>
 
-              <div className="absolute inset-0 bg-[#071018]/15" />
+            {/* DIAGONAL DIVIDER - Desktop Only */}
+            <div 
+              className="absolute inset-y-0 left-0 hidden lg:block w-[55%] z-10 pointer-events-none"
+              style={{
+                clipPath: 'polygon(0 0, 100% 0, 85% 100%, 0 100%)',
+                background: '#12203B'
+              }}
+            />
 
-              <div className="absolute bottom-4 left-4 right-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#E8A33D]">
-                  Student experience
-                </p>
+            {/* LEFT SIDE: Content */}
+            <motion.div
+              variants={staggerContainer}
+              initial="hidden"
+              animate={isLoading ? "hidden" : "visible"}
+              className="relative z-20 mx-auto flex min-h-screen w-full max-w-7xl items-center px-12 pt-44"
+            >
+              <div className="w-[55%] pr-12">
+                <div className="max-w-xl">
+                  {/* Eyebrow / Tagline */}
+                  <motion.div variants={reveal}>
+                    <div className="mb-6 flex items-center gap-3">
+                      <span className="h-px w-8 bg-[#E8A33D]" />
+                      <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-white/70">
+                        {heroImage.eyebrow}
+                      </p>
+                    </div>
+                  </motion.div>
 
-                <p className="mt-1.5 text-sm font-semibold leading-5 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
-                  Learning, community, and support connected.
-                </p>
+                  {/* Main Title with Underline */}
+                  <motion.h1
+                    key={`hero-title-${heroImage.src}`}
+                    variants={reveal}
+                    className="text-[3.8rem] font-light leading-[1.05] tracking-[-0.03em] text-white"
+                  >
+                    {heroImage.title.split(' ').map((word, i) => (
+                      <span key={i} className={i === 1 ? "italic underline decoration-[#E8A33D] decoration-2 underline-offset-8" : ""}>
+                        {word}{' '}
+                      </span>
+                    ))}
+                  </motion.h1>
+
+                  {/* Description */}
+                  <motion.p
+                    key={`hero-description-${heroImage.src}`}
+                    variants={reveal}
+                    className="mt-8 max-w-lg text-base font-medium leading-8 text-white/80"
+                  >
+                    {heroImage.description}
+                  </motion.p>
+
+                  {/* Desktop CTA Buttons - Redesigned for clarity */}
+                  <motion.div
+                    variants={reveal}
+                    className="mt-10 flex flex-wrap items-center gap-4"
+                  >
+                    <Link
+                      href="/features"
+                      className="group inline-flex items-center justify-center gap-2.5 rounded-lg bg-[#FFC107] px-6 py-3.5 text-[14px] font-bold tracking-wide text-[#12203B] shadow-lg transition-all duration-300 hover:bg-[#FFD54F] hover:shadow-xl active:scale-[0.98]"
+                    >
+                      <span>Explore Portal Features</span>
+                      <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+                    </Link>
+
+                    <Link
+                      href="/tech-centers"
+                      className="group inline-flex items-center justify-center gap-2.5 rounded-lg border border-white/20 bg-white/5 px-6 py-3.5 text-[14px] font-bold tracking-wide text-white backdrop-blur-md transition-all duration-300 hover:border-white/35 hover:bg-white/10 active:scale-[0.98]"
+                    >
+                      <Building2 size={16} />
+                      <span>View Tech Centers</span>
+                    </Link>
+                  </motion.div>
+
+                  {/* Secondary Text Links */}
+                  <motion.div
+                    variants={reveal}
+                    className="mt-6 flex items-center gap-6"
+                  >
+                    <Link
+                      href="/about"
+                      className="group inline-flex items-center gap-2 text-[13px] font-semibold text-white/70 transition-colors hover:text-[#FFC107]"
+                    >
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-[#FFC107] transition-colors group-hover:bg-[#FFC107] group-hover:text-[#12203B]">
+                        <Play size={10} fill="currentColor" />
+                      </div>
+                      <span>Why Choose SELFLESS CE?</span>
+                    </Link>
+                  </motion.div>
+
+                  {/* Auth / Dashboard Buttons (Conditional) - Redesigned */}
+                  <motion.div
+                    variants={reveal}
+                    className="mt-10 border-t border-white/10 pt-8"
+                  >
+                    {isAuthenticated ? (
+                      <Link
+                        href="/dashboard"
+                        className="inline-flex items-center justify-center gap-2.5 rounded-lg bg-[#E8A33D] px-8 py-3.5 text-[14px] font-bold tracking-wide text-[#12203B] shadow-lg transition-all duration-300 hover:bg-[#F2B359] hover:shadow-xl active:scale-[0.98]"
+                      >
+                        <LayoutDashboard size={18} />
+                        Go to Your Dashboard
+                      </Link>
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-4">
+                        <button
+                          type="button"
+                          onClick={() => openAuthModal("login")}
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/5 px-6 py-3 text-[13px] font-bold tracking-wide text-white transition-all duration-300 hover:border-white/35 hover:bg-white/10 active:scale-[0.98]"
+                        >
+                          Log In to Portal
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openAuthModal("register")}
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#FFC107]/50 bg-[#FFC107]/10 px-6 py-3 text-[13px] font-bold tracking-wide text-[#FFC107] transition-all duration-300 hover:bg-[#FFC107]/20 active:scale-[0.98]"
+                        >
+                          Create an Account
+                        </button>
+                      </div>
+                    )}
+                  </motion.div>
+                </div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
 
-          {/* Mobile statement */}
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={isLoading ? { opacity: 0, y: 15 } : { opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.55 }}
-            className="absolute inset-x-5 bottom-7 z-10 sm:inset-x-8 lg:hidden"
-          >
-            <div className="rounded-xl border border-white/10 bg-[#071018]/70 px-4 py-3 backdrop-blur-md">
-              <p className="text-center text-[11px] font-semibold leading-5 text-white/70">
-                We support the journey.
-                <span className="text-[#E8A33D]">
-                  {" "}
-                  You focus on the future.
-                </span>
-              </p>
+            {/* Carousel Controls - Desktop */}
+            <div className="absolute bottom-8 right-5 z-30 flex items-center gap-2 sm:right-8 lg:right-12">
+              <button
+                type="button"
+                onClick={showPreviousHeroImage}
+                aria-label="Show previous hero image"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-[#12203B]/65 text-white backdrop-blur-md transition hover:border-[#FFC107] hover:text-[#FFC107] focus:outline-none"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <span className="px-2 text-[11px] font-semibold tracking-[0.16em] text-white/75">
+                {String(heroImageIndex + 1).padStart(2, "0")} / {String(heroImages.length).padStart(2, "0")}
+              </span>
+              <button
+                type="button"
+                onClick={showNextHeroImage}
+                aria-label="Show next hero image"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-[#12203B]/65 text-white backdrop-blur-md transition hover:border-[#FFC107] hover:text-[#FFC107] focus:outline-none"
+              >
+                <ChevronRight size={18} />
+              </button>
             </div>
-          </motion.div>
+          </div>
         </section>
 
         {/* =====================================================
@@ -559,7 +581,7 @@ export default function HomePage() {
 
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="border-l-2 border-[#E8A33D] pl-4">
-                <p className="text-2xl font-bold text-white">7</p>
+                <p className="text-2xl font-bold text-white">7+ll </p>
                 <p className="mt-1 text-sm leading-6 text-white/65">
                   connected tech centers
                 </p>
@@ -638,8 +660,6 @@ export default function HomePage() {
 
         {/* =====================================================
             STUDENT JOURNEY
-            - Image bare in its own column, diagonally clipped
-            - Supporting text in the opposite column
         ====================================================== */}
         <section className="overflow-hidden bg-white px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-32">
           <div className="mx-auto max-w-7xl">
@@ -650,7 +670,6 @@ export default function HomePage() {
               viewport={{ once: true, amount: 0.15 }}
               className="grid gap-14 lg:grid-cols-2 lg:items-center lg:gap-20"
             >
-              {/* IMAGE — bare, diagonally clipped */}
               <motion.div variants={imageReveal} className="relative">
                 <div
                   className="relative h-[24rem] w-full overflow-hidden sm:h-[30rem] lg:h-[36rem]"
@@ -697,7 +716,6 @@ export default function HomePage() {
                 </div>
               </motion.div>
 
-              {/* CONTENT — opposite column */}
               <div className="lg:pl-4">
                 <motion.div variants={reveal}>
                   <div className="flex items-center gap-3">
