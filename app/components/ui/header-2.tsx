@@ -158,12 +158,12 @@ export default function Header2() {
           focus:top-4
           focus:z-[80]
           focus:rounded-lg
-          focus:bg-[#E8A33D]
+          focus:bg-[#B98A3E]
           focus:px-4
           focus:py-2.5
           focus:text-sm
           focus:font-semibold
-          focus:text-[#10151C]
+          focus:text-white
           focus:shadow-lg
         "
       >
@@ -178,63 +178,32 @@ export default function Header2() {
           fixed inset-x-0 top-0 z-50
           overflow-visible
           border-b
+          bg-[#F1F1EC]
           transition-all
           duration-300
           motion-reduce:transition-none
           ${
             isScrolled
-              ? "border-white/[0.12] shadow-[0_10px_35px_rgba(0,0,0,0.32)]"
-              : "border-white/[0.08]"
+              ? "border-[#DADCD3] shadow-[0_4px_20px_rgba(0,0,0,0.05)]"
+              : "border-transparent"
           }
         `}
       >
-        {/* ------------------------------------------------------
-            BACKGROUND IMAGE
-        ------------------------------------------------------ */}
-        <div
-          className="absolute inset-0 -z-20 bg-[#0B1016] bg-cover bg-center"
-          style={{
-            backgroundImage: "url('/header-image.jpg')",
-          }}
-        />
-
-        {/* ------------------------------------------------------
-            CONTROLLED DARK OVERLAY
-
-            This keeps the background image visible while making
-            white typography consistently readable.
-        ------------------------------------------------------ */}
-        <div
-          className={`
-            absolute inset-0 -z-10
-            transition-all duration-300
-            motion-reduce:transition-none
-            ${
-              isScrolled
-                ? "bg-[#071018]/18"
-                : "bg-[#071018]/8"
-            }
-          `}
-        />
-
-        {/* Subtle lower readability layer */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-16 bg-[#071018]/5" />
-
         {/* ======================================================
             TOP TRUST BAR
         ====================================================== */}
         <div
           className="
             border-b
-            border-white/[0.10]
-            bg-[#060A0F]/15
+            border-[#DADCD3]
+            bg-[#E8E8E0]
           "
         >
           <div
             className="
               mx-auto
               flex
-              min-h-9
+              min-h-8
               max-w-7xl
               items-center
               justify-center
@@ -254,12 +223,12 @@ export default function Header2() {
                     w-full
                     animate-ping
                     rounded-full
-                    bg-[#E8A33D]/70
+                    bg-[#B98A3E]/70
                     motion-reduce:animate-none
                   "
                 />
 
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-[#E8A33D]" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-[#B98A3E]" />
               </span>
 
               <p
@@ -269,17 +238,17 @@ export default function Header2() {
                   uppercase
                   leading-none
                   tracking-[0.16em]
-                  text-white/90
+                  text-[#4B564C]
                   sm:text-[10.5px]
                 "
               >
                 Trusted across the{" "}
-                <span className="text-white">
+                <span className="text-[#12203B]">
                   SELFLESS Tech Center Network
                 </span>
               </p>
 
-              <span className="hidden text-white/30 sm:inline">
+              <span className="hidden text-[#9CA39A] sm:inline">
                 •
               </span>
 
@@ -290,7 +259,7 @@ export default function Header2() {
                   font-medium
                   leading-none
                   tracking-wide
-                  text-white/65
+                  text-[#6B7268]
                   md:block
                 "
               >
@@ -310,9 +279,9 @@ export default function Header2() {
             max-w-7xl
             items-center
             justify-between
-            gap-6
+            gap-4
             px-4
-            py-3.5
+            py-3
             sm:px-6
             lg:px-8
           "
@@ -329,13 +298,13 @@ export default function Header2() {
               min-w-0
               shrink-0
               items-center
-              gap-3.5
+              gap-3
               rounded-xl
               outline-none
               focus-visible:ring-2
-              focus-visible:ring-[#E8A33D]
+              focus-visible:ring-[#B98A3E]
               focus-visible:ring-offset-2
-              focus-visible:ring-offset-[#0B1016]
+              focus-visible:ring-offset-[#F1F1EC]
             "
           >
             {/* Logo */}
@@ -348,14 +317,14 @@ export default function Header2() {
                 overflow-hidden
                 rounded-xl
                 border
-                border-white/[0.18]
-                bg-white/[0.06]
+                border-[#DADCD3]
+                bg-white
                 p-0.5
-                shadow-[0_4px_18px_rgba(0,0,0,0.22)]
+                shadow-sm
                 transition-all
                 duration-300
-                group-hover:border-[#E8A33D]/60
-                group-hover:shadow-[0_5px_22px_rgba(232,163,61,0.16)]
+                group-hover:border-[#B98A3E]/60
+                group-hover:shadow-md
                 sm:h-11
                 sm:w-11
                 motion-reduce:transition-none
@@ -383,21 +352,21 @@ export default function Header2() {
                   font-bold
                   leading-[1.15]
                   tracking-[-0.015em]
-                  text-white
+                  text-[#12203B]
                   sm:text-[17px]
                 "
               >
-                <span className="transition-colors duration-200 group-hover:text-white">
+                <span className="transition-colors duration-200 group-hover:text-[#12203B]">
                   Selfless CE
                 </span>
 
                 <span
                   className="
                     font-semibold
-                    text-[#E8A33D]
+                    text-[#B98A3E]
                     transition-colors
                     duration-200
-                    group-hover:text-[#F2B359]
+                    group-hover:text-[#A07830]
                   "
                 >
                   Portal
@@ -412,7 +381,7 @@ export default function Header2() {
                   uppercase
                   leading-none
                   tracking-[0.18em]
-                  text-white/[0.62]
+                  text-[#6B7268]
                   sm:text-[10px]
                 "
               >
@@ -432,12 +401,12 @@ export default function Header2() {
               gap-0.5
               rounded-full
               border
-              border-white/[0.10]
-              bg-[#081018]/45
+              border-[#DADCD3]
+              bg-white/50
               px-1.5
               py-1.5
-              shadow-[0_4px_20px_rgba(0,0,0,0.12)]
-              backdrop-blur-md
+              shadow-sm
+              backdrop-blur-sm
               lg:flex
             "
           >
@@ -463,12 +432,12 @@ export default function Header2() {
                     transition-all
                     duration-200
                     focus-visible:ring-2
-                    focus-visible:ring-[#E8A33D]
+                    focus-visible:ring-[#B98A3E]
                     motion-reduce:transition-none
                     ${
                       active
-                        ? "bg-white/[0.11] text-white"
-                        : "text-white/[0.78] hover:bg-white/[0.07] hover:text-white"
+                        ? "bg-[#12203B] text-white shadow-sm"
+                        : "text-[#4B564C] hover:bg-[#E8E8E0] hover:text-[#12203B]"
                     }
                   `}
                 >
@@ -483,7 +452,7 @@ export default function Header2() {
                       -bottom-0.5
                       h-px
                       origin-center
-                      bg-[#E8A33D]
+                      bg-[#B98A3E]
                       transition-transform
                       duration-300
                       motion-reduce:transition-none
@@ -514,25 +483,25 @@ export default function Header2() {
                   gap-2
                   overflow-hidden
                   rounded-xl
-                  bg-[#E8A33D]
+                  bg-[#12203B]
                   px-4
                   py-2.5
                   text-[12px]
                   font-bold
                   leading-none
                   tracking-wide
-                  text-[#10151C]
-                  shadow-[0_5px_20px_rgba(232,163,61,0.22)]
+                  text-white
+                  shadow-sm
                   transition-all
                   duration-300
-                  hover:bg-[#F0B052]
-                  hover:shadow-[0_7px_25px_rgba(232,163,61,0.30)]
+                  hover:bg-[#1A2D4A]
+                  hover:shadow-md
                   active:scale-[0.98]
                   focus:outline-none
                   focus-visible:ring-2
-                  focus-visible:ring-[#E8A33D]
+                  focus-visible:ring-[#B98A3E]
                   focus-visible:ring-offset-2
-                  focus-visible:ring-offset-[#0B1016]
+                  focus-visible:ring-offset-[#F1F1EC]
                   motion-reduce:transition-none
                 "
               >
@@ -563,35 +532,35 @@ export default function Header2() {
                     gap-2
                     rounded-xl
                     border
-                    border-white/[0.15]
-                    bg-[#081018]/45
+                    border-[#DADCD3]
+                    bg-white
                     px-4
                     py-2.5
                     text-[12px]
                     font-semibold
                     leading-none
                     tracking-wide
-                    text-white/[0.88]
-                    backdrop-blur-md
+                    text-[#4B564C]
+                    shadow-sm
                     transition-all
                     duration-200
-                    hover:border-white/[0.25]
-                    hover:bg-white/[0.10]
-                    hover:text-white
+                    hover:border-[#B98A3E]/50
+                    hover:text-[#12203B]
+                    hover:shadow-md
                     active:scale-[0.98]
                     focus:outline-none
                     focus-visible:ring-2
-                    focus-visible:ring-white/30
+                    focus-visible:ring-[#B98A3E]
                     motion-reduce:transition-none
                   "
                 >
                   <LogIn
                     size={14}
                     className="
-                      text-white/70
+                      text-[#6B7268]
                       transition-colors
                       duration-200
-                      group-hover:text-white
+                      group-hover:text-[#12203B]
                     "
                   />
 
@@ -608,25 +577,25 @@ export default function Header2() {
                     items-center
                     gap-2
                     rounded-xl
-                    bg-[#E8A33D]
+                    bg-[#B98A3E]
                     px-4
                     py-2.5
                     text-[12px]
                     font-bold
                     leading-none
                     tracking-wide
-                    text-[#10151C]
-                    shadow-[0_5px_20px_rgba(232,163,61,0.22)]
+                    text-white
+                    shadow-sm
                     transition-all
                     duration-300
-                    hover:bg-[#F0B052]
-                    hover:shadow-[0_7px_25px_rgba(232,163,61,0.30)]
+                    hover:bg-[#A07830]
+                    hover:shadow-md
                     active:scale-[0.98]
                     focus:outline-none
                     focus-visible:ring-2
-                    focus-visible:ring-[#E8A33D]
+                    focus-visible:ring-[#B98A3E]
                     focus-visible:ring-offset-2
-                    focus-visible:ring-offset-[#0B1016]
+                    focus-visible:ring-offset-[#F1F1EC]
                     motion-reduce:transition-none
                   "
                 >
@@ -646,78 +615,129 @@ export default function Header2() {
           </div>
 
           {/* ====================================================
-              MOBILE MENU BUTTON
+              MOBILE ACTIONS & MENU BUTTON
           ==================================================== */}
-          <button
-            ref={menuButtonRef}
-            type="button"
-            onClick={() =>
-              setOpenPathname(mobileOpen ? null : pathname)
-            }
-            aria-label={
-              mobileOpen
-                ? "Close navigation menu"
-                : "Open navigation menu"
-            }
-            aria-expanded={mobileOpen}
-            aria-controls="mobile-nav-drawer"
-            className="
-              relative
-              z-[60]
-              flex
-              h-10
-              w-10
-              shrink-0
-              items-center
-              justify-center
-              rounded-xl
-              border
-              border-white/[0.15]
-              bg-[#081018]/55
-              text-white/90
-              backdrop-blur-md
-              transition-all
-              duration-200
-              hover:border-white/[0.25]
-              hover:bg-white/[0.10]
-              hover:text-white
-              focus:outline-none
-              focus-visible:ring-2
-              focus-visible:ring-[#E8A33D]
-              lg:hidden
-              motion-reduce:transition-none
-            "
-          >
-            <Menu
-              size={20}
-              className={`
-                absolute
-                transition-all
-                duration-300
-                motion-reduce:transition-none
-                ${
-                  mobileOpen
-                    ? "rotate-90 scale-75 opacity-0"
-                    : "rotate-0 scale-100 opacity-100"
-                }
-              `}
-            />
+          <div className="flex items-center gap-2 lg:hidden">
+            {/* Mobile Auth/Dashboard Button (Always visible) */}
+            {isAuthenticated ? (
+              <Link
+                href="/dashboard"
+                className="
+                  flex
+                  items-center
+                  justify-center
+                  gap-1.5
+                  rounded-lg
+                  bg-[#12203B]
+                  px-3
+                  py-2
+                  text-[11px]
+                  font-bold
+                  text-white
+                  shadow-sm
+                  active:scale-[0.98]
+                "
+              >
+                <LayoutDashboard size={14} />
+                <span>Dashboard</span>
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => openAuthModal("login")}
+                className="
+                  flex
+                  items-center
+                  justify-center
+                  gap-1.5
+                  rounded-lg
+                  border
+                  border-[#DADCD3]
+                  bg-white
+                  px-3
+                  py-2
+                  text-[11px]
+                  font-semibold
+                  text-[#12203B]
+                  shadow-sm
+                  active:scale-[0.98]
+                "
+              >
+                <LogIn size={14} />
+                <span>Login</span>
+              </button>
+            )}
 
-            <X
-              size={20}
-              className={`
-                absolute
+            {/* Hamburger Menu Button */}
+            <button
+              ref={menuButtonRef}
+              type="button"
+              onClick={() =>
+                setOpenPathname(mobileOpen ? null : pathname)
+              }
+              aria-label={
+                mobileOpen
+                  ? "Close navigation menu"
+                  : "Open navigation menu"
+              }
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-nav-drawer"
+              className="
+                relative
+                z-[60]
+                flex
+                h-9
+                w-9
+                shrink-0
+                items-center
+                justify-center
+                rounded-lg
+                border
+                border-[#DADCD3]
+                bg-white
+                text-[#12203B]
+                shadow-sm
                 transition-all
-                duration-300
+                duration-200
+                hover:border-[#B98A3E]/50
+                hover:shadow-md
+                focus:outline-none
+                focus-visible:ring-2
+                focus-visible:ring-[#B98A3E]
                 motion-reduce:transition-none
-                ${
-                  mobileOpen
-                    ? "rotate-0 scale-100 opacity-100"
-                    : "-rotate-90 scale-75 opacity-0"
-                }
-              `}
-            />
-          </button>
+              "
+            >
+              <Menu
+                size={18}
+                className={`
+                  absolute
+                  transition-all
+                  duration-300
+                  motion-reduce:transition-none
+                  ${
+                    mobileOpen
+                      ? "rotate-90 scale-75 opacity-0"
+                      : "rotate-0 scale-100 opacity-100"
+                  }
+                `}
+              />
+
+              <X
+                size={18}
+                className={`
+                  absolute
+                  transition-all
+                  duration-300
+                  motion-reduce:transition-none
+                  ${
+                    mobileOpen
+                      ? "rotate-0 scale-100 opacity-100"
+                      : "-rotate-90 scale-75 opacity-0"
+                  }
+                `}
+              />
+            </button>
+          </div>
         </div>
 
         {/* ======================================================
@@ -730,8 +750,8 @@ export default function Header2() {
             sm:block
             overflow-hidden
             border-t
-            border-white/[0.08]
-            bg-[#060A0F]/12
+            border-[#DADCD3]
+            bg-[#E8E8E0]
             transition-all
             duration-300
             motion-reduce:transition-none
@@ -761,7 +781,7 @@ export default function Header2() {
             "
           >
             <div className="flex items-center gap-2.5">
-              <span className="h-4 w-1 shrink-0 rounded-full bg-[#E8A33D]" />
+              <span className="h-4 w-1 shrink-0 rounded-full bg-[#B98A3E]" />
 
               <span
                 className="
@@ -769,13 +789,13 @@ export default function Header2() {
                   font-bold
                   leading-none
                   tracking-wide
-                  text-white/95
+                  text-[#12203B]
                 "
               >
                 Student Self Service Portal
               </span>
 
-              <span className="text-white/30">
+              <span className="text-[#9CA39A]">
                 •
               </span>
 
@@ -784,7 +804,7 @@ export default function Header2() {
                   text-[11px]
                   font-medium
                   leading-none
-                  text-white/65
+                  text-[#6B7268]
                 "
               >
                 All education in one place
@@ -799,7 +819,7 @@ export default function Header2() {
                 font-medium
                 leading-normal
                 tracking-wide
-                  text-white/[0.58]
+                text-[#6B7268]
                 sm:text-right
               "
             >
@@ -821,11 +841,11 @@ export default function Header2() {
             top-full
             z-[55]
             border-b
-            border-white/[0.16]
-            bg-[#071018]
+            border-[#DADCD3]
+            bg-[#F1F1EC]
             px-4
             py-6
-            shadow-[0_20px_45px_rgba(0,0,0,0.40)]
+            shadow-[0_20px_45px_rgba(0,0,0,0.08)]
             transition-all
             duration-300
             motion-reduce:transition-none
@@ -843,13 +863,14 @@ export default function Header2() {
               className="
                 rounded-xl
                 border
-                border-white/[0.14]
-                bg-[#111B25]
+                border-[#DADCD3]
+                bg-white
                 p-4
+                shadow-sm
               "
             >
               <div className="mb-1.5 flex items-center gap-2.5">
-                <span className="h-4 w-1 rounded-full bg-[#E8A33D]" />
+                <span className="h-4 w-1 rounded-full bg-[#B98A3E]" />
 
                 <p
                   className="
@@ -857,7 +878,7 @@ export default function Header2() {
                     font-bold
                     leading-none
                     tracking-wide
-                    text-white
+                    text-[#12203B]
                   "
                 >
                   Student Self Service Portal
@@ -870,7 +891,7 @@ export default function Header2() {
                   text-[11px]
                   font-medium
                   leading-relaxed
-                    text-white/[0.62]
+                  text-[#6B7268]
                 "
               >
                 Manage your BYU-Idaho courses and tech center
@@ -918,8 +939,8 @@ export default function Header2() {
                       }
                       ${
                         active
-                          ? "border border-[#E8A33D]/30 bg-[#E8A33D]/10 text-white"
-                          : "text-white/[0.88] hover:bg-white/[0.10] hover:text-white"
+                          ? "border border-[#B98A3E]/30 bg-[#B98A3E]/10 text-[#12203B]"
+                          : "text-[#4B564C] hover:bg-[#E8E8E0] hover:text-[#12203B]"
                       }
                     `}
                   >
@@ -932,8 +953,8 @@ export default function Header2() {
                           rounded-full
                           ${
                             active
-                              ? "bg-[#E8A33D]"
-                              : "bg-white/25"
+                              ? "bg-[#B98A3E]"
+                              : "bg-[#9CA39A]"
                           }
                         `}
                       />
@@ -945,8 +966,8 @@ export default function Header2() {
                       size={15}
                       className={
                         active
-                          ? "text-[#E8A33D]"
-                          : "text-white/35"
+                          ? "text-[#B98A3E]"
+                          : "text-[#9CA39A]"
                       }
                     />
                   </Link>
@@ -954,7 +975,7 @@ export default function Header2() {
               })}
             </nav>
 
-            <div className="h-px bg-white/[0.09]" />
+            <div className="h-px bg-[#DADCD3]" />
 
             {/* Mobile actions */}
             <div className="grid grid-cols-2 gap-3">
@@ -969,14 +990,14 @@ export default function Header2() {
                     justify-center
                     gap-2
                     rounded-xl
-                    bg-[#E8A33D]
+                    bg-[#12203B]
                     py-3.5
                     text-[13px]
                     font-bold
                     leading-none
                     tracking-wide
-                    text-[#10151C]
-                    shadow-[0_5px_18px_rgba(232,163,61,0.20)]
+                    text-white
+                    shadow-sm
                     active:scale-[0.99]
                   "
                 >
@@ -998,17 +1019,18 @@ export default function Header2() {
                       gap-2
                       rounded-xl
                       border
-                      border-white/[0.14]
-                      bg-[#111B25]
+                      border-[#DADCD3]
+                      bg-white
                       py-3.5
                       text-[13px]
                       font-semibold
                       leading-none
                       tracking-wide
-                      text-white/[0.88]
+                      text-[#4B564C]
+                      shadow-sm
                       transition-colors
-                      hover:bg-white/[0.08]
-                      hover:text-white
+                      hover:border-[#B98A3E]/50
+                      hover:text-[#12203B]
                       active:scale-[0.99]
                     "
                   >
@@ -1026,14 +1048,14 @@ export default function Header2() {
                       justify-center
                       gap-2
                       rounded-xl
-                      bg-[#E8A33D]
+                      bg-[#B98A3E]
                       py-3.5
                       text-[13px]
                       font-bold
                       leading-none
                       tracking-wide
-                      text-[#10151C]
-                      shadow-[0_5px_18px_rgba(232,163,61,0.20)]
+                      text-white
+                      shadow-sm
                       active:scale-[0.99]
                     "
                   >
@@ -1059,4 +1081,3 @@ export default function Header2() {
     </>
   );
 }
-
