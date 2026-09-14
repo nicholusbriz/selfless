@@ -1,4 +1,7 @@
+"use client";
 
+import Link from "next/link";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
   BarChart3,
@@ -11,7 +14,6 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
-import Link from "next/link";
 
 import AcademicFeatures from "@/app/components/AcademicFeatures";
 import CommunityFeatures from "@/app/components/CommunityFeatures";
@@ -24,52 +26,101 @@ const portalAreas = [
     number: "01",
     title: "Your dashboard",
     description:
-      "See the information and actions that matter most to you in one focused workspace.",
+      "See the information, updates, and actions that matter most to you in one focused student workspace.",
   },
   {
     icon: BookOpen,
     number: "02",
     title: "Academic progress",
     description:
-      "Keep courses, credits, grades, GPA progress, and tutor feedback organized.",
+      "Keep courses, credits, grades, GPA progress, and tutor feedback organized throughout your studies.",
   },
   {
     icon: MessageSquare,
     number: "03",
     title: "Communication",
     description:
-      "Stay informed through announcements, messages, notifications, policies, and support.",
+      "Stay informed through announcements, messages, notifications, policies, and student support.",
   },
   {
     icon: Users,
     number: "04",
     title: "Student community",
     description:
-      "Stay connected to your tech center and the wider SELFLESS CE student community.",
+      "Stay connected to your tech center while participating in the wider SELFLESS CE student community.",
   },
   {
     icon: Briefcase,
     number: "05",
     title: "Opportunities",
     description:
-      "Discover internships, activities, learning programs, and opportunities to grow.",
+      "Discover internships, activities, learning programs, and other opportunities to develop beyond the classroom.",
   },
   {
     icon: Sparkles,
     number: "06",
     title: "Atbriz AI",
     description:
-      "Get guided assistance for navigating the portal and finding useful information.",
+      "Get guided assistance when navigating the portal, understanding available information, and finding useful resources.",
   },
 ];
 
 const roles = [
-  "Students follow their academic journey and access support.",
-  "Tutors and teachers guide learners and manage learning responsibilities.",
-  "Administrators coordinate people, centers, communication, and operations.",
+  {
+    role: "Students",
+    description:
+      "Follow your academic journey, stay informed, connect with others, and access available support and opportunities.",
+  },
+  {
+    role: "Tutors & teachers",
+    description:
+      "Guide learners, provide academic support, and manage responsibilities connected to student learning.",
+  },
+  {
+    role: "Administrators",
+    description:
+      "Coordinate students, people, communication, activities, tech centers, and day-to-day operations.",
+  },
 ];
 
+const animation = {
+  hidden: {
+    opacity: 0,
+    y: 18,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.65,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
+  },
+};
+
+const stagger = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.08,
+    },
+  },
+};
+
 export default function FeaturesPage() {
+  const shouldReduceMotion = useReducedMotion();
+
+  const motionProps = shouldReduceMotion
+    ? {}
+    : {
+        initial: "hidden",
+        whileInView: "visible",
+        viewport: {
+          once: true,
+          amount: 0.1,
+        },
+      };
+
   return (
     <PublicPageShell>
       <PublicPageHero
@@ -81,31 +132,33 @@ export default function FeaturesPage() {
         actionLabel="Need help?"
       />
 
-      {/* INTRO */}
-      <section className="bg-[#F1F1EC] px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24">
-        <div className="mx-auto max-w-7xl">
-          <div className="grid gap-10 lg:grid-cols-[0.72fr_1.28fr] lg:gap-20">
-            <div>
-              <div className="flex items-center gap-3">
-                <span className="h-px w-9 bg-[#B98A3E]" />
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#B98A3E]">
-                  One connected portal
-                </p>
-              </div>
+      {/* =====================================================
+          INTRODUCTION
+      ====================================================== */}
+      <section className="bg-[#F1F1EC] px-5 py-14 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
+        <motion.div
+          {...motionProps}
+          variants={stagger}
+          className="mx-auto max-w-7xl"
+        >
+          <div className="grid gap-10 lg:grid-cols-[0.78fr_1.22fr] lg:items-center lg:gap-16">
+            <motion.div variants={animation}>
+              <SectionLabel label="One connected portal" />
 
-              <h2 className="mt-5 max-w-xl text-3xl font-semibold leading-[1.08] tracking-[-0.04em] text-[#12203B] sm:text-4xl lg:text-[3.1rem]">
+              <h2 className="mt-4 max-w-xl text-3xl font-semibold leading-[1.08] tracking-[-0.04em] text-[#12203B] sm:text-4xl lg:text-[2.8rem]">
                 Built around the way students actually learn.
               </h2>
 
-              <p className="mt-6 max-w-lg text-[15px] leading-7 text-[#5F685F]">
+              <p className="mt-5 max-w-lg text-[15px] leading-7 text-[#5F685F] sm:text-base sm:leading-8">
                 SELFLESS CE brings the important parts of student life into
                 one organized experience. Instead of moving between separate
-                systems, students and teams can work from the same portal.
+                systems, students and support teams can work from the same
+                connected portal.
               </p>
 
               <Link
                 href="/about"
-                className="group mt-7 inline-flex items-center gap-2 text-sm font-bold text-[#55705B] transition-colors hover:text-[#B98A3E]"
+                className="group mt-6 inline-flex items-center gap-2 text-sm font-bold text-[#55705B] transition-colors duration-300 hover:text-[#B98A3E]"
               >
                 Learn about SELFLESS CE
                 <ArrowRight
@@ -113,166 +166,222 @@ export default function FeaturesPage() {
                   className="transition-transform duration-300 group-hover:translate-x-1"
                 />
               </Link>
-            </div>
+            </motion.div>
 
-            <div className="border-y border-[#DADCD3]">
+            <motion.div
+              variants={animation}
+              className="border-y border-[#DADCD3]"
+            >
               {[
                 {
+                  number: "01",
                   title: "Academic",
-                  text: "Courses, grades, credits, progress and tutoring.",
+                  text: "Courses, grades, credits, progress, and tutoring.",
                 },
                 {
+                  number: "02",
                   title: "Community",
-                  text: "People, activities, support groups and shared experiences.",
+                  text: "People, activities, support groups, and shared experiences.",
                 },
                 {
+                  number: "03",
                   title: "Support",
-                  text: "Communication, notifications, policies and student services.",
+                  text: "Communication, notifications, policies, and student services.",
                 },
               ].map((item, index) => (
                 <div
                   key={item.title}
-                  className={`flex gap-5 py-6 sm:gap-8 ${
+                  className={`group flex gap-5 py-5 sm:gap-7 ${
                     index !== 0 ? "border-t border-[#DADCD3]" : ""
                   }`}
                 >
-                  <span className="pt-1 text-xs font-semibold tracking-[0.14em] text-[#B98A3E]">
-                    0{index + 1}
+                  <span className="pt-1 font-mono text-[10px] font-bold tracking-[0.16em] text-[#B98A3E]">
+                    {item.number}
                   </span>
 
                   <div>
-                    <h3 className="text-lg font-semibold text-[#12203B]">
+                    <h3 className="text-lg font-semibold tracking-[-0.015em] text-[#12203B]">
                       {item.title}
                     </h3>
+
                     <p className="mt-1.5 text-sm leading-6 text-[#697169]">
                       {item.text}
                     </p>
                   </div>
                 </div>
               ))}
-            </div>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
       </section>
 
-      {/* CORE FEATURES */}
-      <section className="relative isolate overflow-hidden bg-[#0D1117] px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24">
+      {/* =====================================================
+          CORE FEATURES
+      ====================================================== */}
+      <section className="relative isolate overflow-hidden bg-[#0D1117] px-5 py-14 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
         <div
-          className="pointer-events-none absolute inset-0 -z-10 bg-cover bg-center bg-fixed"
+          className="pointer-events-none absolute inset-0 -z-10 bg-cover bg-center opacity-30"
           style={{ backgroundImage: "url('/features.jpg')" }}
         />
-        <div className="pointer-events-none absolute inset-0 -z-[5] bg-[#071018]/80" />
 
-        <div className="relative mx-auto max-w-7xl">
-          <div className="flex flex-col justify-between gap-6 border-b border-[#DADCD3] pb-8 lg:flex-row lg:items-end">
+        <div className="pointer-events-none absolute inset-0 -z-[5] bg-[#071018]/90" />
+
+        <motion.div
+          {...motionProps}
+          variants={stagger}
+          className="relative mx-auto max-w-7xl"
+        >
+          <motion.div
+            variants={animation}
+            className="flex flex-col justify-between gap-5 border-b border-white/15 pb-7 lg:flex-row lg:items-end lg:gap-10"
+          >
             <div>
               <div className="flex items-center gap-3">
-                <span className="h-px w-9 bg-[#B98A3E]" />
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#B98A3E]">
+                <span className="h-px w-8 bg-[#E8A33D]" />
+
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#E8A33D]">
                   Core features
                 </p>
               </div>
 
-              <h2 className="mt-4 max-w-2xl text-3xl font-semibold tracking-[-0.035em] text-white sm:text-4xl">
-                The portal at a glance.
+              <h2 className="mt-4 max-w-2xl text-3xl font-semibold leading-[1.08] tracking-[-0.035em] text-white sm:text-4xl lg:text-[2.7rem]">
+                Everything you need,
+                <br className="hidden sm:block" />
+                connected in one place.
               </h2>
             </div>
 
-            <p className="max-w-md text-sm leading-6 text-white/70 lg:text-right">
-              Each part of the portal has a clear purpose, while everything
-              remains connected through one student experience.
+            <p className="max-w-md text-sm leading-7 text-white/65 lg:text-right">
+              Each part of the portal has a clear purpose while remaining
+              connected to the wider student experience.
             </p>
-          </div>
+          </motion.div>
 
-          <div className="mt-10 divide-y divide-white/20 border-y border-white/20">
+          <motion.div
+            variants={stagger}
+            className="mt-8 divide-y divide-white/15 border-y border-white/15"
+          >
             {portalAreas.map(
               ({ icon: Icon, number, title, description }) => (
-                <article
+                <motion.article
                   key={title}
-                  className="group grid gap-5 py-7 transition-colors duration-300 hover:bg-white/[0.08] sm:grid-cols-[80px_1fr_auto] sm:items-start sm:gap-8 sm:py-8"
+                  variants={animation}
+                  className="group grid gap-5 py-6 transition-colors duration-300 hover:bg-white/[0.045] sm:grid-cols-[76px_1fr_auto] sm:items-start sm:gap-8 sm:py-7"
                 >
                   <div className="flex items-center gap-3 sm:block">
-                    <span className="text-[11px] font-semibold tracking-[0.15em] text-[#E8A33D]">
+                    <span className="font-mono text-[10px] font-bold tracking-[0.16em] text-[#E8A33D]">
                       {number}
                     </span>
-                    <Icon size={19} strokeWidth={1.8} className="text-white/75 sm:mt-5" />
+
+                    <Icon
+                      size={19}
+                      strokeWidth={1.8}
+                      className="text-white/70 sm:mt-5"
+                    />
                   </div>
 
                   <div>
-                    <h3 className="text-xl font-semibold tracking-[-0.015em] text-white sm:text-2xl">
+                    <h3 className="text-lg font-semibold tracking-[-0.015em] text-white sm:text-xl">
                       {title}
                     </h3>
-                    <p className="mt-3 max-w-2xl text-sm leading-7 text-white/70 sm:text-base">
+
+                    <p className="mt-2 max-w-2xl text-sm leading-7 text-white/65 sm:text-[15px]">
                       {description}
                     </p>
                   </div>
 
-                  <span className="hidden pt-1 text-xs font-semibold uppercase tracking-[0.16em] text-white/40 transition-colors group-hover:text-[#E8A33D] sm:block">
+                  <div className="hidden items-center gap-2 pt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/35 transition-colors duration-300 group-hover:text-[#E8A33D] sm:flex">
                     Explore
-                  </span>
-                </article>
-              ),
+                    <ArrowRight
+                      size={13}
+                      className="transition-transform duration-300 group-hover:translate-x-1"
+                    />
+                  </div>
+                </motion.article>
+              )
             )}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </section>
 
-      {/* ACADEMIC */}
+      {/* =====================================================
+          ACADEMIC FEATURES
+      ====================================================== */}
       <AcademicFeatures />
 
-      {/* COMMUNITY */}
+      {/* =====================================================
+          COMMUNITY FEATURES
+      ====================================================== */}
       <CommunityFeatures />
 
-      {/* ROLES */}
-      <section className="bg-[#F7F6F2] px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24">
-        <div className="mx-auto max-w-7xl">
-          <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-20">
-            <div>
-              <div className="flex items-center gap-3">
-                <span className="h-px w-9 bg-[#B98A3E]" />
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#B98A3E]">
-                  Designed for the network
-                </p>
-              </div>
+      {/* =====================================================
+          ROLES
+      ====================================================== */}
+      <section className="bg-[#F7F6F2] px-5 py-14 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
+        <motion.div
+          {...motionProps}
+          variants={stagger}
+          className="mx-auto max-w-7xl"
+        >
+          <div className="grid gap-9 lg:grid-cols-[0.82fr_1.18fr] lg:items-center lg:gap-16">
+            <motion.div variants={animation}>
+              <SectionLabel label="Designed for the network" />
 
-              <h2 className="mt-5 max-w-xl text-3xl font-semibold leading-[1.1] tracking-[-0.04em] text-[#12203B] sm:text-4xl">
+              <h2 className="mt-4 max-w-xl text-3xl font-semibold leading-[1.08] tracking-[-0.04em] text-[#12203B] sm:text-4xl lg:text-[2.7rem]">
                 The experience changes with your responsibility.
               </h2>
 
-              <p className="mt-5 max-w-xl text-[15px] leading-7 text-[#626B62]">
-                SELFLESS CE is not a one-size-fits-all system. The portal
-                gives each role the tools and information needed to contribute
+              <p className="mt-4 max-w-xl text-[15px] leading-7 text-[#626B62] sm:text-base sm:leading-8">
+                SELFLESS CE is not a one-size-fits-all system. Each role gets
+                access to the information and tools needed to contribute
                 effectively.
               </p>
-            </div>
+            </motion.div>
 
-            <div className="border-y border-[#DADCD3]">
-              {roles.map((role, index) => (
+            <motion.div
+              variants={animation}
+              className="border-y border-[#DADCD3]"
+            >
+              {roles.map((item, index) => (
                 <div
-                  key={role}
-                  className={`flex gap-4 py-5 ${
+                  key={item.role}
+                  className={`group grid gap-4 py-5 sm:grid-cols-[150px_1fr] sm:gap-6 ${
                     index !== 0 ? "border-t border-[#DADCD3]" : ""
                   }`}
                 >
-                  <CheckCircle2
-                    size={19}
-                    strokeWidth={1.8}
-                    className="mt-0.5 shrink-0 text-[#55705B]"
-                  />
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2
+                      size={17}
+                      strokeWidth={1.8}
+                      className="shrink-0 text-[#55705B]"
+                    />
 
-                  <p className="text-sm leading-6 text-[#4F594F]">{role}</p>
+                    <span className="text-sm font-semibold text-[#12203B]">
+                      {item.role}
+                    </span>
+                  </div>
+
+                  <p className="text-sm leading-7 text-[#4F594F]">
+                    {item.description}
+                  </p>
                 </div>
               ))}
-            </div>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
       </section>
 
-      {/* SECURITY / OPERATIONS */}
-      <section className="bg-white px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24">
-        <div className="mx-auto max-w-7xl">
-          <div className="border border-[#DADCD3] bg-[#12203B] px-6 py-8 sm:px-9 sm:py-10 lg:px-12 lg:py-12">
-            <div className="grid gap-10 lg:grid-cols-[1fr_auto] lg:items-center">
+      {/* =====================================================
+          SECURITY / OPERATIONS
+      ====================================================== */}
+      <section className="bg-white px-5 py-14 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
+        <motion.div
+          {...motionProps}
+          variants={animation}
+          className="mx-auto max-w-7xl"
+        >
+          <div className="overflow-hidden border border-[#DADCD3] bg-[#12203B] px-6 py-8 sm:px-9 sm:py-9 lg:px-12 lg:py-10">
+            <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center lg:gap-12">
               <div>
                 <div className="flex items-center gap-3">
                   <ShieldCheck
@@ -280,31 +389,32 @@ export default function FeaturesPage() {
                     strokeWidth={1.8}
                     className="text-[#E8A33D]"
                   />
+
                   <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#E8A33D]">
-                    One organized system
+                    Organized access
                   </p>
                 </div>
 
-                <h2 className="mt-5 max-w-3xl text-2xl font-semibold leading-tight tracking-[-0.025em] text-white sm:text-3xl">
+                <h2 className="mt-4 max-w-3xl text-2xl font-semibold leading-[1.12] tracking-[-0.025em] text-white sm:text-3xl">
                   Clear access. Clear responsibilities. One connected
                   experience.
                 </h2>
 
-                <p className="mt-4 max-w-2xl text-sm leading-7 text-[#C5CBD1]">
-                  Role-based access helps keep information relevant while
-                  supporting the different responsibilities of students,
-                  tutors, teachers, and administrators.
+                <p className="mt-3.5 max-w-2xl text-sm leading-7 text-[#C5CBD1]">
+                  Role-based access keeps information relevant while supporting
+                  the different responsibilities of students, tutors, teachers,
+                  and administrators.
                 </p>
 
-                <div className="mt-7 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-[#E8A33D]">
-                  <BellRing size={15} strokeWidth={1.8} />
+                <div className="mt-5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.15em] text-[#E8A33D]">
+                  <BellRing size={14} strokeWidth={1.8} />
                   Connected across the SELFLESS CE network
                 </div>
               </div>
 
               <Link
                 href="/tech-centers"
-                className="group inline-flex w-fit items-center gap-2 border border-white/20 px-5 py-3 text-sm font-semibold text-white transition-colors hover:border-[#E8A33D] hover:text-[#E8A33D]"
+                className="group inline-flex w-fit items-center gap-2 border border-white/20 px-5 py-3 text-sm font-semibold text-white transition-all duration-300 hover:border-[#E8A33D] hover:text-[#E8A33D]"
               >
                 Explore tech centers
                 <ArrowRight
@@ -314,28 +424,34 @@ export default function FeaturesPage() {
               </Link>
             </div>
           </div>
-        </div>
+        </motion.div>
       </section>
 
-      {/* FINAL CTA */}
-      <section className="bg-[#F1F1EC] px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24">
-        <div className="mx-auto max-w-4xl text-center">
+      {/* =====================================================
+          FINAL CTA
+      ====================================================== */}
+      <section className="bg-[#F1F1EC] px-5 py-14 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
+        <motion.div
+          {...motionProps}
+          variants={animation}
+          className="mx-auto max-w-4xl text-center"
+        >
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#B98A3E]">
             Start with the portal
           </p>
 
-          <h2 className="mt-4 text-3xl font-semibold leading-tight tracking-[-0.04em] text-[#12203B] sm:text-4xl lg:text-5xl">
+          <h2 className="mt-3.5 text-3xl font-semibold leading-[1.08] tracking-[-0.04em] text-[#12203B] sm:text-4xl lg:text-[2.8rem]">
             A simpler way to stay connected to your education.
           </h2>
 
-          <p className="mx-auto mt-5 max-w-2xl text-[15px] leading-7 text-[#626B62]">
+          <p className="mx-auto mt-4 max-w-2xl text-[15px] leading-7 text-[#626B62] sm:text-base">
             Explore what SELFLESS CE offers and see how the portal brings your
             academic and student experience together.
           </p>
 
           <Link
             href="/about"
-            className="group mt-8 inline-flex items-center gap-2 bg-[#12203B] px-6 py-3.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#55705B]"
+            className="group mt-7 inline-flex items-center gap-2 bg-[#12203B] px-6 py-3.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#55705B]"
           >
             Discover SELFLESS CE
             <ArrowRight
@@ -343,9 +459,24 @@ export default function FeaturesPage() {
               className="transition-transform duration-300 group-hover:translate-x-1"
             />
           </Link>
-        </div>
+        </motion.div>
       </section>
     </PublicPageShell>
   );
 }
 
+/* =========================================================
+   SECTION LABEL
+========================================================= */
+
+function SectionLabel({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="h-px w-8 bg-[#B98A3E]" />
+
+      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#B98A3E]">
+        {label}
+      </p>
+    </div>
+  );
+}
