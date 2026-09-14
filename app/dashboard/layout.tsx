@@ -348,6 +348,13 @@ const adminNavigation: NavSection = {
       roles: ['admin'],
     },
     {
+      id: 'manage-grades',
+      label: 'Assign Grades',
+      path: '/dashboard/teacher/grades',
+      icon: <Award className={iconClass} />,
+      roles: ['admin'],
+    },
+    {
       id: 'manage-tech-centers',
       label: 'Tech Center',
       path: '/dashboard/admin/tech-centers',

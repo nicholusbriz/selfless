@@ -1,10 +1,10 @@
-// app/api/auth/reset-password/route.ts
+// app/api/account/reset-password/route.ts
 /**
  * RESET PASSWORD API ROUTE
  * 
  * Resets user password after token verification.
  * 
- * Endpoint: POST /api/auth/reset-password
+ * Endpoint: POST /api/account/reset-password
  * Request Body: { email: string, token: string, newPassword: string }
  * Response: { success: boolean, message: string }
  */

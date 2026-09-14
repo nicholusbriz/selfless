@@ -1,10 +1,10 @@
-// app/api/auth/verify-reset-token/route.ts
+// app/api/account/verify-reset-token/route.ts
 /**
  * VERIFY RESET TOKEN API ROUTE
  * 
  * Verifies if a reset token is valid and not expired.
  * 
- * Endpoint: POST /api/auth/verify-reset-token
+ * Endpoint: POST /api/account/verify-reset-token
  * Request Body: { email: string, token: string }
  * Response: { success: boolean, message: string }
  */

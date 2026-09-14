@@ -1,11 +1,11 @@
-// app/api/auth/login/route.ts
+// app/api/account/login/route.ts
 /**
  * LOGIN API ROUTE
  * 
  * Handles user login requests.
  * Validates credentials and sets HTTP-only cookie with JWT.
  * 
- * Endpoint: POST /api/auth/login
+ * Endpoint: POST /api/account/login
  * Request Body: { email: string, password: string }
  * Response: { user: AuthUser, token: string }
  */

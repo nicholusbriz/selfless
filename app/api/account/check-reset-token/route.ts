@@ -1,10 +1,10 @@
-// app/api/auth/check-reset-token/route.ts
+// app/api/account/check-reset-token/route.ts
 /**
  * CHECK RESET TOKEN API ROUTE
  * 
  * Checks if a user has an active password reset token.
  * 
- * Endpoint: POST /api/auth/check-reset-token
+ * Endpoint: POST /api/account/check-reset-token
  * Request Body: { email: string }
  * Response: { hasActiveToken: boolean, message: string }
  */

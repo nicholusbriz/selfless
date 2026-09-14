@@ -445,7 +445,7 @@ function RegisterForm({
     setSuccess(false);
 
     try {
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch('/api/account/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -757,7 +757,7 @@ function ForgotPasswordForm({
 
         try {
           const response = await fetch(
-            '/api/auth/check-reset-token',
+            '/api/account/check-reset-token',
             {
               method: 'POST',
               headers: {
@@ -815,7 +815,7 @@ function ForgotPasswordForm({
 
     try {
       const checkResponse = await fetch(
-        '/api/auth/check-reset-token',
+        '/api/account/check-reset-token',
         {
           method: 'POST',
           headers: {
@@ -845,7 +845,7 @@ function ForgotPasswordForm({
       }
 
       const response = await fetch(
-        '/api/auth/forgot-password',
+        '/api/account/forgot-password',
         {
           method: 'POST',
           headers: {
@@ -898,7 +898,7 @@ function ForgotPasswordForm({
 
     try {
       const response = await fetch(
-        '/api/auth/verify-reset-token',
+        '/api/account/verify-reset-token',
         {
           method: 'POST',
           headers: {
@@ -964,7 +964,7 @@ function ForgotPasswordForm({
 
     try {
       const response = await fetch(
-        '/api/auth/reset-password',
+        '/api/account/reset-password',
         {
           method: 'POST',
           headers: {

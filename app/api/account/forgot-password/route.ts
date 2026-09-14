@@ -1,11 +1,11 @@
-// app/api/auth/forgot-password/route.ts
+// app/api/account/forgot-password/route.ts
 /**
  * FORGOT PASSWORD API ROUTE
  * 
  * Handles password reset requests.
  * Generates a 6-digit token valid for 24 hours.
  * 
- * Endpoint: POST /api/auth/forgot-password
+ * Endpoint: POST /api/account/forgot-password
  * Request Body: { email: string }
  * Response: { success: boolean, message: string }
  */
