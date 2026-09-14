@@ -2366,7 +2366,7 @@ export default function DashboardLayout({
           1,
           0.36,
           1,
-        ],
+        ] as const,
       },
     },
 
@@ -2379,7 +2379,7 @@ export default function DashboardLayout({
           0,
           1,
           1,
-        ],
+        ] as const,
       },
     },
   };

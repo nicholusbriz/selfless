@@ -4,12 +4,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowUpRight,
   LayoutDashboard,
   LogIn,
   Menu,
-  Sparkles,
+  GraduationCap,
   X,
 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -24,8 +25,40 @@ const navItems = [
   { label: "Help", href: "/help" },
 ];
 
+const navMotion = {
+  hidden: {
+    opacity: 0,
+    y: -6,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.45,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
+  },
+};
+
+const mobileItemMotion = {
+  hidden: {
+    opacity: 0,
+    x: -10,
+  },
+  visible: (index: number) => ({
+    opacity: 1,
+    x: 0,
+    transition: {
+      delay: 0.04 + index * 0.045,
+      duration: 0.35,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
+  }),
+};
+
 export default function Header2() {
   const pathname = usePathname();
+  const prefersReducedMotion = useReducedMotion();
 
   const [openPathname, setOpenPathname] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -57,7 +90,7 @@ export default function Header2() {
       if (frame) return;
 
       frame = window.requestAnimationFrame(() => {
-        setIsScrolled(window.scrollY > 20);
+        setIsScrolled(window.scrollY > 18);
         frame = 0;
       });
     };
@@ -74,6 +107,13 @@ export default function Header2() {
       }
     };
   }, []);
+
+  // ------------------------------------------------------------
+  // CLOSE MOBILE DRAWER WHEN ROUTE CHANGES
+  // ------------------------------------------------------------
+  useEffect(() => {
+    setOpenPathname(null);
+  }, [pathname]);
 
   // ------------------------------------------------------------
   // LOCK BODY SCROLL WHEN MOBILE DRAWER IS OPEN
@@ -110,7 +150,10 @@ export default function Header2() {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setOpenPathname(null);
-        menuButtonRef.current?.focus();
+
+        requestAnimationFrame(() => {
+          menuButtonRef.current?.focus();
+        });
       }
     };
 
@@ -140,6 +183,10 @@ export default function Header2() {
   const openAuthModal = (type: "login" | "register") => {
     setAuthModalType(type);
     setShowAuthModal(true);
+    setOpenPathname(null);
+  };
+
+  const closeMobileMenu = () => {
     setOpenPathname(null);
   };
 
@@ -178,13 +225,14 @@ export default function Header2() {
           fixed inset-x-0 top-0 z-50
           overflow-visible
           border-b
-          bg-[#F1F1EC]
+          bg-[#F1F1EC]/95
+          backdrop-blur-md
           transition-all
           duration-300
           motion-reduce:transition-none
           ${
             isScrolled
-              ? "border-[#DADCD3] shadow-[0_4px_20px_rgba(0,0,0,0.05)]"
+              ? "border-[#DADCD3] shadow-[0_6px_24px_rgba(18,32,59,0.07)]"
               : "border-transparent"
           }
         `}
@@ -193,11 +241,20 @@ export default function Header2() {
             TOP TRUST BAR
         ====================================================== */}
         <div
-          className="
+          className={`
+            overflow-hidden
             border-b
             border-[#DADCD3]
             bg-[#E8E8E0]
-          "
+            transition-all
+            duration-300
+            motion-reduce:transition-none
+            ${
+              isScrolled
+                ? "max-h-0 border-b-0 opacity-0"
+                : "max-h-9 opacity-100"
+            }
+          `}
         >
           <div
             className="
@@ -212,9 +269,8 @@ export default function Header2() {
               lg:px-8
             "
           >
-            <div className="flex items-center gap-2.5 text-center">
-              {/* Status indicator */}
-              <span className="relative flex h-2 w-2 shrink-0">
+            <div className="flex items-center gap-2 text-center">
+              <span className="relative flex h-1.5 w-1.5 shrink-0">
                 <span
                   className="
                     absolute
@@ -223,23 +279,23 @@ export default function Header2() {
                     w-full
                     animate-ping
                     rounded-full
-                    bg-[#B98A3E]/70
+                    bg-[#B98A3E]/60
                     motion-reduce:animate-none
                   "
                 />
 
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-[#B98A3E]" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#B98A3E]" />
               </span>
 
               <p
                 className="
-                  text-[10px]
+                  text-[9.5px]
                   font-semibold
                   uppercase
                   leading-none
-                  tracking-[0.16em]
+                  tracking-[0.14em]
                   text-[#4B564C]
-                  sm:text-[10.5px]
+                  sm:text-[10px]
                 "
               >
                 Trusted across the{" "}
@@ -255,7 +311,7 @@ export default function Header2() {
               <p
                 className="
                   hidden
-                  text-[10px]
+                  text-[9.5px]
                   font-medium
                   leading-none
                   tracking-wide
@@ -273,18 +329,25 @@ export default function Header2() {
             MAIN NAVIGATION
         ====================================================== */}
         <div
-          className="
+          className={`
             mx-auto
             flex
             max-w-7xl
             items-center
             justify-between
-            gap-4
+            gap-3
             px-4
-            py-3
+            transition-[padding]
+            duration-300
+            motion-reduce:transition-none
             sm:px-6
             lg:px-8
-          "
+            ${
+              isScrolled
+                ? "py-2"
+                : "py-2.5"
+            }
+          `}
         >
           {/* ====================================================
               BRAND
@@ -298,8 +361,8 @@ export default function Header2() {
               min-w-0
               shrink-0
               items-center
-              gap-3
-              rounded-xl
+              gap-2.5
+              rounded-lg
               outline-none
               focus-visible:ring-2
               focus-visible:ring-[#B98A3E]
@@ -308,14 +371,24 @@ export default function Header2() {
             "
           >
             {/* Logo */}
-            <div
+            <motion.div
+              whileHover={
+                prefersReducedMotion
+                  ? undefined
+                  : {
+                      y: -1,
+                    }
+              }
+              transition={{
+                duration: 0.2,
+              }}
               className="
                 relative
-                h-10
-                w-10
+                h-9
+                w-9
                 shrink-0
                 overflow-hidden
-                rounded-xl
+                rounded-lg
                 border
                 border-[#DADCD3]
                 bg-white
@@ -325,9 +398,8 @@ export default function Header2() {
                 duration-300
                 group-hover:border-[#B98A3E]/60
                 group-hover:shadow-md
-                sm:h-11
-                sm:w-11
-                motion-reduce:transition-none
+                sm:h-10
+                sm:w-10
               "
             >
               <Image
@@ -335,10 +407,10 @@ export default function Header2() {
                 alt="Selfless CE logo"
                 fill
                 priority
-                sizes="44px"
-                className="rounded-[10px] object-cover"
+                sizes="40px"
+                className="rounded-[7px] object-contain"
               />
-            </div>
+            </motion.div>
 
             {/* Brand typography */}
             <div className="flex min-w-0 flex-col justify-center">
@@ -348,27 +420,17 @@ export default function Header2() {
                   items-baseline
                   gap-1.5
                   whitespace-nowrap
-                  text-[15px]
+                  text-[14px]
                   font-bold
-                  leading-[1.15]
+                  leading-[1.1]
                   tracking-[-0.015em]
                   text-[#12203B]
-                  sm:text-[17px]
+                  sm:text-[16px]
                 "
               >
-                <span className="transition-colors duration-200 group-hover:text-[#12203B]">
-                  Selfless CE
-                </span>
+                <span>Selfless CE</span>
 
-                <span
-                  className="
-                    font-semibold
-                    text-[#B98A3E]
-                    transition-colors
-                    duration-200
-                    group-hover:text-[#A07830]
-                  "
-                >
+                <span className="font-semibold text-[#B98A3E]">
                   Portal
                 </span>
               </div>
@@ -376,13 +438,13 @@ export default function Header2() {
               <span
                 className="
                   mt-1
-                  text-[9px]
+                  text-[8px]
                   font-semibold
                   uppercase
                   leading-none
-                  tracking-[0.18em]
+                  tracking-[0.16em]
                   text-[#6B7268]
-                  sm:text-[10px]
+                  sm:text-[9px]
                 "
               >
                 Student Self Service
@@ -393,18 +455,21 @@ export default function Header2() {
           {/* ====================================================
               DESKTOP NAVIGATION
           ==================================================== */}
-          <nav
+          <motion.nav
+            variants={navMotion}
+            initial="hidden"
+            animate="visible"
             aria-label="Primary navigation"
             className="
               hidden
               items-center
               gap-0.5
-              rounded-full
+              rounded-xl
               border
               border-[#DADCD3]
-              bg-white/50
-              px-1.5
-              py-1.5
+              bg-white/60
+              px-1
+              py-1
               shadow-sm
               backdrop-blur-sm
               lg:flex
@@ -421,10 +486,10 @@ export default function Header2() {
                   className={`
                     group
                     relative
-                    rounded-full
-                    px-4
+                    rounded-lg
+                    px-3.5
                     py-2
-                    text-[12px]
+                    text-[11.5px]
                     font-semibold
                     leading-none
                     tracking-[0.005em]
@@ -443,12 +508,11 @@ export default function Header2() {
                 >
                   <span>{item.label}</span>
 
-                  {/* Active / hover indicator */}
                   <span
                     className={`
                       pointer-events-none
                       absolute
-                      inset-x-4
+                      inset-x-3.5
                       -bottom-0.5
                       h-px
                       origin-center
@@ -466,34 +530,32 @@ export default function Header2() {
                 </Link>
               );
             })}
-          </nav>
+          </motion.nav>
 
           {/* ====================================================
               DESKTOP ACTIONS
           ==================================================== */}
-          <div className="hidden shrink-0 items-center gap-2.5 lg:flex">
+          <div className="hidden shrink-0 items-center gap-2 lg:flex">
             {isAuthenticated ? (
               <Link
                 href="/dashboard"
                 className="
                   group
-                  relative
                   inline-flex
                   items-center
                   gap-2
-                  overflow-hidden
-                  rounded-xl
+                  rounded-lg
                   bg-[#12203B]
-                  px-4
+                  px-3.5
                   py-2.5
-                  text-[12px]
+                  text-[11.5px]
                   font-bold
                   leading-none
                   tracking-wide
                   text-white
                   shadow-sm
                   transition-all
-                  duration-300
+                  duration-200
                   hover:bg-[#1A2D4A]
                   hover:shadow-md
                   active:scale-[0.98]
@@ -505,12 +567,12 @@ export default function Header2() {
                   motion-reduce:transition-none
                 "
               >
-                <LayoutDashboard size={15} strokeWidth={2.3} />
+                <LayoutDashboard size={14} strokeWidth={2.3} />
 
                 <span>Dashboard</span>
 
                 <ArrowUpRight
-                  size={14}
+                  size={13}
                   className="
                     transition-transform
                     duration-200
@@ -529,14 +591,14 @@ export default function Header2() {
                     group
                     inline-flex
                     items-center
-                    gap-2
-                    rounded-xl
+                    gap-1.5
+                    rounded-lg
                     border
                     border-[#DADCD3]
                     bg-white
-                    px-4
+                    px-3.5
                     py-2.5
-                    text-[12px]
+                    text-[11.5px]
                     font-semibold
                     leading-none
                     tracking-wide
@@ -575,19 +637,19 @@ export default function Header2() {
                     group
                     inline-flex
                     items-center
-                    gap-2
-                    rounded-xl
+                    gap-1.5
+                    rounded-lg
                     bg-[#B98A3E]
-                    px-4
+                    px-3.5
                     py-2.5
-                    text-[12px]
+                    text-[11.5px]
                     font-bold
                     leading-none
                     tracking-wide
                     text-white
                     shadow-sm
                     transition-all
-                    duration-300
+                    duration-200
                     hover:bg-[#A07830]
                     hover:shadow-md
                     active:scale-[0.98]
@@ -599,12 +661,12 @@ export default function Header2() {
                     motion-reduce:transition-none
                   "
                 >
-                  <Sparkles
+                  <GraduationCap
                     size={14}
                     className="
                       transition-transform
-                      duration-300
-                      group-hover:rotate-12
+                      duration-200
+                      group-hover:-translate-y-0.5
                     "
                   />
 
@@ -617,28 +679,29 @@ export default function Header2() {
           {/* ====================================================
               MOBILE ACTIONS & MENU BUTTON
           ==================================================== */}
-          <div className="flex items-center gap-2 lg:hidden">
-            {/* Mobile Auth/Dashboard Button (Always visible) */}
+          <div className="flex items-center gap-1.5 lg:hidden">
+            {/* Mobile Auth/Dashboard Button */}
             {isAuthenticated ? (
               <Link
                 href="/dashboard"
                 className="
                   flex
+                  h-9
                   items-center
                   justify-center
                   gap-1.5
                   rounded-lg
                   bg-[#12203B]
-                  px-3
-                  py-2
-                  text-[11px]
+                  px-2.5
+                  text-[10.5px]
                   font-bold
                   text-white
                   shadow-sm
                   active:scale-[0.98]
                 "
               >
-                <LayoutDashboard size={14} />
+                <LayoutDashboard size={13} />
+
                 <span>Dashboard</span>
               </Link>
             ) : (
@@ -647,6 +710,7 @@ export default function Header2() {
                 onClick={() => openAuthModal("login")}
                 className="
                   flex
+                  h-9
                   items-center
                   justify-center
                   gap-1.5
@@ -654,21 +718,27 @@ export default function Header2() {
                   border
                   border-[#DADCD3]
                   bg-white
-                  px-3
-                  py-2
-                  text-[11px]
+                  px-2.5
+                  text-[10.5px]
                   font-semibold
                   text-[#12203B]
                   shadow-sm
+                  transition-all
+                  duration-200
+                  hover:border-[#B98A3E]/50
                   active:scale-[0.98]
+                  focus:outline-none
+                  focus-visible:ring-2
+                  focus-visible:ring-[#B98A3E]
                 "
               >
-                <LogIn size={14} />
+                <LogIn size={13} />
+
                 <span>Login</span>
               </button>
             )}
 
-            {/* Hamburger Menu Button */}
+            {/* Hamburger */}
             <button
               ref={menuButtonRef}
               type="button"
@@ -708,7 +778,7 @@ export default function Header2() {
               "
             >
               <Menu
-                size={18}
+                size={17}
                 className={`
                   absolute
                   transition-all
@@ -723,7 +793,7 @@ export default function Header2() {
               />
 
               <X
-                size={18}
+                size={17}
                 className={`
                   absolute
                   transition-all
@@ -743,331 +813,400 @@ export default function Header2() {
         {/* ======================================================
             SUB HEADER
         ====================================================== */}
-        <div
-          aria-hidden={isScrolled}
-          className={`
-            hidden
-            sm:block
-            overflow-hidden
-            border-t
-            border-[#DADCD3]
-            bg-[#E8E8E0]
-            transition-all
-            duration-300
-            motion-reduce:transition-none
-            ${
-              isScrolled
-                ? "max-h-0 border-t-0 opacity-0"
-                : "max-h-14 opacity-100"
-            }
-          `}
-        >
-          <div
-            className="
-              mx-auto
-              flex
-              max-w-7xl
-              flex-col
-              items-start
-              gap-1
-              px-4
-              py-2.5
-              sm:flex-row
-              sm:items-center
-              sm:justify-between
-              sm:gap-8
-              sm:px-6
-              lg:px-8
-            "
-          >
-            <div className="flex items-center gap-2.5">
-              <span className="h-4 w-1 shrink-0 rounded-full bg-[#B98A3E]" />
-
-              <span
-                className="
-                  text-[11px]
-                  font-bold
-                  leading-none
-                  tracking-wide
-                  text-[#12203B]
-                "
-              >
-                Student Self Service Portal
-              </span>
-
-              <span className="text-[#9CA39A]">
-                •
-              </span>
-
-              <span
-                className="
-                  text-[11px]
-                  font-medium
-                  leading-none
-                  text-[#6B7268]
-                "
-              >
-                All education in one place
-              </span>
-            </div>
-
-            <p
+        <AnimatePresence initial={false}>
+          {!isScrolled && (
+            <motion.div
+              initial={
+                prefersReducedMotion
+                  ? false
+                  : {
+                      height: 0,
+                      opacity: 0,
+                    }
+              }
+              animate={{
+                height: "auto",
+                opacity: 1,
+              }}
+              exit={
+                prefersReducedMotion
+                  ? undefined
+                  : {
+                      height: 0,
+                      opacity: 0,
+                    }
+              }
+              transition={{
+                duration: prefersReducedMotion ? 0 : 0.28,
+                ease: [0.22, 1, 0.36, 1] as const,
+              }}
               className="
-                w-full
-                truncate
-                text-[10.5px]
-                font-medium
-                leading-normal
-                tracking-wide
-                text-[#6B7268]
-                sm:text-right
+                hidden
+                overflow-hidden
+                border-t
+                border-[#DADCD3]
+                bg-[#E8E8E0]
+                sm:block
               "
             >
-              Centralized platform for BYU-Idaho courses, progress
-              tracking, and the SELFLESS Tech Network.
-            </p>
-          </div>
-        </div>
+              <div
+                className="
+                  mx-auto
+                  flex
+                  max-w-7xl
+                  items-center
+                  justify-between
+                  gap-6
+                  px-4
+                  py-2
+                  sm:px-6
+                  lg:px-8
+                "
+              >
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span className="h-4 w-1 shrink-0 rounded-full bg-[#B98A3E]" />
+
+                  <span
+                    className="
+                      whitespace-nowrap
+                      text-[10.5px]
+                      font-bold
+                      leading-none
+                      tracking-wide
+                      text-[#12203B]
+                    "
+                  >
+                    Student Self Service Portal
+                  </span>
+
+                  <span className="text-[#9CA39A]">
+                    •
+                  </span>
+
+                  <span
+                    className="
+                      hidden
+                      text-[10.5px]
+                      font-medium
+                      leading-none
+                      text-[#6B7268]
+                      md:inline
+                    "
+                  >
+                    All education in one place
+                  </span>
+                </div>
+
+                <p
+                  className="
+                    min-w-0
+                    truncate
+                    text-right
+                    text-[10px]
+                    font-medium
+                    leading-normal
+                    tracking-wide
+                    text-[#6B7268]
+                  "
+                >
+                  Centralized platform for BYU-Idaho courses,
+                  progress tracking, and the SELFLESS Tech Network.
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ======================================================
             MOBILE DRAWER
         ====================================================== */}
-        <div
-          id="mobile-nav-drawer"
-          ref={drawerRef}
-          className={`
-            absolute
-            inset-x-0
-            top-full
-            z-[55]
-            border-b
-            border-[#DADCD3]
-            bg-[#F1F1EC]
-            px-4
-            py-6
-            shadow-[0_20px_45px_rgba(0,0,0,0.08)]
-            transition-all
-            duration-300
-            motion-reduce:transition-none
-            lg:hidden
-            ${
-              mobileOpen
-                ? "visible translate-y-0 opacity-100"
-                : "pointer-events-none invisible -translate-y-2 opacity-0"
-            }
-          `}
-        >
-          <div className="mx-auto max-w-md space-y-5">
-            {/* Mobile introduction */}
-            <div
+        <AnimatePresence initial={false}>
+          {mobileOpen && (
+            <motion.div
+              id="mobile-nav-drawer"
+              ref={drawerRef}
+              initial={
+                prefersReducedMotion
+                  ? false
+                  : {
+                      opacity: 0,
+                      y: -8,
+                    }
+              }
+              animate={{
+                opacity: 1,
+                y: 0,
+              }}
+              exit={
+                prefersReducedMotion
+                  ? undefined
+                  : {
+                      opacity: 0,
+                      y: -8,
+                    }
+              }
+              transition={{
+                duration: prefersReducedMotion ? 0 : 0.25,
+                ease: [0.22, 1, 0.36, 1] as const,
+              }}
               className="
-                rounded-xl
-                border
+                absolute
+                inset-x-0
+                top-full
+                z-[55]
+                border-b
                 border-[#DADCD3]
-                bg-white
-                p-4
-                shadow-sm
+                bg-[#F1F1EC]
+                px-4
+                py-4
+                shadow-[0_18px_40px_rgba(18,32,59,0.09)]
+                lg:hidden
               "
             >
-              <div className="mb-1.5 flex items-center gap-2.5">
-                <span className="h-4 w-1 rounded-full bg-[#B98A3E]" />
-
-                <p
+              <div className="mx-auto max-w-md">
+                {/* Mobile introduction */}
+                <div
                   className="
-                    text-[12px]
-                    font-bold
-                    leading-none
-                    tracking-wide
-                    text-[#12203B]
+                    mb-4
+                    border-b
+                    border-[#DADCD3]
+                    pb-4
                   "
                 >
-                  Student Self Service Portal
-                </p>
+                  <div className="flex items-center gap-2.5">
+                    <span className="h-4 w-1 rounded-full bg-[#B98A3E]" />
+
+                    <p
+                      className="
+                        text-[11.5px]
+                        font-bold
+                        leading-none
+                        tracking-wide
+                        text-[#12203B]
+                      "
+                    >
+                      Student Self Service Portal
+                    </p>
+                  </div>
+
+                  <p
+                    className="
+                      mt-2
+                      pl-3.5
+                      text-[10.5px]
+                      font-medium
+                      leading-relaxed
+                      text-[#6B7268]
+                    "
+                  >
+                    Manage your BYU-Idaho courses and tech center
+                    connectivity from one place.
+                  </p>
+                </div>
+
+                {/* Mobile navigation */}
+                <nav
+                  className="space-y-1"
+                  aria-label="Mobile navigation"
+                >
+                  {navItems.map((item, index) => {
+                    const active = isActive(item.href);
+
+                    return (
+                      <motion.div
+                        key={item.href}
+                        custom={index}
+                        variants={mobileItemMotion}
+                        initial="hidden"
+                        animate="visible"
+                      >
+                        <Link
+                          href={item.href}
+                          aria-current={active ? "page" : undefined}
+                          onClick={closeMobileMenu}
+                          className={`
+                            group
+                            flex
+                            items-center
+                            justify-between
+                            rounded-lg
+                            px-3.5
+                            py-3
+                            text-[12.5px]
+                            font-semibold
+                            leading-none
+                            tracking-wide
+                            transition-all
+                            duration-200
+                            ${
+                              active
+                                ? "bg-[#B98A3E]/10 text-[#12203B]"
+                                : "text-[#4B564C] hover:bg-[#E8E8E0] hover:text-[#12203B]"
+                            }
+                          `}
+                        >
+                          <span className="flex items-center gap-3">
+                            <span
+                              className={`
+                                h-1.5
+                                w-1.5
+                                shrink-0
+                                rounded-full
+                                transition-transform
+                                duration-200
+                                group-hover:scale-125
+                                ${
+                                  active
+                                    ? "bg-[#B98A3E]"
+                                    : "bg-[#9CA39A]"
+                                }
+                              `}
+                            />
+
+                            {item.label}
+                          </span>
+
+                          <ArrowUpRight
+                            size={14}
+                            className={`
+                              transition-transform
+                              duration-200
+                              group-hover:-translate-y-0.5
+                              group-hover:translate-x-0.5
+                              ${
+                                active
+                                  ? "text-[#B98A3E]"
+                                  : "text-[#9CA39A]"
+                              }
+                            `}
+                          />
+                        </Link>
+                      </motion.div>
+                    );
+                  })}
+                </nav>
+
+                {/* Divider */}
+                <div className="my-4 h-px bg-[#DADCD3]" />
+
+                {/* Mobile actions */}
+                <motion.div
+                  initial={
+                    prefersReducedMotion
+                      ? false
+                      : {
+                          opacity: 0,
+                          y: 6,
+                        }
+                  }
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                  }}
+                  transition={{
+                    delay: prefersReducedMotion ? 0 : 0.2,
+                    duration: prefersReducedMotion ? 0 : 0.3,
+                  }}
+                  className="grid grid-cols-2 gap-2.5"
+                >
+                  {isAuthenticated ? (
+                    <Link
+                      href="/dashboard"
+                      onClick={closeMobileMenu}
+                      className="
+                        col-span-2
+                        flex
+                        items-center
+                        justify-center
+                        gap-2
+                        rounded-lg
+                        bg-[#12203B]
+                        py-3
+                        text-[12px]
+                        font-bold
+                        leading-none
+                        tracking-wide
+                        text-white
+                        shadow-sm
+                        transition-all
+                        duration-200
+                        hover:bg-[#1A2D4A]
+                        active:scale-[0.99]
+                      "
+                    >
+                      <LayoutDashboard size={15} />
+
+                      <span>Dashboard</span>
+
+                      <ArrowUpRight size={14} />
+                    </Link>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => openAuthModal("login")}
+                        className="
+                          flex
+                          items-center
+                          justify-center
+                          gap-2
+                          rounded-lg
+                          border
+                          border-[#DADCD3]
+                          bg-white
+                          py-3
+                          text-[12px]
+                          font-semibold
+                          leading-none
+                          tracking-wide
+                          text-[#4B564C]
+                          shadow-sm
+                          transition-all
+                          duration-200
+                          hover:border-[#B98A3E]/50
+                          hover:text-[#12203B]
+                          active:scale-[0.99]
+                        "
+                      >
+                        <LogIn size={15} />
+
+                        <span>Login</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => openAuthModal("register")}
+                        className="
+                          flex
+                          items-center
+                          justify-center
+                          gap-2
+                          rounded-lg
+                          bg-[#B98A3E]
+                          py-3
+                          text-[12px]
+                          font-bold
+                          leading-none
+                          tracking-wide
+                          text-white
+                          shadow-sm
+                          transition-all
+                          duration-200
+                          hover:bg-[#A07830]
+                          active:scale-[0.99]
+                        "
+                      >
+                        <GraduationCap size={15} />
+
+                        <span>Get Started</span>
+                      </button>
+                    </>
+                  )}
+                </motion.div>
               </div>
-
-              <p
-                className="
-                  pl-3.5
-                  text-[11px]
-                  font-medium
-                  leading-relaxed
-                  text-[#6B7268]
-                "
-              >
-                Manage your BYU-Idaho courses and tech center
-                connectivity seamlessly.
-              </p>
-            </div>
-
-            {/* Mobile navigation */}
-            <nav
-              className="space-y-1"
-              aria-label="Mobile navigation"
-            >
-              {navItems.map((item, i) => {
-                const active = isActive(item.href);
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    onClick={() => setOpenPathname(null)}
-                    style={{
-                      transitionDelay: mobileOpen
-                        ? `${60 + i * 40}ms`
-                        : "0ms",
-                    }}
-                    className={`
-                      flex
-                      items-center
-                      justify-between
-                      rounded-xl
-                      px-4
-                      py-3.5
-                      text-[13px]
-                      font-semibold
-                      leading-none
-                      tracking-wide
-                      transition-all
-                      duration-300
-                      motion-reduce:transition-none
-                      ${
-                        mobileOpen
-                          ? "translate-y-0 opacity-100"
-                          : "translate-y-1 opacity-0"
-                      }
-                      ${
-                        active
-                          ? "border border-[#B98A3E]/30 bg-[#B98A3E]/10 text-[#12203B]"
-                          : "text-[#4B564C] hover:bg-[#E8E8E0] hover:text-[#12203B]"
-                      }
-                    `}
-                  >
-                    <span className="flex items-center gap-3">
-                      <span
-                        className={`
-                          h-1.5
-                          w-1.5
-                          shrink-0
-                          rounded-full
-                          ${
-                            active
-                              ? "bg-[#B98A3E]"
-                              : "bg-[#9CA39A]"
-                          }
-                        `}
-                      />
-
-                      {item.label}
-                    </span>
-
-                    <ArrowUpRight
-                      size={15}
-                      className={
-                        active
-                          ? "text-[#B98A3E]"
-                          : "text-[#9CA39A]"
-                      }
-                    />
-                  </Link>
-                );
-              })}
-            </nav>
-
-            <div className="h-px bg-[#DADCD3]" />
-
-            {/* Mobile actions */}
-            <div className="grid grid-cols-2 gap-3">
-              {isAuthenticated ? (
-                <Link
-                  href="/dashboard"
-                  onClick={() => setOpenPathname(null)}
-                  className="
-                    col-span-2
-                    flex
-                    items-center
-                    justify-center
-                    gap-2
-                    rounded-xl
-                    bg-[#12203B]
-                    py-3.5
-                    text-[13px]
-                    font-bold
-                    leading-none
-                    tracking-wide
-                    text-white
-                    shadow-sm
-                    active:scale-[0.99]
-                  "
-                >
-                  <LayoutDashboard size={17} />
-
-                  <span>Dashboard</span>
-
-                  <ArrowUpRight size={15} />
-                </Link>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => openAuthModal("login")}
-                    className="
-                      flex
-                      items-center
-                      justify-center
-                      gap-2
-                      rounded-xl
-                      border
-                      border-[#DADCD3]
-                      bg-white
-                      py-3.5
-                      text-[13px]
-                      font-semibold
-                      leading-none
-                      tracking-wide
-                      text-[#4B564C]
-                      shadow-sm
-                      transition-colors
-                      hover:border-[#B98A3E]/50
-                      hover:text-[#12203B]
-                      active:scale-[0.99]
-                    "
-                  >
-                    <LogIn size={16} />
-
-                    <span>Login</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => openAuthModal("register")}
-                    className="
-                      flex
-                      items-center
-                      justify-center
-                      gap-2
-                      rounded-xl
-                      bg-[#B98A3E]
-                      py-3.5
-                      text-[13px]
-                      font-bold
-                      leading-none
-                      tracking-wide
-                      text-white
-                      shadow-sm
-                      active:scale-[0.99]
-                    "
-                  >
-                    <Sparkles size={16} />
-
-                    <span>Get Started</span>
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       {/* ========================================================
