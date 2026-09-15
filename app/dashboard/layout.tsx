@@ -179,10 +179,10 @@ const sharedNavigation: NavSection[] = [
       },
       {
         id: 'grades',
-        label: 'Grades',
+        label: 'My Grades',
         path: '/dashboard/grades',
         icon: <BarChart3 className={iconClass} />,
-        roles: NON_SUPER_ADMIN_ROLES,
+        roles: ALL_ROLES,
       },
 
       // --------------------------------------------------------
@@ -341,6 +341,13 @@ const adminNavigation: NavSection = {
       roles: ['admin'],
     },
     {
+      id: 'assign-grades',
+      label: 'Assign Grades',
+      path: '/dashboard/teacher/grades',
+      icon: <Award className={iconClass} />,
+      roles: ['admin'],
+    },
+    {
       id: 'manage-tuition',
       label: 'Tuition',
       path: '/dashboard/admin/tuition',
@@ -381,7 +388,7 @@ const teacherNavigation: NavSection = {
     },
     {
       id: 'assign-grades',
-      label: 'Grades',
+      label: 'Assign Grades',
       path: '/dashboard/teacher/grades',
       icon: <Award className={iconClass} />,
       roles: ['teacher'],
@@ -718,8 +725,8 @@ function getPageInfo(pathname: string) {
     },
 
     '/dashboard/teacher/grades': {
-      title: 'Grades',
-      section: 'Tutoring',
+      title: 'Assign Grades',
+      section: 'Administration',
     },
 
     '/dashboard/profile': {
