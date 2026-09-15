@@ -58,6 +58,17 @@ interface TechCenter {
 type Router = ReturnType<typeof useRouter>;
 
 // ============================================================
+// SORT HELPER — Alphabetical by full name (A → Z)
+// ============================================================
+
+const sortStudentsByName = (students: Student[]): Student[] =>
+  [...students].sort((a, b) => {
+    const nameA = `${a.firstName} ${a.lastName}`.trim().toLowerCase();
+    const nameB = `${b.firstName} ${b.lastName}`.trim().toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
+
+// ============================================================
 // SMALL STAT
 // ============================================================
 
@@ -493,41 +504,62 @@ const StudentSection = ({
   title,
   students,
   router,
+  collapsible = false,
+  onViewAll,
 }: {
   title: string;
   students: Student[];
   router: Router;
+  collapsible?: boolean;
+  onViewAll?: () => void;
 }) => {
   if (students.length === 0) return null;
+
+  const previewCount = 3;
+  const hasMore = collapsible && students.length > previewCount;
+  const visibleStudents = hasMore
+    ? students.slice(0, previewCount)
+    : students;
 
   return (
     <section className="mb-7">
       {/* SECTION HEADING */}
 
-      <header className="mb-3 flex items-center justify-between gap-3">
+      <header className="mb-3 flex items-center justify-between gap-3 flex-wrap">
         <div className="min-w-0 flex items-center gap-2">
           <span className="h-4 w-[3px] bg-[#B98A3E] shrink-0 rounded-full" />
 
           <h2 className="text-[15px] font-semibold tracking-tight text-[#12203B] truncate">
             {title}
           </h2>
+
+          <div className="shrink-0 flex items-center gap-1.5 bg-white px-2.5 py-1 border border-[#DADCD3] rounded">
+            <span className="font-mono text-[11px] font-semibold text-[#12203B] tabular-nums">
+              {students.length}
+            </span>
+
+            <span className="font-mono text-[8px] uppercase tracking-wider text-[#8A9088]">
+              students
+            </span>
+          </div>
         </div>
 
-        <div className="shrink-0 flex items-center gap-1.5 bg-white px-3 py-1.5 border border-[#DADCD3] rounded">
-          <span className="font-mono text-[12px] font-semibold text-[#12203B] tabular-nums">
-            {students.length}
-          </span>
-
-          <span className="font-mono text-[9px] uppercase tracking-wider text-[#8A9088]">
-            students
-          </span>
-        </div>
+        {hasMore && (
+          <button
+            type="button"
+            onClick={onViewAll}
+            className="shrink-0 inline-flex items-center gap-1.5 h-8 px-3 border border-[#DADCD3] bg-white text-[11px] font-semibold text-[#12203B] rounded hover:border-[#B98A3E] hover:bg-[#F7F6F2] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] focus-visible:ring-offset-1"
+          >
+            View All ({students.length})
+            <ChevronRight className="w-3.5 h-3.5" strokeWidth={2.5} />
+          </button>
+        )}
       </header>
 
       {/* CARDS */}
 
       <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-        {students.map((student, index) => (
+        {visibleStudents.map((student, index) => (
           <StudentCard
             key={student.id}
             student={student}
@@ -536,6 +568,21 @@ const StudentSection = ({
           />
         ))}
       </div>
+
+      {/* BOTTOM "VIEW ALL" PROMPT */}
+
+      {hasMore && (
+        <div className="mt-3 flex justify-center">
+          <button
+            type="button"
+            onClick={onViewAll}
+            className="inline-flex items-center gap-1.5 h-9 px-4 border border-[#DADCD3] bg-white text-[11px] font-semibold text-[#12203B] rounded hover:border-[#B98A3E] hover:bg-[#F7F6F2] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] focus-visible:ring-offset-1"
+          >
+            View all {students.length} students from {title}
+            <ChevronRight className="w-3.5 h-3.5" strokeWidth={2.5} />
+          </button>
+        </div>
+      )}
     </section>
   );
 };
@@ -655,6 +702,7 @@ export default function StudentsPage() {
     gcTime: 10 * 60 * 1000,
   });
 
+  // ✅ Original — show ALL students (active + inactive)
   const studentsByTechCenter = data?.studentsByTechCenter || {};
   const techCenters = data?.techCenters || [];
   const totalStudents = data?.totalStudents || 0;
@@ -699,17 +747,23 @@ export default function StudentsPage() {
     return filtered;
   };
 
-  const filteredAllStudents = filterStudents(allStudents);
+  // Sort A → Z after filtering
+  const filteredAllStudents = sortStudentsByName(
+    filterStudents(allStudents)
+  );
 
   const getLocationCount = (locationId: string) =>
     allStudents.filter(
       (student) => student.techCenter?.id === locationId
     ).length;
 
-  const locations = techCenters.map((center) => ({
-    ...center,
-    _count: { students: getLocationCount(center.id) },
-  }));
+  // Sort tech center chips A → Z by name
+  const locations = [...techCenters]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((center) => ({
+      ...center,
+      _count: { students: getLocationCount(center.id) },
+    }));
 
   const clearFilter = () => {
     setSelectedLocation('all');
@@ -807,8 +861,6 @@ export default function StudentsPage() {
         <header className="pt-5 sm:pt-6 pb-3">
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3">
             <div className="min-w-0">
-              {/* SMALL NAV */}
-
               <div className="flex flex-wrap items-center gap-1.5 mb-3">
                 <Link
                   href="/dashboard"
@@ -954,11 +1006,20 @@ export default function StudentsPage() {
 
           {hasStudents && !hasActiveFilters && (
             <>
-              {Object.entries(studentsByTechCenter).map(
-                ([locationName, students]) => {
-                  const studentList = students as Student[];
+              {Object.entries(studentsByTechCenter)
+                .sort(([nameA], [nameB]) =>
+                  nameA.localeCompare(nameB)
+                )
+                .map(([locationName, students]) => {
+                  const studentList = sortStudentsByName(
+                    students as Student[]
+                  );
 
                   if (studentList.length === 0) return null;
+
+                  const techCenter = techCenters.find(
+                    (tc) => tc.name === locationName
+                  );
 
                   return (
                     <StudentSection
@@ -966,10 +1027,16 @@ export default function StudentsPage() {
                       title={locationName}
                       students={studentList}
                       router={router}
+                      collapsible
+                      onViewAll={() => {
+                        if (techCenter) {
+                          setSelectedLocation(techCenter.id);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }
+                      }}
                     />
                   );
-                }
-              )}
+                })}
             </>
           )}
 

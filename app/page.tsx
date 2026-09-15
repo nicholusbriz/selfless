@@ -117,116 +117,119 @@ const heroImages = [
 ========================================================= */
 
 const reveal: Variants = {
-  hidden: {
-    opacity: 0,
-    y: 18,
-  },
+  hidden: { opacity: 0, y: 18 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: {
-      duration: 0.65,
-      ease: [0.22, 1, 0.36, 1],
-    },
+    transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] },
   },
 };
 
 const revealLeft: Variants = {
-  hidden: {
-    opacity: 0,
-    x: -20,
-  },
+  hidden: { opacity: 0, x: -20 },
   visible: {
     opacity: 1,
     x: 0,
-    transition: {
-      duration: 0.7,
-      ease: [0.22, 1, 0.36, 1],
-    },
+    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
   },
 };
 
 const revealRight: Variants = {
-  hidden: {
-    opacity: 0,
-    x: 20,
-  },
+  hidden: { opacity: 0, x: 20 },
   visible: {
     opacity: 1,
     x: 0,
-    transition: {
-      duration: 0.7,
-      ease: [0.22, 1, 0.36, 1],
-    },
+    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
   },
 };
 
 const staggerContainer: Variants = {
   hidden: {},
   visible: {
-    transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.04,
-    },
+    transition: { staggerChildren: 0.08, delayChildren: 0.04 },
   },
 };
 
 const heroContent: Variants = {
-  initial: {
-    opacity: 0,
-    y: 14,
-    filter: "blur(3px)",
-  },
+  initial: { opacity: 0, y: 14, filter: "blur(3px)" },
   animate: {
     opacity: 1,
     y: 0,
     filter: "blur(0px)",
-    transition: {
-      duration: 0.65,
-      ease: [0.22, 1, 0.36, 1],
-    },
+    transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] },
   },
   exit: {
     opacity: 0,
     y: -8,
     filter: "blur(2px)",
-    transition: {
-      duration: 0.28,
-      ease: "easeIn",
-    },
+    transition: { duration: 0.28, ease: "easeIn" },
   },
 };
 
 const journeyReveal: Variants = {
-  hidden: {
-    opacity: 0,
-    x: 16,
-  },
+  hidden: { opacity: 0, x: 16 },
   visible: {
     opacity: 1,
     x: 0,
-    transition: {
-      duration: 0.55,
-      ease: [0.22, 1, 0.36, 1],
-    },
+    transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
   },
 };
 
 const imageReveal: Variants = {
-  hidden: {
-    opacity: 0,
-    scale: 0.975,
-    x: -18,
-  },
+  hidden: { opacity: 0, scale: 0.975, x: -18 },
   visible: {
     opacity: 1,
     scale: 1,
     x: 0,
+    transition: { duration: 0.9, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
+/* =========================================================
+   3D HERO IMAGE STACK VARIANTS
+========================================================= */
+
+const heroImageVariants: Variants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? "60%" : "-60%",
+    z: -400,
+    rotateY: direction > 0 ? -55 : 55,
+    scale: 0.75,
+    opacity: 0,
+    filter: "blur(12px)",
+  }),
+  center: {
+    x: "0%",
+    z: 0,
+    rotateY: 0,
+    scale: 1,
+    opacity: 1,
+    filter: "blur(0px)",
     transition: {
-      duration: 0.9,
+      duration: 0.95,
       ease: [0.22, 1, 0.36, 1],
+      opacity: { duration: 0.5 },
+      filter: { duration: 0.6 },
     },
   },
+  exit: (direction: number) => ({
+    x: direction > 0 ? "-60%" : "60%",
+    z: -400,
+    rotateY: direction > 0 ? 55 : -55,
+    scale: 0.75,
+    opacity: 0,
+    filter: "blur(12px)",
+    transition: {
+      duration: 0.7,
+      ease: [0.22, 1, 0.36, 1],
+    },
+  }),
+};
+
+const reducedHeroImageVariants: Variants = {
+  enter: { opacity: 0 },
+  center: { opacity: 1, transition: { duration: 0.35 } },
+  exit: { opacity: 0, transition: { duration: 0.25 } },
 };
 
 /* =========================================================
@@ -236,6 +239,7 @@ const imageReveal: Variants = {
 export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [heroImageIndex, setHeroImageIndex] = useState(0);
+  const [heroDirection, setHeroDirection] = useState(1);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalType, setAuthModalType] = useState<"login" | "register">(
     "login"
@@ -246,15 +250,6 @@ export default function HomePage() {
   const prefersReducedMotion = useReducedMotion();
 
   const heroImage = heroImages[heroImageIndex];
-
-  // Debug logging for development
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Current hero image index:', heroImageIndex);
-      console.log('Current hero image:', heroImage.src);
-      console.log('Images with errors:', Array.from(imageLoadErrors));
-    }
-  }, [heroImageIndex, imageLoadErrors]);
 
   /* =========================================================
      LOADING
@@ -278,13 +273,12 @@ export default function HomePage() {
   ========================================================= */
 
   useEffect(() => {
-    // Preload images using a more reliable approach
     const preloadImages = async () => {
       const imagePromises = heroImages.map((image) => {
         return new Promise<void>((resolve) => {
           const img = new window.Image();
           img.onload = () => resolve();
-          img.onerror = () => resolve(); // Resolve even on error to continue
+          img.onerror = () => resolve();
           img.src = image.src;
         });
       });
@@ -292,12 +286,11 @@ export default function HomePage() {
       try {
         await Promise.all(imagePromises);
       } catch (error) {
-        console.warn('Some images failed to preload:', error);
+        console.warn("Some images failed to preload:", error);
       }
     };
 
-    // Only preload on client side
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       preloadImages();
     }
   }, []);
@@ -307,22 +300,22 @@ export default function HomePage() {
   ========================================================= */
 
   useEffect(() => {
-    // Ensure we're on client side before setting interval
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
     const interval = window.setInterval(() => {
-      setHeroImageIndex(
-        (currentIndex) => {
-          let nextIndex = (currentIndex + 1) % heroImages.length;
-          // Skip images that have failed to load
-          let attempts = 0;
-          while (imageLoadErrors.has(nextIndex) && attempts < heroImages.length) {
-            nextIndex = (nextIndex + 1) % heroImages.length;
-            attempts++;
-          }
-          return nextIndex;
+      setHeroDirection(1);
+      setHeroImageIndex((currentIndex) => {
+        let nextIndex = (currentIndex + 1) % heroImages.length;
+        let attempts = 0;
+        while (
+          imageLoadErrors.has(nextIndex) &&
+          attempts < heroImages.length
+        ) {
+          nextIndex = (nextIndex + 1) % heroImages.length;
+          attempts++;
         }
-      );
+        return nextIndex;
+      });
     }, 10000);
 
     return () => window.clearInterval(interval);
@@ -333,6 +326,7 @@ export default function HomePage() {
   ========================================================= */
 
   const showPreviousHeroImage = () => {
+    setHeroDirection(-1);
     setHeroImageIndex(
       (currentIndex) =>
         (currentIndex - 1 + heroImages.length) % heroImages.length
@@ -340,18 +334,24 @@ export default function HomePage() {
   };
 
   const showNextHeroImage = () => {
-    setHeroImageIndex(
-      (currentIndex) => {
-        let nextIndex = (currentIndex + 1) % heroImages.length;
-        // Skip images that have failed to load
-        let attempts = 0;
-        while (imageLoadErrors.has(nextIndex) && attempts < heroImages.length) {
-          nextIndex = (nextIndex + 1) % heroImages.length;
-          attempts++;
-        }
-        return nextIndex;
+    setHeroDirection(1);
+    setHeroImageIndex((currentIndex) => {
+      let nextIndex = (currentIndex + 1) % heroImages.length;
+      let attempts = 0;
+      while (
+        imageLoadErrors.has(nextIndex) &&
+        attempts < heroImages.length
+      ) {
+        nextIndex = (nextIndex + 1) % heroImages.length;
+        attempts++;
       }
-    );
+      return nextIndex;
+    });
+  };
+
+  const goToHeroImage = (index: number) => {
+    setHeroDirection(index > heroImageIndex ? 1 : -1);
+    setHeroImageIndex(index);
   };
 
   return (
@@ -363,101 +363,72 @@ export default function HomePage() {
       <main
         id="main"
         className="transition-opacity duration-700"
-        style={{
-          opacity: isLoading ? 0 : 1,
-        }}
+        style={{ opacity: isLoading ? 0 : 1 }}
       >
         {/* =====================================================
             HERO
         ====================================================== */}
 
         <section className="relative isolate w-full overflow-hidden bg-[#12203B] lg:min-h-screen">
+          {/* Ambient background depth layers */}
+          <div
+            className="pointer-events-none absolute inset-0 z-0"
+            aria-hidden="true"
+          >
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_40%,rgba(232,163,61,0.10),transparent_55%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(18,32,59,0.9),transparent_60%)]" />
+          </div>
+
           {/* ===================================================
               MOBILE HERO
           =================================================== */}
 
           <div className="flex flex-col lg:hidden">
-            {/* IMAGE */}
-            <div className="relative h-[43vh] min-h-[285px] w-full overflow-hidden">
-              <div className="absolute inset-0 overflow-hidden">
-                <AnimatePresence initial={false} mode="sync">
-                  <motion.div
-                    key={heroImage.src}
-                    initial={
-                      prefersReducedMotion
-                        ? { opacity: 0 }
-                        : {
-                            opacity: 0,
-                            scale: 1.035,
-                            x: 18,
-                          }
-                    }
-                    animate={
-                      prefersReducedMotion
-                        ? { opacity: 1 }
-                        : {
-                            opacity: 1,
-                            scale: [1.035, 1.018, 1],
-                            x: [18, 8, 0],
-                          }
-                    }
-                    exit={
-                      prefersReducedMotion
-                        ? { opacity: 0 }
-                        : {
-                            opacity: 0,
-                            scale: 1.015,
-                            x: -10,
-                          }
-                    }
-                    transition={
-                      prefersReducedMotion
-                        ? {
-                            duration: 0.25,
-                          }
-                        : {
-                            opacity: {
-                              duration: 0.9,
-                              ease: "easeInOut",
-                            },
-                            scale: {
-                              duration: 1.8,
-                              ease: [0.22, 1, 0.36, 1],
-                            },
-                            x: {
-                              duration: 1.8,
-                              ease: [0.22, 1, 0.36, 1],
-                            },
-                          }
-                    }
-                    className="absolute inset-0"
-                  >
-                    <Image
-                      src={heroImage.src}
-                      alt={heroImage.alt}
-                      fill
-                      sizes="100vw"
-                      className="object-cover object-center"
-                      priority={heroImageIndex === 0}
-                      quality={90}
-                      unoptimized={false}
-                      onError={() => {
-                        setImageLoadErrors(prev => new Set(prev).add(heroImageIndex));
-                      }}
-                    />
+            {/* 3D IMAGE STAGE */}
+            <div
+              className="relative h-[43vh] min-h-[285px] w-full overflow-hidden"
+              style={{ perspective: "1400px" }}
+            >
+              <AnimatePresence initial={false} custom={heroDirection} mode="wait">
+                <motion.div
+                  key={heroImage.src}
+                  custom={heroDirection}
+                  variants={
+                    prefersReducedMotion
+                      ? reducedHeroImageVariants
+                      : heroImageVariants
+                  }
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  className="absolute inset-0 origin-center will-change-transform"
+                  style={{ transformStyle: "preserve-3d" }}
+                >
+                  <Image
+                    src={heroImage.src}
+                    alt={heroImage.alt}
+                    fill
+                    sizes="100vw"
+                    className="object-cover object-center"
+                    priority={heroImageIndex === 0}
+                    quality={90}
+                    onError={() => {
+                      setImageLoadErrors((prev) =>
+                        new Set(prev).add(heroImageIndex)
+                      );
+                    }}
+                  />
 
-                    <div className="absolute inset-0 bg-[#12203B]/10" />
-                  </motion.div>
-                </AnimatePresence>
-              </div>
+                  <div className="absolute inset-0 bg-[#12203B]/10" />
+                </motion.div>
+              </AnimatePresence>
 
               {/* Bottom transition */}
               <div
                 className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-16"
                 style={{
                   background: "#12203B",
-                  clipPath:
-                    "polygon(0 100%, 100% 0, 100% 100%, 0 100%)",
+                  clipPath: "polygon(0 100%, 100% 0, 100% 100%, 0 100%)",
                 }}
               />
 
@@ -477,22 +448,17 @@ export default function HomePage() {
                     <button
                       key={image.src}
                       type="button"
-                      onClick={() => setHeroImageIndex(index)}
+                      onClick={() => goToHeroImage(index)}
                       aria-label={`Show slide ${index + 1}`}
                       className="relative h-4 w-6"
                     >
                       <span className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-white/25" />
-
                       <motion.span
                         initial={false}
                         animate={{
-                          width:
-                            index === heroImageIndex ? "100%" : "0%",
+                          width: index === heroImageIndex ? "100%" : "0%",
                         }}
-                        transition={{
-                          duration: 0.4,
-                          ease: [0.22, 1, 0.36, 1],
-                        }}
+                        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                         className="absolute left-0 top-1/2 h-[2px] -translate-y-1/2 bg-[#E8A33D]"
                       />
                     </button>
@@ -518,7 +484,6 @@ export default function HomePage() {
               className="relative z-20 bg-[#12203B] px-6 pb-10 pt-4"
             >
               <div className="mx-auto max-w-md text-center">
-                {/* Eyebrow */}
                 <AnimatePresence initial={false} mode="wait">
                   <motion.div
                     key={`mobile-eyebrow-${heroImage.src}`}
@@ -533,7 +498,6 @@ export default function HomePage() {
                   </motion.div>
                 </AnimatePresence>
 
-                {/* Title */}
                 <AnimatePresence initial={false} mode="wait">
                   <motion.h1
                     key={`mobile-title-${heroImage.src}`}
@@ -558,7 +522,6 @@ export default function HomePage() {
                   </motion.h1>
                 </AnimatePresence>
 
-                {/* Description */}
                 <AnimatePresence initial={false} mode="wait">
                   <motion.p
                     key={`mobile-description-${heroImage.src}`}
@@ -572,43 +535,44 @@ export default function HomePage() {
                   </motion.p>
                 </AnimatePresence>
 
-                {/* CTA */}
+                {/* ===== ENHANCED MOBILE BUTTON PAIR ===== */}
                 <motion.div
                   variants={reveal}
                   className="mt-7 flex flex-col gap-3"
                 >
-                  <Link
-                    href="/features"
-                    className="group relative inline-flex w-full items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-[#E8A33D] to-[#D69528] px-5 py-3.5 text-[14px] font-bold tracking-wide text-[#12203B] shadow-[0_4px_14px_rgba(232,163,61,0.4)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(232,163,61,0.5)] hover:from-[#F2B359] hover:to-[#E8A33D] active:translate-y-0"
-                  >
-                    <span>Explore Portal Features</span>
-                    <ArrowRight
-                      size={15}
-                      className="transition-transform duration-300 group-hover:translate-x-1"
-                    />
-                  </Link>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <Link
+                      href="/features"
+                      className="group inline-flex h-12 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#E8A33D] to-[#D69528] px-3 text-[12.5px] font-bold tracking-wide text-[#12203B] shadow-[0_4px_14px_rgba(232,163,61,0.32)] transition-all duration-300 hover:-translate-y-0.5 hover:from-[#F2B359] hover:to-[#E8A33D] hover:shadow-[0_6px_20px_rgba(232,163,61,0.42)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A33D]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#12203B]"
+                    >
+                      <span className="truncate">Explore Features</span>
+                      <ArrowRight
+                        size={14}
+                        className="shrink-0 transition-transform duration-300 group-hover:translate-x-1"
+                      />
+                    </Link>
 
-                  <Link
-                    href="/tech-centers"
-                    className="group inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-white/20 bg-white/[0.08] px-5 py-3.5 text-[13px] font-bold tracking-wide text-white shadow-[0_2px_8px_rgba(0,0,0,0.2)] backdrop-blur-sm transition-all duration-300 hover:border-white/35 hover:bg-white/[0.12] hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 active:translate-y-0"
-                  >
-                    <Building2 size={15} />
-                    <span>View Tech Centers</span>
-                  </Link>
+                    <Link
+                      href="/tech-centers"
+                      className="group inline-flex h-12 items-center justify-center gap-1.5 rounded-xl border border-white/20 bg-white/[0.06] px-3 text-[12.5px] font-bold tracking-wide text-white backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-white/40 hover:bg-white/[0.12] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#12203B]"
+                    >
+                      <Building2 size={14} className="shrink-0" />
+                      <span className="truncate">Tech Centers</span>
+                    </Link>
+                  </div>
 
                   <Link
                     href="/about"
-                    className="group inline-flex items-center justify-center gap-3 py-1 text-[13px] font-semibold text-white/65 transition-colors hover:text-[#E8A33D]"
+                    className="group mx-auto inline-flex items-center gap-2.5 py-1 text-[12.5px] font-semibold text-white/65 transition-colors hover:text-[#E8A33D]"
                   >
                     <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-[#E8A33D] shadow-[0_2px_6px_rgba(0,0,0,0.15)] transition-all duration-300 group-hover:bg-[#E8A33D] group-hover:text-[#12203B] group-hover:shadow-[0_4px_10px_rgba(232,163,61,0.4)]">
                       <Play size={10} fill="currentColor" />
                     </span>
-
                     <span>Why Choose SELFLESS CE?</span>
                   </Link>
                 </motion.div>
 
-                {/* AUTH */}
+                {/* ===== ENHANCED MOBILE AUTH ===== */}
                 <motion.div
                   variants={reveal}
                   className="mt-7 border-t border-white/10 pt-5"
@@ -616,27 +580,26 @@ export default function HomePage() {
                   {isAuthenticated ? (
                     <Link
                       href="/dashboard"
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/[0.08] px-5 py-3 text-[13px] font-bold text-white shadow-[0_2px_8px_rgba(0,0,0,0.2)] backdrop-blur-sm transition-all duration-300 hover:bg-white/[0.12] hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 active:translate-y-0"
+                      className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/[0.06] px-5 text-[13px] font-bold text-white backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-white/35 hover:bg-white/[0.12] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                     >
                       <LayoutDashboard size={16} />
                       Go to Dashboard
                     </Link>
                   ) : (
-                    <div className="flex flex-col items-center gap-2.5 text-center">
+                    <div className="grid grid-cols-2 gap-2.5">
                       <button
                         type="button"
                         onClick={() => openAuthModal("login")}
-                        className="text-[13px] font-semibold text-white/65 underline decoration-white/20 underline-offset-4 transition-colors hover:text-white hover:decoration-white/40"
+                        className="inline-flex h-12 items-center justify-center rounded-xl border border-white/20 bg-white/[0.06] px-4 text-[12.5px] font-bold tracking-wide text-white backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-white/35 hover:bg-white/[0.12] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                       >
-                        Log in to your portal
+                        Log In
                       </button>
-
                       <button
                         type="button"
                         onClick={() => openAuthModal("register")}
-                        className="text-[13px] font-semibold text-[#E8A33D] transition-colors hover:text-[#F2B359]"
+                        className="inline-flex h-12 items-center justify-center rounded-xl border border-[#E8A33D]/45 bg-[#E8A33D]/12 px-4 text-[12.5px] font-bold tracking-wide text-[#E8A33D] backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-[#E8A33D]/70 hover:bg-[#E8A33D]/20 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A33D]/60"
                       >
-                        Create an account
+                        Create Account
                       </button>
                     </div>
                   )}
@@ -646,96 +609,119 @@ export default function HomePage() {
           </div>
 
           {/* ===================================================
-              DESKTOP HERO
+              DESKTOP HERO — 3D LAYERED STAGE
           =================================================== */}
 
           <div className="hidden lg:block">
-            {/* RIGHT IMAGE */}
-            <div className="absolute inset-y-0 right-0 z-0 w-[55%] overflow-hidden">
-              <div className="absolute inset-0 overflow-hidden">
-                <AnimatePresence initial={false} mode="sync">
-                  <motion.div
-                    key={heroImage.src}
-                    initial={
-                      prefersReducedMotion
-                        ? { opacity: 0 }
-                        : {
-                            opacity: 0,
-                            scale: 1.035,
-                            x: 24,
-                          }
-                    }
+            {/* 3D STAGE WRAPPER */}
+            <div
+              className="absolute inset-y-0 right-0 z-0 w-[58%] overflow-hidden"
+              style={{ perspective: "1600px", perspectiveOrigin: "35% 50%" }}
+            >
+              {/* Soft glow behind the image */}
+              <div
+                className="pointer-events-none absolute inset-0 z-0"
+                aria-hidden="true"
+                style={{
+                  background:
+                    "radial-gradient(circle at 60% 50%, rgba(232,163,61,0.18), transparent 60%)",
+                }}
+              />
+
+              <AnimatePresence initial={false} custom={heroDirection} mode="wait">
+                <motion.div
+                  key={heroImage.src}
+                  custom={heroDirection}
+                  variants={
+                    prefersReducedMotion
+                      ? reducedHeroImageVariants
+                      : heroImageVariants
+                  }
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  className="absolute inset-0 origin-center will-change-transform"
+                  style={{ transformStyle: "preserve-3d" }}
+                >
+                  <Image
+                    src={heroImage.src}
+                    alt={heroImage.alt}
+                    fill
+                    sizes="(min-width: 1024px) 58vw, 100vw"
+                    className="object-cover object-center"
+                    priority={heroImageIndex === 0}
+                    quality={90}
+                    onError={() => {
+                      setImageLoadErrors((prev) =>
+                        new Set(prev).add(heroImageIndex)
+                      );
+                    }}
+                  />
+
+                  {/* Depth overlays */}
+                  <div className="absolute inset-0 bg-[#12203B]/15" />
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background:
+                        "linear-gradient(120deg, rgba(18,32,59,0.55) 0%, transparent 45%, transparent 75%, rgba(18,32,59,0.35) 100%)",
+                    }}
+                  />
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Floating decorative particles for depth */}
+              <motion.div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 z-10"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6, duration: 1 }}
+              >
+                {[
+                  { top: "18%", left: "22%", size: 3, delay: 0 },
+                  { top: "62%", left: "78%", size: 4, delay: 1.2 },
+                  { top: "38%", left: "68%", size: 2, delay: 0.6 },
+                  { top: "80%", left: "35%", size: 3, delay: 1.8 },
+                ].map((dot, i) => (
+                  <motion.span
+                    key={i}
+                    className="absolute rounded-full bg-[#E8A33D]/40"
+                    style={{
+                      top: dot.top,
+                      left: dot.left,
+                      width: dot.size,
+                      height: dot.size,
+                    }}
                     animate={
                       prefersReducedMotion
-                        ? { opacity: 1 }
+                        ? {}
                         : {
-                            opacity: 1,
-                            scale: [1.035, 1.018, 1],
-                            x: [24, 10, 0],
+                            y: [0, -12, 0],
+                            opacity: [0.3, 0.8, 0.3],
                           }
                     }
-                    exit={
-                      prefersReducedMotion
-                        ? { opacity: 0 }
-                        : {
-                            opacity: 0,
-                            scale: 1.015,
-                            x: -14,
-                          }
-                    }
-                    transition={
-                      prefersReducedMotion
-                        ? {
-                            duration: 0.25,
-                          }
-                        : {
-                            opacity: {
-                              duration: 1,
-                              ease: "easeInOut",
-                            },
-                            scale: {
-                              duration: 1.9,
-                              ease: [0.22, 1, 0.36, 1],
-                            },
-                            x: {
-                              duration: 1.9,
-                              ease: [0.22, 1, 0.36, 1],
-                            },
-                          }
-                    }
-                    className="absolute inset-0"
-                  >
-                    <Image
-                      src={heroImage.src}
-                      alt={heroImage.alt}
-                      fill
-                      sizes="(min-width: 1024px) 55vw, 100vw"
-                      className="object-cover object-center"
-                      priority={heroImageIndex === 0}
-                      quality={90}
-                      unoptimized={false}
-                      onError={() => {
-                        setImageLoadErrors(prev => new Set(prev).add(heroImageIndex));
-                      }}
-                    />
-
-                    <div className="absolute inset-0 bg-[#12203B]/10" />
-                  </motion.div>
-                </AnimatePresence>
-              </div>
+                    transition={{
+                      duration: 4 + i,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                      delay: dot.delay,
+                    }}
+                  />
+                ))}
+              </motion.div>
             </div>
 
-            {/* DIAGONAL DIVIDER */}
+            {/* DIAGONAL DIVIDER — now sits above the image for depth */}
             <div
-              className="pointer-events-none absolute inset-y-0 left-0 z-10 hidden w-[55%] lg:block"
+              className="pointer-events-none absolute inset-y-0 left-0 z-10 hidden w-[58%] lg:block"
               style={{
-                clipPath:
-                  "polygon(0 0, 100% 0, 85% 100%, 0 100%)",
+                clipPath: "polygon(0 0, 100% 0, 85% 100%, 0 100%)",
                 background: "#12203B",
               }}
             />
 
-            {/* CONTENT */}
+            {/* CONTENT — floats above everything */}
             <motion.div
               variants={staggerContainer}
               initial="hidden"
@@ -744,7 +730,6 @@ export default function HomePage() {
             >
               <div className="w-[55%] pr-8 xl:pr-12">
                 <div className="max-w-xl">
-                  {/* EYEBROW */}
                   <AnimatePresence initial={false} mode="wait">
                     <motion.div
                       key={`desktop-eyebrow-${heroImage.src}`}
@@ -755,7 +740,6 @@ export default function HomePage() {
                     >
                       <div className="mb-5 flex items-center gap-3">
                         <span className="h-px w-8 bg-[#E8A33D]" />
-
                         <p className="text-[10px] font-bold uppercase tracking-[0.23em] text-white/65">
                           {heroImage.eyebrow}
                         </p>
@@ -763,7 +747,6 @@ export default function HomePage() {
                     </motion.div>
                   </AnimatePresence>
 
-                  {/* TITLE */}
                   <AnimatePresence initial={false} mode="wait">
                     <motion.h1
                       key={`desktop-title-${heroImage.src}`}
@@ -788,7 +771,6 @@ export default function HomePage() {
                     </motion.h1>
                   </AnimatePresence>
 
-                  {/* DESCRIPTION */}
                   <AnimatePresence initial={false} mode="wait">
                     <motion.p
                       key={`desktop-description-${heroImage.src}`}
@@ -802,17 +784,16 @@ export default function HomePage() {
                     </motion.p>
                   </AnimatePresence>
 
-                  {/* PRIMARY CTA */}
+                  {/* ===== ENHANCED DESKTOP BUTTON PAIR ===== */}
                   <motion.div
                     variants={reveal}
-                    className="mt-8 flex flex-wrap items-center gap-3.5"
+                    className="mt-8 flex flex-wrap items-center gap-3"
                   >
                     <Link
                       href="/features"
-                      className="group relative inline-flex items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-[#E8A33D] to-[#D69528] px-5 py-3.5 text-[13px] font-bold tracking-wide text-[#12203B] shadow-[0_4px_14px_rgba(232,163,61,0.4)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(232,163,61,0.5)] hover:from-[#F2B359] hover:to-[#E8A33D] active:translate-y-0"
+                      className="group relative inline-flex h-12 items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-[#E8A33D] to-[#D69528] px-6 text-[13px] font-bold tracking-wide text-[#12203B] shadow-[0_4px_14px_rgba(232,163,61,0.32)] transition-all duration-300 hover:-translate-y-0.5 hover:from-[#F2B359] hover:to-[#E8A33D] hover:shadow-[0_6px_20px_rgba(232,163,61,0.42)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A33D]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#12203B]"
                     >
                       <span>Explore Portal Features</span>
-
                       <ArrowRight
                         size={15}
                         className="transition-transform duration-300 group-hover:translate-x-1"
@@ -821,31 +802,29 @@ export default function HomePage() {
 
                     <Link
                       href="/tech-centers"
-                      className="group inline-flex items-center justify-center gap-2.5 rounded-xl border border-white/20 bg-white/[0.08] px-5 py-3.5 text-[13px] font-bold tracking-wide text-white shadow-[0_2px_8px_rgba(0,0,0,0.2)] backdrop-blur-sm transition-all duration-300 hover:border-white/35 hover:bg-white/[0.12] hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 active:translate-y-0"
+                      className="group inline-flex h-12 items-center justify-center gap-2.5 rounded-xl border border-white/20 bg-white/[0.06] px-6 text-[13px] font-bold tracking-wide text-white backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-white/40 hover:bg-white/[0.12] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#12203B]"
                     >
                       <Building2 size={15} />
                       <span>View Tech Centers</span>
                     </Link>
                   </motion.div>
 
-                  {/* SECONDARY */}
                   <motion.div
                     variants={reveal}
-                    className="mt-5 flex items-center"
+                    className="mt-6 flex items-center"
                   >
                     <Link
                       href="/about"
-                      className="group inline-flex items-center gap-2 text-[12px] font-semibold text-white/60 transition-colors hover:text-[#E8A33D]"
+                      className="group inline-flex items-center gap-2.5 text-[12.5px] font-semibold text-white/60 transition-colors hover:text-[#E8A33D]"
                     >
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-[#E8A33D] shadow-[0_2px_6px_rgba(0,0,0,0.15)] transition-all duration-300 group-hover:bg-[#E8A33D] group-hover:text-[#12203B] group-hover:shadow-[0_4px_10px_rgba(232,163,61,0.4)]">
-                        <Play size={9} fill="currentColor" />
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-[#E8A33D] shadow-[0_2px_6px_rgba(0,0,0,0.15)] transition-all duration-300 group-hover:bg-[#E8A33D] group-hover:text-[#12203B] group-hover:shadow-[0_4px_10px_rgba(232,163,61,0.4)]">
+                        <Play size={10} fill="currentColor" />
                       </span>
-
                       <span>Why Choose SELFLESS CE?</span>
                     </Link>
                   </motion.div>
 
-                  {/* AUTH */}
+                  {/* ===== ENHANCED DESKTOP AUTH ===== */}
                   <motion.div
                     variants={reveal}
                     className="mt-8 border-t border-white/10 pt-6"
@@ -853,7 +832,7 @@ export default function HomePage() {
                     {isAuthenticated ? (
                       <Link
                         href="/dashboard"
-                        className="relative inline-flex items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-[#E8A33D] to-[#D69528] px-6 py-3 text-[13px] font-bold tracking-wide text-[#12203B] shadow-[0_4px_14px_rgba(232,163,61,0.4)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(232,163,61,0.5)] hover:from-[#F2B359] hover:to-[#E8A33D] active:translate-y-0"
+                        className="relative inline-flex h-12 items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-[#E8A33D] to-[#D69528] px-6 text-[13px] font-bold tracking-wide text-[#12203B] shadow-[0_4px_14px_rgba(232,163,61,0.32)] transition-all duration-300 hover:-translate-y-0.5 hover:from-[#F2B359] hover:to-[#E8A33D] hover:shadow-[0_6px_20px_rgba(232,163,61,0.42)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A33D]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#12203B]"
                       >
                         <LayoutDashboard size={16} />
                         Go to Your Dashboard
@@ -863,15 +842,14 @@ export default function HomePage() {
                         <button
                           type="button"
                           onClick={() => openAuthModal("login")}
-                          className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/[0.08] px-5 py-2.5 text-[12px] font-bold tracking-wide text-white shadow-[0_2px_8px_rgba(0,0,0,0.2)] backdrop-blur-sm transition-all duration-300 hover:border-white/35 hover:bg-white/[0.12] hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 active:translate-y-0"
+                          className="inline-flex h-11 items-center justify-center rounded-xl border border-white/20 bg-white/[0.06] px-5 text-[12.5px] font-bold tracking-wide text-white backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-white/35 hover:bg-white/[0.12] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#12203B]"
                         >
                           Log In to Portal
                         </button>
-
                         <button
                           type="button"
                           onClick={() => openAuthModal("register")}
-                          className="relative inline-flex items-center justify-center rounded-xl border border-[#E8A33D]/50 bg-[#E8A33D]/12 px-5 py-2.5 text-[12px] font-bold tracking-wide text-[#E8A33D] shadow-[0_2px_8px_rgba(232,163,61,0.2)] backdrop-blur-sm transition-all duration-300 hover:border-[#E8A33D]/70 hover:bg-[#E8A33D]/18 hover:shadow-[0_4px_12px_rgba(232,163,61,0.3)] hover:-translate-y-0.5 active:translate-y-0"
+                          className="inline-flex h-11 items-center justify-center rounded-xl border border-[#E8A33D]/45 bg-[#E8A33D]/12 px-5 text-[12.5px] font-bold tracking-wide text-[#E8A33D] backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-[#E8A33D]/70 hover:bg-[#E8A33D]/20 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A33D]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#12203B]"
                         >
                           Create an Account
                         </button>
@@ -889,22 +867,17 @@ export default function HomePage() {
                   <button
                     key={image.src}
                     type="button"
-                    onClick={() => setHeroImageIndex(index)}
+                    onClick={() => goToHeroImage(index)}
                     aria-label={`Show slide ${index + 1}`}
                     className="group relative h-5 w-8"
                   >
                     <span className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-white/25" />
-
                     <motion.span
                       initial={false}
                       animate={{
-                        width:
-                          index === heroImageIndex ? "100%" : "0%",
+                        width: index === heroImageIndex ? "100%" : "0%",
                       }}
-                      transition={{
-                        duration: 0.4,
-                        ease: [0.22, 1, 0.36, 1],
-                      }}
+                      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                       className="absolute left-0 top-1/2 h-[2px] -translate-y-1/2 bg-[#E8A33D]"
                     />
                   </button>
@@ -925,7 +898,6 @@ export default function HomePage() {
                 >
                   <ChevronLeft size={16} />
                 </button>
-
                 <button
                   type="button"
                   onClick={showNextHeroImage}
@@ -955,12 +927,10 @@ export default function HomePage() {
               <motion.div variants={revealLeft}>
                 <div className="flex items-center gap-3">
                   <span className="h-px w-8 bg-[#B98A3E]" />
-
                   <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#B98A3E]">
                     Built around your journey
                   </p>
                 </div>
-
                 <h2 className="mt-4 max-w-xl text-3xl font-semibold leading-[1.08] tracking-[-0.04em] text-[#12203B] sm:text-4xl lg:text-[2.8rem]">
                   Everything important stays connected.
                 </h2>
@@ -1005,10 +975,7 @@ export default function HomePage() {
             variants={staggerContainer}
             className="relative mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center lg:gap-16"
           >
-            <motion.div
-              variants={revealLeft}
-              className="flex items-start gap-4"
-            >
+            <motion.div variants={revealLeft} className="flex items-start gap-4">
               <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-white/15 bg-white/10 shadow-sm sm:h-16 sm:w-16">
                 <Image
                   src="/freedom.png"
@@ -1023,11 +990,9 @@ export default function HomePage() {
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#E8A33D]">
                   About the platform
                 </p>
-
                 <h2 className="mt-2 text-2xl font-semibold leading-tight tracking-[-0.035em] text-white sm:text-3xl">
                   SELFLESS CE Student Portal
                 </h2>
-
                 <p className="mt-2 max-w-lg text-[13px] leading-6 text-white/65">
                   A centralized student self-service platform for learning,
                   connection, and support across the SELFLESS CE network.
@@ -1043,27 +1008,22 @@ export default function HomePage() {
                 <p className="text-[1.65rem] font-semibold tracking-[-0.04em] text-white">
                   07+
                 </p>
-
                 <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-white/45">
                   Connected tech centers
                 </p>
               </div>
-
               <div className="border-l-2 border-[#E8A33D] pl-4">
                 <p className="text-[1.65rem] font-semibold tracking-[-0.04em] text-white">
                   BYU-Idaho
                 </p>
-
                 <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-white/45">
                   Academic pathways supported
                 </p>
               </div>
-
               <div className="border-l-2 border-[#E8A33D] pl-4">
                 <p className="text-[1.65rem] font-semibold tracking-[-0.04em] text-white">
                   ONE
                 </p>
-
                 <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-white/45">
                   Student community
                 </p>
@@ -1090,14 +1050,7 @@ export default function HomePage() {
                   key={title}
                   variants={reveal}
                   className={`
-                    group
-                    relative
-                    p-5
-                    transition-colors
-                    duration-400
-                    hover:bg-[#F7F6F2]
-                    sm:p-6
-                    lg:p-7
+                    group relative p-5 transition-colors duration-400 hover:bg-[#F7F6F2] sm:p-6 lg:p-7
                     ${
                       index !== features.length - 1
                         ? "border-b border-[#DADCD3] sm:border-r"
@@ -1117,11 +1070,9 @@ export default function HomePage() {
                   <h3 className="mt-5 text-[16px] font-semibold tracking-[-0.01em] text-[#12203B] transition-colors duration-300 group-hover:text-[#B98A3E]">
                     {title}
                   </h3>
-
                   <p className="mt-2.5 text-[13px] leading-6 text-[#6B7268]">
                     {text}
                   </p>
-
                   <div className="mt-6 h-px w-0 bg-[#B98A3E] transition-all duration-500 group-hover:w-9" />
                 </motion.div>
               ))}
@@ -1136,7 +1087,6 @@ export default function HomePage() {
         <section className="overflow-hidden bg-white px-5 py-14 sm:px-8 sm:py-18 lg:px-12 lg:py-20">
           <div className="mx-auto max-w-7xl">
             <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-16">
-              {/* IMAGE */}
               <motion.div
                 variants={imageReveal}
                 initial="hidden"
@@ -1146,24 +1096,13 @@ export default function HomePage() {
               >
                 <div
                   className="relative h-[22rem] w-full overflow-hidden sm:h-[27rem] lg:h-[34rem]"
-                  style={{
-                    clipPath:
-                      "polygon(0 0, 100% 0, 88% 100%, 0 100%)",
-                  }}
+                  style={{ clipPath: "polygon(0 0, 100% 0, 88% 100%, 0 100%)" }}
                 >
                   <motion.div
                     animate={
-                      prefersReducedMotion
-                        ? {}
-                        : {
-                            scale: [1, 1.025, 1],
-                          }
+                      prefersReducedMotion ? {} : { scale: [1, 1.025, 1] }
                     }
-                    transition={{
-                      duration: 12,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
+                    transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
                     className="absolute inset-0"
                   >
                     <Image
@@ -1181,7 +1120,6 @@ export default function HomePage() {
                     <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#E8A33D]">
                       Your journey, in motion
                     </p>
-
                     <p className="mt-2 text-lg font-semibold leading-6 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)] sm:text-xl">
                       Learning today. Opportunity tomorrow.
                     </p>
@@ -1189,18 +1127,13 @@ export default function HomePage() {
                 </div>
 
                 <div className="absolute bottom-5 left-5 flex items-center gap-2.5 sm:bottom-7 sm:left-7">
-                  <CheckCircle2
-                    size={17}
-                    className="shrink-0 text-[#E8A33D]"
-                  />
-
+                  <CheckCircle2 size={17} className="shrink-0 text-[#E8A33D]" />
                   <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
                     Learning first
                   </p>
                 </div>
               </motion.div>
 
-              {/* CONTENT */}
               <div className="lg:pl-3">
                 <motion.div
                   initial="hidden"
@@ -1211,7 +1144,6 @@ export default function HomePage() {
                   <motion.div variants={revealRight}>
                     <div className="flex items-center gap-3">
                       <span className="h-px w-8 bg-[#B98A3E]" />
-
                       <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#B98A3E]">
                         Your student journey
                       </p>
@@ -1236,11 +1168,7 @@ export default function HomePage() {
                   viewport={{ once: true, amount: 0.15 }}
                   variants={{
                     hidden: {},
-                    visible: {
-                      transition: {
-                        staggerChildren: 0.1,
-                      },
-                    },
+                    visible: { transition: { staggerChildren: 0.1 } },
                   }}
                   className="mt-8 border-t border-[#DADCD3]"
                 >
@@ -1253,12 +1181,10 @@ export default function HomePage() {
                       <span className="text-[11px] font-bold tracking-[0.16em] text-[#B98A3E]">
                         {item.number}
                       </span>
-
                       <div>
                         <h3 className="text-[15px] font-semibold text-[#12203B] transition-colors duration-300 group-hover:text-[#B98A3E]">
                           {item.title}
                         </h3>
-
                         <p className="mt-1.5 max-w-xl text-[13px] leading-6 text-[#6B7268]">
                           {item.text}
                         </p>
@@ -1289,12 +1215,10 @@ export default function HomePage() {
                 strokeWidth={1.7}
                 className="mt-0.5 shrink-0 text-[#B98A3E]"
               />
-
               <div>
                 <p className="text-[13px] font-semibold text-[#12203B]">
                   Learning first
                 </p>
-
                 <p className="mt-1.5 text-[13px] leading-6 text-[#6B7268]">
                   Keep your attention on the academic work that moves you
                   forward.
@@ -1308,12 +1232,10 @@ export default function HomePage() {
                 strokeWidth={1.7}
                 className="mt-0.5 shrink-0 text-[#B98A3E]"
               />
-
               <div>
                 <p className="text-[13px] font-semibold text-[#12203B]">
                   Progress you can see
                 </p>
-
                 <p className="mt-1.5 text-[13px] leading-6 text-[#6B7268]">
                   Useful academic information gives you a clearer view of your
                   next step.
@@ -1327,12 +1249,10 @@ export default function HomePage() {
                 strokeWidth={1.7}
                 className="mt-0.5 shrink-0 text-[#B98A3E]"
               />
-
               <div>
                 <p className="text-[13px] font-semibold text-[#12203B]">
                   Support around you
                 </p>
-
                 <p className="mt-1.5 text-[13px] leading-6 text-[#6B7268]">
                   Your tech center and student community remain part of the
                   journey.
@@ -1353,11 +1273,7 @@ export default function HomePage() {
             viewport={{ once: true, amount: 0.25 }}
             variants={{
               hidden: {},
-              visible: {
-                transition: {
-                  staggerChildren: 0.1,
-                },
-              },
+              visible: { transition: { staggerChildren: 0.1 } },
             }}
             className="mx-auto max-w-7xl"
           >
@@ -1390,10 +1306,9 @@ export default function HomePage() {
               <motion.div variants={reveal} className="mt-7">
                 <Link
                   href="/features"
-                  className="group inline-flex items-center gap-2.5 rounded-lg bg-[#E8A33D] px-5 py-3.5 text-[13px] font-bold text-[#12203B] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#F2B359] hover:shadow-lg active:translate-y-0"
+                  className="group inline-flex h-12 items-center gap-2.5 rounded-xl bg-[#E8A33D] px-6 text-[13px] font-bold text-[#12203B] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#F2B359] hover:shadow-lg active:translate-y-0"
                 >
                   Explore the portal
-
                   <ArrowRight
                     size={15}
                     className="transition-transform duration-300 group-hover:translate-x-1"
@@ -1415,4 +1330,3 @@ export default function HomePage() {
     </div>
   );
 }
-
