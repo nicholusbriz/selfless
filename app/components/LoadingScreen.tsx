@@ -81,6 +81,7 @@ export default function LoadingScreen({ onComplete, delay = 2000 }: LoadingScree
                 alt="Selfless CE Logo"
                 width={80}
                 height={80}
+                loading="eager"
                 className="relative w-full h-full object-contain drop-shadow-[0_0_15px_rgba(185,138,62,0.3)]"
                 style={{
                   animation: 'fadeInScale 1s cubic-bezier(0.22, 1, 0.36, 1) forwards'

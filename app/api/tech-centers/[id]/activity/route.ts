@@ -9,13 +9,14 @@ export async function GET(
   try {
     const { id } = await params;
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const limitParam = searchParams.get('limit') || '10';
+    const limit = limitParam === 'all' ? undefined : parseInt(limitParam, 10);
 
     const activities = await prisma.activityLog.findMany({
       where: { 
         techCenterId: id,
         action: {
-          in: ['course_submission', 'cleaning_registration', 'cleaning_day_change', 'cleaning_week_created', 'cleaning_day_created']
+          in: ['course_submission', 'cleaning_registration', 'cleaning_day_change', 'cleaning_week_created', 'cleaning_day_created', 'football_team_joined']
         }
       },
       include: {
@@ -32,7 +33,7 @@ export async function GET(
       orderBy: {
         createdAt: 'desc',
       },
-      take: limit,
+      ...(limit ? { take: limit } : {}),
     });
 
     return NextResponse.json(activities);

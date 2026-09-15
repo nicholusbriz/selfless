@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
 import { createNotificationForTechCenter } from '@/lib/notifications';
+import { createActivityLog } from '@/lib/logger';
 
 // POST - Register user as team member
 export async function POST(request: NextRequest) {
@@ -85,23 +86,38 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Create notification for all tech center students
-    try {
-      const teamName = teamType.charAt(0) + teamType.slice(1).toLowerCase();
-      const notificationResult = await createNotificationForTechCenter({
-        techCenterId,
-        title: `New ${teamName} Team Member!`,
-        message: `${teamMember.user.firstName} ${teamMember.user.lastName} has joined the ${teamMember.techCenter.name} ${teamName} team as ${teamRole.charAt(0) + teamRole.slice(1).toLowerCase()}!`,
-        type: 'team_registration',
-        link: `/dashboard/team/${teamType.toLowerCase()}`,
-        generatedBy: session.user.id,
+    const teamName = teamType.charAt(0) + teamType.slice(1).toLowerCase();
+
+    if (teamType === 'FOOTBALL') {
+      await createActivityLog({
+        userId: session.user.id,
+        action: 'football_team_joined',
         entityType: 'team_membership',
-        entityId: teamMember.id
+        entityId: teamMember.id,
+        techCenterId,
+        details: {
+          teamType,
+          teamRole,
+          position,
+          jerseyNumber,
+        },
       });
-      console.log('Notification created:', notificationResult);
-    } catch (notificationError) {
-      console.error('Failed to create notification:', notificationError);
-      // Don't fail the registration if notification fails
+    } else {
+      try {
+        const notificationResult = await createNotificationForTechCenter({
+          techCenterId,
+          title: `New ${teamName} Team Member!`,
+          message: `${teamMember.user.firstName} ${teamMember.user.lastName} has joined the ${teamMember.techCenter.name} ${teamName} team as ${teamRole.charAt(0) + teamRole.slice(1).toLowerCase()}!`,
+          type: 'team_registration',
+          link: `/dashboard/team/${teamType.toLowerCase()}`,
+          generatedBy: session.user.id,
+          entityType: 'team_membership',
+          entityId: teamMember.id,
+        });
+        console.log('Notification created:', notificationResult);
+      } catch (notificationError) {
+        console.error('Failed to create notification:', notificationError);
+      }
     }
 
     return NextResponse.json({

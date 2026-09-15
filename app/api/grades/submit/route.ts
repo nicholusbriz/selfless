@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma/client';
 import { getServerAuthUser } from '@/lib/auth/server';
+import { createNotificationForUser } from '@/lib/notifications';
 
 export async function POST(request: NextRequest) {
   try {
@@ -81,6 +82,32 @@ export async function POST(request: NextRequest) {
           notes: notes || null
         }
       });
+
+      const [student, course] = await Promise.all([
+        prisma.user.findUnique({
+          where: { id: studentId },
+          select: { firstName: true, lastName: true },
+        }),
+        prisma.studentCourse.findUnique({
+          where: { id: studentCourseId },
+          select: { name: true },
+        }),
+      ]);
+
+      try {
+        await createNotificationForUser({
+          userId: studentId,
+          title: 'A grade was assigned to your course',
+          message: `${user.firstName} ${user.lastName} assigned you ${gradeLetter} for ${course?.name || 'your course'} (Week ${week}).`,
+          type: 'grade_assigned',
+          link: '/dashboard/grades',
+          generatedBy: user.id,
+          entityType: 'grade',
+          entityId: grade.id,
+        });
+      } catch (notificationError) {
+        console.error('Failed to notify student about grade:', notificationError);
+      }
 
       results.push({ success: true, grade });
     }

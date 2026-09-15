@@ -38,7 +38,6 @@ import {
   Users,
   Megaphone,
   FileText,
-  Sparkles,
   Shield,
   UserCog,
   School,
@@ -63,6 +62,7 @@ import {
   Code,
   MessageSquare,
   Images,
+  LifeBuoy,
 } from 'lucide-react';
 
 import {
@@ -153,7 +153,15 @@ const sharedNavigation: NavSection[] = [
         id: 'atbriz-ai',
         label: 'Atbriz AI',
         path: '/dashboard/ai',
-        icon: <Sparkles className={iconClass} />,
+        icon: (
+          <Image
+            src="/atbriz.png"
+            alt=""
+            width={18}
+            height={18}
+            className="h-[18px] w-[18px] shrink-0 rounded object-cover"
+          />
+        ),
         roles: ALL_ROLES,
       },
       {
@@ -280,6 +288,13 @@ const sharedNavigation: NavSection[] = [
     label: 'Communication',
     items: [
       {
+        id: 'chat',
+        label: 'Chat',
+        path: '/dashboard/messages',
+        icon: <MessageSquare className={iconClass} />,
+        roles: ALL_ROLES,
+      },
+      {
         id: 'announcements',
         label: 'Announcements',
         path: '/dashboard/announcements',
@@ -305,6 +320,13 @@ const sharedNavigation: NavSection[] = [
         label: 'Policy Book',
         path: '/dashboard/policies',
         icon: <BookMarked className={iconClass} />,
+        roles: ALL_ROLES,
+      },
+      {
+        id: 'it-support',
+        label: 'Meet IT Support Team',
+        path: '/dashboard/support',
+        icon: <LifeBuoy className={iconClass} />,
         roles: ALL_ROLES,
       },
     ],
@@ -2329,7 +2351,7 @@ export default function DashboardLayout({
       !isLoading &&
       !isAuthenticated
     ) {
-      router.push('/');
+      window.location.replace('/');
     }
   }, [
     isAuthenticated,

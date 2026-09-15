@@ -156,7 +156,7 @@ export default function DashboardPage() {
   const fetchRecentActivity = useCallback(async (techCenterId: string) => {
     try {
       const response = await fetch(
-        `/api/tech-centers/${techCenterId}/activity?limit=10`,
+        `/api/tech-centers/${techCenterId}/activity?limit=all`,
       );
 
       if (response.ok) {
@@ -180,7 +180,7 @@ export default function DashboardPage() {
         // Fetch activity from each tech center
         const activityPromises = techCenters.map(async (techCenter) => {
           try {
-            const activityResponse = await fetch(`/api/tech-centers/${techCenter.id}/activity?limit=5`);
+            const activityResponse = await fetch(`/api/tech-centers/${techCenter.id}/activity?limit=all`);
             if (activityResponse.ok) {
               const activities: ActivityItem[] = await activityResponse.json();
               console.log(`Fetched ${activities.length} activities for ${techCenter.name}`);
@@ -208,7 +208,7 @@ export default function DashboardPage() {
         );
         
         console.log('Total activities after merge:', flattenedActivities.length);
-        setRecentActivity(flattenedActivities.slice(0, 10));
+        setRecentActivity(flattenedActivities);
       } else {
         console.error('Failed to fetch tech centers:', techCentersResponse.status);
       }
@@ -497,6 +497,18 @@ export default function DashboardPage() {
           description: 'Read Selfless CE policies',
           path: '/dashboard/policies',
         },
+        {
+          icon: <BookOpen className="h-5 w-5" />,
+          label: 'Tuition',
+          description: 'View tuition and course information',
+          path: '/dashboard/courses',
+        },
+        {
+          icon: <MessageCircle className="h-5 w-5" />,
+          label: 'Support',
+          description: 'Meet the IT support team',
+          path: '/dashboard/support',
+        },
       ];
     }
 
@@ -538,6 +550,18 @@ export default function DashboardPage() {
           description: 'Read Selfless CE policies',
           path: '/dashboard/policies',
         },
+        {
+          icon: <BookOpen className="h-5 w-5" />,
+          label: 'Tuition',
+          description: 'View tuition and course information',
+          path: '/dashboard/courses',
+        },
+        {
+          icon: <MessageCircle className="h-5 w-5" />,
+          label: 'Support',
+          description: 'Meet the IT support team',
+          path: '/dashboard/support',
+        },
       ];
     }
     
@@ -572,6 +596,18 @@ export default function DashboardPage() {
         label: 'Policy Book',
         description: 'Read Selfless CE policies',
         path: '/dashboard/policies',
+      },
+      {
+        icon: <BookOpen className="h-5 w-5" />,
+        label: 'Tuition',
+        description: 'View tuition and course information',
+        path: '/dashboard/courses',
+      },
+      {
+        icon: <MessageCircle className="h-5 w-5" />,
+        label: 'Support',
+        description: 'Meet the IT support team',
+        path: '/dashboard/support',
       },
       {
         icon: <Trophy className="h-5 w-5" />,
@@ -761,7 +797,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {quickLinks.map((link) => (
               <button
-                key={link.path}
+                key={`${link.label}-${link.path}`}
                 type="button"
                 onClick={() => router.push(link.path)}
                 className="flex flex-col items-center gap-2 bg-white p-4 border transition-colors hover:bg-[#F7F6F2]"
@@ -1042,18 +1078,21 @@ export default function DashboardPage() {
         {recentActivity.length > 0 && (user?.role === 'super_admin' || techCenter) && (
           <section className="mt-6">
             <h2 className="mb-3 font-mono text-xs uppercase tracking-[0.15em] text-[#6B7268]">
-              Recent Activity
+              Activity Log
             </h2>
 
-            <div className="bg-white border" style={{ borderColor: COLORS.line }}>
-              {recentActivity.slice(0, 5).map((item, index) => {
+            <div
+              className="max-h-[280px] overflow-y-auto bg-white border"
+              style={{ borderColor: COLORS.line }}
+            >
+              {recentActivity.map((item, index) => {
                 const meta = getActivityMeta(item.action);
 
                 return (
                   <div
                     key={item.id}
                     className={`flex items-center gap-4 px-5 py-3 ${
-                      index < recentActivity.slice(0, 5).length - 1
+                      index < recentActivity.length - 1
                         ? 'border-b'
                         : ''
                     }`}

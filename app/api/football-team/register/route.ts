@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
-import { createNotificationForTechCenter } from '@/lib/notifications';
+import { createActivityLog } from '@/lib/logger';
 
 // POST - Register user as football team member
 export async function POST(request: NextRequest) {
@@ -72,24 +72,19 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Create notification for all tech center students (including the user who joined)
-    try {
-      const notificationResult = await createNotificationForTechCenter({
-        techCenterId,
-        title: 'New Football Team Member!',
-        message: `${teamMember.user.firstName} ${teamMember.user.lastName} has joined the ${teamMember.techCenter.name} football team!`,
-        type: 'football_team',
-        link: '/dashboard/football-team',
-        generatedBy: session.user.id,
-        entityType: 'football_team',
-        entityId: teamMember.id
-        // Removed excludeUserIds so the user who joined also gets notified
-      });
-      console.log('Notification created:', notificationResult);
-    } catch (notificationError) {
-      console.error('Failed to create notification:', notificationError);
-      // Don't fail the registration if notification fails
-    }
+    await createActivityLog({
+      userId: session.user.id,
+      action: 'football_team_joined',
+      entityType: 'team_membership',
+      entityId: teamMember.id,
+      techCenterId,
+      details: {
+        teamType: 'FOOTBALL',
+        teamRole: teamMember.teamRole,
+        position,
+        jerseyNumber,
+      },
+    });
 
     return NextResponse.json({
       message: 'Successfully joined football team',
