@@ -93,10 +93,7 @@ export const authOptions: AuthOptions = {
           data: { lastLoginAt: new Date() }
         });
 
-        // 6. Log the login
-        await logLogin(user.id, user.techCenterId || undefined);
-
-        // 7. Return user object
+        // 6. Return user object
         return {
           id: user.id,
           email: user.email,
@@ -336,9 +333,12 @@ export const authOptions: AuthOptions = {
      * Sign In Callback
      * Controls what happens when a user signs in
      */
-    async signIn({ account }: { account: Account | null }) {
+    async signIn({ account, user }: { account: Account | null; user: NextAuthUser }) {
       // Allow credentials provider
-      if (account?.provider === 'credentials') return true;
+      if (account?.provider === 'credentials' && user.id) {
+        await logLogin(user.id, user.techCenterId || undefined);
+      }
+
       return true;
     },
 

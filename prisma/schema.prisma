@@ -512,6 +512,20 @@ model AnnouncementComment {
   @@map("announcement_comments")
 }
 
+// IT SUPPORT RESOURCES
+model SupportResource {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  link        String
+  description String
+  createdById String   @db.ObjectId
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([createdAt])
+  @@map("support_resources")
+}
+
 // NOTIFICATIONS
 model Notification {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
