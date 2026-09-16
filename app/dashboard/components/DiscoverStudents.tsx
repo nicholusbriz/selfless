@@ -53,14 +53,21 @@ type CardPosition = "left" | "center" | "right";
 const DEFAULT_INTERVAL = 5000;
 const SWIPE_THRESHOLD = 50;
 
+/*
+ * Fixed 3D positions.
+ *
+ * The presentation remains constant while the student data
+ * changes between the three positions.
+ */
 const CARD_VARIANTS = {
   left: {
     x: -125,
     z: -150,
     rotateY: 10,
     scale: 0.85,
-    opacity: 0.4,
+    opacity: 0.42,
   },
+
   center: {
     x: 0,
     z: 0,
@@ -68,12 +75,13 @@ const CARD_VARIANTS = {
     scale: 1,
     opacity: 1,
   },
+
   right: {
     x: 125,
     z: -150,
     rotateY: -10,
     scale: 0.85,
-    opacity: 0.4,
+    opacity: 0.42,
   },
 };
 
@@ -85,7 +93,7 @@ const CARD_TRANSITION = {
 };
 
 const CONTENT_TRANSITION = {
-  duration: 0.35,
+  duration: 0.3,
   ease: [0.22, 1, 0.36, 1] as const,
 };
 
@@ -123,6 +131,9 @@ export function DiscoverStudents({
 
   /* ============================================================
      SAFE INDEX
+     
+     Derived instead of resetting state inside an effect.
+     This avoids react-hooks/set-state-in-effect.
   ============================================================ */
 
   const safeCurrentIndex =
@@ -136,7 +147,10 @@ export function DiscoverStudents({
 
   const move = useCallback(
     (nextDirection: 1 | -1) => {
-      if (students.length <= 1 || isAnimating) {
+      if (
+        students.length <= 1 ||
+        isAnimating
+      ) {
         return;
       }
 
@@ -149,7 +163,10 @@ export function DiscoverStudents({
         );
 
         if (nextDirection === 1) {
-          return (validPrevious + 1) % students.length;
+          return (
+            (validPrevious + 1) %
+            students.length
+          );
         }
 
         return (
@@ -206,7 +223,9 @@ export function DiscoverStudents({
       return;
     }
 
-    const handleKeyDown = (event: KeyboardEvent) => {
+    const handleKeyDown = (
+      event: KeyboardEvent,
+    ) => {
       if (event.key === "ArrowLeft") {
         move(-1);
       }
@@ -216,10 +235,16 @@ export function DiscoverStudents({
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener(
+      "keydown",
+      handleKeyDown,
+    );
 
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener(
+        "keydown",
+        handleKeyDown,
+      );
     };
   }, [move, students.length]);
 
@@ -249,7 +274,10 @@ export function DiscoverStudents({
 
     touchStartX.current = null;
 
-    if (Math.abs(difference) < SWIPE_THRESHOLD) {
+    if (
+      Math.abs(difference) <
+      SWIPE_THRESHOLD
+    ) {
       return;
     }
 
@@ -271,7 +299,9 @@ export function DiscoverStudents({
       }
 
       return students[
-        (safeCurrentIndex + offset + students.length) %
+        (safeCurrentIndex +
+          offset +
+          students.length) %
           students.length
       ];
     },
@@ -279,7 +309,7 @@ export function DiscoverStudents({
   );
 
   /* ============================================================
-     FIXED 3-CARD TEMPLATE + BACKGROUND WAITING STUDENTS
+     FIXED 3-CARD TEMPLATE
   ============================================================ */
 
   const visibleStudents = useMemo(
@@ -290,6 +320,13 @@ export function DiscoverStudents({
     }),
     [getStudentAt],
   );
+
+  /* ============================================================
+     BACKGROUND STUDENTS
+     
+     No blur.
+     These create depth through scale + opacity only.
+  ============================================================ */
 
   const backgroundStudents = useMemo(
     () => ({
@@ -311,8 +348,10 @@ export function DiscoverStudents({
         <div className="overflow-hidden rounded-2xl bg-[#111827] px-4 py-6 sm:px-6 sm:py-8">
           <div className="mx-auto flex max-w-6xl flex-col items-center">
             <div className="mb-4 h-3 w-32 animate-pulse rounded-full bg-white/10" />
+
             <div className="relative h-[370px] w-full max-w-[290px] overflow-hidden rounded-2xl border border-white/10 bg-[#18212F] shadow-xl">
               <div className="absolute inset-0 animate-pulse bg-white/[0.03]" />
+
               <div className="absolute inset-x-4 bottom-4 space-y-2">
                 <div className="h-4 w-2/3 animate-pulse rounded bg-white/10" />
                 <div className="h-3 w-1/2 animate-pulse rounded bg-white/10" />
@@ -337,8 +376,10 @@ export function DiscoverStudents({
             <h3 className="text-sm font-semibold text-[#12203B]">
               No students to discover
             </h3>
+
             <p className="mt-1 text-xs leading-5 text-[#6B7268]">
-              Student profiles will appear here when they become available.
+              Student profiles will appear here when
+              they become available.
             </p>
           </div>
         </div>
@@ -358,18 +399,32 @@ export function DiscoverStudents({
       return null;
     }
 
-    const isCenter = position === "center";
-    const name = `${student.firstName} ${student.lastName}`.trim();
-    const image = student.profileImageUrl || "/default-avatar.png";
-    const profileHref = `/dashboard/students/${student.id}`;
-    const messageHref = `/dashboard/messages?user=${student.id}`;
+    const isCenter =
+      position === "center";
+
+    const name =
+      `${student.firstName} ${student.lastName}`.trim();
+
+    const image =
+      student.profileImageUrl ||
+      "/default-avatar.png";
+
+    const profileHref =
+      `/dashboard/students/${student.id}`;
+
+    const messageHref =
+      `/dashboard/messages?user=${student.id}`;
 
     return (
+      /*
+       * Wrapper controls the card's fixed center point.
+       * Framer Motion controls only the 3D movement.
+       */
       <div
         key={`${position}-${student.id}`}
         className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
         style={{
-          zIndex: isCenter ? 20 : 10,
+          zIndex: isCenter ? 30 : 10,
         }}
       >
         <motion.article
@@ -379,7 +434,9 @@ export function DiscoverStudents({
             "bg-[#18212F]",
             "shadow-[0_18px_45px_rgba(0,0,0,0.3)]",
             "will-change-transform",
-            isCenter ? "border-white/15" : "border-white/10",
+            isCenter
+              ? "border-white/15"
+              : "border-white/10",
           ].join(" ")}
           initial={false}
           animate={
@@ -388,51 +445,98 @@ export function DiscoverStudents({
                   x: CARD_VARIANTS[position].x,
                   z: 0,
                   rotateY: 0,
-                  scale: position === "center" ? 1 : 0.85,
-                  opacity: position === "center" ? 1 : 0.4,
+                  scale:
+                    position === "center"
+                      ? 1
+                      : 0.85,
+                  opacity:
+                    position === "center"
+                      ? 1
+                      : 0.42,
                 }
               : CARD_VARIANTS[position]
           }
           transition={
-            shouldReduceMotion ? { duration: 0 } : CARD_TRANSITION
+            shouldReduceMotion
+              ? { duration: 0 }
+              : CARD_TRANSITION
           }
           style={{
             transformStyle: "preserve-3d",
             backfaceVisibility: "hidden",
-            pointerEvents: isCenter ? "auto" : "none",
+            pointerEvents: isCenter
+              ? "auto"
+              : "none",
           }}
         >
-          {/* Full profile image with readable information layered over it. */}
+          {/* ==================================================
+              FULL-BLEED PROFILE IMAGE
+              
+              object-cover makes the image fill the complete
+              card instead of leaving empty areas.
+
+              The image is NOT blurred.
+          ================================================== */}
+
           <div className="absolute inset-0 bg-[#202A39]">
             <Image
               src={image}
               alt={name}
               fill
               sizes="290px"
-              className="object-contain"
+              className="object-cover object-center"
               quality={100}
-              unoptimized={true}
+              unoptimized
               priority={isCenter}
             />
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#18212F] via-[#18212F]/40 to-transparent" />
+
+            {/* =================================================
+                CONTROLLED READABILITY GRADIENT
+
+                Only the bottom portion is darkened.
+                The main profile image remains clear.
+            ================================================= */}
+
+            <div
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-[48%]"
+              style={{
+                background:
+                  "linear-gradient(to top, rgba(24,33,47,0.98) 0%, rgba(24,33,47,0.84) 30%, rgba(24,33,47,0.45) 62%, rgba(24,33,47,0) 100%)",
+              }}
+            />
           </div>
 
-          {/* STUDENT INFORMATION */}
-          <div className="absolute inset-x-0 bottom-0 z-10 px-4 pb-4 pt-16 overflow-hidden">
-            <AnimatePresence mode="popLayout" initial={false}>
+          {/* ==================================================
+              STUDENT INFORMATION
+          ================================================== */}
+
+          <div className="absolute inset-x-0 bottom-0 z-10 overflow-hidden px-4 pb-4 pt-14">
+            <AnimatePresence
+              mode="wait"
+              initial={false}
+            >
               {isCenter && (
                 <motion.div
                   key={student.id}
                   initial={
                     shouldReduceMotion
                       ? false
-                      : { opacity: 0, y: 15 }
+                      : {
+                          opacity: 0,
+                          y: 10,
+                        }
                   }
-                  animate={{ opacity: 1, y: 0 }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                  }}
                   exit={
                     shouldReduceMotion
                       ? undefined
-                      : { opacity: 0, y: -15 }
+                      : {
+                          opacity: 0,
+                          y: -8,
+                        }
                   }
                   transition={
                     shouldReduceMotion
@@ -440,26 +544,33 @@ export function DiscoverStudents({
                       : CONTENT_TRANSITION
                   }
                 >
+                  {/* Student name */}
                   <h3 className="min-h-[24px] truncate text-[17px] font-semibold leading-6 tracking-[-0.01em] text-white">
                     {name}
                   </h3>
 
+                  {/* Course */}
                   <div className="mt-1 min-h-[18px]">
                     {student.generalCourse ? (
-                      <p className="truncate text-[12px] font-medium text-white/65">
+                      <p className="truncate text-[12px] font-medium text-white/75">
                         {student.generalCourse}
                       </p>
                     ) : (
-                      <p className="text-[12px] text-white/40">
+                      <p className="text-[12px] text-white/50">
                         Student
                       </p>
                     )}
                   </div>
 
-                  <div className="mt-1.5 flex min-h-[18px] items-center gap-1 text-white/45">
+                  {/* Tech center */}
+                  <div className="mt-1.5 flex min-h-[18px] items-center gap-1 text-white/65">
                     {student.techCenter?.name ? (
                       <>
-                        <MapPin className="h-3 w-3 shrink-0" strokeWidth={1.8} />
+                        <MapPin
+                          className="h-3 w-3 shrink-0"
+                          strokeWidth={1.8}
+                        />
+
                         <span className="truncate text-[11px]">
                           {student.techCenter.name}
                         </span>
@@ -471,7 +582,10 @@ export function DiscoverStudents({
                     )}
                   </div>
 
-                  {/* ACTIONS */}
+                  {/* ==================================================
+                      ACTIONS
+                  ================================================== */}
+
                   <div className="mt-3 flex items-center gap-1.5">
                     <Link
                       href={profileHref}
@@ -479,12 +593,16 @@ export function DiscoverStudents({
                     >
                       View profile
                     </Link>
+
                     <Link
                       href={messageHref}
                       aria-label={`Message ${name}`}
-                      className="inline-flex h-8 w-9 shrink-0 items-center justify-center rounded-lg border border-white/12 bg-white/[0.06] text-white/80 transition-colors hover:bg-white/[0.11] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+                      className="inline-flex h-8 w-9 shrink-0 items-center justify-center rounded-lg border border-white/15 bg-white/[0.08] text-white/90 transition-colors hover:bg-white/[0.14] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30"
                     >
-                      <MessageCircle className="h-3.5 w-3.5" strokeWidth={1.8} />
+                      <MessageCircle
+                        className="h-3.5 w-3.5"
+                        strokeWidth={1.8}
+                      />
                     </Link>
                   </div>
                 </motion.div>
@@ -500,8 +618,13 @@ export function DiscoverStudents({
      GO TO SPECIFIC STUDENT
   ============================================================ */
 
-  const goToStudent = (index: number) => {
-    if (index === safeCurrentIndex || isAnimating) {
+  const goToStudent = (
+    index: number,
+  ) => {
+    if (
+      index === safeCurrentIndex ||
+      isAnimating
+    ) {
       return;
     }
 
@@ -528,17 +651,24 @@ export function DiscoverStudents({
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {/* HEADER */}
+        {/* ==================================================
+            HEADER
+        ================================================== */}
+
         <div className="mx-auto flex max-w-6xl items-end justify-between gap-4 px-5 pb-1 pt-4 sm:px-7 sm:pt-5">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#B98A3E]">
               Student community
             </p>
+
             <h2 className="mt-1 text-lg font-semibold tracking-[-0.02em] text-white sm:text-xl">
               Discover students
             </h2>
+
             <p className="mt-0.5 max-w-lg text-[11px] leading-4 text-white/45 sm:text-xs">
-              Meet students across SELFLESS CE and connect with people on a similar academic journey.
+              Meet students across SELFLESS CE and
+              connect with people on a similar
+              academic journey.
             </p>
           </div>
 
@@ -547,25 +677,41 @@ export function DiscoverStudents({
             <button
               type="button"
               onClick={() => move(-1)}
-              disabled={isAnimating || students.length <= 1}
+              disabled={
+                isAnimating ||
+                students.length <= 1
+              }
               aria-label="Previous student"
               className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/70 transition-all hover:bg-white/[0.09] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
             >
-              <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.8} />
+              <ArrowLeft
+                className="h-3.5 w-3.5"
+                strokeWidth={1.8}
+              />
             </button>
+
             <button
               type="button"
               onClick={() => move(1)}
-              disabled={isAnimating || students.length <= 1}
+              disabled={
+                isAnimating ||
+                students.length <= 1
+              }
               aria-label="Next student"
               className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/70 transition-all hover:bg-white/[0.09] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
             >
-              <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
+              <ArrowRight
+                className="h-3.5 w-3.5"
+                strokeWidth={1.8}
+              />
             </button>
           </div>
         </div>
 
-        {/* 3D CAROUSEL STAGE WITH BACKGROUND STUDENTS */}
+        {/* ==================================================
+            3D CAROUSEL STAGE
+        ================================================== */}
+
         <div
           className="relative mx-auto mt-2 h-[420px] w-full max-w-[620px] overflow-hidden sm:h-[440px]"
           style={{
@@ -573,151 +719,208 @@ export function DiscoverStudents({
             perspectiveOrigin: "50% 50%",
           }}
         >
-          {/* Fixed subtle lighting */}
-          <div
-            className="pointer-events-none absolute left-1/2 top-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-30 blur-3xl"
-            style={{
-              background:
-                "radial-gradient(circle, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0) 70%)",
-            }}
-          />
+          {/* ==================================================
+              BACKGROUND STUDENTS
+              
+              No blur.
+              No gradient.
+              No backdrop filter.
+          ================================================== */}
 
-          {/* BACKGROUND WAITING STUDENTS 
-              NOTE: The inner div now has 'relative' to fix the Next.js Image warning.
-              The 'sizes' prop has been added for performance.
-          */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            {/* Far Left Waiting */}
+          <div className="pointer-events-none absolute inset-0">
+            {/* Very far left */}
             {backgroundStudents.veryFarLeft && (
-              <div className="absolute left-[5%] top-1/2 -translate-y-1/2 scale-[0.6] opacity-[0.15] blur-[2px]">
+              <div className="absolute left-[5%] top-1/2 -translate-y-1/2 scale-[0.6] opacity-[0.13]">
                 <div className="relative h-[350px] w-[240px] overflow-hidden rounded-2xl border border-white/5 bg-[#18212F]">
                   <Image
-                    src={backgroundStudents.veryFarLeft.profileImageUrl || "/default-avatar.png"}
-                    alt="Waiting student"
+                    src={
+                      backgroundStudents
+                        .veryFarLeft
+                        .profileImageUrl ||
+                      "/default-avatar.png"
+                    }
+                    alt="Student profile"
                     fill
                     sizes="240px"
-                    className="object-cover"
+                    className="object-cover object-center"
                   />
                 </div>
               </div>
             )}
-            
-            {/* Far Right Waiting */}
+
+            {/* Very far right */}
             {backgroundStudents.veryFarRight && (
-              <div className="absolute right-[5%] top-1/2 -translate-y-1/2 scale-[0.6] opacity-[0.15] blur-[2px]">
+              <div className="absolute right-[5%] top-1/2 -translate-y-1/2 scale-[0.6] opacity-[0.13]">
                 <div className="relative h-[350px] w-[240px] overflow-hidden rounded-2xl border border-white/5 bg-[#18212F]">
                   <Image
-                    src={backgroundStudents.veryFarRight.profileImageUrl || "/default-avatar.png"}
-                    alt="Waiting student"
+                    src={
+                      backgroundStudents
+                        .veryFarRight
+                        .profileImageUrl ||
+                      "/default-avatar.png"
+                    }
+                    alt="Student profile"
                     fill
                     sizes="240px"
-                    className="object-cover"
+                    className="object-cover object-center"
                   />
                 </div>
               </div>
             )}
 
-            {/* Near Left Waiting */}
+            {/* Near left */}
             {backgroundStudents.farLeft && (
-              <div className="absolute left-[15%] top-1/2 -translate-y-1/2 scale-[0.75] opacity-[0.25] blur-[1px]">
+              <div className="absolute left-[15%] top-1/2 -translate-y-1/2 scale-[0.75] opacity-[0.24]">
                 <div className="relative h-[350px] w-[240px] overflow-hidden rounded-2xl border border-white/5 bg-[#18212F]">
                   <Image
-                    src={backgroundStudents.farLeft.profileImageUrl || "/default-avatar.png"}
-                    alt="Waiting student"
+                    src={
+                      backgroundStudents
+                        .farLeft
+                        .profileImageUrl ||
+                      "/default-avatar.png"
+                    }
+                    alt="Student profile"
                     fill
                     sizes="240px"
-                    className="object-cover"
+                    className="object-cover object-center"
                   />
                 </div>
               </div>
             )}
 
-            {/* Near Right Waiting */}
+            {/* Near right */}
             {backgroundStudents.farRight && (
-              <div className="absolute right-[15%] top-1/2 -translate-y-1/2 scale-[0.75] opacity-[0.25] blur-[1px]">
+              <div className="absolute right-[15%] top-1/2 -translate-y-1/2 scale-[0.75] opacity-[0.24]">
                 <div className="relative h-[350px] w-[240px] overflow-hidden rounded-2xl border border-white/5 bg-[#18212F]">
                   <Image
-                    src={backgroundStudents.farRight.profileImageUrl || "/default-avatar.png"}
-                    alt="Waiting student"
+                    src={
+                      backgroundStudents
+                        .farRight
+                        .profileImageUrl ||
+                      "/default-avatar.png"
+                    }
+                    alt="Student profile"
                     fill
                     sizes="240px"
-                    className="object-cover"
+                    className="object-cover object-center"
                   />
                 </div>
               </div>
             )}
           </div>
 
-          {/* FIXED 3D SPACE (Active Cards) */}
+          {/* ==================================================
+              FIXED 3D SPACE
+          ================================================== */}
+
           <div
             className="absolute inset-0"
             style={{
               transformStyle: "preserve-3d",
             }}
           >
-            {renderCard(visibleStudents.left, "left")}
-            {renderCard(visibleStudents.right, "right")}
-            {renderCard(visibleStudents.center, "center")}
+            {renderCard(
+              visibleStudents.left,
+              "left",
+            )}
+
+            {renderCard(
+              visibleStudents.right,
+              "right",
+            )}
+
+            {renderCard(
+              visibleStudents.center,
+              "center",
+            )}
           </div>
 
           {/* ==================================================
-              MOBILE CONTROLS (Fixed corruption/overlap)
+              MOBILE CONTROLS
+              
+              No blur.
           ================================================== */}
-          <div className="absolute bottom-2 left-0 right-0 flex items-center justify-between px-4 sm:hidden pointer-events-none">
-            {/* Left Button */}
+
+          <div className="absolute bottom-2 left-0 right-0 flex items-center justify-between px-4 sm:hidden">
+            {/* Previous */}
             <button
               type="button"
               onClick={() => move(-1)}
-              disabled={isAnimating || students.length <= 1}
+              disabled={
+                isAnimating ||
+                students.length <= 1
+              }
               aria-label="Previous student"
-              className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-[#18212F]/90 backdrop-blur text-white/80 shadow-lg transition-all hover:bg-[#202A39] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-[#18212F] text-white/80 shadow-lg transition-all hover:bg-[#202A39] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
             >
-              <ArrowLeft className="h-4 w-4" strokeWidth={2} />
+              <ArrowLeft
+                className="h-4 w-4"
+                strokeWidth={2}
+              />
             </button>
 
-            {/* Pagination (Centered) */}
-            <div className="pointer-events-auto mx-2 flex max-w-[120px] items-center justify-center gap-1.5 overflow-hidden">
-              {students.map((student, index) => {
-                const isActive = index === safeCurrentIndex;
-                return (
-                  <button
-                    key={student.id}
-                    type="button"
-                    aria-label={`Go to student ${index + 1}`}
-                    onClick={() => goToStudent(index)}
-                    className={[
-                      "h-1.5 rounded-full transition-all duration-300",
-                      isActive
-                        ? "w-5 bg-white"
-                        : "w-1.5 bg-white/25 hover:bg-white/45",
-                    ].join(" ")}
-                  />
-                );
-              })}
+            {/* Pagination */}
+            <div className="mx-2 flex max-w-[120px] items-center justify-center gap-1.5 overflow-hidden">
+              {students.map(
+                (student, index) => {
+                  const isActive =
+                    index ===
+                    safeCurrentIndex;
+
+                  return (
+                    <button
+                      key={student.id}
+                      type="button"
+                      aria-label={`Go to student ${
+                        index + 1
+                      }`}
+                      onClick={() =>
+                        goToStudent(index)
+                      }
+                      className={[
+                        "h-1.5 rounded-full transition-all duration-300",
+                        isActive
+                          ? "w-5 bg-white"
+                          : "w-1.5 bg-white/25 hover:bg-white/45",
+                      ].join(" ")}
+                    />
+                  );
+                },
+              )}
             </div>
 
-            {/* Right Button */}
+            {/* Next */}
             <button
               type="button"
               onClick={() => move(1)}
-              disabled={isAnimating || students.length <= 1}
+              disabled={
+                isAnimating ||
+                students.length <= 1
+              }
               aria-label="Next student"
-              className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-[#18212F]/90 backdrop-blur text-white/80 shadow-lg transition-all hover:bg-[#202A39] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-[#18212F] text-white/80 shadow-lg transition-all hover:bg-[#202A39] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
             >
-              <ArrowRight className="h-4 w-4" strokeWidth={2} />
+              <ArrowRight
+                className="h-4 w-4"
+                strokeWidth={2}
+              />
             </button>
           </div>
         </div>
 
-        {/* FOOTER */}
+        {/* ==================================================
+            FOOTER
+        ================================================== */}
+
         <div className="flex items-center justify-center border-t border-white/[0.07] px-5 py-2.5">
           <div className="flex items-center gap-2 text-[11px] text-white/40">
             <span className="font-medium text-white/60">
               {safeCurrentIndex + 1}
             </span>
+
             <span>/</span>
+
             <span>{students.length}</span>
-            <span className="mx-1 h-1 w-1 rounded-full bg-white/20" />
           </div>
         </div>
       </div>
