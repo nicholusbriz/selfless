@@ -18,7 +18,7 @@ interface VideoPlayerProps {
   title?: string;
   description?: string;
   onEnded?: () => void;
-  playRef?: React.RefObject<{ play: () => void }>;
+  playRef?: React.RefObject<{ play: () => void } | null>;
 }
 
 // Global video manager to ensure only one video plays at a time
@@ -86,6 +86,11 @@ export function VideoPlayer({
         }
       };
     }
+    return () => {
+      if (playRef) {
+        playRef.current = null;
+      }
+    };
   }, [playRef]);
 
   // Update the ref when onEnded changes
