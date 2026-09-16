@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { clearRAGCache } from '@/lib/services/rag-service';
 
 const prisma = new PrismaClient();
 
@@ -29,6 +30,19 @@ export async function PUT(
         ...(helpfulRating !== undefined && { helpfulRating })
       }
     });
+
+    if (content !== undefined) {
+      await prisma.aIKnowledgeChunk.deleteMany({ where: { knowledgeBaseId: id } });
+      await prisma.aIKnowledgeBase.update({
+        where: { id },
+        data: {
+          embedding: [],
+          embeddingGeneratedAt: null,
+          isChunked: false,
+        },
+      });
+      clearRAGCache();
+    }
 
     return NextResponse.json({
       success: true,

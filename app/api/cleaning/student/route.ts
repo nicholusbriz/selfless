@@ -56,12 +56,11 @@ export async function GET() {
       }
     });
 
-    // Get available weeks with days for the user's tech center
-    // Remove deadline filter so users can see all weeks/days even after deadline
+    // Get all weeks with days so users can see closed weeks and their locked days.
+    // Registration and switching remain controlled by the week/day status checks.
     const weeks = await prisma.week.findMany({
       where: {
         techCenterId: user.techCenter?.id || undefined,
-        isActive: true
       },
       include: {
         days: {

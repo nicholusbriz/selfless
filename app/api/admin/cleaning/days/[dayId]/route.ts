@@ -32,6 +32,7 @@ export async function PUT(
 
       const day = await tx.cleaningDay.findUnique({
         where: { id: dayId },
+        include: { week: true },
       });
 
       if (!day) {
@@ -42,7 +43,9 @@ export async function PUT(
       let newStatus = status;
       const newCapacity = capacityLimit !== undefined ? capacityLimit : day.capacityLimit;
 
-      if (capacityLimit !== undefined) {
+      if (!day.week.isActive) {
+        newStatus = 'CLOSED';
+      } else if (capacityLimit !== undefined) {
         // When capacity is changed, auto-determine status based on new capacity
         if (currentRegistrations >= newCapacity) {
           newStatus = 'FULL';

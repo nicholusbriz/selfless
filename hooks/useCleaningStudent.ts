@@ -113,6 +113,34 @@ export interface CleaningStatus {
   weekLabel?: string;
 }
 
+// ----------------------------------------------------------------
+// Helper: build a trimmed UserRegistration from a day id
+// (used by both optimistic updates so the shape matches the type)
+// ----------------------------------------------------------------
+
+const buildRegistrationFromDay = (
+  old: CleaningData,
+  dayId: string,
+): UserRegistration | null => {
+  const day = old.weeks.flatMap((w) => w.days).find((d) => d.id === dayId);
+  if (!day) return null;
+
+  const week = old.weeks.find((w) => w.days.some((d) => d.id === dayId));
+  if (!week) return null;
+
+  return {
+    id: 'temp-' + Date.now(),
+    cleaningDayId: dayId,
+    cleaningDay: {
+      id: day.id,
+      dayOfWeek: day.dayOfWeek,
+      cleaningDate: day.cleaningDate,
+      status: day.status,
+      week: { id: week.id, weekLabel: week.weekLabel },
+    },
+  };
+};
+
 // API Functions
 const api = {
   getCleaningData: async (): Promise<CleaningData> => {
@@ -150,7 +178,15 @@ const api = {
     return response.json();
   },
 
-  markAttendance: async ({ userId, cleaningDayId, status }: { userId: string; cleaningDayId: string; status: 'ATTENDED' | 'NO_SHOW' | 'PENDING' }) => {
+  markAttendance: async ({
+    userId,
+    cleaningDayId,
+    status,
+  }: {
+    userId: string;
+    cleaningDayId: string;
+    status: 'ATTENDED' | 'NO_SHOW' | 'PENDING';
+  }) => {
     const response = await fetch('/api/admin/cleaning/attendance', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -162,80 +198,93 @@ const api = {
     }
     return response.json();
   },
-
-  getCleaningStatus: async (): Promise<CleaningStatus> => {
-    const response = await fetch('/api/cleaning/student');
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to fetch cleaning status');
-    }
-    const data = await response.json();
-    // Transform the data to match CleaningStatus interface
-    if (data.registration) {
-      return {
-        hasRegistration: true,
-        registration: {
-          id: data.registration.id,
-          dayId: data.registration.cleaningDayId,
-          dayOfWeek: data.registration.cleaningDay.dayOfWeek,
-          cleaningDate: data.registration.cleaningDay.cleaningDate,
-          weekId: data.registration.cleaningDay.week.id,
-          weekLabel: data.registration.cleaningDay.week.weekLabel,
-          status: data.registration.cleaningDay.status,
-        },
-        weekId: data.registration.cleaningDay.week.id,
-        weekLabel: data.registration.cleaningDay.week.weekLabel,
-      };
-    }
-    return {
-      hasRegistration: false,
-      message: 'No registration found',
-    };
-  },
 };
 
-// React Query Hooks
+// ----------------------------------------------------------------
+// Primary query — everything derives from this single source
+// ----------------------------------------------------------------
+
 export const useStudentCleaningData = () => {
   return useQuery({
     queryKey: ['studentCleaningData'],
     queryFn: api.getCleaningData,
     refetchInterval: 30000,
+    // Keep the previous data visible during background refetches so the UI
+    // never flickers when the slow endpoint finally returns.
+    placeholderData: (prev) => prev,
   });
 };
 
+// ----------------------------------------------------------------
+// Status — derived from the same cache. NO second network call.
+// ----------------------------------------------------------------
+
 export const useStudentCleaningStatus = () => {
-  return useQuery({
-    queryKey: ['studentCleaningStatus'],
-    queryFn: api.getCleaningStatus,
-    refetchInterval: 30000,
-  });
+  const query = useStudentCleaningData();
+
+  const data: CleaningStatus | undefined = query.data
+    ? query.data.registration
+      ? {
+          hasRegistration: true,
+          registration: {
+            id: query.data.registration.id,
+            dayId: query.data.registration.cleaningDayId,
+            dayOfWeek: query.data.registration.cleaningDay.dayOfWeek,
+            cleaningDate: query.data.registration.cleaningDay.cleaningDate,
+            weekId: query.data.registration.cleaningDay.week.id,
+            weekLabel: query.data.registration.cleaningDay.week.weekLabel,
+            status: query.data.registration.cleaningDay.status,
+          },
+          weekId: query.data.registration.cleaningDay.week.id,
+          weekLabel: query.data.registration.cleaningDay.week.weekLabel,
+        }
+      : {
+          hasRegistration: false,
+          message: 'No registration found',
+        }
+    : undefined;
+
+  return {
+    data,
+    isLoading: query.isLoading,
+    refetch: query.refetch,
+  };
 };
+
+// ----------------------------------------------------------------
+// Register for the first time — optimistic, non-blocking
+// ----------------------------------------------------------------
 
 export const useRegisterForCleaning = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: api.registerForCleaning,
+
     onMutate: async (cleaningDayId: string) => {
-      // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['studentCleaningData'] });
-      
-      // Snapshot previous value
-      const previousData = queryClient.getQueryData(['studentCleaningData']) as CleaningData;
-      
-      // Optimistically update
-      queryClient.setQueryData(['studentCleaningData'], (old: CleaningData | undefined) => {
-        if (!old) return old;
-        
-        // Find the day in weeks and add user to registrations
-        const updatedWeeks = old.weeks.map(week => ({
-          ...week,
-          days: week.days.map(day => {
-            if (day.id === cleaningDayId) {
+
+      const previousData = queryClient.getQueryData<CleaningData>([
+        'studentCleaningData',
+      ]);
+
+      queryClient.setQueryData<CleaningData>(
+        ['studentCleaningData'],
+        (old) => {
+          if (!old) return old;
+
+          const updatedWeeks = old.weeks.map((week) => ({
+            ...week,
+            days: week.days.map((day) => {
+              if (day.id !== cleaningDayId) return day;
+
+              const next = day.currentRegistrations + 1;
+
               return {
                 ...day,
-                currentRegistrations: day.currentRegistrations + 1,
-                status: day.currentRegistrations + 1 >= day.capacityLimit ? 'FULL' : 'OPEN',
+                currentRegistrations: next,
+                status:
+                  next >= day.capacityLimit ? ('FULL' as const) : ('OPEN' as const),
                 registrations: [
                   ...day.registrations,
                   {
@@ -247,201 +296,241 @@ export const useRegisterForCleaning = () => {
                       lastName: old.user.lastName,
                       profileImageUrl: old.user.profileImageUrl,
                     },
-                    registeredAt: new Date().toISOString(),
-                  }
-                ]
+                  },
+                ],
               };
-            }
-            return day;
-          })
-        }));
-        
-        return {
-          ...old,
-          weeks: updatedWeeks,
-          unregisteredStudents: (old.unregisteredStudents || []).filter(
-            (student) => student.id !== old.user.id
-          ),
-          registration: {
-            id: 'temp-' + Date.now(),
-            userId: old.user.id,
-            cleaningDayId,
-            registeredAt: new Date().toISOString(),
-            cleaningDay: updatedWeeks.flatMap(w => w.days).find(d => d.id === cleaningDayId)!,
-          }
-        };
-      });
-      
+            }),
+          }));
+
+          const withWeeks: CleaningData = { ...old, weeks: updatedWeeks };
+
+          return {
+            ...withWeeks,
+            unregisteredStudents: (old.unregisteredStudents || []).filter(
+              (s) => s.id !== old.user.id,
+            ),
+            registration: buildRegistrationFromDay(
+              withWeeks,
+              cleaningDayId,
+            ),
+          };
+        },
+      );
+
       return { previousData };
     },
-    onError: (err, variables, context) => {
-      // Rollback on error
+
+    onError: (_err, _vars, context) => {
       if (context?.previousData) {
-        queryClient.setQueryData(['studentCleaningData'], context.previousData);
+        queryClient.setQueryData(
+          ['studentCleaningData'],
+          context.previousData,
+        );
       }
     },
-    onSuccess: () => {
-      // Refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['studentCleaningData'] });
-      queryClient.invalidateQueries({ queryKey: ['studentCleaningStatus'] });
+
+    onSettled: () => {
+      // Mark stale WITHOUT a blocking refetch — the optimistic state
+      // remains visible. The next 30s tick (or window focus) will re-sync.
+      queryClient.invalidateQueries({
+        queryKey: ['studentCleaningData'],
+        refetchType: 'none',
+      });
     },
   });
 };
+
+// ----------------------------------------------------------------
+// Change (switch) day — optimistic, non-blocking
+// ----------------------------------------------------------------
 
 export const useChangeRegistration = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: api.changeRegistration,
+
     onMutate: async ({ newDayId }: { newDayId: string }) => {
-      // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['studentCleaningData'] });
-      
-      // Snapshot previous value
-      const previousData = queryClient.getQueryData(['studentCleaningData']) as CleaningData;
-      
-      // Optimistically update
-      queryClient.setQueryData(['studentCleaningData'], (old: CleaningData | undefined) => {
-        if (!old || !old.registration) return old;
-        
-        const oldDayId = old.registration.cleaningDayId;
-        
-        // Find the old and new days
-        const updatedWeeks = old.weeks.map(week => ({
-          ...week,
-          days: week.days.map(day => {
-            if (day.id === oldDayId) {
-              // Remove user from old day
-              return {
-                ...day,
-                currentRegistrations: Math.max(0, day.currentRegistrations - 1),
-                status: 'OPEN',
-                registrations: day.registrations.filter(r => r.userId !== old.user.id)
-              };
-            }
-            if (day.id === newDayId) {
-              // Add user to new day
-              return {
-                ...day,
-                currentRegistrations: day.currentRegistrations + 1,
-                status: day.currentRegistrations + 1 >= day.capacityLimit ? 'FULL' : 'OPEN',
-                registrations: [
-                  ...day.registrations,
-                  {
-                    id: 'temp-' + Date.now(),
-                    userId: old.user.id,
-                    user: {
-                      id: old.user.id,
-                      firstName: old.user.firstName,
-                      lastName: old.user.lastName,
-                      profileImageUrl: old.user.profileImageUrl,
+
+      const previousData = queryClient.getQueryData<CleaningData>([
+        'studentCleaningData',
+      ]);
+
+      queryClient.setQueryData<CleaningData>(
+        ['studentCleaningData'],
+        (old) => {
+          if (!old || !old.registration) return old;
+
+          const oldDayId = old.registration.cleaningDayId;
+
+          const updatedWeeks = old.weeks.map((week) => ({
+            ...week,
+            days: week.days.map((day) => {
+              // Remove current user from the old day
+              if (day.id === oldDayId) {
+                const next = Math.max(0, day.currentRegistrations - 1);
+                return {
+                  ...day,
+                  currentRegistrations: next,
+                  status: 'OPEN' as const,
+                  registrations: day.registrations.filter(
+                    (r) => r.userId !== old.user.id,
+                  ),
+                };
+              }
+
+              // Add current user to the new day
+              if (day.id === newDayId) {
+                const next = day.currentRegistrations + 1;
+                return {
+                  ...day,
+                  currentRegistrations: next,
+                  status:
+                    next >= day.capacityLimit
+                      ? ('FULL' as const)
+                      : ('OPEN' as const),
+                  registrations: [
+                    ...day.registrations,
+                    {
+                      id: 'temp-' + Date.now(),
+                      userId: old.user.id,
+                      user: {
+                        id: old.user.id,
+                        firstName: old.user.firstName,
+                        lastName: old.user.lastName,
+                        profileImageUrl: old.user.profileImageUrl,
+                      },
                     },
-                    registeredAt: new Date().toISOString(),
-                  }
-                ]
-              };
-            }
-            return day;
-          })
-        }));
-        
-        return {
-          ...old,
-          weeks: updatedWeeks,
-          registration: {
-            ...old.registration,
-            cleaningDayId: newDayId,
-            cleaningDay: updatedWeeks.flatMap(w => w.days).find(d => d.id === newDayId)!,
-          }
-        };
-      });
-      
+                  ],
+                };
+              }
+
+              return day;
+            }),
+          }));
+
+          const withWeeks: CleaningData = { ...old, weeks: updatedWeeks };
+
+          return {
+            ...withWeeks,
+            registration: buildRegistrationFromDay(withWeeks, newDayId),
+          };
+        },
+      );
+
       return { previousData };
     },
-    onError: (err, variables, context) => {
-      // Rollback on error
+
+    onError: (_err, _vars, context) => {
       if (context?.previousData) {
-        queryClient.setQueryData(['studentCleaningData'], context.previousData);
+        queryClient.setQueryData(
+          ['studentCleaningData'],
+          context.previousData,
+        );
       }
     },
-    onSuccess: () => {
-      // Refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['studentCleaningData'] });
-      queryClient.invalidateQueries({ queryKey: ['studentCleaningStatus'] });
+
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['studentCleaningData'],
+        refetchType: 'none',
+      });
     },
   });
 };
 
+// ----------------------------------------------------------------
+// Mark attendance — optimistic, non-blocking
+// ----------------------------------------------------------------
+
 export const useMarkAttendance = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: api.markAttendance,
-    onMutate: async ({ userId, cleaningDayId, status }: { userId: string; cleaningDayId: string; status: 'ATTENDED' | 'NO_SHOW' | 'PENDING' }) => {
-      // Cancel outgoing refetches
+
+    onMutate: async ({
+      userId,
+      cleaningDayId,
+      status,
+    }: {
+      userId: string;
+      cleaningDayId: string;
+      status: 'ATTENDED' | 'NO_SHOW' | 'PENDING';
+    }) => {
       await queryClient.cancelQueries({ queryKey: ['studentCleaningData'] });
-      
-      // Snapshot previous value
-      const previousData = queryClient.getQueryData(['studentCleaningData']) as CleaningData;
-      
-      // Optimistically update
-      queryClient.setQueryData(['studentCleaningData'], (old: CleaningData | undefined) => {
-        if (!old) return old;
-        
-        // Update the attendance record for the user and day
-        const updatedWeeks = old.weeks.map(week => ({
-          ...week,
-          days: week.days.map(day => {
-            if (day.id === cleaningDayId) {
-              const existingAttendance = day.attendanceRecords?.find(a => a.userId === userId);
-              const updatedAttendanceRecords = existingAttendance
-                ? day.attendanceRecords?.map(a => 
-                    a.userId === userId 
-                      ? { ...a, status, markedAt: new Date().toISOString() }
-                      : a
+
+      const previousData = queryClient.getQueryData<CleaningData>([
+        'studentCleaningData',
+      ]);
+
+      queryClient.setQueryData<CleaningData>(
+        ['studentCleaningData'],
+        (old) => {
+          if (!old) return old;
+
+          const updatedWeeks = old.weeks.map((week) => ({
+            ...week,
+            days: week.days.map((day) => {
+              if (day.id !== cleaningDayId) return day;
+
+              const existing = day.attendanceRecords?.find(
+                (a) => a.userId === userId,
+              );
+
+              const updatedAttendanceRecords = existing
+                ? day.attendanceRecords.map((a) =>
+                    a.userId === userId ? { ...a, status } : a,
                   )
                 : [
                     ...(day.attendanceRecords || []),
                     {
                       id: 'temp-' + Date.now(),
                       userId,
-                      cleaningDayId,
                       status,
-                      markedAt: new Date().toISOString(),
-                    }
+                      user: {
+                        id: userId,
+                        firstName: '',
+                        lastName: '',
+                        profileImageUrl: null,
+                      },
+                    },
                   ];
-              
-              return {
-                ...day,
-                attendanceRecords: updatedAttendanceRecords,
-              };
-            }
-            return day;
-          })
-        }));
-        
-        return {
-          ...old,
-          weeks: updatedWeeks,
-        };
-      });
-      
+
+              return { ...day, attendanceRecords: updatedAttendanceRecords };
+            }),
+          }));
+
+          return { ...old, weeks: updatedWeeks };
+        },
+      );
+
       return { previousData };
     },
-    onError: (err, variables, context) => {
-      // Rollback on error
+
+    onError: (_err, _vars, context) => {
       if (context?.previousData) {
-        queryClient.setQueryData(['studentCleaningData'], context.previousData);
+        queryClient.setQueryData(
+          ['studentCleaningData'],
+          context.previousData,
+        );
       }
     },
-    onSuccess: () => {
-      // Refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['studentCleaningData'] });
+
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['studentCleaningData'],
+        refetchType: 'none',
+      });
     },
   });
 };
 
-// Utility functions
+// ----------------------------------------------------------------
+// Utilities (unchanged)
+// ----------------------------------------------------------------
+
 export const formatDate = (dateString: string) => {
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', {

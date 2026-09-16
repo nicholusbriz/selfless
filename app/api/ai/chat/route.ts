@@ -1,23 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth/nextauth';
 import { generateRAGResponse, type RAGResponse, type RAGOptions } from '@/lib/services/rag-service';
 
 const prisma = new PrismaClient();
-
-// Custom error types for better error handling
-class QuotaExceededError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'QuotaExceededError';
-  }
-}
-
-class NetworkError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'NetworkError';
-  }
-}
 
 type ChatHistoryMessage = {
   role: 'system' | 'user' | 'assistant';
@@ -33,37 +20,6 @@ type LearningProfileRecord = {
   responseStyle?: string;
   languagePreference?: string;
 } | null;
-
-// Basic AI identity - all specific knowledge comes from database
-const AI_IDENTITY = `
-You are Atbriz Ai, an intelligent learning assistant designed to help students succeed.
-
-ASSISTANCE GUIDELINES:
-1. You are Atbriz Ai - an intelligent learning assistant designed to help students succeed
-2. Help users navigate the platform and find features using the knowledge base
-3. Explain how to use different features and tools based on database information
-4. Provide information about courses, grades, and academic progress from context
-5. Assist with assignment questions and educational content
-6. Help with coding and technical questions
-7. Answer general questions about any topic (math, science, history, etc.)
-8. Be encouraging and educational in your approach
-9. When helping with assignments, provide guidance rather than just answers
-10. Adapt responses based on the user's role (student/teacher/admin)
-11. Maintain a friendly, professional, and educational tone
-12. Reference yourself as "Atbriz Ai" when appropriate
-13. Be personal and adaptive to each user's learning journey
-14. Use the provided knowledge base information for platform-specific questions
-15. If you don't have specific information in the knowledge base, provide general helpful guidance
-16. When users ask about who created you or who developed the platform, provide information about Nicholus Turyamureba (Atbriz) from the developer category in the knowledge base
-
-When answering questions:
-- Use the knowledge base information provided below for platform-specific questions
-- If the question is educational (assignments, homework, concepts), provide helpful explanations
-- If the question is general knowledge, answer it to the best of your ability
-- If asked about the creator/developer, provide information about Nicholus Turyamureba (Atbriz)
-- Always be helpful, educational, and encouraging
-- If you don't know something, admit it and suggest where the user might find help
-`;
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -137,17 +93,20 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: 'Authentication is required' },
+        { status: 401 },
+      );
+    }
+
     const { 
       message, 
       conversationHistory, 
-      userId, 
-      userContext: prebuiltUserContext, 
-      profileRecommendations, 
-      conversationId,
-      useRAG = true,
-      strictMode = false,
-      hybridSearch = false
+      conversationId
     } = await request.json();
+    const userId = session.user.id;
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
@@ -160,54 +119,29 @@ export async function POST(request: NextRequest) {
       ? (conversationHistory as ChatHistoryMessage[])
       : [];
 
-    // Use prebuilt context if provided (from TanStack Query cache), otherwise fetch from database
+    // Build trusted context from the authenticated user's database record.
     let userContext = '';
-    
-    if (prebuiltUserContext) {
-      // Use cached context from TanStack Query (already formatted)
-      userContext = prebuiltUserContext;
-    } else if (userId) {
-      // Fallback to database fetch if no cached context
-      try {
-        // Fetch user's academic data only (simplified for speed)
-        const user = await prisma.user.findUnique({
-          where: { id: userId },
-          include: {
-            role: true,
-            techCenter: true,
-            submittedCourses: {
-              include: {
-                grades: true
-              }
-            },
-            grades: true
-          }
-        });
 
-        if (user) {
-          // Build personalized context
-          const courses = user.submittedCourses.map(c => c.name).join(', ');
-          const recentGrades = user.grades.slice(-3).map(g => g.score).join(', ');
-          
-          userContext = `
-          
-USER CONTEXT:
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        firstName: true,
+        lastName: true,
+        role: { select: { displayName: true } },
+        techCenter: { select: { name: true } },
+        submittedCourses: { select: { name: true } },
+      },
+    });
+
+    if (user) {
+      const courses = user.submittedCourses.map((course) => course.name).join(', ');
+      userContext = `
+TRUSTED CURRENT USER DATA:
 - Name: ${user.firstName} ${user.lastName}
 - Role: ${user.role?.displayName || 'Student'}
 - Enrolled Courses: ${courses || 'None'}
-- Recent Grades: ${recentGrades || 'No grades yet'}
 - Tech Center: ${user.techCenter?.name || 'Not assigned'}
 `;
-        }
-      } catch (dbError) {
-        console.error('Database error:', dbError);
-        // Continue without user context if database fails
-      }
-    }
-
-    // Add profile recommendations to context if provided
-    if (profileRecommendations) {
-      userContext += profileRecommendations;
     }
 
     if (userId) {
@@ -226,69 +160,32 @@ USER CONTEXT:
     let response: string = '';
     let ragData: RAGResponse | null = null;
     let ragEnabled = false;
-    let aiQuotaExceeded = false;
+    const isIdentityQuestion = /\b(who am i|who is me|what is my name|tell me about me)\b/i.test(message);
 
-    // Use RAG if enabled and available
-    if (useRAG) {
-      try {
-        console.log('[ChatRoute] Attempting RAG generation...');
-        const ragOptions: RAGOptions = {
-          strictMode,
-          useCache: true,
-          maxSources: 5,
-          similarityThreshold: 0.5,
-          hybridSearch,
-          includeUserContext: true,
-          temperature: 0.7,
-          maxTokens: 1000
-        };
-
-        ragData = await generateRAGResponse(message, userContext, ragOptions);
-        response = ragData.response;
-        ragEnabled = true;
-        console.log('[ChatRoute] RAG generation successful');
-      } catch (ragError) {
-        console.error('[ChatRoute] RAG generation failed, falling back to traditional chat:', ragError);
-        aiQuotaExceeded = isOpenAIQuotaError(ragError);
-        ragEnabled = false;
-      }
+    if (isIdentityQuestion && user) {
+      response = `You are ${user.firstName} ${user.lastName}, a ${user.role?.displayName || 'student'} at ${user.techCenter?.name || 'your tech center'}.`;
     }
+    // Chat is always database-only. Client-provided AI mode flags are ignored.
+    if (!response) try {
+      console.log('[ChatRoute] Attempting database-only RAG generation...');
+      const ragOptions: RAGOptions = {
+        strictMode: true,
+        useCache: true,
+        maxSources: 3,
+        similarityThreshold: 0.65,
+        hybridSearch: false,
+        includeUserContext: true,
+        temperature: 0.7,
+        maxTokens: 350
+      };
 
-    // Fallback to traditional chat if RAG is disabled or failed
-    if (!ragEnabled && !aiQuotaExceeded) {
-      // Get relevant knowledge base content (keyword-based fallback)
-      let knowledgeBaseContext = '';
-      try {
-        const relevantKnowledge = await getRelevantKnowledge(message);
-        if (relevantKnowledge.length > 0) {
-          knowledgeBaseContext = `
-          
-RELEVANT KNOWLEDGE BASE:
-${relevantKnowledge.map(k => `
-## ${k.title}
-**Category:** ${k.category}${k.subcategory ? ` > ${k.subcategory}` : ''}
-**Content:** ${k.content}
-${k.summary ? `**Summary:** ${k.summary}` : ''}
-${k.tags.length > 0 ? `**Tags:** ${k.tags.join(', ')}` : ''}
-`).join('\n---\n')}
-`;
-        }
-      } catch (kbError) {
-        console.error('Knowledge base error:', kbError);
-        // Continue without knowledge base if it fails
-      }
-
-      try {
-        response = await callOpenAIAPI(message, relevantHistory, userContext, knowledgeBaseContext);
-        console.log('[ChatRoute] Using OpenRouter provider (traditional mode)');
-      } catch (error) {
-        console.error('AI request error:', error);
-        response = generateFallbackResponse(message);
-      }
-    }
-
-    if (aiQuotaExceeded) {
-      response = generateFallbackResponse(message);
+      ragData = await generateRAGResponse(message, userContext, ragOptions);
+      response = ragData.response;
+      ragEnabled = true;
+      console.log('[ChatRoute] Database-only RAG generation successful');
+    } catch (ragError) {
+      console.error('[ChatRoute] Database-only RAG generation failed:', ragError);
+      response = 'I could not answer because the knowledge base is temporarily unavailable. Please try again later.';
     }
 
     // Store conversation if userId is provided
@@ -433,50 +330,6 @@ async function getLearningProfileContext(userId: string) {
   }
 }
 
-async function getRelevantKnowledge(message: string) {
-  const topics = extractTopics(message);
-  const lowerMessage = message.toLowerCase();
-  
-  // Find relevant knowledge base entries with broader search - limited to 5 for speed
-  const knowledge = await prisma.aIKnowledgeBase.findMany({
-    where: {
-      isActive: true,
-      OR: [
-        ...topics.map((topic: string) => ({
-          category: { contains: topic }
-        })),
-        ...topics.map((topic: string) => ({
-          subcategory: { contains: topic }
-        })),
-        ...topics.map((topic: string) => ({
-          tags: { has: topic }
-        })),
-        {
-          title: { contains: lowerMessage }
-        },
-        {
-          content: { contains: lowerMessage }
-        }
-      ]
-    },
-    orderBy: [
-      { priority: 'desc' },
-      { accessCount: 'desc' }
-    ],
-    take: 5 // Reduced from 10 to 5 for faster responses
-  });
-  
-  // Update access count
-  for (const item of knowledge) {
-    await prisma.aIKnowledgeBase.update({
-      where: { id: item.id },
-      data: { accessCount: { increment: 1 } }
-    });
-  }
-  
-  return knowledge;
-}
-
 async function storeConversation(userId: string, userMessage: string, aiResponse: string, history: ChatHistoryMessage[] = [], conversationId?: string) {
   const messages = [
     ...(history || []).map((msg) => ({
@@ -612,89 +465,3 @@ function assessDifficulty(message: string): string {
   return 'medium';
 }
 
-async function callOpenAIAPI(message: string, conversationHistory: ChatHistoryMessage[] = [], userContext: string = '', knowledgeBaseContext: string = '') {
-  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
-  
-  if (!apiKey) {
-    throw new Error('OpenRouter API key is not configured');
-  }
-
-  const model = process.env.OPENROUTER_MODEL?.trim() || 'openai/gpt-4.1-mini';
-
-  const systemContent = AI_IDENTITY + userContext + knowledgeBaseContext;
-
-  const messages = [
-    {
-      role: 'system',
-      content: systemContent
-    },
-    ...conversationHistory.map((msg) => ({
-      role: msg.role,
-      content: msg.content
-    })),
-    {
-      role: 'user',
-      content: message
-    }
-  ];
-
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-      'HTTP-Referer': 'http://localhost:3000',
-      'X-Title': 'Selfless CE'
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      max_completion_tokens: 1000,
-      temperature: 0.7
-    })
-  });
-
-  const data = await response.json();
-
-  if (data.error) {
-    const errorMessage = data.error.message;
-    
-    // Check if it's a quota/limit error
-    if (errorMessage.includes('quota') || errorMessage.includes('limit') || errorMessage.includes('billing') || errorMessage.includes('exceeded')) {
-      throw new QuotaExceededError(errorMessage);
-    }
-    
-    // Check if it's a network-related error
-    if (errorMessage.includes('network') || errorMessage.includes('connection') || errorMessage.includes('timeout')) {
-      throw new NetworkError(errorMessage);
-    }
-    
-    throw new Error(errorMessage);
-  }
-
-  return data.choices[0].message.content;
-}
-
-function generateFallbackResponse(message: string): string {
-  const lowerMessage = message.toLowerCase();
-  
-  // Simple pattern matching for basic responses
-  if (lowerMessage.includes('navigate') || lowerMessage.includes('find') || lowerMessage.includes('where')) {
-    return "I can help you navigate the Selfless CE platform! Here are the main sections:\n\n• Dashboard (/dashboard) - Overview of your academic progress\n• Courses (/dashboard/courses) - Manage your BYU-Idaho courses\n• Grades (/dashboard/grades) - View your grades and GPA\n• Cleaning (/dashboard/cleaning) - Weekly cleaning schedules\n• Internships (/dashboard/internships) - Internship opportunities\n• Support Groups (/dashboard/support-groups) - Connect with peers\n• Profile (/dashboard/profile) - Your personal settings\n\nWhat specifically are you looking for?";
-  }
-  
-  if (lowerMessage.includes('assignment') || lowerMessage.includes('homework') || lowerMessage.includes('help')) {
-    return "I'd be happy to help with your assignment, but the AI service is temporarily unavailable because the OpenAI account has no remaining credits. Please add API credits and try again.\n\nI can provide:\n• Detailed explanations of concepts\n• Step-by-step problem solving\n• Code debugging and help\n• Research assistance";
-  }
-  
-  if (lowerMessage.includes('grade') || lowerMessage.includes('gpa')) {
-    return "You can view your grades and GPA by navigating to the Grades section in the dashboard (/dashboard/grades). There you'll see:\n\n• All your course grades\n• Current GPA calculation\n• Academic progress tracking\n• Grade history\n\nIf you have questions about a specific grade or need help understanding your academic standing, feel free to ask!";
-  }
-  
-  return "I'm your AI assistant for Selfless CE. The AI service is temporarily unavailable because the OpenAI account has no remaining credits. Please add API credits and try again.\n\nI can help with:\n• Platform navigation and features\n• Assignment questions and explanations\n• Course information and requirements\n• General questions about any topic\n• Coding help and debugging";
-}
-
-function isOpenAIQuotaError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-  return message.includes('no credits') || message.includes('quota') || message.includes('billing') || message.includes('exceeded');
-}

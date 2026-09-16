@@ -15,11 +15,10 @@
  * @module knowledge-retriever
  */
 
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { 
   generateEmbedding, 
   calculateCosineSimilarity, 
-  findMostSimilar 
 } from './embedding-service';
 
 const prisma = new PrismaClient();
@@ -101,7 +100,7 @@ export async function semanticSearch(
     }
 
     // Build database query filters
-    const where: any = { isActive: true };
+    const where: Prisma.AIKnowledgeBaseWhereInput = { isActive: true };
     if (category) where.category = category;
     if (subcategory) where.subcategory = subcategory;
     if (difficulty) where.difficulty = difficulty;
@@ -207,12 +206,12 @@ export async function semanticSearch(
  */
 async function searchChunks(
   queryEmbedding: number[],
-  where: any,
+  where: Prisma.AIKnowledgeBaseWhereInput,
   threshold: number,
   limit: number
 ): Promise<KnowledgeResult[]> {
   try {
-    const chunks = await (prisma as any).aIKnowledgeChunk.findMany({
+    const chunks = await prisma.aIKnowledgeChunk.findMany({
       where: {
         knowledgeBase: {
           isActive: true,
@@ -298,7 +297,7 @@ export async function keywordSearch(
   try {
     const searchTerms = query.toLowerCase().split(/\s+/);
 
-    const where: any = {
+    const where: Prisma.AIKnowledgeBaseWhereInput = {
       isActive: true,
       OR: [
         { title: { contains: query, mode: 'insensitive' } },

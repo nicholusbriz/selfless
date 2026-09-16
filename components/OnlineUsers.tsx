@@ -115,7 +115,7 @@ export function OnlineUsers({ onlineUsers }: OnlineUsersProps) {
                     border border-white
                     bg-[#E8E9E3]
                     text-[9px] font-semibold
-                    text-[#12203B]
+                    text-[#1A2B4C]
                     shadow-sm
                   "
                   aria-label={`${displayName} profile initials`}
@@ -131,7 +131,7 @@ export function OnlineUsers({ onlineUsers }: OnlineUsersProps) {
                   h-2.5 w-2.5
                   rounded-full
                   border-2 border-white
-                  bg-[#3F8F5B]
+                  bg-[#2F6B45]
                 "
                 aria-hidden="true"
               />
@@ -148,18 +148,18 @@ export function OnlineUsers({ onlineUsers }: OnlineUsersProps) {
                   className="
                     min-w-0 flex-1 overflow-x-auto whitespace-nowrap
                     [scrollbar-width:none]
-                    text-[9px] font-semibold
+                    text-[10px] font-bold
                     leading-[1.25]
-                    text-[#12203B]
-                    sm:text-[10px]
-                    md:text-[11px]
+                    text-[#1A2B4C]
+                    sm:text-[11px]
+                    md:text-[12px]
                   "
                   title={displayName}
                 >
                   {displayName}
                 </p>
-                <span className="inline-flex shrink-0 items-center gap-1 text-[8px] font-semibold leading-none text-[#3F8F5B] sm:text-[9px]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#3F8F5B]" aria-hidden="true" />
+                <span className="inline-flex shrink-0 items-center gap-1 text-[9px] font-bold leading-none text-[#2F6B45] sm:text-[10px]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#2F6B45]" aria-hidden="true" />
                   Online
                 </span>
               </div>
@@ -173,13 +173,13 @@ export function OnlineUsers({ onlineUsers }: OnlineUsersProps) {
                   className="
                     mt-0.5 overflow-x-auto whitespace-nowrap
                     [scrollbar-width:none]
-                    text-[7px]
-                    font-medium
+                    text-[8px]
+                    font-semibold
                     leading-[1.25]
                     tracking-[0.05em]
-                    text-[#8A9088]
-                    sm:text-[8px]
-                    md:text-[9px]
+                    text-[#5A6472]
+                    sm:text-[9px]
+                    md:text-[10px]
                   "
                   title={techCenterName}
                 >
@@ -193,4 +193,3 @@ export function OnlineUsers({ onlineUsers }: OnlineUsersProps) {
     </div>
   );
 }
-

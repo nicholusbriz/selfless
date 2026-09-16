@@ -50,17 +50,12 @@ export async function POST(request: NextRequest) {
         throw new Error('Cleaning day not found');
       }
 
-      // Teachers follow capacity rules; admins can override them.
-      if (!isAdmin && cleaningDay.status === 'FULL') {
-        throw new Error('This cleaning day is full');
-      }
-
       // Check capacity within transaction
       const currentRegistrations = await tx.cleaningRegistration.count({
         where: { cleaningDayId },
       });
 
-      if (!isAdmin && currentRegistrations >= cleaningDay.capacityLimit) {
+      if (currentRegistrations >= cleaningDay.capacityLimit) {
         throw new Error('This cleaning day is at capacity');
       }
 

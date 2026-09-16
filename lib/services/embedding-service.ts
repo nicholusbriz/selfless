@@ -26,6 +26,12 @@ interface ProgressUpdate {
   progress?: number;
 }
 
+interface PipelineOptions {
+  progress_callback?: (progress: ProgressUpdate) => void;
+  quantized?: boolean;
+  device?: string;
+}
+
 interface EmbeddingPipeline {
   (text: string, options?: Record<string, unknown>): Promise<unknown>;
 }
@@ -35,7 +41,7 @@ interface TransformersModule {
   pipeline: (
     task: string,
     model: string,
-    options?: { progress_callback?: (progress: ProgressUpdate) => void }
+    options?: PipelineOptions
   ) => Promise<EmbeddingPipeline>;
 }
 
@@ -80,6 +86,9 @@ async function initializeTransformers() {
 let embeddingPipeline: EmbeddingPipeline | null = null;
 let pipelineInitPromise: Promise<EmbeddingPipeline> | null = null;
 let isPipelineInitialized = false;
+
+// Keep inference serial so multiple requests cannot multiply model memory use.
+let embeddingQueue: Promise<unknown> = Promise.resolve();
 
 // Cache for generated embeddings to avoid regeneration
 const embeddingCache = new Map<string, number[]>();
@@ -141,6 +150,8 @@ async function getEmbeddingPipeline(): Promise<EmbeddingPipeline> {
     'feature-extraction',
     'Xenova/all-MiniLM-L6-v2',
     {
+      quantized: true,
+      device: 'cpu',
       progress_callback: (progress: ProgressUpdate) => {
         if (progress.status === 'progress') {
           const progressValue = progress.progress ?? 0;
@@ -195,7 +206,17 @@ export async function generateEmbedding(text: string, useCache: boolean = true):
 
   try {
     const pipeline = await getEmbeddingPipeline();
-    const embedding = await pipeline(text, { pooling: 'mean', normalize: true });
+    const safeText = text.trim().slice(0, 6000);
+    const inference = embeddingQueue.then(() =>
+      pipeline(safeText, {
+        pooling: 'mean',
+        normalize: true,
+        truncation: true,
+        max_length: 256,
+      }),
+    );
+    embeddingQueue = inference.catch(() => undefined);
+    const embedding = await inference;
 
     const embeddingArray = toEmbeddingArray(embedding);
 
@@ -220,32 +241,11 @@ export async function generateEmbedding(text: string, useCache: boolean = true):
  */
 export async function generateBatchEmbeddings(texts: string[], useCache: boolean = true): Promise<number[][]> {
   if (texts.length === 0) return [];
-
-  // Initialize transformers
-  await initializeTransformers();
-
-  // Check if transformers is available
-  if (!transformersAvailable) {
-    throw new Error('Embedding generation not available in this environment');
-  }
-
-  const pipeline = await getEmbeddingPipeline();
   const embeddings: number[][] = [];
 
   for (const text of texts) {
     try {
-      if (useCache && embeddingCache.has(text)) {
-        embeddings.push(embeddingCache.get(text)!);
-      } else {
-        const embedding = await pipeline(text);
-        
-        const embeddingArray = toEmbeddingArray(embedding);
-        
-        embeddings.push(embeddingArray);
-        if (useCache) {
-          embeddingCache.set(text, embeddingArray);
-        }
-      }
+      embeddings.push(await generateEmbedding(text, useCache));
     } catch {
       console.error(`[EmbeddingService] Failed to generate embedding for text: ${text.substring(0, 50)}...`);
       // Continue with next text instead of failing entire batch
@@ -332,6 +332,12 @@ export function findMostSimilar(
  * @returns Array of text chunks
  */
 export function chunkText(text: string, maxLength: number = 1000, overlap: number = 200): string[] {
+  if (maxLength <= 0) {
+    throw new Error('Chunk maxLength must be greater than zero');
+  }
+
+  const safeOverlap = Math.max(0, Math.min(overlap, maxLength - 1));
+
   if (text.length <= maxLength) {
     return [text];
   }
@@ -342,7 +348,10 @@ export function chunkText(text: string, maxLength: number = 1000, overlap: numbe
   while (start < text.length) {
     const end = Math.min(start + maxLength, text.length);
     chunks.push(text.slice(start, end));
-    start = end - overlap;
+    if (end === text.length) {
+      break;
+    }
+    start = end - safeOverlap;
   }
 
   return chunks;

@@ -16,7 +16,12 @@ import {
   Tag,
   FileText,
   CheckCircle,
-  XCircle
+  XCircle,
+  Server,
+  Cpu,
+  Activity,
+  Clock,
+  Code,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -38,6 +43,93 @@ interface KnowledgeEntry {
   lastUpdated: Date;
 }
 
+interface EmbeddingStats {
+  total: number;
+  withEmbeddings: number;
+  withoutEmbeddings: number;
+  chunked: number;
+  totalChunks: number;
+  percentageEmbedded: number;
+}
+
+interface AIStatus {
+  ragAvailable: boolean;
+  providers: Array<{ provider: string; status: string; model?: string; error?: string }>;
+}
+
+interface UsageStats {
+  totalQueries: number;
+  recentQueries: number;
+  activeUsers: number;
+}
+
+const KNOWLEDGE_CATEGORIES = [
+  ['platform', 'Platform & navigation'],
+  ['organization', 'Organization & mission'],
+  ['courses', 'Courses & enrollment'],
+  ['academic', 'Academic guidance'],
+  ['grades', 'Grades & GPA'],
+  ['assignments', 'Assignments & homework'],
+  ['attendance', 'Attendance'],
+  ['cleaning', 'Cleaning rota'],
+  ['communication', 'Messages & announcements'],
+  ['activities', 'Activities & teams'],
+  ['policies', 'Policies & procedures'],
+  ['resources', 'Resources & support'],
+  ['account', 'Accounts & security'],
+  ['technical', 'Technical help'],
+  ['developer', 'Developer information'],
+  ['admin', 'Admin guidance'],
+  ['teacher', 'Teacher guidance'],
+  ['page-dashboard', 'Page guide: Dashboard home'],
+  ['page-overview', 'Page guide: Overview'],
+  ['page-courses', 'Page guide: Courses'],
+  ['page-grades', 'Page guide: Grades and GPA'],
+  ['page-cleaning', 'Page guide: Cleaning rota'],
+  ['page-messages', 'Page guide: Messages'],
+  ['page-announcements', 'Page guide: Announcements'],
+  ['page-notifications', 'Page guide: Notifications'],
+  ['page-profile', 'Page guide: Profile'],
+  ['page-students', 'Page guide: Students'],
+  ['page-internships', 'Page guide: Internships'],
+  ['page-support', 'Page guide: Support'],
+  ['page-support-groups', 'Page guide: Support groups'],
+  ['page-policies', 'Page guide: Policies'],
+  ['page-english-hub', 'Page guide: English hub'],
+  ['page-temple-trips', 'Page guide: Temple trips'],
+  ['page-football-team', 'Page guide: Football team'],
+  ['page-gallery', 'Page guide: Gallery'],
+  ['page-live-streaming', 'Page guide: Live streaming'],
+  ['page-ai-chat', 'Page guide: AI chat'],
+  ['page-admin', 'Page guide: Admin dashboard'],
+  ['page-admin-cleaning', 'Page guide: Admin cleaning'],
+  ['page-admin-users', 'Page guide: Admin users'],
+  ['page-admin-teachers', 'Page guide: Admin teachers'],
+  ['page-admin-tuition', 'Page guide: Admin tuition'],
+  ['page-admin-tech-centers', 'Page guide: Admin tech centers'],
+  ['page-developer', 'Page guide: Developer dashboard'],
+  ['page-developer-knowledge', 'Page guide: Knowledge base'],
+  ['page-developer-logs', 'Page guide: Developer logs'],
+  ['page-developer-password-resets', 'Page guide: Password resets'],
+  ['page-super-admin', 'Page guide: Super admin dashboard'],
+  ['page-super-admin-users', 'Page guide: Super admin users'],
+  ['page-super-admin-centers', 'Page guide: Super admin centers'],
+  ['page-student-detail', 'Page guide: Student profile detail'],
+  ['page-teacher-grades', 'Page guide: Teacher grades'],
+  ['page-admin-tech-center-edit', 'Page guide: Edit tech center'],
+  ['page-super-admin-center-detail', 'Page guide: Super admin center detail'],
+  ['page-super-admin-center-edit', 'Page guide: Edit super admin center'],
+  ['page-super-admin-center-create', 'Page guide: Create tech center'],
+  ['page-public-home', 'Page guide: Public home'],
+  ['page-about', 'Page guide: About'],
+  ['page-features', 'Page guide: Features'],
+  ['page-help', 'Page guide: Help'],
+  ['page-privacy', 'Page guide: Privacy'],
+  ['page-terms', 'Page guide: Terms'],
+  ['page-tech-centers', 'Page guide: Public tech centers'],
+  ['other', 'Other'],
+] as const;
+
 export default function KnowledgeBaseManagementPage() {
   const router = useRouter();
   const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
@@ -49,10 +141,52 @@ export default function KnowledgeBaseManagementPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'with-embedding' | 'without-embedding'>('all');
   const [generatingEmbedding, setGeneratingEmbedding] = useState<string | null>(null);
   const [bulkRegenerating, setBulkRegenerating] = useState(false);
+  const [embeddingStats, setEmbeddingStats] = useState<EmbeddingStats | null>(null);
+  const [aiStatus, setAIStatus] = useState<AIStatus | null>(null);
+  const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
+  const [aiStatusLoading, setAIStatusLoading] = useState(true);
+
+  const endpoints = [
+    ['GET', '/api/ai/status', 'Provider and RAG status'],
+    ['GET', '/api/ai/knowledge-base', 'Knowledge entries'],
+    ['POST', '/api/ai/knowledge-base', 'Create plain knowledge content'],
+    ['POST', '/api/ai/knowledge-base/:id/embedding', 'Generate one embedding'],
+    ['POST', '/api/admin/embed-knowledge', 'Bulk embedding generation'],
+    ['GET', '/api/ai/knowledge-base/search', 'Semantic or keyword search'],
+    ['POST', '/api/ai/chat', 'Database-only chatbot'],
+  ];
 
   useEffect(() => {
     loadEntries();
+    loadAIControlData();
   }, []);
+
+  const loadAIControlData = async () => {
+    setAIStatusLoading(true);
+    try {
+      const [statusResponse, embeddingsResponse, usageResponse] = await Promise.all([
+        fetch('/api/ai/status'),
+        fetch('/api/admin/embed-knowledge'),
+        fetch('/api/admin/ai/usage'),
+      ]);
+      if (statusResponse.ok) {
+        const statusData = await statusResponse.json();
+        setAIStatus(statusData.data || null);
+      }
+      if (embeddingsResponse.ok) {
+        const embeddingData = await embeddingsResponse.json();
+        setEmbeddingStats(embeddingData.data || null);
+      }
+      if (usageResponse.ok) {
+        const usageData = await usageResponse.json();
+        setUsageStats(usageData.data || null);
+      }
+    } catch (error) {
+      console.error('Failed to load AI control data:', error);
+    } finally {
+      setAIStatusLoading(false);
+    }
+  };
 
   const loadEntries = async () => {
     setLoading(true);
@@ -79,6 +213,7 @@ export default function KnowledgeBaseManagementPage() {
       const data = await response.json();
       if (data.success) {
         loadEntries();
+        loadAIControlData();
       } else {
         alert('Failed to delete entry: ' + data.error);
       }
@@ -160,11 +295,11 @@ export default function KnowledgeBaseManagementPage() {
       {/* Header */}
       <div className="mb-6">
         <button
-          onClick={() => router.push('/dashboard/dev/settings')}
+          onClick={() => router.push('/dashboard/dev')}
           className="flex items-center gap-2 text-[#A89F96] hover:text-white mb-4 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to Settings</span>
+          <span>Back to Developer Dashboard</span>
         </button>
         
         <div className="flex items-center justify-between">
@@ -194,6 +329,75 @@ export default function KnowledgeBaseManagementPage() {
           </div>
         </div>
       </div>
+
+      <section className="mb-6 rounded-xl border border-[#2A2438] bg-[#140E24] p-4">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-[#F5F0E8]">AI control center</h2>
+            <p className="text-sm text-[#A79C8C]">All AI status, embedding, usage, and API controls live here.</p>
+          </div>
+          <button
+            type="button"
+            onClick={loadAIControlData}
+            disabled={aiStatusLoading}
+            className="inline-flex items-center gap-2 rounded-lg border border-[#2A2438] bg-[#0A0615] px-3 py-2 text-sm text-[#F5F0E8] disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${aiStatusLoading ? 'animate-spin' : ''}`} />
+            Refresh AI data
+          </button>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="rounded-lg bg-[#0A0615] p-3">
+            <Server className="h-4 w-4 text-[#14B8A6]" />
+            <p className="mt-2 text-xs text-[#A79C8C]">RAG status</p>
+            <p className="font-semibold text-[#F5F0E8]">{aiStatus?.ragAvailable ? 'Ready' : 'Needs embeddings'}</p>
+          </div>
+          <div className="rounded-lg bg-[#0A0615] p-3">
+            <Cpu className="h-4 w-4 text-[#E8A33D]" />
+            <p className="mt-2 text-xs text-[#A79C8C]">Embedding coverage</p>
+            <p className="font-semibold text-[#F5F0E8]">{embeddingStats?.percentageEmbedded ?? 0}%</p>
+          </div>
+          <div className="rounded-lg bg-[#0A0615] p-3">
+            <BookOpen className="h-4 w-4 text-[#8B5CF6]" />
+            <p className="mt-2 text-xs text-[#A79C8C]">Chunks</p>
+            <p className="font-semibold text-[#F5F0E8]">{embeddingStats?.totalChunks ?? 0}</p>
+          </div>
+          <div className="rounded-lg bg-[#0A0615] p-3">
+            <Activity className="h-4 w-4 text-[#14B8A6]" />
+            <p className="mt-2 text-xs text-[#A79C8C]">AI queries</p>
+            <p className="font-semibold text-[#F5F0E8]">{usageStats?.totalQueries ?? 0}</p>
+          </div>
+          <div className="rounded-lg bg-[#0A0615] p-3">
+            <Clock className="h-4 w-4 text-[#FB7185]" />
+            <p className="mt-2 text-xs text-[#A79C8C]">Last 30 days</p>
+            <p className="font-semibold text-[#F5F0E8]">{usageStats?.recentQueries ?? 0}</p>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <div className="rounded-lg border border-[#2A2438] bg-[#0A0615] p-4">
+            <h3 className="mb-3 flex items-center gap-2 font-semibold text-[#F5F0E8]"><Server className="h-4 w-4" /> Providers</h3>
+            {aiStatus?.providers?.length ? aiStatus.providers.map((provider) => (
+              <div key={provider.provider} className="flex items-center justify-between border-b border-[#2A2438] py-2 text-sm last:border-0">
+                <span className="text-[#A79C8C]">{provider.provider}{provider.model ? ` · ${provider.model}` : ''}</span>
+                <span className={provider.status === 'working' ? 'text-[#14B8A6]' : 'text-[#FB7185]'}>{provider.status.replace('_', ' ')}</span>
+              </div>
+            )) : <p className="text-sm text-[#A79C8C]">No provider data available.</p>}
+          </div>
+          <div className="rounded-lg border border-[#2A2438] bg-[#0A0615] p-4">
+            <h3 className="mb-3 flex items-center gap-2 font-semibold text-[#F5F0E8]"><Code className="h-4 w-4" /> API endpoints</h3>
+            <div className="max-h-48 overflow-y-auto">
+              {endpoints.map(([method, path, description]) => (
+                <div key={`${method}-${path}`} className="border-b border-[#2A2438] py-2 last:border-0">
+                  <code className="text-xs text-[#E8A33D]">{method} {path}</code>
+                  <p className="text-xs text-[#A79C8C]">{description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -378,20 +582,18 @@ export default function KnowledgeBaseManagementPage() {
                           <Edit className="w-4 h-4" />
                         </button>
                         
-                        {!entry.embeddingGeneratedAt ? (
-                          <button
-                            onClick={() => handleGenerateEmbedding(entry.id)}
-                            disabled={generatingEmbedding === entry.id}
-                            className="p-2 text-[#14B8A6] hover:text-white hover:bg-[#0A0615] rounded-lg transition-colors disabled:opacity-50"
-                            title="Generate Embedding"
-                          >
-                            {generatingEmbedding === entry.id ? (
-                              <RefreshCw className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Zap className="w-4 h-4" />
-                            )}
-                          </button>
-                        ) : null}
+                        <button
+                          onClick={() => handleGenerateEmbedding(entry.id)}
+                          disabled={generatingEmbedding === entry.id}
+                          className="p-2 text-[#14B8A6] hover:text-white hover:bg-[#0A0615] rounded-lg transition-colors disabled:opacity-50"
+                          title={entry.embeddingGeneratedAt ? 'Regenerate Embedding' : 'Generate Embedding'}
+                        >
+                          {generatingEmbedding === entry.id ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Zap className="w-4 h-4" />
+                          )}
+                        </button>
                         
                         <button
                           onClick={() => handleDelete(entry.id)}
@@ -462,7 +664,6 @@ function KnowledgeForm({
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     category: entry?.category || '',
-    subcategory: entry?.subcategory || '',
     title: entry?.title || '',
     content: entry?.content || '',
     summary: entry?.summary || '',
@@ -482,7 +683,7 @@ function KnowledgeForm({
       const payload = {
         ...formData,
         tags,
-        generateEmbedding: true,
+        generateEmbedding: false,
       };
 
       const url = entry 
@@ -522,38 +723,22 @@ function KnowledgeForm({
           required
         >
           <option value="">Select category</option>
-          <option value="courses">Courses</option>
-          <option value="policies">Policies</option>
-          <option value="resources">Resources</option>
-          <option value="assignments">Assignments</option>
-          <option value="organization">Organization</option>
-          <option value="developer">Developer</option>
-          <option value="other">Other</option>
+          {KNOWLEDGE_CATEGORIES.map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
         </select>
       </div>
 
-      <div>
-        <label className="block text-[#A89F96] text-sm mb-2">Subcategory</label>
-        <input
-          type="text"
-          value={formData.subcategory}
-          onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
-          className="w-full bg-[#0A0615] border border-[#2A2438] rounded-lg px-4 py-2 text-[#F5F0E8] focus:outline-none focus:border-[#E8A33D]"
-          placeholder="e.g., BYU-Idaho courses"
-        />
-      </div>
-
-      <div>
-        <label className="block text-[#A89F96] text-sm mb-2">Title *</label>
+      {entry && <div>
+        <label className="block text-[#A89F96] text-sm mb-2">Title</label>
         <input
           type="text"
           value={formData.title}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
           className="w-full bg-[#0A0615] border border-[#2A2438] rounded-lg px-4 py-2 text-[#F5F0E8] focus:outline-none focus:border-[#E8A33D]"
-          required
           placeholder="Entry title"
         />
-      </div>
+      </div>}
 
       <div>
         <label className="block text-[#A89F96] text-sm mb-2">Content *</label>
@@ -562,11 +747,11 @@ function KnowledgeForm({
           onChange={(e) => setFormData({ ...formData, content: e.target.value })}
           className="w-full bg-[#0A0615] border border-[#2A2438] rounded-lg px-4 py-2 text-[#F5F0E8] focus:outline-none focus:border-[#E8A33D] min-h-[200px]"
           required
-          placeholder="Main knowledge content"
+          placeholder="Paste the information here. The system will generate the title, summary, tags, chunks, and embedding automatically."
         />
       </div>
 
-      <div>
+      {entry && <div>
         <label className="block text-[#A89F96] text-sm mb-2">Summary</label>
         <textarea
           value={formData.summary}
@@ -574,9 +759,9 @@ function KnowledgeForm({
           className="w-full bg-[#0A0615] border border-[#2A2438] rounded-lg px-4 py-2 text-[#F5F0E8] focus:outline-none focus:border-[#E8A33D] min-h-[80px]"
           placeholder="Brief summary for quick reference"
         />
-      </div>
+      </div>}
 
-      <div>
+      {entry && <div>
         <label className="block text-[#A89F96] text-sm mb-2">Tags</label>
         <input
           type="text"
@@ -585,7 +770,7 @@ function KnowledgeForm({
           className="w-full bg-[#0A0615] border border-[#2A2438] rounded-lg px-4 py-2 text-[#F5F0E8] focus:outline-none focus:border-[#E8A33D]"
           placeholder="Comma-separated tags (e.g., web, html, css)"
         />
-      </div>
+      </div>}
 
       <div>
         <label className="block text-[#A89F96] text-sm mb-2">Difficulty</label>

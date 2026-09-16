@@ -13,16 +13,10 @@ import {
   Plus,
   FileCode,
   ClipboardPaste,
-  AlertCircle,
   Copy,
   Check,
   ArrowLeft,
   BookOpen,
-  Database,
-  Zap,
-  Settings,
-  Search,
-  Shield,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -75,9 +69,6 @@ const TOKENS = `
 const focusRing =
   'outline-none focus-visible:ring-1 focus-visible:ring-[var(--brass)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--surface)]';
 
-const panel =
-  'border border-[var(--line)] bg-[var(--surface)]';
-
 const btnBase = `inline-flex items-center justify-center gap-2 px-3.5 py-2 text-[11px] font-mono font-semibold uppercase tracking-[0.1em] transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${focusRing}`;
 
 const btnPrimary = `${btnBase} bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)]`;
@@ -114,11 +105,6 @@ export default function AIDashboardPage() {
   const { user } = useAuth();
   const { userContext, profileRecommendations } = useAIUserData();
 
-  const [ragEnabled, setRagEnabled] = useState(true);
-  const [strictMode, setStrictMode] = useState(false);
-  const [hybridSearch, setHybridSearch] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-
   const getWelcomeMessage = useCallback(() => {
     const hour = new Date().getHours();
     const userName = user?.firstName || 'there';
@@ -140,19 +126,17 @@ export default function AIDashboardPage() {
     welcomeMessage += `• Personalized learning based on your progress\n`;
     welcomeMessage += `• Platform navigation and feature guidance\n`;
     welcomeMessage += `• Coding assistance and debugging\n`;
-    welcomeMessage += `• General knowledge and research\n`;
+    welcomeMessage += `• Answers grounded in the platform knowledge base\n`;
     welcomeMessage += `• Selfless CE organization information\n`;
     welcomeMessage += `• Developer and platform information\n\n`;
 
-    if (ragEnabled) {
-      welcomeMessage += `**Knowledge base enabled:** I'll provide accurate answers with source attribution.\n\n`;
-    }
+    welcomeMessage += `**Knowledge base only:** I answer using approved information stored by the development team.\n\n`;
 
     welcomeMessage += `I learn from our interactions to provide increasingly personalized assistance. Ask me anything about the platform or your studies.\n\n`;
     welcomeMessage += `Let's start learning together.`;
 
     return welcomeMessage;
-  }, [user?.firstName, profileRecommendations, ragEnabled]);
+  }, [user?.firstName, profileRecommendations]);
 
   const [messages, setMessages] = useState<Message[]>(() => [
     {
@@ -299,19 +283,6 @@ export default function AIDashboardPage() {
       scrollToBottom('auto');
     }, 100);
   };
-
-  useEffect(() => {
-    if (messages.length === 1 && messages[0].id === 'welcome') {
-      setMessages([
-        {
-          id: 'welcome',
-          role: 'assistant',
-          content: getWelcomeMessage(),
-          timestamp: new Date(),
-        },
-      ]);
-    }
-  }, [ragEnabled, strictMode, hybridSearch, getWelcomeMessage, messages.length]);
 
   const startNewChat = () => {
     if (messages.length > 1) {
@@ -581,9 +552,9 @@ export default function AIDashboardPage() {
           userContext,
           profileRecommendations,
           conversationId: activeConversationId || undefined,
-          useRAG: ragEnabled,
-          strictMode: strictMode,
-          hybridSearch: hybridSearch,
+          useRAG: true,
+          strictMode: true,
+          hybridSearch: false,
         }),
       });
 
@@ -595,7 +566,7 @@ export default function AIDashboardPage() {
           role: 'assistant',
           content: '',
           timestamp: new Date(),
-          ragEnabled: data.data.ragEnabled || false,
+            ragEnabled: data.data.ragEnabled || false,
           fromCache: data.data.fromCache || false,
           provider: data.data.provider || 'unknown',
           sources: data.data.sources || [],
@@ -742,16 +713,6 @@ export default function AIDashboardPage() {
             >
               <Plus className="h-3.5 w-3.5" />
             </button>
-            <button
-              onClick={() => setShowSettings(!showSettings)}
-              className={cn(
-                btnQuiet,
-                showSettings && 'border-[var(--brass)] text-[var(--brass)]'
-              )}
-              title="AI Settings"
-            >
-              <Settings className="h-3.5 w-3.5" />
-            </button>
             <Link
               href="/dashboard"
               className={`${btnQuiet} hidden sm:flex`}
@@ -761,106 +722,6 @@ export default function AIDashboardPage() {
             </Link>
           </div>
         </div>
-
-        {/* ========== SETTINGS PANEL ========== */}
-        <AnimatePresence>
-          {showSettings && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="border-b border-[var(--line)] bg-[var(--surface-2)]"
-            >
-              <div className="p-4 space-y-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Settings className="h-4 w-4 text-[var(--brass)]" />
-                  <h3 className="font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink)]">
-                    Response Settings
-                  </h3>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {/* RAG Toggle */}
-                  <div className="border border-[var(--line)] bg-[var(--surface)] p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Database className="h-4 w-4 text-[var(--ok)]" />
-                        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink)]">
-                          Knowledge Base
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => setRagEnabled(!ragEnabled)}
-                        className={`relative w-10 h-5 border transition-colors ${focusRing} ${
-                          ragEnabled ? 'border-[var(--brass)] bg-[var(--brass)]' : 'border-[var(--line)] bg-[var(--surface-2)]'
-                        }`}
-                      >
-                        <div className={`absolute top-0.5 w-4 h-4 bg-[var(--surface)] transition-transform ${
-                          ragEnabled ? 'left-5' : 'left-0.5'
-                        }`} />
-                      </button>
-                    </div>
-                    <p className="font-mono text-[10px] text-[var(--ink-3)]">
-                      {ragEnabled ? 'Using knowledge base' : 'Standard responses'}
-                    </p>
-                  </div>
-
-                  {/* Strict Mode */}
-                  <div className="border border-[var(--line)] bg-[var(--surface)] p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Shield className="h-4 w-4 text-[var(--warn)]" />
-                        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink)]">
-                          Strict Mode
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => setStrictMode(!strictMode)}
-                        disabled={!ragEnabled}
-                        className={`relative w-10 h-5 border transition-colors ${focusRing} ${
-                          strictMode ? 'border-[var(--brass)] bg-[var(--brass)]' : 'border-[var(--line)] bg-[var(--surface-2)]'
-                        } ${!ragEnabled ? 'opacity-40 cursor-not-allowed' : ''}`}
-                      >
-                        <div className={`absolute top-0.5 w-4 h-4 bg-[var(--surface)] transition-transform ${
-                          strictMode ? 'left-5' : 'left-0.5'
-                        }`} />
-                      </button>
-                    </div>
-                    <p className="font-mono text-[10px] text-[var(--ink-3)]">
-                      {strictMode ? 'Knowledge base only' : 'General knowledge allowed'}
-                    </p>
-                  </div>
-
-                  {/* Hybrid Search */}
-                  <div className="border border-[var(--line)] bg-[var(--surface)] p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Search className="h-4 w-4 text-[var(--brand)]" />
-                        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink)]">
-                          Hybrid Search
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => setHybridSearch(!hybridSearch)}
-                        disabled={!ragEnabled}
-                        className={`relative w-10 h-5 border transition-colors ${focusRing} ${
-                          hybridSearch ? 'border-[var(--brass)] bg-[var(--brass)]' : 'border-[var(--line)] bg-[var(--surface-2)]'
-                        } ${!ragEnabled ? 'opacity-40 cursor-not-allowed' : ''}`}
-                      >
-                        <div className={`absolute top-0.5 w-4 h-4 bg-[var(--surface)] transition-transform ${
-                          hybridSearch ? 'left-5' : 'left-0.5'
-                        }`} />
-                      </button>
-                    </div>
-                    <p className="font-mono text-[10px] text-[var(--ink-3)]">
-                      {hybridSearch ? 'Semantic + keyword' : 'Semantic only'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* ========== MAIN CHAT AREA ========== */}
         <div className="relative flex min-h-0 flex-1 overflow-hidden">

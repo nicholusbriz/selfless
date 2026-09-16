@@ -29,8 +29,8 @@ const TOKENS = `
   [data-courses-scope] {
     --ink:        #12203B;
     --ink-2:      #3D4A61;
-    --ink-3:      #6B7268;
-    --ink-4:      #8A9088;
+    --ink-3:      #4B5646;   /* darkened from #6B7268 */
+    --ink-4:      #6B7280;   /* darkened from #8A9088 */
 
     --surface:    #FFFFFF;
     --surface-2:  #F7F6F2;
@@ -47,14 +47,14 @@ const TOKENS = `
     --brass-hover:#A67A34;
     --brass-soft: #F8F3E8;
 
-    --ok:         #55705B;
-    --ok-soft:    #EEF3EE;
+    --ok:         #2F6B45;   /* darkened */
+    --ok-soft:    #E6F1EA;
 
-    --warn:       #8A6E3A;
-    --warn-soft:  #F8F4EC;
+    --warn:       #6E5520;   /* darkened */
+    --warn-soft:  #F8F1E0;
 
-    --bad:        #A4462F;
-    --bad-soft:   #FBF0EC;
+    --bad:        #8B3A24;   /* darkened */
+    --bad-soft:   #FBE9E3;
 
     --radius:     0px;
 
@@ -64,12 +64,12 @@ const TOKENS = `
 `;
 
 const focusRing =
-  'outline-none focus-visible:ring-1 focus-visible:ring-[var(--brass)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--surface)]';
+  'outline-none focus-visible:ring-2 focus-visible:ring-[var(--brass)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--surface)]';
 
 const panel =
   'border border-[var(--line)] bg-[var(--surface)]';
 
-const btnBase = `inline-flex items-center justify-center gap-2 px-3.5 py-2 text-[12px] font-mono font-semibold uppercase tracking-[0.08em] transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${focusRing}`;
+const btnBase = `inline-flex items-center justify-center gap-2 px-3.5 py-2 text-[12.5px] font-mono font-semibold uppercase tracking-[0.08em] transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${focusRing}`;
 
 const btnPrimary = `${btnBase} bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)]`;
 
@@ -463,7 +463,7 @@ export default function MyCoursesPage() {
 
               <Link
                 href="/dashboard/students"
-                className="hidden font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)] transition-colors hover:text-[var(--ink)] sm:block"
+                className="hidden font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--ink-3)] transition-colors hover:text-[var(--ink)] sm:block"
               >
                 Students
               </Link>
@@ -474,7 +474,7 @@ export default function MyCoursesPage() {
 
               <Link
                 href="/dashboard/cleaning"
-                className="hidden font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)] transition-colors hover:text-[var(--ink)] sm:block"
+                className="hidden font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--ink-3)] transition-colors hover:text-[var(--ink)] sm:block"
               >
                 Cleaning
               </Link>
@@ -486,14 +486,14 @@ export default function MyCoursesPage() {
                   My Courses
                 </h1>
 
-                <p className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
+                <p className="mt-0.5 font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
                   Manage your current course units and academic
                   information
                 </p>
               </div>
 
               <div className="hidden shrink-0 text-right sm:block">
-                <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--ink-4)]">
+                <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--ink-4)]">
                   Total Credits
                 </p>
 
@@ -519,11 +519,11 @@ export default function MyCoursesPage() {
           >
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--brand)]">
+                <p className="font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--brand)]">
                   Complete your profile
                 </p>
 
-                <p className="mt-1 font-mono text-[12px] leading-5 text-[var(--ink-2)]">
+                <p className="mt-1 font-mono text-[13px] leading-5 text-[var(--ink-2)]">
                   {!user?.profileImageUrl &&
                     'Add a profile photo. '}
                   {!user?.generalCourse &&
@@ -552,7 +552,7 @@ export default function MyCoursesPage() {
               Academic Information
             </h2>
 
-            <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
+            <p className="mt-1 font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
               Keep your academic information up to date.
             </p>
           </div>
@@ -562,7 +562,7 @@ export default function MyCoursesPage() {
             <div className="p-5 sm:p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
-                  <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
+                  <p className="font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
                     General Degree Course
                   </p>
 
@@ -575,12 +575,12 @@ export default function MyCoursesPage() {
                               userGeneralCourse}
                           </p>
 
-                          <p className="mt-1 font-mono text-[11px] text-[var(--ink-3)]">
+                          <p className="mt-1 font-mono text-[12px] text-[var(--ink-3)]">
                             Your main academic programme
                           </p>
                         </div>
                       ) : (
-                        <p className="mt-1 font-mono text-[12px] font-semibold text-[var(--bad)]">
+                        <p className="mt-1 font-mono text-[13px] font-semibold text-[var(--bad)]">
                           Not set
                         </p>
                       )}
@@ -599,7 +599,7 @@ export default function MyCoursesPage() {
 
               {showGeneralCourseEdit && (
                 <div className="mt-5 border-t border-[var(--line)] pt-5">
-                  <label className="mb-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
+                  <label className="mb-2 block font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
                     Degree Course
                   </label>
 
@@ -611,7 +611,7 @@ export default function MyCoursesPage() {
                     }
                     placeholder="e.g. Software Engineering"
                     disabled={isUpdatingSettings}
-                    className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[13px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-4)] focus:border-[var(--brass)] disabled:cursor-not-allowed disabled:bg-[var(--surface-2)] ${focusRing}`}
+                    className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[14px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-4)] focus:border-[var(--brass)] disabled:cursor-not-allowed disabled:bg-[var(--surface-2)] ${focusRing}`}
                   />
 
                   <div className="mt-3 flex flex-col gap-3 sm:flex-row">
@@ -645,7 +645,7 @@ export default function MyCoursesPage() {
                   </div>
 
                   {saveSuccess && (
-                    <div className="mt-3 flex items-center gap-2 font-mono text-[12px] font-semibold text-[var(--ok)]">
+                    <div className="mt-3 flex items-center gap-2 font-mono text-[13px] font-semibold text-[var(--ok)]">
                       <Check className="h-4 w-4" />
                       General degree course saved successfully.
                     </div>
@@ -658,14 +658,14 @@ export default function MyCoursesPage() {
             <div className="p-5 sm:p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
+                  <p className="font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
                     Religion Status
                   </p>
 
                   {!showReligionEdit && (
                     <div className="mt-2 flex items-center gap-2">
                       <span
-                        className={`font-mono text-[13px] font-semibold ${
+                        className={`font-mono text-[14px] font-semibold ${
                           userTakesReligion
                             ? 'text-[var(--ok)]'
                             : 'text-[var(--ink)]'
@@ -674,7 +674,7 @@ export default function MyCoursesPage() {
                         {userTakesReligion ? 'Yes' : 'No'}
                       </span>
 
-                      <span className="font-mono text-[11px] text-[var(--ink-4)]">
+                      <span className="font-mono text-[12px] text-[var(--ink-3)]">
                         Takes religion
                       </span>
                     </div>
@@ -696,14 +696,14 @@ export default function MyCoursesPage() {
 
               {showReligionEdit && (
                 <div className="mt-5 border-t border-[var(--line)] pt-5">
-                  <label className="mb-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
+                  <label className="mb-2 block font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
                     Do you take religion?
                   </label>
 
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={() => setUserTakesReligion(true)}
-                      className={`border px-4 py-2.5 font-mono text-[12px] font-semibold uppercase tracking-[0.08em] transition-colors ${
+                      className={`border px-4 py-2.5 font-mono text-[12.5px] font-semibold uppercase tracking-[0.08em] transition-colors ${
                         userTakesReligion
                           ? 'border-[var(--brass)] bg-[var(--brass-soft)] text-[var(--brass)]'
                           : 'border-[var(--line)] bg-[var(--surface)] text-[var(--ink-2)] hover:bg-[var(--surface-2)]'
@@ -716,7 +716,7 @@ export default function MyCoursesPage() {
                       onClick={() =>
                         setUserTakesReligion(false)
                       }
-                      className={`border px-4 py-2.5 font-mono text-[12px] font-semibold uppercase tracking-[0.08em] transition-colors ${
+                      className={`border px-4 py-2.5 font-mono text-[12.5px] font-semibold uppercase tracking-[0.08em] transition-colors ${
                         !userTakesReligion
                           ? 'border-[var(--brass)] bg-[var(--brass-soft)] text-[var(--brass)]'
                           : 'border-[var(--line)] bg-[var(--surface)] text-[var(--ink-2)] hover:bg-[var(--surface-2)]'
@@ -748,7 +748,7 @@ export default function MyCoursesPage() {
             <div className="p-5 sm:p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
+                  <p className="font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
                     Tuition Amount
                   </p>
 
@@ -766,12 +766,12 @@ export default function MyCoursesPage() {
                             })}
                           </span>
 
-                          <span className="font-mono text-[11px] text-[var(--ink-3)]">
+                          <span className="font-mono text-[12px] text-[var(--ink-3)]">
                             USD
                           </span>
                         </div>
                       ) : (
-                        <p className="font-mono text-[12px] font-medium text-[var(--ink-4)]">
+                        <p className="font-mono text-[13px] font-medium text-[var(--ink-4)]">
                           Not set
                         </p>
                       )}
@@ -794,7 +794,7 @@ export default function MyCoursesPage() {
 
               {showTuitionEdit && (
                 <div className="mt-5 border-t border-[var(--line)] pt-5">
-                  <label className="mb-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
+                  <label className="mb-2 block font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
                     Tuition Amount (USD)
                   </label>
 
@@ -807,7 +807,7 @@ export default function MyCoursesPage() {
                     placeholder="Enter tuition amount"
                     min="0"
                     step="0.01"
-                    className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[13px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-4)] focus:border-[var(--brass)] ${focusRing}`}
+                    className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[14px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-4)] focus:border-[var(--brass)] ${focusRing}`}
                   />
 
                   <button
@@ -838,12 +838,12 @@ export default function MyCoursesPage() {
                 Course Units
               </h2>
 
-              <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
+              <p className="mt-1 font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
                 Add and manage the course units you are taking.
               </p>
             </div>
 
-            <div className="font-mono text-[12px] text-[var(--ink-3)] sm:text-right">
+            <div className="font-mono text-[13px] text-[var(--ink-3)] sm:text-right">
               <span className="font-semibold text-[var(--ink)]">
                 {submittedCourses.length}
               </span>{' '}
@@ -870,18 +870,9 @@ export default function MyCoursesPage() {
           <AnimatePresence>
             {showForm && (
               <motion.div
-                initial={{
-                  opacity: 0,
-                  y: -8,
-                }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                }}
-                exit={{
-                  opacity: 0,
-                  y: -8,
-                }}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
                 className={`${panel} mb-6`}
               >
                 <div className="border-b border-[var(--line)] p-5 sm:p-6">
@@ -891,7 +882,7 @@ export default function MyCoursesPage() {
                         Add Course Units
                       </h3>
 
-                      <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
+                      <p className="mt-1 font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
                         Enter each course unit and add it to your
                         submission list.
                       </p>
@@ -913,7 +904,7 @@ export default function MyCoursesPage() {
                 <div className="p-5 sm:p-6">
                   {/* Important Notice */}
                   <div className="mb-6 border-l-4 border-[var(--warn)] bg-[var(--warn-soft)] px-4 py-3">
-                    <p className="font-mono text-[12px] leading-6 text-[var(--warn)]">
+                    <p className="font-mono text-[13px] leading-6 text-[var(--warn)]">
                       <strong>Important:</strong> This form is
                       specifically for core course units. Add one
                       course unit at a time, then submit when you
@@ -924,13 +915,13 @@ export default function MyCoursesPage() {
 
                   {/* Course Details */}
                   <div>
-                    <h4 className="mb-4 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink)]">
+                    <h4 className="mb-4 font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--ink)]">
                       Course Unit Details
                     </h4>
 
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                       <div>
-                        <label className="mb-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
+                        <label className="mb-2 block font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
                           Course Code{' '}
                           <span className="text-[var(--bad)]">*</span>
                         </label>
@@ -943,14 +934,14 @@ export default function MyCoursesPage() {
                               e.target.value.toUpperCase()
                             )
                           }
-                          className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[13px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-4)] focus:border-[var(--brass)] ${focusRing}`}
+                          className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[14px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-4)] focus:border-[var(--brass)] ${focusRing}`}
                           placeholder="e.g. WDD230"
                           required
                         />
                       </div>
 
                       <div>
-                        <label className="mb-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
+                        <label className="mb-2 block font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
                           Course Unit Name{' '}
                           <span className="text-[var(--bad)]">*</span>
                         </label>
@@ -972,14 +963,14 @@ export default function MyCoursesPage() {
 
                             setCourseUnit(titleCase);
                           }}
-                          className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[13px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-4)] focus:border-[var(--brass)] ${focusRing}`}
+                          className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[14px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-4)] focus:border-[var(--brass)] ${focusRing}`}
                           placeholder="e.g. Introduction To CS"
                           required
                         />
                       </div>
 
                       <div>
-                        <label className="mb-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
+                        <label className="mb-2 block font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
                           Credits{' '}
                           <span className="text-[var(--bad)]">*</span>
                         </label>
@@ -992,7 +983,7 @@ export default function MyCoursesPage() {
                               parseInt(e.target.value, 10) || 0
                             )
                           }
-                          className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[13px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-4)] focus:border-[var(--brass)] ${focusRing}`}
+                          className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[14px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-4)] focus:border-[var(--brass)] ${focusRing}`}
                           placeholder="e.g. 3"
                           min="1"
                           required
@@ -1013,11 +1004,11 @@ export default function MyCoursesPage() {
                   {coursesList.length > 0 && (
                     <div className="mt-6 border-t border-[var(--line)] pt-6">
                       <div className="mb-3 flex items-center justify-between gap-4">
-                        <h4 className="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink)]">
+                        <h4 className="font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--ink)]">
                           Course Units to Submit
                         </h4>
 
-                        <span className="font-mono text-[12px] text-[var(--ink-3)]">
+                        <span className="font-mono text-[13px] text-[var(--ink-3)]">
                           {coursesList.length}{' '}
                           {coursesList.length === 1
                             ? 'course'
@@ -1033,16 +1024,16 @@ export default function MyCoursesPage() {
                           >
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-3">
-                                <span className="font-mono text-[13px] font-semibold text-[var(--brand)]">
+                                <span className="font-mono text-[13.5px] font-semibold text-[var(--brand)]">
                                   {course.code}
                                 </span>
 
-                                <span className="font-mono text-[13px] text-[var(--ink)]">
+                                <span className="font-mono text-[13.5px] text-[var(--ink)]">
                                   {course.courseUnit}
                                 </span>
                               </div>
 
-                              <p className="mt-1 font-mono text-[11px] text-[var(--ink-3)]">
+                              <p className="mt-1 font-mono text-[12px] text-[var(--ink-3)]">
                                 {course.credits}{' '}
                                 {course.credits === 1
                                   ? 'credit'
@@ -1067,7 +1058,7 @@ export default function MyCoursesPage() {
 
                   {/* Submission Total */}
                   <div className="mt-6 flex items-center justify-between border border-[var(--line)] bg-[var(--surface-2)] px-4 py-3">
-                    <span className="font-mono text-[12px] font-medium text-[var(--ink-2)]">
+                    <span className="font-mono text-[13px] font-medium text-[var(--ink-2)]">
                       Total Credits for This Submission
                     </span>
 
@@ -1125,18 +1116,9 @@ export default function MyCoursesPage() {
           <AnimatePresence>
             {showEditForm && editingCourse && (
               <motion.div
-                initial={{
-                  opacity: 0,
-                  y: -8,
-                }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                }}
-                exit={{
-                  opacity: 0,
-                  y: -8,
-                }}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
                 className={`${panel} mb-6`}
               >
                 <div className="border-b border-[var(--line)] p-5 sm:p-6">
@@ -1146,7 +1128,7 @@ export default function MyCoursesPage() {
                         Edit Course
                       </h3>
 
-                      <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
+                      <p className="mt-1 font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
                         Update the course information below.
                       </p>
                     </div>
@@ -1167,7 +1149,7 @@ export default function MyCoursesPage() {
                 <div className="p-5 sm:p-6">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div>
-                      <label className="mb-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
+                      <label className="mb-2 block font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
                         Course Code{' '}
                         <span className="text-[var(--bad)]">*</span>
                       </label>
@@ -1181,14 +1163,14 @@ export default function MyCoursesPage() {
                             code: e.target.value.toUpperCase(),
                           })
                         }
-                        className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[13px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-4)] focus:border-[var(--brass)] ${focusRing}`}
+                        className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[14px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-4)] focus:border-[var(--brass)] ${focusRing}`}
                         placeholder="e.g. WDD230"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="mb-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
+                      <label className="mb-2 block font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
                         Course Unit Name{' '}
                         <span className="text-[var(--bad)]">*</span>
                       </label>
@@ -1213,14 +1195,14 @@ export default function MyCoursesPage() {
                             courseUnit: titleCase,
                           });
                         }}
-                        className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[13px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-4)] focus:border-[var(--brass)] ${focusRing}`}
+                        className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[14px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-4)] focus:border-[var(--brass)] ${focusRing}`}
                         placeholder="e.g. Introduction To CS"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="mb-2 block font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
+                      <label className="mb-2 block font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)]">
                         Credits{' '}
                         <span className="text-[var(--bad)]">*</span>
                       </label>
@@ -1235,7 +1217,7 @@ export default function MyCoursesPage() {
                               parseInt(e.target.value, 10) || 0,
                           })
                         }
-                        className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[13px] text-[var(--ink)] outline-none focus:border-[var(--brass)] ${focusRing}`}
+                        className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[14px] text-[var(--ink)] outline-none focus:border-[var(--brass)] ${focusRing}`}
                         min="1"
                         required
                       />
@@ -1298,13 +1280,13 @@ export default function MyCoursesPage() {
                     Submitted Courses
                   </h3>
 
-                  <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
+                  <p className="mt-1 font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
                     Your currently submitted course units.
                   </p>
                 </div>
 
                 <div className="hidden text-right sm:block">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--ink-4)]">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--ink-4)]">
                     Total Credits
                   </p>
 
@@ -1318,29 +1300,23 @@ export default function MyCoursesPage() {
                 {submittedCourses.map((course) => (
                   <motion.div
                     key={course.id}
-                    initial={{
-                      opacity: 0,
-                      y: 6,
-                    }}
-                    animate={{
-                      opacity: 1,
-                      y: 0,
-                    }}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
                     className="p-4 transition-colors hover:bg-[var(--surface-2)] sm:p-5"
                   >
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                          <span className="font-mono text-[13px] font-semibold text-[var(--brand)]">
+                          <span className="font-mono text-[13.5px] font-semibold text-[var(--brand)]">
                             {course.code}
                           </span>
 
-                          <h4 className="font-mono text-[13px] font-semibold text-[var(--ink)]">
+                          <h4 className="font-mono text-[13.5px] font-semibold text-[var(--ink)]">
                             {course.courseUnit}
                           </h4>
                         </div>
 
-                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[12px]">
+                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[12.5px]">
                           <span className="text-[var(--ink-3)]">
                             {course.credits}{' '}
                             {course.credits === 1
