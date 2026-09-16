@@ -27,8 +27,6 @@ import {
   Star,
   MessageCircle,
   Sparkles,
-  Play,
-  Pause,
   Trash2,
   Loader2,
 } from 'lucide-react';
@@ -46,6 +44,7 @@ import {
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DiscoverStudents, type DiscoverStudent } from './components/DiscoverStudents';
+import { VideoPlayer } from './components/VideoPlayer';
 
 /* ============================================================
    DESIGN TOKENS
@@ -181,14 +180,20 @@ function MediaLibrary() {
   );
 
   const [rawIndex, setRawIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [currentVideoKey, setCurrentVideoKey] = useState<string>("");
 
   const currentIndex =
     videos.length === 0 ? 0 : Math.min(rawIndex, videos.length - 1);
 
   const current = videos[currentIndex] ?? null;
+
+  // Update video key when current video changes to force re-render
+  useEffect(() => {
+    if (current) {
+      setCurrentVideoKey(`video-${current.id}`);
+    }
+  }, [current?.id]);
 
   // Only the uploader can delete their own video
   const canDeleteCurrent =
@@ -197,33 +202,12 @@ function MediaLibrary() {
   const goNext = useCallback(() => {
     if (videos.length <= 1) return;
     setRawIndex((prev) => (prev + 1) % videos.length);
-    setIsPlaying(false);
   }, [videos.length]);
 
   const goPrevious = useCallback(() => {
     if (videos.length <= 1) return;
     setRawIndex((prev) => (prev - 1 + videos.length) % videos.length);
-    setIsPlaying(false);
   }, [videos.length]);
-
-  const togglePlay = useCallback(() => {
-    const el = videoRef.current;
-    if (!el) return;
-    if (el.paused) {
-      el.play().catch(() => {});
-      setIsPlaying(true);
-    } else {
-      el.pause();
-      setIsPlaying(false);
-    }
-  }, []);
-
-  // Reset play state when video changes, via previous-value ref pattern
-  const prevVideoIdRef = useRef<string | null>(null);
-  if (prevVideoIdRef.current !== (current?.id ?? null)) {
-    prevVideoIdRef.current = current?.id ?? null;
-    if (isPlaying) setIsPlaying(false);
-  }
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this video permanently?')) return;
@@ -285,39 +269,23 @@ function MediaLibrary() {
       {/* Player */}
       <div className="relative aspect-video w-full bg-black">
         {current && (
-          <video
-            ref={videoRef}
-            key={current.id}
+          <VideoPlayer
+            key={currentVideoKey}
             src={current.publicUrl}
-            playsInline
-            controls={false}
-            className="h-full w-full object-contain"
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
+            title={current.title}
+            description={current.description || undefined}
+            className="w-full h-full"
             onEnded={() => {
-              setIsPlaying(false);
-              if (videos.length > 1) goNext();
+              if (videos.length > 1) {
+                goNext();
+              }
             }}
           />
         )}
 
-        {/* Center play button overlay */}
-        {current && !isPlaying && (
-          <button
-            type="button"
-            onClick={togglePlay}
-            aria-label="Play"
-            className="absolute inset-0 flex items-center justify-center bg-black/25 transition-colors hover:bg-black/35"
-          >
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/95 shadow-lg">
-              <Play className="ml-1 h-7 w-7 fill-[#1A2B4C] text-[#1A2B4C]" />
-            </span>
-          </button>
-        )}
-
         {/* Top-right counter */}
         {current && (
-          <div className="absolute right-3 top-3 rounded-full bg-black/60 px-3 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
+          <div className="absolute right-3 top-3 rounded-full bg-black/60 px-3 py-1 text-[11px] font-medium text-white backdrop-blur-sm z-10">
             {currentIndex + 1} / {videos.length}
           </div>
         )}
@@ -334,25 +302,6 @@ function MediaLibrary() {
         >
           <ChevronLeft className="h-3.5 w-3.5" />
           Previous
-        </button>
-
-        <button
-          type="button"
-          onClick={togglePlay}
-          aria-label={isPlaying ? 'Pause' : 'Play'}
-          className="inline-flex items-center gap-2 rounded-lg bg-[#1A2B4C] px-5 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-[#C59B4C]"
-        >
-          {isPlaying ? (
-            <>
-              <Pause className="h-3.5 w-3.5" />
-              Pause
-            </>
-          ) : (
-            <>
-              <Play className="h-3.5 w-3.5" />
-              Play
-            </>
-          )}
         </button>
 
         <button

@@ -544,25 +544,25 @@ export function DiscoverStudents({
                   }
                 >
                   {/* Student name */}
-                  <h3 className="min-h-[24px] truncate text-[17px] font-semibold leading-6 tracking-[-0.01em] text-white">
+                  <h3 className="min-h-[24px] truncate text-[18px] font-semibold leading-6 tracking-[-0.01em] text-white">
                     {name}
                   </h3>
 
                   {/* Course */}
                   <div className="mt-1 min-h-[18px]">
                     {student.generalCourse ? (
-                      <p className="truncate text-[12px] font-medium text-white/75">
+                      <p className="truncate text-[13px] font-medium text-white/85">
                         {student.generalCourse}
                       </p>
                     ) : (
-                      <p className="text-[12px] text-white/50">
+                      <p className="text-[13px] text-white/65">
                         Student
                       </p>
                     )}
                   </div>
 
                   {/* Tech center */}
-                  <div className="mt-1.5 flex min-h-[18px] items-center gap-1 text-white/65">
+                  <div className="mt-1.5 flex min-h-[18px] items-center gap-1 text-white/75">
                     {student.techCenter?.name ? (
                       <>
                         <MapPin
@@ -570,12 +570,12 @@ export function DiscoverStudents({
                           strokeWidth={1.8}
                         />
 
-                        <span className="truncate text-[11px]">
+                        <span className="truncate text-[12px]">
                           {student.techCenter.name}
                         </span>
                       </>
                     ) : (
-                      <span className="text-[11px]">
+                      <span className="text-[12px]">
                         Tech center not specified
                       </span>
                     )}
@@ -588,7 +588,7 @@ export function DiscoverStudents({
                   <div className="mt-3 flex items-center gap-1.5">
                     <Link
                       href={profileHref}
-                      className="inline-flex h-8 flex-1 items-center justify-center rounded-lg bg-white px-3 text-[11px] font-semibold text-[#12203B] transition-colors hover:bg-white/90 focus:outline-none focus:ring-2 focus:ring-white/40"
+                      className="inline-flex h-8 flex-1 items-center justify-center rounded-lg bg-white px-3 text-[12px] font-semibold text-[#12203B] transition-colors hover:bg-white/90 focus:outline-none focus:ring-2 focus:ring-white/40"
                     >
                       View profile
                     </Link>
@@ -656,7 +656,7 @@ export function DiscoverStudents({
 
         <div className="mx-auto flex max-w-6xl items-end justify-between gap-4 px-5 pb-1 pt-4 sm:px-7 sm:pt-5">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#B98A3E]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#B98A3E]">
               Student community
             </p>
 
@@ -664,7 +664,7 @@ export function DiscoverStudents({
               Discover students
             </h2>
 
-            <p className="mt-0.5 max-w-lg text-[11px] leading-4 text-white/45 sm:text-xs">
+            <p className="mt-0.5 max-w-lg text-[12px] leading-5 text-white/70 sm:text-sm">
               Meet students across SELFLESS CE and
               connect with people on a similar
               academic journey.
@@ -912,8 +912,8 @@ export function DiscoverStudents({
         ================================================== */}
 
         <div className="flex items-center justify-center border-t border-white/[0.07] px-5 py-2.5">
-          <div className="flex items-center gap-2 text-[11px] text-white/40">
-            <span className="font-medium text-white/60">
+          <div className="flex items-center gap-2 text-[12px] text-white/60">
+            <span className="font-medium text-white/80">
               {safeCurrentIndex + 1}
             </span>
 

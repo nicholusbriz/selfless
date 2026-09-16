@@ -324,3 +324,22 @@
     opacity: 1;
     transform: translateY(0);
 }
+
+/* Add this to your global.css or styles.css */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 15s linear infinite;
+}
+
+/* Pause animation on hover (optional, good for UX) */
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
