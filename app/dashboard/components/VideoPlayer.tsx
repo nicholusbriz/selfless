@@ -18,6 +18,7 @@ interface VideoPlayerProps {
   title?: string;
   description?: string;
   onEnded?: () => void;
+  playRef?: React.RefObject<{ play: () => void }>;
 }
 
 // Global video manager to ensure only one video plays at a time
@@ -63,12 +64,29 @@ export function VideoPlayer({
   title,
   description,
   onEnded,
+  playRef,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const instanceId = useRef<string>(`video-${Math.random().toString(36).substr(2, 9)}`);
   const onEndedRef = useRef(onEnded);
+
+  // Expose play method via ref
+  useEffect(() => {
+    if (playRef) {
+      playRef.current = {
+        play: () => {
+          if (videoRef.current) {
+            VideoManager.getInstance().requestPlay(instanceId.current);
+            videoRef.current.play().catch((error) => {
+              console.warn('Autoplay failed:', error);
+            });
+          }
+        }
+      };
+    }
+  }, [playRef]);
 
   // Update the ref when onEnded changes
   useEffect(() => {
@@ -176,7 +194,7 @@ export function VideoPlayer({
     };
   }, [src]);
 
-  // --- FIX: Auto Play with Error Handling ---
+  // --- FIX: Reset state when src changes, but don't auto-play ---
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -185,65 +203,11 @@ export function VideoPlayer({
     setCurrentTime(0);
     setDuration(0);
     setIsPlaying(false);
-    setIsBuffering(true);
-
-    let isPlayPending = true;
-
-    const playNewVideo = async () => {
-      // Check if component is still mounted and src hasn't changed again
-      if (!videoRef.current || !isPlayPending) return;
-
-      try {
-        // Notify manager to pause other videos
-        VideoManager.getInstance().requestPlay(instanceId.current);
-        
-        // Attempt to play
-        await video.play();
-        
-        // If successful, update state only if this play request wasn't cancelled
-        if (isPlayPending) {
-          setIsPlaying(true);
-          setIsBuffering(false);
-        }
-      } catch (error: any) {
-        // If the error is an AbortError, it means pause() was called intentionally.
-        // We should ignore it and not try to mute/retry.
-        if (error.name === 'AbortError') {
-          console.log('Play request was interrupted by a pause call, ignoring.');
-          return;
-        }
-
-        console.warn("Autoplay blocked, attempting to mute and play:", error);
-        video.muted = true;
-        setIsMuted(true);
-        
-        try {
-          await video.play();
-          if (isPlayPending) {
-            setIsPlaying(true);
-            setIsBuffering(false);
-          }
-        } catch (retryError: any) {
-          if (retryError.name !== 'AbortError') {
-            console.error("Autoplay failed even when muted:", retryError);
-            setIsPlaying(false);
-            setIsBuffering(false);
-          }
-        }
-      }
-    };
-
-    // Small delay to ensure the browser has registered the new source
-    const timer = setTimeout(() => {
-        playNewVideo();
-    }, 100);
-
-    return () => {
-      isPlayPending = false; // Prevent state updates if src changes again
-      clearTimeout(timer);
-    };
+    setIsBuffering(false);
   }, [src]);
   // ---------------------------------------
+
+
 
   useEffect(() => {
     const checkMobile = () => {
@@ -283,7 +247,6 @@ export function VideoPlayer({
         poster={poster}
         className="w-full h-full object-contain"
         onClick={togglePlay}
-        autoPlay={autoplay}
         playsInline
       />
 

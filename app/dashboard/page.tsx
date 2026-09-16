@@ -182,6 +182,7 @@ function MediaLibrary() {
   const [rawIndex, setRawIndex] = useState(0);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [currentVideoKey, setCurrentVideoKey] = useState<string>("");
+  const videoPlayerRef = useRef<{ play: () => void } | null>(null);
 
   const currentIndex =
     videos.length === 0 ? 0 : Math.min(rawIndex, videos.length - 1);
@@ -202,12 +203,19 @@ function MediaLibrary() {
   const goNext = useCallback(() => {
     if (videos.length <= 1) return;
     setRawIndex((prev) => (prev + 1) % videos.length);
+    setTimeout(() => videoPlayerRef.current?.play(), 100);
   }, [videos.length]);
 
   const goPrevious = useCallback(() => {
     if (videos.length <= 1) return;
     setRawIndex((prev) => (prev - 1 + videos.length) % videos.length);
+    setTimeout(() => videoPlayerRef.current?.play(), 100);
   }, [videos.length]);
+
+  const selectVideo = useCallback((index: number) => {
+    setRawIndex(index);
+    setTimeout(() => videoPlayerRef.current?.play(), 100);
+  }, []);
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this video permanently?')) return;
@@ -275,6 +283,7 @@ function MediaLibrary() {
             title={current.title}
             description={current.description || undefined}
             className="w-full h-full"
+            playRef={videoPlayerRef}
             onEnded={() => {
               if (videos.length > 1) {
                 goNext();
@@ -328,33 +337,6 @@ function MediaLibrary() {
             </p>
           )}
 
-          {/* Uploader info — visible to everyone */}
-          {current.user && (
-            <div className="mt-2 flex items-center gap-2">
-              {current.user.profileImageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={current.user.profileImageUrl}
-                  alt={`${current.user.firstName} ${current.user.lastName}`}
-                  className="h-5 w-5 rounded-full object-cover border border-[#E5E7EB]"
-                />
-              ) : (
-                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#1A2B4C] text-[8px] font-semibold text-white">
-                  {current.user.firstName.charAt(0)}
-                  {current.user.lastName.charAt(0)}
-                </div>
-              )}
-              <span className="text-[11px] font-medium text-[#6B7280]">
-                Uploaded by {current.user.firstName} {current.user.lastName}
-              </span>
-            </div>
-          )}
-
-          <p className="mt-2 text-[11px] text-[#9CA3AF]">
-            {(current.size / 1024 / 1024).toFixed(2)} MB ·{' '}
-            {new Date(current.createdAt).toLocaleDateString()}
-          </p>
-
           {/* Delete button — only visible to the video's owner */}
           {canDeleteCurrent && (
             <button
@@ -374,32 +356,28 @@ function MediaLibrary() {
         </div>
       )}
 
-      {/* Thumbnail strip */}
-      {videos.length > 1 && (
-        <div className="border-t border-[#E5E7EB] bg-[#F8F9FA] p-3">
-          <div className="flex gap-2 overflow-x-auto pb-1">
+      {/* Video list navigation */}
+      {videos.length > 0 && (
+        <div className="border-t border-[#E5E7EB] bg-white">
+          <div className="px-4 py-3 border-b border-[#E5E7EB]">
+            <h4 className="text-xs font-semibold text-[#6B7280] uppercase tracking-wide">
+              Video Library
+            </h4>
+          </div>
+          <div className="h-40 overflow-y-auto">
             {videos.map((item, idx) => (
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setRawIndex(idx)}
-                className={`group relative shrink-0 overflow-hidden rounded-lg border-2 transition-all ${
+                onClick={() => selectVideo(idx)}
+                className={`w-full text-left px-4 py-3 border-b border-[#E5E7EB] transition-all ${
                   idx === currentIndex
-                    ? 'border-[#C59B4C]'
-                    : 'border-transparent hover:border-[#D1D5DB]'
+                    ? 'bg-[#C59B4C]/10 border-l-4 border-l-[#C59B4C] text-[#C59B4C] font-medium'
+                    : 'hover:bg-[#F8F9FA] text-blue-600 underline border-l-4 border-l-transparent'
                 }`}
                 aria-label={`Play ${item.title}`}
               >
-                <video
-                  src={item.publicUrl}
-                  muted
-                  preload="metadata"
-                  playsInline
-                  className="h-16 w-28 object-cover"
-                />
-                <span className="absolute inset-x-0 bottom-0 truncate bg-black/60 px-2 py-1 text-[10px] font-medium text-white">
-                  {item.title}
-                </span>
+                <div className="text-sm">{item.title}</div>
               </button>
             ))}
           </div>
