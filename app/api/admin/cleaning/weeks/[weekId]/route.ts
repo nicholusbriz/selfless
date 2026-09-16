@@ -49,16 +49,44 @@ export async function PUT(
       return NextResponse.json({ error: 'Access denied. You can only manage your own weeks.' }, { status: 403 });
     }
 
-    // Update week
-    const updatedWeek = await prisma.week.update({
-      where: { id: weekId },
-      data: {
-        ...(weekLabel !== undefined && { weekLabel }),
-        ...(isActive !== undefined && { isActive }),
-        ...(registrationDeadline !== undefined && { registrationDeadline: new Date(registrationDeadline) }),
-        updatedById: session.user.id,
+    const updatedWeek = await prisma.$transaction(
+      async (tx) => {
+        const nextWeek = await tx.week.update({
+          where: { id: weekId },
+          data: {
+            ...(weekLabel !== undefined && { weekLabel }),
+            ...(isActive !== undefined && { isActive }),
+            ...(registrationDeadline !== undefined && { registrationDeadline: new Date(registrationDeadline) }),
+            updatedById: session.user.id,
+          },
+        });
+
+      if (isActive === false) {
+        await tx.cleaningDay.updateMany({
+          where: { weekId },
+          data: { status: 'CLOSED' },
+        });
+      } else if (isActive === true) {
+        const days = await tx.cleaningDay.findMany({ where: { weekId } });
+        await Promise.all(
+          days.map((day) =>
+            tx.cleaningDay.update({
+              where: { id: day.id },
+              data: {
+                status:
+                  day.currentRegistrations >= day.capacityLimit
+                    ? 'FULL'
+                    : 'OPEN',
+              },
+            }),
+          ),
+        );
+      }
+
+        return nextWeek;
       },
-    });
+      { maxWait: 10000, timeout: 15000 },
+    );
 
     return NextResponse.json(updatedWeek);
   } catch (error) {

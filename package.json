@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "concurrently -k -n next,partykit -c blue,magenta \"npm run dev:next\" \"npm run dev:partykit\"",
-    "dev:next": "next dev --turbo",
+    "dev:next": "set NODE_OPTIONS=--max-old-space-size=8192&& next dev --turbo",
     "dev:partykit": "partykit dev",
     "build": "prisma generate && next build",
     "start": "next start",
@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.0",
+    "@azure/storage-blob": "^12.33.0",
     "@prisma/client": "^5.22.0",
     "@supabase/supabase-js": "^2.108.2",
     "@tailwindcss/forms": "^0.5.11",
@@ -45,8 +46,8 @@
     "@types/node": "^20.19.43",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "concurrently": "^9.2.1",
     "autoprefixer": "^10.5.4",
+    "concurrently": "^9.2.1",
     "critters": "^0.0.23",
     "eslint": "^9",
     "eslint-config-next": "16.0.7",

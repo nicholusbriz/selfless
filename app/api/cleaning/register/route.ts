@@ -57,14 +57,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if registration deadline has passed
-    if (new Date() > new Date(cleaningDay.week.registrationDeadline)) {
-      return NextResponse.json(
-        { error: 'Registration deadline has passed' },
-        { status: 400 }
-      );
-    }
-
     // Check if day is open
     if (cleaningDay.status !== 'OPEN') {
       return NextResponse.json(

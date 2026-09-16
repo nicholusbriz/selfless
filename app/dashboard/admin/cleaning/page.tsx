@@ -272,6 +272,11 @@ export default function AdminCleaningManagement() {
   const [showCapacityModal, setShowCapacityModal] =
     useState(false);
 
+  const [deadlineWeekId, setDeadlineWeekId] =
+    useState<string | null>(null);
+
+  const [newDeadline, setNewDeadline] = useState('');
+
   const [
     selectedDayForAssignment,
     setSelectedDayForAssignment,
@@ -580,54 +585,50 @@ export default function AdminCleaningManagement() {
      EXTEND DEADLINE
   ============================================================ */
 
-  const handleExtendDeadline = async (
-    weekId: string
-  ) => {
+  const openDeadlinePicker = (week: CleaningWeek) => {
     setActiveMenu(null);
-
-    const newDeadline = prompt(
-      'Enter new registration deadline (YYYY-MM-DD HH:MM):'
+    setDeadlineWeekId(week.id);
+    setNewDeadline(
+      new Date(week.registrationDeadline)
+        .toISOString()
+        .slice(0, 16),
     );
+  };
 
-    if (!newDeadline) {
+  const handleExtendDeadline = () => {
+    if (!deadlineWeekId || !newDeadline) {
       return;
     }
 
-    try {
-      const deadlineDate =
-        new Date(newDeadline);
+    const weekId = deadlineWeekId;
+    const deadlineDate = new Date(newDeadline);
 
-      if (isNaN(deadlineDate.getTime())) {
-        alert(
-          'Invalid date format. Please use YYYY-MM-DD HH:MM'
-        );
+    if (isNaN(deadlineDate.getTime())) {
+      alert('Please choose a valid deadline.');
+      return;
+    }
 
-        return;
-      }
-
-      await updateWeekMutation.mutateAsync({
+    updateWeekMutation.mutate(
+      {
         weekId,
         data: {
-          registrationDeadline:
-            deadlineDate.toISOString(),
+          registrationDeadline: deadlineDate.toISOString(),
         },
-      });
+      },
+      {
+        onSuccess: async () => {
+          await refetch();
+          alert('Registration deadline extended successfully!');
+        },
+        onError: (error: unknown) => {
+          console.error('Error extending deadline:', error);
+          alert(getErrorMessage(error, 'Failed to extend deadline'));
+        },
+      },
+    );
 
-      await refetch();
-
-      alert(
-        'Registration deadline extended successfully!'
-      );
-    } catch (error: unknown) {
-      console.error(
-        'Error extending deadline:',
-        error
-      );
-
-      alert(
-        getErrorMessage(error, 'Failed to extend deadline')
-      );
-    }
+    setDeadlineWeekId(null);
+    setNewDeadline('');
   };
 
   /* ============================================================
@@ -705,6 +706,12 @@ export default function AdminCleaningManagement() {
     );
   };
 
+  const formatDeadline = (dateString: string) =>
+    new Date(dateString).toLocaleString('en-US', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+
   /* ============================================================
      USER INITIALS
   ============================================================ */
@@ -744,6 +751,16 @@ export default function AdminCleaningManagement() {
 
   const weeks = data?.weeks || [];
   const students = data?.students || [];
+  const registeredStudentIds = new Set(
+    weeks.flatMap((week) =>
+      week.days.flatMap((day) =>
+        day.registrations.map((registration) => registration.userId),
+      ),
+    ),
+  );
+  const availableStudents = students.filter(
+    (student) => !registeredStudentIds.has(student.id),
+  );
 
   const stats = data?.stats || {
     totalRegistrations: 0,
@@ -1079,6 +1096,10 @@ export default function AdminCleaningManagement() {
                           week.endDate
                         )}
                       </p>
+
+                      <p className="mt-1 text-xs font-medium text-slate-500">
+                        Deadline: {formatDeadline(week.registrationDeadline)}
+                      </p>
                     </div>
 
                     {/* Desktop-only registration text */}
@@ -1131,7 +1152,7 @@ export default function AdminCleaningManagement() {
                       </MenuItem>
 
                       <MenuItem
-                        onClick={() => handleExtendDeadline(week.id)}
+                        onClick={() => openDeadlinePicker(week)}
                         icon={<Clock className="h-4 w-4 text-blue-600" />}
                       >
                         Extend deadline
@@ -1837,6 +1858,58 @@ export default function AdminCleaningManagement() {
             </motion.div>
           </motion.div>
         )}
+          {deadlineWeekId && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
+              onClick={() => setDeadlineWeekId(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.96, opacity: 0, y: 10 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.96, opacity: 0, y: 10 }}
+                className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <h3 className="text-xl font-bold text-slate-900">
+                  Update registration deadline
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Choose the new date and time when registration should close.
+                </p>
+
+                <label className="mt-5 block text-sm font-medium text-slate-700">
+                  Registration deadline
+                  <input
+                    type="datetime-local"
+                    value={newDeadline}
+                    onChange={(event) => setNewDeadline(event.target.value)}
+                    className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3182ce] focus:ring-2 focus:ring-blue-100"
+                  />
+                </label>
+
+                <div className="mt-5 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setDeadlineWeekId(null)}
+                    className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExtendDeadline}
+                    disabled={!newDeadline || updateWeekMutation.isPending}
+                    className="flex-1 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#153475] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {updateWeekMutation.isPending ? 'Saving...' : 'Save deadline'}
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
       </AnimatePresence>
 
       {/* ========================================================
@@ -1915,8 +1988,13 @@ export default function AdminCleaningManagement() {
                         Choose a student...
                       </option>
 
-                      {students.map(
-                        (student) => (
+                      {availableStudents.length === 0 ? (
+                        <option value="" disabled>
+                          No unregistered students available
+                        </option>
+                      ) : (
+                        availableStudents.map(
+                          (student) => (
                           <option
                             key={student.id}
                             value={
@@ -1930,6 +2008,7 @@ export default function AdminCleaningManagement() {
                               student.lastName
                             }
                           </option>
+                          )
                         )
                       )}
                     </select>

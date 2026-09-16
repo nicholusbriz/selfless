@@ -118,12 +118,13 @@ export async function POST(request: NextRequest) {
           if (wordCount > 1000) {
             console.log(`[AdminEmbedKnowledge] Chunking large document (${wordCount} words): ${entry.title}`);
             
-            const chunks = chunkText(entry.content, 200, 50);
-            
-            // Generate embeddings for chunks
-            const chunkEmbeddings = await Promise.all(
-              chunks.map(chunk => generateEmbedding(chunk))
-            );
+            const chunks = chunkText(entry.content, 800, 120);
+
+            // Generate chunk embeddings one at a time to keep memory bounded.
+            const chunkEmbeddings: number[][] = [];
+            for (const chunk of chunks) {
+              chunkEmbeddings.push(await generateEmbedding(chunk));
+            }
 
             // Create chunk records
             const chunkData = chunks.map((chunk, index) => ({

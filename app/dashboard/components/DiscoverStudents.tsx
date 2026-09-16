@@ -1,10 +1,29 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, MessageCircle, MapPin } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+} from "framer-motion";
+import {
+  ArrowLeft,
+  ArrowRight,
+  MapPin,
+  MessageCircle,
+} from "lucide-react";
+
+/* ============================================================
+   TYPES
+============================================================ */
 
 export interface DiscoverStudent {
   id: string;
@@ -21,438 +40,689 @@ export interface DiscoverStudent {
 interface DiscoverStudentsProps {
   students: DiscoverStudent[];
   isLoading?: boolean;
+  autoplay?: boolean;
+  interval?: number;
 }
 
-const AUTOPLAY_DELAY = 5000;
-const SWIPE_THRESHOLD = 50;
-const DARK_SURFACE = "#111827";
-const DARK_CARD = "#18212F";
-const DARK_BORDER = "rgba(255,255,255,0.10)";
+type CardPosition = "left" | "center" | "right";
 
-const cardTransition = {
+/* ============================================================
+   CONFIGURATION
+============================================================ */
+
+const DEFAULT_INTERVAL = 5000;
+const SWIPE_THRESHOLD = 50;
+
+const CARD_VARIANTS = {
+  left: {
+    x: -125,
+    z: -150,
+    rotateY: 10,
+    scale: 0.85,
+    opacity: 0.4,
+  },
+  center: {
+    x: 0,
+    z: 0,
+    rotateY: 0,
+    scale: 1,
+    opacity: 1,
+  },
+  right: {
+    x: 125,
+    z: -150,
+    rotateY: -10,
+    scale: 0.85,
+    opacity: 0.4,
+  },
+};
+
+const CARD_TRANSITION = {
   type: "spring" as const,
-  stiffness: 210,
-  damping: 25,
+  stiffness: 220,
+  damping: 28,
   mass: 0.9,
 };
 
-const contentTransition = {
-  duration: 0.42,
+const CONTENT_TRANSITION = {
+  duration: 0.35,
   ease: [0.22, 1, 0.36, 1] as const,
 };
+
+/* ============================================================
+   COMPONENT
+============================================================ */
 
 export function DiscoverStudents({
   students,
   isLoading = false,
+  autoplay = true,
+  interval = DEFAULT_INTERVAL,
 }: DiscoverStudentsProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [direction, setDirection] = useState(1);
-  const touchStartX = useRef<number | null>(null);
   const shouldReduceMotion = useReducedMotion();
 
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  const touchStartX = useRef<number | null>(null);
+
+  const animationTimeout =
+    useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /* ============================================================
+     CLEANUP
+  ============================================================ */
+
   useEffect(() => {
-    if (students.length === 0) {
-      setCurrentIndex(0);
+    return () => {
+      if (animationTimeout.current) {
+        clearTimeout(animationTimeout.current);
+      }
+    };
+  }, []);
+
+  /* ============================================================
+     SAFE INDEX
+  ============================================================ */
+
+  const safeCurrentIndex =
+    students.length > 0
+      ? Math.min(currentIndex, students.length - 1)
+      : 0;
+
+  /* ============================================================
+     CAROUSEL NAVIGATION
+  ============================================================ */
+
+  const move = useCallback(
+    (nextDirection: 1 | -1) => {
+      if (students.length <= 1 || isAnimating) {
+        return;
+      }
+
+      setIsAnimating(true);
+
+      setCurrentIndex((previous) => {
+        const validPrevious = Math.min(
+          previous,
+          students.length - 1,
+        );
+
+        if (nextDirection === 1) {
+          return (validPrevious + 1) % students.length;
+        }
+
+        return (
+          (validPrevious - 1 + students.length) %
+          students.length
+        );
+      });
+
+      if (animationTimeout.current) {
+        clearTimeout(animationTimeout.current);
+      }
+
+      animationTimeout.current = setTimeout(() => {
+        setIsAnimating(false);
+      }, 430);
+    },
+    [students.length, isAnimating],
+  );
+
+  /* ============================================================
+     AUTOPLAY
+  ============================================================ */
+
+  useEffect(() => {
+    if (
+      !autoplay ||
+      shouldReduceMotion ||
+      students.length <= 1
+    ) {
       return;
     }
 
-    setCurrentIndex((index) => Math.min(index, students.length - 1));
-  }, [students.length]);
+    const timer = setInterval(() => {
+      move(1);
+    }, interval);
 
-  const move = useCallback(
-    (nextDirection: number) => {
-      if (students.length <= 1) return;
+    return () => {
+      clearInterval(timer);
+    };
+  }, [
+    autoplay,
+    interval,
+    move,
+    shouldReduceMotion,
+    students.length,
+  ]);
 
-      setDirection(nextDirection);
-      setCurrentIndex(
-        (index) => (index + nextDirection + students.length) % students.length,
-      );
-    },
-    [students.length],
-  );
+  /* ============================================================
+     KEYBOARD NAVIGATION
+  ============================================================ */
 
   useEffect(() => {
-    if (students.length <= 1 || shouldReduceMotion) return;
+    if (students.length <= 1) {
+      return;
+    }
 
-    const interval = window.setInterval(() => move(1), AUTOPLAY_DELAY);
-    return () => window.clearInterval(interval);
-  }, [move, shouldReduceMotion, students.length]);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "ArrowLeft") {
+        move(-1);
+      }
+
+      if (event.key === "ArrowRight") {
+        move(1);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [move, students.length]);
+
+  /* ============================================================
+     TOUCH / SWIPE
+  ============================================================ */
+
+  const handleTouchStart = (
+    event: React.TouchEvent<HTMLDivElement>,
+  ) => {
+    touchStartX.current =
+      event.touches[0]?.clientX ?? null;
+  };
+
+  const handleTouchEnd = (
+    event: React.TouchEvent<HTMLDivElement>,
+  ) => {
+    if (touchStartX.current === null) {
+      return;
+    }
+
+    const touchEndX =
+      event.changedTouches[0]?.clientX ?? 0;
+
+    const difference =
+      touchStartX.current - touchEndX;
+
+    touchStartX.current = null;
+
+    if (Math.abs(difference) < SWIPE_THRESHOLD) {
+      return;
+    }
+
+    if (difference > 0) {
+      move(1);
+    } else {
+      move(-1);
+    }
+  };
+
+  /* ============================================================
+     CIRCULAR STUDENT LOOKUP
+  ============================================================ */
+
+  const getStudentAt = useCallback(
+    (offset: number) => {
+      if (students.length === 0) {
+        return null;
+      }
+
+      return students[
+        (safeCurrentIndex + offset + students.length) %
+          students.length
+      ];
+    },
+    [safeCurrentIndex, students],
+  );
+
+  /* ============================================================
+     FIXED 3-CARD TEMPLATE + BACKGROUND WAITING STUDENTS
+  ============================================================ */
+
+  const visibleStudents = useMemo(
+    () => ({
+      left: getStudentAt(-1),
+      center: getStudentAt(0),
+      right: getStudentAt(1),
+    }),
+    [getStudentAt],
+  );
+
+  const backgroundStudents = useMemo(
+    () => ({
+      farLeft: getStudentAt(-2),
+      farRight: getStudentAt(2),
+      veryFarLeft: getStudentAt(-3),
+      veryFarRight: getStudentAt(3),
+    }),
+    [getStudentAt],
+  );
+
+  /* ============================================================
+     LOADING SKELETON
+  ============================================================ */
 
   if (isLoading) {
     return (
-      <motion.section
-        initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={contentTransition}
-        className="mt-5 overflow-hidden rounded-2xl border border-[#DADCD3] bg-white"
-        aria-label="Loading discover students"
-        aria-busy="true"
-      >
-        <div className="border-b border-[#DADCD3] px-4 py-3 sm:px-5">
-          <div className="h-2.5 w-20 animate-pulse rounded bg-[#E8E9E3]" />
-          <div className="mt-2 h-6 w-44 animate-pulse rounded bg-[#E8E9E3]" />
+      <section className="w-full">
+        <div className="overflow-hidden rounded-2xl bg-[#111827] px-4 py-6 sm:px-6 sm:py-8">
+          <div className="mx-auto flex max-w-6xl flex-col items-center">
+            <div className="mb-4 h-3 w-32 animate-pulse rounded-full bg-white/10" />
+            <div className="relative h-[370px] w-full max-w-[290px] overflow-hidden rounded-2xl border border-white/10 bg-[#18212F] shadow-xl">
+              <div className="absolute inset-0 animate-pulse bg-white/[0.03]" />
+              <div className="absolute inset-x-4 bottom-4 space-y-2">
+                <div className="h-4 w-2/3 animate-pulse rounded bg-white/10" />
+                <div className="h-3 w-1/2 animate-pulse rounded bg-white/10" />
+                <div className="h-8 w-full animate-pulse rounded bg-white/10" />
+              </div>
+            </div>
+          </div>
         </div>
-
-        <div className="relative flex h-[400px] items-center justify-center overflow-hidden bg-[#111827] sm:h-[460px]">
-          <motion.div
-            animate={
-              shouldReduceMotion
-                ? undefined
-                : { scale: [1, 1.04, 1], opacity: [0.6, 1, 0.6] }
-            }
-            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-            className="h-32 w-32 rounded-full bg-white/10"
-          />
-        </div>
-      </motion.section>
+      </section>
     );
   }
 
-  if (students.length === 0) return null;
+  /* ============================================================
+     EMPTY STATE
+  ============================================================ */
 
-  const safeIndex = Math.min(currentIndex, students.length - 1);
+  if (students.length === 0) {
+    return (
+      <section className="w-full">
+        <div className="rounded-2xl border border-[#DADCD3] bg-white px-5 py-8 text-center sm:px-8">
+          <div className="mx-auto max-w-md">
+            <h3 className="text-sm font-semibold text-[#12203B]">
+              No students to discover
+            </h3>
+            <p className="mt-1 text-xs leading-5 text-[#6B7268]">
+              Student profiles will appear here when they become available.
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
-  const getOffset = (index: number) => {
-    let offset = index - safeIndex;
-    const half = Math.floor(students.length / 2);
+  /* ============================================================
+     REUSABLE 3D STUDENT CARD
+  ============================================================ */
 
-    if (offset > half) offset -= students.length;
-    if (offset < -half) offset += students.length;
+  const renderCard = (
+    student: DiscoverStudent | null,
+    position: CardPosition,
+  ) => {
+    if (!student) {
+      return null;
+    }
 
-    return offset;
-  };
+    const isCenter = position === "center";
+    const name = `${student.firstName} ${student.lastName}`.trim();
+    const image = student.profileImageUrl || "/default-avatar.png";
+    const profileHref = `/dashboard/students/${student.id}`;
+    const messageHref = `/dashboard/messages?user=${student.id}`;
 
-  return (
-    <motion.section
-      initial={shouldReduceMotion ? false : { opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={contentTransition}
-      className="mt-5 overflow-hidden rounded-2xl border border-[#DADCD3] bg-white"
-      aria-labelledby="discover-students-heading"
-      onKeyDown={(event) => {
-        if (event.key === "ArrowLeft") move(-1);
-        if (event.key === "ArrowRight") move(1);
-      }}
-      onTouchStart={(event) => {
-        touchStartX.current = event.touches[0]?.clientX ?? null;
-      }}
-      onTouchEnd={(event) => {
-        if (touchStartX.current !== null) {
-          const endX = event.changedTouches[0]?.clientX ?? touchStartX.current;
-          const distance = endX - touchStartX.current;
-
-          if (Math.abs(distance) > SWIPE_THRESHOLD) {
-            move(distance < 0 ? 1 : -1);
-          }
-        }
-
-        touchStartX.current = null;
-      }}
-    >
-      <div className="flex items-center justify-between gap-4 border-b border-[#DADCD3] bg-white px-4 py-3 sm:px-5">
-        <motion.div
-          initial={shouldReduceMotion ? false : { opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ ...contentTransition, delay: 0.08 }}
-          className="min-w-0"
-        >
-          <p className="font-mono text-[9px] font-medium uppercase tracking-[0.18em] text-[#B98A3E]">
-            Community
-          </p>
-
-          <h2
-            id="discover-students-heading"
-            className="mt-0.5 text-lg font-semibold tracking-tight text-[#12203B] sm:text-xl"
-          >
-            Discover students
-          </h2>
-
-          <p className="mt-0.5 text-[10px] leading-relaxed text-[#6B7268] sm:text-[11px]">
-            Connect with students across the SELFLESS CE network.
-          </p>
-        </motion.div>
-
-        <Link
-          href="/dashboard/students"
-          className="group inline-flex shrink-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#55705B] transition-colors duration-200 hover:text-[#12203B] focus:outline-none focus:ring-2 focus:ring-[#B98A3E] focus:ring-offset-2"
-        >
-          <span>View all</span>
-          <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
-        </Link>
-      </div>
-
+    return (
       <div
-        className="relative flex h-[470px] w-full touch-pan-y items-center justify-center overflow-hidden bg-[#111827] sm:h-[520px] lg:h-[550px]"
-        style={{ perspective: "1100px" }}
+        key={`${position}-${student.id}`}
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+        style={{
+          zIndex: isCenter ? 20 : 10,
+        }}
       >
-        <motion.div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(circle at 50% 38%, rgba(255,255,255,0.055), transparent 48%)",
-          }}
+        <motion.article
+          className={[
+            "relative h-[410px] w-[290px]",
+            "overflow-hidden rounded-2xl border",
+            "bg-[#18212F]",
+            "shadow-[0_18px_45px_rgba(0,0,0,0.3)]",
+            "will-change-transform",
+            isCenter ? "border-white/15" : "border-white/10",
+          ].join(" ")}
+          initial={false}
           animate={
             shouldReduceMotion
-              ? undefined
-              : { opacity: [0.7, 1, 0.7], scale: [1, 1.03, 1] }
+              ? {
+                  x: CARD_VARIANTS[position].x,
+                  z: 0,
+                  rotateY: 0,
+                  scale: position === "center" ? 1 : 0.85,
+                  opacity: position === "center" ? 1 : 0.4,
+                }
+              : CARD_VARIANTS[position]
           }
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-        />
+          transition={
+            shouldReduceMotion ? { duration: 0 } : CARD_TRANSITION
+          }
+          style={{
+            transformStyle: "preserve-3d",
+            backfaceVisibility: "hidden",
+            pointerEvents: isCenter ? "auto" : "none",
+          }}
+        >
+          {/* Full profile image with readable information layered over it. */}
+          <div className="absolute inset-0 bg-[#202A39]">
+            <Image
+              src={image}
+              alt={name}
+              fill
+              sizes="290px"
+              className="object-contain"
+              quality={100}
+              unoptimized={true}
+              priority={isCenter}
+            />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#18212F] via-[#18212F]/40 to-transparent" />
+          </div>
 
-        <AnimatePresence initial={false} custom={direction}>
-          {students.map((student, index) => {
-            const offset = getOffset(index);
-            const isActive = offset === 0;
+          {/* STUDENT INFORMATION */}
+          <div className="absolute inset-x-0 bottom-0 z-10 px-4 pb-4 pt-16 overflow-hidden">
+            <AnimatePresence mode="popLayout" initial={false}>
+              {isCenter && (
+                <motion.div
+                  key={student.id}
+                  initial={
+                    shouldReduceMotion
+                      ? false
+                      : { opacity: 0, y: 15 }
+                  }
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={
+                    shouldReduceMotion
+                      ? undefined
+                      : { opacity: 0, y: -15 }
+                  }
+                  transition={
+                    shouldReduceMotion
+                      ? { duration: 0 }
+                      : CONTENT_TRANSITION
+                  }
+                >
+                  <h3 className="min-h-[24px] truncate text-[17px] font-semibold leading-6 tracking-[-0.01em] text-white">
+                    {name}
+                  </h3>
 
-            if (Math.abs(offset) > 2) return null;
-
-            const fullName = `${student.firstName} ${student.lastName}`.trim();
-            const distance = Math.abs(offset);
-
-            return (
-              <motion.article
-                key={student.id}
-                layout
-                initial={
-                  shouldReduceMotion
-                    ? false
-                    : {
-                        opacity: 0,
-                        x: direction * 150,
-                        scale: 0.88,
-                        rotateY: direction * -10,
-                      }
-                }
-                animate={{
-                  x: shouldReduceMotion ? 0 : offset * 112,
-                  z: shouldReduceMotion ? 0 : -distance * 180,
-                  y: isActive ? 0 : 10,
-                  rotateY: shouldReduceMotion ? 0 : offset * -12,
-                  scale: shouldReduceMotion
-                    ? isActive
-                      ? 1
-                      : 0.86
-                    : 1 - distance * 0.1,
-                  opacity: distance > 1 ? 0.3 : isActive ? 1 : 0.72,
-                }}
-                exit={
-                  shouldReduceMotion
-                    ? { opacity: 0 }
-                    : {
-                        opacity: 0,
-                        x: direction * -150,
-                        scale: 0.88,
-                        rotateY: direction * 10,
-                      }
-                }
-                transition={
-                  shouldReduceMotion
-                    ? { duration: 0.12 }
-                    : {
-                        ...cardTransition,
-                        opacity: { duration: 0.24 },
-                      }
-                }
-                className={`absolute w-[280px] overflow-hidden rounded-2xl border will-change-transform sm:w-[330px] ${
-                  isActive ? "cursor-default" : "cursor-pointer"
-                }`}
-                style={{
-                  zIndex: 20 - distance,
-                  borderColor: DARK_BORDER,
-                  backgroundColor: DARK_CARD,
-                  boxShadow: isActive
-                    ? "0 24px 60px rgba(0,0,0,0.46)"
-                    : "0 12px 30px rgba(0,0,0,0.30)",
-                  transformStyle: "preserve-3d",
-                  backfaceVisibility: "hidden",
-                }}
-                onClick={() => {
-                  if (!isActive) move(offset > 0 ? 1 : -1);
-                }}
-                aria-hidden={!isActive}
-              >
-                <div className="relative h-[315px] w-full overflow-hidden bg-[#0B1220] sm:h-[365px]">
-                  <motion.div
-                    className="absolute inset-0"
-                    animate={{
-                      scale: isActive && !shouldReduceMotion ? 1.025 : 1,
-                    }}
-                    transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                    <Image
-                      src={student.profileImageUrl}
-                      alt={`${fullName} profile`}
-                      fill
-                      priority={isActive}
-                      unoptimized
-                      sizes="(max-width: 640px) 280px, 330px"
-                      className="object-cover object-top"
-                    />
-                  </motion.div>
-
-                  <div
-                    aria-hidden="true"
-                    className="absolute inset-x-0 bottom-0 h-32"
-                    style={{
-                      background:
-                        "linear-gradient(to bottom, transparent, #18212F)",
-                    }}
-                  />
-
-                  <motion.span
-                    initial={false}
-                    animate={{
-                      scale: isActive ? 1 : 0.8,
-                      opacity: isActive ? 1 : 0.55,
-                    }}
-                    transition={cardTransition}
-                    className="absolute right-4 top-4 flex h-4 w-4 items-center justify-center rounded-full border border-white/30 bg-[#55705B]"
-                  >
-                    <span className="h-1.5 w-1.5 rounded-full bg-white" />
-                  </motion.span>
-                </div>
-
-                <div className="relative px-5 pb-5 pt-0 sm:px-6 sm:pb-6">
-                  <div className="relative -mt-8">
-                    <AnimatePresence mode="wait" initial={false}>
-                      {isActive && (
-                        <motion.div
-                          key={`content-${student.id}`}
-                          initial={
-                            shouldReduceMotion
-                              ? { opacity: 0 }
-                              : { opacity: 0, y: 12 }
-                          }
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -8 }}
-                          transition={{ ...contentTransition, delay: 0.08 }}
-                        >
-                          <p className="font-mono text-[8px] font-medium uppercase tracking-[0.18em] text-white/45">
-                            Student Profile
-                          </p>
-
-                          <h3 className="mt-1 break-words text-[21px] font-semibold leading-tight tracking-tight text-white sm:text-[23px]">
-                            {fullName}
-                          </h3>
-
-                          <p className="mt-1 break-words text-xs font-medium leading-relaxed text-white/65 sm:text-sm">
-                            {student.generalCourse || "Selfless CE student"}
-                          </p>
-
-                          {student.techCenter && (
-                            <motion.div
-                              initial={
-                                shouldReduceMotion
-                                  ? false
-                                  : { opacity: 0, y: 5 }
-                              }
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ ...contentTransition, delay: 0.16 }}
-                              className="mt-2 flex items-start gap-1.5 text-[10px] leading-relaxed text-white/50 sm:text-xs"
-                            >
-                              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#B98A3E]" />
-                              <span className="break-words">
-                                {student.techCenter.name}
-                              </span>
-                            </motion.div>
-                          )}
-
-                          <motion.div
-                            initial={
-                              shouldReduceMotion ? false : { opacity: 0, y: 8 }
-                            }
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ ...contentTransition, delay: 0.22 }}
-                            className="mt-4 flex items-center gap-4"
-                          >
-                            <Link
-                              href={`/dashboard/students/${student.id}`}
-                              className="group/profile inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/80 transition-colors duration-200 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/40"
-                            >
-                              View Profile
-                              <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover/profile:translate-x-0.5" />
-                            </Link>
-
-                            <Link
-                              href={`/dashboard/messages?userId=${student.id}`}
-                              aria-label={`Message ${fullName}`}
-                              className="group/message inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.06] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-white/85 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/40"
-                            >
-                              <MessageCircle className="h-3.5 w-3.5 transition-transform duration-200 group-hover/message:scale-110" />
-                              <span>Message</span>
-                            </Link>
-                          </motion.div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                  <div className="mt-1 min-h-[18px]">
+                    {student.generalCourse ? (
+                      <p className="truncate text-[12px] font-medium text-white/65">
+                        {student.generalCourse}
+                      </p>
+                    ) : (
+                      <p className="text-[12px] text-white/40">
+                        Student
+                      </p>
+                    )}
                   </div>
-                </div>
-              </motion.article>
-            );
-          })}
-        </AnimatePresence>
 
-        {students.length > 1 && (
-          <>
-            <motion.button
+                  <div className="mt-1.5 flex min-h-[18px] items-center gap-1 text-white/45">
+                    {student.techCenter?.name ? (
+                      <>
+                        <MapPin className="h-3 w-3 shrink-0" strokeWidth={1.8} />
+                        <span className="truncate text-[11px]">
+                          {student.techCenter.name}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-[11px]">
+                        Tech center not specified
+                      </span>
+                    )}
+                  </div>
+
+                  {/* ACTIONS */}
+                  <div className="mt-3 flex items-center gap-1.5">
+                    <Link
+                      href={profileHref}
+                      className="inline-flex h-8 flex-1 items-center justify-center rounded-lg bg-white px-3 text-[11px] font-semibold text-[#12203B] transition-colors hover:bg-white/90 focus:outline-none focus:ring-2 focus:ring-white/40"
+                    >
+                      View profile
+                    </Link>
+                    <Link
+                      href={messageHref}
+                      aria-label={`Message ${name}`}
+                      className="inline-flex h-8 w-9 shrink-0 items-center justify-center rounded-lg border border-white/12 bg-white/[0.06] text-white/80 transition-colors hover:bg-white/[0.11] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+                    >
+                      <MessageCircle className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    </Link>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </motion.article>
+      </div>
+    );
+  };
+
+  /* ============================================================
+     GO TO SPECIFIC STUDENT
+  ============================================================ */
+
+  const goToStudent = (index: number) => {
+    if (index === safeCurrentIndex || isAnimating) {
+      return;
+    }
+
+    setIsAnimating(true);
+    setCurrentIndex(index);
+
+    if (animationTimeout.current) {
+      clearTimeout(animationTimeout.current);
+    }
+
+    animationTimeout.current = setTimeout(() => {
+      setIsAnimating(false);
+    }, 430);
+  };
+
+  /* ============================================================
+     MAIN
+  ============================================================ */
+
+  return (
+    <section className="w-full">
+      <div
+        className="overflow-hidden rounded-2xl bg-[#111827]"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* HEADER */}
+        <div className="mx-auto flex max-w-6xl items-end justify-between gap-4 px-5 pb-1 pt-4 sm:px-7 sm:pt-5">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#B98A3E]">
+              Student community
+            </p>
+            <h2 className="mt-1 text-lg font-semibold tracking-[-0.02em] text-white sm:text-xl">
+              Discover students
+            </h2>
+            <p className="mt-0.5 max-w-lg text-[11px] leading-4 text-white/45 sm:text-xs">
+              Meet students across SELFLESS CE and connect with people on a similar academic journey.
+            </p>
+          </div>
+
+          {/* Desktop controls */}
+          <div className="hidden shrink-0 items-center gap-1.5 sm:flex">
+            <button
               type="button"
               onClick={() => move(-1)}
+              disabled={isAnimating || students.length <= 1}
               aria-label="Previous student"
-              whileHover={shouldReduceMotion ? undefined : { scale: 1.08 }}
-              whileTap={shouldReduceMotion ? undefined : { scale: 0.92 }}
-              className="group absolute left-3 z-50 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/80 backdrop-blur-sm transition-colors duration-200 hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/40 sm:left-6 sm:h-11 sm:w-11"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/70 transition-all hover:bg-white/[0.09] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
             >
-              <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
-            </motion.button>
-
-            <motion.button
+              <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.8} />
+            </button>
+            <button
               type="button"
               onClick={() => move(1)}
+              disabled={isAnimating || students.length <= 1}
               aria-label="Next student"
-              whileHover={shouldReduceMotion ? undefined : { scale: 1.08 }}
-              whileTap={shouldReduceMotion ? undefined : { scale: 0.92 }}
-              className="group absolute right-3 z-50 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/80 backdrop-blur-sm transition-colors duration-200 hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/40 sm:right-6 sm:h-11 sm:w-11"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/70 transition-all hover:bg-white/[0.09] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
             >
-              <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
-            </motion.button>
-          </>
-        )}
-
-      </div>
-
-      <div className="flex items-center justify-between border-t border-[#DADCD3] bg-white px-4 py-2.5 sm:px-5">
-        <div className="flex items-center gap-2">
-          <motion.span
-            animate={
-              shouldReduceMotion
-                ? undefined
-                : { scale: [1, 1.35, 1] }
-            }
-            transition={{ duration: 1.8, repeat: Infinity }}
-            className="h-1.5 w-1.5 rounded-full bg-[#55705B]"
-          />
-
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.span
-              key={safeIndex}
-              initial={
-                shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 5 }
-              }
-              animate={{ opacity: 1, y: 0 }}
-              exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -5 }}
-              transition={{ duration: 0.2 }}
-              className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8A9088]"
-            >
-              {safeIndex + 1} of {students.length}
-            </motion.span>
-          </AnimatePresence>
+              <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
+            </button>
+          </div>
         </div>
 
-        <span className="hidden text-[9px] font-semibold uppercase tracking-[0.12em] text-[#8A9088] sm:block">
-          Swipe or use arrows
-        </span>
+        {/* 3D CAROUSEL STAGE WITH BACKGROUND STUDENTS */}
+        <div
+          className="relative mx-auto mt-2 h-[420px] w-full max-w-[620px] overflow-hidden sm:h-[440px]"
+          style={{
+            perspective: "1100px",
+            perspectiveOrigin: "50% 50%",
+          }}
+        >
+          {/* Fixed subtle lighting */}
+          <div
+            className="pointer-events-none absolute left-1/2 top-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-30 blur-3xl"
+            style={{
+              background:
+                "radial-gradient(circle, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0) 70%)",
+            }}
+          />
+
+          {/* BACKGROUND WAITING STUDENTS 
+              NOTE: The inner div now has 'relative' to fix the Next.js Image warning.
+              The 'sizes' prop has been added for performance.
+          */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            {/* Far Left Waiting */}
+            {backgroundStudents.veryFarLeft && (
+              <div className="absolute left-[5%] top-1/2 -translate-y-1/2 scale-[0.6] opacity-[0.15] blur-[2px]">
+                <div className="relative h-[350px] w-[240px] overflow-hidden rounded-2xl border border-white/5 bg-[#18212F]">
+                  <Image
+                    src={backgroundStudents.veryFarLeft.profileImageUrl || "/default-avatar.png"}
+                    alt="Waiting student"
+                    fill
+                    sizes="240px"
+                    className="object-cover"
+                  />
+                </div>
+              </div>
+            )}
+            
+            {/* Far Right Waiting */}
+            {backgroundStudents.veryFarRight && (
+              <div className="absolute right-[5%] top-1/2 -translate-y-1/2 scale-[0.6] opacity-[0.15] blur-[2px]">
+                <div className="relative h-[350px] w-[240px] overflow-hidden rounded-2xl border border-white/5 bg-[#18212F]">
+                  <Image
+                    src={backgroundStudents.veryFarRight.profileImageUrl || "/default-avatar.png"}
+                    alt="Waiting student"
+                    fill
+                    sizes="240px"
+                    className="object-cover"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Near Left Waiting */}
+            {backgroundStudents.farLeft && (
+              <div className="absolute left-[15%] top-1/2 -translate-y-1/2 scale-[0.75] opacity-[0.25] blur-[1px]">
+                <div className="relative h-[350px] w-[240px] overflow-hidden rounded-2xl border border-white/5 bg-[#18212F]">
+                  <Image
+                    src={backgroundStudents.farLeft.profileImageUrl || "/default-avatar.png"}
+                    alt="Waiting student"
+                    fill
+                    sizes="240px"
+                    className="object-cover"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Near Right Waiting */}
+            {backgroundStudents.farRight && (
+              <div className="absolute right-[15%] top-1/2 -translate-y-1/2 scale-[0.75] opacity-[0.25] blur-[1px]">
+                <div className="relative h-[350px] w-[240px] overflow-hidden rounded-2xl border border-white/5 bg-[#18212F]">
+                  <Image
+                    src={backgroundStudents.farRight.profileImageUrl || "/default-avatar.png"}
+                    alt="Waiting student"
+                    fill
+                    sizes="240px"
+                    className="object-cover"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* FIXED 3D SPACE (Active Cards) */}
+          <div
+            className="absolute inset-0"
+            style={{
+              transformStyle: "preserve-3d",
+            }}
+          >
+            {renderCard(visibleStudents.left, "left")}
+            {renderCard(visibleStudents.right, "right")}
+            {renderCard(visibleStudents.center, "center")}
+          </div>
+
+          {/* ==================================================
+              MOBILE CONTROLS (Fixed corruption/overlap)
+          ================================================== */}
+          <div className="absolute bottom-2 left-0 right-0 flex items-center justify-between px-4 sm:hidden pointer-events-none">
+            {/* Left Button */}
+            <button
+              type="button"
+              onClick={() => move(-1)}
+              disabled={isAnimating || students.length <= 1}
+              aria-label="Previous student"
+              className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-[#18212F]/90 backdrop-blur text-white/80 shadow-lg transition-all hover:bg-[#202A39] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              <ArrowLeft className="h-4 w-4" strokeWidth={2} />
+            </button>
+
+            {/* Pagination (Centered) */}
+            <div className="pointer-events-auto mx-2 flex max-w-[120px] items-center justify-center gap-1.5 overflow-hidden">
+              {students.map((student, index) => {
+                const isActive = index === safeCurrentIndex;
+                return (
+                  <button
+                    key={student.id}
+                    type="button"
+                    aria-label={`Go to student ${index + 1}`}
+                    onClick={() => goToStudent(index)}
+                    className={[
+                      "h-1.5 rounded-full transition-all duration-300",
+                      isActive
+                        ? "w-5 bg-white"
+                        : "w-1.5 bg-white/25 hover:bg-white/45",
+                    ].join(" ")}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Right Button */}
+            <button
+              type="button"
+              onClick={() => move(1)}
+              disabled={isAnimating || students.length <= 1}
+              aria-label="Next student"
+              className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-[#18212F]/90 backdrop-blur text-white/80 shadow-lg transition-all hover:bg-[#202A39] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              <ArrowRight className="h-4 w-4" strokeWidth={2} />
+            </button>
+          </div>
+        </div>
+
+        {/* FOOTER */}
+        <div className="flex items-center justify-center border-t border-white/[0.07] px-5 py-2.5">
+          <div className="flex items-center gap-2 text-[11px] text-white/40">
+            <span className="font-medium text-white/60">
+              {safeCurrentIndex + 1}
+            </span>
+            <span>/</span>
+            <span>{students.length}</span>
+            <span className="mx-1 h-1 w-1 rounded-full bg-white/20" />
+          </div>
+        </div>
       </div>
-    </motion.section>
+    </section>
   );
 }
+
+export default DiscoverStudents;

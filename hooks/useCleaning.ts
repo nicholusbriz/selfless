@@ -147,7 +147,9 @@ const api = {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to assign student');
+      throw new Error(
+        error.error || error.message || 'Failed to assign student',
+      );
     }
     return response.json();
   },

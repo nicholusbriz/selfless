@@ -78,7 +78,8 @@ export async function GET() {
         role: {
           name: 'student'
         },
-        status: 'ACTIVE'
+          status: 'ACTIVE',
+          cleaningRegistration: null,
       },
       select: {
         id: true,

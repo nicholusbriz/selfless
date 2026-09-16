@@ -1,10 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { generateEmbedding, chunkText } from '@/lib/services/embedding-service';
-import { clearRAGCache } from '@/lib/services/rag-service';
 import { requireAuth, hasRole } from '@/lib/auth/server';
 
 const prisma = new PrismaClient();
+
+const STOP_WORDS = new Set([
+  'about', 'after', 'again', 'also', 'because', 'from', 'have', 'into',
+  'more', 'that', 'their', 'this', 'with', 'your', 'you', 'will', 'what',
+]);
+
+function generateKnowledgeMetadata(content: string) {
+  const lines = content.split(/\r?\n/).map((line: string) => line.trim()).filter(Boolean);
+  const plainTitle = (lines[0] || 'Knowledge entry')
+    .replace(/^#+\s*/, '')
+    .replace(/[*_`]/g, '')
+    .replace(/[.!?]+$/, '')
+    .trim();
+  const title = plainTitle.slice(0, 120);
+  const summary = content.replace(/\s+/g, ' ').trim().slice(0, 280);
+  const tags = Array.from(
+    new Set(
+      (content.toLowerCase().match(/[a-z][a-z0-9-]{2,}/g) || [])
+        .filter((word: string) => !STOP_WORDS.has(word))
+        .slice(0, 12),
+    ),
+  );
+
+  return { title, summary, tags };
+}
 
 /**
  * GET /api/ai/knowledge-base
@@ -101,7 +124,7 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/ai/knowledge-base
  * 
- * Create new knowledge base entry with automatic embedding generation
+ * Create new knowledge base entry without generating embeddings
  * 
  * Request Body:
  * - category: string (required) - Knowledge category
@@ -113,7 +136,7 @@ export async function GET(request: NextRequest) {
  * - difficulty: string (optional) - Difficulty level
  * - priority: number (optional, default: 0) - Priority for sorting
  * - relatedIds: array (optional) - IDs of related entries
- * - generateEmbedding: boolean (optional, default: true) - Whether to generate embeddings
+ * - generateEmbedding: boolean (optional) - Legacy flag; embeddings are now manual
  * 
  * Returns:
  * - success: boolean
@@ -145,104 +168,38 @@ export async function POST(request: NextRequest) {
       tags,
       difficulty,
       priority,
-      relatedIds,
-      generateEmbedding: shouldGenerateEmbedding = true
+      relatedIds
     } = body;
 
-    if (!category || !title || !content) {
+    if (!category || !content?.trim()) {
       return NextResponse.json(
-        { success: false, error: 'Category, title, and content are required' },
+        { success: false, error: 'Category and knowledge content are required' },
         { status: 400 }
       );
     }
+
+    const generated = generateKnowledgeMetadata(content);
 
     // Create the knowledge base entry
     const knowledge = await prisma.aIKnowledgeBase.create({
       data: {
         category,
         subcategory,
-        title,
+        title: title?.trim() || generated.title,
         content,
-        summary,
-        tags: tags || [],
+        summary: summary?.trim() || generated.summary,
+        tags: Array.isArray(tags) && tags.length > 0 ? tags : generated.tags,
         difficulty,
         priority: priority || 0,
         relatedIds: relatedIds || []
       }
     });
 
-    let embeddingGenerated = false;
-    let chunksCreated = 0;
-
-    // Generate embedding if requested
-    if (shouldGenerateEmbedding) {
-      try {
-        console.log(`[KnowledgeBase] Generating embedding for entry: ${knowledge.id}`);
-
-        // Generate embedding for the full content
-        const embedding = await generateEmbedding(content);
-        
-        // Update with embedding
-        await prisma.aIKnowledgeBase.update({
-          where: { id: knowledge.id },
-          data: {
-            embedding,
-            embeddingGeneratedAt: new Date()
-          }
-        });
-
-        embeddingGenerated = true;
-
-        // Chunk large documents (>1000 words)
-        const wordCount = content.split(/\s+/).length;
-        if (wordCount > 1000) {
-          console.log(`[KnowledgeBase] Chunking large document (${wordCount} words)`);
-          
-          const chunks = chunkText(content, 200, 50);
-          
-          // Generate embeddings for chunks
-          const chunkEmbeddings = await Promise.all(
-            chunks.map(chunk => generateEmbedding(chunk))
-          );
-
-          // Create chunk records
-          const chunkData = chunks.map((chunk, index) => ({
-            knowledgeBaseId: knowledge.id,
-            chunkIndex: index,
-            content: chunk,
-            title: `${title} (Part ${index + 1})`,
-            embedding: chunkEmbeddings[index],
-            wordCount: chunk.split(/\s+/).length
-          }));
-
-          await prisma.aIKnowledgeChunk.createMany({
-            data: chunkData
-          });
-
-          // Mark as chunked
-          await prisma.aIKnowledgeBase.update({
-            where: { id: knowledge.id },
-            data: { isChunked: true }
-          });
-
-          chunksCreated = chunks.length;
-          console.log(`[KnowledgeBase] Created ${chunksCreated} chunks for entry: ${knowledge.id}`);
-        }
-
-        // Clear RAG cache to force regeneration with new knowledge
-        clearRAGCache();
-        console.log('[KnowledgeBase] Cleared RAG cache after creating new entry');
-      } catch (embeddingError) {
-        console.error('[KnowledgeBase] Failed to generate embedding:', embeddingError);
-        // Continue without embedding - entry is still usable for keyword search
-      }
-    }
-
     return NextResponse.json({
       success: true,
       data: knowledge,
-      embeddingGenerated,
-      chunksCreated
+      embeddingGenerated: false,
+      chunksCreated: 0
     });
   } catch (error) {
     console.error('Knowledge Base POST Error:', error);

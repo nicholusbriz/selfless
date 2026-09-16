@@ -1,7 +1,26 @@
 'use client';
 
-import { ArrowLeft, Home, Code, FileCode, ScrollText, Wrench, Zap, Database, Settings, Activity } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import {
+  ArrowLeft,
+  Code,
+  FileCode,
+  ScrollText,
+  Wrench,
+  Zap,
+  Database,
+  Activity,
+  Video,
+  Upload,
+  Trash2,
+  CloudUpload,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import VideoUpload from '@/components/VideoUpload';
+import AzureMediaUpload, {
+  type UploadedMedia,
+} from '@/components/AzureMediaUpload';
+import AzureVideoGallery from '@/components/AzureVideoGallery';
 
 const TOKENS = {
   brand: '#1a365d',
@@ -109,11 +128,81 @@ const getCategoryColor = (category: DevTool['category']) => {
   }
 };
 
+// Module-scope helper: not a hook, so ESLint's set-state-in-effect rule
+// doesn't fire. Also reusable from the delete handler and post-upload refresh.
+async function loadVideosFromApi(signal?: AbortSignal): Promise<string[]> {
+  const response = await fetch('/api/videos', { signal });
+  if (!response.ok) return [];
+  const data = await response.json();
+  return Array.isArray(data?.videos) ? data.videos : [];
+}
+
 export default function DevDashboardPage() {
   const router = useRouter();
+  const [videos, setVideos] = useState<string[]>([]);
+  const [showVideoUpload, setShowVideoUpload] = useState(false);
+  const [videoMessage, setVideoMessage] = useState<string | null>(null);
 
-  const activeTools = devTools.filter(tool => tool.status === 'active').length;
-  const betaTools = devTools.filter(tool => tool.status === 'beta').length;
+  // State for the Azure Media Upload section
+  const [azureMessage, setAzureMessage] = useState<string | null>(null);
+  const [lastAzureUpload, setLastAzureUpload] =
+    useState<UploadedMedia | null>(null);
+
+  // Used to force-refresh the Azure gallery after an upload
+  const [galleryRefreshKey, setGalleryRefreshKey] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    loadVideosFromApi(controller.signal)
+      .then((fetchedVideos) => {
+        setVideos(fetchedVideos);
+      })
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name === 'AbortError') return;
+        console.error('Failed to load videos:', error);
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  const handleDeleteVideo = async (videoUrl: string) => {
+    try {
+      const response = await fetch('/api/videos/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoUrl }),
+      });
+
+      setVideoMessage(
+        response.ok
+          ? 'Video deleted successfully.'
+          : 'Could not delete the video.',
+      );
+
+      if (response.ok) {
+        const refreshedVideos = await loadVideosFromApi();
+        setVideos(refreshedVideos);
+      }
+    } catch (error) {
+      console.error('Failed to delete video:', error);
+      setVideoMessage('Could not delete the video.');
+    }
+  };
+
+  const handleAzureUploadComplete = (media: UploadedMedia) => {
+    setLastAzureUpload(media);
+    setAzureMessage(`Uploaded: ${media.fileName}`);
+    // Bump the gallery key so it re-fetches the newest file list
+    setGalleryRefreshKey((key) => key + 1);
+  };
+
+  const handleAzureUploadError = (message: string) => {
+    setAzureMessage(message);
+  };
+
+  const activeTools = devTools.filter((tool) => tool.status === 'active').length;
+  const betaTools = devTools.filter((tool) => tool.status === 'beta').length;
 
   return (
     <main
@@ -219,7 +308,6 @@ export default function DevDashboardPage() {
 
         {/* Main tools grid */}
         <section className="overflow-hidden rounded-xl border border-[#dfe5ec] bg-white shadow-sm">
-          {/* Section header */}
           <div className="border-b border-[#dfe5ec] px-5 py-5 sm:px-7">
             <div className="flex items-start gap-4">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#eef2f8] text-[#1a365d]">
@@ -231,13 +319,13 @@ export default function DevDashboardPage() {
                   Developer Tools
                 </h2>
                 <p className="mt-1 text-sm leading-6 text-[#64748b]">
-                  Access developer resources, API documentation, and system monitoring tools.
+                  Access developer resources, API documentation, and system
+                  monitoring tools.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Tools grid */}
           <div className="p-5 sm:p-7">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {devTools.map((tool) => {
@@ -255,12 +343,12 @@ export default function DevDashboardPage() {
                       group relative overflow-hidden rounded-xl border border-[#dfe5ec] bg-white p-5 text-left shadow-sm
                       transition-all duration-200
                       hover:border-[#cbd5e1] hover:shadow-md
-                      disabled:opacity-50 disabled:cursor-not-allowed
+                      disabled:cursor-not-allowed disabled:opacity-50
                       ${focusRing}
                     `}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eef2f8] text-[#1a365d] group-hover:bg-[#1a365d] group-hover:text-white transition-colors">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eef2f8] text-[#1a365d] transition-colors group-hover:bg-[#1a365d] group-hover:text-white">
                         <ToolIcon className="h-5 w-5" />
                       </div>
 
@@ -272,7 +360,7 @@ export default function DevDashboardPage() {
                     </div>
 
                     <div className="mt-4">
-                      <h3 className="text-base font-semibold text-[#172033] group-hover:text-[#1a365d] transition-colors">
+                      <h3 className="text-base font-semibold text-[#172033] transition-colors group-hover:text-[#1a365d]">
                         {tool.title}
                       </h3>
                       <p className="mt-1.5 text-sm leading-5 text-[#64748b]">
@@ -302,57 +390,179 @@ export default function DevDashboardPage() {
           </div>
         </section>
 
-        {/* Quick access section */}
+        {/* Dashboard Videos — unchanged, still uses VideoUpload */}
+        <section className="mt-6 overflow-hidden rounded-xl border border-[#dfe5ec] bg-white shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#dfe5ec] px-5 py-5 sm:px-7">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#fff8e7] text-[#8a5a00]">
+                <Video className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-[#172033]">
+                  Dashboard Videos
+                </h2>
+                <p className="text-sm text-[#64748b]">
+                  Upload and manage videos used by the dashboard.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowVideoUpload((current) => !current)}
+              className="inline-flex items-center gap-2 rounded-lg bg-[#1a365d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#14294a]"
+            >
+              <Upload className="h-4 w-4" />
+              {showVideoUpload ? 'Close uploader' : 'Upload video'}
+            </button>
+          </div>
+          <div className="p-5 sm:p-7">
+            {showVideoUpload && (
+              <div className="mb-5 rounded-lg border border-[#dfe5ec] bg-[#f8fafc] p-4">
+                <VideoUpload
+                  onUploadComplete={() => {
+                    setVideoMessage('Video uploaded successfully.');
+                    setShowVideoUpload(false);
+                    loadVideosFromApi().then(setVideos);
+                  }}
+                  onError={setVideoMessage}
+                />
+              </div>
+            )}
+            {videoMessage && (
+              <p className="mb-3 text-sm text-[#17734b]">{videoMessage}</p>
+            )}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {videos.length === 0 ? (
+                <p className="text-sm text-[#64748b]">
+                  No dashboard videos uploaded.
+                </p>
+              ) : (
+                videos.map((videoUrl) => (
+                  <div
+                    key={videoUrl}
+                    className="rounded-lg border border-[#dfe5ec] bg-[#f8fafc] p-3"
+                  >
+                    <video
+                      src={videoUrl}
+                      controls
+                      className="aspect-video w-full rounded bg-black"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteVideo(videoUrl)}
+                      className="mt-3 inline-flex items-center gap-2 text-sm text-[#a52121] hover:text-[#172033]"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete video
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* ==========================================================
+            Azure Media Upload — drag & drop, preview, Azure-hosted
+        ========================================================== */}
         <section className="mt-6 overflow-hidden rounded-xl border border-[#dfe5ec] bg-white shadow-sm">
           <div className="border-b border-[#dfe5ec] px-5 py-5 sm:px-7">
             <div className="flex items-start gap-4">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#eef2f8] text-[#1a365d]">
-                <Settings className="h-5 w-5" />
+                <CloudUpload className="h-5 w-5" />
               </div>
 
               <div className="min-w-0">
                 <h2 className="text-lg font-bold text-[#172033] sm:text-xl">
-                  Quick Access
+                  Azure Media Upload
                 </h2>
                 <p className="mt-1 text-sm leading-6 text-[#64748b]">
-                  Frequently used developer resources and external links.
+                  Drag a file onto the area below, or click to browse. Files
+                  upload directly to Azure Blob Storage and preview instantly.
                 </p>
               </div>
             </div>
           </div>
 
           <div className="p-5 sm:p-7">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <a
-                href="https://nextjs.org/docs"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-3 rounded-lg border border-[#dfe5ec] bg-[#f8fafc] px-4 py-3 text-sm font-medium text-[#172033] transition-colors hover:border-[#cbd5e1] hover:bg-white"
-              >
-                <FileCode className="h-4 w-4 text-[#64748b]" />
-                Next.js Documentation
-              </a>
+            <AzureMediaUpload
+              label="Drop a file here, or click to browse"
+              accept="image/*,audio/*,video/*"
+              onUploadComplete={handleAzureUploadComplete}
+              onUploadError={handleAzureUploadError}
+            />
 
-              <a
-                href="https://www.prisma.io/docs"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-3 rounded-lg border border-[#dfe5ec] bg-[#f8fafc] px-4 py-3 text-sm font-medium text-[#172033] transition-colors hover:border-[#cbd5e1] hover:bg-white"
-              >
-                <Database className="h-4 w-4 text-[#64748b]" />
-                Prisma Documentation
-              </a>
+            {azureMessage && (
+              <p className="mt-4 text-sm font-medium text-[#17734b]">
+                {azureMessage}
+              </p>
+            )}
 
-              <a
-                href="https://react.dev"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-3 rounded-lg border border-[#dfe5ec] bg-[#f8fafc] px-4 py-3 text-sm font-medium text-[#172033] transition-colors hover:border-[#cbd5e1] hover:bg-white"
-              >
-                <Code className="h-4 w-4 text-[#64748b]" />
-                React Documentation
-              </a>
+            {lastAzureUpload && (
+              <div className="mt-4 rounded-lg border border-[#dfe5ec] bg-[#f8fafc] p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-[#94a3b8]">
+                  Last uploaded file
+                </p>
+
+                <dl className="mt-2 space-y-1 text-sm">
+                  <div className="flex gap-2">
+                    <dt className="font-medium text-[#172033]">Name:</dt>
+                    <dd className="text-[#64748b]">
+                      {lastAzureUpload.fileName}
+                    </dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="font-medium text-[#172033]">Type:</dt>
+                    <dd className="text-[#64748b]">
+                      {lastAzureUpload.contentType}
+                    </dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="font-medium text-[#172033]">Size:</dt>
+                    <dd className="text-[#64748b]">
+                      {(lastAzureUpload.size / 1024 / 1024).toFixed(2)} MB
+                    </dd>
+                  </div>
+                  <div className="flex min-w-0 gap-2">
+                    <dt className="shrink-0 font-medium text-[#172033]">
+                      URL:
+                    </dt>
+                    <dd className="min-w-0">
+                      <a
+                        href={lastAzureUpload.publicUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="break-all text-[#1a365d] underline"
+                      >
+                        {lastAzureUpload.publicUrl}
+                      </a>
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* ==========================================================
+            Your Azure Videos — fetched from Azure and played inline
+        ========================================================== */}
+        <section className="mt-6 overflow-hidden rounded-xl border border-[#dfe5ec] bg-white shadow-sm">
+          <div className="flex items-center gap-3 border-b border-[#dfe5ec] px-5 py-5 sm:px-7">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#eef2f8] text-[#1a365d]">
+              <Video className="h-5 w-5" />
             </div>
+            <div>
+              <h2 className="text-lg font-bold text-[#172033]">
+                Your Azure Videos
+              </h2>
+              <p className="text-sm text-[#64748b]">
+                Videos you have uploaded to Azure Blob Storage.
+              </p>
+            </div>
+          </div>
+          <div className="p-5 sm:p-7">
+            <AzureVideoGallery key={galleryRefreshKey} />
           </div>
         </section>
       </div>

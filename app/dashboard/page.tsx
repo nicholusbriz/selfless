@@ -3,7 +3,10 @@
 /* ============================================================
    DASHBOARD PAGE
    ------------------------------------------------------------
-   Clean, readable dashboard with improved visual hierarchy.
+   Premium, cohesive dashboard experience with enhanced 
+   visual hierarchy, spacing, and micro-interactions.
+   Videos are served from the Azure-backed Media model.
+   Only the video's owner can delete their own upload.
 ============================================================ */
 
 import {
@@ -19,18 +22,29 @@ import {
   Camera,
   GraduationCap,
   ChevronRight,
+  ChevronLeft,
   Library,
   Star,
   MessageCircle,
+  Sparkles,
+  Play,
+  Pause,
+  Trash2,
+  Loader2,
 } from 'lucide-react';
 
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { useEffect, useMemo, useState, useCallback } from 'react';
-import VideoPlayer from '@/components/VideoPlayer';
-import { useQuery } from '@tanstack/react-query';
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+  useRef,
+} from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DiscoverStudents, type DiscoverStudent } from './components/DiscoverStudents';
 
 /* ============================================================
@@ -38,18 +52,18 @@ import { DiscoverStudents, type DiscoverStudent } from './components/DiscoverStu
 ============================================================ */
 
 const COLORS = {
-  ink: '#12203B',
-  inkLight: '#1C2E4E',
-  paper: '#F1F1EC',
+  ink: '#1A2B4C',
+  inkLight: '#2C3E5A',
+  paper: '#F8F9FA',
   surface: '#FFFFFF',
-  surfaceSoft: '#F7F6F2',
-  surfaceHover: '#EDECE6',
-  line: '#DADCD3',
-  lineStrong: '#C9CCC3',
-  muted: '#6B7268',
-  mutedLight: '#8A9088',
-  brass: '#B98A3E',
-  brassHover: '#A67A2E',
+  surfaceSoft: '#F3F4F6',
+  surfaceHover: '#F8F9FA',
+  line: '#E5E7EB',
+  lineStrong: '#D1D5DB',
+  muted: '#6B7280',
+  mutedLight: '#9CA3AF',
+  brass: '#C59B4C',
+  brassHover: '#B08A3E',
   moss: '#55705B',
   rust: '#A4462F',
   slate: '#3E5C76',
@@ -72,13 +86,8 @@ interface Tutor {
   lastName: string;
   profileImageUrl: string | null;
   email: string;
-  techCenter?: {
-    id: string;
-    name: string;
-  };
-  role?: {
-    name: string;
-  };
+  techCenter?: { id: string; name: string };
+  role?: { name: string };
 }
 
 interface Student {
@@ -109,10 +118,7 @@ interface ActivityItem {
     lastName: string;
     profileImageUrl?: string | null;
   } | null;
-  techCenter?: {
-    id: string;
-    name: string;
-  } | null;
+  techCenter?: { id: string; name: string } | null;
 }
 
 interface QuickLink {
@@ -120,6 +126,338 @@ interface QuickLink {
   label: string;
   description: string;
   path: string;
+}
+
+interface MediaItem {
+  id: string;
+  publicUrl: string;
+  blobName: string;
+  contentType: string;
+  size: number;
+  title: string;
+  description: string | null;
+  category: string | null;
+  createdAt: string;
+  user?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    profileImageUrl: string | null;
+  } | null;
+}
+
+/* ============================================================
+   MEDIA LIBRARY (Azure-backed)
+   ------------------------------------------------------------
+   Fetches from /api/media/list, plays videos with 
+   play / pause / next / previous controls.
+   Delete is only shown to the uploader.
+============================================================ */
+
+function MediaLibrary() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const {
+    data: items = [],
+    isLoading,
+    error,
+  } = useQuery<MediaItem[]>({
+    queryKey: ['dashboard-media'],
+    queryFn: async () => {
+      const response = await fetch('/api/media/list');
+      if (!response.ok) throw new Error('Failed to fetch media');
+      const data = await response.json();
+      if (!data.success) throw new Error(data?.error ?? 'Failed');
+      return (data.items ?? []) as MediaItem[];
+    },
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+
+  const videos = useMemo(
+    () => items.filter((item) => item.contentType.startsWith('video/')),
+    [items],
+  );
+
+  const [rawIndex, setRawIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const currentIndex =
+    videos.length === 0 ? 0 : Math.min(rawIndex, videos.length - 1);
+
+  const current = videos[currentIndex] ?? null;
+
+  // Only the uploader can delete their own video
+  const canDeleteCurrent =
+    !!user?.id && !!current?.user?.id && current.user.id === user.id;
+
+  const goNext = useCallback(() => {
+    if (videos.length <= 1) return;
+    setRawIndex((prev) => (prev + 1) % videos.length);
+    setIsPlaying(false);
+  }, [videos.length]);
+
+  const goPrevious = useCallback(() => {
+    if (videos.length <= 1) return;
+    setRawIndex((prev) => (prev - 1 + videos.length) % videos.length);
+    setIsPlaying(false);
+  }, [videos.length]);
+
+  const togglePlay = useCallback(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    if (el.paused) {
+      el.play().catch(() => {});
+      setIsPlaying(true);
+    } else {
+      el.pause();
+      setIsPlaying(false);
+    }
+  }, []);
+
+  // Reset play state when video changes, via previous-value ref pattern
+  const prevVideoIdRef = useRef<string | null>(null);
+  if (prevVideoIdRef.current !== (current?.id ?? null)) {
+    prevVideoIdRef.current = current?.id ?? null;
+    if (isPlaying) setIsPlaying(false);
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this video permanently?')) return;
+    setDeletingId(id);
+    try {
+      const res = await fetch('/api/media/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mediaId: id }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data?.error ?? 'Delete failed');
+      }
+      queryClient.setQueryData<MediaItem[]>(['dashboard-media'], (prev) =>
+        (prev ?? []).filter((item) => item.id !== id),
+      );
+      setRawIndex(0);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Delete failed');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center gap-2 rounded-xl border border-[#E5E7EB] bg-white py-12 text-sm text-[#6B7280] shadow-sm">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Loading media…
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        {error instanceof Error ? error.message : 'Could not load media'}
+      </div>
+    );
+  }
+
+  if (videos.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-[#D1D5DB] bg-white px-6 py-12 text-center">
+        <Video className="mx-auto mb-3 h-8 w-8 text-[#9CA3AF]" />
+        <p className="text-sm font-medium text-[#1A2B4C]">
+          No videos in the library yet
+        </p>
+        <p className="mt-1 text-xs text-[#6B7280]">
+          Videos uploaded by any student will appear here.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-sm">
+      {/* Player */}
+      <div className="relative aspect-video w-full bg-black">
+        {current && (
+          <video
+            ref={videoRef}
+            key={current.id}
+            src={current.publicUrl}
+            playsInline
+            controls={false}
+            className="h-full w-full object-contain"
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            onEnded={() => {
+              setIsPlaying(false);
+              if (videos.length > 1) goNext();
+            }}
+          />
+        )}
+
+        {/* Center play button overlay */}
+        {current && !isPlaying && (
+          <button
+            type="button"
+            onClick={togglePlay}
+            aria-label="Play"
+            className="absolute inset-0 flex items-center justify-center bg-black/25 transition-colors hover:bg-black/35"
+          >
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/95 shadow-lg">
+              <Play className="ml-1 h-7 w-7 fill-[#1A2B4C] text-[#1A2B4C]" />
+            </span>
+          </button>
+        )}
+
+        {/* Top-right counter */}
+        {current && (
+          <div className="absolute right-3 top-3 rounded-full bg-black/60 px-3 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
+            {currentIndex + 1} / {videos.length}
+          </div>
+        )}
+      </div>
+
+      {/* Controls */}
+      <div className="flex items-center justify-between gap-2 border-t border-[#E5E7EB] bg-[#F8F9FA] px-4 py-3">
+        <button
+          type="button"
+          onClick={goPrevious}
+          disabled={videos.length <= 1}
+          aria-label="Previous video"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-xs font-medium text-[#1A2B4C] shadow-sm transition-colors hover:border-[#C59B4C] hover:text-[#C59B4C] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+          Previous
+        </button>
+
+        <button
+          type="button"
+          onClick={togglePlay}
+          aria-label={isPlaying ? 'Pause' : 'Play'}
+          className="inline-flex items-center gap-2 rounded-lg bg-[#1A2B4C] px-5 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-[#C59B4C]"
+        >
+          {isPlaying ? (
+            <>
+              <Pause className="h-3.5 w-3.5" />
+              Pause
+            </>
+          ) : (
+            <>
+              <Play className="h-3.5 w-3.5" />
+              Play
+            </>
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={goNext}
+          disabled={videos.length <= 1}
+          aria-label="Next video"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-xs font-medium text-[#1A2B4C] shadow-sm transition-colors hover:border-[#C59B4C] hover:text-[#C59B4C] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Next
+          <ChevronRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      {/* Current video info */}
+      {current && (
+        <div className="border-t border-[#E5E7EB] px-4 py-4 sm:px-5">
+          <h3 className="text-sm font-semibold text-[#1A2B4C]">
+            {current.title}
+          </h3>
+          {current.description && (
+            <p className="mt-1 text-xs leading-5 text-[#6B7280]">
+              {current.description}
+            </p>
+          )}
+
+          {/* Uploader info — visible to everyone */}
+          {current.user && (
+            <div className="mt-2 flex items-center gap-2">
+              {current.user.profileImageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={current.user.profileImageUrl}
+                  alt={`${current.user.firstName} ${current.user.lastName}`}
+                  className="h-5 w-5 rounded-full object-cover border border-[#E5E7EB]"
+                />
+              ) : (
+                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#1A2B4C] text-[8px] font-semibold text-white">
+                  {current.user.firstName.charAt(0)}
+                  {current.user.lastName.charAt(0)}
+                </div>
+              )}
+              <span className="text-[11px] font-medium text-[#6B7280]">
+                Uploaded by {current.user.firstName} {current.user.lastName}
+              </span>
+            </div>
+          )}
+
+          <p className="mt-2 text-[11px] text-[#9CA3AF]">
+            {(current.size / 1024 / 1024).toFixed(2)} MB ·{' '}
+            {new Date(current.createdAt).toLocaleDateString()}
+          </p>
+
+          {/* Delete button — only visible to the video's owner */}
+          {canDeleteCurrent && (
+            <button
+              type="button"
+              onClick={() => handleDelete(current.id)}
+              disabled={deletingId === current.id}
+              className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
+            >
+              {deletingId === current.id ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="h-3.5 w-3.5" />
+              )}
+              Delete video
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Thumbnail strip */}
+      {videos.length > 1 && (
+        <div className="border-t border-[#E5E7EB] bg-[#F8F9FA] p-3">
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {videos.map((item, idx) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setRawIndex(idx)}
+                className={`group relative shrink-0 overflow-hidden rounded-lg border-2 transition-all ${
+                  idx === currentIndex
+                    ? 'border-[#C59B4C]'
+                    : 'border-transparent hover:border-[#D1D5DB]'
+                }`}
+                aria-label={`Play ${item.title}`}
+              >
+                <video
+                  src={item.publicUrl}
+                  muted
+                  preload="metadata"
+                  playsInline
+                  className="h-16 w-28 object-cover"
+                />
+                <span className="absolute inset-x-0 bottom-0 truncate bg-black/60 px-2 py-1 text-[10px] font-medium text-white">
+                  {item.title}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 /* ============================================================
@@ -132,7 +470,6 @@ export default function DashboardPage() {
 
   const [techCenter, setTechCenter] = useState<TechCenter | null>(null);
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
-  const [videos, setVideos] = useState<string[]>([]);
   const [messageIndex, setMessageIndex] = useState(0);
   const [currentTime] = useState(() => Date.now());
 
@@ -143,7 +480,6 @@ export default function DashboardPage() {
   const fetchTechCenter = useCallback(async (techCenterId: string) => {
     try {
       const response = await fetch(`/api/tech-centers/${techCenterId}`);
-
       if (response.ok) {
         const data = await response.json();
         setTechCenter(data);
@@ -158,7 +494,6 @@ export default function DashboardPage() {
       const response = await fetch(
         `/api/tech-centers/${techCenterId}/activity?limit=all`,
       );
-
       if (response.ok) {
         const data = await response.json();
         setRecentActivity(data);
@@ -170,63 +505,42 @@ export default function DashboardPage() {
 
   const fetchAllActivity = useCallback(async () => {
     try {
-      // Try to fetch from multiple tech centers by fetching all tech centers first
       const techCentersResponse = await fetch('/api/admin/tech-centers');
-      
       if (techCentersResponse.ok) {
         const techCenters: TechCenter[] = await techCentersResponse.json();
-        console.log('Fetched tech centers:', techCenters.length);
-        
-        // Fetch activity from each tech center
-        const activityPromises = techCenters.map(async (techCenter) => {
+
+        const activityPromises = techCenters.map(async (tc) => {
           try {
-            const activityResponse = await fetch(`/api/tech-centers/${techCenter.id}/activity?limit=all`);
+            const activityResponse = await fetch(
+              `/api/tech-centers/${tc.id}/activity?limit=all`,
+            );
             if (activityResponse.ok) {
-              const activities: ActivityItem[] = await activityResponse.json();
-              console.log(`Fetched ${activities.length} activities for ${techCenter.name}`);
-              // Add tech center info to each activity
+              const activities: ActivityItem[] =
+                await activityResponse.json();
               return (activities || []).map((activity) => ({
                 ...activity,
-                techCenter: {
-                  id: techCenter.id,
-                  name: techCenter.name
-                }
+                techCenter: { id: tc.id, name: tc.name },
               }));
             }
-            console.log(`Failed to fetch activity for ${techCenter.name}`);
             return [];
           } catch (error) {
-            console.error(`Error fetching activity for ${techCenter.name}:`, error);
+            console.error(`Error fetching activity for ${tc.name}:`, error);
             return [];
           }
         });
-        
+
         const allActivities = await Promise.all(activityPromises);
-        // Flatten and sort by date
-        const flattenedActivities = allActivities.flat().sort((a, b) => 
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-        
-        console.log('Total activities after merge:', flattenedActivities.length);
+        const flattenedActivities = allActivities
+          .flat()
+          .sort(
+            (a, b) =>
+              new Date(b.createdAt).getTime() -
+              new Date(a.createdAt).getTime(),
+          );
         setRecentActivity(flattenedActivities);
-      } else {
-        console.error('Failed to fetch tech centers:', techCentersResponse.status);
       }
     } catch (error) {
       console.error('Error fetching all activity:', error);
-    }
-  }, []);
-
-  const fetchVideos = useCallback(async () => {
-    try {
-      const response = await fetch('/api/videos');
-
-      if (response.ok) {
-        const data = await response.json();
-        setVideos(data.videos || []);
-      }
-    } catch (error) {
-      console.error('Error fetching videos:', error);
     }
   }, []);
 
@@ -239,49 +553,37 @@ export default function DashboardPage() {
       if (user?.techCenterId) {
         await fetchTechCenter(user.techCenterId);
       }
-      // Fetch activity based on user role - only super_admin sees all tech centers
       if (user?.role === 'super_admin') {
         await fetchAllActivity();
       } else if (user?.techCenterId) {
         await fetchRecentActivity(user.techCenterId);
       }
     };
-
     loadData();
-  }, [user?.techCenterId, user?.role, fetchTechCenter, fetchRecentActivity, fetchAllActivity]);
-
-  useEffect(() => {
-    const loadVideos = async () => {
-      await fetchVideos();
-    };
-
-    loadVideos();
-  }, [fetchVideos]);
+  }, [
+    user?.techCenterId,
+    user?.role,
+    fetchTechCenter,
+    fetchRecentActivity,
+    fetchAllActivity,
+  ]);
 
   /* ============================================================
-     TUTORS WITH TANSTACK QUERY (CACHED)
-     - Filtered by tech center ID
+     TUTORS
   ============================================================ */
 
   const { data: tutorsData, isLoading: tutorsLoading } = useQuery({
     queryKey: ['tutors', user?.techCenterId],
     queryFn: async () => {
       const response = await fetch('/api/tech-centers/tutors?limit=100');
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch tutors');
-      }
-
+      if (!response.ok) throw new Error('Failed to fetch tutors');
       const data = await response.json();
       const allTutors = data.tutors || [];
-      
-      // Filter tutors by tech center ID
       if (user?.techCenterId) {
         return allTutors.filter(
-          (tutor: Tutor) => tutor.techCenter?.id === user.techCenterId
+          (tutor: Tutor) => tutor.techCenter?.id === user.techCenterId,
         );
       }
-      
       return allTutors;
     },
     staleTime: 10 * 60 * 1000,
@@ -291,54 +593,35 @@ export default function DashboardPage() {
 
   const tutors = tutorsData || [];
 
-  const { data: discoverStudents = [], isLoading: discoverStudentsLoading } = useQuery<DiscoverStudent[]>({
-    queryKey: ['dashboard-discover-students'],
-    queryFn: async () => {
-      const response = await fetch('/api/students');
-      if (!response.ok) throw new Error('Failed to fetch discover students');
-
-      const data = await response.json();
-      const students = Object.values(data.studentsByTechCenter || {}).flat() as Array<{
-        id: string;
-        firstName: string;
-        lastName: string;
-        profileImageUrl: string | null;
-        generalCourse: string | null;
-        techCenter: { id: string; name: string } | null;
-      }>;
-
-      return students
-        .filter((student) => student.profileImageUrl)
-        .map((student) => ({
-          id: student.id,
-          firstName: student.firstName,
-          lastName: student.lastName,
-          profileImageUrl: student.profileImageUrl as string,
-          generalCourse: student.generalCourse,
-          techCenter: student.techCenter,
-        }));
-    },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    enabled: !!user?.id,
-  });
+  const { data: discoverStudents = [], isLoading: discoverStudentsLoading } =
+    useQuery<DiscoverStudent[]>({
+      queryKey: ['dashboard-discover-students'],
+      queryFn: async () => {
+        const response = await fetch('/api/dashboard/discover-students');
+        if (!response.ok) throw new Error('Failed to fetch discover students');
+        return response.json();
+      },
+      staleTime: 10 * 60 * 1000,
+      gcTime: 30 * 60 * 1000,
+      enabled: !!user?.id,
+    });
 
   /* ============================================================
-     TUTOR ASSIGNMENT WITH TANSTACK QUERY
+     TUTOR ASSIGNMENT
   ============================================================ */
 
   const { data: assignmentData, isLoading: loadingAssignment } = useQuery({
     queryKey: ['assignment-info', user?.id, user?.role],
     queryFn: async () => {
       const response = await fetch('/api/user/tutor');
-      if (!response.ok) {
+      if (!response.ok)
         throw new Error('Failed to fetch assignment information');
-      }
       return response.json() as Promise<AssignmentData>;
     },
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    enabled: !!user?.id && (user?.role === 'student' || user?.role === 'teacher'),
+    enabled:
+      !!user?.id && (user?.role === 'student' || user?.role === 'teacher'),
   });
 
   const isTeacher = assignmentData?.isTeacher || false;
@@ -367,7 +650,6 @@ export default function DashboardPage() {
         current === motivationMessages.length - 1 ? 0 : current + 1,
       );
     }, 5000);
-
     return () => window.clearInterval(interval);
   }, [motivationMessages.length]);
 
@@ -375,17 +657,8 @@ export default function DashboardPage() {
      ACTIVITY HELPERS
   ============================================================ */
 
-  const ACTIVITY_META: Record<
-    string,
-    {
-      label: string;
-      color: string;
-    }
-  > = {
-    course_submission: {
-      label: 'submitted a course',
-      color: COLORS.moss,
-    },
+  const ACTIVITY_META: Record<string, { label: string; color: string }> = {
+    course_submission: { label: 'submitted a course', color: COLORS.moss },
     cleaning_registration: {
       label: 'registered for cleaning day',
       color: COLORS.brass,
@@ -402,26 +675,11 @@ export default function DashboardPage() {
       label: 'created cleaning day',
       color: COLORS.ink,
     },
-    change_user_role: {
-      label: 'changed user role',
-      color: COLORS.purple,
-    },
-    create_user: {
-      label: 'created new user',
-      color: COLORS.moss,
-    },
-    delete_user: {
-      label: 'deleted user',
-      color: COLORS.rust,
-    },
-    create_tech_center: {
-      label: 'created tech center',
-      color: COLORS.brass,
-    },
-    update_tech_center: {
-      label: 'updated tech center',
-      color: COLORS.slate,
-    },
+    change_user_role: { label: 'changed user role', color: COLORS.purple },
+    create_user: { label: 'created new user', color: COLORS.moss },
+    delete_user: { label: 'deleted user', color: COLORS.rust },
+    create_tech_center: { label: 'created tech center', color: COLORS.brass },
+    update_tech_center: { label: 'updated tech center', color: COLORS.slate },
   };
 
   const getActivityMeta = (action: string) =>
@@ -432,17 +690,11 @@ export default function DashboardPage() {
 
   const formatTimeAgo = (date: Date | string) => {
     const timestamp = new Date(date).getTime();
-
-    if (Number.isNaN(timestamp)) {
-      return '';
-    }
-
+    if (Number.isNaN(timestamp)) return '';
     const diffInMs = currentTime - timestamp;
-
     const mins = Math.floor(diffInMs / 60000);
     const hours = Math.floor(diffInMs / 3600000);
     const days = Math.floor(diffInMs / 86400000);
-
     if (mins < 1) return 'Just now';
     if (mins < 60) return `${mins}m ago`;
     if (hours < 24) return `${hours}h ago`;
@@ -452,10 +704,8 @@ export default function DashboardPage() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-
     if (hour < 12) return 'Good morning';
     if (hour < 17) return 'Good afternoon';
-
     return 'Good evening';
   };
 
@@ -469,8 +719,7 @@ export default function DashboardPage() {
 
   const quickLinks: QuickLink[] = useMemo(() => {
     const userRole = user?.role;
-    
-    // Super admin specific links
+
     if (userRole === 'super_admin') {
       return [
         {
@@ -564,8 +813,7 @@ export default function DashboardPage() {
         },
       ];
     }
-    
-    // Default links for other roles
+
     return [
       {
         icon: <BookOpen className="h-5 w-5" />,
@@ -624,27 +872,14 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div
-        className="flex min-h-[60vh] items-center justify-center"
-        style={{
-          backgroundColor: COLORS.paper,
-          color: COLORS.ink,
-        }}
-      >
-        <div className="flex flex-col items-center gap-3">
-          <div
-            className="h-8 w-8 animate-spin rounded-full border-2"
-            style={{
-              borderColor: COLORS.line,
-              borderTopColor: COLORS.ink,
-            }}
-          />
-
-          <p
-            className="font-mono text-xs uppercase tracking-widest"
-            style={{ color: COLORS.muted }}
-          >
-            Loading
+      <div className="flex min-h-[60vh] items-center justify-center bg-[#F8F9FA]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative flex h-10 w-10 items-center justify-center">
+            <div className="absolute h-full w-full animate-spin rounded-full border-2 border-[#E5E7EB] border-t-[#1A2B4C]" />
+            <div className="h-2 w-2 rounded-full bg-[#C59B4C]" />
+          </div>
+          <p className="font-mono text-xs uppercase tracking-widest text-[#6B7280]">
+            Loading Workspace
           </p>
         </div>
       </div>
@@ -656,31 +891,16 @@ export default function DashboardPage() {
   ============================================================ */
 
   return (
-    <div
-      className="min-h-screen"
-      style={{
-        backgroundColor: COLORS.paper,
-        color: COLORS.ink,
-      }}
-    >
+    <div className="min-h-screen bg-[#F8F9FA] text-[#1A2B4C]">
       <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-
-        {/* ======================================================
-            HEADER
-        ====================================================== */}
-
+        {/* HERO */}
         <motion.header
-          initial={{ opacity: 0, y: 6 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{
-            duration: 0.35,
-            ease: [0.22, 1, 0.36, 1],
-          }}
-          className="overflow-hidden border bg-white"
-          style={{ borderColor: COLORS.line }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          className="relative overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-sm"
         >
-          {/* Profile Cover */}
-          <div className="relative h-[180px] overflow-hidden sm:h-[200px] md:h-[220px]">
+          <div className="relative h-[200px] overflow-hidden sm:h-[240px] md:h-[260px]">
             {avatarUrl ? (
               <Image
                 src={avatarUrl}
@@ -691,537 +911,622 @@ export default function DashboardPage() {
                 className="object-cover"
               />
             ) : (
-              <div
-                className="flex h-full w-full items-center justify-center"
-                style={{ backgroundColor: COLORS.ink }}
-              >
-                <User className="h-16 w-16 text-white/30" />
+              <div className="flex h-full w-full items-center justify-center bg-[#1A2B4C]">
+                <User className="h-20 w-20 text-white/20" />
               </div>
             )}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#1A2B4C]/90 via-[#1A2B4C]/40 to-transparent" />
 
-            <div className="absolute inset-0 bg-black/30" />
-
-            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6 md:p-7">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7 md:p-8">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div className="min-w-0">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/60">
+                  <motion.p
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#C59B4C]"
+                  >
                     {greeting}
-                  </p>
-
-                  <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl md:text-4xl">
+                  </motion.p>
+                  <motion.h1
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 }}
+                    className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl md:text-4xl"
+                  >
                     {userName}
-                  </h1>
-
+                  </motion.h1>
                   {techCenter && (
-                    <p className="mt-1.5 flex items-center gap-1.5 font-mono text-[11px] text-white/70">
-                      <MapPin className="h-3.5 w-3.5 shrink-0" />
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.2 }}
+                      className="mt-2 flex items-center gap-1.5 font-mono text-[11px] text-white/80"
+                    >
+                      <MapPin className="h-3.5 w-3.5 shrink-0 text-[#C59B4C]" />
                       <span className="truncate">
                         {techCenter.name}
                         {techCenter.city ? ` · ${techCenter.city}` : ''}
                       </span>
-                    </p>
+                    </motion.p>
                   )}
                 </div>
-
-                <button
+                <motion.button
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.25 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   type="button"
                   onClick={() => router.push('/dashboard/profile')}
-                  className="inline-flex shrink-0 items-center gap-2 self-start border border-white/60 bg-white/95 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#12203B] transition-colors hover:bg-white sm:self-auto"
+                  className="inline-flex shrink-0 items-center gap-2 self-start rounded-lg border border-white/20 bg-white/10 px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-white backdrop-blur-sm transition-colors hover:bg-white/20 sm:self-auto"
                 >
                   <Camera className="h-3.5 w-3.5" />
-                  Profile
+                  Edit Profile
                   <ArrowRight className="h-3.5 w-3.5" />
-                </button>
+                </motion.button>
               </div>
             </div>
           </div>
 
-          {/* Info Bar */}
-          <div className="flex flex-col gap-2 px-5 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+          <div className="flex flex-col gap-2 border-t border-[#E5E7EB] bg-[#F8F9FA] px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
               <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-[#55705B]" />
-                <span className="font-mono text-[10px] uppercase tracking-widest text-[#6B7268]">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#55705B] opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#55705B]" />
+                </span>
+                <span className="font-mono text-[10px] uppercase tracking-widest text-[#6B7280]">
                   Active
                 </span>
               </div>
-
               {user?.role && (
-                <span className="font-mono text-[10px] uppercase tracking-widest text-[#8A9088]">
-                  {user.role}
+                <span className="font-mono text-[10px] uppercase tracking-widest text-[#9CA3AF]">
+                  {user.role.replace(/_/g, ' ')}
                 </span>
               )}
             </div>
-
-            <span className="font-mono text-[10px] uppercase tracking-widest text-[#8A9088]">
-              {user?.role === 'super_admin' ? 'Super Admin Portal' : 'Student Portal'}
+            <span className="font-mono text-[10px] uppercase tracking-widest text-[#9CA3AF]">
+              {user?.role === 'super_admin'
+                ? 'Super Admin Portal'
+                : 'Student Portal'}
             </span>
           </div>
         </motion.header>
 
-        {/* ======================================================
-            MOTIVATION STRIP
-        ====================================================== */}
+        {/* DISCOVER STUDENTS */}
+        {discoverStudents.length > 0 && (
+          <motion.section
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="mt-6"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Users className="h-4 w-4 text-[#C59B4C]" />
+              <h2 className="font-mono text-xs uppercase tracking-[0.15em] text-[#6B7280]">
+                Student Community
+              </h2>
+            </div>
+            <DiscoverStudents
+              students={discoverStudents}
+              isLoading={discoverStudentsLoading}
+            />
+          </motion.section>
+        )}
 
+        {/* MOTIVATION STRIP */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-          className="mt-5"
+          transition={{ duration: 0.4, delay: 0.25 }}
+          className="mt-6"
         >
-          <div className="flex items-start gap-3 bg-white px-5 py-3.5 border" style={{ borderColor: COLORS.line }}>
-            <span className="mt-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-[#B98A3E]">
-              Today
-            </span>
-            <motion.p
-              key={messageIndex}
-              initial={{ opacity: 0, x: 8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3 }}
-              className="text-sm text-[#12203B]"
-            >
-              {motivationMessages[messageIndex]}
-            </motion.p>
+          <div className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-5 py-4 shadow-sm">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#C59B4C]/10">
+              <Sparkles className="h-4 w-4 text-[#C59B4C]" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-[#C59B4C] mb-0.5">
+                Today&apos;s Focus
+              </p>
+              <motion.p
+                key={messageIndex}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.3 }}
+                className="text-sm font-medium text-[#1A2B4C] truncate"
+              >
+                {motivationMessages[messageIndex]}
+              </motion.p>
+            </div>
           </div>
         </motion.div>
 
-        {/* ======================================================
-            QUICK LINKS - DIRECTORY
-        ====================================================== */}
+        {/* MEDIA LIBRARY (Azure) */}
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.28 }}
+          className="mt-6"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Video className="h-4 w-4 text-[#C59B4C]" />
+            <h2 className="font-mono text-xs uppercase tracking-[0.15em] text-[#6B7280]">
+              Media Library
+            </h2>
+          </div>
+          <MediaLibrary />
+        </motion.section>
 
-        <section className="mt-6">
-          <h2 className="mb-3 font-mono text-xs uppercase tracking-[0.15em] text-[#6B7268]">
-            Quick Access
-          </h2>
+        {/* QUICK LINKS */}
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mt-6"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <div className="h-1.5 w-1.5 rounded-full bg-[#C59B4C]" />
+            <h2 className="font-mono text-xs uppercase tracking-[0.15em] text-[#6B7280]">
+              Quick Access
+            </h2>
+          </div>
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {quickLinks.map((link) => (
-              <button
+            {quickLinks.map((link, idx) => (
+              <motion.button
                 key={`${link.label}-${link.path}`}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 + idx * 0.05 }}
+                whileHover={{
+                  y: -2,
+                  boxShadow: '0 8px 20px rgba(26,43,76,0.06)',
+                }}
+                whileTap={{ scale: 0.98 }}
                 type="button"
                 onClick={() => router.push(link.path)}
-                className="flex flex-col items-center gap-2 bg-white p-4 border transition-colors hover:bg-[#F7F6F2]"
-                style={{ borderColor: COLORS.line }}
+                className="group flex flex-col items-center gap-2.5 rounded-xl border border-[#E5E7EB] bg-white p-4 transition-all duration-200 hover:border-[#C59B4C]/40"
               >
-                <span className="text-[#12203B]">{link.icon}</span>
-                <span className="text-xs font-medium text-[#12203B] text-center">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F8F9FA] text-[#1A2B4C] transition-colors group-hover:bg-[#C59B4C]/10 group-hover:text-[#C59B4C]">
+                  {link.icon}
+                </span>
+                <span className="text-xs font-semibold text-[#1A2B4C] text-center">
                   {link.label}
                 </span>
-                <span className="text-[9px] text-[#8A9088] text-center leading-tight">
+                <span className="text-[10px] text-[#9CA3AF] text-center leading-tight">
                   {link.description}
                 </span>
-              </button>
+              </motion.button>
             ))}
           </div>
-        </section>
+        </motion.section>
 
-        <DiscoverStudents
-          students={discoverStudents}
-          isLoading={discoverStudentsLoading}
-        />
-
+        {/* ADMIN BANNER */}
         {user?.role === 'admin' && (
-          <section className="mt-6">
-            <div className="flex flex-col gap-4 border border-[#B98A3E]/35 bg-[#FBF7EE] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center bg-[#B98A3E]/15 text-[#8A6328]">
-                  <GraduationCap className="h-5 w-5" />
+          <motion.section
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="mt-6"
+          >
+            <div className="flex flex-col gap-4 rounded-xl border border-[#C59B4C]/30 bg-gradient-to-r from-[#FBF7EE] to-white p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6 shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#C59B4C]/15 text-[#8A6328]">
+                  <GraduationCap className="h-6 w-6" />
                 </div>
                 <div>
                   <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8A6328]">
-                    Admin action needed
+                    Action Needed
                   </p>
-                  <h2 className="mt-1 text-base font-semibold text-[#12203B] sm:text-lg">
+                  <h2 className="mt-1 text-base font-semibold text-[#1A2B4C] sm:text-lg">
                     Assign students to tutors
                   </h2>
-                  <p className="mt-1 max-w-2xl text-sm text-[#6B7268]">
-                    Help students receive regular support by assigning them to tutors who can follow up on their progress.
+                  <p className="mt-1 max-w-2xl text-sm text-[#6B7280]">
+                    Help students receive regular support by assigning them to
+                    tutors who can follow up on their progress.
                   </p>
                 </div>
               </div>
-
-              <button
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 type="button"
                 onClick={() => router.push('/dashboard/admin/teachers')}
-                className="inline-flex shrink-0 items-center justify-center gap-2 bg-[#12203B] px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-white transition-colors hover:bg-[#B98A3E]"
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#1A2B4C] px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-white transition-colors hover:bg-[#C59B4C]"
               >
                 Open Tutors Page
                 <ArrowRight className="h-3.5 w-3.5" />
-              </button>
+              </motion.button>
             </div>
-          </section>
+          </motion.section>
         )}
 
-        {/* ======================================================
-            YOUR TUTORS - Filtered by Tech Center
-        ====================================================== */}
-
+        {/* TUTORS LIST */}
         {(tutorsLoading || tutors.length > 0) && user?.role !== 'super_admin' && (
-          <section className="mt-6">
-            <div className="flex items-center gap-2 mb-1">
-              <GraduationCap className="h-4 w-4 text-[#B98A3E]" />
-              <h2 className="font-mono text-xs uppercase tracking-[0.15em] text-[#6B7268]">
+          <motion.section
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45 }}
+            className="mt-6"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <GraduationCap className="h-4 w-4 text-[#C59B4C]" />
+              <h2 className="font-mono text-xs uppercase tracking-[0.15em] text-[#6B7280]">
                 {techCenter?.name || 'Your'} Tutors ({tutors.length})
               </h2>
             </div>
 
             {tutorsLoading ? (
-              <div className="flex flex-wrap gap-2" aria-label="Loading tutors">
+              <div className="flex flex-wrap gap-2">
                 {[1, 2, 3].map((item) => (
-                  <div key={item} className="flex items-center gap-2 border bg-white px-3 py-1.5" style={{ borderColor: COLORS.line }}>
-                    <div className="h-6 w-6 animate-pulse rounded-full bg-[#E8E9E3]" />
-                    <div className="h-3 w-24 animate-pulse bg-[#E8E9E3]" />
+                  <div
+                    key={item}
+                    className="flex items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5"
+                  >
+                    <div className="h-6 w-6 animate-pulse rounded-full bg-[#E5E7EB]" />
+                    <div className="h-3 w-24 animate-pulse rounded bg-[#E5E7EB]" />
                   </div>
                 ))}
               </div>
             ) : (
               <>
-                <p className="mb-3 flex items-center gap-1.5 text-[11px] text-[#8A9088]">
+                <p className="mb-3 flex items-center gap-1.5 text-[11px] text-[#9CA3AF]">
                   <MessageCircle className="h-3 w-3" />
                   Reach out to them whenever you need more guidance and help
                 </p>
 
                 <div className="flex flex-wrap gap-2">
                   {tutors.map((tutor: Tutor) => (
-                <div
-                  key={tutor.id}
-                  className="flex items-center gap-2 bg-white px-3 py-1.5 border"
-                  style={{ borderColor: COLORS.line }}
-                >
-                  {tutor.profileImageUrl ? (
-                    <Image
-                      src={tutor.profileImageUrl}
-                      alt={`${tutor.firstName} ${tutor.lastName}`}
-                      width={24}
-                      height={24}
-                      className="h-6 w-6 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div
-                      className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold text-white"
-                      style={{ backgroundColor: COLORS.ink }}
+                    <motion.div
+                      key={tutor.id}
+                      whileHover={{ y: -1 }}
+                      className="flex items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 shadow-sm transition-shadow hover:shadow-md"
                     >
-                      {tutor.firstName.charAt(0)}
-                      {tutor.lastName.charAt(0)}
-                    </div>
-                  )}
-                  <span className="text-[12px] font-medium text-[#12203B]">
-                    {tutor.firstName} {tutor.lastName}
-                  </span>
-                </div>
+                      {tutor.profileImageUrl ? (
+                        <Image
+                          src={tutor.profileImageUrl}
+                          alt={`${tutor.firstName} ${tutor.lastName}`}
+                          width={24}
+                          height={24}
+                          className="h-6 w-6 rounded-full object-cover border border-[#E5E7EB]"
+                        />
+                      ) : (
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold text-white bg-[#1A2B4C]">
+                          {tutor.firstName.charAt(0)}
+                          {tutor.lastName.charAt(0)}
+                        </div>
+                      )}
+                      <span className="text-[12px] font-medium text-[#1A2B4C]">
+                        {tutor.firstName} {tutor.lastName}
+                      </span>
+                    </motion.div>
                   ))}
                 </div>
               </>
             )}
-          </section>
+          </motion.section>
         )}
 
-        {/* ======================================================
-            TUTOR ASSIGNMENT STATUS - For Students and Teachers
-        ====================================================== */}
-
+        {/* ASSIGNMENT STATUS */}
         {(user?.role === 'student' || user?.role === 'teacher') && (
-          <section className="mt-6">
-            <div className="flex items-center gap-2 mb-1">
-              <GraduationCap className="h-4 w-4 text-[#B98A3E]" />
-              <h2 className="font-mono text-xs uppercase tracking-[0.15em] text-[#6B7268]">
+          <motion.section
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="mt-6"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <GraduationCap className="h-4 w-4 text-[#C59B4C]" />
+              <h2 className="font-mono text-xs uppercase tracking-[0.15em] text-[#6B7280]">
                 {isTeacher ? 'Student Assignment' : 'Tutor Assignment'}
               </h2>
             </div>
 
             {loadingAssignment ? (
-              <div className="border bg-white p-4" style={{ borderColor: COLORS.line }} aria-label="Loading assignment information">
+              <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 animate-pulse rounded-full bg-[#E8E9E3]" />
-                  <div className="min-w-0 flex-1">
-                    <div className="h-4 w-48 max-w-full animate-pulse bg-[#E8E9E3]" />
-                    <div className="mt-2 h-3 w-64 max-w-full animate-pulse bg-[#F1F1EC]" />
-                    <div className="mt-2 h-3 w-28 animate-pulse bg-[#F1F1EC]" />
+                  <div className="h-10 w-10 animate-pulse rounded-full bg-[#E5E7EB]" />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="h-4 w-48 max-w-full animate-pulse rounded bg-[#E5E7EB]" />
+                    <div className="h-3 w-64 max-w-full animate-pulse rounded bg-[#F3F4F6]" />
                   </div>
-                  <div className="hidden h-6 w-16 animate-pulse rounded-full bg-[#F1F1EC] sm:block" />
                 </div>
               </div>
             ) : isTeacher ? (
-              // Teacher View
               studentCount > 0 ? (
-                <div className="bg-white border p-4" style={{ borderColor: COLORS.line }}>
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#55705B]/10">
-                      <Users className="h-5 w-5 text-[#55705B]" />
+                <div className="rounded-xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#55705B]/10">
+                      <Users className="h-6 w-6 text-[#55705B]" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-[#12203B]">
-                        You are assigned to {studentCount} student{studentCount > 1 ? 's' : ''}
+                      <p className="text-sm font-semibold text-[#1A2B4C]">
+                        You are assigned to {studentCount} student
+                        {studentCount > 1 ? 's' : ''}
                       </p>
-                      <p className="text-[11px] text-[#8A9088] mt-1">
-                        {studentCount} student{studentCount > 1 ? 's are' : ' is'} under your mentorship
+                      <p className="text-[11px] text-[#6B7280] mt-1">
+                        {studentCount} student
+                        {studentCount > 1 ? 's are' : ' is'} under your
+                        mentorship
                       </p>
                       <button
                         type="button"
-                        onClick={() => router.push('/dashboard/admin/teachers')}
-                        className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-[#B98A3E] hover:text-[#A67A2E] transition-colors"
+                        onClick={() =>
+                          router.push('/dashboard/admin/teachers')
+                        }
+                        className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-[#C59B4C] hover:text-[#B08A3E] transition-colors"
                       >
-                        View Tutors Page
-                        <ArrowRight className="h-3 w-3" />
+                        View Tutors Page <ArrowRight className="h-3 w-3" />
                       </button>
                     </div>
                     <span className="inline-flex items-center gap-1 rounded-full bg-[#55705B]/10 px-3 py-1 text-[10px] font-medium text-[#55705B]">
-                      <Users className="h-3 w-3" />
-                      {studentCount}
+                      <Users className="h-3 w-3" /> {studentCount}
                     </span>
                   </div>
                 </div>
               ) : (
-                <div className="bg-white border p-4" style={{ borderColor: COLORS.line }}>
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#A4462F]/10">
-                      <GraduationCap className="h-5 w-5 text-[#A4462F]" />
+                <div className="rounded-xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#A4462F]/10">
+                      <GraduationCap className="h-6 w-6 text-[#A4462F]" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-[#12203B]">
-                        You are a tutor but haven&apos;t been assigned to students yet
+                      <p className="text-sm font-semibold text-[#1A2B4C]">
+                        You are a tutor but you are not assigned to students
+                        yet
                       </p>
-                      <p className="text-[11px] text-[#8A9088] mt-1">
-                        Contact your tech center administration so that you are assigned to the students you will follow up on.
+                      <p className="text-[11px] text-[#6B7280] mt-1">
+                        Contact your tech center administration so that you are
+                        assigned to the students you will follow up on.
                       </p>
                       <button
                         type="button"
-                        onClick={() => router.push('/dashboard/admin/teachers')}
-                        className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-[#B98A3E] hover:text-[#A67A2E] transition-colors"
+                        onClick={() =>
+                          router.push('/dashboard/admin/teachers')
+                        }
+                        className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-[#C59B4C] hover:text-[#B08A3E] transition-colors"
                       >
-                        View Tutors Page
-                        <ArrowRight className="h-3 w-3" />
+                        View Tutors Page <ArrowRight className="h-3 w-3" />
                       </button>
                     </div>
                   </div>
                 </div>
               )
             ) : tutorInfo ? (
-              // Student View - Has Tutor
-              <div className="bg-white border p-4" style={{ borderColor: COLORS.line }}>
-                <div className="flex items-center gap-3">
+              <div className="rounded-xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
+                <div className="flex items-center gap-4">
                   {tutorInfo.profileImageUrl ? (
                     <Image
                       src={tutorInfo.profileImageUrl}
                       alt={`${tutorInfo.firstName} ${tutorInfo.lastName}`}
-                      width={40}
-                      height={40}
-                      className="h-10 w-10 rounded-full object-cover"
+                      width={48}
+                      height={48}
+                      className="h-12 w-12 rounded-full object-cover border-2 border-[#E5E7EB]"
                     />
                   ) : (
-                    <div
-                      className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
-                      style={{ backgroundColor: COLORS.ink }}
-                    >
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-semibold text-white bg-[#1A2B4C]">
                       {tutorInfo.firstName.charAt(0)}
                       {tutorInfo.lastName.charAt(0)}
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-[#12203B]">
+                    <p className="text-sm font-semibold text-[#1A2B4C]">
                       You are assigned to tutor
                     </p>
                     <p className="text-[13px] font-medium text-[#55705B]">
                       {tutorInfo.firstName} {tutorInfo.lastName}
                     </p>
-                    <p className="text-[11px] text-[#8A9088]">
+                    <p className="text-[11px] text-[#6B7280]">
                       {tutorInfo.email}
                     </p>
                     <button
                       type="button"
                       onClick={() => router.push('/dashboard/admin/teachers')}
-                      className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-[#B98A3E] hover:text-[#A67A2E] transition-colors"
+                      className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-[#C59B4C] hover:text-[#B08A3E] transition-colors"
                     >
-                      View Tutors Page
-                      <ArrowRight className="h-3 w-3" />
+                      View Tutors Page <ArrowRight className="h-3 w-3" />
                     </button>
                   </div>
                   <span className="inline-flex items-center gap-1 rounded-full bg-[#55705B]/10 px-3 py-1 text-[10px] font-medium text-[#55705B]">
-                    <GraduationCap className="h-3 w-3" />
-                    Assigned
+                    <GraduationCap className="h-3 w-3" /> Assigned
                   </span>
                 </div>
               </div>
             ) : (
-              // Student View - No Tutor
-              <div className="bg-white border p-4" style={{ borderColor: COLORS.line }}>
-                <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#A4462F]/10">
-                    <GraduationCap className="h-5 w-5 text-[#A4462F]" />
+              <div className="rounded-xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#A4462F]/10">
+                    <GraduationCap className="h-6 w-6 text-[#A4462F]" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-[#12203B]">
+                    <p className="text-sm font-semibold text-[#1A2B4C]">
                       You are not yet assigned to a tutor
                     </p>
-                    <p className="text-[11px] text-[#8A9088] mt-1">
-                      Contact your tech center administration so that you are assigned to a tutor for better learning support.
+                    <p className="text-[11px] text-[#6B7280] mt-1">
+                      Contact your tech center administration so that you are
+                      assigned to a tutor for better learning support.
                     </p>
                     <button
                       type="button"
                       onClick={() => router.push('/dashboard/admin/teachers')}
-                      className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-[#B98A3E] hover:text-[#A67A2E] transition-colors"
+                      className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-[#C59B4C] hover:text-[#B08A3E] transition-colors"
                     >
-                      View Tutors Page
-                      <ArrowRight className="h-3 w-3" />
+                      View Tutors Page <ArrowRight className="h-3 w-3" />
                     </button>
                   </div>
                 </div>
               </div>
             )}
-          </section>
+          </motion.section>
         )}
 
-        {/* ======================================================
-            RECENT ACTIVITY
-        ====================================================== */}
-
-        {recentActivity.length > 0 && (user?.role === 'super_admin' || techCenter) && (
-          <section className="mt-6">
-            <h2 className="mb-3 font-mono text-xs uppercase tracking-[0.15em] text-[#6B7268]">
-              Activity Log
-            </h2>
-
-            <div
-              className="max-h-[280px] overflow-y-auto bg-white border"
-              style={{ borderColor: COLORS.line }}
+        {/* ACTIVITY LOG */}
+        {recentActivity.length > 0 &&
+          (user?.role === 'super_admin' || techCenter) && (
+            <motion.section
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.55 }}
+              className="mt-6"
             >
-              {recentActivity.map((item, index) => {
-                const meta = getActivityMeta(item.action);
+              <div className="flex items-center gap-2 mb-3">
+                <Clock className="h-4 w-4 text-[#C59B4C]" />
+                <h2 className="font-mono text-xs uppercase tracking-[0.15em] text-[#6B7280]">
+                  Activity Log
+                </h2>
+              </div>
 
-                return (
-                  <div
-                    key={item.id}
-                    className={`flex items-center gap-4 px-5 py-3 ${
-                      index < recentActivity.length - 1
-                        ? 'border-b'
-                        : ''
-                    }`}
-                    style={{ borderColor: COLORS.line }}
-                  >
-                    <span className="shrink-0 font-mono text-[11px] text-[#8A9088] min-w-[70px]">
-                      {formatTimeAgo(item.createdAt)}
-                    </span>
+              <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-sm max-h-[300px] overflow-y-auto">
+                {recentActivity.map((item, index) => {
+                  const meta = getActivityMeta(item.action);
+                  return (
+                    <div
+                      key={item.id}
+                      className={`flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-[#F8F9FA] ${
+                        index < recentActivity.length - 1
+                          ? 'border-b border-[#E5E7EB]'
+                          : ''
+                      }`}
+                    >
+                      <span className="shrink-0 font-mono text-[11px] text-[#9CA3AF] min-w-[70px]">
+                        {formatTimeAgo(item.createdAt)}
+                      </span>
 
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-[#12203B]">
-                        <span className="font-semibold">
-                          {item.user
-                            ? `${item.user.firstName} ${item.user.lastName}`
-                            : 'System'}
-                        </span>
-                        <span className="text-[#6B7268]">
-                          {' '}{meta.label}
-                        </span>
-                        {item.techCenter && user?.role === 'super_admin' && (
-                          <span className="text-[#6B7268] ml-2">
-                            {' '}· {item.techCenter.name}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-[#1A2B4C]">
+                          <span className="font-semibold">
+                            {item.user
+                              ? `${item.user.firstName} ${item.user.lastName}`
+                              : 'System'}
                           </span>
-                        )}
-                      </p>
+                          <span className="text-[#6B7280]">
+                            {' '}
+                            {meta.label}
+                          </span>
+                          {item.techCenter &&
+                            user?.role === 'super_admin' && (
+                              <span className="text-[#9CA3AF] ml-2 text-xs">
+                                · {item.techCenter.name}
+                              </span>
+                            )}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
+                  );
+                })}
+              </div>
+            </motion.section>
+          )}
 
-        {/* ======================================================
-            LEARNING RESOURCES
-        ====================================================== */}
-
-        <section className="mt-6">
-          <h2 className="mb-3 font-mono text-xs uppercase tracking-[0.15em] text-[#6B7268]">
-            Learning Resources
-          </h2>
+        {/* LEARNING RESOURCES */}
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="mt-6"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <BookOpen className="h-4 w-4 text-[#C59B4C]" />
+            <h2 className="font-mono text-xs uppercase tracking-[0.15em] text-[#6B7280]">
+              Learning Resources
+            </h2>
+          </div>
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <button
-              type="button"
-              onClick={() => router.push('/dashboard/live-streaming')}
-              className="flex flex-col items-center gap-2 bg-white p-4 border transition-colors hover:bg-[#F7F6F2]"
-              style={{ borderColor: COLORS.line }}
-            >
-              <BookOpen className="h-5 w-5 text-[#55705B]" />
-              <span className="text-xs font-medium text-[#12203B]">Courses</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => router.push('/dashboard/live-streaming')}
-              className="flex flex-col items-center gap-2 bg-white p-4 border transition-colors hover:bg-[#F7F6F2]"
-              style={{ borderColor: COLORS.line }}
-            >
-              <Video className="h-5 w-5 text-[#3E5C76]" />
-              <span className="text-xs font-medium text-[#12203B]">Videos</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => router.push('/dashboard/live-streaming')}
-              className="flex flex-col items-center gap-2 bg-white p-4 border transition-colors hover:bg-[#F7F6F2]"
-              style={{ borderColor: COLORS.line }}
-            >
-              <Library className="h-5 w-5 text-[#B98A3E]" />
-              <span className="text-xs font-medium text-[#12203B]">Tutorials</span>
-            </button>
+            {[
+              {
+                icon: <BookOpen className="h-5 w-5" />,
+                label: 'Courses',
+                path: '/dashboard/live-streaming',
+                color: '#55705B',
+              },
+              {
+                icon: <Video className="h-5 w-5" />,
+                label: 'Videos',
+                path: '/dashboard/live-streaming',
+                color: '#3E5C76',
+              },
+              {
+                icon: <Library className="h-5 w-5" />,
+                label: 'Tutorials',
+                path: '/dashboard/live-streaming',
+                color: '#C59B4C',
+              },
+            ].map((item, idx) => (
+              <motion.button
+                key={item.label}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 + idx * 0.05 }}
+                whileHover={{
+                  y: -2,
+                  boxShadow: '0 8px 20px rgba(26,43,76,0.06)',
+                }}
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={() => router.push(item.path)}
+                className="flex flex-col items-center gap-2.5 rounded-xl border border-[#E5E7EB] bg-white p-4 transition-all hover:border-[#C59B4C]/40"
+              >
+                <span
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F8F9FA]"
+                  style={{ color: item.color }}
+                >
+                  {item.icon}
+                </span>
+                <span className="text-xs font-semibold text-[#1A2B4C]">
+                  {item.label}
+                </span>
+              </motion.button>
+            ))}
           </div>
-        </section>
+        </motion.section>
 
-        {/* ======================================================
-            VIDEO HUB
-        ====================================================== */}
+        {/* AI ASSISTANT */}
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="mt-6"
+        >
+          <div className="relative overflow-hidden rounded-2xl bg-[#1A2B4C] p-6 shadow-lg sm:p-8">
+            <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[#C59B4C]/10 blur-3xl" />
+            <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-[#55705B]/10 blur-3xl" />
 
-        {videos.length > 0 && (
-          <section className="mt-6">
-            <h2 className="mb-3 font-mono text-xs uppercase tracking-[0.15em] text-[#6B7268]">
-              Video Hub ({videos.length})
-            </h2>
-
-            <div
-              className="overflow-hidden border bg-white"
-              style={{ borderColor: COLORS.line }}
-            >
-              <VideoPlayer videos={videos} />
-            </div>
-          </section>
-        )}
-
-        {/* ======================================================
-            AI ASSISTANT
-        ====================================================== */}
-
-        <section className="mt-6">
-          <div className="flex flex-col gap-4 bg-[#12203B] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <Star className="h-4 w-4 text-[#B98A3E]" />
-                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/50">
-                  AI Assistant
+            <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <Star className="h-4 w-4 text-[#C59B4C]" />
+                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/50">
+                    AI Assistant
+                  </p>
+                </div>
+                <h3 className="mt-2 text-xl font-semibold text-white sm:text-2xl">
+                  Atbriz AI
+                </h3>
+                <p className="mt-1.5 text-sm text-white/60 max-w-lg">
+                  Ask questions, get study guidance, and accelerate your
+                  learning journey with your personal AI assistant.
                 </p>
               </div>
 
-              <h3 className="mt-1 text-lg font-semibold text-white">
-                Atbriz AI
-              </h3>
-
-              <p className="mt-1 text-sm text-white/60">
-                Ask questions and get guidance with your studies.
-              </p>
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                type="button"
+                onClick={() => router.push('/dashboard/ai')}
+                className="inline-flex shrink-0 items-center gap-2 self-start rounded-lg bg-white px-6 py-3 font-mono text-xs uppercase tracking-widest text-[#1A2B4C] transition-colors hover:bg-[#C59B4C] hover:text-white sm:self-auto"
+              >
+                Open Assistant
+                <ChevronRight className="h-4 w-4" />
+              </motion.button>
             </div>
-
-            <button
-              type="button"
-              onClick={() => router.push('/dashboard/ai')}
-              className="inline-flex shrink-0 items-center gap-2 self-start bg-white px-5 py-2.5 font-mono text-xs uppercase tracking-widest text-[#12203B] transition-colors hover:bg-[#B98A3E] hover:text-white sm:self-auto"
-            >
-              Open Assistant
-              <ChevronRight className="h-4 w-4" />
-            </button>
           </div>
-        </section>
+        </motion.section>
 
-        <div className="h-4 sm:h-6" />
+        <div className="h-8" />
       </div>
     </div>
   );

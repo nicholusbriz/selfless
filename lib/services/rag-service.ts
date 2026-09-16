@@ -97,13 +97,13 @@ export async function generateRAGResponse(
   const {
     strictMode = false,
     useCache = true,
-    maxSources = 5,
+    maxSources = 3,
     similarityThreshold = 0.5,
     hybridSearch = false,
     category,
     includeUserContext = true,
     temperature = 0.7,
-    maxTokens = 1000
+    maxTokens = 350
   } = options;
 
   console.log(`[RAGService] Generating RAG response for: "${query.substring(0, 50)}..."`);
@@ -155,6 +155,19 @@ export async function generateRAGResponse(
         category
       });
     }
+
+    // A document and its chunks can match the same question. Keep only the
+    // strongest result per knowledge entry so the answer stays focused.
+    const uniqueSources = new Map<string, KnowledgeResult>();
+    for (const source of sources) {
+      const existing = uniqueSources.get(source.id);
+      if (!existing || source.similarity > existing.similarity) {
+        uniqueSources.set(source.id, source);
+      }
+    }
+    sources = Array.from(uniqueSources.values())
+      .sort((left, right) => right.similarity - left.similarity)
+      .slice(0, maxSources);
 
     const searchTime = Date.now() - searchStartTime;
     console.log(`[RAGService] Knowledge retrieval completed in ${searchTime}ms, found ${sources.length} sources`);
@@ -275,11 +288,12 @@ function buildRAGPrompt(
 
     prompt += `---\n\n`;
     prompt += `INSTRUCTIONS:\n`;
-    prompt += `- Use the knowledge base information above to answer the user's question\n`;
-    prompt += `- Cite which source(s) you used in your answer (e.g., "According to Source 1...")\n`;
-    prompt += `- If multiple sources provide relevant information, synthesize them together\n`;
-    prompt += `- Be specific and reference the actual content from the sources\n`;
-    prompt += `- If the knowledge base doesn't contain the answer, politely state this\n`;
+    prompt += `- Answer only what the user asked, using the knowledge base above\n`;
+    prompt += `- Give a concise answer in 2 to 5 short sentences\n`;
+    prompt += `- Use at most 3 short bullet points when a list is necessary\n`;
+    prompt += `- Do not repeat the question, add an introduction, or provide a long guide\n`;
+    prompt += `- Do not mention source numbers or print a references section\n`;
+    prompt += `- If the knowledge base doesn't contain the answer, say so in one sentence\n`;
     if (strictMode) {
       prompt += `- In strict mode, do NOT use any outside knowledge or information not in the sources\n`;
     }
@@ -301,11 +315,9 @@ function buildRAGPrompt(
 
   // Add response guidelines
   prompt += `RESPONSE GUIDELINES:\n`;
-  prompt += `- Be helpful, educational, and encouraging\n`;
-  prompt += `- Provide clear, well-structured answers\n`;
-  prompt += `- If using code examples, format them properly\n`;
-  prompt += `- Reference yourself as "Atbriz Ai" when appropriate\n`;
-  prompt += `- Adapt your response style based on the user's context if provided\n\n`;
+  prompt += `- Keep the response short and direct\n`;
+  prompt += `- Never expose passwords, tuition, grades, tokens, or private database fields\n`;
+  prompt += `- Do not invent details that are not in the supplied data\n\n`;
 
   return prompt;
 }

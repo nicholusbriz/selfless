@@ -27,12 +27,6 @@ import {
   Home,
   LogOut,
   Menu,
-  X,
-  User,
-  BookOpen,
-  Calendar,
-  BarChart3,
-  Settings,
   Bell,
   ChevronDown,
   Users,
@@ -59,10 +53,15 @@ import {
   CircleDot,
   Radio,
   BookMarked,
+  BookOpen,
+  BarChart3,
+  Calendar,
   Code,
   MessageSquare,
   Images,
   LifeBuoy,
+  User,
+  X,
 } from 'lucide-react';
 
 import {
@@ -192,10 +191,6 @@ const sharedNavigation: NavSection[] = [
         icon: <BarChart3 className={iconClass} />,
         roles: ALL_ROLES,
       },
-
-      // --------------------------------------------------------
-      // STUDENT TUTORS
-      // --------------------------------------------------------
       {
         id: 'tutors',
         label: 'Tutors',
@@ -447,7 +442,6 @@ const superAdminNavigation: NavSection = {
       icon: <School className={iconClass} />,
       roles: ['super_admin'],
     },
-    // ADDED: Users link for super_admin
     {
       id: 'all-users',
       label: 'Users',
@@ -513,13 +507,6 @@ const devNavigation: NavSection = {
       label: 'Activity Logs',
       path: '/dashboard/dev/logs',
       icon: <FileText className={iconClass} />,
-      roles: ['dev'],
-    },
-    {
-      id: 'system-settings',
-      label: 'System Settings',
-      path: '/dashboard/dev/settings',
-      icon: <Settings className={iconClass} />,
       roles: ['dev'],
     },
   ],
@@ -645,132 +632,106 @@ function getPageInfo(pathname: string) {
       title: 'Dashboard',
       section: 'Workspace',
     },
-
     '/dashboard/ai': {
       title: 'Atbriz AI',
       section: 'Workspace',
     },
-
     '/dashboard/students': {
       title: 'Students',
       section: 'Workspace',
     },
-
     '/dashboard/english-hub': {
       title: 'English Hub',
       section: 'Workspace',
     },
-
     '/dashboard/courses': {
       title: 'Courses',
       section: 'Academics',
     },
-
     '/dashboard/grades': {
       title: 'Grades',
       section: 'Academics',
     },
-
     '/dashboard/admin/teachers': {
       title: 'Tutors',
       section: 'Academics',
     },
-
     '/dashboard/internships': {
       title: 'Internships',
       section: 'Opportunities',
     },
-
     '/dashboard/live-streaming': {
       title: 'Live Streaming',
       section: 'Media',
     },
-
     '/dashboard/support-groups': {
       title: 'Support Groups',
       section: 'Community',
     },
-
     '/dashboard/temple-trips': {
       title: 'Temple Trips',
       section: 'Community',
     },
-
     '/dashboard/football-team': {
       title: 'Football Team',
       section: 'Community',
     },
-
     '/dashboard/cleaning': {
       title: 'Cleaning Rota',
       section: 'Campus',
     },
-
     '/dashboard/announcements': {
       title: 'Announcements',
       section: 'Communication',
     },
-
     '/dashboard/notifications': {
       title: 'Notifications',
       section: 'Communication',
     },
-
     '/dashboard/admin': {
       title: 'Administration',
       section: 'Administration',
     },
-
     '/dashboard/admin/users': {
       title: 'Users',
       section: 'Administration',
     },
-
     '/dashboard/admin/tuition': {
       title: 'Tuition',
       section: 'Administration',
     },
-
     '/dashboard/admin/tech-centers': {
       title: 'Tech Centers',
       section: 'Administration',
     },
-
     '/dashboard/admin/cleaning': {
       title: 'Cleaning Management',
       section: 'Administration',
     },
-
     '/dashboard/teacher': {
       title: 'Tutors',
       section: 'Tutoring',
     },
-
     '/dashboard/teacher/grades': {
       title: 'Assign Grades',
       section: 'Administration',
     },
-
     '/dashboard/profile': {
       title: 'My Profile',
       section: 'Account',
     },
-
     '/dashboard/gallery': {
       title: 'Gallery',
       section: 'Media',
     },
-
     '/dashboard/super-admin': {
       title: 'System Overview',
       section: 'System',
     },
-
     '/dashboard/super-admin/centers': {
       title: 'Tech Centers',
       section: 'System',
     },
-
     '/dashboard/super-admin/users': {
       title: 'Users',
       section: 'System',
@@ -900,8 +861,8 @@ function TopBar({
       transition={{ duration: 0.3 }}
       className={cn(
         'fixed top-0 right-0 z-30 h-16',
-        'bg-white/95 backdrop-blur-sm',
-        'border-b border-[#DADCD3]',
+        'bg-white/80 backdrop-blur-lg', // Enhanced glassmorphism
+        'border-b border-[#E5E7EB]', // Softer border
         'transition-all duration-300',
         isMobile
           ? 'left-0'
@@ -909,7 +870,7 @@ function TopBar({
             ? 'left-0 lg:left-64'
             : 'left-0 lg:left-[72px]',
         scrolled &&
-          'shadow-[0_4px_24px_rgba(18,32,59,0.08)]'
+          'shadow-[0_4px_30px_rgba(18,32,59,0.06)]' // Softer shadow
       )}
     >
       <div className="h-full flex items-center justify-between gap-1 px-2 sm:gap-2 sm:px-6 lg:px-7">
@@ -931,10 +892,10 @@ function TopBar({
               'flex items-center justify-center',
               'w-9 h-9 shrink-0 rounded-lg',
               'text-[#6B7268]',
-              'hover:text-[#12203B]',
-              'hover:bg-[#F5F4EE]',
+              'hover:text-[#1A2B4C]',
+              'hover:bg-[#F3F4F6]', // Softer hover
               'transition-all duration-200',
-              'focus:outline-none focus:ring-2 focus:ring-[#B98A3E]/20'
+              'focus:outline-none focus:ring-2 focus:ring-[#C59B4C]/20' // Updated focus ring
             )}
             aria-label={
               isMobile
@@ -951,8 +912,8 @@ function TopBar({
             )}
           </motion.button>
 
-          {/* Breadcrumb - Hidden on smaller screens to save space */}
-          <div className="hidden md:block ml-3 pl-3 border-l border-[#DADCD3] min-w-0">
+          {/* Breadcrumb */}
+          <div className="hidden md:block ml-3 pl-3 border-l border-[#E5E7EB] min-w-0">
             <div className="flex items-center gap-2 font-mono text-[11px] text-[#8A9088]">
               {pageInfo.section && (
                 <>
@@ -977,7 +938,7 @@ function TopBar({
                 transition={{
                   duration: 0.2,
                 }}
-                className="text-[#12203B] font-medium truncate"
+                className="text-[#1A2B4C] font-medium truncate" // Darker for contrast
               >
                 {pageInfo.title}
               </motion.span>
@@ -999,10 +960,10 @@ function TopBar({
                 'relative flex items-center justify-center',
                 'w-9 h-9 rounded-lg',
                 'text-[#6B7268]',
-                'hover:text-[#12203B]',
-                'hover:bg-[#F5F4EE]',
+                'hover:text-[#1A2B4C]',
+                'hover:bg-[#F3F4F6]',
                 'transition-all duration-200',
-                'focus:outline-none focus:ring-2 focus:ring-[#B98A3E]/20'
+                'focus:outline-none focus:ring-2 focus:ring-[#C59B4C]/20'
               )}
             >
               <Megaphone className="w-[18px] h-[18px]" />
@@ -1035,10 +996,10 @@ function TopBar({
                   'relative flex items-center justify-center',
                   'w-9 h-9 rounded-lg',
                   'text-[#6B7268]',
-                  'hover:text-[#12203B]',
-                  'hover:bg-[#F5F4EE]',
+                  'hover:text-[#1A2B4C]',
+                  'hover:bg-[#F3F4F6]',
                   'transition-all duration-200',
-                  'focus:outline-none focus:ring-2 focus:ring-[#B98A3E]/20'
+                  'focus:outline-none focus:ring-2 focus:ring-[#C59B4C]/20'
                 )}
               >
                 <Bell className="w-[18px] h-[18px]" />
@@ -1071,10 +1032,10 @@ function TopBar({
                 'relative flex items-center justify-center',
                 'w-9 h-9 rounded-lg',
                 'text-[#6B7268]',
-                'hover:text-[#12203B]',
-                'hover:bg-[#F5F4EE]',
+                'hover:text-[#1A2B4C]',
+                'hover:bg-[#F3F4F6]',
                 'transition-all duration-200',
-                'focus:outline-none focus:ring-2 focus:ring-[#B98A3E]/20'
+                'focus:outline-none focus:ring-2 focus:ring-[#C59B4C]/20'
               )}
             >
               <MessageSquare className="w-[18px] h-[18px]" />
@@ -1104,12 +1065,12 @@ function TopBar({
               className={cn(
                 'ml-1 sm:ml-2',
                 'pl-2 sm:pl-3',
-                'border-l border-[#DADCD3]',
+                'border-l border-[#E5E7EB]',
                 'flex items-center gap-2.5',
                 'py-1.5 px-1.5 rounded-lg',
-                'hover:bg-[#F7F6F2]',
+                'hover:bg-[#F8F9FA]',
                 'transition-all duration-200',
-                'focus:outline-none focus:ring-2 focus:ring-[#B98A3E]/20'
+                'focus:outline-none focus:ring-2 focus:ring-[#C59B4C]/20'
               )}
             >
               {user?.profileImageUrl ? (
@@ -1119,16 +1080,16 @@ function TopBar({
                   width={34}
                   height={34}
                   unoptimized
-                  className="w-[34px] h-[34px] object-cover grayscale border border-[#DADCD3] rounded-full"
+                  className="w-[34px] h-[34px] object-cover grayscale border border-[#E5E7EB] rounded-full"
                 />
               ) : (
-                <div className="w-[34px] h-[34px] bg-[#12203B] flex items-center justify-center text-white font-mono text-[11px] font-semibold rounded-full">
+                <div className="w-[34px] h-[34px] bg-[#1A2B4C] flex items-center justify-center text-white font-mono text-[11px] font-semibold rounded-full">
                   {getInitials(user)}
                 </div>
               )}
 
               <div className="hidden sm:block min-w-0">
-                <p className="text-[#12203B] text-sm font-medium leading-tight truncate max-w-[150px]">
+                <p className="text-[#1A2B4C] text-sm font-medium leading-tight truncate max-w-[150px]">
                   {user?.firstName} {user?.lastName}
                 </p>
 
@@ -1209,14 +1170,14 @@ function NavigationItem({
             'w-full h-11 rounded-lg',
             'transition-all duration-200',
             active
-              ? 'bg-[#F7F1E4] text-[#B98A3E]'
-              : 'text-[#6B7268] hover:text-[#12203B] hover:bg-[#F5F4EE]'
+              ? 'bg-[#FFF8E7] text-[#C59B4C]' // Premium active color
+              : 'text-[#6B7268] hover:text-[#1A2B4C] hover:bg-[#F3F4F6]'
           )}
         >
           {active && (
             <motion.span
               layoutId="collapsed-active-indicator"
-              className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[#B98A3E] rounded-r"
+              className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[#C59B4C] rounded-r"
               transition={{
                 type: 'spring',
                 stiffness: 450,
@@ -1250,7 +1211,7 @@ function NavigationItem({
             className={cn(
               'absolute left-full ml-3 top-1/2 -translate-y-1/2',
               'whitespace-nowrap',
-              'bg-[#12203B] text-white',
+              'bg-[#1A2B4C] text-white',
               'text-xs font-medium',
               'px-3 py-2 rounded-lg',
               'shadow-[0_8px_20px_rgba(18,32,59,0.16)]',
@@ -1282,14 +1243,14 @@ function NavigationItem({
           'text-[13px]',
           'transition-all duration-200',
           active
-            ? 'bg-[#F7F1E4] text-[#12203B] font-semibold'
-            : 'text-[#4B564C] font-medium hover:text-[#12203B] hover:bg-[#F5F4EE]'
+            ? 'bg-[#FFF8E7] text-[#1A2B4C] font-semibold'
+            : 'text-[#4B564C] font-medium hover:text-[#1A2B4C] hover:bg-[#F3F4F6]'
         )}
       >
         {active && (
           <motion.span
             layoutId="expanded-active-indicator"
-            className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[#B98A3E] rounded-r"
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[#C59B4C] rounded-r"
             transition={{
               type: 'spring',
               stiffness: 450,
@@ -1307,7 +1268,7 @@ function NavigationItem({
           className={cn(
             'flex items-center justify-center transition-colors duration-200',
             active
-              ? 'text-[#B98A3E]'
+              ? 'text-[#C59B4C]'
               : 'text-[#6B7268]'
           )}
         >
@@ -1319,7 +1280,7 @@ function NavigationItem({
         </span>
 
         {item.id === 'tutors' && (
-          <span className="ml-auto flex items-center gap-1 text-[9px] font-mono uppercase tracking-wide text-[#B98A3E] opacity-80">
+          <span className="ml-auto flex items-center gap-1 text-[9px] font-mono uppercase tracking-wide text-[#C59B4C] opacity-80">
             <CircleDot className="w-2.5 h-2.5" />
           </span>
         )}
@@ -1386,10 +1347,10 @@ function SidebarBillboard({
         <Link
           href={billboard.href}
           aria-label={billboard.title}
-          className="group relative flex items-center justify-center h-12 overflow-hidden bg-[#12203B] rounded-lg"
+          className="group relative flex items-center justify-center h-12 overflow-hidden bg-[#1A2B4C] rounded-lg"
         >
           <motion.div
-            className="absolute inset-y-0 left-0 w-[3px] bg-[#B98A3E]"
+            className="absolute inset-y-0 left-0 w-[3px] bg-[#C59B4C]"
             initial={{ scaleY: 0 }}
             animate={{ scaleY: 1 }}
             transition={{
@@ -1415,7 +1376,7 @@ function SidebarBillboard({
             {billboard.icon}
           </motion.div>
 
-          <span className="absolute left-full ml-3 whitespace-nowrap bg-[#12203B] text-white text-xs px-3 py-2 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[300]">
+          <span className="absolute left-full ml-3 whitespace-nowrap bg-[#1A2B4C] text-white text-xs px-3 py-2 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[300]">
             {billboard.action}
           </span>
         </Link>
@@ -1441,10 +1402,10 @@ function SidebarBillboard({
     >
       <Link
         href={billboard.href}
-        className="group relative block overflow-hidden bg-[#12203B] text-white rounded-lg"
+        className="group relative block overflow-hidden bg-[#1A2B4C] text-white rounded-lg"
       >
         <motion.div
-          className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#B98A3E]"
+          className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#C59B4C]"
           animate={{
             opacity: [0.55, 1, 0.55],
           }}
@@ -1477,7 +1438,7 @@ function SidebarBillboard({
               whileHover={{
                 rotate: 45,
               }}
-              className="text-[#B98A3E]"
+              className="text-[#C59B4C]"
             >
               <ArrowUpRight className="w-4 h-4" />
             </motion.span>
@@ -1492,11 +1453,11 @@ function SidebarBillboard({
           </p>
 
           <div className="mt-4 flex items-center gap-2 text-[10px] font-medium text-[#F7F1E4]">
-            <span className="w-5 h-px bg-[#B98A3E]" />
+            <span className="w-5 h-px bg-[#C59B4C]" />
 
             <span>{billboard.action}</span>
 
-            <ChevronRight className="w-3 h-3 text-[#B98A3E]" />
+            <ChevronRight className="w-3 h-3 text-[#C59B4C]" />
           </div>
         </motion.div>
       </Link>
@@ -1615,7 +1576,7 @@ function Sidebar({
       transition={{ duration: 0.3 }}
       className={cn(
         'h-screen bg-white',
-        'border-r border-[#DADCD3]',
+        'border-r border-[#E5E7EB]', // Softer border
         'flex flex-col overflow-hidden',
         'transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
         sidebarOpen
@@ -1624,13 +1585,13 @@ function Sidebar({
       )}
     >
       {/* ================================================== */}
-      {/* BRAND - Fixed */}
+      {/* BRAND */}
       {/* ================================================== */}
 
       <div
         className={cn(
           'h-16 flex-shrink-0',
-          'border-b border-[#DADCD3]',
+          'border-b border-[#E5E7EB]',
           'flex items-center',
           'relative overflow-hidden',
           'bg-white',
@@ -1651,7 +1612,7 @@ function Sidebar({
             whileTap={{
               scale: 0.96,
             }}
-            className="relative w-8 h-8 bg-[#12203B] flex items-center justify-center overflow-hidden flex-shrink-0 rounded-lg"
+            className="relative w-8 h-8 bg-[#1A2B4C] flex items-center justify-center overflow-hidden flex-shrink-0 rounded-lg"
           >
             <Image
               src="/freedom.png"
@@ -1690,7 +1651,7 @@ function Sidebar({
               }}
               className="min-w-0"
             >
-              <p className="text-[#12203B] font-semibold text-sm leading-tight truncate">
+              <p className="text-[#1A2B4C] font-semibold text-sm leading-tight truncate">
                 Selfless CE
               </p>
 
@@ -1742,7 +1703,7 @@ function Sidebar({
           'sidebar-scroll'
         )}
       >
-        {/* BILLBOARD - Scrolls with content */}
+        {/* BILLBOARD */}
         <div className="pt-3">
           <SidebarBillboard
             userRole={userRole}
@@ -1750,7 +1711,7 @@ function Sidebar({
           />
         </div>
 
-        {/* SEARCH - Scrolls with content */}
+        {/* SEARCH */}
         {sidebarOpen && (
           <motion.div
             initial={{
@@ -1779,20 +1740,20 @@ function Sidebar({
                 aria-label="Search navigation"
                 className={cn(
                   'w-full h-9 pl-9 pr-8 rounded-lg',
-                  'bg-[#F7F6F2]',
-                  'border border-[#DADCD3]',
-                  'text-[13px] text-[#12203B]',
+                  'bg-[#F8F9FA]',
+                  'border border-[#E5E7EB]',
+                  'text-[13px] text-[#1A2B4C]',
                   'placeholder:text-[#8A9088]',
                   'outline-none',
                   'focus:bg-white',
-                  'focus:border-[#B98A3E]',
-                  'focus:ring-2 focus:ring-[#B98A3E]/20',
+                  'focus:border-[#C59B4C]',
+                  'focus:ring-2 focus:ring-[#C59B4C]/20',
                   'transition-all duration-200'
                 )}
               />
 
               {!searchQuery && (
-                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 hidden xl:flex items-center gap-0.5 font-mono text-[9px] text-[#8A9088] border border-[#DADCD3] px-1 py-0.5 bg-white rounded">
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 hidden xl:flex items-center gap-0.5 font-mono text-[9px] text-[#8A9088] border border-[#E5E7EB] px-1 py-0.5 bg-white rounded">
                   ⌘K
                 </span>
               )}
@@ -1805,7 +1766,7 @@ function Sidebar({
                   onClick={() =>
                     setSearchQuery('')
                   }
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-[#8A9088] hover:text-[#12203B] p-1 rounded"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-[#8A9088] hover:text-[#1A2B4C] p-1 rounded"
                   aria-label="Clear navigation search"
                 >
                   <X className="w-4 h-4" />
@@ -1893,7 +1854,7 @@ function Sidebar({
                           'font-semibold',
                           'text-[#8A9088]',
                           'hover:text-[#4B564C]',
-                          'hover:bg-[#F5F4EE]',
+                          'hover:bg-[#F3F4F6]',
                           'transition-all duration-200'
                         )}
                         aria-expanded={
@@ -2017,15 +1978,15 @@ function Sidebar({
               }}
               className="mt-4 px-1"
             >
-              <div className="border border-[#DADCD3] bg-[#F7F6F2] p-3 rounded-lg">
+              <div className="border border-[#E5E7EB] bg-[#F8F9FA] p-3 rounded-lg">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="flex items-center justify-center w-6 h-6 bg-white border border-[#DADCD3] rounded">
+                    <span className="flex items-center justify-center w-6 h-6 bg-white border border-[#E5E7EB] rounded">
                       <CircleDot className="w-3 h-3 text-[#55705B]" />
                     </span>
 
                     <div>
-                      <p className="text-[10px] font-semibold text-[#12203B]">
+                      <p className="text-[10px] font-semibold text-[#1A2B4C]">
                         Portal status
                       </p>
 
@@ -2047,7 +2008,7 @@ function Sidebar({
                   />
                 </div>
 
-                <div className="mt-3 h-px bg-[#DADCD3]" />
+                <div className="mt-3 h-px bg-[#E5E7EB]" />
 
                 <div className="mt-2 flex items-center justify-between">
                   <span className="text-[9px] text-[#8A9088]">
@@ -2066,7 +2027,7 @@ function Sidebar({
           {/* BACK TO HOME */}
           {/* ================================================== */}
 
-          <div className="mt-4 pt-3 border-t border-[#DADCD3]">
+          <div className="mt-4 pt-3 border-t border-[#E5E7EB]">
             <Link
               href="/"
               aria-label="Back to Home"
@@ -2074,7 +2035,7 @@ function Sidebar({
                 'relative group w-full flex items-center gap-3',
                 'h-10 px-3 rounded-lg',
                 'text-[13px] text-[#6B7268] font-medium',
-                'hover:text-[#12203B] hover:bg-[#F5F4EE]',
+                'hover:text-[#1A2B4C] hover:bg-[#F3F4F6]',
                 'transition-all duration-200',
                 !sidebarOpen && 'justify-center px-0'
               )}
@@ -2084,7 +2045,7 @@ function Sidebar({
               {sidebarOpen && <span>Back to Home</span>}
 
               {!sidebarOpen && (
-                <span className="absolute left-full ml-3 top-1/2 -translate-y-1/2 whitespace-nowrap bg-[#12203B] text-white text-xs font-medium px-3 py-2 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-[300]">
+                <span className="absolute left-full ml-3 top-1/2 -translate-y-1/2 whitespace-nowrap bg-[#1A2B4C] text-white text-xs font-medium px-3 py-2 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-[300]">
                   Back to Home
                 </span>
               )}
@@ -2095,7 +2056,7 @@ function Sidebar({
           {/* LOGOUT */}
           {/* ================================================== */}
 
-          <div className="mt-4 pt-3 border-t border-[#DADCD3]">
+          <div className="mt-4 pt-3 border-t border-[#E5E7EB]">
             <motion.button
               type="button"
               whileHover={{
@@ -2125,7 +2086,7 @@ function Sidebar({
               )}
 
               {!sidebarOpen && (
-                <span className="absolute left-full ml-3 top-1/2 -translate-y-1/2 whitespace-nowrap bg-[#12203B] text-white text-xs font-medium px-3 py-2 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-[300]">
+                <span className="absolute left-full ml-3 top-1/2 -translate-y-1/2 whitespace-nowrap bg-[#1A2B4C] text-white text-xs font-medium px-3 py-2 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-[300]">
                   Logout
                 </span>
               )}
@@ -2138,7 +2099,7 @@ function Sidebar({
       </div>
 
       {/* ================================================== */}
-      {/* SIDEBAR USER - Fixed at bottom */}
+      {/* SIDEBAR USER */}
       {/* ================================================== */}
 
       {sidebarOpen && (
@@ -2154,11 +2115,11 @@ function Sidebar({
           transition={{
             duration: 0.25,
           }}
-          className="flex-shrink-0 border-t border-[#DADCD3] px-3 py-3 bg-white"
+          className="flex-shrink-0 border-t border-[#E5E7EB] px-3 py-3 bg-white"
         >
           <Link
             href="/dashboard/profile"
-            className="group flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-[#F7F6F2] transition-all duration-200"
+            className="group flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-[#F8F9FA] transition-all duration-200"
           >
             {user?.profileImageUrl ? (
               <Image
@@ -2167,16 +2128,16 @@ function Sidebar({
                 width={34}
                 height={34}
                 unoptimized
-                className="w-[34px] h-[34px] object-cover grayscale border border-[#DADCD3] rounded-full"
+                className="w-[34px] h-[34px] object-cover grayscale border border-[#E5E7EB] rounded-full"
               />
             ) : (
-              <div className="w-[34px] h-[34px] bg-[#12203B] flex items-center justify-center text-white font-mono text-[11px] font-semibold rounded-full">
+              <div className="w-[34px] h-[34px] bg-[#1A2B4C] flex items-center justify-center text-white font-mono text-[11px] font-semibold rounded-full">
                 {getInitials(user)}
               </div>
             )}
 
             <div className="min-w-0 flex-1">
-              <p className="text-[#12203B] text-xs font-semibold truncate">
+              <p className="text-[#1A2B4C] text-xs font-semibold truncate">
                 {user?.firstName}{' '}
                 {user?.lastName}
               </p>
@@ -2207,7 +2168,7 @@ function Sidebar({
                 x: 3,
               }}
             >
-              <ChevronRight className="w-3.5 h-3.5 text-[#B9BEB2] group-hover:text-[#B98A3E] transition-colors duration-200" />
+              <ChevronRight className="w-3.5 h-3.5 text-[#B9BEB2] group-hover:text-[#C59B4C] transition-colors duration-200" />
             </motion.div>
           </Link>
         </motion.div>
@@ -2216,7 +2177,7 @@ function Sidebar({
       <style jsx>{`
         .sidebar-scroll {
           scrollbar-width: thin;
-          scrollbar-color: #dadcd3 transparent;
+          scrollbar-color: #e5e7eb transparent;
           overscroll-behavior: contain;
           scroll-behavior: smooth;
           -webkit-overflow-scrolling: touch;
@@ -2231,7 +2192,7 @@ function Sidebar({
         }
 
         .sidebar-scroll::-webkit-scrollbar-thumb {
-          background-color: #dadcd3;
+          background-color: #e5e7eb;
           border-radius: 999px;
           border: 1px solid transparent;
           background-clip: padding-box;
@@ -2419,7 +2380,7 @@ export default function DashboardLayout({
 
   if (isLoading) {
     return (
-      <div className="h-screen w-screen bg-[#F1F1EC] flex items-center justify-center">
+      <div className="h-screen w-screen bg-[#F8F9FA] flex items-center justify-center">
         <motion.div
           initial={{
             opacity: 0,
@@ -2441,10 +2402,10 @@ export default function DashboardLayout({
                 repeat: Infinity,
                 ease: 'linear',
               }}
-              className="absolute inset-0 rounded-full border-2 border-[#DADCD3] border-t-[#12203B]"
+              className="absolute inset-0 rounded-full border-2 border-[#E5E7EB] border-t-[#1A2B4C]"
             />
 
-            <div className="absolute inset-[9px] bg-[#B98A3E] rounded-full" />
+            <div className="absolute inset-[9px] bg-[#C59B4C] rounded-full" />
           </div>
 
           <p className="text-[#6B7268] text-sm font-mono uppercase tracking-wide">
@@ -2483,7 +2444,7 @@ export default function DashboardLayout({
         </title>
       </Head>
 
-      <div className="min-h-screen bg-[#F1F1EC]">
+      <div className="min-h-screen bg-[#F8F9FA]">
         {/* ================================================== */}
         {/* DESKTOP SIDEBAR */}
         {/* ================================================== */}
@@ -2563,7 +2524,7 @@ export default function DashboardLayout({
 
                       <div className="flex items-end justify-between gap-5">
                         <div>
-                          <h1 className="text-2xl font-semibold tracking-tight text-[#12203B]">
+                          <h1 className="text-2xl font-semibold tracking-tight text-[#1A2B4C]">
                             {
                               pageInfo.title
                             }
@@ -2580,7 +2541,7 @@ export default function DashboardLayout({
                               duration: 0.35,
                               delay: 0.1,
                             }}
-                            className="mt-3 h-[2px] bg-[#B98A3E]"
+                            className="mt-3 h-[2px] bg-[#C59B4C]"
                           />
                         </div>
                       </div>
@@ -2592,7 +2553,7 @@ export default function DashboardLayout({
             </main>
 
             {/* DESKTOP FOOTER */}
-            <footer className="border-t border-[#DADCD3] bg-white">
+            <footer className="border-t border-[#E5E7EB] bg-white">
               <div className="max-w-[1440px] mx-auto px-7 xl:px-8 py-5">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-3">
                   <p className="font-mono text-xs text-[#8A9088]">
@@ -2604,7 +2565,7 @@ export default function DashboardLayout({
                       <Link
                         key={link.href}
                         href={link.href}
-                        className="hover:text-[#12203B] transition-colors duration-200"
+                        className="hover:text-[#1A2B4C] transition-colors duration-200"
                       >
                         {link.label}
                       </Link>
@@ -2675,7 +2636,7 @@ export default function DashboardLayout({
                         </span>
                       </div>
 
-                      <h1 className="text-xl font-semibold tracking-tight text-[#12203B]">
+                      <h1 className="text-xl font-semibold tracking-tight text-[#1A2B4C]">
                         {pageInfo.title}
                       </h1>
 
@@ -2689,7 +2650,7 @@ export default function DashboardLayout({
                         transition={{
                           duration: 0.3,
                         }}
-                        className="mt-2 h-[2px] bg-[#B98A3E]"
+                        className="mt-2 h-[2px] bg-[#C59B4C]"
                       />
                     </motion.div>
                   )}
@@ -2698,7 +2659,7 @@ export default function DashboardLayout({
               </div>
             </main>
 
-            <footer className="border-t border-[#DADCD3] bg-white">
+            <footer className="border-t border-[#E5E7EB] bg-white">
               <div className="px-4 py-4">
                 <div className="flex flex-col items-center gap-3 font-mono text-[10px] text-[#8A9088]">
                   <p>Selfless CE Portal - Learn, connect, grow.</p>
@@ -2708,7 +2669,7 @@ export default function DashboardLayout({
                       <Link
                         key={link.href}
                         href={link.href}
-                        className="hover:text-[#12203B] transition-colors duration-200"
+                        className="hover:text-[#1A2B4C] transition-colors duration-200"
                       >
                         {link.label}
                       </Link>
@@ -2741,7 +2702,7 @@ export default function DashboardLayout({
                 transition={{
                   duration: 0.2,
                 }}
-                className="fixed inset-0 z-[9998] lg:hidden bg-[#12203B]/45 backdrop-blur-[2px]"
+                className="fixed inset-0 z-[9998] lg:hidden bg-[#1A2B4C]/45 backdrop-blur-[2px]"
                 onClick={() =>
                   setMobileMenuOpen(
                     false
@@ -2783,7 +2744,7 @@ export default function DashboardLayout({
                     )
                   }
                   aria-label="Close navigation"
-                  className="absolute top-3 right-[-46px] w-9 h-9 flex items-center justify-center bg-white border border-[#DADCD3] text-[#6B7268] shadow-lg rounded-lg"
+                  className="absolute top-3 right-[-46px] w-9 h-9 flex items-center justify-center bg-white border border-[#E5E7EB] text-[#6B7268] shadow-lg rounded-lg"
                 >
                   <X className="w-4 h-4" />
                 </motion.button>
@@ -2820,10 +2781,10 @@ export default function DashboardLayout({
               className={cn(
                 'group flex items-center gap-2',
                 'bg-white',
-                'border border-[#DADCD3]',
+                'border border-[#E5E7EB]',
                 'px-3 py-2 rounded-lg',
                 'shadow-[0_4px_12px_rgba(18,32,59,0.10)]',
-                'hover:border-[#B98A3E]',
+                'hover:border-[#C59B4C]',
                 'hover:shadow-[0_7px_20px_rgba(18,32,59,0.14)]',
                 'transition-all duration-200'
               )}
@@ -2842,7 +2803,7 @@ export default function DashboardLayout({
                     alt="Atbriz AI"
                     width={30}
                     height={30}
-                    className="w-[30px] h-[30px] object-cover border border-[#DADCD3] rounded"
+                    className="w-[30px] h-[30px] object-cover border border-[#E5E7EB] rounded"
                   />
                 </motion.div>
 
@@ -2863,7 +2824,7 @@ export default function DashboardLayout({
               </div>
 
               <div className="hidden sm:block leading-tight">
-                <p className="text-[11px] font-semibold text-[#12203B]">
+                <p className="text-[11px] font-semibold text-[#1A2B4C]">
                   Atbriz AI
                 </p>
 
@@ -2872,13 +2833,13 @@ export default function DashboardLayout({
                 </p>
               </div>
 
-              <ArrowUpRight className="w-3 h-3 text-[#B9BEB2] group-hover:text-[#B98A3E] transition-colors duration-200" />
+              <ArrowUpRight className="w-3 h-3 text-[#B9BEB2] group-hover:text-[#C59B4C] transition-colors duration-200" />
             </Link>
           </motion.div>
         )}
       </div>
 
-      {/* Global Online Users Popup - Fixed overlay at top */}
+      {/* Global Online Users Popup */}
       <GlobalOnlineUsersPopup
         onlineUsers={onlineUsers}
         currentUserId={user?.id}
