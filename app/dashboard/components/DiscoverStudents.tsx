@@ -483,10 +483,9 @@ export function DiscoverStudents({
               src={image}
               alt={name}
               fill
-              sizes="290px"
+              sizes="(max-width: 768px) 290px, 290px"
               className="object-cover object-center"
-              quality={100}
-              unoptimized
+              quality={85}
               priority={isCenter}
             />
 
