@@ -32,6 +32,7 @@ interface AzureMediaUploadProps {
   onUploadComplete?: (media: UploadedMedia) => void;
   onUploadError?: (message: string) => void;
   accept?: string;
+  label?: string;
   className?: string;
   defaultCategory?: string;
 }
@@ -40,6 +41,7 @@ export default function AzureMediaUpload({
   onUploadComplete,
   onUploadError,
   accept = 'image/*,audio/*,video/*',
+  label = 'Drop a file here, or click to browse',
   className = '',
   defaultCategory = 'gallery',
 }: AzureMediaUploadProps) {
@@ -215,7 +217,14 @@ export default function AzureMediaUpload({
     } finally {
       setUploading(false);
     }
-  }, [file, title, description, defaultCategory, onUploadComplete, onUploadError]);
+  }, [
+    file,
+    title,
+    description,
+    defaultCategory,
+    onUploadComplete,
+    onUploadError,
+  ]);
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -251,14 +260,14 @@ export default function AzureMediaUpload({
         />
         <UploadCloud className="h-8 w-8 text-slate-500" />
         <p className="text-sm font-semibold text-slate-800">
-          Drop a file here, or click to browse
+          {label}
         </p>
         <p className="text-xs text-slate-500">
           Images, audio, or video up to 100 MB
         </p>
       </div>
 
-      {/* Metadata form */}
+      {/* Metadata form — appears once a file is selected */}
       {file && !uploading && !uploaded && (
         <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
           <div className="flex items-center gap-2 text-sm text-slate-700">
