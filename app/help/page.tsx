@@ -16,28 +16,37 @@ import PublicPageShell from "@/app/components/PublicPageShell";
 
 const supportOptions = [
   {
+    number: "01",
     title: "WhatsApp",
+    label: "Quick support",
     description:
-      "Chat directly with the support team when you need quick guidance.",
+      "Chat directly with the support team for quick guidance, account questions, or help navigating the portal.",
     action: "Open WhatsApp",
     href: "https://wa.me/256761996296",
     icon: MessageCircle,
+    external: true,
   },
   {
-    title: "Call us",
+    number: "02",
+    title: "Call support",
+    label: "Direct assistance",
     description:
-      "Speak with the support team when your issue needs direct assistance.",
+      "Speak with the support team when your issue is easier to explain or requires direct assistance.",
     action: "Call support",
     href: "tel:+256761996296",
     icon: Phone,
+    external: false,
   },
   {
+    number: "03",
     title: "Email",
+    label: "Detailed enquiries",
     description:
-      "Send a detailed message about your account, courses, or portal access.",
+      "Send a detailed message when you need to explain an issue or provide additional information.",
     action: "Send an email",
     href: "mailto:turyamurebanicholus@gmail.com",
     icon: Mail,
+    external: false,
   },
 ];
 
@@ -52,10 +61,22 @@ export default function HelpPage() {
   const shouldReduceMotion = useReducedMotion();
 
   const reveal = {
-    initial: { opacity: 0, y: shouldReduceMotion ? 0 : 18 },
-    whileInView: { opacity: 1, y: 0 },
-    viewport: { once: true, amount: 0.15 },
-    transition: { duration: 0.5, ease: "easeOut" as const },
+    initial: {
+      opacity: 0,
+      y: shouldReduceMotion ? 0 : 14,
+    },
+    whileInView: {
+      opacity: 1,
+      y: 0,
+    },
+    viewport: {
+      once: true,
+      amount: 0.12,
+    },
+    transition: {
+      duration: shouldReduceMotion ? 0 : 0.45,
+      ease: "easeOut" as const,
+    },
   };
 
   return (
@@ -69,41 +90,44 @@ export default function HelpPage() {
       />
 
       {/* INTRODUCTION */}
-      <section className="bg-[#F1F1EC] px-5 py-14 sm:px-8 sm:py-18 lg:px-12 lg:py-20">
+      <section className="bg-[#F1F1EC] px-5 py-12 sm:px-8 sm:py-16 lg:px-12 lg:py-18">
         <div className="mx-auto max-w-7xl">
           <motion.div
             {...reveal}
-            className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-end lg:gap-20"
+            className="grid gap-8 lg:grid-cols-[0.75fr_1.25fr] lg:gap-20"
           >
             <div>
               <div className="flex items-center gap-3">
-                <span className="h-px w-9 bg-[#B98A3E]" />
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#B98A3E]">
+                <span className="h-px w-8 bg-[#B98A3E]" />
+
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#B98A3E]">
                   How we can help
                 </p>
               </div>
 
-              <h2 className="mt-5 max-w-xl text-3xl font-semibold leading-[1.08] tracking-[-0.04em] text-[#12203B] sm:text-4xl lg:text-[3rem]">
+              <h2 className="mt-4 max-w-lg text-3xl font-semibold leading-[1.08] tracking-[-0.04em] text-[#12203B] sm:text-4xl lg:text-[2.75rem]">
                 Get the right help without searching everywhere.
               </h2>
             </div>
 
-            <div className="max-w-2xl">
+            <div className="max-w-2xl lg:pt-7">
               <p className="text-[15px] leading-7 text-[#5F685F]">
                 Whether you are having trouble accessing the portal, need
-                clarification about your studies, or simply need to know where
-                to go next, SELFLESS CE provides several ways to get support.
+                clarification about your studies, or are unsure where to go
+                next, SELFLESS CE provides several straightforward ways to get
+                support.
               </p>
 
-              <div className="mt-7 grid gap-3 sm:grid-cols-2">
+              <div className="mt-6 grid gap-x-8 gap-y-3 sm:grid-cols-2">
                 {helpTopics.map((topic) => (
-                  <div key={topic} className="flex items-start gap-3">
+                  <div key={topic} className="flex items-start gap-2.5">
                     <CheckCircle2
-                      size={17}
+                      size={16}
                       strokeWidth={1.8}
                       className="mt-0.5 shrink-0 text-[#55705B]"
                     />
-                    <span className="text-sm font-medium text-[#4F594F]">
+
+                    <span className="text-sm font-medium leading-5 text-[#4F594F]">
                       {topic}
                     </span>
                   </div>
@@ -117,156 +141,150 @@ export default function HelpPage() {
       {/* SUPPORT OPTIONS */}
       <section
         id="support"
-        className="scroll-mt-20 bg-white px-5 py-14 sm:px-8 sm:py-18 lg:px-12 lg:py-20"
+        className="scroll-mt-20 bg-white px-5 py-12 sm:px-8 sm:py-16 lg:px-12 lg:py-18"
       >
         <div className="mx-auto max-w-7xl">
-          <motion.div {...reveal}>
-            <div className="flex flex-col justify-between gap-5 border-b border-[#DADCD3] pb-7 lg:flex-row lg:items-end">
-              <div>
-                <div className="flex items-center gap-3">
-                  <span className="h-px w-9 bg-[#B98A3E]" />
-                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#B98A3E]">
-                    Contact support
-                  </p>
-                </div>
+          <motion.div
+            {...reveal}
+            className="flex flex-col gap-5 border-b border-[#DADCD3] pb-6 lg:flex-row lg:items-end lg:justify-between"
+          >
+            <div>
+              <div className="flex items-center gap-3">
+                <span className="h-px w-8 bg-[#B98A3E]" />
 
-                <h2 className="mt-4 text-3xl font-semibold tracking-[-0.035em] text-[#12203B] sm:text-4xl">
-                  Choose how you want to reach us.
-                </h2>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#B98A3E]">
+                  Contact support
+                </p>
               </div>
 
-              <p className="max-w-md text-sm leading-6 text-[#697169] lg:text-right">
-                Use the option that best fits your question. For quick issues,
-                WhatsApp or a phone call may be the fastest route.
-              </p>
+              <h2 className="mt-3 text-3xl font-semibold tracking-[-0.035em] text-[#12203B] sm:text-4xl">
+                Choose how you want to reach us.
+              </h2>
             </div>
+
+            <p className="max-w-md text-sm leading-6 text-[#697169] lg:text-right">
+              Choose the channel that matches the type of help you need.
+              WhatsApp and phone support are suitable for quicker questions,
+              while email works well for detailed enquiries.
+            </p>
           </motion.div>
 
-          <div className="mt-8 grid gap-4 lg:grid-cols-[1.15fr_0.85fr_0.85fr]">
-            {/* WHATSAPP — PRIMARY */}
-            <motion.a
-              {...reveal}
-              href={supportOptions[0].href}
-              target="_blank"
-              rel="noreferrer"
-              className="group relative overflow-hidden bg-[#12203B] p-7 transition-transform duration-300 hover:-translate-y-1 sm:p-8"
-            >
-              <div className="absolute right-0 top-0 h-32 w-32 translate-x-10 -translate-y-10 rounded-full bg-[#B98A3E]/10" />
+          <div className="mt-7 divide-y divide-[#DADCD3] border-y border-[#DADCD3]">
+            {supportOptions.map((option, index) => {
+              const Icon = option.icon;
+              const isEmail = option.href.startsWith('mailto:');
 
-              <div className="relative flex h-full flex-col">
-                <div className="flex items-center justify-between">
-                  <div className="flex h-11 w-11 items-center justify-center border border-[#E8A33D]/30 bg-[#E8A33D]/10 text-[#E8A33D]">
-                    <MessageCircle size={21} strokeWidth={1.8} />
-                  </div>
+              return (
+                isEmail ? (
+                  <a
+                    key={option.title}
+                    href={option.href}
+                    className="group grid gap-5 py-6 transition-colors duration-200 hover:bg-[#F7F6F2] sm:grid-cols-[56px_48px_1fr_auto] sm:items-center sm:gap-5 sm:px-4 lg:grid-cols-[64px_48px_1fr_auto] lg:py-7"
+                  >
+                    <span className="text-xs font-semibold tabular-nums text-[#8A9088]">
+                      {option.number}
+                    </span>
 
-                  <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#E8A33D]">
-                    Recommended
-                  </span>
-                </div>
+                    <div className="flex h-11 w-11 items-center justify-center border border-[#DADCD3] bg-[#F7F6F2] text-[#55705B] transition-colors duration-200 group-hover:border-[#B98A3E]/40 group-hover:bg-white group-hover:text-[#B98A3E]">
+                      <Icon size={20} strokeWidth={1.8} />
+                    </div>
 
-                <div className="mt-12">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">
-                    Quick support
-                  </p>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <h3 className="text-lg font-semibold tracking-[-0.02em] text-[#12203B]">
+                          {option.title}
+                        </h3>
 
-                  <h3 className="mt-2 text-2xl font-semibold tracking-[-0.025em] text-white">
-                    WhatsApp
-                  </h3>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8A9088]">
+                          {option.label}
+                        </span>
+                      </div>
 
-                  <p className="mt-3 max-w-md text-sm leading-6 text-white/65">
-                    Chat directly with the support team when you need quick
-                    guidance or help navigating the portal.
-                  </p>
-                </div>
+                      <p className="mt-1.5 max-w-2xl text-sm leading-6 text-[#697169]">
+                        {option.description}
+                      </p>
+                    </div>
 
-                <div className="mt-8 flex items-center gap-2 text-sm font-semibold text-[#E8A33D]">
-                  Open WhatsApp
-                  <ArrowRight
-                    size={16}
-                    className="transition-transform duration-300 group-hover:translate-x-1"
-                  />
-                </div>
-              </div>
-            </motion.a>
+                    <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#55705B] sm:justify-self-end">
+                      {option.action}
 
-            {/* CALL */}
-            <motion.a
-              {...reveal}
-              href={supportOptions[1].href}
-              className="group border border-[#DADCD3] bg-[#F7F6F2] p-7 transition-all duration-300 hover:-translate-y-1 hover:border-[#B98A3E]/50 hover:bg-white sm:p-8"
-            >
-              <div className="flex h-11 w-11 items-center justify-center border border-[#B98A3E]/25 bg-[#B98A3E]/10 text-[#B98A3E]">
-                <Phone size={21} strokeWidth={1.8} />
-              </div>
+                      <ArrowRight
+                        size={16}
+                        strokeWidth={1.8}
+                        className="transition-transform duration-200 group-hover:translate-x-1"
+                      />
+                    </span>
+                  </a>
+                ) : (
+                  <motion.a
+                    key={option.title}
+                    {...reveal}
+                    href={option.href}
+                    target={option.external ? "_blank" : undefined}
+                    rel={option.external ? "noopener noreferrer" : undefined}
+                    className="group grid gap-5 py-6 transition-colors duration-200 hover:bg-[#F7F6F2] sm:grid-cols-[56px_48px_1fr_auto] sm:items-center sm:gap-5 sm:px-4 lg:grid-cols-[64px_48px_1fr_auto] lg:py-7"
+                  >
+                    <span className="text-xs font-semibold tabular-nums text-[#8A9088]">
+                      {option.number}
+                    </span>
 
-              <h3 className="mt-8 text-xl font-semibold tracking-[-0.02em] text-[#12203B]">
-                Call us
-              </h3>
+                    <div className="flex h-11 w-11 items-center justify-center border border-[#DADCD3] bg-[#F7F6F2] text-[#55705B] transition-colors duration-200 group-hover:border-[#B98A3E]/40 group-hover:bg-white group-hover:text-[#B98A3E]">
+                      <Icon size={20} strokeWidth={1.8} />
+                    </div>
 
-              <p className="mt-3 text-sm leading-6 text-[#697169]">
-                Speak directly with the support team when your issue needs
-                immediate attention.
-              </p>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <h3 className="text-lg font-semibold tracking-[-0.02em] text-[#12203B]">
+                          {option.title}
+                        </h3>
 
-              <div className="mt-7 flex items-center gap-2 text-sm font-semibold text-[#55705B]">
-                Call support
-                <ArrowRight
-                  size={16}
-                  className="transition-transform duration-300 group-hover:translate-x-1"
-                />
-              </div>
-            </motion.a>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8A9088]">
+                          {option.label}
+                        </span>
+                      </div>
 
-            {/* EMAIL */}
-            <motion.a
-              {...reveal}
-              href={supportOptions[2].href}
-              className="group border border-[#DADCD3] bg-[#F7F6F2] p-7 transition-all duration-300 hover:-translate-y-1 hover:border-[#B98A3E]/50 hover:bg-white sm:p-8"
-            >
-              <div className="flex h-11 w-11 items-center justify-center border border-[#55705B]/20 bg-[#55705B]/10 text-[#55705B]">
-                <Mail size={21} strokeWidth={1.8} />
-              </div>
+                      <p className="mt-1.5 max-w-2xl text-sm leading-6 text-[#697169]">
+                        {option.description}
+                      </p>
+                    </div>
 
-              <h3 className="mt-8 text-xl font-semibold tracking-[-0.02em] text-[#12203B]">
-                Email
-              </h3>
+                    <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#55705B] sm:justify-self-end">
+                      {option.action}
 
-              <p className="mt-3 text-sm leading-6 text-[#697169]">
-                Send a detailed message when you need to explain your issue or
-                include additional information.
-              </p>
-
-              <div className="mt-7 flex items-center gap-2 text-sm font-semibold text-[#55705B]">
-                Send an email
-                <ArrowRight
-                  size={16}
-                  className="transition-transform duration-300 group-hover:translate-x-1"
-                />
-              </div>
-            </motion.a>
+                      <ArrowRight
+                        size={16}
+                        strokeWidth={1.8}
+                        className="transition-transform duration-200 group-hover:translate-x-1"
+                      />
+                    </span>
+                  </motion.a>
+                )
+              );
+            })}
           </div>
         </div>
       </section>
 
       {/* FAQ */}
-      <section className="bg-[#F1F1EC] px-5 py-14 sm:px-8 sm:py-18 lg:px-12 lg:py-20">
+      <section className="bg-[#F1F1EC] px-5 py-12 sm:px-8 sm:py-16 lg:px-12 lg:py-18">
         <div className="mx-auto max-w-7xl">
-          <motion.div {...reveal} className="mb-10">
+          <motion.div {...reveal} className="mb-8">
             <div className="flex items-center gap-3">
-              <span className="h-px w-9 bg-[#B98A3E]" />
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#B98A3E]">
+              <span className="h-px w-8 bg-[#B98A3E]" />
+
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#B98A3E]">
                 Frequently asked questions
               </p>
             </div>
 
-            <div className="mt-4 flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
+            <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <h2 className="max-w-2xl text-3xl font-semibold leading-tight tracking-[-0.035em] text-[#12203B] sm:text-4xl">
                 Find an answer before you reach out.
               </h2>
 
               <p className="max-w-md text-sm leading-6 text-[#697169] lg:text-right">
-                Browse the common questions below for quick answers about the
-                portal and student experience.
+                Browse common questions about the portal, accounts, studies,
+                and student support.
               </p>
             </div>
           </motion.div>
@@ -275,38 +293,42 @@ export default function HelpPage() {
         </div>
       </section>
 
-      {/* FINAL DARK CTA */}
-      <section className="bg-[#12203B] px-5 py-14 sm:px-8 sm:py-18 lg:px-12 lg:py-20">
+      {/* FINAL CTA */}
+      <section className="bg-[#12203B] px-5 py-12 sm:px-8 sm:py-16 lg:px-12 lg:py-18">
         <motion.div
           {...reveal}
-          className="mx-auto flex max-w-7xl flex-col gap-8 lg:flex-row lg:items-center lg:justify-between"
+          className="mx-auto flex max-w-7xl flex-col gap-7 lg:flex-row lg:items-center lg:justify-between"
         >
           <div>
             <div className="flex items-center gap-3">
-              <span className="h-px w-9 bg-[#E8A33D]" />
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#E8A33D]">
+              <span className="h-px w-8 bg-[#E8A33D]" />
+
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#E8A33D]">
                 Still need help?
               </p>
             </div>
 
-            <h2 className="mt-4 max-w-2xl text-3xl font-semibold leading-tight tracking-[-0.035em] text-white sm:text-4xl">
-              You do not have to figure it out alone.
+            <h2 className="mt-3 max-w-2xl text-3xl font-semibold leading-tight tracking-[-0.035em] text-white sm:text-4xl">
+              We can help you find the next step.
             </h2>
 
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-[#C5CBD1]">
-              Contact the SELFLESS CE support team and we will help you find
-              the right next step.
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-[#C5CBD1]">
+              Contact the SELFLESS CE support team if you cannot find the
+              information you need in the FAQ or need help with your portal
+              access.
             </p>
           </div>
 
           <Link
             href="#support"
-            className="group inline-flex w-fit shrink-0 items-center gap-2 bg-[#E8A33D] px-6 py-3.5 text-sm font-semibold text-[#12203B] transition-all duration-300 hover:bg-white"
+            className="group inline-flex w-fit shrink-0 items-center gap-2 bg-[#E8A33D] px-6 py-3.5 text-sm font-semibold text-[#12203B] transition-colors duration-200 hover:bg-white"
           >
             Contact support
+
             <ArrowRight
               size={17}
-              className="transition-transform duration-300 group-hover:translate-x-1"
+              strokeWidth={1.8}
+              className="transition-transform duration-200 group-hover:translate-x-1"
             />
           </Link>
         </motion.div>
@@ -314,4 +336,3 @@ export default function HelpPage() {
     </PublicPageShell>
   );
 }
-

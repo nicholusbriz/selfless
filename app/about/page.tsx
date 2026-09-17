@@ -8,7 +8,6 @@ import {
   BarChart3,
   BellRing,
   BookOpen,
-  Building2,
   CheckCircle2,
   GraduationCap,
   MessageCircle,
@@ -40,7 +39,7 @@ const portalAreas = [
   },
   {
     icon: BarChart3,
-    title: "Your student overview",
+    title: "Student overview",
     description:
       "See your profile, academic information, activities, opportunities, and important updates from one dashboard.",
   },
@@ -72,25 +71,25 @@ const audiences = [
     number: "01",
     title: "Students",
     description:
-      "Students use the portal as their central digital space for academic progress, communication, activities, support, and connection.",
+      "A central digital space for academic progress, communication, activities, support, and connection.",
   },
   {
     number: "02",
     title: "Tech centers",
     description:
-      "Each tech center can coordinate its students, staff, activities, and day-to-day student support within the wider Selfless CE network.",
+      "A structured environment for coordinating students, staff, activities, and day-to-day student support.",
   },
   {
     number: "03",
     title: "Tutors & teachers",
     description:
-      "Tutors and teachers can stay connected to students, provide academic guidance, and support learning progress.",
+      "A connected way to provide academic guidance, communicate with students, and support learning progress.",
   },
   {
     number: "04",
     title: "Administrators",
     description:
-      "Administrators have the tools to coordinate users, activities, communication, and student services across the system.",
+      "Tools for coordinating users, activities, communication, and student services across the system.",
   },
 ];
 
@@ -104,6 +103,19 @@ const fadeUp = {
     y: 0,
     transition: {
       duration: 0.65,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
+  },
+};
+
+const fadeIn = {
+  hidden: {
+    opacity: 0,
+  },
+  visible: {
+    opacity: 1,
+    transition: {
+      duration: 0.6,
       ease: [0.22, 1, 0.36, 1] as const,
     },
   },
@@ -145,17 +157,89 @@ export default function AboutPage() {
       />
 
       {/* =====================================================
-          WHAT IS THE PORTAL?
+          INTRODUCTION
       ====================================================== */}
-      <section className="bg-[#F1F1EC] px-5 py-14 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
+
+      <section className="bg-[#F1F1EC] px-5 py-12 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
         <motion.div
           {...animationProps}
           variants={stagger}
-          className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-16"
+          className="mx-auto max-w-7xl"
+        >
+          <motion.div
+            variants={fadeUp}
+            className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr] lg:items-end lg:gap-16"
+          >
+            <div>
+              <SectionLabel
+                label="Built for student life"
+                color="brass"
+              />
+
+              <h2 className="mt-4 max-w-xl text-3xl font-semibold leading-[1.05] tracking-[-0.04em] text-[#12203B] sm:text-4xl lg:text-[3rem]">
+                One place to understand what comes next.
+              </h2>
+            </div>
+
+            <div className="max-w-2xl">
+              <p className="text-[15px] leading-7 text-[#4B564C] sm:text-base sm:leading-8">
+                Student life involves more than classes and grades. There are
+                people to connect with, activities to follow, support to find,
+                and important information to keep up with.
+              </p>
+
+              <p className="mt-4 text-[15px] leading-7 text-[#6B7268] sm:text-base sm:leading-8">
+                Selfless CE brings these parts of the experience together in
+                one organized digital environment, helping students spend less
+                time searching for information and more time moving forward.
+              </p>
+            </div>
+          </motion.div>
+
+          <motion.div
+            variants={fadeIn}
+            className="mt-10 border-y border-[#DADCD3]"
+          >
+            <div className="grid sm:grid-cols-3">
+              <IntroStat
+                number="01"
+                label="Learn"
+                text="Follow academic progress and stay focused on your studies."
+              />
+
+              <IntroStat
+                number="02"
+                label="Connect"
+                text="Stay connected with students, tutors, teachers, and your tech center."
+              />
+
+              <IntroStat
+                number="03"
+                label="Progress"
+                text="Find the information, support, and opportunities that help you move ahead."
+              />
+            </div>
+          </motion.div>
+        </motion.div>
+      </section>
+
+      {/* =====================================================
+          WHAT IS THE PORTAL?
+      ====================================================== */}
+
+      <section className="border-y border-[#DADCD3] bg-white px-5 py-12 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
+        <motion.div
+          {...animationProps}
+          variants={stagger}
+          className="mx-auto grid max-w-7xl gap-9 lg:grid-cols-[0.92fr_1.08fr] lg:items-center lg:gap-16"
         >
           {/* Image */}
-          <motion.div variants={fadeUp} className="relative">
-            <div className="relative overflow-hidden rounded-[1.35rem] border border-[#DADCD3] bg-white shadow-[0_16px_40px_rgba(18,32,59,0.07)]">
+
+          <motion.div
+            variants={fadeUp}
+            className="relative lg:order-1"
+          >
+            <div className="relative overflow-hidden border border-[#DADCD3] bg-[#F7F6F2] shadow-[0_18px_45px_rgba(18,32,59,0.07)]">
               <div className="relative aspect-[4/3]">
                 <Image
                   src="/student-portal-image.png"
@@ -168,7 +252,7 @@ export default function AboutPage() {
               </div>
 
               <div className="absolute inset-x-4 bottom-4 sm:inset-x-5 sm:bottom-5">
-                <div className="border-l-2 border-[#B98A3E] bg-white/94 px-4 py-3 shadow-sm backdrop-blur-sm">
+                <div className="border-l-2 border-[#B98A3E] bg-white/95 px-4 py-3 shadow-[0_6px_20px_rgba(18,32,59,0.08)] backdrop-blur-sm">
                   <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#B98A3E]">
                     Selfless CE Portal
                   </p>
@@ -179,16 +263,25 @@ export default function AboutPage() {
                 </div>
               </div>
             </div>
+
+            <div className="mt-3 flex items-center justify-between px-1 text-[10px] font-medium uppercase tracking-[0.16em] text-[#8A9088]">
+              <span>Student experience</span>
+              <span>Selfless CE</span>
+            </div>
           </motion.div>
 
           {/* Content */}
-          <motion.div variants={fadeUp} className="max-w-2xl">
+
+          <motion.div
+            variants={fadeUp}
+            className="max-w-2xl lg:order-2"
+          >
             <SectionLabel
               label="What is the portal?"
               color="brass"
             />
 
-            <h2 className="mt-4 text-3xl font-semibold leading-[1.08] tracking-[-0.035em] text-[#12203B] sm:text-4xl lg:text-[2.8rem]">
+            <h2 className="mt-4 text-3xl font-semibold leading-[1.06] tracking-[-0.04em] text-[#12203B] sm:text-4xl lg:text-[2.8rem]">
               More than a dashboard.
               <br />
               A connected student experience.
@@ -198,8 +291,8 @@ export default function AboutPage() {
               <p>
                 The Selfless CE Student Portal is a centralized digital
                 platform created to support students studying through the
-                Selfless CE network. It brings the important parts of student
-                life into one organized environment.
+                Selfless CE network. It brings important parts of student life
+                into one organized environment.
               </p>
 
               <p>
@@ -216,7 +309,7 @@ export default function AboutPage() {
               </p>
             </div>
 
-            <div className="mt-7 flex flex-wrap gap-x-6 gap-y-3">
+            <div className="mt-7 grid gap-x-6 gap-y-3 sm:grid-cols-2">
               {[
                 "Academic support",
                 "Student connection",
@@ -225,9 +318,13 @@ export default function AboutPage() {
               ].map((item) => (
                 <div
                   key={item}
-                  className="flex items-center gap-2 text-sm font-medium text-[#55705B]"
+                  className="flex items-center gap-2.5 text-sm font-medium text-[#55705B]"
                 >
-                  <CheckCircle2 size={16} strokeWidth={1.8} />
+                  <CheckCircle2
+                    size={16}
+                    strokeWidth={1.8}
+                  />
+
                   <span>{item}</span>
                 </div>
               ))}
@@ -239,20 +336,31 @@ export default function AboutPage() {
       {/* =====================================================
           HOW IT WORKS
       ====================================================== */}
-      <section className="border-y border-[#DADCD3] bg-white px-5 py-14 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
+
+      <section className="bg-[#F1F1EC] px-5 py-12 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
         <motion.div
           {...animationProps}
           variants={stagger}
           className="mx-auto max-w-7xl"
         >
-          <motion.div variants={fadeUp} className="max-w-2xl">
-            <SectionLabel label="How it works" color="moss" />
+          <motion.div
+            variants={fadeUp}
+            className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-end lg:gap-16"
+          >
+            <div>
+              <SectionLabel
+                label="How it works"
+                color="moss"
+              />
 
-            <h2 className="mt-4 text-3xl font-semibold leading-[1.08] tracking-[-0.035em] text-[#12203B] sm:text-4xl lg:text-[2.8rem]">
-              One network. One connected experience.
-            </h2>
+              <h2 className="mt-4 max-w-2xl text-3xl font-semibold leading-[1.06] tracking-[-0.04em] text-[#12203B] sm:text-4xl lg:text-[2.8rem]">
+                One network.
+                <br />
+                One connected experience.
+              </h2>
+            </div>
 
-            <p className="mt-4 max-w-xl text-[15px] leading-7 text-[#6B7268] sm:text-base sm:leading-8">
+            <p className="max-w-xl text-[15px] leading-7 text-[#6B7268] sm:text-base sm:leading-8">
               The portal connects students with the people, information, and
               services around their education while giving each tech center
               the structure it needs to support its students.
@@ -267,8 +375,10 @@ export default function AboutPage() {
               <motion.article
                 key={item.number}
                 variants={fadeUp}
-                className={`group py-6 md:px-6 md:py-7 ${
-                  index !== 0 ? "border-t border-[#DADCD3] md:border-l md:border-t-0" : ""
+                className={`group relative py-6 md:px-6 md:py-7 ${
+                  index !== 0
+                    ? "border-t border-[#DADCD3] md:border-l md:border-t-0"
+                    : ""
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -279,17 +389,19 @@ export default function AboutPage() {
                   <ArrowRight
                     size={15}
                     strokeWidth={1.7}
-                    className="text-[#B8BDB5] transition-transform duration-300 group-hover:translate-x-1 group-hover:text-[#B98A3E]"
+                    className="text-[#B8BDB5] transition-all duration-300 group-hover:translate-x-1 group-hover:text-[#B98A3E]"
                   />
                 </div>
 
-                <h3 className="mt-5 text-lg font-semibold tracking-[-0.015em] text-[#12203B]">
+                <h3 className="mt-5 text-lg font-semibold tracking-[-0.02em] text-[#12203B]">
                   {item.title}
                 </h3>
 
                 <p className="mt-2.5 text-sm leading-7 text-[#626A62]">
                   {item.description}
                 </p>
+
+                <span className="absolute bottom-0 left-6 right-6 h-px origin-left scale-x-0 bg-[#B98A3E] transition-transform duration-500 group-hover:scale-x-100 md:left-6 md:right-6" />
               </motion.article>
             ))}
           </motion.div>
@@ -299,7 +411,8 @@ export default function AboutPage() {
       {/* =====================================================
           PORTAL AREAS
       ====================================================== */}
-      <section className="bg-[#F1F1EC] px-5 py-14 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
+
+      <section className="border-y border-[#DADCD3] bg-white px-5 py-12 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
         <motion.div
           {...animationProps}
           variants={stagger}
@@ -315,14 +428,14 @@ export default function AboutPage() {
                 color="brass"
               />
 
-              <h2 className="mt-4 text-3xl font-semibold leading-[1.08] tracking-[-0.035em] text-[#12203B] sm:text-4xl lg:text-[2.8rem]">
+              <h2 className="mt-4 text-3xl font-semibold leading-[1.06] tracking-[-0.04em] text-[#12203B] sm:text-4xl lg:text-[2.8rem]">
                 The important parts of student life, brought together.
               </h2>
             </div>
 
             <p className="max-w-md text-sm leading-7 text-[#6B7268] lg:pb-1">
-              The experience is designed to make important information easier
-              to find and everyday student responsibilities easier to manage.
+              Important information stays easier to find while everyday
+              student responsibilities become easier to manage.
             </p>
           </motion.div>
 
@@ -330,41 +443,47 @@ export default function AboutPage() {
             variants={stagger}
             className="mt-8 grid gap-px overflow-hidden border border-[#DADCD3] bg-[#DADCD3] md:grid-cols-2"
           >
-            {portalAreas.map(({ icon: Icon, title, description }) => (
-              <motion.article
-                key={title}
-                variants={fadeUp}
-                className="group bg-white p-6 transition-colors duration-300 hover:bg-[#FBFAF7] sm:p-7 lg:p-8"
-              >
-                <div className="flex items-start justify-between gap-5">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-[#DADCD3] bg-[#F7F6F2]">
-                    <Icon
-                      size={19}
-                      strokeWidth={1.8}
-                      className="text-[#B98A3E]"
-                    />
+            {portalAreas.map(
+              ({ icon: Icon, title, description }, index) => (
+                <motion.article
+                  key={title}
+                  variants={fadeUp}
+                  className="group bg-white p-6 transition-colors duration-300 hover:bg-[#FBFAF7] sm:p-7 lg:p-8"
+                >
+                  <div className="flex items-start justify-between gap-5">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-[#DADCD3] bg-[#F7F6F2] transition-colors duration-300 group-hover:border-[#B98A3E]/50">
+                      <Icon
+                        size={19}
+                        strokeWidth={1.8}
+                        className="text-[#B98A3E]"
+                      />
+                    </div>
+
+                    <span className="pt-5 font-mono text-[10px] tracking-[0.16em] text-[#B8BDB5]">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
                   </div>
 
-                  <span className="h-px w-10 bg-[#DADCD3] transition-all duration-500 group-hover:w-16 group-hover:bg-[#B98A3E]" />
-                </div>
+                  <h3 className="mt-6 text-lg font-semibold tracking-[-0.02em] text-[#12203B]">
+                    {title}
+                  </h3>
 
-                <h3 className="mt-6 text-lg font-semibold tracking-[-0.015em] text-[#12203B]">
-                  {title}
-                </h3>
+                  <p className="mt-2.5 max-w-lg text-sm leading-7 text-[#5F685F]">
+                    {description}
+                  </p>
 
-                <p className="mt-2.5 max-w-lg text-sm leading-7 text-[#5F685F]">
-                  {description}
-                </p>
-              </motion.article>
-            ))}
+                  <div className="mt-6 h-px w-9 bg-[#DADCD3] transition-all duration-500 group-hover:w-14 group-hover:bg-[#B98A3E]" />
+                </motion.article>
+              )
+            )}
           </motion.div>
 
           <motion.div
             variants={fadeUp}
-            className="mt-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+            className="mt-7 flex flex-col gap-4 border-t border-[#DADCD3] pt-5 sm:flex-row sm:items-center sm:justify-between"
           >
             <p className="text-sm text-[#6B7268]">
-              Explore the full set of tools available through the portal.
+              Explore the tools available across the portal.
             </p>
 
             <Link
@@ -372,6 +491,7 @@ export default function AboutPage() {
               className="group inline-flex items-center gap-2 text-sm font-bold text-[#55705B] transition-colors duration-300 hover:text-[#B98A3E]"
             >
               Explore portal features
+
               <ArrowRight
                 size={16}
                 className="transition-transform duration-300 group-hover:translate-x-1"
@@ -384,7 +504,8 @@ export default function AboutPage() {
       {/* =====================================================
           PRINCIPLES
       ====================================================== */}
-      <section className="border-y border-[#DADCD3] bg-white px-5 py-14 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
+
+      <section className="bg-[#F1F1EC] px-5 py-12 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
         <motion.div
           {...animationProps}
           variants={stagger}
@@ -400,15 +521,15 @@ export default function AboutPage() {
                 color="moss"
               />
 
-              <h2 className="mt-4 text-3xl font-semibold leading-[1.08] tracking-[-0.035em] text-[#12203B] sm:text-4xl">
+              <h2 className="mt-4 text-3xl font-semibold leading-[1.06] tracking-[-0.04em] text-[#12203B] sm:text-4xl">
                 Designed around people, not complexity.
               </h2>
             </div>
 
             <p className="max-w-2xl text-[15px] leading-7 text-[#6B7268] sm:text-base sm:leading-8">
-              The technology should make student support clearer, not add
-              another layer of complexity. These principles guide how the
-              Selfless CE experience is organized.
+              Technology should make student support clearer, not add another
+              layer of complexity. These principles guide how the Selfless CE
+              experience is organized.
             </p>
           </motion.div>
 
@@ -421,14 +542,14 @@ export default function AboutPage() {
                 <motion.article
                   key={title}
                   variants={fadeUp}
-                  className={`py-7 md:px-7 md:py-8 ${
+                  className={`group py-7 md:px-7 md:py-8 ${
                     index !== 0
                       ? "border-t border-[#DADCD3] md:border-l md:border-t-0"
                       : ""
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center bg-[#F7F6F2]">
+                    <div className="flex h-9 w-9 items-center justify-center border border-[#DADCD3] bg-white transition-colors duration-300 group-hover:border-[#55705B]/40">
                       <Icon
                         size={18}
                         strokeWidth={1.8}
@@ -436,10 +557,10 @@ export default function AboutPage() {
                       />
                     </div>
 
-                    <span className="h-px w-6 bg-[#DADCD3]" />
+                    <span className="h-px w-6 bg-[#DADCD3] transition-all duration-300 group-hover:w-10 group-hover:bg-[#55705B]" />
                   </div>
 
-                  <h3 className="mt-5 text-lg font-semibold text-[#12203B]">
+                  <h3 className="mt-5 text-lg font-semibold tracking-[-0.02em] text-[#12203B]">
                     {title}
                   </h3>
 
@@ -456,11 +577,17 @@ export default function AboutPage() {
       {/* =====================================================
           WHY SELFLESS CE
       ====================================================== */}
-      <section className="bg-[#12203B] px-5 py-14 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
+
+      <section className="relative overflow-hidden bg-[#12203B] px-5 py-14 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
+        <div
+          aria-hidden="true"
+          className="absolute right-0 top-0 h-px w-1/3 bg-[#B98A3E]"
+        />
+
         <motion.div
           {...animationProps}
           variants={fadeUp}
-          className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-16"
+          className="relative mx-auto grid max-w-7xl gap-9 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-16"
         >
           <div>
             <div className="flex items-center gap-3">
@@ -471,7 +598,7 @@ export default function AboutPage() {
               </p>
             </div>
 
-            <h2 className="mt-4 max-w-2xl text-3xl font-semibold leading-[1.08] tracking-[-0.035em] text-white sm:text-4xl lg:text-[2.8rem]">
+            <h2 className="mt-4 max-w-2xl text-3xl font-semibold leading-[1.06] tracking-[-0.04em] text-white sm:text-4xl lg:text-[2.8rem]">
               Technology should give students more room to focus on their
               future.
             </h2>
@@ -485,7 +612,7 @@ export default function AboutPage() {
           </div>
 
           <div className="border-l border-white/15 pl-6 sm:pl-8">
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#E8A33D]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#E8A33D]">
               The goal
             </p>
 
@@ -498,6 +625,7 @@ export default function AboutPage() {
               className="group mt-7 inline-flex items-center gap-2 text-sm font-bold text-white transition-colors duration-300 hover:text-[#E8A33D]"
             >
               Discover the tech-center network
+
               <ArrowRight
                 size={16}
                 className="transition-transform duration-300 group-hover:translate-x-1"
@@ -510,7 +638,8 @@ export default function AboutPage() {
       {/* =====================================================
           NEXT STEP
       ====================================================== */}
-      <section className="bg-[#F1F1EC] px-5 py-12 sm:px-8 sm:py-14 lg:px-12 lg:py-16">
+
+      <section className="bg-[#F1F1EC] px-5 py-10 sm:px-8 sm:py-14 lg:px-12 lg:py-16">
         <motion.div
           {...animationProps}
           variants={fadeUp}
@@ -518,7 +647,10 @@ export default function AboutPage() {
         >
           <div>
             <div className="flex items-center gap-2 text-[#55705B]">
-              <BellRing size={17} strokeWidth={1.8} />
+              <BellRing
+                size={17}
+                strokeWidth={1.8}
+              />
 
               <p className="text-sm font-semibold">
                 Your next step starts here.
@@ -536,6 +668,7 @@ export default function AboutPage() {
             className="group inline-flex items-center gap-2 self-start text-sm font-bold text-[#12203B] transition-colors duration-300 hover:text-[#B98A3E] sm:self-auto"
           >
             Meet the tech centers
+
             <ArrowRight
               size={16}
               className="transition-transform duration-300 group-hover:translate-x-1"
@@ -544,6 +677,40 @@ export default function AboutPage() {
         </motion.div>
       </section>
     </PublicPageShell>
+  );
+}
+
+/* =========================================================
+   INTRO STAT
+========================================================= */
+
+function IntroStat({
+  number,
+  label,
+  text,
+}: {
+  number: string;
+  label: string;
+  text: string;
+}) {
+  return (
+    <div className="group px-0 py-6 sm:px-6 sm:py-7 first:sm:pl-0 last:sm:pr-0">
+      <div className="flex items-center gap-3">
+        <span className="font-mono text-[10px] font-medium tracking-[0.16em] text-[#B98A3E]">
+          {number}
+        </span>
+
+        <span className="h-px w-5 bg-[#DADCD3] transition-all duration-300 group-hover:w-8 group-hover:bg-[#B98A3E]" />
+      </div>
+
+      <h3 className="mt-4 text-base font-semibold text-[#12203B]">
+        {label}
+      </h3>
+
+      <p className="mt-1.5 max-w-sm text-sm leading-6 text-[#6B7268]">
+        {text}
+      </p>
+    </div>
   );
 }
 
@@ -559,17 +726,23 @@ function SectionLabel({
   color: "brass" | "moss";
 }) {
   const textColor =
-    color === "brass" ? "text-[#B98A3E]" : "text-[#55705B]";
+    color === "brass"
+      ? "text-[#B98A3E]"
+      : "text-[#55705B]";
 
   const lineColor =
-    color === "brass" ? "bg-[#B98A3E]" : "bg-[#55705B]";
+    color === "brass"
+      ? "bg-[#B98A3E]"
+      : "bg-[#55705B]";
 
   return (
     <div className="flex items-center gap-3">
-      <span className={`h-px w-8 ${lineColor}`} />
+      <span
+        className={`h-px w-8 ${lineColor}`}
+      />
 
       <p
-        className={`text-[11px] font-bold uppercase tracking-[0.2em] ${textColor}`}
+        className={`text-[10px] font-bold uppercase tracking-[0.2em] ${textColor}`}
       >
         {label}
       </p>

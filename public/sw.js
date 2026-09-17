@@ -1,6 +1,6 @@
 // public/sw.js - Minimal Service Worker for PWA standalone mode only
 // No app-shell caching: pages and assets always come from the network.
-const CACHE_VERSION = "selfless-portal-v4";
+const CACHE_VERSION = "selfless-portal-v5";
 const CACHE_PREFIX = "selfless-portal-";
 
 self.addEventListener("install", (event) => {

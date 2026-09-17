@@ -1,1217 +1,722 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import {
+  AnimatePresence,
+  motion,
+} from "framer-motion";
 import {
   ArrowUpRight,
-  LayoutDashboard,
+  GraduationCap,
   LogIn,
   Menu,
-  GraduationCap,
   X,
 } from "lucide-react";
+
 import { useAuth } from "@/lib/hooks/useAuth";
 import AuthModal from "@/components/auth/AuthModal";
 
-// EXACT LINKS - UNCHANGED
+const COLORS = {
+  navy: "#12203B",
+  navyDeep: "#0D182C",
+
+  navSurface: "#1A2D49",
+  navSurfaceHover: "#223957",
+  navBorder: "#304763",
+
+  brass: "#B98A3E",
+  brassLight: "#E8A33D",
+  brassBright: "#F0B85C",
+
+  white: "#FFFFFF",
+  softWhite: "#F7F6F2",
+  page: "#F1F1EC",
+  border: "#DADCD3",
+  muted: "#6B7268",
+  subtle: "#8A9088",
+};
+
 const navItems = [
   { label: "Home", href: "/" },
   { label: "About", href: "/about" },
   { label: "Tech Centers", href: "/tech-centers" },
   { label: "Features", href: "/features" },
   { label: "Help", href: "/help" },
+  { label: "Privacy", href: "/privacy" },
+];
+
+const tickerPhrases = [
+  "One platform for learning, growth, and connection.",
+  "One platform for progress, collaboration, and success.",
+  "Built for students, tutors, and future leaders.",
+  "Empowering learning, growing, and thriving.",
+  "Driving progress, excellence, and innovation.",
+  "All education in one place.",
 ];
 
 const navMotion = {
-  hidden: {
-    opacity: 0,
-    y: -6,
-  },
+  hidden: { opacity: 0, y: -6 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: {
-      duration: 0.45,
-      ease: [0.22, 1, 0.36, 1] as const,
-    },
+    transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] as const },
   },
 };
 
 const mobileItemMotion = {
-  hidden: {
-    opacity: 0,
-    x: -10,
-  },
+  hidden: { opacity: 0, x: 14 },
   visible: (index: number) => ({
     opacity: 1,
     x: 0,
     transition: {
-      delay: 0.04 + index * 0.045,
-      duration: 0.35,
+      delay: index * 0.045,
+      duration: 0.3,
       ease: [0.22, 1, 0.36, 1] as const,
     },
   }),
 };
 
+/* -------------------------------------------------------------------------- */
+/* Marquee styles                                                             */
+/* -------------------------------------------------------------------------- */
+
+function MarqueeStyles() {
+  return (
+    <style>{`
+      @keyframes selflessMarquee {
+        from { transform: translateX(0); }
+        to   { transform: translateX(-50%); }
+      }
+      .selfless-marquee-track {
+        display: inline-flex;
+        align-items: center;
+        white-space: nowrap;
+        animation: selflessMarquee 42s linear infinite;
+        will-change: transform;
+      }
+      .selfless-marquee-track:hover { animation-play-state: paused; }
+      @media (prefers-reduced-motion: reduce) {
+        .selfless-marquee-track { animation: none !important; }
+      }
+    `}</style>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Ticker strip                                                               */
+/* -------------------------------------------------------------------------- */
+
+function TickerStrip() {
+  const repeated = [...tickerPhrases, ...tickerPhrases];
+
+  return (
+    <div
+      className="relative overflow-hidden"
+      style={{
+        backgroundColor: COLORS.navy,
+      }}
+    >
+      <div className="flex min-h-8 items-stretch sm:min-h-9">
+        {/* Badge — "SELFLESS CE" on mobile and desktop */}
+        <div
+          className="flex shrink-0 items-center gap-1.5 border-r px-2.5 sm:gap-2 sm:px-5"
+          style={{
+            borderColor: "rgba(232,163,61,0.22)",
+            backgroundColor: COLORS.navyDeep,
+          }}
+        >
+          <span
+            className="size-1.5 rounded-full"
+            style={{ backgroundColor: COLORS.brass }}
+          />
+          <span
+            className="font-mono text-[9px] uppercase tracking-[0.14em] sm:text-[10px] sm:tracking-[0.2em]"
+            style={{ color: COLORS.brass }}
+          >
+            SELFLESS CE
+          </span>
+        </div>
+
+        <div className="relative flex-1 overflow-hidden">
+          <div className="selfless-marquee-track">
+            {repeated.map((phrase, index) => (
+              <span
+                key={`${phrase}-${index}`}
+                className="flex items-center text-[10.5px] sm:text-[12px]"
+                style={{ color: "rgba(255,255,255,0.72)" }}
+              >
+                <span className="px-3.5 sm:px-7">{phrase}</span>
+                <span style={{ color: "rgba(232,163,61,0.55)" }}>·</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Nav link                                                                   */
+/* -------------------------------------------------------------------------- */
+
+function NavLink({
+  item,
+  active,
+}: {
+  item: { label: string; href: string };
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={item.href}
+      aria-current={active ? "page" : undefined}
+      className="group relative whitespace-nowrap px-3.5 py-2 text-[13px] font-semibold outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-[#E8A33D] motion-reduce:transition-none"
+      style={{
+        color: active ? COLORS.white : "rgba(255,255,255,0.72)",
+      }}
+    >
+      <span className="relative group-hover:text-white">{item.label}</span>
+
+      <span
+        className="pointer-events-none absolute inset-x-3 bottom-0 h-[2px] origin-center rounded-full transition-transform duration-200 group-hover:scale-x-100 motion-reduce:transition-none"
+        style={{
+          backgroundColor: COLORS.brassLight,
+          transform: active ? "scaleX(1)" : "scaleX(0)",
+        }}
+      />
+    </Link>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Secondary identity strip — no top border, blends into the nav              */
+/* -------------------------------------------------------------------------- */
+
+function AnimatedSubHeader() {
+  return (
+    <div style={{ backgroundColor: COLORS.navy }}>
+      <div className="mx-auto flex min-h-9 max-w-[1440px] items-center justify-between gap-3 px-4 py-2 sm:px-6 lg:px-8">
+        <p
+          className="font-serif text-xs italic sm:text-[15px]"
+          style={{ color: "rgba(247,246,242,0.88)" }}
+        >
+          Student Self Service Portal
+        </p>
+
+        <p
+          className="font-mono text-[8px] uppercase tracking-[0.14em] sm:text-[10px] sm:tracking-[0.18em]"
+          style={{ color: "rgba(232,163,61,0.85)" }}
+        >
+          All education in one place
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Header                                                                      */
+/* -------------------------------------------------------------------------- */
+
 export default function Header2() {
   const pathname = usePathname();
-  const prefersReducedMotion = useReducedMotion();
+  const { user, isLoading } = useAuth();
 
-  const [openPathname, setOpenPathname] = useState<string | null>(null);
+  const [scrolled, setScrolled] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authModalType, setAuthModalType] = useState<"login" | "register">(
-    "login"
-  );
-  const [isScrolled, setIsScrolled] = useState(false);
 
-  const mobileOpen = openPathname === pathname;
+  const [authModalType, setAuthModalType] =
+    useState<"login" | "register">("login");
 
-  const { isAuthenticated } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
-  const drawerRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement | null>(null);
 
-  const isActive = useCallback(
-    (href: string) =>
-      href === "/" ? pathname === "/" : pathname?.startsWith(href),
-    [pathname]
-  );
+  const openPathname = mobileMenuOpen ? pathname : null;
 
-  // ------------------------------------------------------------
-  // SCROLL STATE
-  // ------------------------------------------------------------
-  useEffect(() => {
-    let frame = 0;
-
-    const onScroll = () => {
-      if (frame) return;
-
-      frame = window.requestAnimationFrame(() => {
-        setIsScrolled(window.scrollY > 18);
-        frame = 0;
-      });
-    };
-
-    onScroll();
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-
-      if (frame) {
-        window.cancelAnimationFrame(frame);
-      }
-    };
+  const handleScroll = useCallback(() => {
+    setScrolled(window.scrollY > 18);
   }, []);
 
-  // ------------------------------------------------------------
-  // CLOSE MOBILE DRAWER WHEN ROUTE CHANGES
-  // ------------------------------------------------------------
   useEffect(() => {
-    setOpenPathname(null);
+    handleScroll();
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [handleScroll]);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
   }, [pathname]);
 
-  // ------------------------------------------------------------
-  // LOCK BODY SCROLL WHEN MOBILE DRAWER IS OPEN
-  // ------------------------------------------------------------
   useEffect(() => {
-    if (!mobileOpen) return;
-
-    const { body } = document;
-
-    const gap =
-      window.innerWidth - document.documentElement.clientWidth;
-
-    const previousOverflow = body.style.overflow;
-    const previousPaddingRight = body.style.paddingRight;
-
-    body.style.overflow = "hidden";
-
-    if (gap > 0) {
-      body.style.paddingRight = `${gap}px`;
+    if (!mobileMenuOpen) {
+      document.body.style.overflow = "";
+      return;
     }
 
-    return () => {
-      body.style.overflow = previousOverflow;
-      body.style.paddingRight = previousPaddingRight;
-    };
-  }, [mobileOpen]);
+    document.body.style.overflow = "hidden";
 
-  // ------------------------------------------------------------
-  // ESCAPE + OUTSIDE CLICK
-  // ------------------------------------------------------------
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileMenuOpen]);
+
   useEffect(() => {
-    if (!mobileOpen) return;
+    if (!mobileMenuOpen) return;
 
-    const onKey = (event: KeyboardEvent) => {
+    const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setOpenPathname(null);
-
-        requestAnimationFrame(() => {
-          menuButtonRef.current?.focus();
-        });
+        setMobileMenuOpen(false);
       }
     };
 
-    const onClick = (event: MouseEvent) => {
-      const target = event.target as Node;
-
-      if (
-        !drawerRef.current?.contains(target) &&
-        !menuButtonRef.current?.contains(target)
-      ) {
-        setOpenPathname(null);
-      }
-    };
-
-    document.addEventListener("keydown", onKey);
-    document.addEventListener("mousedown", onClick);
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.removeEventListener("keydown", onKey);
-      document.removeEventListener("mousedown", onClick);
+      window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [mobileOpen]);
+  }, [mobileMenuOpen]);
 
-  // ------------------------------------------------------------
-  // AUTH
-  // ------------------------------------------------------------
-  const openAuthModal = (type: "login" | "register") => {
+  const openAuth = (type: "login" | "register") => {
     setAuthModalType(type);
     setShowAuthModal(true);
-    setOpenPathname(null);
+    setMobileMenuOpen(false);
   };
 
   const closeMobileMenu = () => {
-    setOpenPathname(null);
+    setMobileMenuOpen(false);
+  };
+
+  const isActive = (href: string) => {
+    if (href === "/") {
+      return pathname === "/";
+    }
+
+    return pathname === href || pathname.startsWith(`${href}/`);
   };
 
   return (
     <>
-      {/* ========================================================
-          ACCESSIBILITY
-      ======================================================== */}
-      <a
-        href="#main"
-        className="
-          sr-only
-          focus:not-sr-only
-          focus:fixed
-          focus:left-4
-          focus:top-4
-          focus:z-[80]
-          focus:rounded-lg
-          focus:bg-[#B98A3E]
-          focus:px-4
-          focus:py-2.5
-          focus:text-sm
-          focus:font-semibold
-          focus:text-white
-          focus:shadow-lg
-        "
-      >
-        Skip to content
-      </a>
+      <MarqueeStyles />
 
-      {/* ========================================================
-          HEADER
-      ======================================================== */}
       <header
-        className={`
-          fixed inset-x-0 top-0 z-50
-          overflow-visible
-          border-b
-          bg-[#F1F1EC]/95
-          backdrop-blur-md
-          transition-all
-          duration-300
-          motion-reduce:transition-none
-          ${
-            isScrolled
-              ? "border-[#DADCD3] shadow-[0_6px_24px_rgba(18,32,59,0.07)]"
-              : "border-transparent"
-          }
-        `}
+        ref={headerRef}
+        className="fixed inset-x-0 top-0 z-50 transition-all duration-300"
+        style={{
+          backgroundColor: COLORS.navy,
+          boxShadow: scrolled
+            ? "0 10px 30px rgba(13,24,44,0.22)"
+            : "0 4px 18px rgba(13,24,44,0.12)",
+        }}
       >
-        {/* ======================================================
-            TOP TRUST BAR
-        ====================================================== */}
+        {/* Ticker */}
         <div
-          className={`
-            overflow-hidden
-            border-b
-            border-[#DADCD3]
-            bg-[#E8E8E0]
-            transition-all
-            duration-300
-            motion-reduce:transition-none
-            ${
-              isScrolled
-                ? "max-h-0 border-b-0 opacity-0"
-                : "max-h-9 opacity-100"
-            }
-          `}
+          className={`overflow-hidden transition-all duration-300 ${
+            scrolled ? "max-h-0 opacity-0" : "max-h-10 opacity-100"
+          }`}
         >
-          <div
-            className="
-              mx-auto
-              flex
-              min-h-8
-              max-w-7xl
-              items-center
-              justify-center
-              px-4
-              sm:px-6
-              lg:px-8
-            "
-          >
-            <div className="flex items-center gap-2 text-center">
-              <span className="relative flex h-1.5 w-1.5 shrink-0">
-                <span
-                  className="
-                    absolute
-                    inline-flex
-                    h-full
-                    w-full
-                    animate-ping
-                    rounded-full
-                    bg-[#B98A3E]/60
-                    motion-reduce:animate-none
-                  "
-                />
-
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#B98A3E]" />
-              </span>
-
-              <p
-                className="
-                  text-[9.5px]
-                  font-semibold
-                  uppercase
-                  leading-none
-                  tracking-[0.14em]
-                  text-[#4B564C]
-                  sm:text-[10px]
-                "
-              >
-                Trusted across the{" "}
-                <span className="text-[#12203B]">
-                  SELFLESS Tech Center Network
-                </span>
-              </p>
-
-              <span className="hidden text-[#9CA39A] sm:inline">
-                •
-              </span>
-
-              <p
-                className="
-                  hidden
-                  text-[9.5px]
-                  font-medium
-                  leading-none
-                  tracking-wide
-                  text-[#6B7268]
-                  md:block
-                "
-              >
-                One platform for learning, progress, and connection.
-              </p>
-            </div>
-          </div>
+          <TickerStrip />
         </div>
 
-        {/* ======================================================
-            MAIN NAVIGATION
-        ====================================================== */}
-        <div
-          className={`
-            mx-auto
-            flex
-            max-w-7xl
-            items-center
-            justify-between
-            gap-3
-            px-4
-            transition-[padding]
-            duration-300
-            motion-reduce:transition-none
-            sm:px-6
-            lg:px-8
-            ${
-              isScrolled
-                ? "py-2"
-                : "py-2.5"
-            }
-          `}
-        >
-          {/* ====================================================
-              BRAND
-          ==================================================== */}
-          <Link
-            href="/"
-            aria-label="Selfless CE Portal home"
-            className="
-              group
-              flex
-              min-w-0
-              shrink-0
-              items-center
-              gap-2.5
-              rounded-lg
-              outline-none
-              focus-visible:ring-2
-              focus-visible:ring-[#B98A3E]
-              focus-visible:ring-offset-2
-              focus-visible:ring-offset-[#F1F1EC]
-            "
-          >
-            {/* Logo */}
-            <motion.div
-              whileHover={
-                prefersReducedMotion
-                  ? undefined
-                  : {
-                      y: -1,
-                    }
-              }
-              transition={{
-                duration: 0.2,
-              }}
-              className="
-                relative
-                h-9
-                w-9
-                shrink-0
-                overflow-hidden
-                rounded-lg
-                border
-                border-[#DADCD3]
-                bg-white
-                p-0.5
-                shadow-sm
-                transition-all
-                duration-300
-                group-hover:border-[#B98A3E]/60
-                group-hover:shadow-md
-                sm:h-10
-                sm:w-10
-              "
+        {/* Main navigation */}
+        <div style={{ backgroundColor: COLORS.navy }}>
+          <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8">
+            {/* ================= DESKTOP (xl+) ================= */}
+            <div
+              className={`hidden items-center justify-between gap-4 transition-all duration-300 xl:flex ${
+                scrolled ? "h-[60px]" : "h-[72px]"
+              }`}
             >
-              <Image
-                src="/freedom.png"
-                alt="Selfless CE logo"
-                fill
-                priority
-                sizes="40px"
-                className="rounded-[7px] object-contain"
-              />
-            </motion.div>
-
-            {/* Brand typography */}
-            <div className="flex min-w-0 flex-col justify-center">
-              <div
-                className="
-                  flex
-                  items-baseline
-                  gap-1.5
-                  whitespace-nowrap
-                  text-[14px]
-                  font-bold
-                  leading-[1.1]
-                  tracking-[-0.015em]
-                  text-[#12203B]
-                  sm:text-[16px]
-                "
-              >
-                <span>Selfless CE</span>
-
-                <span className="font-semibold text-[#B98A3E]">
-                  Portal
-                </span>
-              </div>
-
-              <span
-                className="
-                  mt-1
-                  text-[8px]
-                  font-semibold
-                  uppercase
-                  leading-none
-                  tracking-[0.16em]
-                  text-[#6B7268]
-                  sm:text-[9px]
-                "
-              >
-                Student Self Service
-              </span>
-            </div>
-          </Link>
-
-          {/* ====================================================
-              DESKTOP NAVIGATION
-          ==================================================== */}
-          <motion.nav
-            variants={navMotion}
-            initial="hidden"
-            animate="visible"
-            aria-label="Primary navigation"
-            className="
-              hidden
-              items-center
-              gap-0.5
-              rounded-xl
-              border
-              border-[#DADCD3]
-              bg-white/60
-              px-1
-              py-1
-              shadow-sm
-              backdrop-blur-sm
-              lg:flex
-            "
-          >
-            {navItems.map((item) => {
-              const active = isActive(item.href);
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={active ? "page" : undefined}
-                  className={`
-                    group
-                    relative
-                    rounded-lg
-                    px-3.5
-                    py-2
-                    text-[11.5px]
-                    font-semibold
-                    leading-none
-                    tracking-[0.005em]
-                    outline-none
-                    transition-all
-                    duration-200
-                    focus-visible:ring-2
-                    focus-visible:ring-[#B98A3E]
-                    motion-reduce:transition-none
-                    ${
-                      active
-                        ? "bg-[#12203B] text-white shadow-sm"
-                        : "text-[#4B564C] hover:bg-[#E8E8E0] hover:text-[#12203B]"
-                    }
-                  `}
-                >
-                  <span>{item.label}</span>
-
-                  <span
-                    className={`
-                      pointer-events-none
-                      absolute
-                      inset-x-3.5
-                      -bottom-0.5
-                      h-px
-                      origin-center
-                      bg-[#B98A3E]
-                      transition-transform
-                      duration-300
-                      motion-reduce:transition-none
-                      ${
-                        active
-                          ? "scale-x-100"
-                          : "scale-x-0 group-hover:scale-x-100"
-                      }
-                    `}
-                  />
-                </Link>
-              );
-            })}
-          </motion.nav>
-
-          {/* ====================================================
-              DESKTOP ACTIONS
-          ==================================================== */}
-          <div className="hidden shrink-0 items-center gap-2 lg:flex">
-            {isAuthenticated ? (
+              {/* Brand */}
               <Link
-                href="/dashboard"
-                className="
-                  group
-                  inline-flex
-                  items-center
-                  gap-2
-                  rounded-lg
-                  bg-[#12203B]
-                  px-3.5
-                  py-2.5
-                  text-[11.5px]
-                  font-bold
-                  leading-none
-                  tracking-wide
-                  text-white
-                  shadow-sm
-                  transition-all
-                  duration-200
-                  hover:bg-[#1A2D4A]
-                  hover:shadow-md
-                  active:scale-[0.98]
-                  focus:outline-none
-                  focus-visible:ring-2
-                  focus-visible:ring-[#B98A3E]
-                  focus-visible:ring-offset-2
-                  focus-visible:ring-offset-[#F1F1EC]
-                  motion-reduce:transition-none
-                "
+                href="/"
+                aria-label="SELFLESS CE home"
+                className="group flex shrink-0 items-center"
               >
-                <LayoutDashboard size={14} strokeWidth={2.3} />
-
-                <span>Dashboard</span>
-
-                <ArrowUpRight
-                  size={13}
-                  className="
-                    transition-transform
-                    duration-200
-                    group-hover:-translate-y-0.5
-                    group-hover:translate-x-0.5
-                  "
+                <Image
+                  src="/freedom.png"
+                  alt="SELFLESS CE"
+                  width={152}
+                  height={44}
+                  priority
+                  className="h-auto w-[120px] object-contain transition-transform duration-300 group-hover:scale-[1.015] lg:w-[130px]"
                 />
               </Link>
-            ) : (
+
+              {/* Centered nav links */}
+              <motion.nav
+                initial="hidden"
+                animate="visible"
+                variants={navMotion}
+                aria-label="Primary navigation"
+                className="flex min-w-0 flex-1 items-center justify-center"
+              >
+                <div className="flex items-center">
+                  {navItems.map((item) => (
+                    <NavLink
+                      key={item.href}
+                      item={item}
+                      active={isActive(item.href)}
+                    />
+                  ))}
+                </div>
+              </motion.nav>
+
+              {/* Actions on the right */}
+              <div className="flex shrink-0 items-center gap-2">
+                {isLoading ? (
+                  <div
+                    aria-hidden="true"
+                    className="h-10 w-28 animate-pulse rounded-sm"
+                    style={{
+                      backgroundColor: "rgba(255,255,255,0.08)",
+                    }}
+                  />
+                ) : user ? (
+                  <Link
+                    href="/dashboard"
+                    className="group inline-flex h-10 items-center gap-2 px-5 text-[13px] font-bold transition-all duration-200 hover:-translate-y-px motion-reduce:transition-none"
+                    style={{
+                      backgroundColor: COLORS.brassLight,
+                      color: COLORS.navy,
+                    }}
+                  >
+                    <span>Dashboard</span>
+
+                    <ArrowUpRight
+                      size={14}
+                      strokeWidth={2.2}
+                      className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                    />
+                  </Link>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => openAuth("login")}
+                      className="inline-flex h-10 items-center gap-2 border px-4 text-[13px] font-semibold outline-none transition-colors duration-200 hover:text-white focus-visible:ring-2 focus-visible:ring-[#E8A33D] motion-reduce:transition-none"
+                      style={{
+                        borderColor: "rgba(255,255,255,0.24)",
+                        color: "rgba(255,255,255,0.85)",
+                      }}
+                    >
+                      <LogIn size={15} strokeWidth={2} />
+                      Login
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => openAuth("register")}
+                      className="group inline-flex h-10 items-center gap-2 px-5 text-[13px] font-bold transition-all duration-200 hover:-translate-y-px motion-reduce:transition-none"
+                      style={{
+                        backgroundColor: COLORS.brassLight,
+                        color: COLORS.navy,
+                      }}
+                    >
+                      Get Started
+
+                      <ArrowUpRight
+                        size={14}
+                        strokeWidth={2.2}
+                        className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                      />
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* ================= MOBILE / TABLET (up to xl) ================= */}
+            <div
+              className={`flex items-center justify-between gap-3 transition-all duration-300 xl:hidden ${
+                scrolled ? "h-[60px]" : "h-[72px]"
+              }`}
+            >
+              {/* Brand */}
+              <Link
+                href="/"
+                aria-label="SELFLESS CE home"
+                className="group flex min-w-0 shrink items-center"
+              >
+                <Image
+                  src="/freedom.png"
+                  alt="SELFLESS CE"
+                  width={152}
+                  height={44}
+                  priority
+                  className="h-auto w-[110px] object-contain transition-transform duration-300 group-hover:scale-[1.02] sm:w-[130px]"
+                />
+              </Link>
+
+              {/* Auth button + hamburger */}
+              <div className="flex shrink-0 items-center gap-1.5">
+                {isLoading ? (
+                  <div
+                    aria-hidden="true"
+                    className="h-10 w-10 animate-pulse rounded-sm"
+                    style={{
+                      backgroundColor: "rgba(255,255,255,0.08)",
+                    }}
+                  />
+                ) : user ? (
+                  <Link
+                    href="/dashboard"
+                    aria-label="Open dashboard"
+                    className="inline-flex h-10 items-center justify-center gap-1.5 px-3.5 text-[12px] font-bold"
+                    style={{
+                      backgroundColor: COLORS.brassLight,
+                      color: COLORS.navy,
+                    }}
+                  >
+                    <span>Dashboard</span>
+                    <ArrowUpRight size={14} strokeWidth={2.2} />
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => openAuth("login")}
+                    className="inline-flex h-10 items-center justify-center gap-1.5 border px-3.5 text-[12px] font-semibold transition-colors"
+                    style={{
+                      borderColor: "rgba(255,255,255,0.24)",
+                      color: COLORS.white,
+                    }}
+                  >
+                    <LogIn size={14} strokeWidth={2} />
+                    Login
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setMobileMenuOpen((current) => !current)
+                  }
+                  aria-label={
+                    mobileMenuOpen
+                      ? "Close navigation menu"
+                      : "Open navigation menu"
+                  }
+                  aria-expanded={mobileMenuOpen}
+                  className="inline-flex h-10 w-10 items-center justify-center border transition-all duration-200"
+                  style={{
+                    borderColor: mobileMenuOpen
+                      ? "rgba(232,163,61,0.55)"
+                      : "rgba(255,255,255,0.24)",
+                    color: COLORS.white,
+                    backgroundColor: mobileMenuOpen
+                      ? "rgba(232,163,61,0.14)"
+                      : "transparent",
+                  }}
+                >
+                  <AnimatePresence mode="wait" initial={false}>
+                    {mobileMenuOpen ? (
+                      <motion.span
+                        key="close"
+                        initial={{ opacity: 0, rotate: -45 }}
+                        animate={{ opacity: 1, rotate: 0 }}
+                        exit={{ opacity: 0, rotate: 45 }}
+                        transition={{ duration: 0.18 }}
+                        className="flex"
+                      >
+                        <X size={18} strokeWidth={2.2} />
+                      </motion.span>
+                    ) : (
+                      <motion.span
+                        key="menu"
+                        initial={{ opacity: 0, rotate: 45 }}
+                        animate={{ opacity: 1, rotate: 0 }}
+                        exit={{ opacity: 0, rotate: -45 }}
+                        transition={{ duration: 0.18 }}
+                        className="flex"
+                      >
+                        <Menu size={20} strokeWidth={2.2} />
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom strip — no top border, blends into nav */}
+          <AnimatedSubHeader />
+
+          {/* Mobile drawer */}
+          <AnimatePresence>
+            {openPathname === pathname && (
               <>
-                {/* LOGIN */}
-                <button
+                <motion.button
                   type="button"
-                  onClick={() => openAuthModal("login")}
-                  className="
-                    group
-                    inline-flex
-                    items-center
-                    gap-1.5
-                    rounded-lg
-                    border
-                    border-[#DADCD3]
-                    bg-white
-                    px-3.5
-                    py-2.5
-                    text-[11.5px]
-                    font-semibold
-                    leading-none
-                    tracking-wide
-                    text-[#4B564C]
-                    shadow-sm
-                    transition-all
-                    duration-200
-                    hover:border-[#B98A3E]/50
-                    hover:text-[#12203B]
-                    hover:shadow-md
-                    active:scale-[0.98]
-                    focus:outline-none
-                    focus-visible:ring-2
-                    focus-visible:ring-[#B98A3E]
-                    motion-reduce:transition-none
-                  "
+                  aria-label="Close navigation"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={closeMobileMenu}
+                  className="fixed inset-0 top-[60px] z-40 xl:hidden"
+                  style={{
+                    backgroundColor: "rgba(13,24,44,0.34)",
+                  }}
+                />
+
+                <motion.div
+                  initial={{ opacity: 0, y: -8, scale: 0.985 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.985 }}
+                  transition={{
+                    duration: 0.22,
+                    ease: [0.22, 1, 0.36, 1] as const,
+                  }}
+                  className="absolute inset-x-3 top-full z-50 overflow-hidden rounded-xl border shadow-[0_18px_45px_rgba(13,24,44,0.20)] xl:hidden"
+                  style={{
+                    borderColor: COLORS.border,
+                    backgroundColor: COLORS.page,
+                  }}
                 >
-                  <LogIn
-                    size={14}
-                    className="
-                      text-[#6B7268]
-                      transition-colors
-                      duration-200
-                      group-hover:text-[#12203B]
-                    "
-                  />
+                  <nav aria-label="Mobile navigation" className="p-2.5">
+                    {navItems.map((item, index) => {
+                      const active = isActive(item.href);
 
-                  <span>Login</span>
-                </button>
+                      return (
+                        <motion.div
+                          key={item.href}
+                          custom={index}
+                          initial="hidden"
+                          animate="visible"
+                          variants={mobileItemMotion}
+                        >
+                          <Link
+                            href={item.href}
+                            onClick={closeMobileMenu}
+                            className="group flex min-h-11 items-center justify-between rounded-lg px-3.5 text-[13px] font-semibold transition-colors"
+                            style={{
+                              backgroundColor: active
+                                ? COLORS.white
+                                : "transparent",
+                              color: active ? COLORS.navy : "#4B564C",
+                              boxShadow: active
+                                ? "0 2px 8px rgba(18,32,59,0.05)"
+                                : "none",
+                            }}
+                          >
+                            <span className="flex items-center gap-3">
+                              {active && (
+                                <span
+                                  className="h-1.5 w-1.5 rounded-full"
+                                  style={{
+                                    backgroundColor: COLORS.brass,
+                                  }}
+                                />
+                              )}
 
-                {/* GET STARTED */}
-                <button
-                  type="button"
-                  onClick={() => openAuthModal("register")}
-                  className="
-                    group
-                    inline-flex
-                    items-center
-                    gap-1.5
-                    rounded-lg
-                    bg-[#B98A3E]
-                    px-3.5
-                    py-2.5
-                    text-[11.5px]
-                    font-bold
-                    leading-none
-                    tracking-wide
-                    text-white
-                    shadow-sm
-                    transition-all
-                    duration-200
-                    hover:bg-[#A07830]
-                    hover:shadow-md
-                    active:scale-[0.98]
-                    focus:outline-none
-                    focus-visible:ring-2
-                    focus-visible:ring-[#B98A3E]
-                    focus-visible:ring-offset-2
-                    focus-visible:ring-offset-[#F1F1EC]
-                    motion-reduce:transition-none
-                  "
-                >
-                  <GraduationCap
-                    size={14}
-                    className="
-                      transition-transform
-                      duration-200
-                      group-hover:-translate-y-0.5
-                    "
-                  />
+                              <span>{item.label}</span>
+                            </span>
 
-                  <span>Get Started</span>
-                </button>
+                            <ArrowUpRight
+                              size={14}
+                              strokeWidth={1.8}
+                              className={`transition-all duration-200 ${
+                                active
+                                  ? "opacity-100"
+                                  : "opacity-0 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-70"
+                              }`}
+                              style={{
+                                color: active
+                                  ? COLORS.brass
+                                  : COLORS.subtle,
+                              }}
+                            />
+                          </Link>
+                        </motion.div>
+                      );
+                    })}
+
+                    <div
+                      className="my-2 border-t"
+                      style={{ borderColor: COLORS.border }}
+                    />
+
+                    {user ? (
+                      <Link
+                        href="/dashboard"
+                        onClick={closeMobileMenu}
+                        className="flex min-h-11 items-center justify-between rounded-lg px-3.5 text-[13px] font-semibold"
+                        style={{
+                          backgroundColor: COLORS.navy,
+                          color: COLORS.white,
+                        }}
+                      >
+                        <span>Dashboard</span>
+
+                        <ArrowUpRight size={14} />
+                      </Link>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openAuth("login")}
+                          className="flex min-h-11 items-center justify-center gap-2 rounded-lg border bg-white px-3 text-[13px] font-semibold"
+                          style={{
+                            borderColor: COLORS.border,
+                            color: COLORS.navy,
+                          }}
+                        >
+                          <LogIn size={14} />
+
+                          Login
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => openAuth("register")}
+                          className="flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 text-[13px] font-semibold"
+                          style={{
+                            backgroundColor: COLORS.brassLight,
+                            color: COLORS.navy,
+                          }}
+                        >
+                          Get Started
+
+                          <ArrowUpRight size={14} />
+                        </button>
+                      </div>
+                    )}
+
+                    <div
+                      className="mt-3 flex items-center justify-center gap-2 border-t pb-1 pt-3 text-[9px] font-medium uppercase tracking-[0.13em]"
+                      style={{
+                        borderColor: COLORS.border,
+                        color: COLORS.subtle,
+                      }}
+                    >
+                      <GraduationCap
+                        size={13}
+                        strokeWidth={1.7}
+                        style={{ color: COLORS.brass }}
+                      />
+
+                      <span>SELFLESS CE Student Portal</span>
+                    </div>
+                  </nav>
+                </motion.div>
               </>
             )}
-          </div>
-
-          {/* ====================================================
-              MOBILE ACTIONS & MENU BUTTON
-          ==================================================== */}
-          <div className="flex items-center gap-1.5 lg:hidden">
-            {/* Mobile Auth/Dashboard Button */}
-            {isAuthenticated ? (
-              <Link
-                href="/dashboard"
-                className="
-                  flex
-                  h-9
-                  items-center
-                  justify-center
-                  gap-1.5
-                  rounded-lg
-                  bg-[#12203B]
-                  px-2.5
-                  text-[10.5px]
-                  font-bold
-                  text-white
-                  shadow-sm
-                  active:scale-[0.98]
-                "
-              >
-                <LayoutDashboard size={13} />
-
-                <span>Dashboard</span>
-              </Link>
-            ) : (
-              <button
-                type="button"
-                onClick={() => openAuthModal("login")}
-                className="
-                  flex
-                  h-9
-                  items-center
-                  justify-center
-                  gap-1.5
-                  rounded-lg
-                  border
-                  border-[#DADCD3]
-                  bg-white
-                  px-2.5
-                  text-[10.5px]
-                  font-semibold
-                  text-[#12203B]
-                  shadow-sm
-                  transition-all
-                  duration-200
-                  hover:border-[#B98A3E]/50
-                  active:scale-[0.98]
-                  focus:outline-none
-                  focus-visible:ring-2
-                  focus-visible:ring-[#B98A3E]
-                "
-              >
-                <LogIn size={13} />
-
-                <span>Login</span>
-              </button>
-            )}
-
-            {/* Hamburger */}
-            <button
-              ref={menuButtonRef}
-              type="button"
-              onClick={() =>
-                setOpenPathname(mobileOpen ? null : pathname)
-              }
-              aria-label={
-                mobileOpen
-                  ? "Close navigation menu"
-                  : "Open navigation menu"
-              }
-              aria-expanded={mobileOpen}
-              aria-controls="mobile-nav-drawer"
-              className="
-                relative
-                z-[60]
-                flex
-                h-9
-                w-9
-                shrink-0
-                items-center
-                justify-center
-                rounded-lg
-                border
-                border-[#DADCD3]
-                bg-white
-                text-[#12203B]
-                shadow-sm
-                transition-all
-                duration-200
-                hover:border-[#B98A3E]/50
-                hover:shadow-md
-                focus:outline-none
-                focus-visible:ring-2
-                focus-visible:ring-[#B98A3E]
-                motion-reduce:transition-none
-              "
-            >
-              <Menu
-                size={17}
-                className={`
-                  absolute
-                  transition-all
-                  duration-300
-                  motion-reduce:transition-none
-                  ${
-                    mobileOpen
-                      ? "rotate-90 scale-75 opacity-0"
-                      : "rotate-0 scale-100 opacity-100"
-                  }
-                `}
-              />
-
-              <X
-                size={17}
-                className={`
-                  absolute
-                  transition-all
-                  duration-300
-                  motion-reduce:transition-none
-                  ${
-                    mobileOpen
-                      ? "rotate-0 scale-100 opacity-100"
-                      : "-rotate-90 scale-75 opacity-0"
-                  }
-                `}
-              />
-            </button>
-          </div>
+          </AnimatePresence>
         </div>
-
-        {/* ======================================================
-            SUB HEADER
-        ====================================================== */}
-        <AnimatePresence initial={false}>
-          {!isScrolled && (
-            <motion.div
-              initial={
-                prefersReducedMotion
-                  ? false
-                  : {
-                      height: 0,
-                      opacity: 0,
-                    }
-              }
-              animate={{
-                height: "auto",
-                opacity: 1,
-              }}
-              exit={
-                prefersReducedMotion
-                  ? undefined
-                  : {
-                      height: 0,
-                      opacity: 0,
-                    }
-              }
-              transition={{
-                duration: prefersReducedMotion ? 0 : 0.28,
-                ease: [0.22, 1, 0.36, 1] as const,
-              }}
-              className="
-                hidden
-                overflow-hidden
-                border-t
-                border-[#DADCD3]
-                bg-[#E8E8E0]
-                sm:block
-              "
-            >
-              <div
-                className="
-                  mx-auto
-                  flex
-                  max-w-7xl
-                  items-center
-                  justify-between
-                  gap-6
-                  px-4
-                  py-2
-                  sm:px-6
-                  lg:px-8
-                "
-              >
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <span className="h-4 w-1 shrink-0 rounded-full bg-[#B98A3E]" />
-
-                  <span
-                    className="
-                      whitespace-nowrap
-                      text-[10.5px]
-                      font-bold
-                      leading-none
-                      tracking-wide
-                      text-[#12203B]
-                    "
-                  >
-                    Student Self Service Portal
-                  </span>
-
-                  <span className="text-[#9CA39A]">
-                    •
-                  </span>
-
-                  <span
-                    className="
-                      hidden
-                      text-[10.5px]
-                      font-medium
-                      leading-none
-                      text-[#6B7268]
-                      md:inline
-                    "
-                  >
-                    All education in one place
-                  </span>
-                </div>
-
-                <p
-                  className="
-                    min-w-0
-                    truncate
-                    text-right
-                    text-[10px]
-                    font-medium
-                    leading-normal
-                    tracking-wide
-                    text-[#6B7268]
-                  "
-                >
-                  Centralized platform for BYU-Idaho courses,
-                  progress tracking, and the SELFLESS Tech Network.
-                </p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* ======================================================
-            MOBILE DRAWER
-        ====================================================== */}
-        <AnimatePresence initial={false}>
-          {mobileOpen && (
-            <motion.div
-              id="mobile-nav-drawer"
-              ref={drawerRef}
-              initial={
-                prefersReducedMotion
-                  ? false
-                  : {
-                      opacity: 0,
-                      y: -8,
-                    }
-              }
-              animate={{
-                opacity: 1,
-                y: 0,
-              }}
-              exit={
-                prefersReducedMotion
-                  ? undefined
-                  : {
-                      opacity: 0,
-                      y: -8,
-                    }
-              }
-              transition={{
-                duration: prefersReducedMotion ? 0 : 0.25,
-                ease: [0.22, 1, 0.36, 1] as const,
-              }}
-              className="
-                absolute
-                inset-x-0
-                top-full
-                z-[55]
-                border-b
-                border-[#DADCD3]
-                bg-[#F1F1EC]
-                px-4
-                py-4
-                shadow-[0_18px_40px_rgba(18,32,59,0.09)]
-                lg:hidden
-              "
-            >
-              <div className="mx-auto max-w-md">
-                {/* Mobile introduction */}
-                <div
-                  className="
-                    mb-4
-                    border-b
-                    border-[#DADCD3]
-                    pb-4
-                  "
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="h-4 w-1 rounded-full bg-[#B98A3E]" />
-
-                    <p
-                      className="
-                        text-[11.5px]
-                        font-bold
-                        leading-none
-                        tracking-wide
-                        text-[#12203B]
-                      "
-                    >
-                      Student Self Service Portal
-                    </p>
-                  </div>
-
-                  <p
-                    className="
-                      mt-2
-                      pl-3.5
-                      text-[10.5px]
-                      font-medium
-                      leading-relaxed
-                      text-[#6B7268]
-                    "
-                  >
-                    Manage your BYU-Idaho courses and tech center
-                    connectivity from one place.
-                  </p>
-                </div>
-
-                {/* Mobile navigation */}
-                <nav
-                  className="space-y-1"
-                  aria-label="Mobile navigation"
-                >
-                  {navItems.map((item, index) => {
-                    const active = isActive(item.href);
-
-                    return (
-                      <motion.div
-                        key={item.href}
-                        custom={index}
-                        variants={mobileItemMotion}
-                        initial="hidden"
-                        animate="visible"
-                      >
-                        <Link
-                          href={item.href}
-                          aria-current={active ? "page" : undefined}
-                          onClick={closeMobileMenu}
-                          className={`
-                            group
-                            flex
-                            items-center
-                            justify-between
-                            rounded-lg
-                            px-3.5
-                            py-3
-                            text-[12.5px]
-                            font-semibold
-                            leading-none
-                            tracking-wide
-                            transition-all
-                            duration-200
-                            ${
-                              active
-                                ? "bg-[#B98A3E]/10 text-[#12203B]"
-                                : "text-[#4B564C] hover:bg-[#E8E8E0] hover:text-[#12203B]"
-                            }
-                          `}
-                        >
-                          <span className="flex items-center gap-3">
-                            <span
-                              className={`
-                                h-1.5
-                                w-1.5
-                                shrink-0
-                                rounded-full
-                                transition-transform
-                                duration-200
-                                group-hover:scale-125
-                                ${
-                                  active
-                                    ? "bg-[#B98A3E]"
-                                    : "bg-[#9CA39A]"
-                                }
-                              `}
-                            />
-
-                            {item.label}
-                          </span>
-
-                          <ArrowUpRight
-                            size={14}
-                            className={`
-                              transition-transform
-                              duration-200
-                              group-hover:-translate-y-0.5
-                              group-hover:translate-x-0.5
-                              ${
-                                active
-                                  ? "text-[#B98A3E]"
-                                  : "text-[#9CA39A]"
-                              }
-                            `}
-                          />
-                        </Link>
-                      </motion.div>
-                    );
-                  })}
-                </nav>
-
-                {/* Divider */}
-                <div className="my-4 h-px bg-[#DADCD3]" />
-
-                {/* Mobile actions */}
-                <motion.div
-                  initial={
-                    prefersReducedMotion
-                      ? false
-                      : {
-                          opacity: 0,
-                          y: 6,
-                        }
-                  }
-                  animate={{
-                    opacity: 1,
-                    y: 0,
-                  }}
-                  transition={{
-                    delay: prefersReducedMotion ? 0 : 0.2,
-                    duration: prefersReducedMotion ? 0 : 0.3,
-                  }}
-                  className="grid grid-cols-2 gap-2.5"
-                >
-                  {isAuthenticated ? (
-                    <Link
-                      href="/dashboard"
-                      onClick={closeMobileMenu}
-                      className="
-                        col-span-2
-                        flex
-                        items-center
-                        justify-center
-                        gap-2
-                        rounded-lg
-                        bg-[#12203B]
-                        py-3
-                        text-[12px]
-                        font-bold
-                        leading-none
-                        tracking-wide
-                        text-white
-                        shadow-sm
-                        transition-all
-                        duration-200
-                        hover:bg-[#1A2D4A]
-                        active:scale-[0.99]
-                      "
-                    >
-                      <LayoutDashboard size={15} />
-
-                      <span>Dashboard</span>
-
-                      <ArrowUpRight size={14} />
-                    </Link>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => openAuthModal("login")}
-                        className="
-                          flex
-                          items-center
-                          justify-center
-                          gap-2
-                          rounded-lg
-                          border
-                          border-[#DADCD3]
-                          bg-white
-                          py-3
-                          text-[12px]
-                          font-semibold
-                          leading-none
-                          tracking-wide
-                          text-[#4B564C]
-                          shadow-sm
-                          transition-all
-                          duration-200
-                          hover:border-[#B98A3E]/50
-                          hover:text-[#12203B]
-                          active:scale-[0.99]
-                        "
-                      >
-                        <LogIn size={15} />
-
-                        <span>Login</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => openAuthModal("register")}
-                        className="
-                          flex
-                          items-center
-                          justify-center
-                          gap-2
-                          rounded-lg
-                          bg-[#B98A3E]
-                          py-3
-                          text-[12px]
-                          font-bold
-                          leading-none
-                          tracking-wide
-                          text-white
-                          shadow-sm
-                          transition-all
-                          duration-200
-                          hover:bg-[#A07830]
-                          active:scale-[0.99]
-                        "
-                      >
-                        <GraduationCap size={15} />
-
-                        <span>Get Started</span>
-                      </button>
-                    </>
-                  )}
-                </motion.div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </header>
 
-      {/* ========================================================
-          AUTH MODAL
-      ======================================================== */}
       <AuthModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
