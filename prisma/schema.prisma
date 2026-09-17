@@ -153,13 +153,16 @@ model User {
   // AI Assistant Relations
   aiConversations AIConversation[]
   aiLearningProfile AILearningProfile?
-  
+
   // ============================================
   // MESSAGING RELATIONS - Add these
   // ============================================
-  
+
   // Messages sent by this user
   sentMessages Message[] @relation("SenderMessages")
+
+  // Video Requests
+  videoRequests VideoRequest[] @relation("VideoRequests")
   
 
   
@@ -228,6 +231,7 @@ model TechCenter {
   activityLogs ActivityLog[]
   footballTeam FootballTeam[]
   teamMemberships TeamMembership[]
+  videoRequests VideoRequest[] @relation("VideoRequestTechCenter")
   
   @@index([countryId])
   @@index([isActive])
@@ -909,4 +913,36 @@ model Media {
   @@index([createdAt])
   @@index([isActive])
   @@map("media")
+}
+
+// ============================================
+// VIDEO REQUESTS
+// ============================================
+
+model VideoRequest {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+
+  // User who made the request
+  userId      String   @db.ObjectId
+  user        User     @relation("VideoRequests", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Request content
+  request     String   // What they want to watch
+
+  // Tech center location
+  techCenterId String? @db.ObjectId
+  techCenter   TechCenter? @relation("VideoRequestTechCenter", fields: [techCenterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  // Status
+  status      String   @default("pending") // "pending", "fulfilled", "rejected"
+
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([techCenterId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("video_requests")
 }
