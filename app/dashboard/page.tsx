@@ -30,11 +30,10 @@ import {
   Trash2,
   Loader2,
   Send,
-  MoreVertical,
 } from 'lucide-react';
 
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { useAuth } from '@/lib/hooks/useAuth';
 import {
@@ -345,64 +344,66 @@ function MediaLibrary() {
         </div>
 
         {/* Compact Request Section */}
-        <div className="border-t border-[#E5E7EB] bg-white">
-          <div className="px-4 py-2 border-b border-[#E5E7EB] bg-[#1A2B4C]">
-            <h4 className="text-[10px] font-semibold text-white uppercase tracking-wider">
-              Video Requests
-            </h4>
+        <div className="border-t border-[#E5E7EB] bg-white px-4 py-2">
+          <div className="flex items-center gap-2 mb-2">
+            <input
+              type="text"
+              value={requestInput}
+              onChange={(e) => setRequestInput(e.target.value)}
+              onKeyPress={(e) => e.key === "Enter" && handleRequestSubmit(requestInput)}
+              placeholder="Request what you need to watch today..."
+              maxLength={30}
+              className="flex-1 h-7 px-2 bg-[#F8F9FA] border border-[#E5E7EB] rounded text-[10px] text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#C59B4C] focus:bg-white transition-colors"
+              disabled={isSubmittingRequest}
+            />
+            <button
+              onClick={() => handleRequestSubmit(requestInput)}
+              disabled={!requestInput.trim() || isSubmittingRequest}
+              className="inline-flex items-center justify-center gap-1 h-7 px-2 bg-[#C59B4C] text-white text-[9px] font-medium rounded hover:bg-[#B08A3E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmittingRequest ? (
+                <div className="w-2.5 h-2.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Send className="w-2.5 h-2.5" />
+              )}
+            </button>
           </div>
-          <div className="px-4 py-2">
-            <div className="flex items-center gap-2 mb-2">
-              <input
-                type="text"
-                value={requestInput}
-                onChange={(e) => setRequestInput(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleRequestSubmit(requestInput)}
-                placeholder="Request what you need to watch today..."
-                className="flex-1 h-8 px-2 bg-[#F8F9FA] border border-[#E5E7EB] rounded text-[11px] text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#C59B4C] focus:bg-white transition-colors"
-                disabled={isSubmittingRequest}
-              />
-              <button
-                onClick={() => handleRequestSubmit(requestInput)}
-                disabled={!requestInput.trim() || isSubmittingRequest}
-                className="inline-flex items-center justify-center gap-1 h-8 px-3 bg-[#C59B4C] text-white text-[10px] font-medium rounded hover:bg-[#B08A3E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmittingRequest ? (
-                  <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <Send className="w-3 h-3" />
-                )}
-              </button>
-            </div>
 
-            {/* Recent Requests */}
-            {videoRequests.length > 0 && (
-              <div className="h-24 overflow-y-auto bg-[#F8F9FA] rounded border border-[#E5E7EB] p-2">
-                <div className="space-y-1">
-                  {videoRequests.slice(0, 10).map((item) => (
-                    <div key={item.id} className="flex items-center justify-between text-[10px] text-[#1A2B4C] border-b border-[#E5E7EB] pb-1 last:border-0">
-                      <div className="flex items-center gap-1 flex-1 min-w-0">
-                        <span className="font-medium text-[#C59B4C] shrink-0">
-                          {item.user.firstName} {item.user.lastName.charAt(0)}.
-                        </span>
-                        <span className="text-[#6B7280] shrink-0">•</span>
-                        <span className="ml-1 truncate">{item.request}</span>
-                      </div>
+          {/* Recent Requests - Scrollable */}
+          {videoRequests.length > 0 && (
+            <div className="bg-[#F8F9FA] rounded border border-[#E5E7EB] p-1.5">
+              <div className="max-h-20 overflow-y-auto space-y-1">
+                {videoRequests.map((item) => (
+                  <div key={item.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-[9px] text-[#1A2B4C] border-b border-[#E5E7EB] pb-0.5 last:border-0">
+                    <div className="flex items-center gap-1 flex-1 min-w-0 mb-0.5 sm:mb-0">
+                      <span className="font-medium text-[#C59B4C] shrink-0 whitespace-nowrap">
+                        {item.user.firstName} {item.user.lastName}
+                      </span>
+                      {item.techCenter && (
+                        <>
+                          <span className="text-[#6B7280] shrink-0">•</span>
+                          <span className="ml-1 text-[#6B7280] shrink-0 whitespace-nowrap">{item.techCenter.name}</span>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 flex-1 min-w-0">
+                      <span className="text-[#6B7280] shrink-0 hidden sm:inline">•</span>
+                      <span className="ml-1 truncate">{item.request.length > 30 ? `${item.request.substring(0, 30)}...` : item.request}</span>
                       {item.user.id === user?.id && (
                         <button
                           onClick={() => handleDeleteRequest(item.id)}
-                          className="shrink-0 text-[#6B7280] hover:text-red-600 transition-colors ml-2"
+                          className="shrink-0 text-[#6B7280] hover:text-red-600 transition-colors ml-1"
                           aria-label="Delete request"
                         >
-                          <MoreVertical className="h-3 w-3" />
+                          <Trash2 className="h-2.5 w-2.5" />
                         </button>
                       )}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -486,7 +487,7 @@ function MediaLibrary() {
               Media Library
             </h4>
           </div>
-          <div className="h-32 overflow-y-auto">
+          <div className="max-h-32 overflow-y-auto">
             {videos.map((item, idx) => (
               <button
                 key={item.id}
@@ -509,71 +510,71 @@ function MediaLibrary() {
       )}
 
       {/* Compact Request Section - Music Style */}
-      <div className="border-t border-[#E5E7EB] bg-white">
-        <div className="px-4 py-2 border-b border-[#E5E7EB] bg-[#1A2B4C]">
-          <h4 className="text-[10px] font-semibold text-white uppercase tracking-wider">
-            Request what you want to watch
-          </h4>
+      <div className="border-t border-[#E5E7EB] bg-white px-4 py-2">
+        <div className="flex items-center gap-2 mb-2">
+          <input
+            type="text"
+            value={requestInput}
+            onChange={(e) => setRequestInput(e.target.value)}
+            onKeyPress={(e) => e.key === "Enter" && handleRequestSubmit(requestInput)}
+            placeholder="Request what you need to watch today..."
+            maxLength={30}
+            className="flex-1 h-7 px-2 bg-[#F8F9FA] border border-[#E5E7EB] rounded text-[10px] text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#C59B4C] focus:bg-white transition-colors"
+            disabled={isSubmittingRequest}
+          />
+          <button
+            onClick={() => handleRequestSubmit(requestInput)}
+            disabled={!requestInput.trim() || isSubmittingRequest}
+            className="inline-flex items-center justify-center gap-1 h-7 px-2 bg-[#C59B4C] text-white text-[9px] font-medium rounded hover:bg-[#B08A3E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSubmittingRequest ? (
+              <div className="w-2.5 h-2.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Send className="w-2.5 h-2.5" />
+            )}
+          </button>
         </div>
-        <div className="px-4 py-2">
-          <div className="flex items-center gap-2 mb-2">
-            <input
-              type="text"
-              value={requestInput}
-              onChange={(e) => setRequestInput(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleRequestSubmit(requestInput)}
-              placeholder="Request what you need to watch today..."
-              className="flex-1 h-8 px-2 bg-[#F8F9FA] border border-[#E5E7EB] rounded text-[11px] text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#C59B4C] focus:bg-white transition-colors"
-              disabled={isSubmittingRequest}
-            />
-            <button
-              onClick={() => handleRequestSubmit(requestInput)}
-              disabled={!requestInput.trim() || isSubmittingRequest}
-              className="inline-flex items-center justify-center gap-1 h-8 px-3 bg-[#C59B4C] text-white text-[10px] font-medium rounded hover:bg-[#B08A3E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmittingRequest ? (
-                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <Send className="w-3 h-3" />
-              )}
-            </button>
-          </div>
 
-          {/* Recent Requests - Scrollable Text */}
-          {videoRequests.length > 0 && (
-            <div className="h-24 overflow-y-auto bg-[#F8F9FA] rounded border border-[#E5E7EB] p-2">
-              <div className="space-y-1">
-                {videoRequests.slice(0, 10).map((item) => (
-                  <div key={item.id} className="flex items-center justify-between text-[10px] text-[#1A2B4C] border-b border-[#E5E7EB] pb-1 last:border-0">
-                    <div className="flex items-center gap-1 flex-1 min-w-0">
-                      <span className="font-medium text-[#C59B4C] shrink-0">
-                        {item.user.firstName} {item.user.lastName.charAt(0)}.
-                      </span>
-                      <span className="text-[#6B7280] shrink-0">•</span>
-                      <span className="ml-1 truncate">{item.request}</span>
-                    </div>
+        {/* Recent Requests - Scrollable */}
+        {videoRequests.length > 0 && (
+          <div className="bg-[#F8F9FA] rounded border border-[#E5E7EB] p-1.5">
+            <div className="max-h-20 overflow-y-auto space-y-1">
+              {videoRequests.map((item) => (
+                <div key={item.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-[9px] text-[#1A2B4C] border-b border-[#E5E7EB] pb-0.5 last:border-0">
+                  <div className="flex items-center gap-1 flex-1 min-w-0 mb-0.5 sm:mb-0">
+                    <span className="font-medium text-[#C59B4C] shrink-0 whitespace-nowrap">
+                      {item.user.firstName} {item.user.lastName}
+                    </span>
+                    {item.techCenter && (
+                      <>
+                        <span className="text-[#6B7280] shrink-0">•</span>
+                        <span className="ml-1 text-[#6B7280] shrink-0 whitespace-nowrap">{item.techCenter.name}</span>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 flex-1 min-w-0">
+                    <span className="text-[#6B7280] shrink-0 hidden sm:inline">•</span>
+                    <span className="ml-1 truncate">{item.request.length > 30 ? `${item.request.substring(0, 30)}...` : item.request}</span>
                     {item.user.id === user?.id && (
                       <button
                         onClick={() => handleDeleteRequest(item.id)}
-                        className="shrink-0 text-[#6B7280] hover:text-red-600 transition-colors ml-2"
+                        className="shrink-0 text-[#6B7280] hover:text-red-600 transition-colors ml-1"
                         aria-label="Delete request"
                       >
-                        <MoreVertical className="h-3 w-3" />
+                        <Trash2 className="h-2.5 w-2.5" />
                       </button>
                     )}
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
     </div>
   );
 }
-
-
 
 /* ============================================================
    MAIN PAGE
@@ -744,7 +745,7 @@ export default function DashboardPage() {
   const studentCount = assignmentData?.studentCount || 0;
 
   /* ============================================================
-     ROTATING MESSAGES
+     ROTATING MESSAGES - Enhanced with more short, professional phrases
   ============================================================ */
 
   const motivationMessages = useMemo(
@@ -754,7 +755,13 @@ export default function DashboardPage() {
       'Use your time well. Keep learning and keep building.',
       'Your skills grow through practice, patience and consistency.',
       'Stay curious. Ask questions. Keep moving forward.',
-      'Small progress today can create meaningful opportunities tomorrow.',
+      'Small progress today creates opportunities tomorrow.',
+      'Focus on progress, not perfection.',
+      'Consistency compounds. Show up daily.',
+      'Your future self is watching. Make them proud.',
+      'Skills are built one session at a time.',
+      'Stay hungry. Stay humble. Keep building.',
+      'Great things take time. Trust the process.',
     ],
     [],
   );
@@ -1130,31 +1137,36 @@ export default function DashboardPage() {
           </motion.section>
         )}
 
-        {/* MOTIVATION STRIP */}
+        {/* MOTIVATION STRIP - Enhanced with standard icon and animated short messages */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.4, delay: 0.25 }}
           className="mt-6"
         >
-          <div className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-5 py-4 shadow-sm">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#C59B4C]/10">
-              <Sparkles className="h-4 w-4 text-[#C59B4C]" />
+          <div className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3.5 shadow-sm sm:px-5">
+            {/* Standard icon - Sparkles in a clean sticker style */}
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#C59B4C]/10 border border-[#C59B4C]/20">
+              <Sparkles className="h-4 w-4 text-[#C59B4C]" strokeWidth={1.8} />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-[#C59B4C] mb-0.5">
+              <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-[#C59B4C] mb-1">
                 Today&apos;s Focus
               </p>
-              <motion.p
-                key={messageIndex}
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.3 }}
-                className="text-sm font-medium text-[#1A2B4C] truncate"
-              >
-                {motivationMessages[messageIndex]}
-              </motion.p>
+              <div className="relative h-5 overflow-hidden">
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={messageIndex}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                    className="text-[13px] font-medium text-[#1A2B4C] leading-snug"
+                  >
+                    {motivationMessages[messageIndex]}
+                  </motion.p>
+                </AnimatePresence>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -1174,8 +1186,6 @@ export default function DashboardPage() {
           </div>
           <MediaLibrary />
         </motion.section>
-
-
 
         {/* QUICK LINKS */}
         <motion.section
