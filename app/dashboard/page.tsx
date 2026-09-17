@@ -29,6 +29,8 @@ import {
   Sparkles,
   Trash2,
   Loader2,
+  Send,
+  MoreVertical,
 } from 'lucide-react';
 
 import { useRouter } from 'next/navigation';
@@ -145,6 +147,26 @@ interface MediaItem {
   } | null;
 }
 
+interface VideoRequest {
+  id: string;
+  request: string;
+  status: string;
+  createdAt: string;
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    profileImageUrl: string | null;
+  };
+  techCenter?: {
+    id: string;
+    name: string;
+    country?: {
+      name: string;
+    };
+  } | null;
+}
+
 /* ============================================================
    MEDIA LIBRARY (Azure-backed)
    ------------------------------------------------------------
@@ -174,6 +196,20 @@ function MediaLibrary() {
     gcTime: 10 * 60 * 1000,
   });
 
+  const { data: videoRequests = [] } = useQuery<VideoRequest[]>({
+    queryKey: ['video-requests'],
+    queryFn: async () => {
+      const response = await fetch('/api/video-requests');
+      if (!response.ok) throw new Error('Failed to fetch video requests');
+      const data = await response.json();
+      if (!data.success) throw new Error(data?.error ?? 'Failed');
+      return data.data as VideoRequest[];
+    },
+    staleTime: 1 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    enabled: !!user?.id,
+  });
+
   const videos = useMemo(
     () => items.filter((item) => item.contentType.startsWith('video/')),
     [items],
@@ -182,6 +218,8 @@ function MediaLibrary() {
   const [rawIndex, setRawIndex] = useState(0);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [currentVideoKey, setCurrentVideoKey] = useState<string>("");
+  const [requestInput, setRequestInput] = useState("");
+  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
   const videoPlayerRef = useRef<{ play: () => void } | null>(null);
 
   const currentIndex =
@@ -241,6 +279,44 @@ function MediaLibrary() {
     }
   };
 
+  const handleRequestSubmit = async (request: string) => {
+    try {
+      const response = await fetch('/api/video-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data?.error ?? 'Request failed');
+      }
+      // Clear input immediately
+      setRequestInput("");
+      // Invalidate requests query to refresh the list instantly
+      queryClient.invalidateQueries({ queryKey: ['video-requests'] });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to submit request');
+    }
+  };
+
+  const handleDeleteRequest = async (requestId: string) => {
+    if (!confirm('Delete this request?')) return;
+    
+    try {
+      const response = await fetch(`/api/video-requests/${requestId}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data?.error ?? 'Delete failed');
+      }
+      // Invalidate requests query to refresh the list instantly
+      queryClient.invalidateQueries({ queryKey: ['video-requests'] });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete request');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center gap-2 rounded-xl border border-[#E5E7EB] bg-white py-12 text-sm text-[#6B7280] shadow-sm">
@@ -260,14 +336,74 @@ function MediaLibrary() {
 
   if (videos.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-[#D1D5DB] bg-white px-6 py-12 text-center">
-        <Video className="mx-auto mb-3 h-8 w-8 text-[#9CA3AF]" />
-        <p className="text-sm font-medium text-[#1A2B4C]">
-          No videos in the library yet
-        </p>
-        <p className="mt-1 text-xs text-[#6B7280]">
-          Videos uploaded by any student will appear here.
-        </p>
+      <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-sm">
+        <div className="rounded-xl border border-dashed border-[#D1D5DB] bg-white px-6 py-8 text-center">
+          <Video className="mx-auto mb-2 h-6 w-6 text-[#9CA3AF]" />
+          <p className="text-xs font-medium text-[#1A2B4C]">
+            No videos in the library yet
+          </p>
+        </div>
+
+        {/* Compact Request Section */}
+        <div className="border-t border-[#E5E7EB] bg-white">
+          <div className="px-4 py-2 border-b border-[#E5E7EB] bg-[#1A2B4C]">
+            <h4 className="text-[10px] font-semibold text-white uppercase tracking-wider">
+              Video Requests
+            </h4>
+          </div>
+          <div className="px-4 py-2">
+            <div className="flex items-center gap-2 mb-2">
+              <input
+                type="text"
+                value={requestInput}
+                onChange={(e) => setRequestInput(e.target.value)}
+                onKeyPress={(e) => e.key === "Enter" && handleRequestSubmit(requestInput)}
+                placeholder="Request what you need to watch today..."
+                className="flex-1 h-8 px-2 bg-[#F8F9FA] border border-[#E5E7EB] rounded text-[11px] text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#C59B4C] focus:bg-white transition-colors"
+                disabled={isSubmittingRequest}
+              />
+              <button
+                onClick={() => handleRequestSubmit(requestInput)}
+                disabled={!requestInput.trim() || isSubmittingRequest}
+                className="inline-flex items-center justify-center gap-1 h-8 px-3 bg-[#C59B4C] text-white text-[10px] font-medium rounded hover:bg-[#B08A3E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmittingRequest ? (
+                  <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Send className="w-3 h-3" />
+                )}
+              </button>
+            </div>
+
+            {/* Recent Requests */}
+            {videoRequests.length > 0 && (
+              <div className="h-24 overflow-y-auto bg-[#F8F9FA] rounded border border-[#E5E7EB] p-2">
+                <div className="space-y-1">
+                  {videoRequests.slice(0, 10).map((item) => (
+                    <div key={item.id} className="flex items-center justify-between text-[10px] text-[#1A2B4C] border-b border-[#E5E7EB] pb-1 last:border-0">
+                      <div className="flex items-center gap-1 flex-1 min-w-0">
+                        <span className="font-medium text-[#C59B4C] shrink-0">
+                          {item.user.firstName} {item.user.lastName.charAt(0)}.
+                        </span>
+                        <span className="text-[#6B7280] shrink-0">•</span>
+                        <span className="ml-1 truncate">{item.request}</span>
+                      </div>
+                      {item.user.id === user?.id && (
+                        <button
+                          onClick={() => handleDeleteRequest(item.id)}
+                          className="shrink-0 text-[#6B7280] hover:text-red-600 transition-colors ml-2"
+                          aria-label="Delete request"
+                        >
+                          <MoreVertical className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
@@ -300,17 +436,17 @@ function MediaLibrary() {
         )}
       </div>
 
-      {/* Controls */}
-      <div className="flex items-center justify-between gap-2 border-t border-[#E5E7EB] bg-[#F8F9FA] px-4 py-3">
+      {/* Compact Controls */}
+      <div className="flex items-center justify-between gap-2 border-t border-[#E5E7EB] bg-[#F8F9FA] px-4 py-2">
         <button
           type="button"
           onClick={goPrevious}
           disabled={videos.length <= 1}
           aria-label="Previous video"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-xs font-medium text-[#1A2B4C] shadow-sm transition-colors hover:border-[#C59B4C] hover:text-[#C59B4C] disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex items-center gap-1 rounded border border-[#E5E7EB] bg-white px-2 py-1 text-[10px] font-medium text-[#1A2B4C] hover:border-[#C59B4C] hover:text-[#C59B4C] disabled:cursor-not-allowed disabled:opacity-40"
         >
-          <ChevronLeft className="h-3.5 w-3.5" />
-          Previous
+          <ChevronLeft className="h-3 w-3" />
+          Prev
         </button>
 
         <button
@@ -318,74 +454,126 @@ function MediaLibrary() {
           onClick={goNext}
           disabled={videos.length <= 1}
           aria-label="Next video"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-xs font-medium text-[#1A2B4C] shadow-sm transition-colors hover:border-[#C59B4C] hover:text-[#C59B4C] disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex items-center gap-1 rounded border border-[#E5E7EB] bg-white px-2 py-1 text-[10px] font-medium text-[#1A2B4C] hover:border-[#C59B4C] hover:text-[#C59B4C] disabled:cursor-not-allowed disabled:opacity-40"
         >
           Next
-          <ChevronRight className="h-3.5 w-3.5" />
+          <ChevronRight className="h-3 w-3" />
         </button>
+
+        {/* Delete button - only for video owner */}
+        {canDeleteCurrent && (
+          <button
+            type="button"
+            onClick={() => handleDelete(current.id)}
+            disabled={deletingId === current.id}
+            className="inline-flex items-center gap-1 text-[10px] font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
+          >
+            {deletingId === current.id ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Trash2 className="h-3 w-3" />
+            )}
+            Delete
+          </button>
+        )}
       </div>
 
-      {/* Current video info */}
-      {current && (
-        <div className="border-t border-[#E5E7EB] px-4 py-4 sm:px-5">
-          <h3 className="text-sm font-semibold text-[#1A2B4C]">
-            {current.title}
-          </h3>
-          {current.description && (
-            <p className="mt-1 text-xs leading-5 text-[#6B7280]">
-              {current.description}
-            </p>
-          )}
-
-          {/* Delete button — only visible to the video's owner */}
-          {canDeleteCurrent && (
-            <button
-              type="button"
-              onClick={() => handleDelete(current.id)}
-              disabled={deletingId === current.id}
-              className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
-            >
-              {deletingId === current.id ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Trash2 className="h-3.5 w-3.5" />
-              )}
-              Delete video
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Video list navigation */}
+      {/* Compact Video Library - Music Style */}
       {videos.length > 0 && (
         <div className="border-t border-[#E5E7EB] bg-white">
-          <div className="px-4 py-3 border-b border-[#E5E7EB]">
-            <h4 className="text-xs font-semibold text-[#6B7280] uppercase tracking-wide">
-              Video Library
+          <div className="px-4 py-2 border-b border-[#E5E7EB] bg-[#1A2B4C]">
+            <h4 className="text-[10px] font-semibold text-white uppercase tracking-wider">
+              Media Library
             </h4>
           </div>
-          <div className="h-40 overflow-y-auto">
+          <div className="h-32 overflow-y-auto">
             {videos.map((item, idx) => (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => selectVideo(idx)}
-                className={`w-full text-left px-4 py-3 border-b border-[#E5E7EB] transition-all ${
+                className={`w-full text-left px-4 py-1.5 border-b border-[#E5E7EB] transition-all text-[11px] ${
                   idx === currentIndex
-                    ? 'bg-[#C59B4C]/10 border-l-4 border-l-[#C59B4C] text-[#C59B4C] font-medium'
-                    : 'hover:bg-[#F8F9FA] text-blue-600 underline border-l-4 border-l-transparent'
+                    ? 'bg-[#C59B4C]/10 text-[#C59B4C] font-medium border-l-2 border-l-[#C59B4C]'
+                    : 'hover:bg-[#F8F9FA] text-[#1A2B4C] border-l-2 border-l-transparent'
                 }`}
-                aria-label={`Play ${item.title}`}
               >
-                <div className="text-sm">{item.title}</div>
+                <div className="flex items-center gap-2">
+                  <Video className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{item.title}</span>
+                </div>
               </button>
             ))}
           </div>
         </div>
       )}
+
+      {/* Compact Request Section - Music Style */}
+      <div className="border-t border-[#E5E7EB] bg-white">
+        <div className="px-4 py-2 border-b border-[#E5E7EB] bg-[#1A2B4C]">
+          <h4 className="text-[10px] font-semibold text-white uppercase tracking-wider">
+            Request what you want to watch
+          </h4>
+        </div>
+        <div className="px-4 py-2">
+          <div className="flex items-center gap-2 mb-2">
+            <input
+              type="text"
+              value={requestInput}
+              onChange={(e) => setRequestInput(e.target.value)}
+              onKeyPress={(e) => e.key === "Enter" && handleRequestSubmit(requestInput)}
+              placeholder="Request what you need to watch today..."
+              className="flex-1 h-8 px-2 bg-[#F8F9FA] border border-[#E5E7EB] rounded text-[11px] text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#C59B4C] focus:bg-white transition-colors"
+              disabled={isSubmittingRequest}
+            />
+            <button
+              onClick={() => handleRequestSubmit(requestInput)}
+              disabled={!requestInput.trim() || isSubmittingRequest}
+              className="inline-flex items-center justify-center gap-1 h-8 px-3 bg-[#C59B4C] text-white text-[10px] font-medium rounded hover:bg-[#B08A3E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmittingRequest ? (
+                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Send className="w-3 h-3" />
+              )}
+            </button>
+          </div>
+
+          {/* Recent Requests - Scrollable Text */}
+          {videoRequests.length > 0 && (
+            <div className="h-24 overflow-y-auto bg-[#F8F9FA] rounded border border-[#E5E7EB] p-2">
+              <div className="space-y-1">
+                {videoRequests.slice(0, 10).map((item) => (
+                  <div key={item.id} className="flex items-center justify-between text-[10px] text-[#1A2B4C] border-b border-[#E5E7EB] pb-1 last:border-0">
+                    <div className="flex items-center gap-1 flex-1 min-w-0">
+                      <span className="font-medium text-[#C59B4C] shrink-0">
+                        {item.user.firstName} {item.user.lastName.charAt(0)}.
+                      </span>
+                      <span className="text-[#6B7280] shrink-0">•</span>
+                      <span className="ml-1 truncate">{item.request}</span>
+                    </div>
+                    {item.user.id === user?.id && (
+                      <button
+                        onClick={() => handleDeleteRequest(item.id)}
+                        className="shrink-0 text-[#6B7280] hover:text-red-600 transition-colors ml-2"
+                        aria-label="Delete request"
+                      >
+                        <MoreVertical className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
     </div>
   );
 }
+
+
 
 /* ============================================================
    MAIN PAGE
@@ -987,11 +1175,13 @@ export default function DashboardPage() {
           <MediaLibrary />
         </motion.section>
 
+
+
         {/* QUICK LINKS */}
         <motion.section
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.35 }}
           className="mt-6"
         >
           <div className="flex items-center gap-2 mb-3">
@@ -1036,7 +1226,7 @@ export default function DashboardPage() {
           <motion.section
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
+            transition={{ delay: 0.45 }}
             className="mt-6"
           >
             <div className="flex flex-col gap-4 rounded-xl border border-[#C59B4C]/30 bg-gradient-to-r from-[#FBF7EE] to-white p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6 shadow-sm">
@@ -1076,7 +1266,7 @@ export default function DashboardPage() {
           <motion.section
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45 }}
+            transition={{ delay: 0.5 }}
             className="mt-6"
           >
             <div className="flex items-center gap-2 mb-3">
@@ -1142,7 +1332,7 @@ export default function DashboardPage() {
           <motion.section
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
+            transition={{ delay: 0.55 }}
             className="mt-6"
           >
             <div className="flex items-center gap-2 mb-3">
@@ -1296,7 +1486,7 @@ export default function DashboardPage() {
             <motion.section
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.55 }}
+              transition={{ delay: 0.6 }}
               className="mt-6"
             >
               <div className="flex items-center gap-2 mb-3">
@@ -1352,7 +1542,7 @@ export default function DashboardPage() {
         <motion.section
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
+          transition={{ delay: 0.65 }}
           className="mt-6"
         >
           <div className="flex items-center gap-2 mb-3">
@@ -1415,7 +1605,7 @@ export default function DashboardPage() {
         <motion.section
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
+          transition={{ delay: 0.75 }}
           className="mt-6"
         >
           <div className="relative overflow-hidden rounded-2xl bg-[#1A2B4C] p-6 shadow-lg sm:p-8">
