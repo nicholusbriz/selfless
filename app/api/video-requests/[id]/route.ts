@@ -21,7 +21,7 @@ export async function DELETE(
     const { id: requestId } = await params;
 
     // Check if the request exists and belongs to the user
-    const existingRequest = await (prisma as any).videoRequest.findUnique({
+    const existingRequest = await prisma.videoRequest.findUnique({
       where: { id: requestId },
       select: { userId: true }
     });
@@ -42,7 +42,7 @@ export async function DELETE(
     }
 
     // Delete the request
-    await (prisma as any).videoRequest.delete({
+    await prisma.videoRequest.delete({
       where: { id: requestId }
     });
 

@@ -25,12 +25,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create video request without tech center restriction
-    const videoRequest = await (prisma as any).videoRequest.create({
+    if (requestContent.trim().length > 30) {
+      return NextResponse.json(
+        { success: false, error: 'Request content must be 30 characters or less' },
+        { status: 400 }
+      );
+    }
+
+    // Create video request with user's tech center
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { techCenterId: true }
+    });
+
+    const videoRequest = await prisma.videoRequest.create({
       data: {
         userId: session.user.id,
         request: requestContent.trim(),
-        techCenterId: null,
+        techCenterId: user?.techCenterId || null,
         status: 'pending'
       }
     });
@@ -62,7 +74,7 @@ export async function GET(request: NextRequest) {
     }
 
     // All users see all requests from all tech centers
-    const requests = await (prisma as any).videoRequest.findMany({
+    const requests = await prisma.videoRequest.findMany({
       include: {
         user: {
           select: {

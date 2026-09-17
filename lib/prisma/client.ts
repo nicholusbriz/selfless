@@ -11,6 +11,7 @@
  * but we use the global object to cache it in development.
  */
 
+// Regenerated after adding VideoRequest model
 import { PrismaClient } from '@prisma/client';
 
 // Use global object to cache Prisma Client across hot reloads
