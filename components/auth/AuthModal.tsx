@@ -22,6 +22,28 @@ import {
 } from 'lucide-react';
 
 // ============================================
+// THEME TOKENS — matches Header2 exactly
+// ============================================
+
+const COLORS = {
+  navy: '#12203B',
+  navyDeep: '#0D182C',
+  navSurface: '#1A2D49',
+  navBorder: '#304763',
+
+  brass: '#B98A3E',
+  brassLight: '#E8A33D',
+  brassBright: '#F0B85C',
+
+  white: '#FFFFFF',
+  softWhite: '#F7F6F2',
+  page: '#F1F1EC',
+  border: '#DADCD3',
+  muted: '#6B7268',
+  subtle: '#8A9088',
+};
+
+// ============================================
 // TYPES
 // ============================================
 
@@ -35,23 +57,23 @@ interface TechCenter {
 }
 
 // ============================================
-// SHARED STYLES
+// SHARED STYLES — light "paper" card on dark backdrop
 // ============================================
 
 const inputClassName =
-  'w-full px-4 py-3 bg-[#0B0912]/70 border border-[#2A2438] rounded-xl text-[#F5F0E8] placeholder-[#6B6358] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/30 focus:border-[#E8A33D]/60 transition-all duration-200';
+  'w-full px-4 py-3 bg-white border border-[#DADCD3] rounded-lg text-[#12203B] placeholder-[#8A9088] focus:outline-none focus:ring-2 focus:ring-[#E8A33D]/35 focus:border-[#E8A33D] transition-all duration-200';
 
 const labelClassName =
-  'text-sm font-medium text-[#C8BFB2] flex items-center gap-2';
+  'text-sm font-semibold text-[#12203B] flex items-center gap-2';
 
 const primaryButtonClassName =
-  'w-full py-3 bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] rounded-xl font-semibold text-[#0B0912] transition-all duration-300 shadow-lg shadow-[#E8A33D]/20 hover:shadow-[#E8A33D]/40 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2';
+  'w-full py-3 bg-[#E8A33D] hover:bg-[#F0B85C] rounded-lg font-bold text-[#12203B] transition-all duration-200 shadow-[0_4px_14px_rgba(232,163,61,0.25)] hover:shadow-[0_6px_20px_rgba(232,163,61,0.35)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2';
 
 const secondaryTextButtonClassName =
-  'text-[#F2C879] hover:text-[#E8A33D] font-medium transition-colors duration-200';
+  'text-[#B98A3E] hover:text-[#E8A33D] font-semibold transition-colors duration-200';
 
 const cardClassName =
-  'bg-[#150F20] rounded-2xl border border-[#2A2438] p-6 sm:p-8 max-h-[90vh] overflow-y-auto relative shadow-2xl shadow-[#E8A33D]/5';
+  'bg-[#F1F1EC] rounded-2xl border border-[#DADCD3] p-6 sm:p-8 max-h-[90vh] overflow-y-auto relative shadow-[0_24px_60px_rgba(13,24,44,0.35)]';
 
 // ============================================
 // PASSWORD INPUT WITH TOGGLE
@@ -92,7 +114,7 @@ function PasswordInput({
       <button
         type="button"
         onClick={() => setShowPassword(!showPassword)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B6358] hover:text-[#A79C8C] transition-colors duration-200"
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8A9088] hover:text-[#12203B] transition-colors duration-200"
         tabIndex={-1}
         aria-label={showPassword ? 'Hide password' : 'Show password'}
       >
@@ -118,24 +140,25 @@ interface AuthHeaderProps {
 function AuthHeader({ title, description }: AuthHeaderProps) {
   return (
     <div className="text-center mb-7">
-      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#E8A33D] to-[#C97F1F] p-[2px] shadow-lg shadow-[#E8A33D]/30 mx-auto mb-4">
-        <div className="w-full h-full rounded-2xl bg-[#0B0912] flex items-center justify-center overflow-hidden">
+      {/* Brand mark — brass ring + navy center, matching header brand block */}
+      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#E8A33D] to-[#B98A3E] p-[2px] shadow-[0_8px_24px_rgba(232,163,61,0.28)] mx-auto mb-4">
+        <div className="w-full h-full rounded-2xl bg-[#12203B] flex items-center justify-center overflow-hidden">
           <img
             src="/freedom.png"
-            alt="Freedom City Tech Center"
+            alt="SELFLESS CE"
             className="w-full h-full object-cover"
           />
         </div>
       </div>
 
       <h2
-        className="text-2xl font-bold text-[#F5F0E8]"
+        className="text-2xl font-bold text-[#12203B]"
         style={{ fontFamily: 'var(--font-display)' }}
       >
         {title}
       </h2>
 
-      <p className="text-[#A79C8C] text-sm mt-1.5 leading-5">
+      <p className="text-[#4B564C] text-sm mt-1.5 leading-5">
         {description}
       </p>
     </div>
@@ -155,17 +178,17 @@ function FeedbackMessage({ type, children }: FeedbackMessageProps) {
   const styles = {
     error: {
       wrapper:
-        'text-[#F0827A] bg-[#E05252]/10 border-[#E05252]/20',
+        'text-[#B23A3A] bg-[#E05252]/8 border-[#E05252]/25',
       icon: <AlertCircle className="w-4 h-4 flex-shrink-0" />,
     },
     success: {
       wrapper:
-        'text-[#45C7A6] bg-[#2FA88A]/10 border-[#2FA88A]/20',
+        'text-[#1E7A63] bg-[#2FA88A]/8 border-[#2FA88A]/25',
       icon: <CheckCircle className="w-4 h-4 flex-shrink-0" />,
     },
     info: {
       wrapper:
-        'text-[#F2C879] bg-[#E8A33D]/10 border-[#E8A33D]/20',
+        'text-[#8A6620] bg-[#E8A33D]/10 border-[#E8A33D]/30',
       icon: <Key className="w-4 h-4 flex-shrink-0" />,
     },
   };
@@ -175,7 +198,7 @@ function FeedbackMessage({ type, children }: FeedbackMessageProps) {
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
-      className={`flex items-start gap-2 text-sm border rounded-xl p-3.5 ${styles[type].wrapper}`}
+      className={`flex items-start gap-2 text-sm border rounded-lg p-3.5 ${styles[type].wrapper}`}
     >
       {styles[type].icon}
       <span className="leading-5">{children}</span>
@@ -197,18 +220,18 @@ function ResetCodeNote({ email }: ResetCodeNoteProps) {
     `Please send me my reset code. My email is: ${email}`;
 
   return (
-    <div className="rounded-xl border border-[#25D366]/15 bg-[#25D366]/5 p-4">
+    <div className="rounded-lg border border-[#25D366]/25 bg-[#25D366]/6 p-4">
       <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-lg bg-[#25D366]/10 flex items-center justify-center flex-shrink-0">
+        <div className="w-9 h-9 rounded-lg bg-[#25D366]/12 flex items-center justify-center flex-shrink-0">
           <MessageCircle className="w-4 h-4 text-[#25D366]" />
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-[#D7CEC1]">
+          <p className="text-sm font-semibold text-[#12203B]">
             Need your reset code?
           </p>
 
-          <p className="text-xs text-[#91877B] leading-5 mt-1.5">
+          <p className="text-xs text-[#4B564C] leading-5 mt-1.5">
             A new reset token has been generated for your account.
             Please contact the administrator and let them know that
             you have requested a new token so they can send you the
@@ -221,7 +244,7 @@ function ResetCodeNote({ email }: ResetCodeNoteProps) {
             )}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 mt-3 text-sm font-semibold text-[#25D366] hover:text-[#55E58B] transition-colors"
+            className="inline-flex items-center gap-2 mt-3 text-sm font-semibold text-[#1E9C55] hover:text-[#25D366] transition-colors"
           >
             <span>Contact administrator</span>
             <ArrowRight className="w-4 h-4" />
@@ -297,7 +320,7 @@ function LoginForm({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <label className={labelClassName}>
-              <Mail className="w-4 h-4 text-[#6B6358]" />
+              <Mail className="w-4 h-4 text-[#8A9088]" />
               Email Address
             </label>
 
@@ -314,7 +337,7 @@ function LoginForm({
 
           <div className="space-y-1.5">
             <label className={labelClassName}>
-              <Lock className="w-4 h-4 text-[#6B6358]" />
+              <Lock className="w-4 h-4 text-[#8A9088]" />
               Password
             </label>
 
@@ -331,7 +354,7 @@ function LoginForm({
               <button
                 type="button"
                 onClick={onSwitchToForgotPassword}
-                className="text-sm text-[#F2C879] hover:text-[#E8A33D] transition-colors duration-200"
+                className="text-sm text-[#B98A3E] hover:text-[#E8A33D] transition-colors duration-200"
               >
                 Forgot Password?
               </button>
@@ -367,7 +390,7 @@ function LoginForm({
           </motion.button>
         </form>
 
-        <p className="text-center text-sm text-[#A79C8C] mt-6">
+        <p className="text-center text-sm text-[#4B564C] mt-6">
           Don&apos;t have an account?{' '}
           <button
             type="button"
@@ -508,13 +531,13 @@ function RegisterForm({
       <div className={cardClassName}>
         <AuthHeader
           title="Create Account"
-          description="Join the Freedom City Tech community"
+          description="Join the SELFLESS CE community"
         />
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <label className={labelClassName}>
-              <User className="w-4 h-4 text-[#6B6358]" />
+              <User className="w-4 h-4 text-[#8A9088]" />
               First Name
             </label>
 
@@ -532,7 +555,7 @@ function RegisterForm({
 
           <div className="space-y-1.5">
             <label className={labelClassName}>
-              <User className="w-4 h-4 text-[#6B6358]" />
+              <User className="w-4 h-4 text-[#8A9088]" />
               Last Name
             </label>
 
@@ -550,7 +573,7 @@ function RegisterForm({
 
           <div className="space-y-1.5">
             <label className={labelClassName}>
-              <Mail className="w-4 h-4 text-[#6B6358]" />
+              <Mail className="w-4 h-4 text-[#8A9088]" />
               Email Address
             </label>
 
@@ -568,7 +591,7 @@ function RegisterForm({
 
           <div className="space-y-1.5">
             <label className={labelClassName}>
-              <Phone className="w-4 h-4 text-[#6B6358]" />
+              <Phone className="w-4 h-4 text-[#8A9088]" />
               Phone Number
             </label>
 
@@ -586,7 +609,7 @@ function RegisterForm({
 
           <div className="space-y-1.5">
             <label className={labelClassName}>
-              <Building2 className="w-4 h-4 text-[#6B6358]" />
+              <Building2 className="w-4 h-4 text-[#8A9088]" />
               Tech Center
             </label>
 
@@ -615,7 +638,7 @@ function RegisterForm({
 
           <div className="space-y-1.5">
             <label className={labelClassName}>
-              <User className="w-4 h-4 text-[#6B6358]" />
+              <User className="w-4 h-4 text-[#8A9088]" />
               Gender
             </label>
 
@@ -634,7 +657,7 @@ function RegisterForm({
 
           <div className="space-y-1.5">
             <label className={labelClassName}>
-              <Lock className="w-4 h-4 text-[#6B6358]" />
+              <Lock className="w-4 h-4 text-[#8A9088]" />
               Password
             </label>
 
@@ -657,7 +680,7 @@ function RegisterForm({
                 <button
                   type="button"
                   onClick={onSwitchToForgotPassword}
-                  className="text-sm text-[#F2C879] hover:text-[#E8A33D] transition-colors duration-200"
+                  className="text-sm text-[#B98A3E] hover:text-[#E8A33D] transition-colors duration-200"
                 >
                   Forgot Password?
                 </button>
@@ -702,7 +725,7 @@ function RegisterForm({
           </motion.button>
         </form>
 
-        <p className="text-center text-sm text-[#A79C8C] mt-6">
+        <p className="text-center text-sm text-[#4B564C] mt-6">
           Already have an account?{' '}
           <button
             type="button"
@@ -1048,11 +1071,11 @@ function ForgotPasswordForm({
         ======================================== */}
 
         <div className="mb-7">
-          <div className="flex items-center justify-between text-[11px] font-medium text-[#6B6358] mb-2">
+          <div className="flex items-center justify-between text-[11px] font-semibold text-[#8A9088] mb-2">
             <span
               className={
                 step === 'request'
-                  ? 'text-[#E8A33D]'
+                  ? 'text-[#B98A3E]'
                   : ''
               }
             >
@@ -1062,7 +1085,7 @@ function ForgotPasswordForm({
             <span
               className={
                 step === 'verify'
-                  ? 'text-[#E8A33D]'
+                  ? 'text-[#B98A3E]'
                   : ''
               }
             >
@@ -1072,7 +1095,7 @@ function ForgotPasswordForm({
             <span
               className={
                 step === 'reset'
-                  ? 'text-[#E8A33D]'
+                  ? 'text-[#B98A3E]'
                   : ''
               }
             >
@@ -1087,7 +1110,7 @@ function ForgotPasswordForm({
                 step === 'verify' ||
                 step === 'reset'
                   ? 'bg-[#E8A33D]'
-                  : 'bg-[#2A2438]'
+                  : 'bg-[#DADCD3]'
               }`}
             />
 
@@ -1096,7 +1119,7 @@ function ForgotPasswordForm({
                 step === 'verify' ||
                 step === 'reset'
                   ? 'bg-[#E8A33D]'
-                  : 'bg-[#2A2438]'
+                  : 'bg-[#DADCD3]'
               }`}
             />
 
@@ -1104,7 +1127,7 @@ function ForgotPasswordForm({
               className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
                 step === 'reset'
                   ? 'bg-[#E8A33D]'
-                  : 'bg-[#2A2438]'
+                  : 'bg-[#DADCD3]'
               }`}
             />
           </div>
@@ -1121,7 +1144,7 @@ function ForgotPasswordForm({
           >
             <div className="space-y-1.5">
               <label className={labelClassName}>
-                <Mail className="w-4 h-4 text-[#6B6358]" />
+                <Mail className="w-4 h-4 text-[#8A9088]" />
                 Email Address
               </label>
 
@@ -1137,8 +1160,6 @@ function ForgotPasswordForm({
                 required
               />
             </div>
-
-            {/* Active Token Notice */}
 
             <AnimatePresence>
               {hasActiveToken && (
@@ -1181,7 +1202,7 @@ function ForgotPasswordForm({
                 onClick={() => setStep('verify')}
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full py-3 bg-gradient-to-r from-[#34D399] to-[#2DD4BF] rounded-xl font-semibold text-[#0B0912] transition-all duration-300 shadow-lg shadow-[#34D399]/20 hover:shadow-[#34D399]/40 flex items-center justify-center gap-2"
+                className="w-full py-3 bg-[#E8A33D] hover:bg-[#F0B85C] rounded-lg font-bold text-[#12203B] transition-all duration-200 shadow-[0_4px_14px_rgba(232,163,61,0.25)] flex items-center justify-center gap-2"
               >
                 <Key className="w-5 h-5" />
                 <span>Enter Reset Code</span>
@@ -1229,7 +1250,7 @@ function ForgotPasswordForm({
           >
             <div className="space-y-1.5">
               <label className={labelClassName}>
-                <Mail className="w-4 h-4 text-[#6B6358]" />
+                <Mail className="w-4 h-4 text-[#8A9088]" />
                 Email Address
               </label>
 
@@ -1248,7 +1269,7 @@ function ForgotPasswordForm({
 
             <div className="space-y-1.5">
               <label className={labelClassName}>
-                <Key className="w-4 h-4 text-[#6B6358]" />
+                <Key className="w-4 h-4 text-[#8A9088]" />
                 Reset Code
               </label>
 
@@ -1270,7 +1291,7 @@ function ForgotPasswordForm({
                 required
               />
 
-              <p className="text-[11px] text-[#6B6358]">
+              <p className="text-[11px] text-[#8A9088]">
                 Enter the 6-digit code provided by the
                 administrator.
               </p>
@@ -1291,10 +1312,6 @@ function ForgotPasswordForm({
                 </FeedbackMessage>
               )}
             </AnimatePresence>
-
-            {/* ========================================
-                SINGLE ADMINISTRATOR CONTACT NOTE
-            ======================================== */}
 
             <ResetCodeNote email={email} />
 
@@ -1323,7 +1340,7 @@ function ForgotPasswordForm({
             <button
               type="button"
               onClick={() => setStep('request')}
-              className="w-full py-2 text-[#A79C8C] hover:text-[#F5F0E8] text-sm transition-colors"
+              className="w-full py-2 text-[#8A9088] hover:text-[#12203B] text-sm transition-colors"
             >
               Back to Request
             </button>
@@ -1339,18 +1356,18 @@ function ForgotPasswordForm({
             onSubmit={handleResetPassword}
             className="space-y-4"
           >
-            <div className="rounded-xl border border-[#2A2438] bg-[#0B0912]/40 p-4">
+            <div className="rounded-lg border border-[#DADCD3] bg-white p-4">
               <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-lg bg-[#E8A33D]/10 flex items-center justify-center flex-shrink-0">
-                  <CheckCircle className="w-4 h-4 text-[#E8A33D]" />
+                <div className="w-9 h-9 rounded-lg bg-[#E8A33D]/15 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle className="w-4 h-4 text-[#B98A3E]" />
                 </div>
 
                 <div>
-                  <p className="text-sm font-semibold text-[#D7CEC1]">
+                  <p className="text-sm font-semibold text-[#12203B]">
                     Reset code verified
                   </p>
 
-                  <p className="text-xs text-[#91877B] leading-5 mt-1">
+                  <p className="text-xs text-[#4B564C] leading-5 mt-1">
                     Your reset code has been verified.
                     Create a new password below to
                     complete the process.
@@ -1361,7 +1378,7 @@ function ForgotPasswordForm({
 
             <div className="space-y-1.5">
               <label className={labelClassName}>
-                <Lock className="w-4 h-4 text-[#6B6358]" />
+                <Lock className="w-4 h-4 text-[#8A9088]" />
                 New Password
               </label>
 
@@ -1379,7 +1396,7 @@ function ForgotPasswordForm({
 
             <div className="space-y-1.5">
               <label className={labelClassName}>
-                <Lock className="w-4 h-4 text-[#6B6358]" />
+                <Lock className="w-4 h-4 text-[#8A9088]" />
                 Confirm Password
               </label>
 
@@ -1434,7 +1451,7 @@ function ForgotPasswordForm({
             <button
               type="button"
               onClick={() => setStep('verify')}
-              className="w-full py-2 text-[#A79C8C] hover:text-[#F5F0E8] text-sm transition-colors"
+              className="w-full py-2 text-[#8A9088] hover:text-[#12203B] text-sm transition-colors"
             >
               Back to Verify
             </button>
@@ -1445,7 +1462,7 @@ function ForgotPasswordForm({
             FOOTER
         ======================================== */}
 
-        <p className="text-center text-sm text-[#A79C8C] mt-6">
+        <p className="text-center text-sm text-[#4B564C] mt-6">
           Remember your password?{' '}
           <button
             type="button"
@@ -1534,7 +1551,8 @@ export default function AuthModal({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+        className="fixed inset-0 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm"
+        style={{ backgroundColor: 'rgba(13,24,44,0.72)' }}
         onClick={onClose}
       >
         <motion.div
@@ -1572,26 +1590,32 @@ export default function AuthModal({
             }}
             whileTap={{ scale: 0.9 }}
             onClick={onClose}
-            className="absolute -top-12 right-0 text-[#A79C8C] hover:text-[#F5F0E8] transition-colors duration-200 z-10 p-2"
+            className="absolute -top-12 right-0 text-white/70 hover:text-white transition-colors duration-200 z-10 p-2"
             aria-label="Close authentication dialog"
           >
             <X className="w-6 h-6" />
           </motion.button>
 
           {/* ========================================
-              LOGIN / REGISTER TOGGLE
+              LOGIN / REGISTER TOGGLE — matches header's brass active state
           ======================================== */}
 
           {type !== 'forgot-password' && (
             <div className="flex justify-center mb-4">
-              <div className="bg-[#0B0912] rounded-full p-1 border border-[#2A2438]">
+              <div
+                className="rounded-full p-1 border"
+                style={{
+                  backgroundColor: COLORS.navyDeep,
+                  borderColor: 'rgba(232,163,61,0.28)',
+                }}
+              >
                 <button
                   type="button"
                   onClick={() => setType('login')}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
+                  className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-300 ${
                     type === 'login'
-                      ? 'bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] text-[#0B0912] shadow-lg shadow-[#E8A33D]/20'
-                      : 'text-[#A79C8C] hover:text-[#F5F0E8]'
+                      ? 'bg-[#E8A33D] text-[#12203B] shadow-[0_4px_14px_rgba(232,163,61,0.35)]'
+                      : 'text-white/65 hover:text-white'
                   }`}
                 >
                   Sign In
@@ -1600,10 +1624,10 @@ export default function AuthModal({
                 <button
                   type="button"
                   onClick={() => setType('register')}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
+                  className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-300 ${
                     type === 'register'
-                      ? 'bg-gradient-to-r from-[#E8A33D] to-[#C97F1F] text-[#0B0912] shadow-lg shadow-[#E8A33D]/20'
-                      : 'text-[#A79C8C] hover:text-[#F5F0E8]'
+                      ? 'bg-[#E8A33D] text-[#12203B] shadow-[0_4px_14px_rgba(232,163,61,0.35)]'
+                      : 'text-white/65 hover:text-white'
                   }`}
                 >
                   Register
