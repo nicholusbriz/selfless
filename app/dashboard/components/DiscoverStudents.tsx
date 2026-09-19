@@ -486,7 +486,7 @@ export function DiscoverStudents({
               fill
               sizes="(max-width: 768px) 290px, 290px"
               className="object-cover object-center"
-              quality={85}
+              quality={95}
               priority={isCenter}
             />
 
@@ -498,10 +498,10 @@ export function DiscoverStudents({
             ================================================= */}
 
             <div
-              className="pointer-events-none absolute inset-x-0 bottom-0 h-[48%]"
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-[38%]"
               style={{
                 background:
-                  "linear-gradient(to top, rgba(24,33,47,0.98) 0%, rgba(24,33,47,0.84) 30%, rgba(24,33,47,0.45) 62%, rgba(24,33,47,0) 100%)",
+                  "linear-gradient(to top, rgba(24,33,47,0.88) 0%, rgba(24,33,47,0.70) 30%, rgba(24,33,47,0.30) 62%, rgba(24,33,47,0) 100%)",
               }}
             />
           </div>
@@ -510,7 +510,7 @@ export function DiscoverStudents({
               STUDENT INFORMATION
           ================================================== */}
 
-          <div className="absolute inset-x-0 bottom-0 z-10 overflow-hidden px-4 pb-4 pt-14">
+          <div className="absolute inset-x-0 bottom-0 z-10 overflow-hidden px-4 pb-4 pt-8">
             <AnimatePresence
               mode="wait"
               initial={false}
@@ -839,92 +839,44 @@ export function DiscoverStudents({
             )}
           </div>
 
-          {/* ==================================================
-              MOBILE CONTROLS
-              
-              No blur.
-          ================================================== */}
 
-          <div className="absolute bottom-2 left-0 right-0 flex items-center justify-between px-4 sm:hidden">
-            {/* Previous */}
-            <button
-              type="button"
-              onClick={() => move(-1)}
-              disabled={
-                isAnimating ||
-                students.length <= 1
-              }
-              aria-label="Previous student"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-[#18212F] text-white/80 shadow-lg transition-all hover:bg-[#202A39] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
-            >
-              <ArrowLeft
-                className="h-4 w-4"
-                strokeWidth={2}
-              />
-            </button>
-
-            {/* Pagination */}
-            <div className="mx-2 flex max-w-[120px] items-center justify-center gap-1.5 overflow-hidden">
-              {students.map(
-                (student, index) => {
-                  const isActive =
-                    index ===
-                    safeCurrentIndex;
-
-                  return (
-                    <button
-                      key={student.id}
-                      type="button"
-                      aria-label={`Go to student ${index + 1
-                        }`}
-                      onClick={() =>
-                        goToStudent(index)
-                      }
-                      className={[
-                        "h-1.5 rounded-full transition-all duration-300",
-                        isActive
-                          ? "w-5 bg-white"
-                          : "w-1.5 bg-white/25 hover:bg-white/45",
-                      ].join(" ")}
-                    />
-                  );
-                },
-              )}
-            </div>
-
-            {/* Next */}
-            <button
-              type="button"
-              onClick={() => move(1)}
-              disabled={
-                isAnimating ||
-                students.length <= 1
-              }
-              aria-label="Next student"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-[#18212F] text-white/80 shadow-lg transition-all hover:bg-[#202A39] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
-            >
-              <ArrowRight
-                className="h-4 w-4"
-                strokeWidth={2}
-              />
-            </button>
-          </div>
         </div>
 
         {/* ==================================================
             FOOTER
         ================================================== */}
 
-        <div className="flex items-center justify-center border-t border-white/[0.07] px-5 py-2.5">
+        <div className="flex items-center justify-between border-t border-white/[0.07] px-4 py-2.5 sm:justify-center">
+          {/* Prev — mobile only */}
+          <button
+            type="button"
+            onClick={() => move(-1)}
+            disabled={isAnimating || students.length <= 1}
+            aria-label="Previous student"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-white/70 transition-all hover:bg-white/[0.10] hover:text-white disabled:cursor-not-allowed disabled:opacity-30 sm:hidden"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.8} />
+          </button>
+
+          {/* Count — always centred */}
           <div className="flex items-center gap-2 text-[12px] text-white/60">
             <span className="font-medium text-white/80">
               {safeCurrentIndex + 1}
             </span>
-
             <span>/</span>
-
             <span>{students.length}</span>
           </div>
+
+          {/* Next — mobile only */}
+          <button
+            type="button"
+            onClick={() => move(1)}
+            disabled={isAnimating || students.length <= 1}
+            aria-label="Next student"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-white/70 transition-all hover:bg-white/[0.10] hover:text-white disabled:cursor-not-allowed disabled:opacity-30 sm:hidden"
+          >
+            <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
+          </button>
         </div>
       </div>
     </section>

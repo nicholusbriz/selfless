@@ -9,7 +9,8 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "migrate:images": "tsx scripts/migrate-images-to-azure.ts"
   },
   "prisma": {
     "seed": "node ./prisma/test-database.js"
