@@ -202,8 +202,32 @@ export async function PATCH(
         }
       }
 
-      // super_admin touching any other role (admin, teacher, student) → free.
-      // admin touching teacher/student → free (within their tech center scope).
+      // Promoting a fresh (never-promoted) user to an elevated role:
+      //   • super_admin can promote any fresh user to super_admin or admin
+      //   • admin can promote any fresh user to admin (super_admin blocked above)
+      // A user is "fresh" when their promotedById is null.
+      // If they already have a promoter it must be this caller — enforced by
+      // the checks above for same-elevated-role targets, and below for
+      // lower-role targets that were previously promoted by someone else.
+
+      // admin or super_admin touching a non-elevated user who was already
+      // promoted by a different person → block (ownership violation).
+      const targetIsElevated =
+        user.role?.name === 'super_admin' ||
+        user.role?.name === 'admin' ||
+        user.role?.name === 'dev';
+
+      if (!targetIsElevated && user.promotedById && user.promotedById !== session.user.id) {
+        // The target has a different promoter recorded — they belong to someone
+        // else's chain. Block to prevent cross-chain reassignment.
+        return NextResponse.json(
+          { error: 'This user was promoted by a different admin. You cannot change their role.' },
+          { status: 403 },
+        );
+      }
+
+      // super_admin touching any other role (admin, teacher, student) → free for fresh/own.
+      // admin touching teacher/student → free for fresh/own (within their tech center scope).
     }
 
     // dev → dev: ownership check (a promoted dev cannot demote the dev who promoted them)
