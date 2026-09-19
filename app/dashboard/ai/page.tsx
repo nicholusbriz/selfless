@@ -30,31 +30,31 @@ import { cn } from '@/lib/utils';
 
 const TOKENS = `
   [data-ai-scope] {
-    --ink:        #12203B;
-    --ink-2:      #3D4A61;
-    --ink-3:      #6B7268;
-    --ink-4:      #8A9088;
+    --ink:        #172235;
+    --ink-2:      #405067;
+    --ink-3:      #697587;
+    --ink-4:      #929BA7;
 
     --surface:    #FFFFFF;
-    --surface-2:  #F7F6F2;
-    --surface-3:  #EDECE6;
+    --surface-2:  #F5F7F8;
+    --surface-3:  #EDF1F3;
 
-    --line:       #DADCD3;
-    --line-strong:#C8CABF;
+    --line:       #D9E0E5;
+    --line-strong:#C6D0D8;
 
     --brand:      #12203B;
-    --brand-hover:#1C2E4E;
-    --brand-soft: #F0F0EB;
+    --brand-hover:#1D3151;
+    --brand-soft: #EEF2F5;
 
-    --brass:      #B98A3E;
-    --brass-hover:#A67A34;
+    --brass:      #B8893D;
+    --brass-hover:#9F7430;
     --brass-soft: #F8F3E8;
 
-    --ok:         #55705B;
-    --ok-soft:    #EEF3EE;
+    --ok:         #4F6F59;
+    --ok-soft:    #EDF4EF;
 
     --warn:       #8A6E3A;
-    --warn-soft:  #F8F4EC;
+    --warn-soft:  #F8F3E8;
 
     --bad:        #A4462F;
     --bad-soft:   #FBF0EC;
@@ -92,6 +92,21 @@ interface Message {
   ragEnabled?: boolean;
   fromCache?: boolean;
   provider?: string;
+  studentCard?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    profileImageUrl: string | null;
+    generalCourse: string | null;
+    gender: string | null;
+    city: string | null;
+    country: string | null;
+    linkedinUrl: string | null;
+    githubUrl: string | null;
+    techCenter: { name: string } | null;
+    role: { displayName: string } | null;
+    courses: { name: string; code: string; courseUnit: string; credits: number }[];
+  } | null;
 }
 
 interface ConversationSummary {
@@ -113,9 +128,9 @@ export default function AIDashboardPage() {
     if (hour >= 5 && hour < 12) timeGreeting = 'Good morning';
     else if (hour >= 12 && hour < 17) timeGreeting = 'Good afternoon';
 
-    const greeting = `${timeGreeting}, ${userName}!`;
+    const greeting = `${timeGreeting}, ${userName}`;
 
-    let welcomeMessage = `**${greeting}** Welcome to Atbriz Ai — your intelligent learning companion.\n\n`;
+    let welcomeMessage = `**${greeting}!** Welcome to Atbriz Ai — your intelligent learning companion.\n\n`;
 
     if (profileRecommendations) {
       welcomeMessage += `${profileRecommendations}\n\n`;
@@ -125,12 +140,19 @@ export default function AIDashboardPage() {
     welcomeMessage += `• Academic guidance and assignment support\n`;
     welcomeMessage += `• Personalized learning based on your progress\n`;
     welcomeMessage += `• Platform navigation and feature guidance\n`;
-    welcomeMessage += `• Coding assistance and debugging\n`;
-    welcomeMessage += `• Answers grounded in the platform knowledge base\n`;
+    welcomeMessage += `• Student lookup by name or profile\n`;
     welcomeMessage += `• Selfless CE organization information\n`;
-    welcomeMessage += `• Developer and platform information\n\n`;
+    welcomeMessage += `• Answers grounded in the platform database\n\n`;
 
-    welcomeMessage += `**Knowledge base only:** I answer using approved information stored by the development team.\n\n`;
+    welcomeMessage += `**Approved search formats:**\n\n`;
+    welcomeMessage += `• _"Tell me about John Doe"_\n`;
+    welcomeMessage += `• _"Who is Mary Akello"_\n`;
+    welcomeMessage += `• _"Find student Brian"_\n`;
+    welcomeMessage += `• _"Show me Alice"_\n`;
+    welcomeMessage += `• _"Profile of Kevin Otim"_\n`;
+    welcomeMessage += `• _"What do you know about Sarah"_\n\n`;
+
+    welcomeMessage += `**Data source:** I answer using approved information stored in the platform database. If a field is empty, I simply leave it out.\n\n`;
 
     welcomeMessage += `I learn from our interactions to provide increasingly personalized assistance. Ask me anything about the platform or your studies.\n\n`;
     welcomeMessage += `Let's start learning together.`;
@@ -439,23 +461,28 @@ export default function AIDashboardPage() {
         {children}
       </h3>
     ),
+    h4: ({ children }: MarkdownTextProps) => (
+      <h4 className="mt-3 mb-1.5 font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--brass)]">
+        {children}
+      </h4>
+    ),
     p: ({ children }: MarkdownTextProps) => (
       <p className="mb-2 last:mb-0 break-words font-mono text-[13px] leading-relaxed text-[var(--ink-2)]">
         {children}
       </p>
     ),
     ul: ({ children }: MarkdownTextProps) => (
-      <ul className="my-2.5 list-disc list-inside space-y-1 font-mono text-[13px] text-[var(--ink-2)]">
+      <ul className="my-2.5 list-disc list-inside space-y-1 text-[13px] text-[var(--ink-2)]">
         {children}
       </ul>
     ),
     ol: ({ children }: MarkdownTextProps) => (
-      <ol className="my-2.5 list-decimal list-inside space-y-1 font-mono text-[13px] text-[var(--ink-2)]">
+      <ol className="my-2.5 list-decimal list-inside space-y-1 text-[13px] text-[var(--ink-2)]">
         {children}
       </ol>
     ),
     li: ({ children }: MarkdownTextProps) => (
-      <li className="break-words font-mono text-[13px] leading-relaxed text-[var(--ink-2)]">
+      <li className="break-words text-[13px] leading-relaxed text-[var(--ink-2)]">
         {children}
       </li>
     ),
@@ -469,13 +496,13 @@ export default function AIDashboardPage() {
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="font-medium text-[var(--brass)] underline underline-offset-2 transition-colors break-all hover:text-[var(--brass-hover)]"
+        className="font-medium text-[var(--brass)] underline decoration-[var(--brass)]/40 underline-offset-2 transition-colors break-all hover:text-[var(--brass-hover)]"
       >
         {children}
       </a>
     ),
     strong: ({ children }: MarkdownTextProps) => (
-      <strong className="font-bold text-[var(--ink)] break-words">
+      <strong className="font-semibold text-[var(--ink)] break-words">
         {children}
       </strong>
     ),
@@ -498,11 +525,11 @@ export default function AIDashboardPage() {
       if (data.success && data.data.conversation) {
         const loadedMessages = Array.isArray(data.data.conversation.messages)
           ? data.data.conversation.messages.map((message: { role: string; content: string; timestamp?: string | Date }) => ({
-              id: createMessageId(message.role),
-              role: message.role === 'user' ? 'user' : 'assistant',
-              content: message.content,
-              timestamp: new Date(message.timestamp || new Date().toISOString()),
-            }))
+            id: createMessageId(message.role),
+            role: message.role === 'user' ? 'user' : 'assistant',
+            content: message.content,
+            timestamp: new Date(message.timestamp || new Date().toISOString()),
+          }))
           : [];
 
         setActiveConversationId(conversationId);
@@ -566,10 +593,11 @@ export default function AIDashboardPage() {
           role: 'assistant',
           content: '',
           timestamp: new Date(),
-            ragEnabled: data.data.ragEnabled || false,
+          ragEnabled: data.data.ragEnabled || false,
           fromCache: data.data.fromCache || false,
           provider: data.data.provider || 'unknown',
           sources: data.data.sources || [],
+          studentCard: data.data.studentCard ?? null,
         };
         setMessages((prev) => [...prev, assistantMessage]);
         if (data.data.conversationId) {
@@ -772,11 +800,10 @@ export default function AIDashboardPage() {
                       <button
                         key={item.id}
                         onClick={() => void openConversation(item.id)}
-                        className={`w-full border px-3 py-2.5 text-left transition-colors ${focusRing} ${
-                          activeConversationId === item.id
-                            ? 'border-[var(--brass)] bg-[var(--brass-soft)]'
-                            : 'border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--surface-2)]'
-                        }`}
+                        className={`w-full border px-3 py-2.5 text-left transition-colors ${focusRing} ${activeConversationId === item.id
+                          ? 'border-[var(--brass)] bg-[var(--brass-soft)]'
+                          : 'border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--surface-2)]'
+                          }`}
                       >
                         <p className="truncate font-mono text-[12px] font-semibold text-[var(--ink)]">
                           {item.title || 'Untitled'}
@@ -887,16 +914,46 @@ export default function AIDashboardPage() {
                   message.role === 'user' ? 'text-right' : 'text-left'
                 )}>
                   <div className={cn(
-                    'inline-block w-full max-w-full border px-4 py-3 font-mono text-[13px] leading-relaxed break-words',
+                    'inline-block w-full max-w-full border px-4 py-3 text-[13px] leading-relaxed break-words',
                     message.role === 'user'
                       ? 'border-[var(--brand)] bg-[var(--brand)] text-[var(--surface-2)]'
                       : 'border-[var(--line)] bg-[var(--surface-2)] text-[var(--ink)]'
                   )}>
-                    <div className="prose prose-invert max-w-none overflow-hidden text-left prose-p:my-1 prose-headings:my-1.5 break-words">
+                    <div className="prose max-w-none overflow-hidden text-left prose-p:my-1 prose-headings:my-1.5 break-words">
                       <ReactMarkdown components={MarkdownComponents}>
                         {message.content}
                       </ReactMarkdown>
                     </div>
+
+                    {/* ── Sample prompt chips (welcome only) ─────────── */}
+                    {message.id === 'welcome' && message.role === 'assistant' && (
+                      <div className="mt-3 border-t border-[var(--line)] pt-3">
+                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-3)]">
+                          Try asking
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {[
+                            'Tell me about Tonny',
+                            'Tell me about Nicholus',
+                            'Tell me about Steven',
+                            'Tell me about Mary',
+                            'What courses am I taking?',
+                            'Show my profile',
+                          ].map((prompt) => (
+                            <button
+                              key={prompt}
+                              onClick={() => {
+                                setInput(prompt);
+                                inputRef.current?.focus();
+                              }}
+                              className={`border border-[var(--line)] bg-[var(--surface)] px-2.5 py-1 font-mono text-[10px] text-[var(--ink-2)] transition-colors hover:border-[var(--brass)] hover:bg-[var(--brass-soft)] hover:text-[var(--brass)] ${focusRing}`}
+                            >
+                              {prompt}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Copy Button */}
                     {message.role === 'assistant' && (
@@ -910,6 +967,91 @@ export default function AIDashboardPage() {
                           'Copy'
                         )}
                       </button>
+                    )}
+
+                    {/* ── Student Profile Card ─────────────────────────── */}
+                    {message.role === 'assistant' && message.studentCard && (
+                      <div className="mt-3 border border-[var(--line)] bg-[var(--surface)] p-3 shadow-[0_1px_3px_rgba(18,32,59,0.05)]">
+                        <div className="flex items-start gap-3">
+                          {/* Avatar */}
+                          <div className="shrink-0">
+                            {message.studentCard.profileImageUrl ? (
+                              <Image
+                                src={message.studentCard.profileImageUrl}
+                                alt={`${message.studentCard.firstName} ${message.studentCard.lastName}`}
+                                width={48}
+                                height={48}
+                                unoptimized
+                                className="h-12 w-12 rounded-full object-cover border border-[var(--line)]"
+                              />
+                            ) : (
+                              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--brass)]/40 bg-[var(--brand)] font-mono text-sm font-bold text-white">
+                                {message.studentCard.firstName.charAt(0).toUpperCase()}
+                                {message.studentCard.lastName.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Info */}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[13px] font-semibold text-[var(--ink)]">
+                              {message.studentCard.firstName} {message.studentCard.lastName}
+                            </p>
+                            <p className="text-[10px] font-semibold text-[var(--brass)]">
+                              {message.studentCard.role?.displayName ?? 'Student'}
+                              {message.studentCard.techCenter?.name ? ` · ${message.studentCard.techCenter.name}` : ''}
+                            </p>
+                            {message.studentCard.generalCourse && (
+                              <p className="mt-0.5 text-[11px] text-[var(--ink-3)]">
+                                {message.studentCard.generalCourse}
+                              </p>
+                            )}
+                            {(message.studentCard.city || message.studentCard.country) && (
+                              <p className="text-[10px] text-[var(--ink-4)]">
+                                {[message.studentCard.city, message.studentCard.country].filter(Boolean).join(', ')}
+                              </p>
+                            )}
+
+                            {/* Courses */}
+                            {message.studentCard.courses.length > 0 && (
+                              <div className="mt-2 border-t border-[var(--line)] pt-2">
+                                <p className="mb-1 font-mono text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-3)]">
+                                  Active courses
+                                </p>
+                                <div className="space-y-0.5">
+                                  {message.studentCard.courses.slice(0, 4).map((c) => (
+                                    <p key={c.code} className="font-mono text-[10px] text-[var(--ink-2)]">
+                                      <span className="text-[var(--brass)]">{c.code}</span>
+                                      {' · '}{c.name}
+                                    </p>
+                                  ))}
+                                  {message.studentCard.courses.length > 4 && (
+                                    <p className="text-[10px] text-[var(--ink-4)]">
+                                      +{message.studentCard.courses.length - 4} more
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Actions */}
+                            <div className="mt-2 flex items-center gap-2">
+                              <Link
+                                href={`/dashboard/students/${message.studentCard.id}`}
+                                className="border border-[var(--brand)] bg-[var(--brand)] px-2 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.08em] text-white transition-colors hover:bg-[var(--brand-hover)]"
+                              >
+                                View profile →
+                              </Link>
+                              <Link
+                                href={`/dashboard/messages?userId=${message.studentCard.id}`}
+                                className="border border-[var(--line)] px-2 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-2)] transition-colors hover:border-[var(--brass)] hover:text-[var(--brass)]"
+                              >
+                                Message
+                              </Link>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
 
@@ -934,7 +1076,7 @@ export default function AIDashboardPage() {
                     <div className="mt-2 border border-[var(--line)] bg-[var(--surface-2)] p-3">
                       <div className="mb-2 flex items-center gap-2">
                         <BookOpen className="h-3.5 w-3.5 text-[var(--brass)]" />
-                        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--ink)]">
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--ink)]">
                           Sources
                         </span>
                         <span className="font-mono text-[9px] text-[var(--ink-4)]">
@@ -1011,11 +1153,10 @@ export default function AIDashboardPage() {
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
-                className={`mb-2 flex items-center gap-2 border px-3 py-1.5 font-mono text-[10px] ${
-                  pasteContent.includes('not supported')
-                    ? 'border-[var(--bad)] bg-[var(--bad-soft)] text-[var(--bad)]'
-                    : 'border-[var(--line)] bg-[var(--surface-2)] text-[var(--ink-2)]'
-                }`}
+                className={`mb-2 flex items-center gap-2 border px-3 py-1.5 font-mono text-[10px] ${pasteContent.includes('not supported')
+                  ? 'border-[var(--bad)] bg-[var(--bad-soft)] text-[var(--bad)]'
+                  : 'border-[var(--line)] bg-[var(--surface-2)] text-[var(--ink-2)]'
+                  }`}
               >
                 <ClipboardPaste className="h-3.5 w-3.5" />
                 {pasteContent}

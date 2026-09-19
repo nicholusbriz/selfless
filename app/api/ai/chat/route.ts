@@ -21,6 +21,153 @@ type LearningProfileRecord = {
   languagePreference?: string;
 } | null;
 
+/* ─────────────────────────────────────────────────────────────
+   Student card — safe fields only, no passwords / tuition / grades
+───────────────────────────────────────────────────────────── */
+export interface StudentCard {
+  id: string;
+  firstName: string;
+  lastName: string;
+  profileImageUrl: string | null;
+  generalCourse: string | null;
+  gender: string | null;
+  city: string | null;
+  country: string | null;
+  linkedinUrl: string | null;
+  githubUrl: string | null;
+  techCenter: { name: string } | null;
+  role: { displayName: string } | null;
+  courses: { name: string; code: string; courseUnit: string; credits: number }[];
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Intent detection
+   Returns the extracted name when the message is asking about
+   a specific person, null otherwise.
+───────────────────────────────────────────────────────────── */
+function detectStudentIntent(message: string): string | null {
+  const lower = message.toLowerCase().trim();
+
+  // Patterns: "tell me about John", "who is Mary", "find student Baker",
+  //           "show me John Doe", "what do you know about Alice"
+  const patterns = [
+    /tell me about\s+(.+)/i,
+    /who is\s+(.+)/i,
+    /find\s+(?:student\s+)?(.+)/i,
+    /show me\s+(.+)/i,
+    /what do you know about\s+(.+)/i,
+    /search for\s+(.+)/i,
+    /look up\s+(.+)/i,
+    /profile of\s+(.+)/i,
+    /info(?:rmation)? (?:on|about)\s+(.+)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = lower.match(pattern);
+    if (match?.[1]) {
+      // Strip trailing punctuation / filler words
+      const name = match[1]
+        .replace(/[?.!,]+$/, '')
+        .replace(/\b(for me|please|student|user)\b/gi, '')
+        .trim();
+      // Only treat as a name if 1–4 words and not a generic phrase
+      const wordCount = name.split(/\s+/).filter(Boolean).length;
+      if (wordCount >= 1 && wordCount <= 4) return name;
+    }
+  }
+  return null;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Live student lookup — safe fields only
+───────────────────────────────────────────────────────────── */
+async function lookupStudent(nameQuery: string): Promise<StudentCard | null> {
+  const parts = nameQuery.trim().split(/\s+/);
+  const [first, ...rest] = parts;
+  const last = rest.join(' ');
+
+  try {
+    const student = await prisma.user.findFirst({
+      where: {
+        isActive: true,
+        OR: [
+          // Exact first+last match first
+          ...(last
+            ? [{ firstName: { equals: first, mode: 'insensitive' as const }, lastName: { equals: last, mode: 'insensitive' as const } }]
+            : []),
+          // Partial first name
+          { firstName: { contains: first, mode: 'insensitive' as const } },
+          // Partial last name (whole query as last name)
+          { lastName: { contains: nameQuery, mode: 'insensitive' as const } },
+        ],
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        profileImageUrl: true,
+        generalCourse: true,
+        gender: true,
+        city: true,
+        country: true,
+        linkedinUrl: true,
+        githubUrl: true,
+        techCenter: { select: { name: true } },
+        role: { select: { displayName: true } },
+        submittedCourses: {
+          where: { status: 'ACTIVE' },
+          select: { name: true, code: true, courseUnit: true, credits: true },
+        },
+      },
+    });
+
+    if (!student) return null;
+
+    return {
+      id: student.id,
+      firstName: student.firstName,
+      lastName: student.lastName,
+      profileImageUrl: student.profileImageUrl ?? null,
+      generalCourse: student.generalCourse ?? null,
+      gender: student.gender ?? null,
+      city: student.city ?? null,
+      country: student.country ?? null,
+      linkedinUrl: student.linkedinUrl ?? null,
+      githubUrl: student.githubUrl ?? null,
+      techCenter: student.techCenter ?? null,
+      role: student.role ? { displayName: student.role.displayName } : null,
+      courses: student.submittedCourses.map((c) => ({
+        name: c.name,
+        code: c.code,
+        courseUnit: c.courseUnit,
+        credits: c.credits,
+      })),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Format student data as a prompt context block
+───────────────────────────────────────────────────────────── */
+function formatStudentContext(student: StudentCard): string {
+  const courseList =
+    student.courses.length > 0
+      ? student.courses.map((c) => `  • ${c.name} (${c.code}) — ${c.courseUnit}, ${c.credits} credits`).join('\n')
+      : '  None enrolled';
+
+  return `LIVE STUDENT PROFILE (from database — answer using this data):
+- Full name: ${student.firstName} ${student.lastName}
+- Role: ${student.role?.displayName ?? 'Student'}
+- Tech Center: ${student.techCenter?.name ?? 'Not assigned'}
+- General course: ${student.generalCourse ?? 'Not specified'}
+- Location: ${[student.city, student.country].filter(Boolean).join(', ') || 'Not specified'}
+- Active courses:
+${courseList}
+`;
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
@@ -101,9 +248,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { 
-      message, 
-      conversationHistory, 
+    const {
+      message,
+      conversationHistory,
       conversationId
     } = await request.json();
     const userId = session.user.id;
@@ -160,23 +307,45 @@ TRUSTED CURRENT USER DATA:
     let response: string = '';
     let ragData: RAGResponse | null = null;
     let ragEnabled = false;
+    let studentCard: StudentCard | null = null;
+
     const isIdentityQuestion = /\b(who am i|who is me|what is my name|tell me about me)\b/i.test(message);
 
     if (isIdentityQuestion && user) {
       response = `You are ${user.firstName} ${user.lastName}, a ${user.role?.displayName || 'student'} at ${user.techCenter?.name || 'your tech center'}.`;
     }
+
+    // ── Student lookup ───────────────────────────────────────────────────────
+    let studentContext = '';
+    let isStudentQuery = false;
+
+    if (!response) {
+      const detectedName = detectStudentIntent(message);
+      if (detectedName) {
+        const found = await lookupStudent(detectedName);
+        if (found) {
+          studentCard = found;
+          studentContext = formatStudentContext(found);
+          isStudentQuery = true;
+          console.log(`[ChatRoute] Student lookup matched: ${found.firstName} ${found.lastName}`);
+        }
+      }
+    }
+
     // Chat is always database-only. Client-provided AI mode flags are ignored.
+    // For student queries we relax strictMode because the live DB data IS the source.
     if (!response) try {
       console.log('[ChatRoute] Attempting database-only RAG generation...');
       const ragOptions: RAGOptions = {
-        strictMode: true,
-        useCache: true,
+        strictMode: !isStudentQuery,   // relax when we have live student data
+        useCache: !isStudentQuery,     // never cache personalised student answers
         maxSources: 3,
         similarityThreshold: 0.65,
         hybridSearch: false,
         includeUserContext: true,
         temperature: 0.7,
-        maxTokens: 350
+        maxTokens: 450,
+        studentContext: isStudentQuery ? studentContext : undefined,
       };
 
       ragData = await generateRAGResponse(message, userContext, ragOptions);
@@ -214,6 +383,7 @@ TRUSTED CURRENT USER DATA:
       response: string;
       conversationId: string | null;
       ragEnabled: boolean;
+      studentCard?: StudentCard | null;
       sources?: SourceData[];
       fromCache?: boolean;
       provider?: string;
@@ -230,7 +400,8 @@ TRUSTED CURRENT USER DATA:
     const responseData: ResponseData = {
       response,
       conversationId: savedConversationId,
-      ragEnabled
+      ragEnabled,
+      studentCard: studentCard ?? null,
     };
 
     // Add RAG metadata if RAG was used
@@ -351,12 +522,12 @@ async function storeConversation(userId: string, userMessage: string, aiResponse
 
   const existingConversation = conversationId
     ? await prisma.aIConversation.findFirst({
-        where: { id: conversationId, userId, isActive: true },
-      })
+      where: { id: conversationId, userId, isActive: true },
+    })
     : await prisma.aIConversation.findFirst({
-        where: { userId, isActive: true },
-        orderBy: { updatedAt: 'desc' },
-      });
+      where: { userId, isActive: true },
+      orderBy: { updatedAt: 'desc' },
+    });
 
   const title = userMessage.slice(0, 50) + (userMessage.length > 50 ? '...' : '');
   const topics = extractTopics(userMessage);
@@ -402,7 +573,7 @@ async function storeConversation(userId: string, userMessage: string, aiResponse
 async function updateLearningProfile(userId: string, message: string, existingProfile?: LearningProfileRecord) {
   const topics = extractTopics(message);
   const difficulty = assessDifficulty(message);
-  
+
   if (existingProfile) {
     await prisma.aILearningProfile.update({
       where: { userId },
@@ -430,7 +601,7 @@ async function updateLearningProfile(userId: string, message: string, existingPr
 function extractTopics(message: string): string[] {
   const lowerMessage = message.toLowerCase();
   const topics = [];
-  
+
   const topicKeywords = {
     'math': ['math', 'algebra', 'calculus', 'geometry', 'statistics'],
     'programming': ['code', 'programming', 'javascript', 'python', 'react', 'api'],
@@ -439,29 +610,29 @@ function extractTopics(message: string): string[] {
     'course': ['course', 'class', 'assignment', 'homework', 'grade'],
     'navigation': ['navigate', 'find', 'where', 'how to', 'location']
   };
-  
+
   for (const [topic, keywords] of Object.entries(topicKeywords)) {
     if (keywords.some(keyword => lowerMessage.includes(keyword))) {
       topics.push(topic);
     }
   }
-  
+
   return topics.length > 0 ? topics : ['general'];
 }
 
 function assessDifficulty(message: string): string {
   const lowerMessage = message.toLowerCase();
-  
+
   // Simple heuristic for difficulty assessment
   const complexIndicators = ['explain', 'why', 'how does', 'analyze', 'compare', 'implement'];
   const basicIndicators = ['what is', 'where', 'find', 'show me', 'help me'];
-  
+
   if (complexIndicators.some(indicator => lowerMessage.includes(indicator))) {
     return 'hard';
   } else if (basicIndicators.some(indicator => lowerMessage.includes(indicator))) {
     return 'easy';
   }
-  
+
   return 'medium';
 }
 
