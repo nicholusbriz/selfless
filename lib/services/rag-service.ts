@@ -51,6 +51,7 @@ export interface RAGOptions {
   includeUserContext?: boolean; // Include user context in prompt (default: true)
   temperature?: number; // AI temperature (default: 0.7)
   maxTokens?: number; // Maximum tokens in response (default: 1000)
+  studentContext?: string; // Live student profile block from DB lookup (optional)
 }
 
 /**
@@ -103,7 +104,8 @@ export async function generateRAGResponse(
     category,
     includeUserContext = true,
     temperature = 0.7,
-    maxTokens = 350
+    maxTokens = 350,
+    studentContext = '',
   } = options;
 
   console.log(`[RAGService] Generating RAG response for: "${query.substring(0, 50)}..."`);
@@ -187,7 +189,7 @@ export async function generateRAGResponse(
     }
 
     // Build the augmented prompt
-    const prompt = buildRAGPrompt(query, sources, userContext, includeUserContext, strictMode);
+    const prompt = buildRAGPrompt(query, sources, userContext, includeUserContext, strictMode, studentContext);
 
     // Call AI provider
     console.log('[RAGService] Calling AI provider...');
@@ -245,7 +247,8 @@ function buildRAGPrompt(
   sources: KnowledgeResult[],
   userContext: string,
   includeUserContext: boolean,
-  strictMode: boolean
+  strictMode: boolean,
+  studentContext: string = ''
 ): string {
   let prompt = '';
 
@@ -255,6 +258,14 @@ function buildRAGPrompt(
   // Add user context if provided
   if (includeUserContext && userContext) {
     prompt += `${userContext}\n\n`;
+  }
+
+  // ── Live student profile from DB ──────────────────────────────────────────
+  // Injected when the user asked about a specific person. The AI should use
+  // this data to answer the question and must NOT reveal passwords, tuition,
+  // grade scores, or any financial information.
+  if (studentContext) {
+    prompt += `${studentContext}\n\n`;
   }
 
   // Add strict mode instructions
@@ -316,7 +327,8 @@ function buildRAGPrompt(
   // Add response guidelines
   prompt += `RESPONSE GUIDELINES:\n`;
   prompt += `- Keep the response short and direct\n`;
-  prompt += `- Never expose passwords, tuition, grades, tokens, or private database fields\n`;
+  prompt += `- Never expose passwords, tuition amounts, grade scores, reset tokens, or financial data\n`;
+  prompt += `- You MAY share a student's name, courses, tech center, location, bio fields, and profile image URL when directly asked\n`;
   prompt += `- Do not invent details that are not in the supplied data\n\n`;
 
   return prompt;
@@ -477,7 +489,7 @@ export async function isRAGAvailable(): Promise<boolean> {
     });
 
     // Check if any entry has a non-empty embedding
-    const hasEmbeddings = entries.some(entry => 
+    const hasEmbeddings = entries.some(entry =>
       Array.isArray(entry.embedding) && entry.embedding.length > 0
     );
 
