@@ -10,12 +10,12 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (session.user.role !== 'admin' && session.user.role !== 'super_admin') {
+    if (session.user.role !== 'admin' && session.user.role !== 'super_admin' && session.user.role !== 'dev') {
       return NextResponse.json({ error: 'Access denied. Admin privileges required.' }, { status: 403 });
     }
 
@@ -107,12 +107,12 @@ export async function PATCH(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (session.user.role !== 'admin' && session.user.role !== 'super_admin') {
+    if (session.user.role !== 'admin' && session.user.role !== 'super_admin' && session.user.role !== 'dev') {
       return NextResponse.json({ error: 'Access denied. Admin privileges required.' }, { status: 403 });
     }
 
@@ -167,7 +167,21 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { firstName, lastName, email, phoneNumber, country, city } = body;
+    const { firstName, lastName, email, phoneNumber, country, city, techCenterId } = body;
+
+    // If a tech center change is requested, verify the target tech center exists
+    if (techCenterId !== undefined && techCenterId !== '') {
+      const targetTechCenter = await prisma.techCenter.findUnique({
+        where: { id: techCenterId },
+        select: { id: true, isActive: true },
+      });
+      if (!targetTechCenter || !targetTechCenter.isActive) {
+        return NextResponse.json(
+          { error: 'Tech center not found or inactive' },
+          { status: 404 },
+        );
+      }
+    }
 
     const updateData: any = {};
     if (firstName !== undefined) updateData.firstName = firstName;
@@ -176,6 +190,10 @@ export async function PATCH(
     if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
     if (country !== undefined) updateData.country = country;
     if (city !== undefined) updateData.city = city;
+    // Allow reassignment to any active tech center (or removal when empty string)
+    if (techCenterId !== undefined) {
+      updateData.techCenterId = techCenterId === '' ? null : techCenterId;
+    }
 
     const updatedUser = await prisma.user.update({
       where: { id: userId },
@@ -194,7 +212,13 @@ export async function PATCH(
         entityId: userId,
         details: {
           updatedFields: Object.keys(updateData),
-          targetUser: `${updatedUser.firstName} ${updatedUser.lastName}`
+          targetUser: `${updatedUser.firstName} ${updatedUser.lastName}`,
+          ...(techCenterId !== undefined && {
+            techCenterChange: {
+              from: existingUser.techCenterId,
+              to: updatedUser.techCenterId,
+            },
+          }),
         },
         techCenterId: updatedUser.techCenterId,
       }

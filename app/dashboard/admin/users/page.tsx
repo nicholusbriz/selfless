@@ -23,6 +23,7 @@ import {
   Trash2,
   AlertTriangle,
   Eye,
+  Building2,
 } from 'lucide-react';
 import {
   useAdminUsers,
@@ -75,10 +76,9 @@ const StatusBadge = ({ status }: { status: string }) => {
 
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
-        styles[normalizedStatus as keyof typeof styles] ||
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${styles[normalizedStatus as keyof typeof styles] ||
         'bg-slate-100 text-slate-600 border border-slate-200'
-      }`}
+        }`}
     >
       {normalizedStatus || 'UNKNOWN'}
     </span>
@@ -96,10 +96,9 @@ const RoleBadge = ({ role }: { role: string }) => {
 
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
-        styles[normalizedRole as keyof typeof styles] ||
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${styles[normalizedRole as keyof typeof styles] ||
         'bg-slate-100 text-slate-600 border border-slate-200'
-      }`}
+        }`}
     >
       {role?.replace('_', ' ').toUpperCase() || 'STUDENT'}
     </span>
@@ -202,10 +201,20 @@ export default function AdminUsersPage() {
     firstName: '',
     lastName: '',
     email: '',
-    phoneNumber: '',
-    country: '',
-    city: '',
+    techCenterId: '',
   });
+
+  // All active tech centers for the reassignment dropdown
+  const [allTechCenters, setAllTechCenters] = useState<
+    Array<{ id: string; name: string; code: string }>
+  >([]);
+
+  useEffect(() => {
+    fetch('/api/admin/all-tech-centers')
+      .then((res) => (res.ok ? res.json() : []))
+      .then(setAllTechCenters)
+      .catch(() => { });
+  }, []);
 
   const [filters, setFilters] = useState({
     role: '',
@@ -279,9 +288,7 @@ export default function AdminUsersPage() {
         firstName: user.firstName || '',
         lastName: user.lastName || '',
         email: user.email || '',
-        phoneNumber: user.phoneNumber || '',
-        country: user.country || '',
-        city: user.city || '',
+        techCenterId: user.techCenterId || '',
       });
     }
   };
@@ -315,7 +322,7 @@ export default function AdminUsersPage() {
         onError: (mutationError: any) => {
           alert(
             mutationError.message ||
-              'Failed to update user'
+            'Failed to update user'
           );
         },
       }
@@ -338,7 +345,7 @@ export default function AdminUsersPage() {
         onError: (mutationError: any) => {
           alert(
             mutationError.message ||
-              'Failed to update user role'
+            'Failed to update user role'
           );
         },
       }
@@ -361,7 +368,7 @@ export default function AdminUsersPage() {
         onError: (mutationError: any) => {
           alert(
             mutationError.message ||
-              'Failed to update user status'
+            'Failed to update user status'
           );
         },
       }
@@ -376,18 +383,27 @@ export default function AdminUsersPage() {
   const confirmDeleteUser = () => {
     if (!userToDelete) return;
 
-    deleteUserMutation.mutate(userToDelete.id, {
+    const userId = userToDelete.id;
+
+    // Close the dialog and clear state immediately — don't wait for the
+    // server. The optimistic update in onMutate removes the row at the
+    // same time, so everything disappears the instant the admin confirms.
+    setShowDeleteDialog(false);
+    setUserToDelete(null);
+
+    deleteUserMutation.mutate(userId, {
       onSuccess: (data) => {
-        setShowDeleteDialog(false);
-        setUserToDelete(null);
+        // refetch ensures the list is fresh even if the optimistic
+        // update targeted a different cache shape than this page uses
+        refetch();
         alert(data.message);
       },
       onError: (mutationError: any) => {
-        setShowDeleteDialog(false);
-        setUserToDelete(null);
+        // The optimistic rollback in onError already restores the user
+        // to the list — just show the error message.
         alert(
           mutationError.message ||
-            'Failed to delete user'
+          'Failed to delete user'
         );
       },
     });
@@ -684,8 +700,8 @@ export default function AdminUsersPage() {
               {Object.values(filters).some(
                 (value) => value
               ) && (
-                <span className="h-2 w-2 rounded-full bg-blue-600" />
-              )}
+                  <span className="h-2 w-2 rounded-full bg-blue-600" />
+                )}
 
               {showFilters ? (
                 <ChevronUp className="h-4 w-4" />
@@ -794,22 +810,22 @@ export default function AdminUsersPage() {
                 {Object.values(filters).some(
                   (value) => value
                 ) && (
-                  <div className="mt-4 flex justify-end">
-                    <button
-                      onClick={() => {
-                        setFilters({
-                          role: '',
-                          status: '',
-                        });
-                        setPage(1);
-                      }}
-                      className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-800"
-                    >
-                      <X className="h-4 w-4" />
-                      Clear all filters
-                    </button>
-                  </div>
-                )}
+                    <div className="mt-4 flex justify-end">
+                      <button
+                        onClick={() => {
+                          setFilters({
+                            role: '',
+                            status: '',
+                          });
+                          setPage(1);
+                        }}
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-800"
+                      >
+                        <X className="h-4 w-4" />
+                        Clear all filters
+                      </button>
+                    </div>
+                  )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -835,10 +851,10 @@ export default function AdminUsersPage() {
             Object.values(filters).some(
               (value) => value
             )) && (
-            <p className="text-sm text-slate-500">
-              Results filtered by your search and filters
-            </p>
-          )}
+              <p className="text-sm text-slate-500">
+                Results filtered by your search and filters
+              </p>
+            )}
         </div>
 
         {usersData && (
@@ -855,9 +871,9 @@ export default function AdminUsersPage() {
 
                 <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
                   {searchTerm ||
-                  Object.values(filters).some(
-                    (value) => value
-                  )
+                    Object.values(filters).some(
+                      (value) => value
+                    )
                     ? 'Try adjusting your search or filters to find the user you are looking for.'
                     : 'There are currently no users in your tech center.'}
                 </p>
@@ -866,20 +882,20 @@ export default function AdminUsersPage() {
                   Object.values(filters).some(
                     (value) => value
                   )) && (
-                  <button
-                    onClick={() => {
-                      setSearchTerm('');
-                      setFilters({
-                        role: '',
-                        status: '',
-                      });
-                      setPage(1);
-                    }}
-                    className="mt-5 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-                  >
-                    Clear Search and Filters
-                  </button>
-                )}
+                    <button
+                      onClick={() => {
+                        setSearchTerm('');
+                        setFilters({
+                          role: '',
+                          status: '',
+                        });
+                        setPage(1);
+                      }}
+                      className="mt-5 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                    >
+                      Clear Search and Filters
+                    </button>
+                  )}
               </div>
             ) : (
               <>
@@ -956,13 +972,12 @@ export default function AdminUsersPage() {
                                   'edit'
                                 )
                               }
-                              className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${
-                                expandedUserId ===
-                                  user.id &&
+                              className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${expandedUserId ===
+                                user.id &&
                                 expandedAction === 'edit'
-                                  ? 'border-blue-200 bg-blue-50 text-blue-700'
-                                  : 'border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700'
-                              }`}
+                                ? 'border-blue-200 bg-blue-50 text-blue-700'
+                                : 'border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700'
+                                }`}
                             >
                               Edit User
                             </button>
@@ -974,13 +989,12 @@ export default function AdminUsersPage() {
                                   'role'
                                 )
                               }
-                              className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${
-                                expandedUserId ===
-                                  user.id &&
+                              className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${expandedUserId ===
+                                user.id &&
                                 expandedAction === 'role'
-                                  ? 'border-violet-200 bg-violet-50 text-violet-700'
-                                  : 'border-slate-200 bg-white text-slate-700 hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700'
-                              }`}
+                                ? 'border-violet-200 bg-violet-50 text-violet-700'
+                                : 'border-slate-200 bg-white text-slate-700 hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700'
+                                }`}
                             >
                               Edit Role
                             </button>
@@ -992,13 +1006,12 @@ export default function AdminUsersPage() {
                                   'status'
                                 )
                               }
-                              className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${
-                                expandedUserId ===
-                                  user.id &&
+                              className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${expandedUserId ===
+                                user.id &&
                                 expandedAction === 'status'
-                                  ? 'border-amber-200 bg-amber-50 text-amber-700'
-                                  : 'border-slate-200 bg-white text-slate-700 hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700'
-                              }`}
+                                ? 'border-amber-200 bg-amber-50 text-amber-700'
+                                : 'border-slate-200 bg-white text-slate-700 hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700'
+                                }`}
                             >
                               Change Status
                             </button>
@@ -1046,132 +1059,140 @@ export default function AdminUsersPage() {
                                   {/* Edit User */}
                                   {expandedAction ===
                                     'edit' && (
-                                    <form
-                                      onSubmit={
-                                        handleEditSubmit
-                                      }
-                                      className="space-y-5"
-                                    >
-                                      <div className="flex items-center justify-between">
-                                        <div>
-                                          <h3 className="text-base font-bold text-slate-900">
-                                            Edit User
-                                          </h3>
-                                          <p className="mt-1 text-sm text-slate-500">
-                                            Update the
-                                            account
-                                            information
-                                            for{' '}
-                                            {selectedUser.firstName}{' '}
-                                            {
-                                              selectedUser.lastName
-                                            }
-                                            .
-                                          </p>
-                                        </div>
-                                      </div>
-
-                                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                        {[
-                                          {
-                                            label: 'First Name',
-                                            name: 'firstName',
-                                            type: 'text',
-                                          },
-                                          {
-                                            label: 'Last Name',
-                                            name: 'lastName',
-                                            type: 'text',
-                                          },
-                                          {
-                                            label: 'Email',
-                                            name: 'email',
-                                            type: 'email',
-                                          },
-                                          {
-                                            label: 'Phone',
-                                            name: 'phoneNumber',
-                                            type: 'text',
-                                          },
-                                          {
-                                            label: 'Country',
-                                            name: 'country',
-                                            type: 'text',
-                                          },
-                                          {
-                                            label: 'City',
-                                            name: 'city',
-                                            type: 'text',
-                                          },
-                                        ].map(
-                                          (field) => (
-                                            <div
-                                              key={
-                                                field.name
+                                      <form
+                                        onSubmit={
+                                          handleEditSubmit
+                                        }
+                                        className="space-y-5"
+                                      >
+                                        <div className="flex items-center justify-between">
+                                          <div>
+                                            <h3 className="text-base font-bold text-slate-900">
+                                              Edit User
+                                            </h3>
+                                            <p className="mt-1 text-sm text-slate-500">
+                                              Update the
+                                              account
+                                              information
+                                              for{' '}
+                                              {selectedUser.firstName}{' '}
+                                              {
+                                                selectedUser.lastName
                                               }
-                                            >
-                                              <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                                                {
-                                                  field.label
-                                                }
-                                              </label>
+                                              .
+                                            </p>
+                                          </div>
+                                        </div>
 
-                                              <input
-                                                type={
-                                                  field.type
-                                                }
-                                                name={
+                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                          {[
+                                            {
+                                              label: 'First Name',
+                                              name: 'firstName',
+                                              type: 'text',
+                                            },
+                                            {
+                                              label: 'Last Name',
+                                              name: 'lastName',
+                                              type: 'text',
+                                            },
+                                            {
+                                              label: 'Email',
+                                              name: 'email',
+                                              type: 'email',
+                                            },
+                                          ].map(
+                                            (field) => (
+                                              <div
+                                                key={
                                                   field.name
                                                 }
-                                                value={
-                                                  editFormData[
+                                              >
+                                                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                                                  {
+                                                    field.label
+                                                  }
+                                                </label>
+
+                                                <input
+                                                  type={
+                                                    field.type
+                                                  }
+                                                  name={
+                                                    field.name
+                                                  }
+                                                  value={
+                                                    editFormData[
                                                     field.name as keyof typeof editFormData
-                                                  ]
-                                                }
-                                                onChange={
-                                                  handleEditInputChange
-                                                }
-                                                className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                                              />
-                                            </div>
-                                          )
-                                        )}
-                                      </div>
-
-                                      <div className="flex flex-wrap gap-3 border-t border-slate-200 pt-4">
-                                        <button
-                                          type="button"
-                                          onClick={
-                                            closeExpandedAction
-                                          }
-                                          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-                                        >
-                                          <X className="h-4 w-4" />
-                                          Cancel
-                                        </button>
-
-                                        <button
-                                          type="submit"
-                                          disabled={
-                                            updateUserMutation.isPending
-                                          }
-                                          className="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
-                                        >
-                                          {updateUserMutation.isPending ? (
-                                            <>
-                                              <Loader2 className="h-4 w-4 animate-spin" />
-                                              Saving...
-                                            </>
-                                          ) : (
-                                            <>
-                                              <Save className="h-4 w-4" />
-                                              Save Changes
-                                            </>
+                                                    ]
+                                                  }
+                                                  onChange={
+                                                    handleEditInputChange
+                                                  }
+                                                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                                />
+                                              </div>
+                                            )
                                           )}
-                                        </button>
-                                      </div>
-                                    </form>
-                                  )}
+
+                                          {/* Tech Center dropdown — spans full width */}
+                                          <div className="md:col-span-2">
+                                            <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                                              <span className="inline-flex items-center gap-1.5">
+                                                <Building2 className="h-4 w-4 text-slate-400" />
+                                                Tech Center
+                                              </span>
+                                            </label>
+                                            <select
+                                              name="techCenterId"
+                                              value={editFormData.techCenterId}
+                                              onChange={handleEditInputChange}
+                                              className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                            >
+                                              <option value="">— No tech center —</option>
+                                              {allTechCenters.map((tc) => (
+                                                <option key={tc.id} value={tc.id}>
+                                                  {tc.name} ({tc.code})
+                                                </option>
+                                              ))}
+                                            </select>
+                                          </div>
+                                        </div>
+
+                                        <div className="flex flex-wrap gap-3 border-t border-slate-200 pt-4">
+                                          <button
+                                            type="button"
+                                            onClick={
+                                              closeExpandedAction
+                                            }
+                                            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                                          >
+                                            <X className="h-4 w-4" />
+                                            Cancel
+                                          </button>
+
+                                          <button
+                                            type="submit"
+                                            disabled={
+                                              updateUserMutation.isPending
+                                            }
+                                            className="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                          >
+                                            {updateUserMutation.isPending ? (
+                                              <>
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                Saving...
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Save className="h-4 w-4" />
+                                                Save Changes
+                                              </>
+                                            )}
+                                          </button>
+                                        </div>
+                                      </form>
+                                    )}
 
                                   {/* Edit Role */}
                                   {expandedAction ===
@@ -1219,11 +1240,10 @@ export default function AdminUsersPage() {
                                                     updateRoleMutation.isPending ||
                                                     isCurrent
                                                   }
-                                                  className={`rounded-xl border p-4 text-left transition ${
-                                                    isCurrent
-                                                      ? 'border-blue-300 bg-blue-50 ring-1 ring-blue-200'
-                                                      : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/50'
-                                                  } disabled:cursor-not-allowed disabled:opacity-60`}
+                                                  className={`rounded-xl border p-4 text-left transition ${isCurrent
+                                                    ? 'border-blue-300 bg-blue-50 ring-1 ring-blue-200'
+                                                    : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/50'
+                                                    } disabled:cursor-not-allowed disabled:opacity-60`}
                                                 >
                                                   <div className="flex items-center justify-between gap-3">
                                                     <div>
@@ -1268,38 +1288,38 @@ export default function AdminUsersPage() {
                                   {/* Change Status */}
                                   {expandedAction ===
                                     'status' && (
-                                    <div className="space-y-4">
-                                      <div>
-                                        <h3 className="text-base font-bold text-slate-900">
-                                          Change Status
-                                        </h3>
+                                      <div className="space-y-4">
+                                        <div>
+                                          <h3 className="text-base font-bold text-slate-900">
+                                            Change Status
+                                          </h3>
 
-                                        <p className="mt-1 text-sm text-slate-500">
-                                          Select the new
-                                          account status
-                                          for{' '}
-                                          {
-                                            selectedUser.firstName
-                                          }{' '}
-                                          {
-                                            selectedUser.lastName
-                                          }
-                                          .
-                                        </p>
-                                      </div>
+                                          <p className="mt-1 text-sm text-slate-500">
+                                            Select the new
+                                            account status
+                                            for{' '}
+                                            {
+                                              selectedUser.firstName
+                                            }{' '}
+                                            {
+                                              selectedUser.lastName
+                                            }
+                                            .
+                                          </p>
+                                        </div>
 
-                                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                                        {[
-                                          'ACTIVE',
-                                          'INACTIVE',
-                                          'SUSPENDED',
-                                        ].map(
-                                          (status) => {
-                                            const isCurrent =
-                                              selectedUser.status ===
-                                              status;
+                                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                          {[
+                                            'ACTIVE',
+                                            'INACTIVE',
+                                            'SUSPENDED',
+                                          ].map(
+                                            (status) => {
+                                              const isCurrent =
+                                                selectedUser.status ===
+                                                status;
 
-                                            const optionStyles =
+                                              const optionStyles =
                                               {
                                                 ACTIVE:
                                                   isCurrent
@@ -1315,57 +1335,56 @@ export default function AdminUsersPage() {
                                                     : 'border-slate-200 bg-white hover:border-red-300 hover:bg-red-50/50',
                                               };
 
-                                            return (
-                                              <button
-                                                key={
-                                                  status
-                                                }
-                                                onClick={() =>
-                                                  handleChangeStatus(
+                                              return (
+                                                <button
+                                                  key={
                                                     status
-                                                  )
-                                                }
-                                                disabled={
-                                                  updateStatusMutation.isPending ||
-                                                  isCurrent
-                                                }
-                                                className={`rounded-xl border p-4 text-left transition ${
-                                                  optionStyles[
+                                                  }
+                                                  onClick={() =>
+                                                    handleChangeStatus(
+                                                      status
+                                                    )
+                                                  }
+                                                  disabled={
+                                                    updateStatusMutation.isPending ||
+                                                    isCurrent
+                                                  }
+                                                  className={`rounded-xl border p-4 text-left transition ${optionStyles[
                                                     status as keyof typeof optionStyles
                                                   ]
-                                                } disabled:cursor-not-allowed disabled:opacity-60`}
-                                              >
-                                                <div className="flex items-center justify-between">
-                                                  <StatusBadge
-                                                    status={
-                                                      status
-                                                    }
-                                                  />
+                                                    } disabled:cursor-not-allowed disabled:opacity-60`}
+                                                >
+                                                  <div className="flex items-center justify-between">
+                                                    <StatusBadge
+                                                      status={
+                                                        status
+                                                      }
+                                                    />
 
-                                                  {isCurrent && (
-                                                    <Check className="h-5 w-5 text-slate-700" />
-                                                  )}
-                                                </div>
+                                                    {isCurrent && (
+                                                      <Check className="h-5 w-5 text-slate-700" />
+                                                    )}
+                                                  </div>
 
-                                                <p className="mt-3 text-xs font-medium text-slate-500">
-                                                  {isCurrent
-                                                    ? 'Current status'
-                                                    : `Change to ${status.toLowerCase()}`}
-                                                </p>
-                                              </button>
-                                            );
-                                          }
+                                                  <p className="mt-3 text-xs font-medium text-slate-500">
+                                                    {isCurrent
+                                                      ? 'Current status'
+                                                      : `Change to ${status.toLowerCase()}`}
+                                                  </p>
+                                                </button>
+                                              );
+                                            }
+                                          )}
+                                        </div>
+
+                                        {updateStatusMutation.isPending && (
+                                          <div className="flex items-center gap-2 text-sm font-medium text-blue-700">
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            Updating status...
+                                          </div>
                                         )}
                                       </div>
-
-                                      {updateStatusMutation.isPending && (
-                                        <div className="flex items-center gap-2 text-sm font-medium text-blue-700">
-                                          <Loader2 className="h-4 w-4 animate-spin" />
-                                          Updating status...
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
+                                    )}
                                 </div>
                               </motion.div>
                             )}
@@ -1471,13 +1490,12 @@ export default function AdminUsersPage() {
                                 'edit'
                               )
                             }
-                            className={`rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${
-                              expandedUserId ===
-                                user.id &&
+                            className={`rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${expandedUserId ===
+                              user.id &&
                               expandedAction === 'edit'
-                                ? 'border-blue-200 bg-blue-50 text-blue-700'
-                                : 'border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700'
-                            }`}
+                              ? 'border-blue-200 bg-blue-50 text-blue-700'
+                              : 'border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700'
+                              }`}
                           >
                             Edit User
                           </button>
@@ -1489,13 +1507,12 @@ export default function AdminUsersPage() {
                                 'role'
                               )
                             }
-                            className={`rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${
-                              expandedUserId ===
-                                user.id &&
+                            className={`rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${expandedUserId ===
+                              user.id &&
                               expandedAction === 'role'
-                                ? 'border-violet-200 bg-violet-50 text-violet-700'
-                                : 'border-slate-200 bg-white text-slate-700 hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700'
-                            }`}
+                              ? 'border-violet-200 bg-violet-50 text-violet-700'
+                              : 'border-slate-200 bg-white text-slate-700 hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700'
+                              }`}
                           >
                             Edit Role
                           </button>
@@ -1507,13 +1524,12 @@ export default function AdminUsersPage() {
                                 'status'
                               )
                             }
-                            className={`rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${
-                              expandedUserId ===
-                                user.id &&
+                            className={`rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${expandedUserId ===
+                              user.id &&
                               expandedAction === 'status'
-                                ? 'border-amber-200 bg-amber-50 text-amber-700'
-                                : 'border-slate-200 bg-white text-slate-700 hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700'
-                            }`}
+                              ? 'border-amber-200 bg-amber-50 text-amber-700'
+                              : 'border-slate-200 bg-white text-slate-700 hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700'
+                              }`}
                           >
                             Change Status
                           </button>
@@ -1561,115 +1577,123 @@ export default function AdminUsersPage() {
                                 {/* Mobile Edit */}
                                 {expandedAction ===
                                   'edit' && (
-                                  <form
-                                    onSubmit={
-                                      handleEditSubmit
-                                    }
-                                    className="space-y-4"
-                                  >
-                                    <div>
-                                      <h3 className="text-base font-bold text-slate-900">
-                                        Edit User
-                                      </h3>
+                                    <form
+                                      onSubmit={
+                                        handleEditSubmit
+                                      }
+                                      className="space-y-4"
+                                    >
+                                      <div>
+                                        <h3 className="text-base font-bold text-slate-900">
+                                          Edit User
+                                        </h3>
 
-                                      <p className="mt-1 text-sm text-slate-500">
-                                        Update user
-                                        information.
-                                      </p>
-                                    </div>
+                                        <p className="mt-1 text-sm text-slate-500">
+                                          Update user
+                                          information.
+                                        </p>
+                                      </div>
 
-                                    <div className="space-y-3">
-                                      {[
-                                        {
-                                          label: 'First Name',
-                                          name: 'firstName',
-                                          type: 'text',
-                                        },
-                                        {
-                                          label: 'Last Name',
-                                          name: 'lastName',
-                                          type: 'text',
-                                        },
-                                        {
-                                          label: 'Email',
-                                          name: 'email',
-                                          type: 'email',
-                                        },
-                                        {
-                                          label: 'Phone',
-                                          name: 'phoneNumber',
-                                          type: 'text',
-                                        },
-                                        {
-                                          label: 'Country',
-                                          name: 'country',
-                                          type: 'text',
-                                        },
-                                        {
-                                          label: 'City',
-                                          name: 'city',
-                                          type: 'text',
-                                        },
-                                      ].map(
-                                        (field) => (
-                                          <div
-                                            key={
-                                              field.name
-                                            }
-                                          >
-                                            <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                                              {
-                                                field.label
-                                              }
-                                            </label>
-
-                                            <input
-                                              type={
-                                                field.type
-                                              }
-                                              name={
+                                      <div className="space-y-3">
+                                        {[
+                                          {
+                                            label: 'First Name',
+                                            name: 'firstName',
+                                            type: 'text',
+                                          },
+                                          {
+                                            label: 'Last Name',
+                                            name: 'lastName',
+                                            type: 'text',
+                                          },
+                                          {
+                                            label: 'Email',
+                                            name: 'email',
+                                            type: 'email',
+                                          },
+                                        ].map(
+                                          (field) => (
+                                            <div
+                                              key={
                                                 field.name
                                               }
-                                              value={
-                                                editFormData[
+                                            >
+                                              <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                                                {
+                                                  field.label
+                                                }
+                                              </label>
+
+                                              <input
+                                                type={
+                                                  field.type
+                                                }
+                                                name={
+                                                  field.name
+                                                }
+                                                value={
+                                                  editFormData[
                                                   field.name as keyof typeof editFormData
-                                                ]
-                                              }
-                                              onChange={
-                                                handleEditInputChange
-                                              }
-                                              className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                                            />
-                                          </div>
-                                        )
-                                      )}
-                                    </div>
+                                                  ]
+                                                }
+                                                onChange={
+                                                  handleEditInputChange
+                                                }
+                                                className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                              />
+                                            </div>
+                                          )
+                                        )}
 
-                                    <div className="flex gap-2 border-t border-slate-200 pt-4">
-                                      <button
-                                        type="button"
-                                        onClick={
-                                          closeExpandedAction
-                                        }
-                                        className="flex-1 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700"
-                                      >
-                                        Cancel
-                                      </button>
+                                        {/* Tech Center dropdown */}
+                                        <div>
+                                          <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                                            <span className="inline-flex items-center gap-1.5">
+                                              <Building2 className="h-4 w-4 text-slate-400" />
+                                              Tech Center
+                                            </span>
+                                          </label>
+                                          <select
+                                            name="techCenterId"
+                                            value={editFormData.techCenterId}
+                                            onChange={handleEditInputChange}
+                                            className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                          >
+                                            <option value="">— No tech center —</option>
+                                            {allTechCenters.map((tc) => (
+                                              <option key={tc.id} value={tc.id}>
+                                                {tc.name} ({tc.code})
+                                              </option>
+                                            ))}
+                                          </select>
+                                        </div>
+                                      </div>
 
-                                      <button
-                                        type="submit"
-                                        disabled={
-                                          updateUserMutation.isPending
-                                        }
-                                        className="flex-1 rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
-                                      >
-                                        {updateUserMutation.isPending
-                                          ? 'Saving...'
-                                          : 'Save Changes'}
-                                      </button>
-                                    </div>
-                                  </form>
-                                )}
+                                      <div className="flex gap-2 border-t border-slate-200 pt-4">
+                                        <button
+                                          type="button"
+                                          onClick={
+                                            closeExpandedAction
+                                          }
+                                          className="flex-1 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700"
+                                        >
+                                          Cancel
+                                        </button>
+
+                                        <button
+                                          type="submit"
+                                          disabled={
+                                            updateUserMutation.isPending
+                                          }
+                                          className="flex-1 rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                                        >
+                                          {updateUserMutation.isPending
+                                            ? 'Saving...'
+                                            : 'Save Changes'}
+                                        </button>
+                                      </div>
+                                    </form>
+                                  )}
 
                                 {/* Mobile Role */}
                                 {expandedAction ===
@@ -1709,11 +1733,10 @@ export default function AdminUsersPage() {
                                                 updateRoleMutation.isPending ||
                                                 isCurrent
                                               }
-                                              className={`flex w-full items-center justify-between rounded-xl border p-4 text-left ${
-                                                isCurrent
-                                                  ? 'border-blue-300 bg-blue-50'
-                                                  : 'border-slate-200 bg-white'
-                                              } disabled:opacity-60`}
+                                              className={`flex w-full items-center justify-between rounded-xl border p-4 text-left ${isCurrent
+                                                ? 'border-blue-300 bg-blue-50'
+                                                : 'border-slate-200 bg-white'
+                                                } disabled:opacity-60`}
                                             >
                                               <div>
                                                 <p className="font-semibold text-slate-900">
@@ -1749,70 +1772,69 @@ export default function AdminUsersPage() {
                                 {/* Mobile Status */}
                                 {expandedAction ===
                                   'status' && (
-                                  <div className="space-y-3">
-                                    <div>
-                                      <h3 className="text-base font-bold text-slate-900">
-                                        Change Status
-                                      </h3>
+                                    <div className="space-y-3">
+                                      <div>
+                                        <h3 className="text-base font-bold text-slate-900">
+                                          Change Status
+                                        </h3>
 
-                                      <p className="mt-1 text-sm text-slate-500">
-                                        Select the new
-                                        account status.
-                                      </p>
-                                    </div>
+                                        <p className="mt-1 text-sm text-slate-500">
+                                          Select the new
+                                          account status.
+                                        </p>
+                                      </div>
 
-                                    {[
-                                      'ACTIVE',
-                                      'INACTIVE',
-                                      'SUSPENDED',
-                                    ].map(
-                                      (status) => {
-                                        const isCurrent =
-                                          selectedUser.status ===
-                                          status;
+                                      {[
+                                        'ACTIVE',
+                                        'INACTIVE',
+                                        'SUSPENDED',
+                                      ].map(
+                                        (status) => {
+                                          const isCurrent =
+                                            selectedUser.status ===
+                                            status;
 
-                                        return (
-                                          <button
-                                            key={
-                                              status
-                                            }
-                                            onClick={() =>
-                                              handleChangeStatus(
-                                                status
-                                              )
-                                            }
-                                            disabled={
-                                              updateStatusMutation.isPending ||
-                                              isCurrent
-                                            }
-                                            className={`flex w-full items-center justify-between rounded-xl border p-4 text-left ${
-                                              isCurrent
-                                                ? 'border-blue-300 bg-blue-50'
-                                                : 'border-slate-200 bg-white'
-                                            } disabled:opacity-60`}
-                                          >
-                                            <StatusBadge
-                                              status={
+                                          return (
+                                            <button
+                                              key={
                                                 status
                                               }
-                                            />
+                                              onClick={() =>
+                                                handleChangeStatus(
+                                                  status
+                                                )
+                                              }
+                                              disabled={
+                                                updateStatusMutation.isPending ||
+                                                isCurrent
+                                              }
+                                              className={`flex w-full items-center justify-between rounded-xl border p-4 text-left ${isCurrent
+                                                ? 'border-blue-300 bg-blue-50'
+                                                : 'border-slate-200 bg-white'
+                                                } disabled:opacity-60`}
+                                            >
+                                              <StatusBadge
+                                                status={
+                                                  status
+                                                }
+                                              />
 
-                                            {isCurrent && (
-                                              <Check className="h-5 w-5 text-blue-700" />
-                                            )}
-                                          </button>
-                                        );
-                                      }
-                                    )}
+                                              {isCurrent && (
+                                                <Check className="h-5 w-5 text-blue-700" />
+                                              )}
+                                            </button>
+                                          );
+                                        }
+                                      )}
 
-                                    {updateStatusMutation.isPending && (
-                                      <div className="flex items-center gap-2 text-sm font-medium text-blue-700">
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                        Updating status...
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
+                                      {updateStatusMutation.isPending && (
+                                        <div className="flex items-center gap-2 text-sm font-medium text-blue-700">
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                          Updating status...
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                               </div>
                             </motion.div>
                           )}

@@ -189,7 +189,7 @@ const sharedNavigation: NavSection[] = [
         label: 'My Grades',
         path: '/dashboard/grades',
         icon: <BarChart3 className={iconClass} />,
-        roles: ALL_ROLES,
+        roles: ['student', 'teacher', 'admin', 'dev'],
       },
       {
         id: 'tutors',
@@ -752,9 +752,9 @@ function getPageInfo(pathname: string) {
   return matchedPath
     ? pages[matchedPath]
     : {
-        title: 'Dashboard',
-        section: 'Workspace',
-      };
+      title: 'Dashboard',
+      section: 'Workspace',
+    };
 }
 
 // ============================================================
@@ -870,7 +870,7 @@ function TopBar({
             ? 'left-0 lg:left-64'
             : 'left-0 lg:left-[72px]',
         scrolled &&
-          'shadow-[0_4px_30px_rgba(18,32,59,0.06)]' // Softer shadow
+        'shadow-[0_4px_30px_rgba(18,32,59,0.06)]' // Softer shadow
       )}
     >
       <div className="h-full flex items-center justify-between gap-1 px-2 sm:gap-2 sm:px-6 lg:px-7">
@@ -884,9 +884,9 @@ function TopBar({
               isMobile
                 ? onMenuToggle
                 : () =>
-                    setSidebarOpen(
-                      (previous) => !previous
-                    )
+                  setSidebarOpen(
+                    (previous) => !previous
+                  )
             }
             className={cn(
               'flex items-center justify-center',
@@ -969,7 +969,7 @@ function TopBar({
               <Megaphone className="w-[18px] h-[18px]" />
 
               {announcementCount &&
-              announcementCount > 0 ? (
+                announcementCount > 0 ? (
                 <motion.span
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
@@ -1005,7 +1005,7 @@ function TopBar({
                 <Bell className="w-[18px] h-[18px]" />
 
                 {unreadCount &&
-                unreadCount > 0 ? (
+                  unreadCount > 0 ? (
                   <motion.span
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
@@ -1041,7 +1041,7 @@ function TopBar({
               <MessageSquare className="w-[18px] h-[18px]" />
 
               {unreadMessageCount &&
-              unreadMessageCount > 0 ? (
+                unreadMessageCount > 0 ? (
                 <motion.span
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
@@ -1513,8 +1513,8 @@ function Sidebar({
     setExpandedSections((previous) =>
       previous.includes(sectionId)
         ? previous.filter(
-            (id) => id !== sectionId
-          )
+          (id) => id !== sectionId
+        )
         : [...previous, sectionId]
     );
   };
@@ -1936,7 +1936,7 @@ function Sidebar({
 
               {searchActive &&
                 searchResults.length ===
-                  0 && (
+                0 && (
                   <motion.div
                     initial={{
                       opacity: 0,
@@ -2076,7 +2076,7 @@ function Sidebar({
                 'hover:bg-[#FBF0EC]',
                 'transition-all duration-200',
                 !sidebarOpen &&
-                  'justify-center px-0'
+                'justify-center px-0'
               )}
             >
               <LogOut className="w-[18px] h-[18px] flex-shrink-0" />

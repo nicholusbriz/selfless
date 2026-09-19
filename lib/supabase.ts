@@ -45,7 +45,8 @@ export async function deleteProfileImage(imageUrl: string): Promise<void> {
     // Extract file path from URL
     const url = new URL(imageUrl);
     const pathParts = url.pathname.split('/');
-    const filePath = pathParts.slice(pathParts.indexOf('profile-images')).join('/');
+    // Skip the bucket name itself — only pass the object key inside the bucket
+    const filePath = pathParts.slice(pathParts.indexOf('profile-images') + 1).join('/');
 
     const { error } = await supabase.storage
       .from('profile-images')
@@ -147,7 +148,7 @@ export async function getVideos(): Promise<string[]> {
 
     // Generate public URLs for all videos at root level only (no subdirectories)
     const videoUrls = data
-      .filter(file => 
+      .filter(file =>
         file.name !== '.emptyFolderPlaceholder' && // Filter out placeholder
         !file.name.includes('/') // Filter out files in subdirectories
       )

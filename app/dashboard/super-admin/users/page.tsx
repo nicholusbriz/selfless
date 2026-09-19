@@ -103,9 +103,8 @@ const StatusBadge = ({ status }: { status: string }) => {
 
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium tracking-wide ${
-        styles[status] || styles.INACTIVE
-      }`}
+      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium tracking-wide ${styles[status] || styles.INACTIVE
+        }`}
     >
       {status}
     </span>
@@ -122,9 +121,8 @@ const RoleBadge = ({ role }: { role: string }) => {
 
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium tracking-wide ${
-        styles[role] || styles.student
-      }`}
+      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium tracking-wide ${styles[role] || styles.student
+        }`}
     >
       {role.replace('_', ' ').toUpperCase()}
     </span>
@@ -356,11 +354,7 @@ export default function SuperAdminUsersPage() {
     firstName: '',
     lastName: '',
     email: '',
-    phoneNumber: '',
-    country: '',
-    city: '',
     techCenterId: '',
-    profileImageUrl: '',
   });
 
   const {
@@ -455,11 +449,7 @@ export default function SuperAdminUsersPage() {
         firstName: user.firstName || '',
         lastName: user.lastName || '',
         email: user.email || '',
-        phoneNumber: user.phoneNumber || '',
-        country: user.country || '',
-        city: user.city || '',
         techCenterId: user.techCenterId || '',
-        profileImageUrl: user.profileImageUrl || '',
       });
     }
   };
@@ -1026,11 +1016,10 @@ export default function SuperAdminUsersPage() {
                         <button
                           onClick={() => toggleExpand(user.id, 'edit')}
                           aria-label={`Edit ${user.firstName}`}
-                          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
-                            isExpanded && expandedAction === 'edit'
-                              ? 'bg-[#F8F3E8] text-[#8A6E3A]'
-                              : 'text-[#6F7B8D] hover:bg-[#F7F8FA] hover:text-[#12203B]'
-                          }`}
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${isExpanded && expandedAction === 'edit'
+                            ? 'bg-[#F8F3E8] text-[#8A6E3A]'
+                            : 'text-[#6F7B8D] hover:bg-[#F7F8FA] hover:text-[#12203B]'
+                            }`}
                         >
                           <Edit className="h-4 w-4" />
                         </button>
@@ -1038,11 +1027,10 @@ export default function SuperAdminUsersPage() {
                         <button
                           onClick={() => toggleExpand(user.id, 'role')}
                           aria-label={`Change role for ${user.firstName}`}
-                          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
-                            isExpanded && expandedAction === 'role'
-                              ? 'bg-[#F8F3E8] text-[#8A6E3A]'
-                              : 'text-[#6F7B8D] hover:bg-[#F7F8FA] hover:text-[#12203B]'
-                          }`}
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${isExpanded && expandedAction === 'role'
+                            ? 'bg-[#F8F3E8] text-[#8A6E3A]'
+                            : 'text-[#6F7B8D] hover:bg-[#F7F8FA] hover:text-[#12203B]'
+                            }`}
                         >
                           <Shield className="h-4 w-4" />
                         </button>
@@ -1050,11 +1038,10 @@ export default function SuperAdminUsersPage() {
                         <button
                           onClick={() => toggleExpand(user.id, 'status')}
                           aria-label={`Change status for ${user.firstName}`}
-                          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
-                            isExpanded && expandedAction === 'status'
-                              ? 'bg-[#F8F3E8] text-[#8A6E3A]'
-                              : 'text-[#6F7B8D] hover:bg-[#F7F8FA] hover:text-[#12203B]'
-                          }`}
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${isExpanded && expandedAction === 'status'
+                            ? 'bg-[#F8F3E8] text-[#8A6E3A]'
+                            : 'text-[#6F7B8D] hover:bg-[#F7F8FA] hover:text-[#12203B]'
+                            }`}
                         >
                           <UserCog className="h-4 w-4" />
                         </button>
@@ -1062,11 +1049,10 @@ export default function SuperAdminUsersPage() {
                         <button
                           onClick={() => toggleExpand(user.id, 'delete')}
                           aria-label={`Delete ${user.firstName}`}
-                          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
-                            isExpanded && expandedAction === 'delete'
-                              ? 'bg-[#FBF0EC] text-[#A4462F]'
-                              : 'text-[#6F7B8D] hover:bg-[#FBF0EC] hover:text-[#A4462F]'
-                          }`}
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${isExpanded && expandedAction === 'delete'
+                            ? 'bg-[#FBF0EC] text-[#A4462F]'
+                            : 'text-[#6F7B8D] hover:bg-[#FBF0EC] hover:text-[#A4462F]'
+                            }`}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -1114,14 +1100,6 @@ export default function SuperAdminUsersPage() {
                                     ['firstName', 'First name', 'text'],
                                     ['lastName', 'Last name', 'text'],
                                     ['email', 'Email', 'email'],
-                                    ['phoneNumber', 'Phone', 'text'],
-                                    ['country', 'Country', 'text'],
-                                    ['city', 'City', 'text'],
-                                    [
-                                      'profileImageUrl',
-                                      'Profile image URL',
-                                      'url',
-                                    ],
                                   ].map(([name, label, type]) => (
                                     <div key={name}>
                                       <label className="mb-1.5 block text-xs font-medium text-[#43516A]">
@@ -1133,7 +1111,7 @@ export default function SuperAdminUsersPage() {
                                         name={name}
                                         value={
                                           editFormData[
-                                            name as keyof typeof editFormData
+                                          name as keyof typeof editFormData
                                           ]
                                         }
                                         onChange={handleEditInputChange}
@@ -1231,11 +1209,10 @@ export default function SuperAdminUsersPage() {
                                           updateRoleMutation.isPending ||
                                           selected
                                         }
-                                        className={`flex items-center justify-between rounded-lg border p-3 text-left transition ${
-                                          selected
-                                            ? 'border-[#D8C59F] bg-[#F8F3E8]'
-                                            : 'border-[#E2E6EB] bg-white hover:border-[#D2D8E0] hover:bg-[#F7F8FA]'
-                                        }`}
+                                        className={`flex items-center justify-between rounded-lg border p-3 text-left transition ${selected
+                                          ? 'border-[#D8C59F] bg-[#F8F3E8]'
+                                          : 'border-[#E2E6EB] bg-white hover:border-[#D2D8E0] hover:bg-[#F7F8FA]'
+                                          }`}
                                       >
                                         <div>
                                           <p className="text-sm font-medium text-[#12203B]">
@@ -1306,11 +1283,10 @@ export default function SuperAdminUsersPage() {
                                           updateStatusMutation.isPending ||
                                           selected
                                         }
-                                        className={`flex items-center justify-between rounded-lg border p-3 text-left transition ${
-                                          selected
-                                            ? 'border-[#D8C59F] bg-[#F8F3E8]'
-                                            : 'border-[#E2E6EB] bg-white hover:border-[#D2D8E0] hover:bg-[#F7F8FA]'
-                                        }`}
+                                        className={`flex items-center justify-between rounded-lg border p-3 text-left transition ${selected
+                                          ? 'border-[#D8C59F] bg-[#F8F3E8]'
+                                          : 'border-[#E2E6EB] bg-white hover:border-[#D2D8E0] hover:bg-[#F7F8FA]'
+                                          }`}
                                       >
                                         <div>
                                           <p className="text-sm font-medium text-[#12203B]">
@@ -1453,11 +1429,10 @@ export default function SuperAdminUsersPage() {
                       <div className="mt-4 flex items-center justify-end gap-1.5 border-t border-[#E2E6EB] pt-3">
                         <button
                           onClick={() => toggleExpand(user.id, 'edit')}
-                          className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
-                            isExpanded && expandedAction === 'edit'
-                              ? 'bg-[#F8F3E8] text-[#8A6E3A]'
-                              : 'bg-[#F7F8FA] text-[#43516A] hover:bg-[#EEF2F7]'
-                          }`}
+                          className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${isExpanded && expandedAction === 'edit'
+                            ? 'bg-[#F8F3E8] text-[#8A6E3A]'
+                            : 'bg-[#F7F8FA] text-[#43516A] hover:bg-[#EEF2F7]'
+                            }`}
                         >
                           <Edit className="h-3.5 w-3.5" />
                           Edit
@@ -1465,11 +1440,10 @@ export default function SuperAdminUsersPage() {
 
                         <button
                           onClick={() => toggleExpand(user.id, 'role')}
-                          className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
-                            isExpanded && expandedAction === 'role'
-                              ? 'bg-[#F8F3E8] text-[#8A6E3A]'
-                              : 'bg-[#F7F8FA] text-[#43516A] hover:bg-[#EEF2F7]'
-                          }`}
+                          className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${isExpanded && expandedAction === 'role'
+                            ? 'bg-[#F8F3E8] text-[#8A6E3A]'
+                            : 'bg-[#F7F8FA] text-[#43516A] hover:bg-[#EEF2F7]'
+                            }`}
                         >
                           <Shield className="h-3.5 w-3.5" />
                           Role
@@ -1477,11 +1451,10 @@ export default function SuperAdminUsersPage() {
 
                         <button
                           onClick={() => toggleExpand(user.id, 'status')}
-                          className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
-                            isExpanded && expandedAction === 'status'
-                              ? 'bg-[#F8F3E8] text-[#8A6E3A]'
-                              : 'bg-[#F7F8FA] text-[#43516A] hover:bg-[#EEF2F7]'
-                          }`}
+                          className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${isExpanded && expandedAction === 'status'
+                            ? 'bg-[#F8F3E8] text-[#8A6E3A]'
+                            : 'bg-[#F7F8FA] text-[#43516A] hover:bg-[#EEF2F7]'
+                            }`}
                         >
                           <UserCog className="h-3.5 w-3.5" />
                           Status
@@ -1489,11 +1462,10 @@ export default function SuperAdminUsersPage() {
 
                         <button
                           onClick={() => toggleExpand(user.id, 'delete')}
-                          className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
-                            isExpanded && expandedAction === 'delete'
-                              ? 'bg-[#FBF0EC] text-[#A4462F]'
-                              : 'bg-[#F7F8FA] text-[#43516A] hover:bg-[#FBF0EC] hover:text-[#A4462F]'
-                          }`}
+                          className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${isExpanded && expandedAction === 'delete'
+                            ? 'bg-[#FBF0EC] text-[#A4462F]'
+                            : 'bg-[#F7F8FA] text-[#43516A] hover:bg-[#FBF0EC] hover:text-[#A4462F]'
+                            }`}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                           Delete
@@ -1545,33 +1517,6 @@ export default function SuperAdminUsersPage() {
                                     className={inputClass}
                                   />
 
-                                  <input
-                                    type="text"
-                                    name="phoneNumber"
-                                    value={editFormData.phoneNumber}
-                                    onChange={handleEditInputChange}
-                                    placeholder="Phone"
-                                    className={inputClass}
-                                  />
-
-                                  <input
-                                    type="text"
-                                    name="country"
-                                    value={editFormData.country}
-                                    onChange={handleEditInputChange}
-                                    placeholder="Country"
-                                    className={inputClass}
-                                  />
-
-                                  <input
-                                    type="text"
-                                    name="city"
-                                    value={editFormData.city}
-                                    onChange={handleEditInputChange}
-                                    placeholder="City"
-                                    className={inputClass}
-                                  />
-
                                   <select
                                     name="techCenterId"
                                     value={editFormData.techCenterId}
@@ -1594,14 +1539,6 @@ export default function SuperAdminUsersPage() {
                                     )}
                                   </select>
 
-                                  <input
-                                    type="url"
-                                    name="profileImageUrl"
-                                    value={editFormData.profileImageUrl}
-                                    onChange={handleEditInputChange}
-                                    placeholder="Profile image URL"
-                                    className={inputClass}
-                                  />
                                 </div>
 
                                 <div className="flex gap-2 pt-1">
@@ -1652,11 +1589,10 @@ export default function SuperAdminUsersPage() {
                                           updateRoleMutation.isPending ||
                                           selected
                                         }
-                                        className={`flex w-full items-center justify-between rounded-lg border p-3 text-left ${
-                                          selected
-                                            ? 'border-[#D8C59F] bg-[#F8F3E8]'
-                                            : 'border-[#E2E6EB] bg-white hover:bg-[#F7F8FA]'
-                                        }`}
+                                        className={`flex w-full items-center justify-between rounded-lg border p-3 text-left ${selected
+                                          ? 'border-[#D8C59F] bg-[#F8F3E8]'
+                                          : 'border-[#E2E6EB] bg-white hover:bg-[#F7F8FA]'
+                                          }`}
                                       >
                                         <span className="text-sm font-medium text-[#12203B]">
                                           {role.displayName}
@@ -1705,11 +1641,10 @@ export default function SuperAdminUsersPage() {
                                             updateStatusMutation.isPending ||
                                             selected
                                           }
-                                          className={`flex w-full items-center justify-between rounded-lg border p-3 text-left ${
-                                            selected
-                                              ? 'border-[#D8C59F] bg-[#F8F3E8]'
-                                              : 'border-[#E2E6EB] bg-white hover:bg-[#F7F8FA]'
-                                          }`}
+                                          className={`flex w-full items-center justify-between rounded-lg border p-3 text-left ${selected
+                                            ? 'border-[#D8C59F] bg-[#F8F3E8]'
+                                            : 'border-[#E2E6EB] bg-white hover:bg-[#F7F8FA]'
+                                            }`}
                                         >
                                           <div>
                                             <p className="text-sm font-medium text-[#12203B]">
@@ -1720,8 +1655,8 @@ export default function SuperAdminUsersPage() {
                                               {status === 'ACTIVE'
                                                 ? 'Full access'
                                                 : status === 'INACTIVE'
-                                                ? 'Cannot login'
-                                                : 'Temporarily blocked'}
+                                                  ? 'Cannot login'
+                                                  : 'Temporarily blocked'}
                                             </p>
                                           </div>
 
@@ -1825,11 +1760,10 @@ export default function SuperAdminUsersPage() {
                         <button
                           key={pageNum}
                           onClick={() => handlePageChange(pageNum)}
-                          className={`flex h-9 w-9 items-center justify-center rounded-lg text-xs font-medium transition-colors ${
-                            pageNum === page
-                              ? 'bg-[#12203B] text-white'
-                              : 'border border-[#E2E6EB] bg-white text-[#43516A] hover:bg-[#F7F8FA]'
-                          }`}
+                          className={`flex h-9 w-9 items-center justify-center rounded-lg text-xs font-medium transition-colors ${pageNum === page
+                            ? 'bg-[#12203B] text-white'
+                            : 'border border-[#E2E6EB] bg-white text-[#43516A] hover:bg-[#F7F8FA]'
+                            }`}
                         >
                           {pageNum}
                         </button>

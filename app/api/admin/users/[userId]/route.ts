@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
 import { logUserAction } from '@/lib/logger';
+import { deleteProfileImage } from '@/lib/supabase';
 
 // GET - Fetch single user details
 export async function GET(
@@ -11,7 +12,7 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id || (session.user.role !== 'super_admin' && session.user.role !== 'dev')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -78,8 +79,9 @@ export async function PATCH(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id || session.user.role !== 'super_admin') {
+
+    const allowedRoles = ['dev', 'super_admin', 'admin'];
+    if (!session?.user?.id || !allowedRoles.includes(session.user.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -91,20 +93,80 @@ export async function PATCH(
     if (userId === session.user.id) {
       return NextResponse.json(
         { error: 'Cannot update your own profile here' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
+    // Fetch caller's promotedById for ownership checks
+    const caller = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { promotedById: true },
+    });
+
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
-      where: { id: userId }
+      where: { id: userId },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        techCenterId: true,
+        promotedById: true,
+        role: true,
+      },
     });
 
     if (!existingUser) {
       return NextResponse.json(
         { error: 'User not found' },
-        { status: 404 }
+        { status: 404 },
       );
+    }
+
+    // ── Ownership checks (skipped for dev) ───────────────────────────────────
+    if (session.user.role !== 'dev') {
+      // admin cannot edit a super_admin
+      if (existingUser.role?.name === 'super_admin' && session.user.role === 'admin') {
+        return NextResponse.json(
+          { error: "Admins cannot edit a Super Admin's profile." },
+          { status: 403 },
+        );
+      }
+
+      // super_admin → super_admin: ownership check
+      if (existingUser.role?.name === 'super_admin' && session.user.role === 'super_admin') {
+        if (caller?.promotedById && caller.promotedById === userId) {
+          return NextResponse.json(
+            { error: 'You cannot edit the profile of the Super Admin who promoted you.' },
+            { status: 403 },
+          );
+        }
+        if (existingUser.promotedById !== session.user.id) {
+          return NextResponse.json(
+            { error: 'You can only edit profiles of Super Admins you personally promoted.' },
+            { status: 403 },
+          );
+        }
+      }
+
+      // admin → admin: ownership check
+      if (existingUser.role?.name === 'admin' && session.user.role === 'admin') {
+        if (caller?.promotedById && caller.promotedById === userId) {
+          return NextResponse.json(
+            { error: 'You cannot edit the profile of the Admin who promoted you.' },
+            { status: 403 },
+          );
+        }
+        if (existingUser.promotedById !== session.user.id) {
+          return NextResponse.json(
+            { error: 'You can only edit profiles of Admins you personally promoted.' },
+            { status: 403 },
+          );
+        }
+      }
+
+      // super_admin touching admin/teacher/student → free.
+      // admin touching teacher/student → free within their tech center scope.
     }
 
     // Build update data
@@ -123,7 +185,7 @@ export async function PATCH(
       include: {
         role: true,
         techCenter: true,
-      }
+      },
     });
 
     // Log the user update activity
@@ -134,20 +196,20 @@ export async function PATCH(
       userId,
       {
         updatedFields: Object.keys(updateData),
-        targetUser: `${updatedUser.firstName} ${updatedUser.lastName}`
+        targetUser: `${updatedUser.firstName} ${updatedUser.lastName}`,
       },
-      updatedUser.techCenterId || undefined
+      updatedUser.techCenterId || undefined,
     );
 
     return NextResponse.json({
       message: 'User updated successfully',
-      user: updatedUser
+      user: updatedUser,
     });
   } catch (error) {
     console.error('Error updating user:', error);
     return NextResponse.json(
       { error: 'Failed to update user' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -159,13 +221,13 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Allow both super_admin and admin
-    if (session.user.role !== 'super_admin' && session.user.role !== 'admin') {
+    // Allow super_admin, dev, and admin
+    if (session.user.role !== 'super_admin' && session.user.role !== 'dev' && session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Access denied. Admin privileges required.' }, { status: 403 });
     }
 
@@ -175,51 +237,15 @@ export async function DELETE(
     if (userId === session.user.id) {
       return NextResponse.json(
         { error: 'Cannot delete your own account' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // For regular admins, check tech center restriction
-    if (session.user.role === 'admin') {
-      const adminUser = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { techCenterId: true }
-      });
-
-      if (!adminUser?.techCenterId) {
-        return NextResponse.json(
-          { error: 'No tech center assigned' },
-          { status: 404 }
-        );
-      }
-
-      // Get user and verify they belong to same tech center
-      const targetUser = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { techCenterId: true, role: true }
-      });
-
-      if (!targetUser) {
-        return NextResponse.json(
-          { error: 'User not found' },
-          { status: 404 }
-        );
-      }
-
-      if (targetUser.techCenterId !== adminUser.techCenterId) {
-        return NextResponse.json(
-          { error: 'Access denied. User not in your tech center.' },
-          { status: 403 }
-        );
-      }
-
-      if (targetUser.role?.name === 'super_admin') {
-        return NextResponse.json(
-          { error: 'Cannot delete super admin users' },
-          { status: 403 }
-        );
-      }
-    }
+    // Fetch caller's promotedById for ownership checks
+    const caller = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { techCenterId: true, promotedById: true },
+    });
 
     // Check if user exists
     const user = await prisma.user.findUnique({
@@ -229,14 +255,62 @@ export async function DELETE(
         techCenter: true,
         accounts: { select: { id: true } },
         sessions: { select: { id: true } },
-      }
+      },
     });
 
     if (!user) {
       return NextResponse.json(
         { error: 'User not found' },
-        { status: 404 }
+        { status: 404 },
       );
+    }
+
+    // ── Ownership / role checks ───────────────────────────────────────────────
+    if (session.user.role !== 'dev') {
+      // Nobody below dev can delete a super_admin
+      if (user.role?.name === 'super_admin') {
+        return NextResponse.json(
+          { error: 'Cannot delete a Super Admin user.' },
+          { status: 403 },
+        );
+      }
+
+      // admin cannot delete another admin
+      if (user.role?.name === 'admin' && session.user.role === 'admin') {
+        return NextResponse.json(
+          { error: 'Admins cannot delete other Admins.' },
+          { status: 403 },
+        );
+      }
+
+      // For regular admins — also enforce same tech center restriction
+      if (session.user.role === 'admin') {
+        if (!caller?.techCenterId) {
+          return NextResponse.json(
+            { error: 'No tech center assigned' },
+            { status: 404 },
+          );
+        }
+        if (user.techCenterId !== caller.techCenterId) {
+          return NextResponse.json(
+            { error: 'Access denied. User not in your tech center.' },
+            { status: 403 },
+          );
+        }
+      }
+
+      // super_admin can delete any admin, teacher, or student freely.
+      // No further ownership restriction for super_admin on non-super_admin targets.
+    }
+
+    // dev → dev: a promoted dev cannot delete the dev who promoted them
+    if (session.user.role === 'dev' && user.role?.name === 'dev') {
+      if (caller?.promotedById && caller.promotedById === userId) {
+        return NextResponse.json(
+          { error: 'You cannot delete the Dev who promoted you.' },
+          { status: 403 },
+        );
+      }
     }
 
     // Use a transaction to delete all related records
@@ -298,6 +372,21 @@ export async function DELETE(
     }, {
       timeout: 30000 // Increase timeout to 30 seconds
     });
+
+    // Delete the profile image from Supabase storage now that the DB row
+    // is gone. This runs outside the transaction because Supabase storage
+    // is external — a failure here should not roll back the DB deletion.
+    if (user.profileImageUrl) {
+      try {
+        await deleteProfileImage(user.profileImageUrl);
+      } catch (imageErr) {
+        // Non-fatal: log the failure but do not fail the whole request.
+        console.error(
+          `Failed to delete profile image for user ${userId}:`,
+          imageErr,
+        );
+      }
+    }
 
     // Log the user deletion activity
     await logUserAction(

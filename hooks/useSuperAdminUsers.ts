@@ -34,35 +34,35 @@ export const useSuperAdminUser = (userId: string) => {
 
 export const useUpdateSuperAdminUser = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ userId, data }: { userId: string; data: UpdateUserData }) => 
+    mutationFn: ({ userId, data }: { userId: string; data: UpdateUserData }) =>
       adminUsersApi.updateUser(userId, data),
     onMutate: async ({ userId, data }: { userId: string; data: UpdateUserData }) => {
       await queryClient.cancelQueries({ queryKey: ['superAdminUsers'] });
       await queryClient.cancelQueries({ queryKey: ['superAdminUser', userId] });
-      
+
       const previousUsers = queryClient.getQueryData(['superAdminUsers']) as UsersResponse;
       const previousUser = queryClient.getQueryData(['superAdminUser', userId]) as User;
-      
+
       queryClient.setQueryData(['superAdminUsers'], (old: UsersResponse | undefined) => {
         if (!old) return old;
-        
+
         return {
           ...old,
-          users: old.users.map(user => 
-            user.id === userId 
+          users: old.users.map(user =>
+            user.id === userId
               ? { ...user, ...data }
               : user
           ),
         };
       });
-      
+
       queryClient.setQueryData(['superAdminUser', userId], (old: User | undefined) => {
         if (!old) return old;
         return { ...old, ...data };
       });
-      
+
       return { previousUsers, previousUser };
     },
     onError: (err, variables, context) => {
@@ -82,41 +82,41 @@ export const useUpdateSuperAdminUser = () => {
 
 export const useUpdateSuperAdminUserRole = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ userId, roleId }: { userId: string; roleId: string }) => 
+    mutationFn: ({ userId, roleId }: { userId: string; roleId: string }) =>
       adminUsersApi.updateUserRole(userId, roleId),
     onMutate: async ({ userId, roleId }: { userId: string; roleId: string }) => {
       await queryClient.cancelQueries({ queryKey: ['superAdminUsers'] });
       await queryClient.cancelQueries({ queryKey: ['superAdminUser', userId] });
-      
+
       const previousUsers = queryClient.getQueryData(['superAdminUsers']) as UsersResponse;
       const previousUser = queryClient.getQueryData(['superAdminUser', userId]) as User;
-      
+
       const filters = previousUsers?.filters;
       const roleInfo = filters?.roles.find(r => r.id === roleId);
-      
+
       queryClient.setQueryData(['superAdminUsers'], (old: UsersResponse | undefined) => {
         if (!old) return old;
-        
+
         return {
           ...old,
-          users: old.users.map(user => 
-            user.id === userId 
-              ? { 
-                  ...user, 
-                  roleId,
-                  role: roleInfo ? {
-                    id: roleId,
-                    name: roleInfo.name,
-                    displayName: roleInfo.displayName,
-                  } : user.role
-                }
+          users: old.users.map(user =>
+            user.id === userId
+              ? {
+                ...user,
+                roleId,
+                role: roleInfo ? {
+                  id: roleId,
+                  name: roleInfo.name,
+                  displayName: roleInfo.displayName,
+                } : user.role
+              }
               : user
           ),
         };
       });
-      
+
       queryClient.setQueryData(['superAdminUser', userId], (old: User | undefined) => {
         if (!old) return old;
         return {
@@ -129,7 +129,7 @@ export const useUpdateSuperAdminUserRole = () => {
           } : old.role,
         };
       });
-      
+
       return { previousUsers, previousUser };
     },
     onError: (err, variables, context) => {
@@ -149,37 +149,37 @@ export const useUpdateSuperAdminUserRole = () => {
 
 export const useUpdateSuperAdminUserStatus = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ userId, status }: { userId: string; status: string }) => 
+    mutationFn: ({ userId, status }: { userId: string; status: string }) =>
       adminUsersApi.updateUserStatus(userId, status),
     onMutate: async ({ userId, status }: { userId: string; status: string }) => {
       await queryClient.cancelQueries({ queryKey: ['superAdminUsers'] });
       await queryClient.cancelQueries({ queryKey: ['superAdminUser', userId] });
-      
+
       const previousUsers = queryClient.getQueryData(['superAdminUsers']) as UsersResponse;
       const previousUser = queryClient.getQueryData(['superAdminUser', userId]) as User;
-      
+
       const isActive = status === 'ACTIVE';
-      
+
       queryClient.setQueryData(['superAdminUsers'], (old: UsersResponse | undefined) => {
         if (!old) return old;
-        
+
         return {
           ...old,
-          users: old.users.map(user => 
-            user.id === userId 
+          users: old.users.map(user =>
+            user.id === userId
               ? { ...user, status: status as 'ACTIVE' | 'INACTIVE' | 'SUSPENDED', isActive }
               : user
           ),
         };
       });
-      
+
       queryClient.setQueryData(['superAdminUser', userId], (old: User | undefined) => {
         if (!old) return old;
         return { ...old, status: status as 'ACTIVE' | 'INACTIVE' | 'SUSPENDED', isActive };
       });
-      
+
       return { previousUsers, previousUser };
     },
     onError: (err, variables, context) => {
@@ -199,19 +199,22 @@ export const useUpdateSuperAdminUserStatus = () => {
 
 export const useDeleteSuperAdminUser = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (userId: string) => adminUsersApi.deleteUser(userId),
     onMutate: async (userId: string) => {
+      // Cancel any in-flight fetches for both cache keys
       await queryClient.cancelQueries({ queryKey: ['superAdminUsers'] });
       await queryClient.cancelQueries({ queryKey: ['superAdminUser', userId] });
-      
-      const previousUsers = queryClient.getQueryData(['superAdminUsers']) as UsersResponse;
+      await queryClient.cancelQueries({ queryKey: ['adminUsers'] });
+
+      const previousSuperAdminUsers = queryClient.getQueryData(['superAdminUsers']) as UsersResponse;
       const previousUser = queryClient.getQueryData(['superAdminUser', userId]) as User;
-      
+      const previousAdminUsers = queryClient.getQueryData(['adminUsers']) as UsersResponse;
+
+      // Optimistically remove from superAdminUsers cache (super-admin page)
       queryClient.setQueryData(['superAdminUsers'], (old: UsersResponse | undefined) => {
         if (!old) return old;
-        
         return {
           ...old,
           users: old.users.filter(user => user.id !== userId),
@@ -221,22 +224,40 @@ export const useDeleteSuperAdminUser = () => {
           },
         };
       });
-      
+
+      // Optimistically remove from adminUsers cache (admin page)
+      queryClient.setQueryData(['adminUsers'], (old: UsersResponse | undefined) => {
+        if (!old) return old;
+        return {
+          ...old,
+          users: old.users.filter((user: User) => user.id !== userId),
+          pagination: {
+            ...old.pagination,
+            total: Math.max(0, (old.pagination?.total ?? 1) - 1),
+          },
+        };
+      });
+
       queryClient.setQueryData(['superAdminUser', userId], undefined);
-      
-      return { previousUsers, previousUser };
+
+      return { previousSuperAdminUsers, previousAdminUsers, previousUser };
     },
-    onError: (err, variables, context) => {
-      if (context?.previousUsers) {
-        queryClient.setQueryData(['superAdminUsers'], context.previousUsers);
+    onError: (err, userId, context) => {
+      // Roll back both caches on failure
+      if (context?.previousSuperAdminUsers) {
+        queryClient.setQueryData(['superAdminUsers'], context.previousSuperAdminUsers);
+      }
+      if (context?.previousAdminUsers) {
+        queryClient.setQueryData(['adminUsers'], context.previousAdminUsers);
       }
       if (context?.previousUser) {
-        queryClient.setQueryData(['superAdminUser', variables], context.previousUser);
+        queryClient.setQueryData(['superAdminUser', userId], context.previousUser);
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['superAdminUsers'] });
       queryClient.invalidateQueries({ queryKey: ['superAdminUser'] });
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
     },
   });
 };

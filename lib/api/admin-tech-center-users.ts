@@ -64,6 +64,7 @@ export interface UpdateUserData {
   phoneNumber?: string;
   country?: string;
   city?: string;
+  techCenterId?: string;
 }
 
 export const adminTechCenterUsersApi = {
