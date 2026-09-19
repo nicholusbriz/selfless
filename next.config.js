@@ -26,8 +26,10 @@ const nextConfig = {
 
   // Configure image optimization
   images: {
-    // Disable optimization for local images to ensure they load reliably
-    unoptimized: false,
+    // Bypass Vercel's image optimization service entirely to avoid 402 quota errors.
+    // Supabase Storage already serves compressed images, so re-optimizing them
+    // through Vercel wastes the monthly optimization quota.
+    unoptimized: true,
 
     remotePatterns: [
       {
