@@ -455,7 +455,7 @@ function MediaLibrary() {
             </div>
 
             {/* Track list */}
-            <div className="max-h-36 overflow-y-auto divide-y divide-white/[0.04]">
+            <div className="max-h-[7.5rem] overflow-y-auto divide-y divide-white/[0.04]">
               {videos.map((item, idx) => {
                 const isActive = idx === currentIndex;
                 return (
