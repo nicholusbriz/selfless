@@ -115,6 +115,13 @@ model User {
   roleUpdatedAt DateTime? // Tracks when role was last changed for token refresh
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  // Promotion ownership — tracks who assigned this user their current role.
+  // super_admin and admin can only manage users they personally promoted.
+  // dev can manage anyone regardless of this field.
+  promotedById String?  @db.ObjectId
+  promotedBy   User?    @relation("PromotedUsers", fields: [promotedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  promotedUsers User[]  @relation("PromotedUsers")
   
   // Teacher-Student Assignment
   teacherId    String?  @db.ObjectId
@@ -170,6 +177,7 @@ model User {
   @@index([previousTechCenterId])
   @@index([roleId])
   @@index([teacherId])
+  @@index([promotedById])
   @@index([status])
   @@index([country])
   @@map("users")

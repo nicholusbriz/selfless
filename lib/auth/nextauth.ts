@@ -31,7 +31,7 @@ interface JwtCallbackParams {
 
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma) as unknown as AuthOptions['adapter'],
-  
+
   providers: [
     // ============================================
     // CREDENTIALS PROVIDER (Email/Password)
@@ -51,7 +51,7 @@ export const authOptions: AuthOptions = {
         // 2. Find user in database
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
-          include: { 
+          include: {
             role: true,
             techCenter: {
               select: { id: true, name: true }
@@ -127,7 +127,7 @@ export const authOptions: AuthOptions = {
   // ============================================
   // CALLBACKS
   // ============================================
-  
+
   callbacks: {
     /**
      * Session Callback
@@ -193,11 +193,11 @@ export const authOptions: AuthOptions = {
         token.preferredTeamRole = user.preferredTeamRole;
         // Use type assertion for teacherId
         token.teacherId = user.teacherId || null;
-        
+
         // Store roleUpdatedAt from database during initial sign in
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
-          select: { 
+          select: {
             roleUpdatedAt: true,
             teacherId: true
           }
@@ -207,12 +207,12 @@ export const authOptions: AuthOptions = {
           token.teacherId = dbUser.teacherId;
         }
       }
-      
+
       // Re-fetch user data from database on session update
       if (trigger === 'update' && token.sub) {
         const freshUser = await prisma.user.findUnique({
           where: { id: token.sub as string },
-          include: { 
+          include: {
             role: true,
             techCenter: {
               select: { id: true, name: true }
@@ -228,7 +228,7 @@ export const authOptions: AuthOptions = {
             }
           }
         });
-        
+
         if (freshUser) {
           token.role = freshUser.role?.name || 'student';
           token.firstName = freshUser.firstName;
@@ -254,12 +254,15 @@ export const authOptions: AuthOptions = {
           token.roleUpdatedAt = freshUser.roleUpdatedAt?.toISOString();
         }
       }
-      
-      // Auto-refresh token if role has been changed (check roleUpdatedAt)
+
+      // Auto-refresh token if role has been changed (check roleUpdatedAt).
+      // Also serves as the deleted-user guard: if the user no longer exists
+      // in the database we return null, which tells NextAuth to invalidate
+      // the JWT and sign the client out on their very next request.
       if (token.sub && !trigger) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.sub as string },
-          select: { 
+          select: {
             roleUpdatedAt: true,
             role: { select: { name: true } },
             teacherId: true,
@@ -268,64 +271,69 @@ export const authOptions: AuthOptions = {
             }
           }
         });
-        
-        if (dbUser) {
-          if (!token.techCenter && dbUser.techCenter) {
-            token.techCenter = dbUser.techCenter;
-          }
 
-          const tokenRoleUpdatedAt = token.roleUpdatedAt;
-          const dbRoleUpdatedAt = dbUser.roleUpdatedAt?.toISOString();
-          
-          // If database roleUpdatedAt is newer than token's, refresh all user data
-          if (dbRoleUpdatedAt && (!tokenRoleUpdatedAt || new Date(dbRoleUpdatedAt) > new Date(tokenRoleUpdatedAt))) {
-            const freshUser = await prisma.user.findUnique({
-              where: { id: token.sub as string },
-              include: { 
-                role: true,
-                techCenter: {
-                  select: { id: true, name: true }
-                },
-                teacher: {
-                  select: {
-                    id: true,
-                    firstName: true,
-                    lastName: true,
-                    email: true,
-                    profileImageUrl: true,
-                  }
+        // User no longer exists in the database (e.g. deleted by an admin).
+        // Returning null forces NextAuth to clear the session cookie and
+        // redirect the client to the sign-in page immediately.
+        if (!dbUser) {
+          return null as unknown as JWT;
+        }
+
+        if (!token.techCenter && dbUser.techCenter) {
+          token.techCenter = dbUser.techCenter;
+        }
+
+        const tokenRoleUpdatedAt = token.roleUpdatedAt;
+        const dbRoleUpdatedAt = dbUser.roleUpdatedAt?.toISOString();
+
+        // If database roleUpdatedAt is newer than token's, refresh all user data
+        if (dbRoleUpdatedAt && (!tokenRoleUpdatedAt || new Date(dbRoleUpdatedAt) > new Date(tokenRoleUpdatedAt))) {
+          const freshUser = await prisma.user.findUnique({
+            where: { id: token.sub as string },
+            include: {
+              role: true,
+              techCenter: {
+                select: { id: true, name: true }
+              },
+              teacher: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                  profileImageUrl: true,
                 }
               }
-            });
-            
-            if (freshUser) {
-              token.role = freshUser.role?.name || 'student';
-              token.firstName = freshUser.firstName;
-              token.lastName = freshUser.lastName;
-              token.techCenterId = freshUser.techCenterId;
-              token.techCenter = freshUser.techCenter;
-              token.profileImageUrl = freshUser.profileImageUrl;
-              token.status = freshUser.status;
-              token.isActive = freshUser.isActive;
-              token.phoneNumber = freshUser.phoneNumber;
-              token.country = freshUser.country;
-              token.city = freshUser.city;
-              token.town = freshUser.town;
-              token.street = freshUser.street;
-              token.generalCourse = freshUser.generalCourse;
-              token.linkedinUrl = freshUser.linkedinUrl;
-              token.githubUrl = freshUser.githubUrl;
-              token.projectUrls = freshUser.projectUrls;
-              token.gender = freshUser.gender;
-              token.preferredTeamType = freshUser.preferredTeamType;
-              token.preferredTeamRole = freshUser.preferredTeamRole;
-              token.teacherId = freshUser.teacherId || null;
-              token.roleUpdatedAt = freshUser.roleUpdatedAt?.toISOString();
             }
+          });
+
+          if (freshUser) {
+            token.role = freshUser.role?.name || 'student';
+            token.firstName = freshUser.firstName;
+            token.lastName = freshUser.lastName;
+            token.techCenterId = freshUser.techCenterId;
+            token.techCenter = freshUser.techCenter;
+            token.profileImageUrl = freshUser.profileImageUrl;
+            token.status = freshUser.status;
+            token.isActive = freshUser.isActive;
+            token.phoneNumber = freshUser.phoneNumber;
+            token.country = freshUser.country;
+            token.city = freshUser.city;
+            token.town = freshUser.town;
+            token.street = freshUser.street;
+            token.generalCourse = freshUser.generalCourse;
+            token.linkedinUrl = freshUser.linkedinUrl;
+            token.githubUrl = freshUser.githubUrl;
+            token.projectUrls = freshUser.projectUrls;
+            token.gender = freshUser.gender;
+            token.preferredTeamType = freshUser.preferredTeamType;
+            token.preferredTeamRole = freshUser.preferredTeamRole;
+            token.teacherId = freshUser.teacherId || null;
+            token.roleUpdatedAt = freshUser.roleUpdatedAt?.toISOString();
           }
         }
       }
-      
+
       return token;
     },
 
@@ -356,7 +364,7 @@ export const authOptions: AuthOptions = {
   // ============================================
   // PAGES
   // ============================================
-  
+
   pages: {
     signIn: '/login',
     error: '/login',
@@ -365,7 +373,7 @@ export const authOptions: AuthOptions = {
   // ============================================
   // SESSION
   // ============================================
-  
+
   session: {
     strategy: 'jwt',
     maxAge: 7 * 24 * 60 * 60, // 7 days
@@ -374,7 +382,7 @@ export const authOptions: AuthOptions = {
   // ============================================
   // SECRET
   // ============================================
-  
+
   secret: process.env.NEXTAUTH_SECRET,
 };
 

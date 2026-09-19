@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
   User,
@@ -35,6 +36,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const { user, updateUser } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
 
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -105,8 +107,15 @@ export default function ProfilePage() {
       setError('');
       setSuccess('');
 
+      // Delete the previous image from Supabase storage before uploading
+      // the new one, so we never accumulate orphaned files.
       if (user?.profileImageUrl) {
-        await deleteProfileImage(user.profileImageUrl);
+        try {
+          await deleteProfileImage(user.profileImageUrl);
+        } catch (deleteErr) {
+          // Non-fatal: log but continue with the upload regardless.
+          console.warn('Could not delete old profile image:', deleteErr);
+        }
       }
 
       const imageUrl = await uploadProfileImage(
@@ -116,6 +125,13 @@ export default function ProfilePage() {
 
       await updateUser({
         profileImageUrl: imageUrl,
+      });
+
+      // Invalidate the discover-students React Query cache so every
+      // component that shows the carousel immediately gets the new URL
+      // instead of waiting up to 10 minutes for the staleTime to expire.
+      queryClient.invalidateQueries({
+        queryKey: ['dashboard-discover-students'],
       });
 
       setSuccess('Profile image updated successfully');
@@ -212,7 +228,7 @@ export default function ProfilePage() {
         if (!passwordResponse.ok) {
           setError(
             passwordData.error ||
-              'Failed to change password',
+            'Failed to change password',
           );
           return;
         }
@@ -550,7 +566,7 @@ export default function ProfilePage() {
                     "
                   >
                     {previewImage ||
-                    user?.profileImageUrl ? (
+                      user?.profileImageUrl ? (
                       <img
                         src={
                           previewImage ||

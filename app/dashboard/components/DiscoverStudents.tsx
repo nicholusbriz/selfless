@@ -302,7 +302,7 @@ export function DiscoverStudents({
         (safeCurrentIndex +
           offset +
           students.length) %
-          students.length
+        students.length
       ];
     },
     [safeCurrentIndex, students],
@@ -442,18 +442,18 @@ export function DiscoverStudents({
           animate={
             shouldReduceMotion
               ? {
-                  x: CARD_VARIANTS[position].x,
-                  z: 0,
-                  rotateY: 0,
-                  scale:
-                    position === "center"
-                      ? 1
-                      : 0.85,
-                  opacity:
-                    position === "center"
-                      ? 1
-                      : 0.42,
-                }
+                x: CARD_VARIANTS[position].x,
+                z: 0,
+                rotateY: 0,
+                scale:
+                  position === "center"
+                    ? 1
+                    : 0.85,
+                opacity:
+                  position === "center"
+                    ? 1
+                    : 0.42,
+              }
               : CARD_VARIANTS[position]
           }
           transition={
@@ -480,6 +480,7 @@ export function DiscoverStudents({
 
           <div className="absolute inset-0 bg-[#202A39]">
             <Image
+              key={image}
               src={image}
               alt={name}
               fill
@@ -521,9 +522,9 @@ export function DiscoverStudents({
                     shouldReduceMotion
                       ? false
                       : {
-                          opacity: 0,
-                          y: 10,
-                        }
+                        opacity: 0,
+                        y: 10,
+                      }
                   }
                   animate={{
                     opacity: 1,
@@ -533,9 +534,9 @@ export function DiscoverStudents({
                     shouldReduceMotion
                       ? undefined
                       : {
-                          opacity: 0,
-                          y: -8,
-                        }
+                        opacity: 0,
+                        y: -8,
+                      }
                   }
                   transition={
                     shouldReduceMotion
@@ -732,6 +733,7 @@ export function DiscoverStudents({
               <div className="absolute left-[5%] top-1/2 -translate-y-1/2 scale-[0.6] opacity-[0.13]">
                 <div className="relative h-[350px] w-[240px] overflow-hidden rounded-2xl border border-white/5 bg-[#18212F]">
                   <Image
+                    key={backgroundStudents.veryFarLeft.profileImageUrl || "/default-avatar.png"}
                     src={
                       backgroundStudents
                         .veryFarLeft
@@ -752,6 +754,7 @@ export function DiscoverStudents({
               <div className="absolute right-[5%] top-1/2 -translate-y-1/2 scale-[0.6] opacity-[0.13]">
                 <div className="relative h-[350px] w-[240px] overflow-hidden rounded-2xl border border-white/5 bg-[#18212F]">
                   <Image
+                    key={backgroundStudents.veryFarRight.profileImageUrl || "/default-avatar.png"}
                     src={
                       backgroundStudents
                         .veryFarRight
@@ -772,6 +775,7 @@ export function DiscoverStudents({
               <div className="absolute left-[15%] top-1/2 -translate-y-1/2 scale-[0.75] opacity-[0.24]">
                 <div className="relative h-[350px] w-[240px] overflow-hidden rounded-2xl border border-white/5 bg-[#18212F]">
                   <Image
+                    key={backgroundStudents.farLeft.profileImageUrl || "/default-avatar.png"}
                     src={
                       backgroundStudents
                         .farLeft
@@ -792,6 +796,7 @@ export function DiscoverStudents({
               <div className="absolute right-[15%] top-1/2 -translate-y-1/2 scale-[0.75] opacity-[0.24]">
                 <div className="relative h-[350px] w-[240px] overflow-hidden rounded-2xl border border-white/5 bg-[#18212F]">
                   <Image
+                    key={backgroundStudents.farRight.profileImageUrl || "/default-avatar.png"}
                     src={
                       backgroundStudents
                         .farRight
@@ -870,9 +875,8 @@ export function DiscoverStudents({
                     <button
                       key={student.id}
                       type="button"
-                      aria-label={`Go to student ${
-                        index + 1
-                      }`}
+                      aria-label={`Go to student ${index + 1
+                        }`}
                       onClick={() =>
                         goToStudent(index)
                       }

@@ -30,7 +30,9 @@ export async function GET() {
 
     return NextResponse.json(students, {
       headers: {
-        'Cache-Control': 'private, max-age=60, stale-while-revalidate=300',
+        // No caching — always serve fresh data so updated profile images
+        // are picked up immediately instead of being held for 60–300 s.
+        'Cache-Control': 'no-store',
       },
     });
   } catch (error) {

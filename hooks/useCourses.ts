@@ -52,9 +52,34 @@ export function useSubmitCourses() {
       }
       return response.json();
     },
-    onMutate: async () => {
+    onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey: ['student-courses'] });
       const previousData = queryClient.getQueryData(['student-courses']);
+
+      // Optimistically add the new courses to the cache so they appear
+      // instantly while the server processes the submission.
+      queryClient.setQueryData(['student-courses'], (old: any) => {
+        const existing = old ?? { courses: [], totalCredits: 0 };
+        const optimisticCourses = variables.courses.map((c, i) => ({
+          id: `optimistic-${Date.now()}-${i}`,
+          code: c.code,
+          courseUnit: c.courseUnit,
+          credits: c.credits,
+          status: 'submitted',
+          submittedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }));
+        const addedCredits = optimisticCourses.reduce(
+          (sum: number, c: any) => sum + (c.credits || 0),
+          0,
+        );
+        return {
+          ...existing,
+          courses: [...existing.courses, ...optimisticCourses],
+          totalCredits: (existing.totalCredits || 0) + addedCredits,
+        };
+      });
+
       return { previousData };
     },
     onError: (err, variables, context) => {
@@ -88,7 +113,7 @@ export function useUpdateCourse() {
     onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey: ['student-courses'] });
       const previousData = queryClient.getQueryData(['student-courses']);
-      
+
       queryClient.setQueryData(['student-courses'], (old: any) => {
         if (!old) return old;
         return {
@@ -100,7 +125,7 @@ export function useUpdateCourse() {
           )
         };
       });
-      
+
       return { previousData };
     },
     onError: (err, variables, context) => {
@@ -132,7 +157,7 @@ export function useDeleteCourse() {
     onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey: ['student-courses'] });
       const previousData = queryClient.getQueryData(['student-courses']);
-      
+
       queryClient.setQueryData(['student-courses'], (old: any) => {
         if (!old) return old;
         return {
@@ -141,7 +166,7 @@ export function useDeleteCourse() {
           totalCredits: old.totalCredits - (old.courses.find((c: Course) => c.id === variables)?.credits || 0)
         };
       });
-      
+
       return { previousData };
     },
     onError: (err, variables, context) => {

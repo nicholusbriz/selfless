@@ -161,6 +161,13 @@ export default function MyCoursesPage() {
   const updateAcademicSettings = async () => {
     setIsUpdatingSettings(true);
 
+    // Optimistically apply the values the user set so the UI reflects
+    // the change instantly without waiting for the round-trip.
+    const optimisticTuition = userTuitionAmount.trim();
+    const optimisticReligion = userTakesReligion;
+    setShowReligionEdit(false);
+    setShowTuitionEdit(false);
+
     try {
       const response = await fetch('/api/user/academic-settings', {
         method: 'PUT',
@@ -168,30 +175,40 @@ export default function MyCoursesPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          takesReligion: userTakesReligion,
-          tuitionAmount: userTuitionAmount,
+          takesReligion: optimisticReligion,
+          tuitionAmount: optimisticTuition,
         }),
       });
 
       if (response.ok) {
         const settingsData = await response.json();
 
+        // Sync religion from server (authoritative)
         setUserTakesReligion(
-          settingsData.user?.takesReligion ?? false
+          settingsData.user?.takesReligion ?? optimisticReligion
         );
 
+        // Trust what the user typed; only fall back to server value
+        // if the input was empty (i.e. the user cleared tuition).
         setUserTuitionAmount(
-          settingsData.user?.tuitionAmount !== null &&
-            settingsData.user?.tuitionAmount !== undefined
-            ? settingsData.user.tuitionAmount.toString()
-            : ''
+          optimisticTuition !== ''
+            ? optimisticTuition
+            : settingsData.user?.tuitionAmount != null
+              ? settingsData.user.tuitionAmount.toString()
+              : ''
         );
-
-        setShowReligionEdit(false);
-        setShowTuitionEdit(false);
+      } else {
+        // On failure roll back to what was on screen before save
+        setUserTakesReligion(optimisticReligion);
+        setUserTuitionAmount(optimisticTuition);
+        setShowReligionEdit(true);
+        setShowTuitionEdit(optimisticTuition !== '');
       }
     } catch (error) {
       console.error('Error updating academic settings:', error);
+      // Roll back
+      setUserTakesReligion(optimisticReligion);
+      setUserTuitionAmount(optimisticTuition);
     } finally {
       setIsUpdatingSettings(false);
     }
@@ -204,6 +221,10 @@ export default function MyCoursesPage() {
 
     setIsUpdatingSettings(true);
     setSaveSuccess(false);
+
+    // Optimistically apply the new course name and close the edit panel
+    // immediately — no waiting for the server.
+    setShowGeneralCourseEdit(false);
 
     try {
       const response = await fetch('/api/user/update', {
@@ -225,20 +246,21 @@ export default function MyCoursesPage() {
 
         setUserGeneralCourse(trimmedCourse);
         setSaveSuccess(true);
-        setShowGeneralCourseEdit(false);
 
         setTimeout(() => {
           setSaveSuccess(false);
         }, 1500);
       } else {
         const errorData = await response.json();
-
+        // Roll back — re-open the edit panel so the user can retry
+        setShowGeneralCourseEdit(true);
         alert(
           errorData.error || 'Failed to update general course'
         );
       }
     } catch (error) {
       console.error('Error updating general course:', error);
+      setShowGeneralCourseEdit(true);
       alert('Failed to update general course');
     } finally {
       setIsUpdatingSettings(false);
@@ -302,15 +324,20 @@ export default function MyCoursesPage() {
       }
     }
 
+    // Close the form and clear the staging list immediately — the
+    // optimistic update in useSubmitCourses makes the courses appear
+    // in the submitted list before the server responds.
+    setShowForm(false);
+    clearCourseList();
+
     try {
       await submitMutation.mutateAsync({
         courses: coursesList,
         tuitionAmount: '',
       });
-
-      setShowForm(false);
-      clearCourseList();
     } catch (error) {
+      // onError in the hook rolls back the cache; re-open the form
+      // so the user can try again with their courses still populated.
       console.error('Failed to submit courses:', error);
     }
   };
@@ -340,6 +367,11 @@ export default function MyCoursesPage() {
       return;
     }
 
+    // Close the form immediately — useUpdateCourse's onMutate already
+    // updated the cache so the row reflects the new values instantly.
+    setShowEditForm(false);
+    setEditingCourse(null);
+
     try {
       await updateMutation.mutateAsync({
         courseId: editingCourse.id,
@@ -349,19 +381,16 @@ export default function MyCoursesPage() {
           credits: editingCourse.credits,
         },
       });
-
-      setShowEditForm(false);
-      setEditingCourse(null);
     } catch (error) {
+      // onError in the hook rolls back the cache automatically.
       console.error('Failed to update course:', error);
     }
   };
 
   const handleDelete = async (courseId: string) => {
-    if (!confirm('Are you sure you want to delete this course?')) {
-      return;
-    }
-
+    // No confirm() dialog — the optimistic update in useDeleteCourse
+    // removes the row from the list instantly. If the server fails,
+    // onError rolls it back automatically.
     try {
       await deleteMutation.mutateAsync(courseId);
     } catch (error) {
@@ -512,38 +541,38 @@ export default function MyCoursesPage() {
         {(!user?.profileImageUrl ||
           !user?.generalCourse ||
           !user?.phoneNumber) && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 border border-[var(--line)] bg-[var(--brand-soft)] px-4 py-4 sm:px-5"
-          >
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--brand)]">
-                  Complete your profile
-                </p>
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 border border-[var(--line)] bg-[var(--brand-soft)] px-4 py-4 sm:px-5"
+            >
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--brand)]">
+                    Complete your profile
+                  </p>
 
-                <p className="mt-1 font-mono text-[13px] leading-5 text-[var(--ink-2)]">
-                  {!user?.profileImageUrl &&
-                    'Add a profile photo. '}
-                  {!user?.generalCourse &&
-                    'Set your general degree course. '}
-                  {!user?.phoneNumber &&
-                    'Add your phone number.'}
-                </p>
+                  <p className="mt-1 font-mono text-[13px] leading-5 text-[var(--ink-2)]">
+                    {!user?.profileImageUrl &&
+                      'Add a profile photo. '}
+                    {!user?.generalCourse &&
+                      'Set your general degree course. '}
+                    {!user?.phoneNumber &&
+                      'Add your phone number.'}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() =>
+                    router.push('/dashboard/profile')
+                  }
+                  className={`${btnPrimary} shrink-0`}
+                >
+                  Complete Profile
+                </button>
               </div>
-
-              <button
-                onClick={() =>
-                  router.push('/dashboard/profile')
-                }
-                className={`${btnPrimary} shrink-0`}
-              >
-                Complete Profile
-              </button>
-            </div>
-          </motion.div>
-        )}
+            </motion.div>
+          )}
 
         {/* Academic Information */}
         <section className="mb-8">
@@ -665,11 +694,10 @@ export default function MyCoursesPage() {
                   {!showReligionEdit && (
                     <div className="mt-2 flex items-center gap-2">
                       <span
-                        className={`font-mono text-[14px] font-semibold ${
-                          userTakesReligion
-                            ? 'text-[var(--ok)]'
-                            : 'text-[var(--ink)]'
-                        }`}
+                        className={`font-mono text-[14px] font-semibold ${userTakesReligion
+                          ? 'text-[var(--ok)]'
+                          : 'text-[var(--ink)]'
+                          }`}
                       >
                         {userTakesReligion ? 'Yes' : 'No'}
                       </span>
@@ -703,11 +731,10 @@ export default function MyCoursesPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={() => setUserTakesReligion(true)}
-                      className={`border px-4 py-2.5 font-mono text-[12.5px] font-semibold uppercase tracking-[0.08em] transition-colors ${
-                        userTakesReligion
-                          ? 'border-[var(--brass)] bg-[var(--brass-soft)] text-[var(--brass)]'
-                          : 'border-[var(--line)] bg-[var(--surface)] text-[var(--ink-2)] hover:bg-[var(--surface-2)]'
-                      }`}
+                      className={`border px-4 py-2.5 font-mono text-[12.5px] font-semibold uppercase tracking-[0.08em] transition-colors ${userTakesReligion
+                        ? 'border-[var(--brass)] bg-[var(--brass-soft)] text-[var(--brass)]'
+                        : 'border-[var(--line)] bg-[var(--surface)] text-[var(--ink-2)] hover:bg-[var(--surface-2)]'
+                        }`}
                     >
                       Yes
                     </button>
@@ -716,11 +743,10 @@ export default function MyCoursesPage() {
                       onClick={() =>
                         setUserTakesReligion(false)
                       }
-                      className={`border px-4 py-2.5 font-mono text-[12.5px] font-semibold uppercase tracking-[0.08em] transition-colors ${
-                        !userTakesReligion
-                          ? 'border-[var(--brass)] bg-[var(--brass-soft)] text-[var(--brass)]'
-                          : 'border-[var(--line)] bg-[var(--surface)] text-[var(--ink-2)] hover:bg-[var(--surface-2)]'
-                      }`}
+                      className={`border px-4 py-2.5 font-mono text-[12.5px] font-semibold uppercase tracking-[0.08em] transition-colors ${!userTakesReligion
+                        ? 'border-[var(--brass)] bg-[var(--brass-soft)] text-[var(--brass)]'
+                        : 'border-[var(--line)] bg-[var(--surface)] text-[var(--ink-2)] hover:bg-[var(--surface-2)]'
+                        }`}
                     >
                       No
                     </button>
