@@ -208,6 +208,8 @@ const config: Config = {
         'gradient-y': 'gradient-y 15s ease infinite',
         'gradient-xy': 'gradient-xy 15s ease infinite',
         'orbit': 'orbit 20s linear infinite',
+        'equalize': 'equalize 0.8s ease-in-out infinite',
+        'marquee': 'marquee 18s linear infinite',
       },
       keyframes: {
         shimmer: {
@@ -274,6 +276,14 @@ const config: Config = {
         orbit: {
           '0%': { transform: 'rotate(0deg) translateX(30px) rotate(0deg)' },
           '100%': { transform: 'rotate(360deg) translateX(30px) rotate(-360deg)' },
+        },
+        equalize: {
+          '0%, 100%': { transform: 'scaleY(0.4)' },
+          '50%': { transform: 'scaleY(1)' },
+        },
+        marquee: {
+          '0%': { transform: 'translateX(0%)' },
+          '100%': { transform: 'translateX(-33.333%)' },
         },
       },
       boxShadow: {

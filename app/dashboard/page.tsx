@@ -22,11 +22,9 @@ import {
   Camera,
   GraduationCap,
   ChevronRight,
-  ChevronLeft,
   Library,
   Star,
   MessageCircle,
-  Sparkles,
   Trash2,
   Loader2,
   Send,
@@ -300,7 +298,7 @@ function MediaLibrary() {
 
   const handleDeleteRequest = async (requestId: string) => {
     if (!confirm('Delete this request?')) return;
-    
+
     try {
       const response = await fetch(`/api/video-requests/${requestId}`, {
         method: 'DELETE',
@@ -410,17 +408,21 @@ function MediaLibrary() {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-sm">
-      {/* Player */}
-      <div className="relative aspect-video w-full bg-black">
+    <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-[#0F1923] shadow-sm">
+      {/* Player — aspect-video wraps the full flex-col component */}
+      <div className="w-full bg-black">
         {current && (
           <VideoPlayer
             key={currentVideoKey}
             src={current.publicUrl}
             title={current.title}
             description={current.description || undefined}
-            className="w-full h-full"
+            className="w-full"
             playRef={videoPlayerRef}
+            onPrevious={videos.length > 1 ? goPrevious : undefined}
+            onNext={videos.length > 1 ? goNext : undefined}
+            videoIndex={currentIndex}
+            videoCount={videos.length}
             onEnded={() => {
               if (videos.length > 1) {
                 goNext();
@@ -428,148 +430,138 @@ function MediaLibrary() {
             }}
           />
         )}
-
-        {/* Top-right counter */}
-        {current && (
-          <div className="absolute right-3 top-3 rounded-full bg-black/60 px-3 py-1 text-[11px] font-medium text-white backdrop-blur-sm z-10">
-            {currentIndex + 1} / {videos.length}
-          </div>
-        )}
       </div>
 
-      {/* Compact Controls */}
-      <div className="flex items-center justify-between gap-2 border-t border-[#E5E7EB] bg-[#F8F9FA] px-4 py-2">
-        <button
-          type="button"
-          onClick={goPrevious}
-          disabled={videos.length <= 1}
-          aria-label="Previous video"
-          className="inline-flex items-center gap-1 rounded border border-[#E5E7EB] bg-white px-2 py-1 text-[10px] font-medium text-[#1A2B4C] hover:border-[#C59B4C] hover:text-[#C59B4C] disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <ChevronLeft className="h-3 w-3" />
-          Prev
-        </button>
 
-        <button
-          type="button"
-          onClick={goNext}
-          disabled={videos.length <= 1}
-          aria-label="Next video"
-          className="inline-flex items-center gap-1 rounded border border-[#E5E7EB] bg-white px-2 py-1 text-[10px] font-medium text-[#1A2B4C] hover:border-[#C59B4C] hover:text-[#C59B4C] disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Next
-          <ChevronRight className="h-3 w-3" />
-        </button>
 
-        {/* Delete button - only for video owner */}
-        {canDeleteCurrent && (
-          <button
-            type="button"
-            onClick={() => handleDelete(current.id)}
-            disabled={deletingId === current.id}
-            className="inline-flex items-center gap-1 text-[10px] font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
-          >
-            {deletingId === current.id ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <Trash2 className="h-3 w-3" />
-            )}
-            Delete
-          </button>
-        )}
-      </div>
+      {/* ── Media Library + Request ─────────────────────────────
+          Same dark palette as the player footer so the whole
+          block reads as one cohesive unit.
+      ──────────────────────────────────────────────────────── */}
+      <div className="bg-[#0F1923]">
 
-      {/* Compact Video Library - Music Style */}
-      {videos.length > 0 && (
-        <div className="border-t border-[#E5E7EB] bg-white">
-          <div className="px-4 py-2 border-b border-[#E5E7EB] bg-[#1A2B4C]">
-            <h4 className="text-[10px] font-semibold text-white uppercase tracking-wider">
-              Media Library
-            </h4>
-          </div>
-          <div className="max-h-32 overflow-y-auto">
-            {videos.map((item, idx) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => selectVideo(idx)}
-                className={`w-full text-left px-4 py-1.5 border-b border-[#E5E7EB] transition-all text-[11px] ${
-                  idx === currentIndex
-                    ? 'bg-[#C59B4C]/10 text-[#C59B4C] font-medium border-l-2 border-l-[#C59B4C]'
-                    : 'hover:bg-[#F8F9FA] text-[#1A2B4C] border-l-2 border-l-transparent'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Video className="h-3 w-3 shrink-0" />
-                  <span className="truncate">{item.title}</span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+        {/* Library */}
+        {videos.length > 0 && (
+          <div className="border-t border-white/[0.07]">
+            {/* Header */}
+            <div className="flex items-center gap-2 px-4 py-2 border-b border-white/[0.06]">
+              <Video className="h-3 w-3 text-[#C59B4C] shrink-0" />
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#C59B4C]">
+                Media Library
+              </span>
+              <span className="ml-auto text-[10px] text-white/30 tabular-nums">
+                {videos.length} {videos.length === 1 ? "video" : "videos"}
+              </span>
+            </div>
 
-      {/* Compact Request Section - Music Style */}
-      <div className="border-t border-[#E5E7EB] bg-white px-4 py-2">
-        <div className="flex items-center gap-2 mb-2">
-          <input
-            type="text"
-            value={requestInput}
-            onChange={(e) => setRequestInput(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && handleRequestSubmit(requestInput)}
-            placeholder="Request what you need to watch today..."
-            maxLength={30}
-            className="flex-1 h-7 px-2 bg-[#F8F9FA] border border-[#E5E7EB] rounded text-[10px] text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#C59B4C] focus:bg-white transition-colors"
-            disabled={isSubmittingRequest}
-          />
-          <button
-            onClick={() => handleRequestSubmit(requestInput)}
-            disabled={!requestInput.trim() || isSubmittingRequest}
-            className="inline-flex items-center justify-center gap-1 h-7 px-2 bg-[#C59B4C] text-white text-[9px] font-medium rounded hover:bg-[#B08A3E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmittingRequest ? (
-              <div className="w-2.5 h-2.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-              <Send className="w-2.5 h-2.5" />
-            )}
-          </button>
-        </div>
-
-        {/* Recent Requests - Scrollable */}
-        {videoRequests.length > 0 && (
-          <div className="bg-[#F8F9FA] rounded border border-[#E5E7EB] p-1.5">
-            <div className="max-h-20 overflow-y-auto space-y-1">
-              {videoRequests.map((item) => (
-                <div key={item.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-[9px] text-[#1A2B4C] border-b border-[#E5E7EB] pb-0.5 last:border-0">
-                  <div className="flex items-center gap-1 flex-1 min-w-0 mb-0.5 sm:mb-0">
-                    <span className="font-medium text-[#C59B4C] shrink-0 whitespace-nowrap">
-                      {item.user.firstName} {item.user.lastName}
+            {/* Track list */}
+            <div className="max-h-[7.5rem] overflow-y-auto divide-y divide-white/[0.04]">
+              {videos.map((item, idx) => {
+                const isActive = idx === currentIndex;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => selectVideo(idx)}
+                    className={`
+                      group w-full text-left px-4 py-2 flex items-center gap-3
+                      transition-colors duration-150
+                      ${isActive
+                        ? "bg-[#C59B4C]/[0.12] border-l-2 border-l-[#C59B4C]"
+                        : "border-l-2 border-l-transparent hover:bg-white/[0.04]"
+                      }
+                    `}
+                  >
+                    {/* Track number / playing indicator */}
+                    <span className={`shrink-0 w-5 text-center text-[10px] tabular-nums font-medium ${isActive ? "text-[#C59B4C]" : "text-white/25 group-hover:text-white/50"
+                      }`}>
+                      {isActive ? (
+                        /* animated bars when active */
+                        <span className="inline-flex items-end gap-[2px] h-3">
+                          <span className="w-[2px] bg-[#C59B4C] animate-[equalize_0.8s_ease-in-out_infinite]" style={{ height: "60%" }} />
+                          <span className="w-[2px] bg-[#C59B4C] animate-[equalize_0.8s_ease-in-out_0.2s_infinite]" style={{ height: "100%" }} />
+                          <span className="w-[2px] bg-[#C59B4C] animate-[equalize_0.8s_ease-in-out_0.4s_infinite]" style={{ height: "40%" }} />
+                        </span>
+                      ) : (
+                        idx + 1
+                      )}
                     </span>
-                    {item.techCenter && (
-                      <>
-                        <span className="text-[#6B7280] shrink-0">•</span>
-                        <span className="ml-1 text-[#6B7280] shrink-0 whitespace-nowrap">{item.techCenter.name}</span>
-                      </>
+
+                    {/* Title */}
+                    <span className={`flex-1 truncate text-[11px] font-medium ${isActive ? "text-[#C59B4C]" : "text-white/70 group-hover:text-white/90"
+                      }`}>
+                      {item.title}
+                    </span>
+
+                    {/* Active dot */}
+                    {isActive && (
+                      <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-[#C59B4C]" />
                     )}
-                  </div>
-                  <div className="flex items-center gap-1 flex-1 min-w-0">
-                    <span className="text-[#6B7280] shrink-0 hidden sm:inline">•</span>
-                    <span className="ml-1 truncate">{item.request.length > 30 ? `${item.request.substring(0, 30)}...` : item.request}</span>
-                    {item.user.id === user?.id && (
-                      <button
-                        onClick={() => handleDeleteRequest(item.id)}
-                        className="shrink-0 text-[#6B7280] hover:text-red-600 transition-colors ml-1"
-                        aria-label="Delete request"
-                      >
-                        <Trash2 className="h-2.5 w-2.5" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
+
+        {/* Request bar */}
+        <div className="border-t border-white/[0.07] px-4 py-3">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={requestInput}
+              onChange={(e) => setRequestInput(e.target.value)}
+              onKeyPress={(e) => e.key === "Enter" && handleRequestSubmit(requestInput)}
+              placeholder="Request what you need to watch today…"
+              maxLength={30}
+              disabled={isSubmittingRequest}
+              className="flex-1 h-8 px-3 rounded-lg bg-white/[0.06] border border-white/10 text-[11px] text-white/80 placeholder:text-white/25 focus:outline-none focus:border-[#C59B4C]/60 focus:bg-white/[0.09] transition-colors"
+            />
+            <button
+              onClick={() => handleRequestSubmit(requestInput)}
+              disabled={!requestInput.trim() || isSubmittingRequest}
+              className="shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-lg bg-[#C59B4C] text-white hover:bg-[#D4A84F] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              aria-label="Send request"
+            >
+              {isSubmittingRequest ? (
+                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Send className="w-3 h-3" />
+              )}
+            </button>
+          </div>
+
+          {/* Recent requests */}
+          {videoRequests.length > 0 && (
+            <div className="mt-2 max-h-24 overflow-y-auto space-y-0.5">
+              {videoRequests.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center gap-1.5 py-1 border-b border-white/[0.05] last:border-0"
+                >
+                  <span className="shrink-0 text-[10px] font-semibold text-[#C59B4C] whitespace-nowrap">
+                    {item.user.firstName} {item.user.lastName}
+                  </span>
+                  {item.techCenter && (
+                    <span className="shrink-0 text-[10px] text-white/25">· {item.techCenter.name}</span>
+                  )}
+                  <span className="flex-1 truncate text-[10px] text-white/50 ml-1">
+                    {item.request.length > 30 ? `${item.request.substring(0, 30)}…` : item.request}
+                  </span>
+                  {item.user.id === user?.id && (
+                    <button
+                      onClick={() => handleDeleteRequest(item.id)}
+                      className="shrink-0 text-white/25 hover:text-red-400 transition-colors"
+                      aria-label="Delete request"
+                    >
+                      <Trash2 className="h-2.5 w-2.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
     </div>
@@ -1145,9 +1137,16 @@ export default function DashboardPage() {
           className="mt-6"
         >
           <div className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3.5 shadow-sm sm:px-5">
-            {/* Standard icon - Sparkles in a clean sticker style */}
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#C59B4C]/10 border border-[#C59B4C]/20">
-              <Sparkles className="h-4 w-4 text-[#C59B4C]" strokeWidth={1.8} />
+            {/* Selfless logo */}
+            <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg">
+              <Image
+                src="/icon-192x192.png"
+                alt="Selfless CE"
+                fill
+                sizes="36px"
+                className="object-cover"
+                priority
+              />
             </div>
             <div className="min-w-0 flex-1">
               <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-[#C59B4C] mb-1">
@@ -1512,11 +1511,10 @@ export default function DashboardPage() {
                   return (
                     <div
                       key={item.id}
-                      className={`flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-[#F8F9FA] ${
-                        index < recentActivity.length - 1
-                          ? 'border-b border-[#E5E7EB]'
-                          : ''
-                      }`}
+                      className={`flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-[#F8F9FA] ${index < recentActivity.length - 1
+                        ? 'border-b border-[#E5E7EB]'
+                        : ''
+                        }`}
                     >
                       <span className="shrink-0 font-mono text-[11px] text-[#9CA3AF] min-w-[70px]">
                         {formatTimeAgo(item.createdAt)}

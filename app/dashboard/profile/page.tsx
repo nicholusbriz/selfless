@@ -26,10 +26,6 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
-import {
-  uploadProfileImage,
-  deleteProfileImage,
-} from '@/lib/supabase';
 import Link from 'next/link';
 
 export default function ProfilePage() {
@@ -107,24 +103,25 @@ export default function ProfilePage() {
       setError('');
       setSuccess('');
 
-      // Delete the previous image from Supabase storage before uploading
-      // the new one, so we never accumulate orphaned files.
-      if (user?.profileImageUrl) {
-        try {
-          await deleteProfileImage(user.profileImageUrl);
-        } catch (deleteErr) {
-          // Non-fatal: log but continue with the upload regardless.
-          console.warn('Could not delete old profile image:', deleteErr);
-        }
+      // Send the file to the server-side Azure upload endpoint.
+      // The route handles deleting the old blob and uploading the new one.
+      const form = new FormData();
+      form.append('image', file);
+
+      const res = await fetch('/api/user/upload-image', {
+        method: 'POST',
+        body: form,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to upload image');
       }
 
-      const imageUrl = await uploadProfileImage(
-        file,
-        user?.id || '',
-      );
-
+      // Sync the new URL into the NextAuth session / useAuth state.
       await updateUser({
-        profileImageUrl: imageUrl,
+        profileImageUrl: data.imageUrl,
       });
 
       // Invalidate the discover-students React Query cache so every

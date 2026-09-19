@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
 import { logUserAction } from '@/lib/logger';
-import { deleteProfileImage } from '@/lib/supabase';
+import { deleteProfileImage } from '@/lib/azure-storage';
 
 // GET - Fetch single user details
 export async function GET(
