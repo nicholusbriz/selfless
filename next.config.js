@@ -44,7 +44,7 @@ const nextConfig = {
 
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    qualities: [100, 75, 90],
+    qualities: [100, 75, 90, 95],
 
     // Increase timeout for image loading
     minimumCacheTTL: 60,
