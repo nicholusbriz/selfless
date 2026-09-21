@@ -1,18 +1,26 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
-import PublicPageHero from "@/app/components/PublicPageHero";
-import PublicPageShell from "@/app/components/PublicPageShell";
+import {
+  ArrowRight,
+  BookOpen,
+  CheckCircle2,
+  MessageCircle,
+  Users,
+} from "lucide-react";
+import Header2 from "@/app/components/ui/header-2";
+import Footer from "@/app/components/Footer";
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 18 },
+  hidden: { opacity: 0, y: 16 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] as const },
+    transition: {
+      duration: 0.55,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
   },
 };
 
@@ -20,13 +28,20 @@ const fadeIn = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const },
+    transition: {
+      duration: 0.5,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
   },
 };
 
 const stagger = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.08 } },
+  visible: {
+    transition: {
+      staggerChildren: 0.07,
+    },
+  },
 };
 
 export default function AboutPage() {
@@ -37,253 +52,436 @@ export default function AboutPage() {
     : {
         initial: "hidden",
         whileInView: "visible",
-        viewport: { once: true, amount: 0.12 },
+        viewport: {
+          once: true,
+          amount: 0.12,
+        },
       };
 
   return (
-    <PublicPageShell>
-      <PublicPageHero
-        eyebrow="About Selfless CE"
-        title="A student portal built around the whole journey."
-        description="Selfless CE Portal gives students one dependable place to manage academic progress, stay connected to their tech center, communicate with others, and find the support and opportunities that help them move forward."
-        backgroundVideo="/about video.mp4"
-        backgroundPoster="/student-portal-image.png"
-        actionHref="/tech-centers"
-        actionLabel="View tech centers"
-      />
+    <div className="min-h-screen bg-[#F1F1EC] text-[#12203B]">
+      <Header2 />
 
-      {/* =====================================================
-          INTRODUCTION
-      ====================================================== */}
-      <section className="bg-[#F1F1EC] px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-28">
-        <motion.div
-          {...animationProps}
-          variants={stagger}
-          className="mx-auto max-w-7xl"
-        >
-          <motion.div
-            variants={fadeUp}
-            className="grid gap-10 lg:grid-cols-[0.72fr_1.28fr] lg:items-end lg:gap-20"
-          >
-            <div>
-              <SectionLabel label="Built for student life" color="brass" />
-              <h2 className="mt-5 max-w-xl text-3xl font-semibold leading-[1.05] tracking-[-0.04em] text-[#12203B] sm:text-4xl lg:text-[3rem]">
-                One place to understand what comes next.
-              </h2>
-            </div>
-
-            <div className="max-w-2xl">
-              <p className="text-[15px] leading-7 text-[#4B564C] sm:text-base sm:leading-8">
-                Student life involves more than classes and grades. There are
-                people to connect with, activities to follow, support to find,
-                and important information to keep up with.
-              </p>
-              <p className="mt-4 text-[15px] leading-7 text-[#6B7268] sm:text-base sm:leading-8">
-                Selfless CE brings these parts of the experience together in
-                one organized digital environment, helping students spend less
-                time searching for information and more time moving forward.
-              </p>
-            </div>
-          </motion.div>
-
-          {/* Intro stats — no border box, breathing whitespace */}
-          <motion.div
-            variants={fadeIn}
-            className="mt-16 grid gap-10 sm:grid-cols-3 sm:gap-8 lg:mt-24"
-          >
-            <IntroStat
-              number="01"
-              label="Learn"
-              text="Follow academic progress and stay focused on your studies."
-            />
-            <IntroStat
-              number="02"
-              label="Connect"
-              text="Stay connected with students, tutors, teachers, and your tech center."
-            />
-            <IntroStat
-              number="03"
-              label="Progress"
-              text="Find the information, support, and opportunities that help you move ahead."
-            />
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* =====================================================
-          WHAT IS THE PORTAL?
-      ====================================================== */}
-      <section className="bg-white px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-28">
-        <motion.div
-          {...animationProps}
-          variants={stagger}
-          className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-center lg:gap-20"
-        >
-          <motion.div variants={fadeUp} className="relative">
-            <div className="relative overflow-hidden rounded-2xl shadow-[0_30px_80px_-40px_rgba(18,32,59,0.45)]">
-              <div className="relative aspect-[4/3]">
-                <Image
-                  src="/student-portal-image.png"
-                  alt="Student using the Selfless CE student portal"
-                  fill
-                  priority
-                  sizes="(min-width: 1024px) 45vw, 100vw"
-                  className="object-cover"
-                />
-              </div>
-            </div>
-
-            <div className="mt-4 flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.16em] text-[#8A9088]">
-              <span>Student experience</span>
-              <span>Selfless CE</span>
-            </div>
-          </motion.div>
-
-          <motion.div variants={fadeUp} className="max-w-2xl">
-            <SectionLabel label="What is the portal?" color="brass" />
-            <h2 className="mt-5 text-3xl font-semibold leading-[1.06] tracking-[-0.04em] text-[#12203B] sm:text-4xl lg:text-[2.8rem]">
-              More than a dashboard.
-              <br />A connected student experience.
-            </h2>
-
-            <div className="mt-7 space-y-4 text-[15px] leading-7 text-[#4B564C] sm:text-base sm:leading-8">
-              <p>
-                The Selfless CE Student Portal is a centralized digital
-                platform created to support students studying through the
-                Selfless CE network. It brings important parts of student life
-                into one organized environment.
-              </p>
-              <p>
-                Instead of moving between disconnected systems to check
-                academic information, communicate with others, find support,
-                or understand what is happening at your tech center, students
-                can use one portal designed around their journey.
-              </p>
-            </div>
-
-            <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-3">
-              <Link
-                href="/features"
-                className="group inline-flex items-center gap-2 text-sm font-bold text-[#55705B] transition-colors hover:text-[#B98A3E]"
-              >
-                See what's inside the portal
-                <ArrowRight
-                  size={16}
-                  className="transition-transform group-hover:translate-x-1"
-                />
-              </Link>
-              <Link
-                href="/tech-centers"
-                className="group inline-flex items-center gap-2 text-sm font-bold text-[#55705B] transition-colors hover:text-[#B98A3E]"
-              >
-                Explore the network
-                <ArrowRight
-                  size={16}
-                  className="transition-transform group-hover:translate-x-1"
-                />
-              </Link>
-            </div>
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* =====================================================
-          WHY IT EXISTS (dark band)
-      ====================================================== */}
-      <section className="relative overflow-hidden bg-[#12203B] px-5 py-20 sm:px-8 sm:py-24 lg:px-12 lg:py-28">
+      <main className="relative overflow-x-hidden">
+        {/* =====================================================
+            PAGE VIDEO BACKGROUND
+        ====================================================== */}
         <div
           aria-hidden="true"
-          className="absolute right-0 top-0 h-px w-1/3 bg-[#B98A3E]"
-        />
-
-        <motion.div
-          {...animationProps}
-          variants={fadeUp}
-          className="relative mx-auto grid max-w-7xl gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-20"
+          className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
         >
-          <div>
-            <div className="flex items-center gap-3">
-              <span className="h-px w-8 bg-[#B98A3E]" />
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#E8A33D]">
-                Why it exists
-              </p>
-            </div>
-
-            <h2 className="mt-5 max-w-2xl text-3xl font-semibold leading-[1.06] tracking-[-0.04em] text-white sm:text-4xl lg:text-[2.8rem]">
-              Technology should give students more room to focus on their
-              future.
-            </h2>
-
-            <p className="mt-6 max-w-2xl text-[15px] leading-7 text-white/70 sm:text-base sm:leading-8">
-              Selfless CE brings the operational side of student support
-              together so students can spend less time figuring out where
-              information lives and more time learning, connecting, and
-              progressing toward their goals.
-            </p>
-          </div>
-
-          <div className="lg:border-l lg:border-white/15 lg:pl-10">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#E8A33D]">
-              The goal
-            </p>
-            <p className="mt-5 text-xl font-medium leading-8 text-white sm:text-2xl sm:leading-9">
-              “Learn with purpose. Stay connected. Build your future.”
-            </p>
-
-            <Link
-              href="/tech-centers"
-              className="group mt-8 inline-flex items-center gap-2 text-sm font-bold text-white transition-colors hover:text-[#E8A33D]"
-            >
-              Discover the tech-center network
-              <ArrowRight
-                size={16}
-                className="transition-transform group-hover:translate-x-1"
-              />
-            </Link>
-          </div>
-        </motion.div>
-      </section>
-
-      {/* =====================================================
-          NEXT STEP
-      ====================================================== */}
-      <section className="bg-[#F1F1EC] px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24">
-        <motion.div
-          {...animationProps}
-          variants={fadeUp}
-          className="mx-auto flex max-w-7xl flex-col gap-6 sm:flex-row sm:items-center sm:justify-between"
-        >
-          <div>
-            <p className="text-sm font-semibold text-[#55705B]">
-              Your next step starts here.
-            </p>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-[#6B7268]">
-              Learn what is available to students across the Selfless CE
-              network.
-            </p>
-          </div>
-
-          <Link
-            href="/tech-centers"
-            className="group inline-flex items-center gap-2 self-start text-sm font-bold text-[#12203B] transition-colors hover:text-[#B98A3E] sm:self-auto"
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            poster="/student-portal-image.png"
+            className="h-full w-full object-cover"
           >
-            Meet the tech centers
-            <ArrowRight
-              size={16}
-              className="transition-transform group-hover:translate-x-1"
-            />
-          </Link>
-        </motion.div>
-      </section>
-    </PublicPageShell>
+            <source src="/about%20video.mp4" type="video/mp4" />
+          </video>
+
+          {/* Light readability layer — video stays visible */}
+          <div className="absolute inset-0 bg-[#071321]/45" />
+
+          {/* Directional gradient — darkens top/bottom where text sits */}
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(18,32,59,0.55)_0%,rgba(7,16,24,0.20)_45%,rgba(18,32,59,0.65)_100%)]" />
+
+          {/* Bottom accent gradient */}
+          <div className="absolute inset-x-0 bottom-0 h-80 bg-gradient-to-t from-[#071321]/70 via-[#071321]/20 to-transparent" />
+        </div>
+
+        <div className="relative z-10">
+          {/* =====================================================
+              HERO
+          ====================================================== */}
+          <section className="flex min-h-[calc(100vh-76px)] items-center px-5 pt-24 pb-16 sm:px-8 sm:pt-28 lg:px-12 lg:pt-32">
+            <div className="mx-auto w-full max-w-7xl">
+              <motion.div
+                {...animationProps}
+                variants={stagger}
+                className="max-w-6xl"
+              >
+                <motion.div variants={fadeUp}>
+                  <SectionLabel label="About Selfless CE" />
+                </motion.div>
+
+                <motion.div
+                  variants={fadeUp}
+                  className="mt-7 grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-end lg:gap-16"
+                >
+                  <div>
+                    <h1 className="max-w-5xl text-5xl font-bold leading-[0.98] tracking-[-0.045em] text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.75)] sm:text-6xl lg:text-[5.5rem]">
+                      A student portal built around the{" "}
+                      <span className="text-[#E8A33D] drop-shadow-[0_2px_14px_rgba(0,0,0,0.85)]">
+                        whole journey
+                      </span>
+                      .
+                    </h1>
+                  </div>
+
+                  <div className="max-w-xl lg:pb-2">
+                    <p className="text-base leading-7 text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-lg sm:leading-8">
+                      Selfless CE Portal gives students one dependable place to
+                      manage academic progress, stay connected to their tech
+                      center, communicate with others, and find the support
+                      and opportunities that help them move forward.
+                    </p>
+
+                    <div className="mt-7 flex flex-wrap items-center gap-x-7 gap-y-4">
+                      <Link
+                        href="/tech-centers"
+                        className="group inline-flex items-center gap-2 text-sm font-bold text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)] transition-colors hover:text-[#E8A33D]"
+                      >
+                        <span className="border-b border-white/40 pb-1 group-hover:border-[#E8A33D]">
+                          View tech centers
+                        </span>
+
+                        <ArrowRight
+                          size={16}
+                          className="transition-transform duration-300 group-hover:translate-x-1"
+                        />
+                      </Link>
+
+                      <Link
+                        href="/features"
+                        className="text-sm font-semibold text-white/90 drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)] transition-colors hover:text-[#E8A33D]"
+                      >
+                        Explore the portal
+                      </Link>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Compact hero navigation line */}
+                <motion.div
+                  variants={fadeIn}
+                  className="mt-12 grid border-t border-white/25 pt-5 sm:grid-cols-3"
+                >
+                  <HeroMeta
+                    number="01"
+                    label="Learn"
+                    text="Academic progress"
+                  />
+
+                  <HeroMeta
+                    number="02"
+                    label="Connect"
+                    text="People & community"
+                  />
+
+                  <HeroMeta
+                    number="03"
+                    label="Progress"
+                    text="Support & opportunity"
+                  />
+                </motion.div>
+              </motion.div>
+            </div>
+          </section>
+
+          {/* =====================================================
+              WHAT SELFLESS CE BRINGS TOGETHER
+          ====================================================== */}
+          <section className="border-t border-white/15 bg-[#12203B]/60 px-5 py-20 backdrop-blur-[2px] sm:px-8 lg:px-12 lg:py-24">
+            <motion.div
+              {...animationProps}
+              variants={stagger}
+              className="mx-auto max-w-7xl"
+            >
+              <motion.div
+                variants={fadeUp}
+                className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr] lg:items-end lg:gap-16"
+              >
+                <div>
+                  <SectionLabel label="Built for student life" />
+
+                  <h2 className="mt-4 max-w-xl text-3xl font-bold leading-[1.05] tracking-[-0.04em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)] sm:text-4xl lg:text-[3.2rem]">
+                    One place to understand{" "}
+                    <span className="text-[#E8A33D] drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
+                      what comes next
+                    </span>
+                    .
+                  </h2>
+                </div>
+
+                <div className="max-w-3xl">
+                  <p className="text-base leading-7 text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-lg sm:leading-8">
+                    Student life involves more than classes and grades. There
+                    are people to connect with, activities to follow, support
+                    to find, and important information to keep up with.
+                  </p>
+
+                  <p className="mt-3 text-base leading-7 text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-lg sm:leading-8">
+                    Selfless CE brings these parts of the experience together
+                    in one organized digital environment, helping students
+                    spend less time searching for information and more time
+                    moving forward.
+                  </p>
+                </div>
+              </motion.div>
+
+              {/* Horizontal experience row */}
+              <motion.div
+                variants={fadeIn}
+                className="mt-10 grid border-y border-white/15 sm:grid-cols-3"
+              >
+                <ExperienceItem
+                  number="01"
+                  icon={<BookOpen size={18} />}
+                  title="Learn"
+                  text="Follow academic progress and stay focused on your studies."
+                />
+
+                <ExperienceItem
+                  number="02"
+                  icon={<Users size={18} />}
+                  title="Connect"
+                  text="Stay connected with students, tutors, teachers, and your tech center."
+                />
+
+                <ExperienceItem
+                  number="03"
+                  icon={<CheckCircle2 size={18} />}
+                  title="Progress"
+                  text="Find the support, information, and opportunities that help you move ahead."
+                />
+              </motion.div>
+            </motion.div>
+          </section>
+
+          {/* =====================================================
+              PORTAL OVERVIEW
+          ====================================================== */}
+          <section className="relative overflow-hidden bg-[#071018]/45 px-5 py-20 backdrop-blur-[2px] sm:px-8 lg:px-12 lg:py-24">
+            <motion.div
+              {...animationProps}
+              variants={stagger}
+              className="mx-auto max-w-7xl"
+            >
+              <motion.div
+                variants={fadeUp}
+                className="grid gap-10 lg:grid-cols-[0.78fr_1.22fr] lg:items-center lg:gap-16"
+              >
+                {/* Visual frame with video */}
+                <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-[#12203B] shadow-[0_20px_60px_-20px_rgba(0,0,0,0.6)]">
+                  <div className="relative aspect-[16/10]">
+                    <video
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      poster="/student-portal-image.png"
+                      className="h-full w-full object-cover"
+                    >
+                      <source
+                        src="/about%20video.mp4"
+                        type="video/mp4"
+                      />
+                    </video>
+
+                    {/* Slight readability layer — video stays clear */}
+                    <div className="absolute inset-0 bg-[#12203B]/15" />
+
+                    {/* Bottom caption bar */}
+                    <div className="absolute bottom-0 left-0 right-0 flex items-end justify-between bg-gradient-to-t from-black/80 via-black/40 to-transparent p-5">
+                      <div>
+                        <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.95)]">
+                          Selfless CE
+                        </p>
+                        <p className="mt-1.5 text-base font-bold text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.9)]">
+                          Student experience
+                        </p>
+                      </div>
+
+                      <span className="rounded-full border border-[#E8A33D]/40 bg-[#071018]/50 px-3.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.18em] text-[#E8A33D] backdrop-blur-sm drop-shadow-[0_1px_6px_rgba(0,0,0,0.95)]">
+                        Connected
+                      </span>
+                    </div>
+
+                    {/* Top-left accent tag */}
+                    <div className="absolute left-5 top-5 flex items-center gap-2.5">
+                      <span className="h-px w-6 bg-[#E8A33D] drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)]" />
+                      <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.95)]">
+                        Inside the portal
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div>
+                  <SectionLabel label="What is the portal?" />
+
+                  <h2 className="mt-4 max-w-3xl text-3xl font-bold leading-[1.05] tracking-[-0.04em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)] sm:text-4xl lg:text-[3.2rem]">
+                    More than a{" "}
+                    <span className="text-[#E8A33D] drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
+                      dashboard
+                    </span>
+                    . A connected{" "}
+                    <span className="text-[#E8A33D] drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
+                      student experience
+                    </span>
+                    .
+                  </h2>
+
+                  <div className="mt-6 space-y-4 text-[15px] leading-7 tracking-[0.005em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-base sm:leading-8">
+                    <p>
+                      The Selfless CE Student Portal is a centralized digital
+                      platform created to support students studying through the
+                      Selfless CE network. It brings important parts of student
+                      life into one organized environment.
+                    </p>
+
+                    <p>
+                      Instead of moving between disconnected systems to check
+                      academic information, communicate with others, find
+                      support, or understand what is happening at your tech
+                      center, students can use one portal designed around their
+                      journey.
+                    </p>
+                  </div>
+
+                  {/* Small portal highlights */}
+                  <div className="mt-7 grid grid-cols-3 gap-4 border-t border-white/15 pt-6">
+                    <PortalHighlight
+                      value="One"
+                      label="Platform"
+                    />
+                    <PortalHighlight
+                      value="One"
+                      label="Community"
+                    />
+                    <PortalHighlight
+                      value="Your"
+                      label="Journey"
+                    />
+                  </div>
+
+                  <div className="mt-7 flex flex-wrap gap-x-7 gap-y-3">
+                    <Link
+                      href="/features"
+                      className="group inline-flex items-center gap-2 text-sm font-bold text-[#E8A33D] drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] transition-colors hover:text-white"
+                    >
+                      See what's inside
+                      <ArrowRight
+                        size={15}
+                        className="transition-transform group-hover:translate-x-1"
+                      />
+                    </Link>
+
+                    <Link
+                      href="/tech-centers"
+                      className="group inline-flex items-center gap-2 text-sm font-bold text-[#E8A33D] drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] transition-colors hover:text-white"
+                    >
+                      Explore the network
+                      <ArrowRight
+                        size={15}
+                        className="transition-transform group-hover:translate-x-1"
+                      />
+                    </Link>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          </section>
+
+          {/* =====================================================
+              WHY IT EXISTS
+          ====================================================== */}
+          <section className="border-t border-white/15 bg-[#12203B]/60 px-5 py-20 backdrop-blur-[2px] sm:px-8 lg:px-12 lg:py-24">
+            <motion.div
+              {...animationProps}
+              variants={fadeUp}
+              className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-16"
+            >
+              <div>
+                <SectionLabel label="Why it exists" />
+
+                <h2 className="mt-4 max-w-3xl text-3xl font-bold leading-[1.05] tracking-[-0.04em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)] sm:text-4xl lg:text-[3.2rem]">
+                  Technology should give students more room to focus on their
+                  <span className="text-[#E8A33D] drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
+                    {" "}future
+                  </span>
+                  .
+                </h2>
+
+                <p className="mt-5 max-w-2xl text-base leading-7 text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-lg sm:leading-8">
+                  Selfless CE brings the operational side of student support
+                  together so students can spend less time figuring out where
+                  information lives and more time learning, connecting, and
+                  progressing toward their goals.
+                </p>
+              </div>
+
+              <div className="border-l-2 border-[#E8A33D]/40 pl-6 sm:pl-8">
+                <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
+                  The goal
+                </p>
+
+                <p className="mt-4 max-w-md text-xl font-bold leading-8 text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)] sm:text-2xl">
+                  "Learn with purpose. Stay connected. Build your future."
+                </p>
+
+                <Link
+                  href="/tech-centers"
+                  className="group mt-6 inline-flex items-center gap-2 text-sm font-bold text-[#E8A33D] drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] transition-colors hover:text-white"
+                >
+                  Discover the tech-center network
+                  <ArrowRight
+                    size={15}
+                    className="transition-transform group-hover:translate-x-1"
+                  />
+                </Link>
+              </div>
+            </motion.div>
+          </section>
+
+          {/* =====================================================
+              NEXT STEP
+          ====================================================== */}
+          <section className="border-t border-white/15 bg-[#071018]/55 px-5 py-10 backdrop-blur-[2px] sm:px-8 lg:px-12 lg:py-12">
+            <motion.div
+              {...animationProps}
+              variants={fadeUp}
+              className="mx-auto grid max-w-7xl gap-5 sm:grid-cols-[1fr_auto] sm:items-center"
+            >
+              <div>
+                <p className="text-sm font-bold text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
+                  Your next step starts here.
+                </p>
+
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
+                  Learn what is available to students across the Selfless CE
+                  network.
+                </p>
+              </div>
+
+              <Link
+                href="/tech-centers"
+                className="group inline-flex items-center gap-2 text-sm font-bold text-[#E8A33D] drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] transition-colors hover:text-white"
+              >
+                Meet the tech centers
+                <ArrowRight
+                  size={16}
+                  className="transition-transform group-hover:translate-x-1"
+                />
+              </Link>
+            </motion.div>
+          </section>
+        </div>
+      </main>
+
+      <Footer />
+    </div>
   );
 }
 
 /* =========================================================
-   INTRO STAT
+   HERO META
 ========================================================= */
 
-function IntroStat({
+function HeroMeta({
   number,
   label,
   text,
@@ -293,18 +491,86 @@ function IntroStat({
   text: string;
 }) {
   return (
-    <div className="group">
-      <div className="flex items-center gap-3">
-        <span className="font-mono text-[10px] font-medium tracking-[0.16em] text-[#B98A3E]">
-          {number}
-        </span>
-        <span className="h-px w-5 bg-[#DADCD3] transition-all duration-300 group-hover:w-10 group-hover:bg-[#B98A3E]" />
-      </div>
+    <div className="flex items-center gap-3 border-b border-white/15 py-4 sm:border-b-0 sm:border-r sm:px-5 sm:first:pl-0 sm:last:border-r-0">
+      <span className="font-mono text-[10px] font-bold tracking-[0.16em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
+        {number}
+      </span>
 
-      <h3 className="mt-5 text-base font-semibold text-[#12203B]">
+      <span className="h-px w-5 bg-white/40" />
+
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
+          {label}
+        </p>
+        <p className="mt-0.5 text-xs text-white drop-shadow-[0_1px_5px_rgba(0,0,0,0.85)]">
+          {text}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   EXPERIENCE ITEM
+========================================================= */
+
+function ExperienceItem({
+  number,
+  icon,
+  title,
+  text,
+}: {
+  number: string;
+  icon: React.ReactNode;
+  title: string;
+  text: string;
+}) {
+  return (
+    <div className="group border-b border-white/15 px-0 py-5 sm:border-b-0 sm:border-r sm:px-6 sm:first:pl-0 sm:last:border-r-0 sm:last:pr-0">
+      <div className="flex items-start gap-4">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center border border-[#E8A33D]/40 text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)] transition-colors group-hover:bg-[#E8A33D] group-hover:text-[#12203B]">
+          {icon}
+        </div>
+
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[9px] font-bold tracking-[0.15em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
+              {number}
+            </span>
+
+            <h3 className="text-sm font-bold text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
+              {title}
+            </h3>
+          </div>
+
+          <p className="mt-1.5 text-sm leading-6 text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
+            {text}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   PORTAL HIGHLIGHT
+========================================================= */
+
+function PortalHighlight({
+  value,
+  label,
+}: {
+  value: string;
+  label: string;
+}) {
+  return (
+    <div>
+      <p className="text-xl font-bold tracking-[-0.02em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)]">
+        {value}
+      </p>
+      <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.18em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
         {label}
-      </h3>
-      <p className="mt-2 max-w-sm text-sm leading-6 text-[#6B7268]">{text}</p>
+      </p>
     </div>
   );
 }
@@ -315,19 +581,27 @@ function IntroStat({
 
 function SectionLabel({
   label,
-  color,
+  dark = false,
 }: {
   label: string;
-  color: "brass" | "moss";
+  dark?: boolean;
 }) {
-  const textColor = color === "brass" ? "text-[#B98A3E]" : "text-[#55705B]";
-  const lineColor = color === "brass" ? "bg-[#B98A3E]" : "bg-[#55705B]";
-
   return (
     <div className="flex items-center gap-3">
-      <span className={`h-px w-8 ${lineColor}`} />
+      <span
+        className={`h-px w-8 ${
+          dark
+            ? "bg-[#B98A3E]"
+            : "bg-[#E8A33D] drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]"
+        }`}
+      />
+
       <p
-        className={`text-[10px] font-bold uppercase tracking-[0.2em] ${textColor}`}
+        className={`text-[10px] font-bold uppercase tracking-[0.22em] ${
+          dark
+            ? "text-[#B98A3E]"
+            : "text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]"
+        }`}
       >
         {label}
       </p>

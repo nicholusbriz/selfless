@@ -11,8 +11,8 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
-import PublicPageHero from "@/app/components/PublicPageHero";
-import PublicPageShell from "@/app/components/PublicPageShell";
+import Header2 from "@/app/components/ui/header-2";
+import Footer from "@/app/components/Footer";
 
 const centers = [
   { name: "Freedom City Tech Center", location: "Kampala" },
@@ -30,36 +30,46 @@ const networkPoints = [
     icon: Network,
     title: "One connected system",
     description:
-      "Every participating tech center works within one digital environment for students, academic information, communication, activities, and support.",
+      "Every center operates within one digital environment for learning, communication, and support.",
   },
   {
     number: "02",
     icon: Users,
     title: "Local support, wider community",
     description:
-      "Your tech center remains your local point of connection while the portal helps you interact with the wider SELFLESS CE student community.",
+      "Your center remains your local hub while the portal connects you to the broader SELFLESS CE community.",
   },
   {
     number: "03",
     icon: CheckCircle2,
     title: "A consistent experience",
     description:
-      "Students can use the same portal experience to find important information, stay connected, and manage their journey across the network.",
+      "The same portal experience everywhere—find information, stay connected, and manage your journey.",
   },
 ];
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 14 },
+  hidden: {
+    opacity: 0,
+    y: 16,
+  },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] as const },
+    transition: {
+      duration: 0.6,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
   },
 };
 
 const stagger = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.065 } },
+  visible: {
+    transition: {
+      staggerChildren: 0.07,
+    },
+  },
 };
 
 export default function TechCentersPage() {
@@ -70,308 +80,463 @@ export default function TechCentersPage() {
     : {
         initial: "hidden",
         whileInView: "visible",
-        viewport: { once: true, amount: 0.12 },
+        viewport: {
+          once: true,
+          amount: 0.08,
+        },
       };
 
   return (
-    <PublicPageShell>
-      <PublicPageHero
-        eyebrow="SELFLESS CE Tech Center Network"
-        title="One connected network. Many places to learn."
-        description="SELFLESS CE brings its tech centers together through one student portal, giving students a consistent digital experience for learning, communication, community, and support wherever they are."
-        backgroundVideo="/tech center.mp4"
-        backgroundPoster="/student-portal-image.png"
-        actionHref="/features"
-        actionLabel="Explore portal features"
-      />
+    <div className="min-h-screen bg-[#071018]">
+      <Header2 />
 
-      {/* =====================================================
-          NETWORK INTRODUCTION
-      ====================================================== */}
-      <section className="bg-[#F1F1EC] px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24">
-        <motion.div
-          {...animationProps}
-          variants={stagger}
-          className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:items-center lg:gap-20"
+      <main className="relative isolate overflow-hidden">
+        {/* =====================================================
+            FULL PAGE VIDEO BACKGROUND
+        ====================================================== */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-0 -z-20 overflow-hidden"
         >
-          <motion.div variants={fadeUp}>
-            <SectionLabel label="The network" color="brass" />
-            <h2 className="mt-5 max-w-xl text-[2rem] font-semibold leading-[1.08] tracking-[-0.04em] text-[#12203B] sm:text-4xl lg:text-[2.65rem]">
-              Different locations.
-              <br />
-              One student experience.
-            </h2>
-            <p className="mt-5 max-w-xl text-[14px] leading-7 text-[#4B564C] sm:text-[15px]">
-              SELFLESS CE tech centers provide local spaces where students can
-              receive support and stay connected to their learning. The portal
-              extends that experience beyond the physical center.
-            </p>
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            poster="/student-portal-image.png"
+            className="h-full w-full object-cover"
+          >
+            <source
+              src="/tech%20center.mp4"
+              type="video/mp4"
+            />
+          </video>
 
-            <Link
-              href="/features"
-              className="group mt-6 inline-flex items-center gap-2 text-[13px] font-bold text-[#55705B] transition-colors hover:text-[#B98A3E]"
-            >
-              See what students can access
-              <ArrowRight
-                size={15}
-                className="transition-transform group-hover:translate-x-1"
-              />
-            </Link>
-          </motion.div>
+          {/* Light readability layer — video stays visible */}
+          <div className="absolute inset-0 bg-[#071018]/45" />
 
-          <motion.div variants={fadeUp} className="space-y-10 lg:space-y-12">
-            {networkPoints.map(({ number, icon: Icon, title, description }) => (
-              <article
-                key={number}
-                className="group grid gap-4 sm:grid-cols-[48px_1fr] sm:gap-6"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white">
-                  <Icon
-                    size={17}
-                    strokeWidth={1.8}
-                    className="text-[#B98A3E]"
-                  />
-                </div>
+          {/* Directional gradient — darkens top/bottom where text sits */}
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(18,32,59,0.55)_0%,rgba(7,16,24,0.20)_45%,rgba(18,32,59,0.60)_100%)]" />
+        </div>
 
-                <div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-[9px] font-bold tracking-[0.18em] text-[#B98A3E]">
-                      {number}
-                    </span>
-                    <span className="h-px w-5 bg-[#DADCD3] transition-all duration-300 group-hover:w-10 group-hover:bg-[#B98A3E]" />
-                  </div>
+        {/* =====================================================
+            HERO
+        ====================================================== */}
+        <section className="relative flex min-h-[72vh] items-end px-5 pb-16 pt-24 sm:px-8 sm:pb-20 sm:pt-28 lg:min-h-[76vh] lg:px-12 lg:pb-24 lg:pt-32">
+          <motion.div
+            {...animationProps}
+            variants={fadeUp}
+            className="mx-auto w-full max-w-7xl"
+          >
+            <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
+              <div className="max-w-4xl">
+                <div className="flex items-center gap-3">
+                  <span className="h-px w-9 bg-[#E8A33D] drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]" />
 
-                  <h3 className="mt-3 text-[16px] font-semibold tracking-[-0.015em] text-[#12203B] sm:text-[17px]">
-                    {title}
-                  </h3>
-                  <p className="mt-2 text-[13px] leading-7 text-[#626A62] sm:text-sm">
-                    {description}
+                  <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
+                    Tech Center Network
                   </p>
                 </div>
-              </article>
-            ))}
-          </motion.div>
-        </motion.div>
-      </section>
 
-      {/* =====================================================
-          CENTER DIRECTORY
-      ====================================================== */}
-      <section className="bg-white px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24">
-        <motion.div
-          {...animationProps}
-          variants={stagger}
-          className="mx-auto max-w-7xl"
-        >
-          <motion.div
-            variants={fadeUp}
-            className="grid gap-6 lg:grid-cols-[0.75fr_1.25fr] lg:items-end lg:gap-20"
-          >
-            <div>
-              <SectionLabel label="Our tech centers" color="moss" />
-              <h2 className="mt-5 max-w-xl text-[2rem] font-semibold leading-[1.08] tracking-[-0.04em] text-[#12203B] sm:text-4xl lg:text-[2.55rem]">
-                Local centers.
-                <br />
-                Connected by one platform.
-              </h2>
-            </div>
+                <h1 className="mt-5 text-4xl font-bold leading-[0.94] tracking-[-0.045em] text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.75)] sm:text-6xl lg:text-[5.2rem]">
+                  One <span className="text-[#E8A33D] drop-shadow-[0_2px_14px_rgba(0,0,0,0.85)]">network</span>.
+                  <br />
+                  <span className="text-[#E8A33D] drop-shadow-[0_2px_14px_rgba(0,0,0,0.85)]">
+                    Many places to learn.
+                  </span>
+                </h1>
 
-            <p className="max-w-2xl text-[14px] leading-7 text-[#6B7268] sm:text-[15px]">
-              Our network continues to grow across Uganda. Each center provides
-              a local connection for students while the SELFLESS CE Portal
-              keeps the wider student experience connected.
-            </p>
-          </motion.div>
+                <p className="mt-6 max-w-2xl text-base leading-7 text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-lg sm:leading-8">
+                  SELFLESS CE unites its tech centers through one student
+                  portal—a consistent digital experience for learning,
+                  community, and support.
+                </p>
 
-          <motion.div
-            variants={stagger}
-            className="mt-14 grid gap-x-16 gap-y-8 sm:grid-cols-2 lg:mt-20 lg:gap-y-10"
-          >
-            {centers.map((center, index) => (
-              <motion.article
-                key={center.name}
-                variants={fadeUp}
-                className="group flex items-start gap-5"
-              >
-                <span className="pt-1 font-mono text-[10px] font-bold tracking-[0.18em] text-[#B98A3E]">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
+                <div className="mt-7 flex flex-wrap items-center gap-5">
+                  <Link
+                    href="/features"
+                    className="group inline-flex items-center gap-2.5 rounded-full bg-[#E8A33D] px-5 py-3 text-sm font-bold text-[#12203B] transition-all hover:bg-[#F2B359] active:scale-[0.98]"
+                  >
+                    Explore features
 
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-[15px] font-semibold tracking-[-0.01em] text-[#12203B] transition-colors group-hover:text-[#55705B] sm:text-[16px]">
-                    {center.name}
-                  </h3>
-                  <div className="mt-1 flex items-center gap-1.5 text-[12px] text-[#6B7268] sm:text-[13px]">
-                    <MapPin
-                      size={13}
-                      strokeWidth={1.8}
-                      className="shrink-0 text-[#55705B]"
+                    <ArrowRight
+                      size={16}
+                      strokeWidth={2.5}
+                      className="transition-transform duration-300 group-hover:translate-x-1"
                     />
-                    <span>{center.location}</span>
+                  </Link>
+
+                  <Link
+                    href="/"
+                    className="text-sm font-semibold text-white/90 drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)] transition-colors hover:text-[#E8A33D]"
+                  >
+                    Back to portal
+                  </Link>
+                </div>
+              </div>
+
+              {/* Compact hero information */}
+              <div className="hidden lg:block">
+                <div className="border-l border-white/25 pl-7">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
+                    Across the network
+                  </p>
+
+                  <div className="mt-5 grid grid-cols-2 gap-x-8 gap-y-5">
+                    <HeroMetric
+                      value={String(centers.length)}
+                      label="Tech centers"
+                    />
+
+                    <HeroMetric
+                      value="01"
+                      label="Connected portal"
+                    />
+
+                    <HeroMetric
+                      value="24/7"
+                      label="Digital access"
+                    />
+
+                    <HeroMetric
+                      value="01"
+                      label="Student community"
+                    />
                   </div>
                 </div>
-              </motion.article>
-            ))}
-          </motion.div>
-
-          <motion.div
-            variants={fadeUp}
-            className="mt-12 flex flex-col gap-3 text-[12px] text-[#6B7268] sm:flex-row sm:items-center sm:justify-between sm:text-[13px]"
-          >
-            <p>{centers.length} tech centers represented across the network.</p>
-
-            <div className="flex items-center gap-2 text-[#55705B]">
-              <Building2 size={15} strokeWidth={1.8} className="shrink-0" />
-              <span className="font-medium">
-                More locations can become part of the network.
-              </span>
+              </div>
             </div>
           </motion.div>
-        </motion.div>
-      </section>
+        </section>
 
-      {/* =====================================================
-          WHAT STUDENTS GET
-      ====================================================== */}
-      <section className="bg-[#F1F1EC] px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24">
-        <motion.div
-          {...animationProps}
-          variants={stagger}
-          className="mx-auto max-w-7xl"
-        >
-          <motion.div variants={fadeUp} className="max-w-2xl">
-            <SectionLabel label="What this means for students" color="brass" />
-            <h2 className="mt-5 text-[2rem] font-semibold leading-[1.08] tracking-[-0.04em] text-[#12203B] sm:text-4xl lg:text-[2.65rem]">
-              Your center is local.
-              <br />
-              Your community is bigger.
-            </h2>
-            <p className="mt-5 max-w-xl text-[14px] leading-7 text-[#6B7268] sm:text-[15px]">
-              Being part of one connected network means students can benefit
-              from both the support around their own center and the wider
-              SELFLESS CE community.
-            </p>
-          </motion.div>
-
+        {/* =====================================================
+            NETWORK INTRO + THREE BENEFITS
+        ====================================================== */}
+        <section className="relative border-t border-white/15 bg-[#071018]/55 px-5 py-20 backdrop-blur-[2px] sm:px-8 lg:px-12 lg:py-24">
           <motion.div
+            {...animationProps}
             variants={stagger}
-            className="mt-14 grid gap-10 lg:mt-20 lg:grid-cols-3 lg:gap-12"
+            className="mx-auto max-w-7xl"
           >
-            <NetworkBenefit
-              number="01"
-              icon={Users}
-              title="Connect beyond your center"
-              description="Build relationships with students from other tech centers and take part in a wider student community."
-            />
-            <NetworkBenefit
-              number="02"
-              icon={ShieldCheck}
-              title="Find support more easily"
-              description="Keep important communication, academic assistance, and student services closer to where you manage your studies."
-            />
-            <NetworkBenefit
-              number="03"
-              icon={Network}
-              title="Stay part of one system"
-              description="Your local center and the wider SELFLESS CE network remain connected through the same digital platform."
-            />
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* =====================================================
-          PORTAL ACCESS (video band)
-      ====================================================== */}
-      <section className="relative isolate overflow-hidden bg-[#0D1117] px-5 py-20 sm:px-8 sm:py-24 lg:px-12 lg:py-28">
-        <video
-          className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover"
-          autoPlay
-          muted
-          loop
-          playsInline
-          poster="/student-portal-image.png"
-          aria-hidden="true"
-        >
-          <source src="/tech center 1.mp4" type="video/mp4" />
-        </video>
-        <div className="pointer-events-none absolute inset-0 -z-[5] bg-[#071018]/80" />
-
-        <motion.div
-          {...animationProps}
-          variants={fadeUp}
-          className="relative mx-auto max-w-7xl"
-        >
-          <div className="max-w-3xl">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#E8A33D]">
-              Portal access
-            </p>
-            <h2 className="mt-4 text-[2rem] font-semibold leading-[1.08] tracking-[-0.035em] text-white sm:text-4xl">
-              Your connection continues beyond the tech center.
-            </h2>
-            <p className="mt-5 max-w-2xl text-[14px] leading-7 text-white/65 sm:text-[15px]">
-              Your student experience does not stop when you leave the physical
-              center. Use the portal to check academic information,
-              communication, opportunities, and available student services.
-            </p>
-
-            <div className="mt-8 flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10">
-                <ShieldCheck
-                  size={19}
-                  strokeWidth={1.8}
-                  className="text-[#E8A33D]"
-                />
-              </div>
+            {/* Intro */}
+            <motion.div
+              variants={fadeUp}
+              className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-end"
+            >
               <div>
-                <p className="text-[13px] font-bold text-white">
-                  Always within reach
+                <SectionLabel label="The network" />
+
+                <h2 className="mt-4 max-w-2xl text-3xl font-bold leading-[1.02] tracking-[-0.04em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)] sm:text-4xl lg:text-[3.2rem]">
+                  Different <span className="text-[#E8A33D] drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">locations</span>.
+                  <br />
+                  <span className="text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)]">
+                    One experience.
+                  </span>
+                </h2>
+              </div>
+
+              <p className="max-w-2xl text-sm leading-7 text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-base sm:leading-8">
+                Local spaces provide support and learning while the portal
+                extends that experience beyond the physical center. Students
+                remain connected to their center and the wider SELFLESS CE
+                community.
+              </p>
+            </motion.div>
+
+            {/* Three columns */}
+            <motion.div
+              variants={stagger}
+              className="mt-10 grid gap-px overflow-hidden border border-white/15 bg-white/10 md:grid-cols-3"
+            >
+              {networkPoints.map(
+                ({ number, icon: Icon, title, description }) => (
+                  <motion.article
+                    key={number}
+                    variants={fadeUp}
+                    className="group bg-[#071018]/80 p-6 backdrop-blur-[2px] transition-colors duration-300 hover:bg-[#12203B]/90 sm:p-7"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-[10px] font-bold tracking-[0.2em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
+                        {number}
+                      </span>
+
+                      <Icon
+                        size={19}
+                        strokeWidth={1.7}
+                        className="text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]"
+                      />
+                    </div>
+
+                    <h3 className="mt-7 text-lg font-bold tracking-[-0.02em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)]">
+                      {title}
+                    </h3>
+
+                    <p className="mt-2.5 text-sm leading-6 text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)]">
+                      {description}
+                    </p>
+                  </motion.article>
+                ),
+              )}
+            </motion.div>
+          </motion.div>
+        </section>
+
+        {/* =====================================================
+            CENTER DIRECTORY
+        ====================================================== */}
+        <section className="relative border-t border-white/15 bg-[#071018]/60 px-5 py-20 backdrop-blur-[2px] sm:px-8 lg:px-12 lg:py-24">
+          <motion.div
+            {...animationProps}
+            variants={stagger}
+            className="mx-auto max-w-7xl"
+          >
+            <motion.div
+              variants={fadeUp}
+              className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between"
+            >
+              <div>
+                <SectionLabel label="Our centers" />
+
+                <h2 className="mt-4 text-3xl font-bold leading-[1.02] tracking-[-0.04em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)] sm:text-4xl lg:text-[3.2rem]">
+                  Local <span className="text-[#E8A33D] drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">centers</span>.
+                  <br />
+                  <span className="text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)]">
+                    Connected by one platform.
+                  </span>
+                </h2>
+              </div>
+
+              <p className="max-w-md text-sm leading-7 text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-right sm:text-base">
+                Each center provides a local connection while the portal keeps
+                the wider student experience connected.
+              </p>
+            </motion.div>
+
+            {/* Compact 3-column directory */}
+            <motion.div
+              variants={stagger}
+              className="mt-10 grid gap-px overflow-hidden border border-white/15 bg-white/10 sm:grid-cols-2 lg:grid-cols-3"
+            >
+              {centers.map((center, index) => (
+                <motion.article
+                  key={center.name}
+                  variants={fadeUp}
+                  className="group flex min-h-[104px] items-center gap-4 bg-[#071018]/85 p-5 backdrop-blur-[2px] transition-colors duration-300 hover:bg-[#12203B]/95"
+                >
+                  <span className="font-mono text-[10px] font-bold tracking-[0.16em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)] transition-colors group-hover:text-white">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-bold leading-5 text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)] transition-colors group-hover:text-[#E8A33D] sm:text-[15px]">
+                      {center.name}
+                    </h3>
+
+                    <div className="mt-1.5 flex items-center gap-1.5 text-xs text-white/90 drop-shadow-[0_1px_5px_rgba(0,0,0,0.8)]">
+                      <MapPin
+                        size={12}
+                        strokeWidth={1.8}
+                        className="shrink-0 text-[#E8A33D]"
+                      />
+
+                      <span>{center.location}</span>
+                    </div>
+                  </div>
+
+                  <ArrowRight
+                    size={15}
+                    className="shrink-0 text-white/40 transition-all duration-300 group-hover:translate-x-1 group-hover:text-[#E8A33D]"
+                  />
+                </motion.article>
+              ))}
+            </motion.div>
+
+            <motion.div
+              variants={fadeUp}
+              className="mt-6 flex flex-wrap items-center justify-between gap-4"
+            >
+              <p className="text-xs font-medium text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
+                {centers.length} tech centers across the network
+              </p>
+
+              <div className="flex items-center gap-2 text-[#E8A33D]">
+                <Building2
+                  size={14}
+                  strokeWidth={1.8}
+                  className="shrink-0 drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]"
+                />
+
+                <span className="text-xs font-bold drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
+                  More locations joining soon
+                </span>
+              </div>
+            </motion.div>
+          </motion.div>
+        </section>
+
+        {/* =====================================================
+            STUDENT BENEFITS
+        ====================================================== */}
+        <section className="relative border-t border-white/15 bg-[#12203B]/60 px-5 py-20 backdrop-blur-[2px] sm:px-8 lg:px-12 lg:py-24">
+          <motion.div
+            {...animationProps}
+            variants={stagger}
+            className="mx-auto max-w-7xl"
+          >
+            <motion.div
+              variants={fadeUp}
+              className="grid gap-8 lg:grid-cols-[0.7fr_1.3fr] lg:items-end"
+            >
+              <div>
+                <SectionLabel label="For students" />
+
+                <h2 className="mt-4 text-3xl font-bold leading-[1.02] tracking-[-0.04em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)] sm:text-4xl lg:text-[3.1rem]">
+                  Your center is <span className="text-[#E8A33D] drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">local</span>.
+                  <br />
+                  <span className="text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)]">
+                    Your community is bigger.
+                  </span>
+                </h2>
+              </div>
+
+              <p className="max-w-xl text-sm leading-7 text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-base sm:leading-8">
+                Your physical center gives you a local place to learn and
+                connect. The portal helps that experience continue across the
+                wider SELFLESS CE network.
+              </p>
+            </motion.div>
+
+            {/* Three horizontal benefits */}
+            <motion.div
+              variants={stagger}
+              className="mt-10 grid gap-8 border-t border-white/15 pt-8 md:grid-cols-3 md:gap-6"
+            >
+              <NetworkBenefit
+                number="01"
+                icon={Users}
+                title="Connect beyond your center"
+                description="Build relationships with students from other centers and join a wider community."
+              />
+
+              <NetworkBenefit
+                number="02"
+                icon={ShieldCheck}
+                title="Find support more easily"
+                description="Keep communication, academic help, and student services closer to your studies."
+              />
+
+              <NetworkBenefit
+                number="03"
+                icon={Network}
+                title="Stay part of one system"
+                description="Your local center and the wider network stay connected through one platform."
+              />
+            </motion.div>
+          </motion.div>
+        </section>
+
+        {/* =====================================================
+            PORTAL ACCESS + CTA
+        ====================================================== */}
+        <section className="relative border-t border-white/15 bg-[#071018]/55 px-5 py-20 backdrop-blur-[2px] sm:px-8 lg:px-12 lg:py-24">
+          <motion.div
+            {...animationProps}
+            variants={fadeUp}
+            className="mx-auto max-w-7xl"
+          >
+            <div className="grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-center">
+              {/* Main CTA */}
+              <div>
+                <SectionLabel label="Portal access" />
+
+                <h2 className="mt-4 max-w-3xl text-3xl font-bold leading-[1.02] tracking-[-0.04em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)] sm:text-4xl lg:text-[3.3rem]">
+                  Your connection continues{" "}
+                  <span className="text-[#E8A33D] drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
+                    beyond the tech center.
+                  </span>
+                </h2>
+
+                <p className="mt-5 max-w-2xl text-sm leading-7 text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-base sm:leading-8">
+                  Your experience doesn't stop when you leave. Check
+                  academics, communication, opportunities, and services
+                  whenever you need them.
                 </p>
-                <p className="mt-0.5 text-[12px] text-white/55">
-                  Wherever your learning takes you.
-                </p>
+
+                <div className="mt-7 flex flex-wrap items-center gap-5">
+                  <Link
+                    href="/features"
+                    className="group inline-flex items-center gap-2.5 rounded-full bg-[#E8A33D] px-6 py-3.5 text-sm font-bold text-[#12203B] transition-all hover:bg-[#F2B359] active:scale-[0.98]"
+                  >
+                    Explore portal features
+
+                    <ArrowRight
+                      size={16}
+                      strokeWidth={2.5}
+                      className="transition-transform group-hover:translate-x-1"
+                    />
+                  </Link>
+
+                  <Link
+                    href="/"
+                    className="text-sm font-semibold text-white/90 drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)] transition-colors hover:text-[#E8A33D]"
+                  >
+                    Return to portal
+                  </Link>
+                </div>
+              </div>
+
+              {/* Compact supporting information */}
+              <div className="border-l border-white/25 pl-6 lg:pl-8">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-[#E8A33D]/40 bg-[#E8A33D]/15 backdrop-blur-sm">
+                    <ShieldCheck
+                      size={18}
+                      strokeWidth={1.8}
+                      className="text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]"
+                    />
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-bold text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
+                      Always within reach
+                    </p>
+
+                    <p className="mt-1 text-xs leading-5 text-white drop-shadow-[0_1px_5px_rgba(0,0,0,0.8)]">
+                      Wherever your learning takes you, your student portal
+                      stays connected to your experience.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-7 grid grid-cols-2 gap-5 border-t border-white/15 pt-6">
+                  <div>
+                    <p className="text-xl font-bold text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)]">
+                      {centers.length}
+                    </p>
+
+                    <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
+                      Centers
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xl font-bold text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)]">
+                      01
+                    </p>
+
+                    <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
+                      Platform
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </motion.div>
-      </section>
+          </motion.div>
+        </section>
+      </main>
 
-      {/* =====================================================
-          CLOSING CTA
-      ====================================================== */}
-      <section className="bg-[#12203B] px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24">
-        <motion.div
-          {...animationProps}
-          variants={fadeUp}
-          className="mx-auto flex max-w-7xl flex-col gap-8 lg:flex-row lg:items-center lg:justify-between lg:gap-14"
-        >
-          <div className="max-w-2xl">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#E8A33D]">
-              Connected by one platform
-            </p>
-            <h2 className="mt-4 text-[2rem] font-semibold leading-[1.08] tracking-[-0.04em] text-white sm:text-4xl">
-              Wherever your tech center is,
-              <span className="text-[#E8A33D]"> your portal stays with you.</span>
-            </h2>
-            <p className="mt-5 max-w-xl text-[14px] leading-7 text-white/60 sm:text-[15px]">
-              Explore the tools and services that make the SELFLESS CE student
-              experience more connected.
-            </p>
-          </div>
-
-          <Link
-            href="/features"
-            className="group inline-flex w-fit shrink-0 items-center justify-center gap-2.5 rounded-lg bg-[#E8A33D] px-5 py-3 text-[13px] font-bold text-[#12203B] transition-all hover:bg-[#F2B359] active:scale-[0.98]"
-          >
-            Explore portal features
-            <ArrowRight
-              size={15}
-              strokeWidth={2}
-              className="transition-transform group-hover:translate-x-1"
-            />
-          </Link>
-        </motion.div>
-      </section>
-    </PublicPageShell>
+      <Footer />
+    </div>
   );
 }
 
@@ -379,22 +544,36 @@ export default function TechCentersPage() {
    SECTION LABEL
 ========================================================= */
 
-function SectionLabel({
-  label,
-  color,
-}: {
-  label: string;
-  color: "brass" | "moss";
-}) {
-  const textColor = color === "brass" ? "text-[#B98A3E]" : "text-[#55705B]";
-  const lineColor = color === "brass" ? "bg-[#B98A3E]" : "bg-[#55705B]";
-
+function SectionLabel({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3">
-      <span aria-hidden="true" className={`h-px w-7 ${lineColor}`} />
-      <p
-        className={`text-[10px] font-bold uppercase tracking-[0.2em] ${textColor}`}
-      >
+      <span className="h-px w-8 bg-[#E8A33D] drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]" />
+
+      <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
+        {label}
+      </p>
+    </div>
+  );
+}
+
+/* =========================================================
+   HERO METRIC
+========================================================= */
+
+function HeroMetric({
+  value,
+  label,
+}: {
+  value: string;
+  label: string;
+}) {
+  return (
+    <div>
+      <p className="text-2xl font-bold tracking-[-0.03em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)]">
+        {value}
+      </p>
+
+      <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.14em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
         {label}
       </p>
     </div>
@@ -417,19 +596,29 @@ function NetworkBenefit({
   description: string;
 }) {
   return (
-    <motion.article variants={fadeUp} className="group">
+    <motion.article
+      variants={fadeUp}
+      className="group"
+    >
       <div className="flex items-center gap-3">
-        <span className="font-mono text-[9px] font-bold tracking-[0.18em] text-[#B98A3E]">
+        <span className="font-mono text-[10px] font-bold tracking-[0.2em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
           {number}
         </span>
-        <span className="h-px w-6 bg-[#DADCD3] transition-all duration-300 group-hover:w-12 group-hover:bg-[#B98A3E]" />
-        <Icon size={18} strokeWidth={1.8} className="text-[#55705B]" />
+
+        <span className="h-px w-6 bg-white/30 transition-all duration-500 group-hover:w-12 group-hover:bg-[#E8A33D]" />
+
+        <Icon
+          size={17}
+          strokeWidth={1.8}
+          className="text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]"
+        />
       </div>
 
-      <h3 className="mt-5 text-[16px] font-semibold tracking-[-0.015em] text-[#12203B]">
+      <h3 className="mt-5 text-lg font-bold tracking-[-0.02em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)]">
         {title}
       </h3>
-      <p className="mt-2 text-[13px] leading-7 text-[#626A62] sm:text-sm">
+
+      <p className="mt-2.5 max-w-md text-sm leading-7 text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)]">
         {description}
       </p>
     </motion.article>
