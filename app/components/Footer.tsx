@@ -23,11 +23,36 @@ const legalLinks = [
   { label: "Terms", href: "/terms" },
 ];
 
-const footerReveal = {
-  hidden: {
-    opacity: 0,
-    y: 14,
+/* =========================================================
+   SLIDE ANIMATIONS
+========================================================= */
+
+const slideInLeft = {
+  hidden: { opacity: 0, x: -24 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: {
+      duration: 0.6,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
   },
+};
+
+const slideInRight = {
+  hidden: { opacity: 0, x: 24 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: {
+      duration: 0.6,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
+  },
+};
+
+const slideInUp = {
+  hidden: { opacity: 0, y: 18 },
   visible: {
     opacity: 1,
     y: 0,
@@ -38,147 +63,51 @@ const footerReveal = {
   },
 };
 
-const footerStagger = {
+const stagger = {
   hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.07,
-    },
-  },
+  visible: { transition: { staggerChildren: 0.06 } },
+};
+
+const staggerFast = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.045 } },
 };
 
 export default function Footer() {
   const prefersReducedMotion = useReducedMotion();
 
+  const viewportAnimation = prefersReducedMotion
+    ? {}
+    : {
+        initial: "hidden",
+        whileInView: "visible",
+        viewport: { once: true, amount: 0.12 },
+      };
+
   return (
-    <footer className="relative overflow-hidden border-t border-white/10 bg-[#12203B] text-white">
-      {/* =====================================================
-          TOP ACCENT
-      ====================================================== */}
-
-      <div
-        aria-hidden="true"
-        className="absolute inset-x-0 top-0 h-px bg-[#B98A3E]/75"
-      />
-
-      <div className="mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
+    <footer className="relative overflow-hidden bg-[#12203B] text-white">
+      <div className="mx-auto max-w-7xl px-5 py-12 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
         {/* =====================================================
             FOOTER IDENTITY
         ====================================================== */}
 
         <motion.div
-          {...(prefersReducedMotion
-            ? {}
-            : {
-                initial: "hidden",
-                whileInView: "visible",
-                viewport: {
-                  once: true,
-                  amount: 0.15,
-                },
-              })}
-          variants={footerStagger}
-          className="border-b border-white/10 py-7 sm:py-8"
+          {...viewportAnimation}
+          variants={stagger}
+          className="grid gap-6 lg:grid-cols-[1.4fr_1fr] lg:items-end lg:gap-16"
         >
-          <motion.div
-            variants={footerReveal}
-            className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-px bg-[#B98A3E]" />
-
-              <div>
-                <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#E8A33D]">
-                  Selfless CE
-                </p>
-
-                <p className="mt-0.5 text-xs font-medium text-white/60">
-                  Student Self Service Portal
-                </p>
-              </div>
-            </div>
-
-            <p className="max-w-md text-[12px] leading-5 text-white/45 sm:text-right">
-              A connected digital environment for learning, communication,
-              support, and student progress.
-            </p>
-          </motion.div>
-        </motion.div>
-
-        {/* =====================================================
-            MAIN FOOTER
-        ====================================================== */}
-
-        <motion.div
-          {...(prefersReducedMotion
-            ? {}
-            : {
-                initial: "hidden",
-                whileInView: "visible",
-                viewport: {
-                  once: true,
-                  amount: 0.12,
-                },
-              })}
-          variants={footerStagger}
-          className="
-            grid
-            gap-x-10
-            gap-y-10
-            py-11
-            sm:py-13
-            lg:grid-cols-[1.55fr_0.8fr_0.7fr_1fr]
-            lg:gap-x-16
-            lg:py-14
-          "
-        >
-          {/* =================================================
-              BRAND
-          ================================================== */}
-
-          <motion.div
-            variants={footerReveal}
-            className="max-w-md"
-          >
+          <motion.div variants={slideInLeft}>
             <Link
               href="/"
               aria-label="Selfless CE Portal home"
-              className="
-                group
-                inline-flex
-                items-center
-                gap-3
-                rounded-lg
-                outline-none
-                focus-visible:ring-2
-                focus-visible:ring-[#B98A3E]
-                focus-visible:ring-offset-2
-                focus-visible:ring-offset-[#12203B]
-              "
+              className="group inline-flex items-center gap-3 outline-none"
             >
-              <div
-                className="
-                  relative
-                  h-11
-                  w-11
-                  shrink-0
-                  overflow-hidden
-                  rounded-lg
-                  border
-                  border-white/15
-                  bg-white
-                  p-0.5
-                  transition-all
-                  duration-300
-                  group-hover:border-[#B98A3E]/60
-                  group-hover:shadow-[0_5px_18px_rgba(232,163,61,0.12)]
-                "
-              >
+              <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-white p-0.5 transition-transform duration-300 group-hover:scale-105">
                 <Image
                   src="/freedom.png"
                   alt="Selfless CE logo"
                   fill
-                  sizes="44px"
+                  sizes="40px"
                   className="rounded-[7px] object-contain"
                 />
               </div>
@@ -194,124 +123,100 @@ export default function Footer() {
                   </span>
                 </div>
 
-                <span className="mt-1 block text-[8px] font-semibold uppercase tracking-[0.18em] text-white/40">
+                <span className="mt-0.5 block text-[8px] font-bold uppercase tracking-[0.2em] text-white/45">
                   Student Self Service
                 </span>
               </div>
             </Link>
+          </motion.div>
 
-            <p className="mt-5 max-w-lg text-[13px] leading-6 text-white/55 sm:text-sm">
-              A centralized student platform supporting academic progress,
-              collaboration, communication, and engagement across the
-              SELFLESS Tech Center Network.
+          <motion.p
+            variants={slideInRight}
+            className="max-w-md text-[12.5px] leading-6 text-white/60 lg:text-right"
+          >
+            A centralized student platform supporting academic progress,
+            collaboration, communication, and engagement across the SELFLESS
+            Tech Center Network.
+          </motion.p>
+        </motion.div>
+
+        {/* =====================================================
+            MAIN COLUMNS
+        ====================================================== */}
+
+        <motion.div
+          {...viewportAnimation}
+          variants={stagger}
+          className="mt-10 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:mt-12 lg:grid-cols-[1.4fr_0.7fr_0.7fr_1.2fr] lg:gap-x-14"
+        >
+          {/* Brand / statement */}
+          <motion.div variants={slideInLeft}>
+            <FooterHeading>Selfless CE</FooterHeading>
+
+            <p className="mt-4 max-w-sm text-[12.5px] leading-6 text-white/60">
+              Empowering students through a connected, student-centered
+              digital environment.
             </p>
 
-            {/* Statement */}
-
-            <div className="mt-5 flex items-start gap-3">
-              <span
-                aria-hidden="true"
-                className="mt-1 h-7 w-0.5 shrink-0 bg-[#B98A3E]"
-              />
-
-              <p className="max-w-sm text-[11px] font-medium leading-5 text-white/40">
-                Learn with purpose. Stay connected. Build your future.
-              </p>
-            </div>
+            <p className="mt-4 max-w-sm text-[11px] font-medium italic leading-5 text-[#E8A33D]">
+              "Learn with purpose. Stay connected. Build your future."
+            </p>
           </motion.div>
 
-          {/* =================================================
-              EXPLORE
-          ================================================== */}
-
-          <motion.div variants={footerReveal}>
+          {/* Explore */}
+          <motion.div variants={slideInUp}>
             <FooterHeading>Explore</FooterHeading>
 
-            <nav
-              aria-label="Footer navigation"
-              className="mt-4"
-            >
-              <ul className="space-y-2.5">
+            <nav aria-label="Footer navigation" className="mt-4">
+              <ul className="space-y-2">
                 {quickLinks.map((link) => (
                   <li key={link.href}>
-                    <FooterLink
-                      href={link.href}
-                    >
-                      {link.label}
-                    </FooterLink>
+                    <FooterLink href={link.href}>{link.label}</FooterLink>
                   </li>
                 ))}
               </ul>
             </nav>
           </motion.div>
 
-          {/* =================================================
-              INFORMATION
-          ================================================== */}
-
-          <motion.div variants={footerReveal}>
+          {/* Information */}
+          <motion.div variants={slideInUp}>
             <FooterHeading>Information</FooterHeading>
 
-            <nav
-              aria-label="Legal navigation"
-              className="mt-4"
-            >
-              <ul className="space-y-2.5">
+            <nav aria-label="Legal navigation" className="mt-4">
+              <ul className="space-y-2">
                 {legalLinks.map((link) => (
                   <li key={link.href}>
-                    <FooterLink
-                      href={link.href}
-                    >
-                      {link.label}
-                    </FooterLink>
+                    <FooterLink href={link.href}>{link.label}</FooterLink>
                   </li>
                 ))}
               </ul>
             </nav>
           </motion.div>
 
-          {/* =================================================
-              CONNECT
-          ================================================== */}
-
-          <motion.div variants={footerReveal}>
+          {/* Connect — icons only */}
+          <motion.div variants={slideInRight}>
             <FooterHeading>Connect</FooterHeading>
 
-            <p className="mt-4 max-w-xs text-[12px] leading-5 text-white/45">
+            <p className="mt-4 max-w-xs text-[12.5px] leading-6 text-white/60">
               Questions or need assistance? Reach the team through one of the
               channels below.
             </p>
 
-            <div className="mt-4 flex items-center gap-2">
-              <Social
-                icon={
-                  <MessageCircle
-                    size={16}
-                    strokeWidth={1.9}
-                  />
-                }
+            <div className="mt-5 flex items-center gap-3">
+              <ContactIcon
+                icon={<MessageCircle size={17} strokeWidth={1.9} />}
                 href="https://wa.me/256761996296"
-                label="Contact Selfless CE on WhatsApp"
+                label="Chat with Selfless CE on WhatsApp"
               />
 
-              <Social
-                icon={
-                  <Phone
-                    size={16}
-                    strokeWidth={1.9}
-                  />
-                }
+              <ContactIcon
+                icon={<Phone size={17} strokeWidth={1.9} />}
                 href="tel:+256761996296"
                 label="Call Selfless CE"
               />
 
-              <Social
-                icon={
-                  <Mail
-                    size={16}
-                    strokeWidth={1.9}
-                  />
-                }
+              <ContactIcon
+                icon={<Mail size={17} strokeWidth={1.9} />}
                 href="mailto:turyamurebanicholus@gmail.com"
                 label="Email Selfless CE"
               />
@@ -323,35 +228,32 @@ export default function Footer() {
             BOTTOM BAR
         ====================================================== */}
 
-        <div
-          className="
-            flex
-            flex-col
-            gap-3
-            border-t
-            border-white/10
-            py-5
-            sm:flex-row
-            sm:items-center
-            sm:justify-between
-          "
+        <motion.div
+          {...viewportAnimation}
+          variants={staggerFast}
+          className="mt-12 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
         >
-          <p className="text-[10.5px] font-medium leading-5 text-white/35 sm:text-[11px]">
-            © {new Date().getFullYear()} Selfless Student Self Service
-            Portal.
-          </p>
+          <motion.p
+            variants={slideInUp}
+            className="text-[10.5px] font-medium leading-5 text-white/40"
+          >
+            © {new Date().getFullYear()} Selfless Student Self Service Portal.
+          </motion.p>
 
-          <div className="flex items-center gap-2 text-[10.5px] font-medium text-white/35 sm:text-[11px]">
+          <motion.div
+            variants={slideInUp}
+            className="flex items-center gap-2 text-[10.5px] font-medium text-white/40"
+          >
             <span>Empowering student success</span>
 
             <span
               aria-hidden="true"
-              className="h-1 w-1 rounded-full bg-[#B98A3E]"
+              className="h-1 w-1 rounded-full bg-[#E8A33D]"
             />
 
             <span>Through technology</span>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </div>
     </footer>
   );
@@ -361,19 +263,12 @@ export default function Footer() {
    FOOTER HEADING
 ============================================================ */
 
-function FooterHeading({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function FooterHeading({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2">
-      <span
-        aria-hidden="true"
-        className="h-3.5 w-0.5 rounded-full bg-[#B98A3E]"
-      />
+      <span aria-hidden="true" className="h-px w-6 bg-[#E8A33D]" />
 
-      <h3 className="text-[10px] font-bold uppercase tracking-[0.17em] text-white/75">
+      <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#E8A33D]">
         {children}
       </h3>
     </div>
@@ -394,45 +289,24 @@ function FooterLink({
   return (
     <Link
       href={href}
-      className="
-        group
-        inline-flex
-        items-center
-        gap-1.5
-        rounded-sm
-        text-[12.5px]
-        font-medium
-        text-white/50
-        outline-none
-        transition-colors
-        duration-200
-        hover:text-white
-        focus-visible:text-[#E8A33D]
-      "
+      className="group inline-flex items-center gap-1.5 text-[12.5px] font-medium text-white/65 transition-colors duration-200 hover:text-[#E8A33D]"
     >
       <span>{children}</span>
 
       <ArrowUpRight
         size={12}
         strokeWidth={1.8}
-        className="
-          -translate-x-1
-          opacity-0
-          transition-all
-          duration-200
-          group-hover:translate-x-0
-          group-hover:opacity-100
-        "
+        className="-translate-x-1 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100"
       />
     </Link>
   );
 }
 
 /* ============================================================
-   SOCIAL BUTTON
+   CONTACT ICON — clickable, opens WhatsApp / call / email
 ============================================================ */
 
-function Social({
+function ContactIcon({
   icon,
   href,
   label,
@@ -441,45 +315,15 @@ function Social({
   href: string;
   label: string;
 }) {
-  const isExternal =
-    href.startsWith("http");
+  const isExternal = href.startsWith("http");
 
   return (
     <a
       href={href}
       target={isExternal ? "_blank" : undefined}
-      rel={
-        isExternal
-          ? "noopener noreferrer"
-          : undefined
-      }
+      rel={isExternal ? "noopener noreferrer" : undefined}
       aria-label={label}
-      className="
-        group
-        flex
-        h-9
-        w-9
-        items-center
-        justify-center
-        rounded-lg
-        border
-        border-white/10
-        bg-white/[0.035]
-        text-white/50
-        outline-none
-        transition-all
-        duration-200
-        hover:-translate-y-0.5
-        hover:border-[#B98A3E]/50
-        hover:bg-[#B98A3E]/10
-        hover:text-[#E8A33D]
-        focus-visible:ring-2
-        focus-visible:ring-[#B98A3E]
-        focus-visible:ring-offset-2
-        focus-visible:ring-offset-[#12203B]
-        motion-reduce:transition-none
-        motion-reduce:hover:transform-none
-      "
+      className="group flex h-10 w-10 items-center justify-center rounded-full bg-white/[0.06] text-[#E8A33D] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#E8A33D] hover:text-[#12203B]"
     >
       {icon}
     </a>
