@@ -48,11 +48,36 @@ const networkPoints = [
   },
 ];
 
-const fadeUp = {
-  hidden: {
-    opacity: 0,
-    y: 16,
+/* =========================================================
+   SLIDE ANIMATIONS
+========================================================= */
+
+const slideInLeft = {
+  hidden: { opacity: 0, x: -28 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: {
+      duration: 0.65,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
   },
+};
+
+const slideInRight = {
+  hidden: { opacity: 0, x: 28 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: {
+      duration: 0.65,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
+  },
+};
+
+const slideInUp = {
+  hidden: { opacity: 0, y: 22 },
   visible: {
     opacity: 1,
     y: 0,
@@ -72,17 +97,26 @@ const stagger = {
   },
 };
 
+const staggerFast = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.05,
+    },
+  },
+};
+
 export default function TechCentersPage() {
   const shouldReduceMotion = useReducedMotion();
 
-  const animationProps = shouldReduceMotion
+  const viewportAnimation = shouldReduceMotion
     ? {}
     : {
         initial: "hidden",
         whileInView: "visible",
         viewport: {
           once: true,
-          amount: 0.08,
+          amount: 0.1,
         },
       };
 
@@ -106,53 +140,64 @@ export default function TechCentersPage() {
             poster="/student-portal-image.png"
             className="h-full w-full object-cover"
           >
-            <source
-              src="/tech%20center.mp4"
-              type="video/mp4"
-            />
+            <source src="/tech%20center.mp4" type="video/mp4" />
           </video>
 
-          {/* Light readability layer — video stays visible */}
-          <div className="absolute inset-0 bg-[#071018]/45" />
-
-          {/* Directional gradient — darkens top/bottom where text sits */}
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(18,32,59,0.55)_0%,rgba(7,16,24,0.20)_45%,rgba(18,32,59,0.60)_100%)]" />
+          {/* Flat overlay — no gradients */}
+          <div className="absolute inset-0 bg-[#071018]/55" />
         </div>
 
         {/* =====================================================
             HERO
         ====================================================== */}
-        <section className="relative flex min-h-[72vh] items-end px-5 pb-16 pt-24 sm:px-8 sm:pb-20 sm:pt-28 lg:min-h-[76vh] lg:px-12 lg:pb-24 lg:pt-32">
-          <motion.div
-            {...animationProps}
-            variants={fadeUp}
-            className="mx-auto w-full max-w-7xl"
-          >
-            <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
+        <section className="relative flex min-h-[72vh] items-end px-5 pb-14 pt-24 sm:px-8 sm:pb-16 sm:pt-28 lg:min-h-[76vh] lg:px-12 lg:pb-20 lg:pt-32">
+          <div className="mx-auto w-full max-w-7xl">
+            <motion.div
+              initial={shouldReduceMotion ? false : "hidden"}
+              animate="visible"
+              variants={stagger}
+              className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-end"
+            >
               <div className="max-w-4xl">
-                <div className="flex items-center gap-3">
+                <motion.div
+                  variants={slideInLeft}
+                  className="flex items-center gap-3"
+                >
                   <span className="h-px w-9 bg-[#E8A33D] drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]" />
 
                   <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
                     Tech Center Network
                   </p>
-                </div>
+                </motion.div>
 
-                <h1 className="mt-5 text-4xl font-bold leading-[0.94] tracking-[-0.045em] text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.75)] sm:text-6xl lg:text-[5.2rem]">
-                  One <span className="text-[#E8A33D] drop-shadow-[0_2px_14px_rgba(0,0,0,0.85)]">network</span>.
+                <motion.h1
+                  variants={slideInLeft}
+                  className="mt-5 text-4xl font-bold leading-[0.94] tracking-[-0.045em] text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.75)] sm:text-6xl lg:text-[5.2rem]"
+                >
+                  One{" "}
+                  <span className="text-[#E8A33D] drop-shadow-[0_2px_14px_rgba(0,0,0,0.85)]">
+                    network
+                  </span>
+                  .
                   <br />
                   <span className="text-[#E8A33D] drop-shadow-[0_2px_14px_rgba(0,0,0,0.85)]">
                     Many places to learn.
                   </span>
-                </h1>
+                </motion.h1>
 
-                <p className="mt-6 max-w-2xl text-base leading-7 text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-lg sm:leading-8">
+                <motion.p
+                  variants={slideInLeft}
+                  className="mt-5 max-w-2xl text-base leading-7 text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-lg sm:leading-8"
+                >
                   SELFLESS CE unites its tech centers through one student
                   portal—a consistent digital experience for learning,
                   community, and support.
-                </p>
+                </motion.p>
 
-                <div className="mt-7 flex flex-wrap items-center gap-5">
+                <motion.div
+                  variants={slideInLeft}
+                  className="mt-6 flex flex-wrap items-center gap-5"
+                >
                   <Link
                     href="/features"
                     className="group inline-flex items-center gap-2.5 rounded-full bg-[#E8A33D] px-5 py-3 text-sm font-bold text-[#12203B] transition-all hover:bg-[#F2B359] active:scale-[0.98]"
@@ -172,88 +217,81 @@ export default function TechCentersPage() {
                   >
                     Back to portal
                   </Link>
-                </div>
+                </motion.div>
               </div>
 
-              {/* Compact hero information */}
-              <div className="hidden lg:block">
-                <div className="border-l border-white/25 pl-7">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
-                    Across the network
-                  </p>
+              {/* Hero metrics */}
+              <motion.div
+                variants={slideInRight}
+                className="hidden lg:block"
+              >
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
+                  Across the network
+                </p>
 
-                  <div className="mt-5 grid grid-cols-2 gap-x-8 gap-y-5">
-                    <HeroMetric
-                      value={String(centers.length)}
-                      label="Tech centers"
-                    />
-
-                    <HeroMetric
-                      value="01"
-                      label="Connected portal"
-                    />
-
-                    <HeroMetric
-                      value="24/7"
-                      label="Digital access"
-                    />
-
-                    <HeroMetric
-                      value="01"
-                      label="Student community"
-                    />
-                  </div>
+                <div className="mt-5 grid grid-cols-2 gap-x-8 gap-y-5">
+                  <HeroMetric
+                    value={String(centers.length)}
+                    label="Tech centers"
+                  />
+                  <HeroMetric value="01" label="Connected portal" />
+                  <HeroMetric value="24/7" label="Digital access" />
+                  <HeroMetric value="01" label="Student community" />
                 </div>
-              </div>
-            </div>
-          </motion.div>
+              </motion.div>
+            </motion.div>
+          </div>
         </section>
 
         {/* =====================================================
             NETWORK INTRO + THREE BENEFITS
         ====================================================== */}
-        <section className="relative border-t border-white/15 bg-[#071018]/55 px-5 py-20 backdrop-blur-[2px] sm:px-8 lg:px-12 lg:py-24">
+        <section className="relative px-5 py-14 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
           <motion.div
-            {...animationProps}
+            {...viewportAnimation}
             variants={stagger}
             className="mx-auto max-w-7xl"
           >
             {/* Intro */}
-            <motion.div
-              variants={fadeUp}
-              className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-end"
-            >
-              <div>
+            <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-end lg:gap-14">
+              <motion.div variants={slideInLeft}>
                 <SectionLabel label="The network" />
 
                 <h2 className="mt-4 max-w-2xl text-3xl font-bold leading-[1.02] tracking-[-0.04em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)] sm:text-4xl lg:text-[3.2rem]">
-                  Different <span className="text-[#E8A33D] drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">locations</span>.
+                  Different{" "}
+                  <span className="text-[#E8A33D] drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
+                    locations
+                  </span>
+                  .
                   <br />
                   <span className="text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)]">
                     One experience.
                   </span>
                 </h2>
-              </div>
+              </motion.div>
 
-              <p className="max-w-2xl text-sm leading-7 text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-base sm:leading-8">
+              <motion.p
+                variants={slideInRight}
+                className="max-w-2xl text-sm leading-7 text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-base sm:leading-8"
+              >
                 Local spaces provide support and learning while the portal
                 extends that experience beyond the physical center. Students
                 remain connected to their center and the wider SELFLESS CE
                 community.
-              </p>
-            </motion.div>
+              </motion.p>
+            </div>
 
-            {/* Three columns */}
+            {/* Three columns — no borders */}
             <motion.div
-              variants={stagger}
-              className="mt-10 grid gap-px overflow-hidden border border-white/15 bg-white/10 md:grid-cols-3"
+              variants={staggerFast}
+              className="mt-12 grid gap-10 md:grid-cols-3 md:gap-10 lg:gap-14"
             >
               {networkPoints.map(
                 ({ number, icon: Icon, title, description }) => (
                   <motion.article
                     key={number}
-                    variants={fadeUp}
-                    className="group bg-[#071018]/80 p-6 backdrop-blur-[2px] transition-colors duration-300 hover:bg-[#12203B]/90 sm:p-7"
+                    variants={slideInUp}
+                    className="group"
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-mono text-[10px] font-bold tracking-[0.2em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
@@ -267,11 +305,11 @@ export default function TechCentersPage() {
                       />
                     </div>
 
-                    <h3 className="mt-7 text-lg font-bold tracking-[-0.02em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)]">
+                    <h3 className="mt-5 text-lg font-bold tracking-[-0.02em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)]">
                       {title}
                     </h3>
 
-                    <p className="mt-2.5 text-sm leading-6 text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)]">
+                    <p className="mt-2.5 max-w-md text-sm leading-7 text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)]">
                       {description}
                     </p>
                   </motion.article>
@@ -282,57 +320,61 @@ export default function TechCentersPage() {
         </section>
 
         {/* =====================================================
-            CENTER DIRECTORY
+            CENTER DIRECTORY — no borders
         ====================================================== */}
-        <section className="relative border-t border-white/15 bg-[#071018]/60 px-5 py-20 backdrop-blur-[2px] sm:px-8 lg:px-12 lg:py-24">
+        <section className="relative px-5 py-14 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
           <motion.div
-            {...animationProps}
+            {...viewportAnimation}
             variants={stagger}
             className="mx-auto max-w-7xl"
           >
-            <motion.div
-              variants={fadeUp}
-              className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between"
-            >
-              <div>
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+              <motion.div variants={slideInLeft}>
                 <SectionLabel label="Our centers" />
 
                 <h2 className="mt-4 text-3xl font-bold leading-[1.02] tracking-[-0.04em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)] sm:text-4xl lg:text-[3.2rem]">
-                  Local <span className="text-[#E8A33D] drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">centers</span>.
+                  Local{" "}
+                  <span className="text-[#E8A33D] drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
+                    centers
+                  </span>
+                  .
                   <br />
                   <span className="text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)]">
                     Connected by one platform.
                   </span>
                 </h2>
-              </div>
+              </motion.div>
 
-              <p className="max-w-md text-sm leading-7 text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-right sm:text-base">
+              <motion.p
+                variants={slideInRight}
+                className="max-w-md text-sm leading-7 text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-right sm:text-base"
+              >
                 Each center provides a local connection while the portal keeps
                 the wider student experience connected.
-              </p>
-            </motion.div>
+              </motion.p>
+            </div>
 
-            {/* Compact 3-column directory */}
+            {/* Directory — free-floating rows, no borders */}
             <motion.div
-              variants={stagger}
-              className="mt-10 grid gap-px overflow-hidden border border-white/15 bg-white/10 sm:grid-cols-2 lg:grid-cols-3"
+              variants={staggerFast}
+              className="mt-12 grid gap-8 sm:grid-cols-2 sm:gap-x-12 sm:gap-y-9 lg:grid-cols-3 lg:gap-x-14"
             >
               {centers.map((center, index) => (
                 <motion.article
                   key={center.name}
-                  variants={fadeUp}
-                  className="group flex min-h-[104px] items-center gap-4 bg-[#071018]/85 p-5 backdrop-blur-[2px] transition-colors duration-300 hover:bg-[#12203B]/95"
+                  variants={slideInUp}
+                  className="group flex items-start gap-4"
                 >
-                  <span className="font-mono text-[10px] font-bold tracking-[0.16em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)] transition-colors group-hover:text-white">
+                  <span className="mt-1 font-mono text-[10px] font-bold tracking-[0.16em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)] transition-colors group-hover:text-white">
                     {String(index + 1).padStart(2, "0")}
                   </span>
 
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-sm font-bold leading-5 text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)] transition-colors group-hover:text-[#E8A33D] sm:text-[15px]">
+                    <h3 className="text-[15px] font-bold leading-snug text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)] transition-colors group-hover:text-[#E8A33D] sm:text-base">
                       {center.name}
                     </h3>
 
-                    <div className="mt-1.5 flex items-center gap-1.5 text-xs text-white/90 drop-shadow-[0_1px_5px_rgba(0,0,0,0.8)]">
+                    <div className="mt-1.5 flex items-center gap-1.5 text-xs text-white drop-shadow-[0_1px_5px_rgba(0,0,0,0.8)] sm:text-[13px]">
                       <MapPin
                         size={12}
                         strokeWidth={1.8}
@@ -345,15 +387,15 @@ export default function TechCentersPage() {
 
                   <ArrowRight
                     size={15}
-                    className="shrink-0 text-white/40 transition-all duration-300 group-hover:translate-x-1 group-hover:text-[#E8A33D]"
+                    className="mt-1 shrink-0 text-white/30 transition-all duration-300 group-hover:translate-x-1 group-hover:text-[#E8A33D]"
                   />
                 </motion.article>
               ))}
             </motion.div>
 
             <motion.div
-              variants={fadeUp}
-              className="mt-6 flex flex-wrap items-center justify-between gap-4"
+              variants={slideInLeft}
+              className="mt-10 flex flex-wrap items-center justify-between gap-4"
             >
               <p className="text-xs font-medium text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
                 {centers.length} tech centers across the network
@@ -375,78 +417,88 @@ export default function TechCentersPage() {
         </section>
 
         {/* =====================================================
-            STUDENT BENEFITS
+            STUDENT BENEFITS — no borders
         ====================================================== */}
-        <section className="relative border-t border-white/15 bg-[#12203B]/60 px-5 py-20 backdrop-blur-[2px] sm:px-8 lg:px-12 lg:py-24">
+        <section className="relative px-5 py-14 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
           <motion.div
-            {...animationProps}
+            {...viewportAnimation}
             variants={stagger}
             className="mx-auto max-w-7xl"
           >
-            <motion.div
-              variants={fadeUp}
-              className="grid gap-8 lg:grid-cols-[0.7fr_1.3fr] lg:items-end"
-            >
-              <div>
+            <div className="grid gap-8 lg:grid-cols-[0.7fr_1.3fr] lg:items-end lg:gap-14">
+              <motion.div variants={slideInLeft}>
                 <SectionLabel label="For students" />
 
                 <h2 className="mt-4 text-3xl font-bold leading-[1.02] tracking-[-0.04em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)] sm:text-4xl lg:text-[3.1rem]">
-                  Your center is <span className="text-[#E8A33D] drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">local</span>.
+                  Your center is{" "}
+                  <span className="text-[#E8A33D] drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
+                    local
+                  </span>
+                  .
                   <br />
                   <span className="text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)]">
                     Your community is bigger.
                   </span>
                 </h2>
-              </div>
+              </motion.div>
 
-              <p className="max-w-xl text-sm leading-7 text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-base sm:leading-8">
+              <motion.p
+                variants={slideInRight}
+                className="max-w-xl text-sm leading-7 text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-base sm:leading-8"
+              >
                 Your physical center gives you a local place to learn and
                 connect. The portal helps that experience continue across the
                 wider SELFLESS CE network.
-              </p>
-            </motion.div>
+              </motion.p>
+            </div>
 
-            {/* Three horizontal benefits */}
+            {/* Three benefits — no borders, spaced */}
             <motion.div
-              variants={stagger}
-              className="mt-10 grid gap-8 border-t border-white/15 pt-8 md:grid-cols-3 md:gap-6"
+              variants={staggerFast}
+              className="mt-12 grid gap-10 md:grid-cols-3 md:gap-10 lg:gap-14"
             >
-              <NetworkBenefit
-                number="01"
-                icon={Users}
-                title="Connect beyond your center"
-                description="Build relationships with students from other centers and join a wider community."
-              />
+              <motion.div variants={slideInUp}>
+                <NetworkBenefit
+                  number="01"
+                  icon={Users}
+                  title="Connect beyond your center"
+                  description="Build relationships with students from other centers and join a wider community."
+                />
+              </motion.div>
 
-              <NetworkBenefit
-                number="02"
-                icon={ShieldCheck}
-                title="Find support more easily"
-                description="Keep communication, academic help, and student services closer to your studies."
-              />
+              <motion.div variants={slideInUp}>
+                <NetworkBenefit
+                  number="02"
+                  icon={ShieldCheck}
+                  title="Find support more easily"
+                  description="Keep communication, academic help, and student services closer to your studies."
+                />
+              </motion.div>
 
-              <NetworkBenefit
-                number="03"
-                icon={Network}
-                title="Stay part of one system"
-                description="Your local center and the wider network stay connected through one platform."
-              />
+              <motion.div variants={slideInUp}>
+                <NetworkBenefit
+                  number="03"
+                  icon={Network}
+                  title="Stay part of one system"
+                  description="Your local center and the wider network stay connected through one platform."
+                />
+              </motion.div>
             </motion.div>
           </motion.div>
         </section>
 
         {/* =====================================================
-            PORTAL ACCESS + CTA
+            PORTAL ACCESS + CTA — no borders
         ====================================================== */}
-        <section className="relative border-t border-white/15 bg-[#071018]/55 px-5 py-20 backdrop-blur-[2px] sm:px-8 lg:px-12 lg:py-24">
+        <section className="relative px-5 py-14 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
           <motion.div
-            {...animationProps}
-            variants={fadeUp}
+            {...viewportAnimation}
+            variants={stagger}
             className="mx-auto max-w-7xl"
           >
-            <div className="grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-center">
+            <div className="grid gap-10 lg:grid-cols-[1.25fr_0.75fr] lg:items-center lg:gap-16">
               {/* Main CTA */}
-              <div>
+              <motion.div variants={slideInLeft}>
                 <SectionLabel label="Portal access" />
 
                 <h2 className="mt-4 max-w-3xl text-3xl font-bold leading-[1.02] tracking-[-0.04em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)] sm:text-4xl lg:text-[3.3rem]">
@@ -462,7 +514,7 @@ export default function TechCentersPage() {
                   whenever you need them.
                 </p>
 
-                <div className="mt-7 flex flex-wrap items-center gap-5">
+                <div className="mt-6 flex flex-wrap items-center gap-5">
                   <Link
                     href="/features"
                     className="group inline-flex items-center gap-2.5 rounded-full bg-[#E8A33D] px-6 py-3.5 text-sm font-bold text-[#12203B] transition-all hover:bg-[#F2B359] active:scale-[0.98]"
@@ -483,12 +535,12 @@ export default function TechCentersPage() {
                     Return to portal
                   </Link>
                 </div>
-              </div>
+              </motion.div>
 
-              {/* Compact supporting information */}
-              <div className="border-l border-white/25 pl-6 lg:pl-8">
+              {/* Supporting info */}
+              <motion.div variants={slideInRight}>
                 <div className="flex items-start gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-[#E8A33D]/40 bg-[#E8A33D]/15 backdrop-blur-sm">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#E8A33D]/15 backdrop-blur-sm">
                     <ShieldCheck
                       size={18}
                       strokeWidth={1.8}
@@ -508,7 +560,7 @@ export default function TechCentersPage() {
                   </div>
                 </div>
 
-                <div className="mt-7 grid grid-cols-2 gap-5 border-t border-white/15 pt-6">
+                <div className="mt-7 grid grid-cols-2 gap-5">
                   <div>
                     <p className="text-xl font-bold text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)]">
                       {centers.length}
@@ -529,7 +581,7 @@ export default function TechCentersPage() {
                     </p>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             </div>
           </motion.div>
         </section>
@@ -596,10 +648,7 @@ function NetworkBenefit({
   description: string;
 }) {
   return (
-    <motion.article
-      variants={fadeUp}
-      className="group"
-    >
+    <div className="group">
       <div className="flex items-center gap-3">
         <span className="font-mono text-[10px] font-bold tracking-[0.2em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
           {number}
@@ -621,6 +670,6 @@ function NetworkBenefit({
       <p className="mt-2.5 max-w-md text-sm leading-7 text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)]">
         {description}
       </p>
-    </motion.article>
+    </div>
   );
 }
