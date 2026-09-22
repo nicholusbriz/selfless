@@ -73,6 +73,14 @@ import { GlobalOnlineUsersPopup } from '@/components/GlobalOnlineUsersPopup';
 import { useOnlineUsers } from '@/lib/hooks/useOnlineUsers';
 
 // ============================================================
+// LAYOUT CONSTANTS — single source of truth for widths
+// ============================================================
+
+const SIDEBAR_WIDTH_EXPANDED = 248;
+const SIDEBAR_WIDTH_COLLAPSED = 72;
+const TOPBAR_HEIGHT = 56;
+
+// ============================================================
 // TYPES
 // ============================================================
 
@@ -860,20 +868,20 @@ function TopBar({
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        'fixed top-0 right-0 z-30 h-16',
-        'bg-white/80 backdrop-blur-lg', // Enhanced glassmorphism
-        'border-b border-[#E5E7EB]', // Softer border
+        'fixed top-0 right-0 z-30 h-14',
+        'bg-white/75 backdrop-blur-xl',
         'transition-all duration-300',
         isMobile
           ? 'left-0'
           : sidebarOpen
-            ? 'left-0 lg:left-64'
+            ? 'left-0 lg:left-[248px]'
             : 'left-0 lg:left-[72px]',
-        scrolled &&
-        'shadow-[0_4px_30px_rgba(18,32,59,0.06)]' // Softer shadow
+        scrolled
+          ? 'shadow-[0_1px_0_rgba(18,32,59,0.04),0_8px_24px_-12px_rgba(18,32,59,0.10)]'
+          : 'shadow-none'
       )}
     >
-      <div className="h-full flex items-center justify-between gap-1 px-2 sm:gap-2 sm:px-6 lg:px-7">
+      <div className="h-full flex items-center justify-between gap-1 px-2 sm:px-3 lg:px-4">
         {/* LEFT */}
         <div className="flex min-w-0 flex-1 items-center overflow-hidden">
           <motion.button
@@ -893,9 +901,9 @@ function TopBar({
               'w-9 h-9 shrink-0 rounded-lg',
               'text-[#6B7268]',
               'hover:text-[#1A2B4C]',
-              'hover:bg-[#F3F4F6]', // Softer hover
+              'hover:bg-[#F3F4F6]',
               'transition-all duration-200',
-              'focus:outline-none focus:ring-2 focus:ring-[#C59B4C]/20' // Updated focus ring
+              'focus:outline-none focus:ring-2 focus:ring-[#C59B4C]/20'
             )}
             aria-label={
               isMobile
@@ -912,8 +920,8 @@ function TopBar({
             )}
           </motion.button>
 
-          {/* Breadcrumb */}
-          <div className="hidden md:block ml-3 pl-3 border-l border-[#E5E7EB] min-w-0">
+          {/* Breadcrumb — no border */}
+          <div className="hidden md:block ml-2.5 pl-2.5 min-w-0">
             <div className="flex items-center gap-2 font-mono text-[11px] text-[#8A9088]">
               {pageInfo.section && (
                 <>
@@ -938,7 +946,7 @@ function TopBar({
                 transition={{
                   duration: 0.2,
                 }}
-                className="text-[#1A2B4C] font-medium truncate" // Darker for contrast
+                className="text-[#1A2B4C] font-medium truncate"
               >
                 {pageInfo.title}
               </motion.span>
@@ -947,7 +955,7 @@ function TopBar({
         </div>
 
         {/* RIGHT */}
-        <div className="ml-1 flex shrink-0 items-center gap-0.5 sm:ml-3 sm:gap-2">
+        <div className="ml-1 flex shrink-0 items-center gap-0.5 sm:ml-2 sm:gap-1.5">
           {/* ANNOUNCEMENTS */}
           <motion.div
             whileHover={{ scale: 1.05 }}
@@ -1055,7 +1063,7 @@ function TopBar({
             </Link>
           </motion.div>
 
-          {/* USER */}
+          {/* USER — no border-l */}
           <motion.div
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -1063,12 +1071,10 @@ function TopBar({
             <Link
               href="/dashboard/profile"
               className={cn(
-                'ml-1 sm:ml-2',
-                'pl-2 sm:pl-3',
-                'border-l border-[#E5E7EB]',
+                'ml-1 sm:ml-1.5',
                 'flex items-center gap-2.5',
                 'py-1.5 px-1.5 rounded-lg',
-                'hover:bg-[#F8F9FA]',
+                'hover:bg-[#F3F4F6]',
                 'transition-all duration-200',
                 'focus:outline-none focus:ring-2 focus:ring-[#C59B4C]/20'
               )}
@@ -1077,13 +1083,13 @@ function TopBar({
                 <Image
                   src={user.profileImageUrl}
                   alt={`${user?.firstName || ''} ${user?.lastName || ''}`}
-                  width={34}
-                  height={34}
+                  width={32}
+                  height={32}
                   unoptimized
-                  className="w-[34px] h-[34px] object-cover grayscale border border-[#E5E7EB] rounded-full"
+                  className="w-[32px] h-[32px] object-cover grayscale border border-[#E5E7EB] rounded-full"
                 />
               ) : (
-                <div className="w-[34px] h-[34px] bg-[#1A2B4C] flex items-center justify-center text-white font-mono text-[11px] font-semibold rounded-full">
+                <div className="w-[32px] h-[32px] bg-[#1A2B4C] flex items-center justify-center text-white font-mono text-[11px] font-semibold rounded-full">
                   {getInitials(user)}
                 </div>
               )}
@@ -1167,10 +1173,10 @@ function NavigationItem({
           aria-label={item.label}
           className={cn(
             'relative group flex items-center justify-center',
-            'w-full h-11 rounded-lg',
+            'w-full h-10 rounded-lg',
             'transition-all duration-200',
             active
-              ? 'bg-[#FFF8E7] text-[#C59B4C]' // Premium active color
+              ? 'bg-[#FFF8E7] text-[#C59B4C]'
               : 'text-[#6B7268] hover:text-[#1A2B4C] hover:bg-[#F3F4F6]'
           )}
         >
@@ -1238,8 +1244,8 @@ function NavigationItem({
       <Link
         href={item.path}
         className={cn(
-          'relative group flex items-center gap-3',
-          'w-full min-h-10 px-3 rounded-lg',
+          'relative group flex items-center gap-2.5',
+          'w-full min-h-10 px-2 rounded-lg',
           'text-[13px]',
           'transition-all duration-200',
           active
@@ -1343,11 +1349,11 @@ function SidebarBillboard({
 
   if (collapsed) {
     return (
-      <div className="px-2 mb-3">
+      <div className="px-2 mb-2">
         <Link
           href={billboard.href}
           aria-label={billboard.title}
-          className="group relative flex items-center justify-center h-12 overflow-hidden bg-[#1A2B4C] rounded-lg"
+          className="group relative flex items-center justify-center h-11 overflow-hidden bg-[#1A2B4C] rounded-lg"
         >
           <motion.div
             className="absolute inset-y-0 left-0 w-[3px] bg-[#C59B4C]"
@@ -1398,7 +1404,7 @@ function SidebarBillboard({
         duration: 0.35,
         delay: 0.1,
       }}
-      className="px-3 pb-3"
+      className="px-2 pb-2"
     >
       <Link
         href={billboard.href}
@@ -1427,9 +1433,9 @@ function SidebarBillboard({
             repeat: Infinity,
             ease: 'easeInOut',
           }}
-          className="relative p-4"
+          className="relative p-3"
         >
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-2.5">
             <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#B9BEB2]">
               {billboard.eyebrow}
             </span>
@@ -1448,11 +1454,11 @@ function SidebarBillboard({
             {billboard.title}
           </h3>
 
-          <p className="mt-2 text-[11px] leading-[1.55] text-white/65">
+          <p className="mt-1.5 text-[11px] leading-[1.55] text-white/65">
             {billboard.description}
           </p>
 
-          <div className="mt-4 flex items-center gap-2 text-[10px] font-medium text-[#F7F1E4]">
+          <div className="mt-3 flex items-center gap-2 text-[10px] font-medium text-[#F7F1E4]">
             <span className="w-5 h-px bg-[#C59B4C]" />
 
             <span>{billboard.action}</span>
@@ -1556,7 +1562,6 @@ function Sidebar({
   const searchActive =
     searchQuery.trim().length > 0;
 
-  // Focus search on Ctrl+K
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
@@ -1574,14 +1579,15 @@ function Sidebar({
       initial={{ x: -20, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       transition={{ duration: 0.3 }}
+      style={{
+        width: sidebarOpen
+          ? SIDEBAR_WIDTH_EXPANDED
+          : SIDEBAR_WIDTH_COLLAPSED,
+      }}
       className={cn(
-        'h-screen bg-white',
-        'border-r border-[#E5E7EB]', // Softer border
+        'h-screen bg-[#FCFCFD]',
         'flex flex-col overflow-hidden',
-        'transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
-        sidebarOpen
-          ? 'w-64'
-          : 'w-[72px]'
+        'transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]'
       )}
     >
       {/* ================================================== */}
@@ -1589,20 +1595,20 @@ function Sidebar({
       {/* ================================================== */}
 
       <div
+        style={{ height: TOPBAR_HEIGHT }}
         className={cn(
-          'h-16 flex-shrink-0',
-          'border-b border-[#E5E7EB]',
+          'flex-shrink-0',
           'flex items-center',
           'relative overflow-hidden',
-          'bg-white',
+          'bg-transparent',
           sidebarOpen
-            ? 'px-4'
+            ? 'px-3'
             : 'justify-center'
         )}
       >
         <Link
           href="/dashboard"
-          className="relative flex items-center gap-3 min-w-0 group"
+          className="relative flex items-center gap-2.5 min-w-0 group"
           aria-label="Selfless CE Dashboard"
         >
           <motion.div
@@ -1664,7 +1670,7 @@ function Sidebar({
 
         {sidebarOpen && (
           <motion.div
-            className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5"
+            className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5"
             initial={{
               opacity: 0,
             }}
@@ -1704,7 +1710,7 @@ function Sidebar({
         )}
       >
         {/* BILLBOARD */}
-        <div className="pt-3">
+        <div className="pt-2">
           <SidebarBillboard
             userRole={userRole}
             collapsed={!sidebarOpen}
@@ -1722,7 +1728,7 @@ function Sidebar({
               opacity: 1,
               height: 'auto',
             }}
-            className="px-3 pt-1 pb-2"
+            className="px-2 pt-0.5 pb-1.5"
           >
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8A9088]" />
@@ -1740,20 +1746,18 @@ function Sidebar({
                 aria-label="Search navigation"
                 className={cn(
                   'w-full h-9 pl-9 pr-8 rounded-lg',
-                  'bg-[#F8F9FA]',
-                  'border border-[#E5E7EB]',
+                  'bg-[#F3F4F6]',
                   'text-[13px] text-[#1A2B4C]',
                   'placeholder:text-[#8A9088]',
                   'outline-none',
                   'focus:bg-white',
-                  'focus:border-[#C59B4C]',
-                  'focus:ring-2 focus:ring-[#C59B4C]/20',
+                  'focus:ring-2 focus:ring-[#C59B4C]/30',
                   'transition-all duration-200'
                 )}
               />
 
               {!searchQuery && (
-                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 hidden xl:flex items-center gap-0.5 font-mono text-[9px] text-[#8A9088] border border-[#E5E7EB] px-1 py-0.5 bg-white rounded">
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 hidden xl:flex items-center gap-0.5 font-mono text-[9px] text-[#8A9088] bg-white px-1 py-0.5 rounded">
                   ⌘K
                 </span>
               )}
@@ -1779,16 +1783,16 @@ function Sidebar({
         {/* NAVIGATION */}
         <nav
           className={cn(
-            'py-3',
+            'py-2',
             sidebarOpen
-              ? 'px-3'
-              : 'px-2'
+              ? 'px-1.5'
+              : 'px-1.5'
           )}
           aria-label="Dashboard navigation"
         >
           {/* COLLAPSED */}
           {!sidebarOpen && (
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {searchResults.flatMap(
                 (section) =>
                   section.items.map(
@@ -1816,7 +1820,7 @@ function Sidebar({
 
           {/* EXPANDED */}
           {sidebarOpen && (
-            <div className="space-y-4">
+            <div className="space-y-2.5">
               {searchResults.map(
                 (section) => {
                   const expanded =
@@ -1848,7 +1852,7 @@ function Sidebar({
                         }
                         className={cn(
                           'w-full flex items-center gap-2',
-                          'px-3 mb-1 py-1 rounded',
+                          'px-2 mb-0.5 py-1 rounded',
                           'font-mono text-[10px]',
                           'uppercase tracking-[0.1em]',
                           'font-semibold',
@@ -1976,12 +1980,12 @@ function Sidebar({
                 duration: 0.3,
                 delay: 0.15,
               }}
-              className="mt-4 px-1"
+              className="mt-3"
             >
-              <div className="border border-[#E5E7EB] bg-[#F8F9FA] p-3 rounded-lg">
+              <div className="bg-[#F3F4F6] p-2.5 rounded-lg">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="flex items-center justify-center w-6 h-6 bg-white border border-[#E5E7EB] rounded">
+                    <span className="flex items-center justify-center w-6 h-6 bg-white rounded">
                       <CircleDot className="w-3 h-3 text-[#55705B]" />
                     </span>
 
@@ -2008,9 +2012,9 @@ function Sidebar({
                   />
                 </div>
 
-                <div className="mt-3 h-px bg-[#E5E7EB]" />
+                <div className="mt-2.5 h-px bg-[#E5E7EB]" />
 
-                <div className="mt-2 flex items-center justify-between">
+                <div className="mt-1.5 flex items-center justify-between">
                   <span className="text-[9px] text-[#8A9088]">
                     Selfless CE
                   </span>
@@ -2027,13 +2031,13 @@ function Sidebar({
           {/* BACK TO HOME */}
           {/* ================================================== */}
 
-          <div className="mt-4 pt-3 border-t border-[#E5E7EB]">
+          <div className="mt-3 pt-1">
             <Link
               href="/"
               aria-label="Back to Home"
               className={cn(
                 'relative group w-full flex items-center gap-3',
-                'h-10 px-3 rounded-lg',
+                'h-10 px-2 rounded-lg',
                 'text-[13px] text-[#6B7268] font-medium',
                 'hover:text-[#1A2B4C] hover:bg-[#F3F4F6]',
                 'transition-all duration-200',
@@ -2056,7 +2060,7 @@ function Sidebar({
           {/* LOGOUT */}
           {/* ================================================== */}
 
-          <div className="mt-4 pt-3 border-t border-[#E5E7EB]">
+          <div className="mt-2 pt-1">
             <motion.button
               type="button"
               whileHover={{
@@ -2068,7 +2072,7 @@ function Sidebar({
               onClick={handleLogout}
               className={cn(
                 'relative group w-full flex items-center gap-3',
-                'h-10 px-3 rounded-lg',
+                'h-10 px-2 rounded-lg',
                 'text-[13px]',
                 'text-[#6B7268]',
                 'font-medium',
@@ -2093,8 +2097,7 @@ function Sidebar({
             </motion.button>
           </div>
 
-          {/* Bottom spacer for comfortable scrolling */}
-          <div className="h-4" />
+          <div className="h-3" />
         </nav>
       </div>
 
@@ -2115,23 +2118,23 @@ function Sidebar({
           transition={{
             duration: 0.25,
           }}
-          className="flex-shrink-0 border-t border-[#E5E7EB] px-3 py-3 bg-white"
+          className="flex-shrink-0 px-1.5 py-2 bg-transparent"
         >
           <Link
             href="/dashboard/profile"
-            className="group flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-[#F8F9FA] transition-all duration-200"
+            className="group flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-[#F3F4F6] transition-all duration-200"
           >
             {user?.profileImageUrl ? (
               <Image
                 src={user.profileImageUrl}
                 alt={`${user?.firstName || ''} ${user?.lastName || ''}`}
-                width={34}
-                height={34}
+                width={32}
+                height={32}
                 unoptimized
-                className="w-[34px] h-[34px] object-cover grayscale border border-[#E5E7EB] rounded-full"
+                className="w-[32px] h-[32px] object-cover grayscale border border-[#E5E7EB] rounded-full"
               />
             ) : (
-              <div className="w-[34px] h-[34px] bg-[#1A2B4C] flex items-center justify-center text-white font-mono text-[11px] font-semibold rounded-full">
+              <div className="w-[32px] h-[32px] bg-[#1A2B4C] flex items-center justify-center text-white font-mono text-[11px] font-semibold rounded-full">
                 {getInitials(user)}
               </div>
             )}
@@ -2465,12 +2468,15 @@ export default function DashboardLayout({
         {/* ================================================== */}
 
         <div
+          style={{
+            marginLeft: undefined,
+          }}
           className={cn(
             'min-h-screen',
             'transition-[margin] duration-300',
             'ease-[cubic-bezier(0.22,1,0.36,1)]',
             sidebarOpen
-              ? 'lg:ml-64'
+              ? 'lg:ml-[248px]'
               : 'lg:ml-[72px]'
           )}
         >
@@ -2489,8 +2495,9 @@ export default function DashboardLayout({
               userRole={userRole}
             />
 
-            <main className="min-h-screen px-7 xl:px-8 pt-[88px] pb-10">
-              <div className="w-full max-w-[1440px] mx-auto">
+            {/* ✅ FULL-WIDTH CONTENT — no max-width cap */}
+            <main className="min-h-screen px-3 xl:px-4 pt-[72px] pb-6">
+              <div className="w-full">
                 {/* PAGE HEADING */}
                 {pathname !==
                   '/dashboard' &&
@@ -2508,9 +2515,9 @@ export default function DashboardLayout({
                       transition={{
                         duration: 0.25,
                       }}
-                      className="mb-6"
+                      className="mb-4"
                     >
-                      <div className="flex items-center gap-2 font-mono text-[11px] text-[#8A9088] mb-2 uppercase tracking-wide">
+                      <div className="flex items-center gap-2 font-mono text-[11px] text-[#8A9088] mb-1.5 uppercase tracking-wide">
                         <span>
                           Dashboard
                         </span>
@@ -2541,7 +2548,7 @@ export default function DashboardLayout({
                               duration: 0.35,
                               delay: 0.1,
                             }}
-                            className="mt-3 h-[2px] bg-[#C59B4C]"
+                            className="mt-2.5 h-[2px] bg-[#C59B4C]"
                           />
                         </div>
                       </div>
@@ -2552,10 +2559,10 @@ export default function DashboardLayout({
               </div>
             </main>
 
-            {/* DESKTOP FOOTER */}
-            <footer className="border-t border-[#E5E7EB] bg-white">
-              <div className="max-w-[1440px] mx-auto px-7 xl:px-8 py-5">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+            {/* DESKTOP FOOTER — full width */}
+            <footer className="bg-transparent">
+              <div className="w-full px-3 xl:px-4 py-3">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-2">
                   <p className="font-mono text-xs text-[#8A9088]">
                     Selfless CE Portal - Learn, connect, grow.
                   </p>
@@ -2596,14 +2603,14 @@ export default function DashboardLayout({
 
             <main
               className={cn(
-                'flex-1 w-full px-4 sm:px-5',
-                'pb-6 [overflow-x:clip]',
+                'flex-1 w-full px-3 sm:px-4',
+                'pb-5 [overflow-x:clip]',
                 isAiPage
-                  ? 'pt-20'
-                  : 'pt-[84px]'
+                  ? 'pt-16'
+                  : 'pt-[72px]'
               )}
             >
-              <div className="w-full max-w-7xl mx-auto">
+              <div className="w-full">
                 {pathname !==
                   '/dashboard' &&
                   !isAiPage && (
@@ -2620,9 +2627,9 @@ export default function DashboardLayout({
                       transition={{
                         duration: 0.25,
                       }}
-                      className="mb-5"
+                      className="mb-4"
                     >
-                      <div className="flex items-center gap-1.5 font-mono text-[11px] text-[#8A9088] mb-1.5 uppercase tracking-wide">
+                      <div className="flex items-center gap-1.5 font-mono text-[11px] text-[#8A9088] mb-1 uppercase tracking-wide">
                         <span>
                           Dashboard
                         </span>
@@ -2659,9 +2666,9 @@ export default function DashboardLayout({
               </div>
             </main>
 
-            <footer className="border-t border-[#E5E7EB] bg-white">
-              <div className="px-4 py-4">
-                <div className="flex flex-col items-center gap-3 font-mono text-[10px] text-[#8A9088]">
+            <footer className="bg-transparent">
+              <div className="px-3 py-3">
+                <div className="flex flex-col items-center gap-2 font-mono text-[10px] text-[#8A9088]">
                   <p>Selfless CE Portal - Learn, connect, grow.</p>
 
                   <div className="flex flex-wrap justify-center gap-4">
@@ -2773,7 +2780,7 @@ export default function DashboardLayout({
               duration: 0.35,
               delay: 0.25,
             }}
-            className="fixed bottom-5 right-5 z-40"
+            className="fixed bottom-4 right-4 z-40"
           >
             <Link
               href="/dashboard/ai"
@@ -2781,10 +2788,8 @@ export default function DashboardLayout({
               className={cn(
                 'group flex items-center gap-2',
                 'bg-white',
-                'border border-[#E5E7EB]',
                 'px-3 py-2 rounded-lg',
                 'shadow-[0_4px_12px_rgba(18,32,59,0.10)]',
-                'hover:border-[#C59B4C]',
                 'hover:shadow-[0_7px_20px_rgba(18,32,59,0.14)]',
                 'transition-all duration-200'
               )}
