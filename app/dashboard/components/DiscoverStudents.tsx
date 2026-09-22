@@ -15,98 +15,268 @@ import {
   useReducedMotion,
 } from "framer-motion";
 import {
-  ArrowLeft,
-  ArrowRight,
+  ArrowDown,
+  ArrowUp,
   MapPin,
-  MessageCircle,
+  Pause,
+  Play,
 } from "lucide-react";
 
 /* ============================================================
    TYPES
 ============================================================ */
 
-export interface DiscoverStudent {
+export type DiscoverStudent = {
   id: string;
   firstName: string;
   lastName: string;
-  profileImageUrl: string;
-  generalCourse: string | null;
-  techCenter: {
-    id: string;
-    name: string;
-  } | null;
-}
+  profileImageUrl?: string | null;
+  generalCourse?:
+    | string
+    | null
+    | { id?: string; name?: string };
+  techCenter?:
+    | string
+    | null
+    | { id?: string; name?: string };
+};
 
-interface DiscoverStudentsProps {
+type DiscoverStudentsProps = {
   students: DiscoverStudent[];
   isLoading?: boolean;
   autoplay?: boolean;
   interval?: number;
-}
-
-type CardPosition = "left" | "center" | "right";
+};
 
 /* ============================================================
-   CONFIGURATION
+   CONFIG
 ============================================================ */
 
+/*
+ * AUTOPLAY DELAY
+ * --------------
+ * How long each student stays visible before sliding.
+ * Set to 5000ms = 5 seconds.
+ */
 const DEFAULT_INTERVAL = 5000;
-const SWIPE_THRESHOLD = 50;
 
-/* Card dimensions — image + info split */
-const CARD_WIDTH = 290;
-const CARD_HEIGHT = 420;
-const IMAGE_HEIGHT = 280; // info panel gets the rest
+const CONTENT_DURATION_S = 0.42;
+const TOTAL_SLIDE_MS = CONTENT_DURATION_S * 1000;
+
+const SWIPE_THRESHOLD = 40;
+
+const CARD_ASPECT = 0.76;
+const INFO_RATIO = 0.205;
+
+/*
+ * CARD SIZING
+ * -----------
+ * On mobile, we now use a much larger share of the
+ * available screen so the card feels alive and immersive.
+ */
+const MAX_CARD_WIDTH = 400;
+const MIN_CARD_WIDTH = 270;
+
+/* Horizontal padding from the container edge */
+const MOBILE_HORIZONTAL_PADDING = 12;   // was 20 → tighter edges
+const DESKTOP_HORIZONTAL_PADDING = 80;
+
+/*
+ * Vertical space reserved for header + footer + breathing room.
+ * Reduced on mobile so the card can grow.
+ */
+const MOBILE_RESERVED_VERTICAL = 120;   // was 165 → more card
+const DESKTOP_RESERVED_VERTICAL = 165;
+
+const MOBILE_MAX = 639;
 
 /* ============================================================
-   THEME TOKENS
+   THEME
 ============================================================ */
 
 const GOLD = "#C8A24A";
+const GOLD_BRIGHT = "#D9B563";
+
 const WHITE = "#FFFFFF";
 const WHITE_85 = "rgba(255, 255, 255, 0.85)";
 const WHITE_70 = "rgba(255, 255, 255, 0.70)";
 const WHITE_50 = "rgba(255, 255, 255, 0.50)";
 
-/* Info panel — solid surface, no overlays on image */
 const PANEL_BG = "#0F1115";
 const PANEL_BORDER = "rgba(200, 162, 74, 0.22)";
 
-const CARD_VARIANTS = {
-  left: {
-    x: -125,
-    z: -150,
-    rotateY: 10,
-    scale: 0.85,
-    opacity: 0.42,
-  },
-  center: {
-    x: 0,
-    z: 0,
-    rotateY: 0,
-    scale: 1,
-    opacity: 1,
-  },
-  right: {
-    x: 125,
-    z: -150,
-    rotateY: -10,
-    scale: 0.85,
-    opacity: 0.42,
-  },
-};
+const CONTENT_EASE = [0.22, 1, 0.36, 1] as const;
 
-const CARD_TRANSITION = {
-  type: "spring" as const,
-  stiffness: 220,
-  damping: 28,
-  mass: 0.9,
-};
+/* ============================================================
+   HOOKS
+============================================================ */
 
-const CONTENT_TRANSITION = {
-  duration: 0.3,
-  ease: [0.22, 1, 0.36, 1] as const,
-};
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia(
+      `(max-width: ${MOBILE_MAX}px)`,
+    );
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+  return isMobile;
+}
+
+function useResponsiveCardSize(
+  containerRef: React.RefObject<HTMLDivElement | null>,
+  isMobile: boolean,
+) {
+  const [size, setSize] = useState({
+    width: 340,
+    height: 447,
+    infoHeight: 92,
+  });
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const availableWidth = el.clientWidth;
+      if (!availableWidth) return;
+
+      const horizontalPadding = isMobile
+        ? MOBILE_HORIZONTAL_PADDING
+        : DESKTOP_HORIZONTAL_PADDING;
+
+      const usableWidth = Math.max(
+        MIN_CARD_WIDTH,
+        availableWidth - horizontalPadding,
+      );
+
+      const reserved = isMobile
+        ? MOBILE_RESERVED_VERTICAL
+        : DESKTOP_RESERVED_VERTICAL;
+
+      const availableHeight = Math.max(
+        360,
+        window.innerHeight - reserved,
+      );
+
+      const widthFromHeight = availableHeight * CARD_ASPECT;
+
+      const calculatedWidth = Math.min(
+        MAX_CARD_WIDTH,
+        usableWidth,
+        widthFromHeight,
+      );
+
+      const width = Math.max(
+        MIN_CARD_WIDTH,
+        Math.round(calculatedWidth),
+      );
+
+      const height = Math.round(width / CARD_ASPECT);
+
+      /* Info panel a touch taller on mobile so text
+         doesn't feel cramped inside a bigger card */
+      const infoRatio = isMobile ? 0.22 : INFO_RATIO;
+      const infoHeight = Math.max(
+        82,
+        Math.round(height * infoRatio),
+      );
+
+      setSize({ width, height, infoHeight });
+    };
+
+    update();
+
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+
+    window.addEventListener("resize", update);
+    window.addEventListener("orientationchange", update);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", update);
+      window.removeEventListener("orientationchange", update);
+    };
+  }, [containerRef, isMobile]);
+
+  return size;
+}
+
+/* ============================================================
+   AGGRESSIVE IMAGE PRELOADER
+============================================================ */
+
+function useImagePreloader(urls: string[]) {
+  const [readyUrls, setReadyUrls] = useState<Set<string>>(
+    () => new Set(),
+  );
+
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    if (urls.length === 0) {
+      setReadyUrls(new Set());
+      setHasError(false);
+      return;
+    }
+
+    let cancelled = false;
+    const images: HTMLImageElement[] = [];
+
+    const markReady = (url: string) => {
+      if (cancelled) return;
+      setReadyUrls((prev) => {
+        if (prev.has(url)) return prev;
+        const next = new Set(prev);
+        next.add(url);
+        return next;
+      });
+    };
+
+    urls.forEach((url) => {
+      const img = new window.Image();
+      img.decoding = "async";
+      img.loading = "eager";
+
+      const onLoad = () => markReady(url);
+      const onError = () => {
+        markReady(url);
+        setHasError(true);
+      };
+
+      img.addEventListener("load", onLoad);
+      img.addEventListener("error", onError);
+
+      img.src = url;
+      images.push(img);
+    });
+
+    Promise.allSettled(
+      urls.map((url) =>
+        fetch(url, {
+          cache: "force-cache",
+          credentials: "same-origin",
+        }).catch(() => null),
+      ),
+    ).catch(() => {});
+
+    return () => {
+      cancelled = true;
+      images.forEach((img) => {
+        img.onload = null;
+        img.onerror = null;
+      });
+      images.length = 0;
+    };
+  }, [urls.join("|")]);
+
+  return { readyUrls, hasError };
+}
 
 /* ============================================================
    COMPONENT
@@ -119,489 +289,397 @@ export function DiscoverStudents({
   interval = DEFAULT_INTERVAL,
 }: DiscoverStudentsProps) {
   const shouldReduceMotion = useReducedMotion();
+  const isMobile = useIsMobile();
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [direction, setDirection] = useState<1 | -1>(1);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
 
-  const touchStartX = useRef<number | null>(null);
-
-  const animationTimeout =
+  const transitionTimeoutRef =
     useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  /* ============================================================
-     CLEANUP
-  ============================================================ */
+  const autoplayTimeoutRef =
+    useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    return () => {
-      if (animationTimeout.current) {
-        clearTimeout(animationTimeout.current);
-      }
-    };
+  const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+
+  const stageContainerRef =
+    useRef<HTMLDivElement | null>(null);
+
+  const size = useResponsiveCardSize(
+    stageContainerRef,
+    isMobile,
+  );
+
+  const visibleStudents = useMemo(
+    () => students.filter(Boolean),
+    [students],
+  );
+
+  const imageUrls = useMemo(
+    () =>
+      visibleStudents
+        .map((s) => s.profileImageUrl)
+        .filter((u): u is string => Boolean(u && u.trim())),
+    [visibleStudents],
+  );
+
+  const { readyUrls, hasError } = useImagePreloader(imageUrls);
+
+  const allImagesReady =
+    imageUrls.length === 0 ||
+    imageUrls.every((u) => readyUrls.has(u));
+
+  const currentStudent =
+    visibleStudents.length > 0
+      ? visibleStudents[
+          currentIndex % visibleStudents.length
+        ]
+      : null;
+
+  const getDisplayValue = useCallback(
+    (
+      value:
+        | string
+        | null
+        | undefined
+        | { id?: string; name?: string },
+    ) => {
+      if (!value) return "";
+      if (typeof value === "string") return value;
+      if (typeof value === "object") return value.name ?? "";
+      return "";
+    },
+    [],
+  );
+
+  const clearTransitionTimeout = useCallback(() => {
+    if (transitionTimeoutRef.current) {
+      clearTimeout(transitionTimeoutRef.current);
+      transitionTimeoutRef.current = null;
+    }
+  }, []);
+
+  const clearAutoplayTimeout = useCallback(() => {
+    if (autoplayTimeoutRef.current) {
+      clearTimeout(autoplayTimeoutRef.current);
+      autoplayTimeoutRef.current = null;
+    }
   }, []);
 
   /* ============================================================
-     SAFE INDEX
-  ============================================================ */
-
-  const safeCurrentIndex =
-    students.length > 0
-      ? Math.min(currentIndex, students.length - 1)
-      : 0;
-
-  /* ============================================================
-     CAROUSEL NAVIGATION
+     MOVE
   ============================================================ */
 
   const move = useCallback(
-    (nextDirection: 1 | -1) => {
-      if (students.length <= 1 || isAnimating) {
+    (step: 1 | -1) => {
+      if (visibleStudents.length <= 1 || isTransitioning) {
         return;
       }
 
-      setIsAnimating(true);
+      clearAutoplayTimeout();
+      clearTransitionTimeout();
 
-      setCurrentIndex((previous) => {
-        const validPrevious = Math.min(
-          previous,
-          students.length - 1,
-        );
+      setDirection(step);
+      setIsTransitioning(true);
 
-        if (nextDirection === 1) {
-          return (validPrevious + 1) % students.length;
-        }
-
-        return (
-          (validPrevious - 1 + students.length) %
-          students.length
-        );
+      setCurrentIndex((previousIndex) => {
+        const nextIndex = previousIndex + step;
+        if (nextIndex < 0) return visibleStudents.length - 1;
+        if (nextIndex >= visibleStudents.length) return 0;
+        return nextIndex;
       });
 
-      if (animationTimeout.current) {
-        clearTimeout(animationTimeout.current);
-      }
-
-      animationTimeout.current = setTimeout(() => {
-        setIsAnimating(false);
-      }, 430);
+      transitionTimeoutRef.current = setTimeout(() => {
+        setIsTransitioning(false);
+        transitionTimeoutRef.current = null;
+      }, TOTAL_SLIDE_MS);
     },
-    [students.length, isAnimating],
+    [
+      visibleStudents.length,
+      isTransitioning,
+      clearAutoplayTimeout,
+      clearTransitionTimeout,
+    ],
   );
 
   /* ============================================================
-     AUTOPLAY
+     AUTOPLAY — 5 seconds forward only
+     ------------------------------------------------------------
+     After each transition finishes, the timer starts fresh.
+     The result: every student is visible for exactly
+     `interval` ms (5000ms = 5 seconds) before sliding away.
   ============================================================ */
 
   useEffect(() => {
+    clearAutoplayTimeout();
+
     if (
       !autoplay ||
+      isPaused ||
       shouldReduceMotion ||
-      students.length <= 1
+      visibleStudents.length <= 1 ||
+      isLoading ||
+      isTransitioning ||
+      !allImagesReady
     ) {
       return;
     }
 
-    const timer = setInterval(() => {
+    autoplayTimeoutRef.current = setTimeout(() => {
       move(1);
-    }, interval);
+    }, Math.max(0, interval));
 
-    return () => {
-      clearInterval(timer);
-    };
+    return clearAutoplayTimeout;
   }, [
     autoplay,
+    isPaused,
     interval,
+    visibleStudents.length,
+    isLoading,
+    isTransitioning,
+    currentIndex,
     move,
+    clearAutoplayTimeout,
     shouldReduceMotion,
-    students.length,
+    allImagesReady,
   ]);
 
-  /* ============================================================
-     KEYBOARD NAVIGATION
-  ============================================================ */
+  useEffect(() => {
+    return () => {
+      clearTransitionTimeout();
+      clearAutoplayTimeout();
+    };
+  }, [clearTransitionTimeout, clearAutoplayTimeout]);
 
   useEffect(() => {
-    if (students.length <= 1) {
+    if (visibleStudents.length === 0) {
+      setCurrentIndex(0);
       return;
     }
+    setCurrentIndex(
+      (previousIndex) =>
+        previousIndex % visibleStudents.length,
+    );
+  }, [visibleStudents.length]);
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "ArrowLeft") {
-        move(-1);
-      }
+  const handlePrevious = useCallback(() => {
+    move(-1);
+  }, [move]);
 
-      if (event.key === "ArrowRight") {
-        move(1);
+  const handleNext = useCallback(() => {
+    move(1);
+  }, [move]);
+
+  const togglePause = useCallback(() => {
+    setIsPaused((p) => !p);
+  }, []);
+
+  /* Keyboard */
+  useEffect(() => {
+    if (visibleStudents.length <= 1) return;
+
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "ArrowLeft") move(-1);
+      if (event.key === "ArrowRight") move(1);
+      if (event.key === "ArrowUp") move(-1);
+      if (event.key === "ArrowDown") move(1);
+      if (event.key === " " || event.key === "Spacebar") {
+        const t = event.target as HTMLElement;
+        if (
+          t.tagName !== "INPUT" &&
+          t.tagName !== "TEXTAREA" &&
+          t.tagName !== "A" &&
+          t.tagName !== "BUTTON"
+        ) {
+          event.preventDefault();
+          togglePause();
+        }
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [visibleStudents.length, move, togglePause]);
 
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [move, students.length]);
-
-  /* ============================================================
-     TOUCH / SWIPE
-  ============================================================ */
-
-  const handleTouchStart = (
-    event: React.TouchEvent<HTMLDivElement>,
-  ) => {
-    touchStartX.current =
-      event.touches[0]?.clientX ?? null;
-  };
-
-  const handleTouchEnd = (
-    event: React.TouchEvent<HTMLDivElement>,
-  ) => {
-    if (touchStartX.current === null) {
-      return;
-    }
-
-    const touchEndX =
-      event.changedTouches[0]?.clientX ?? 0;
-
-    const difference = touchStartX.current - touchEndX;
-
-    touchStartX.current = null;
-
-    if (Math.abs(difference) < SWIPE_THRESHOLD) {
-      return;
-    }
-
-    if (difference > 0) {
-      move(1);
-    } else {
-      move(-1);
-    }
-  };
-
-  /* ============================================================
-     CIRCULAR STUDENT LOOKUP
-  ============================================================ */
-
-  const getStudentAt = useCallback(
-    (offset: number) => {
-      if (students.length === 0) {
-        return null;
-      }
-
-      return students[
-        (safeCurrentIndex + offset + students.length) %
-          students.length
-      ];
+  /* Swipe */
+  const handleTouchStart = useCallback(
+    (event: React.TouchEvent<HTMLDivElement>) => {
+      if (visibleStudents.length <= 1) return;
+      touchStartXRef.current =
+        event.touches[0]?.clientX ?? null;
+      touchStartYRef.current =
+        event.touches[0]?.clientY ?? null;
     },
-    [safeCurrentIndex, students],
+    [visibleStudents.length],
+  );
+
+  const handleTouchEnd = useCallback(
+    (event: React.TouchEvent<HTMLDivElement>) => {
+      if (
+        visibleStudents.length <= 1 ||
+        touchStartXRef.current === null ||
+        touchStartYRef.current === null
+      ) {
+        return;
+      }
+
+      const endX =
+        event.changedTouches[0]?.clientX ??
+        touchStartXRef.current;
+      const endY =
+        event.changedTouches[0]?.clientY ??
+        touchStartYRef.current;
+
+      const deltaX = endX - touchStartXRef.current;
+      const deltaY = endY - touchStartYRef.current;
+
+      touchStartXRef.current = null;
+      touchStartYRef.current = null;
+
+      const horizontalDominant =
+        Math.abs(deltaX) >= Math.abs(deltaY);
+
+      if (horizontalDominant) {
+        if (Math.abs(deltaX) < SWIPE_THRESHOLD) return;
+        if (deltaX < 0) move(1);
+        else move(-1);
+      } else {
+        if (Math.abs(deltaY) < SWIPE_THRESHOLD) return;
+        if (deltaY < 0) move(1);
+        else move(-1);
+      }
+    },
+    [visibleStudents.length, move],
   );
 
   /* ============================================================
-     VISIBLE + BACKGROUND STUDENTS
+     LOADING
   ============================================================ */
 
-  const visibleStudents = useMemo(
-    () => ({
-      left: getStudentAt(-1),
-      center: getStudentAt(0),
-      right: getStudentAt(1),
-    }),
-    [getStudentAt],
-  );
-
-  const backgroundStudents = useMemo(
-    () => ({
-      farLeft: getStudentAt(-2),
-      farRight: getStudentAt(2),
-      veryFarLeft: getStudentAt(-3),
-      veryFarRight: getStudentAt(3),
-    }),
-    [getStudentAt],
-  );
-
-  /* ============================================================
-     LOADING SKELETON
-  ============================================================ */
-
-  if (isLoading) {
+  if (isLoading || !currentStudent) {
     return (
       <section className="w-full">
-        <div className="overflow-hidden rounded-2xl bg-black px-4 py-6 sm:px-6 sm:py-8">
-          <div className="mx-auto flex max-w-6xl flex-col items-center">
-            <div className="mb-4 h-3 w-32 animate-pulse rounded-full bg-white/10" />
+        <div className="overflow-hidden rounded-2xl bg-black">
+          <div className="mx-auto flex w-full max-w-[820px] items-end justify-between gap-4 px-4 pb-1 pt-3 sm:px-7 sm:pt-5">
+            <div className="min-w-0">
+              <p
+                className="text-[11px] font-semibold uppercase tracking-[0.16em]"
+                style={{ color: GOLD }}
+              >
+                Student community
+              </p>
+              <h2
+                className="mt-1 text-lg font-semibold tracking-[-0.02em] sm:text-xl"
+                style={{ color: WHITE }}
+              >
+                Discover students
+              </h2>
+            </div>
+          </div>
 
+          <div className="relative mx-auto mt-3 w-full px-3">
             <div
-              className="relative overflow-hidden rounded-2xl border border-white/10 bg-black shadow-xl"
-              style={{
-                width: CARD_WIDTH,
-                height: CARD_HEIGHT,
-              }}
+              className="relative mx-auto flex w-full max-w-[400px] flex-col overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] shadow-[0_24px_65px_rgba(0,0,0,0.52)]"
+              style={{ aspectRatio: CARD_ASPECT }}
             >
-              <div className="h-[280px] animate-pulse bg-white/[0.04]" />
-              <div className="space-y-2 p-4">
-                <div className="h-4 w-2/3 animate-pulse rounded bg-white/10" />
-                <div className="h-3 w-1/2 animate-pulse rounded bg-white/10" />
-                <div className="mt-3 h-8 w-full animate-pulse rounded bg-white/10" />
+              <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
+                <div className="absolute inset-0 animate-pulse bg-white/[0.04]" />
+              </div>
+              <div
+                className="flex shrink-0 flex-col justify-center px-4 sm:px-5"
+                style={{
+                  height: 92,
+                  backgroundColor: PANEL_BG,
+                  borderTop: `1px solid ${PANEL_BORDER}`,
+                }}
+              >
+                <div className="h-4 w-2/3 rounded bg-white/[0.06]" />
+                <div className="mt-2 h-3 w-1/2 rounded bg-white/[0.06]" />
               </div>
             </div>
           </div>
+
+          <div className="h-14" />
         </div>
       </section>
     );
   }
 
   /* ============================================================
-     EMPTY STATE
+     CARD DATA
   ============================================================ */
 
-  if (students.length === 0) {
-    return (
-      <section className="w-full">
-        <div className="rounded-2xl border border-white/10 bg-black px-5 py-8 text-center sm:px-8">
-          <div className="mx-auto max-w-md">
-            <h3
-              className="text-sm font-semibold"
-              style={{ color: GOLD }}
-            >
-              No students to discover
-            </h3>
-            <p
-              className="mt-1 text-xs leading-5"
-              style={{ color: WHITE_70 }}
-            >
-              Student profiles will appear here when
-              they become available.
-            </p>
-          </div>
-        </div>
-      </section>
-    );
-  }
+  const {
+    width: cardWidth,
+    height: cardHeight,
+    infoHeight,
+  } = size;
+
+  const firstName =
+    currentStudent.firstName?.trim() || "Student";
+  const lastName = currentStudent.lastName?.trim() || "";
+  const fullName = `${firstName} ${lastName}`.trim();
+
+  const imageSrc =
+    currentStudent.profileImageUrl &&
+    currentStudent.profileImageUrl.trim().length > 0
+      ? currentStudent.profileImageUrl
+      : null;
+
+  const courseName = getDisplayValue(
+    currentStudent.generalCourse,
+  );
+  const techCenterName = getDisplayValue(
+    currentStudent.techCenter,
+  );
+
+  const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 
   /* ============================================================
-     REUSABLE 3D STUDENT CARD
+     SLIDE VARIANTS — LEFT ↔ RIGHT
   ============================================================ */
 
-  const renderCard = (
-    student: DiscoverStudent | null,
-    position: CardPosition,
-  ) => {
-    if (!student) {
-      return null;
-    }
-
-    const isCenter = position === "center";
-
-    const name =
-      `${student.firstName} ${student.lastName}`.trim();
-
-    const image =
-      student.profileImageUrl || "/default-avatar.png";
-
-    const profileHref =
-      `/dashboard/students/${student.id}`;
-
-    const messageHref =
-      `/dashboard/messages?user=${student.id}`;
-
-    return (
-      <div
-        key={`${position}-${student.id}`}
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-        style={{ zIndex: isCenter ? 30 : 10 }}
-      >
-        <motion.article
-          className={[
-            "relative flex flex-col",
-            "overflow-hidden rounded-2xl border",
-            "bg-[#0F1115]",
-            "shadow-[0_18px_45px_rgba(0,0,0,0.5)]",
-            "will-change-transform",
-            isCenter
-              ? "border-[#C8A24A]/40"
-              : "border-white/10",
-          ].join(" ")}
-          style={{
-            width: CARD_WIDTH,
-            height: CARD_HEIGHT,
-            transformStyle: "preserve-3d",
-            backfaceVisibility: "hidden",
-            pointerEvents: isCenter ? "auto" : "none",
-          }}
-          initial={false}
-          animate={
-            shouldReduceMotion
-              ? {
-                x: CARD_VARIANTS[position].x,
-                z: 0,
-                rotateY: 0,
-                scale:
-                  position === "center" ? 1 : 0.85,
-                opacity:
-                  position === "center" ? 1 : 0.42,
-              }
-              : CARD_VARIANTS[position]
-          }
-          transition={
-            shouldReduceMotion
-              ? { duration: 0 }
-              : CARD_TRANSITION
-          }
-        >
-          {/* ==================================================
-              IMAGE SECTION — TOP
-              Pure image. Nothing on it. No overlay, no text.
-          ================================================== */}
-
-          <div
-            className="relative w-full shrink-0 bg-black"
-            style={{ height: IMAGE_HEIGHT }}
-          >
-            <Image
-              key={image}
-              src={image}
-              alt={name}
-              fill
-              sizes={`${CARD_WIDTH}px`}
-              className="object-cover object-center"
-              quality={95}
-              priority={isCenter}
-            />
-          </div>
-
-          {/* ==================================================
-              INFO SECTION — BOTTOM
-              Solid surface. No overlays on the image above.
-          ================================================== */}
-
-          <div
-            className="flex flex-1 flex-col justify-between px-4 py-3"
-            style={{
-              backgroundColor: PANEL_BG,
-              borderTop: `1px solid ${PANEL_BORDER}`,
-            }}
-          >
-            <AnimatePresence mode="wait" initial={false}>
-              {isCenter && (
-                <motion.div
-                  key={student.id}
-                  initial={
-                    shouldReduceMotion
-                      ? false
-                      : { opacity: 0, y: 8 }
-                  }
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={
-                    shouldReduceMotion
-                      ? undefined
-                      : { opacity: 0, y: -6 }
-                  }
-                  transition={
-                    shouldReduceMotion
-                      ? { duration: 0 }
-                      : CONTENT_TRANSITION
-                  }
-                  className="flex h-full flex-col justify-between"
-                >
-                  {/* ---------- Text block ---------- */}
-                  <div>
-                    <h3
-                      className="truncate text-[17px] font-semibold leading-6 tracking-[-0.01em]"
-                      style={{ color: GOLD }}
-                    >
-                      {name}
-                    </h3>
-
-                    <p
-                      className="mt-0.5 truncate text-[13px] font-medium"
-                      style={{ color: WHITE }}
-                    >
-                      {student.generalCourse || "Student"}
-                    </p>
-
-                    <div className="mt-1 flex items-center gap-1">
-                      {student.techCenter?.name ? (
-                        <>
-                          <MapPin
-                            className="h-3 w-3 shrink-0"
-                            strokeWidth={1.8}
-                            style={{ color: GOLD }}
-                          />
-                          <span
-                            className="truncate text-[12px]"
-                            style={{ color: WHITE_85 }}
-                          >
-                            {student.techCenter.name}
-                          </span>
-                        </>
-                      ) : (
-                        <span
-                          className="text-[12px]"
-                          style={{ color: WHITE_50 }}
-                        >
-                          Tech center not specified
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* ---------- Actions ---------- */}
-                  <div className="mt-3 flex items-center gap-1.5">
-                    <Link
-                      href={profileHref}
-                      className="inline-flex h-8 flex-1 items-center justify-center rounded-lg px-3 text-[12px] font-semibold transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#C8A24A]/40"
-                      style={{
-                        backgroundColor: GOLD,
-                        color: "#000000",
-                      }}
-                    >
-                      View profile
-                    </Link>
-
-                    <Link
-                      href={messageHref}
-                      aria-label={`Message ${name}`}
-                      className="inline-flex h-8 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-[#C8A24A]/40"
-                      style={{
-                        borderColor:
-                          "rgba(200, 162, 74, 0.45)",
-                        color: GOLD,
-                      }}
-                    >
-                      <MessageCircle
-                        className="h-3.5 w-3.5"
-                        strokeWidth={1.8}
-                      />
-                    </Link>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </motion.article>
-      </div>
-    );
+  const imageVariants = {
+    enter: (customDirection: 1 | -1) =>
+      shouldReduceMotion
+        ? { opacity: 0 }
+        : {
+            x: customDirection === 1 ? "100%" : "-100%",
+            opacity: 0,
+          },
+    center: shouldReduceMotion
+      ? { opacity: 1 }
+      : { x: 0, opacity: 1 },
+    exit: (customDirection: 1 | -1) =>
+      shouldReduceMotion
+        ? { opacity: 0 }
+        : {
+            x: customDirection === 1 ? "-100%" : "100%",
+            opacity: 0,
+          },
   };
 
-  /* ============================================================
-     GO TO SPECIFIC STUDENT
-  ============================================================ */
-
-  const goToStudent = (index: number) => {
-    if (index === safeCurrentIndex || isAnimating) {
-      return;
-    }
-
-    setIsAnimating(true);
-    setCurrentIndex(index);
-
-    if (animationTimeout.current) {
-      clearTimeout(animationTimeout.current);
-    }
-
-    animationTimeout.current = setTimeout(() => {
-      setIsAnimating(false);
-    }, 430);
+  const infoVariants = {
+    enter: (customDirection: 1 | -1) =>
+      shouldReduceMotion
+        ? { opacity: 0 }
+        : {
+            x: customDirection === 1 ? 40 : -40,
+            opacity: 0,
+          },
+    center: shouldReduceMotion
+      ? { opacity: 1 }
+      : { x: 0, opacity: 1 },
+    exit: (customDirection: 1 | -1) =>
+      shouldReduceMotion
+        ? { opacity: 0 }
+        : {
+            x: customDirection === 1 ? -40 : 40,
+            opacity: 0,
+          },
   };
 
   /* ============================================================
@@ -615,26 +693,21 @@ export function DiscoverStudents({
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {/* ==================================================
-            HEADER
-        ================================================== */}
-
-        <div className="mx-auto flex max-w-6xl items-end justify-between gap-4 px-5 pb-1 pt-4 sm:px-7 sm:pt-5">
-          <div>
+        {/* HEADER — tighter on mobile */}
+        <div className="mx-auto flex w-full max-w-[820px] items-end justify-between gap-4 px-4 pb-1 pt-3 sm:px-7 sm:pt-5">
+          <div className="min-w-0">
             <p
               className="text-[11px] font-semibold uppercase tracking-[0.16em]"
               style={{ color: GOLD }}
             >
               Student community
             </p>
-
             <h2
               className="mt-1 text-lg font-semibold tracking-[-0.02em] sm:text-xl"
               style={{ color: WHITE }}
             >
               Discover students
             </h2>
-
             <p
               className="mt-0.5 max-w-lg text-[12px] leading-5 sm:text-sm"
               style={{ color: WHITE_70 }}
@@ -645,169 +718,337 @@ export function DiscoverStudents({
             </p>
           </div>
 
-          {/* Desktop controls */}
-          <div className="hidden shrink-0 items-center gap-1.5 sm:flex">
-            <button
-              type="button"
-              onClick={() => move(-1)}
-              disabled={isAnimating || students.length <= 1}
-              aria-label="Previous student"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-30"
-              style={{
-                borderColor: "rgba(200, 162, 74, 0.35)",
-                color: GOLD,
-              }}
-            >
-              <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.8} />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => move(1)}
-              disabled={isAnimating || students.length <= 1}
-              aria-label="Next student"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-30"
-              style={{
-                borderColor: "rgba(200, 162, 74, 0.35)",
-                color: GOLD,
-              }}
-            >
-              <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
-            </button>
+          <div className="hidden shrink-0 items-center gap-2 sm:flex">
+            <PauseButton
+              isPaused={isPaused}
+              onClick={togglePause}
+              disabled={visibleStudents.length <= 1}
+            />
+            <NavButton
+              direction="up"
+              onClick={handlePrevious}
+              disabled={
+                isTransitioning ||
+                visibleStudents.length <= 1
+              }
+            />
+            <NavButton
+              direction="down"
+              onClick={handleNext}
+              disabled={
+                isTransitioning ||
+                visibleStudents.length <= 1
+              }
+            />
           </div>
         </div>
 
         {/* ==================================================
-            3D CAROUSEL STAGE
+            FIXED CARD SHELL — content crossfades inside
         ================================================== */}
 
         <div
-          className="relative mx-auto mt-2 h-[440px] w-full max-w-[620px] overflow-hidden sm:h-[460px]"
-          style={{
-            perspective: "1100px",
-            perspectiveOrigin: "50% 50%",
-          }}
+          ref={stageContainerRef}
+          className="relative mx-auto mt-2 w-full px-3 sm:mt-3"
+          style={{ height: `${cardHeight + 36}px` }}
         >
-          {/* Background students — image only, no info */}
-          <div className="pointer-events-none absolute inset-0">
-            {backgroundStudents.veryFarLeft && (
-              <div className="absolute left-[5%] top-1/2 -translate-y-1/2 scale-[0.6] opacity-[0.13]">
-                <div className="relative h-[350px] w-[240px] overflow-hidden rounded-2xl border border-white/5 bg-black">
-                  <Image
-                    key={backgroundStudents.veryFarLeft.profileImageUrl || "/default-avatar.png"}
-                    src={backgroundStudents.veryFarLeft.profileImageUrl || "/default-avatar.png"}
-                    alt="Student profile"
-                    fill
-                    sizes="240px"
-                    className="object-cover object-center"
-                  />
-                </div>
-              </div>
-            )}
-
-            {backgroundStudents.veryFarRight && (
-              <div className="absolute right-[5%] top-1/2 -translate-y-1/2 scale-[0.6] opacity-[0.13]">
-                <div className="relative h-[350px] w-[240px] overflow-hidden rounded-2xl border border-white/5 bg-black">
-                  <Image
-                    key={backgroundStudents.veryFarRight.profileImageUrl || "/default-avatar.png"}
-                    src={backgroundStudents.veryFarRight.profileImageUrl || "/default-avatar.png"}
-                    alt="Student profile"
-                    fill
-                    sizes="240px"
-                    className="object-cover object-center"
-                  />
-                </div>
-              </div>
-            )}
-
-            {backgroundStudents.farLeft && (
-              <div className="absolute left-[15%] top-1/2 -translate-y-1/2 scale-[0.75] opacity-[0.24]">
-                <div className="relative h-[350px] w-[240px] overflow-hidden rounded-2xl border border-white/5 bg-black">
-                  <Image
-                    key={backgroundStudents.farLeft.profileImageUrl || "/default-avatar.png"}
-                    src={backgroundStudents.farLeft.profileImageUrl || "/default-avatar.png"}
-                    alt="Student profile"
-                    fill
-                    sizes="240px"
-                    className="object-cover object-center"
-                  />
-                </div>
-              </div>
-            )}
-
-            {backgroundStudents.farRight && (
-              <div className="absolute right-[15%] top-1/2 -translate-y-1/2 scale-[0.75] opacity-[0.24]">
-                <div className="relative h-[350px] w-[240px] overflow-hidden rounded-2xl border border-white/5 bg-black">
-                  <Image
-                    key={backgroundStudents.farRight.profileImageUrl || "/default-avatar.png"}
-                    src={backgroundStudents.farRight.profileImageUrl || "/default-avatar.png"}
-                    alt="Student profile"
-                    fill
-                    sizes="240px"
-                    className="object-cover object-center"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* 3D space */}
           <div
-            className="absolute inset-0"
-            style={{ transformStyle: "preserve-3d" }}
+            className="absolute left-1/2 top-1/2 overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] shadow-[0_24px_65px_rgba(0,0,0,0.52)]"
+            style={{
+              width: cardWidth,
+              height: cardHeight,
+              marginLeft: -cardWidth / 2,
+              marginTop: -cardHeight / 2,
+            }}
           >
-            {renderCard(visibleStudents.left, "left")}
-            {renderCard(visibleStudents.right, "right")}
-            {renderCard(visibleStudents.center, "center")}
+            <div className="relative flex h-full w-full flex-col">
+              {/* IMAGE AREA */}
+              <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
+                <AnimatePresence
+                  mode="popLayout"
+                  initial={false}
+                  custom={direction}
+                >
+                  <motion.div
+                    key={currentStudent.id}
+                    custom={direction}
+                    variants={imageVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={
+                      shouldReduceMotion
+                        ? { duration: 0 }
+                        : {
+                            duration: CONTENT_DURATION_S,
+                            ease: CONTENT_EASE,
+                          }
+                    }
+                    className="absolute inset-0 h-full w-full"
+                  >
+                    {imageSrc ? (
+                      <Image
+                        src={imageSrc}
+                        alt={fullName}
+                        fill
+                        sizes={`${cardWidth}px`}
+                        className="object-cover object-center"
+                        quality={95}
+                        priority
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-[#18212F] text-4xl font-semibold text-white/70">
+                        {initials}
+                      </div>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+
+              {/* INFO AREA */}
+              <div
+                className="relative flex shrink-0 flex-col justify-center overflow-hidden px-4 sm:px-5"
+                style={{
+                  height: infoHeight,
+                  backgroundColor: PANEL_BG,
+                  borderTop: `1px solid ${PANEL_BORDER}`,
+                }}
+              >
+                <AnimatePresence
+                  mode="popLayout"
+                  initial={false}
+                  custom={direction}
+                >
+                  <motion.div
+                    key={currentStudent.id}
+                    custom={direction}
+                    variants={infoVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={
+                      shouldReduceMotion
+                        ? { duration: 0 }
+                        : {
+                            duration: CONTENT_DURATION_S * 0.9,
+                            ease: CONTENT_EASE,
+                          }
+                    }
+                    className="flex items-center gap-4"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <h3
+                        className="truncate text-[16.5px] font-bold leading-[1.2] tracking-[-0.015em] antialiased"
+                        style={{
+                          color: GOLD_BRIGHT,
+                          WebkitFontSmoothing: "antialiased",
+                          textRendering:
+                            "geometricPrecision",
+                        }}
+                        title={fullName}
+                      >
+                        {fullName}
+                      </h3>
+
+                      <p
+                        className="mt-[3px] truncate text-[12.5px] font-semibold leading-[1.3] tracking-[-0.005em] antialiased"
+                        style={{
+                          color: WHITE,
+                          WebkitFontSmoothing:
+                            "antialiased",
+                        }}
+                        title={courseName || "Student"}
+                      >
+                        {courseName || "Student"}
+                      </p>
+
+                      <div className="mt-[3px] flex min-w-0 items-center gap-1.5">
+                        {techCenterName ? (
+                          <>
+                            <MapPin
+                              className="h-[11px] w-[11px] shrink-0"
+                              strokeWidth={2}
+                              style={{ color: GOLD }}
+                            />
+                            <span
+                              className="truncate text-[11.5px] font-medium leading-[1.3] antialiased"
+                              style={{
+                                color: WHITE_85,
+                                WebkitFontSmoothing:
+                                  "antialiased",
+                              }}
+                              title={techCenterName}
+                            >
+                              {techCenterName}
+                            </span>
+                          </>
+                        ) : (
+                          <span
+                            className="text-[11.5px] font-medium leading-[1.3]"
+                            style={{ color: WHITE_50 }}
+                          >
+                            Tech center not specified
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      <Link
+                        href={`/dashboard/students/${currentStudent.id}`}
+                        className="group inline-flex items-center text-[12.5px] font-semibold tracking-[-0.005em] transition-colors focus:outline-none"
+                        style={{ color: GOLD_BRIGHT }}
+                      >
+                        <span className="underline decoration-[#C8A24A]/50 decoration-[1.5px] underline-offset-[3px] transition-colors group-hover:decoration-[#D9B563]">
+                          View profile
+                        </span>
+                      </Link>
+
+                      <Link
+                        href={`/dashboard/messages?user=${currentStudent.id}`}
+                        className="group inline-flex items-center text-[12.5px] font-semibold tracking-[-0.005em] transition-colors focus:outline-none"
+                        style={{ color: GOLD_BRIGHT }}
+                      >
+                        <span className="underline decoration-[#C8A24A]/50 decoration-[1.5px] underline-offset-[3px] transition-colors group-hover:decoration-[#D9B563]">
+                          Message
+                        </span>
+                      </Link>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* ==================================================
-            FOOTER
-        ================================================== */}
-
-        <div className="flex items-center justify-between border-t border-white/[0.07] px-4 py-2.5 sm:justify-center">
-          <button
-            type="button"
-            onClick={() => move(-1)}
-            disabled={isAnimating || students.length <= 1}
-            aria-label="Previous student"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-30 sm:hidden"
-            style={{
-              borderColor: "rgba(200, 162, 74, 0.35)",
-              color: GOLD,
-            }}
-          >
-            <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.8} />
-          </button>
-
-          <div
-            className="flex items-center gap-2 text-[12px]"
-            style={{ color: WHITE_70 }}
-          >
-            <span className="font-medium" style={{ color: GOLD }}>
-              {safeCurrentIndex + 1}
-            </span>
-            <span style={{ color: WHITE_50 }}>/</span>
-            <span style={{ color: WHITE }}>{students.length}</span>
+        {/* FOOTER */}
+        <div className="flex items-center justify-between border-t border-white/[0.07] px-4 py-3 sm:justify-center sm:gap-3">
+          <div className="sm:hidden">
+            <NavButton
+              direction="up"
+              onClick={handlePrevious}
+              disabled={
+                isTransitioning ||
+                visibleStudents.length <= 1
+              }
+            />
           </div>
 
-          <button
-            type="button"
-            onClick={() => move(1)}
-            disabled={isAnimating || students.length <= 1}
-            aria-label="Next student"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-30 sm:hidden"
-            style={{
-              borderColor: "rgba(200, 162, 74, 0.35)",
-              color: GOLD,
-            }}
+          <div className="sm:hidden">
+            <PauseButton
+              isPaused={isPaused}
+              onClick={togglePause}
+              disabled={visibleStudents.length <= 1}
+            />
+          </div>
+
+          <div
+            className="flex items-center gap-1.5 text-[12.5px] font-medium tabular-nums"
+            style={{ color: WHITE_70 }}
+            aria-live="polite"
           >
-            <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
-          </button>
+            <span
+              className="font-bold tabular-nums"
+              style={{ color: GOLD_BRIGHT }}
+            >
+              {(currentIndex % visibleStudents.length) + 1}
+            </span>
+            <span style={{ color: WHITE_50 }}>/</span>
+            <span
+              className="tabular-nums"
+              style={{ color: WHITE }}
+            >
+              {visibleStudents.length}
+            </span>
+          </div>
+
+          <div className="sm:hidden">
+            <NavButton
+              direction="down"
+              onClick={handleNext}
+              disabled={
+                isTransitioning ||
+                visibleStudents.length <= 1
+              }
+            />
+          </div>
         </div>
       </div>
     </section>
+  );
+}
+
+/* ============================================================
+   CONTROL PRIMITIVES
+============================================================ */
+
+interface NavButtonProps {
+  direction: "up" | "down";
+  onClick: () => void;
+  disabled?: boolean;
+}
+
+function NavButton({
+  direction,
+  onClick,
+  disabled,
+}: NavButtonProps) {
+  const isUp = direction === "up";
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={isUp ? "Previous student" : "Next student"}
+      className="group inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#C8A24A]/35 bg-white/[0.02] text-[#C8A24A] transition-all duration-200 hover:border-[#C8A24A]/70 hover:bg-[#C8A24A]/10 hover:text-[#D9B563] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C8A24A]/40 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-transparent disabled:text-white/25 disabled:opacity-60"
+    >
+      {isUp ? (
+        <ArrowUp
+          className="h-[15px] w-[15px] transition-transform duration-200 group-hover:-translate-y-[1px]"
+          strokeWidth={2}
+        />
+      ) : (
+        <ArrowDown
+          className="h-[15px] w-[15px] transition-transform duration-200 group-hover:translate-y-[1px]"
+          strokeWidth={2}
+        />
+      )}
+    </button>
+  );
+}
+
+interface PauseButtonProps {
+  isPaused: boolean;
+  onClick: () => void;
+  disabled?: boolean;
+}
+
+function PauseButton({
+  isPaused,
+  onClick,
+  disabled,
+}: PauseButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={isPaused ? "Resume autoplay" : "Pause autoplay"}
+      className="group inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#C8A24A]/35 bg-white/[0.02] text-[#C8A24A] transition-all duration-200 hover:border-[#C8A24A]/70 hover:bg-[#C8A24A]/10 hover:text-[#D9B563] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C8A24A]/40 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-transparent disabled:text-white/25 disabled:opacity-60"
+    >
+      {isPaused ? (
+        <Play
+          className="h-[14px] w-[14px] transition-transform duration-200 group-hover:scale-110"
+          strokeWidth={2}
+        />
+      ) : (
+        <Pause
+          className="h-[14px] w-[14px] transition-transform duration-200 group-hover:scale-110"
+          strokeWidth={2}
+        />
+      )}
+    </button>
   );
 }
 
