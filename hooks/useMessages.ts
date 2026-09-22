@@ -213,6 +213,10 @@ export function useUnreadMessageCount() {
       try {
         const response = await fetch('/api/messages/unread-count');
         if (!response.ok) {
+          // Don't throw error for unauthorized requests, just return 0
+          if (response.status === 401 || response.status === 403) {
+            return 0;
+          }
           const error = await response.json();
           throw new Error(error.message || 'Failed to fetch unread count');
         }

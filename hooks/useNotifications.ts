@@ -43,13 +43,17 @@ export function useNotifications(unreadOnly: boolean = false) {
 }
 
 // Hook to fetch only unread count (for badges)
-export function useUnreadNotificationCount() {
+export function useUnreadNotificationCount(enabled: boolean = true) {
   return useQuery({
     queryKey: ['notifications', 'unread-count'],
     queryFn: async () => {
       try {
         const response = await fetch('/api/notifications?unreadOnly=true&limit=1');
         if (!response.ok) {
+          // Don't throw error for unauthorized requests, just return 0
+          if (response.status === 401 || response.status === 403) {
+            return 0;
+          }
           const error = await response.json();
           throw new Error(error.message || 'Failed to fetch unread count');
         }
@@ -60,6 +64,7 @@ export function useUnreadNotificationCount() {
         return 0;
       }
     },
+    enabled,
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 2 * 60 * 1000, // 2 minutes
     refetchInterval: 15 * 1000,
@@ -69,13 +74,17 @@ export function useUnreadNotificationCount() {
 }
 
 // Hook to fetch announcement count
-export function useAnnouncementCount() {
+export function useAnnouncementCount(enabled: boolean = true) {
   return useQuery({
     queryKey: ['announcements', 'count'],
     queryFn: async () => {
       try {
         const response = await fetch('/api/announcements');
         if (!response.ok) {
+          // Don't throw error for unauthorized requests, just return 0
+          if (response.status === 401 || response.status === 403) {
+            return 0;
+          }
           const error = await response.json();
           throw new Error(error.message || 'Failed to fetch announcements');
         }
@@ -86,6 +95,7 @@ export function useAnnouncementCount() {
         return 0;
       }
     },
+    enabled,
     staleTime: 1 * 60 * 1000, // 1 minute
     gcTime: 5 * 60 * 1000, // 5 minutes
   });
