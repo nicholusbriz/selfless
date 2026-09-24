@@ -11,6 +11,7 @@ import {
 } from "framer-motion";
 import {
   ArrowRight,
+  ArrowUpRight,
   BookOpen,
   ChevronLeft,
   ChevronRight,
@@ -168,17 +169,6 @@ const slideInUp = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: {
-      duration: 0.6,
-      ease: [0.22, 1, 0.36, 1] as const,
-    },
-  },
-};
-
-const fadeIn = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
     transition: {
       duration: 0.6,
       ease: [0.22, 1, 0.36, 1] as const,
@@ -353,9 +343,19 @@ export default function HomePage() {
     shouldReduceMotion,
   ]);
 
-  const openLogin = useCallback(() => {
-    setAuthModalType("login");
+  /* -----------------------------------------------------
+     AUTH MODAL HELPERS
+  ----------------------------------------------------- */
+
+  const openAuth = useCallback((type: "login" | "register") => {
+    setAuthModalType(type);
     setShowAuthModal(true);
+  }, []);
+
+  const openLogin = useCallback(() => openAuth("login"), [openAuth]);
+
+  const closeAuth = useCallback(() => {
+    setShowAuthModal(false);
   }, []);
 
   /* Animation props helper for viewport-based animation */
@@ -450,21 +450,40 @@ export default function HomePage() {
                       variants={slideInLeft}
                       className="mt-6 flex flex-wrap items-center gap-4 sm:mt-7"
                     >
-                      <Link
-                        href={user ? "/dashboard" : "/register"}
-                        className="group inline-flex items-center gap-2 rounded-lg px-5 py-3 text-[13px] font-semibold transition-all duration-300 hover:-translate-y-0.5"
-                        style={{
-                          backgroundColor: COLORS.brassLight,
-                          color: COLORS.ink,
-                        }}
-                      >
-                        {user ? "Go to dashboard" : "Get started"}
+                      {user ? (
+                        <Link
+                          href="/dashboard"
+                          className="group inline-flex items-center gap-2 rounded-lg px-5 py-3 text-[13px] font-semibold transition-all duration-300 hover:-translate-y-0.5"
+                          style={{
+                            backgroundColor: COLORS.brassLight,
+                            color: COLORS.ink,
+                          }}
+                        >
+                          Go to dashboard
 
-                        <ArrowRight
-                          size={16}
-                          className="transition-transform duration-300 group-hover:translate-x-1"
-                        />
-                      </Link>
+                          <ArrowRight
+                            size={16}
+                            className="transition-transform duration-300 group-hover:translate-x-1"
+                          />
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => openAuth("register")}
+                          className="group inline-flex items-center gap-2 rounded-lg px-5 py-3 text-[13px] font-semibold transition-all duration-300 hover:-translate-y-0.5 motion-reduce:transition-none"
+                          style={{
+                            backgroundColor: COLORS.brassLight,
+                            color: COLORS.ink,
+                          }}
+                        >
+                          Get started
+
+                          <ArrowRight
+                            size={16}
+                            className="transition-transform duration-300 group-hover:translate-x-1"
+                          />
+                        </button>
+                      )}
 
                       <Link
                         href="/about"
@@ -975,30 +994,51 @@ export default function HomePage() {
                     variants={slideInRight}
                     className="flex flex-wrap items-center gap-4 lg:max-w-[360px] lg:justify-end"
                   >
-                    <Link
-                      href={user ? "/dashboard" : "/register"}
-                      className="group inline-flex items-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition-transform duration-300 hover:-translate-y-0.5"
-                      style={{
-                        backgroundColor: COLORS.brassLight,
-                        color: COLORS.ink,
-                      }}
-                    >
-                      {user ? "Open dashboard" : "Get started"}
-
-                      <ArrowRight
-                        size={16}
-                        className="transition-transform duration-300 group-hover:translate-x-1"
-                      />
-                    </Link>
-
-                    {!user && !authLoading && (
-                      <button
-                        type="button"
-                        onClick={openLogin}
-                        className="inline-flex items-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold text-white transition-colors duration-300 hover:bg-white/10"
+                    {user ? (
+                      <Link
+                        href="/dashboard"
+                        className="group inline-flex items-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition-transform duration-300 hover:-translate-y-0.5"
+                        style={{
+                          backgroundColor: COLORS.brassLight,
+                          color: COLORS.ink,
+                        }}
                       >
-                        Sign in
-                      </button>
+                        Open dashboard
+
+                        <ArrowRight
+                          size={16}
+                          className="transition-transform duration-300 group-hover:translate-x-1"
+                        />
+                      </Link>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => openAuth("register")}
+                          className="group inline-flex items-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition-transform duration-300 hover:-translate-y-0.5 motion-reduce:transition-none"
+                          style={{
+                            backgroundColor: COLORS.brassLight,
+                            color: COLORS.ink,
+                          }}
+                        >
+                          Get started
+
+                          <ArrowRight
+                            size={16}
+                            className="transition-transform duration-300 group-hover:translate-x-1"
+                          />
+                        </button>
+
+                        {!authLoading && (
+                          <button
+                            type="button"
+                            onClick={() => openAuth("login")}
+                            className="inline-flex items-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold text-white transition-colors duration-300 hover:bg-white/10"
+                          >
+                            Sign in
+                          </button>
+                        )}
+                      </>
                     )}
 
                     <Link
@@ -1021,10 +1061,12 @@ export default function HomePage() {
 
         <Footer />
 
+        {/* key ensures the modal remounts with the correct tab when reopened */}
         <AuthModal
+          key={authModalType}
           isOpen={showAuthModal}
           defaultType={authModalType}
-          onClose={() => setShowAuthModal(false)}
+          onClose={closeAuth}
         />
       </div>
     </>
