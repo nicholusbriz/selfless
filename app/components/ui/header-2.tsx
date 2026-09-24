@@ -540,6 +540,10 @@ function DashboardDropdown({
       document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  /* ======================================================================== */
+  /* MOBILE VARIANT — fixed positioning, viewport-contained                   */
+  /* ======================================================================== */
+
   if (variant === "mobile") {
     return (
       <div className="relative" ref={dropdownRef}>
@@ -572,13 +576,15 @@ function DashboardDropdown({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.97 }}
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute right-0 top-full mt-3 z-50 w-[calc(100vw-1.5rem)] max-w-[400px] rounded-2xl shadow-[0_20px_50px_rgba(13,24,44,0.28)] overflow-hidden"
+              className="fixed left-3 right-3 top-[130px] z-[70] rounded-2xl shadow-[0_20px_50px_rgba(13,24,44,0.35)] flex flex-col overflow-hidden sm:left-auto sm:right-4 sm:w-[380px]"
               style={{
                 backgroundColor: COLORS.surface,
+                maxHeight: "calc(100vh - 150px)",
               }}
             >
+              {/* Profile header — fixed at top */}
               <div
-                className="flex items-center gap-3 p-4"
+                className="flex items-center gap-3 p-4 shrink-0"
                 style={{ backgroundColor: "white" }}
               >
                 <UserAvatar user={user} size={44} />
@@ -599,7 +605,8 @@ function DashboardDropdown({
                 </div>
               </div>
 
-              <div className="p-3.5 space-y-4 max-h-[60vh] overflow-y-auto header-scroll-area">
+              {/* Scrollable links area */}
+              <div className="flex-1 min-h-0 overflow-y-auto header-scroll-area p-3.5 space-y-4">
                 {dashboardGroups.map((groupName) => {
                   const groupLinks = dashboardQuickLinks.filter(
                     (l) => l.group === groupName
@@ -641,7 +648,14 @@ function DashboardDropdown({
                 })}
               </div>
 
-              <div className="p-3" style={{ backgroundColor: "white" }}>
+              {/* Footer CTA — fixed at bottom */}
+              <div
+                className="p-3 shrink-0"
+                style={{
+                  backgroundColor: "white",
+                  boxShadow: "inset 0 1px 0 rgba(18,32,59,0.06)",
+                }}
+              >
                 <Link
                   href="/dashboard"
                   onClick={() => setIsOpen(false)}
@@ -661,6 +675,10 @@ function DashboardDropdown({
       </div>
     );
   }
+
+  /* ======================================================================== */
+  /* DESKTOP VARIANT                                                          */
+  /* ======================================================================== */
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -692,14 +710,16 @@ function DashboardDropdown({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.96 }}
             transition={{ duration: 0.2 }}
-            className="absolute right-0 top-full mt-3 w-[580px] rounded-2xl shadow-[0_20px_50px_rgba(13,24,44,0.22)] z-50"
+            className="absolute right-0 top-full mt-3 w-[580px] rounded-2xl shadow-[0_20px_50px_rgba(13,24,44,0.22)] z-[60] flex flex-col overflow-hidden"
             style={{
               backgroundColor: COLORS.surface,
+              maxHeight: "calc(100vh - 120px)",
             }}
           >
-            <div className="p-4">
+            {/* Profile header — fixed at top */}
+            <div className="p-4 pb-2 shrink-0">
               <div
-                className="flex items-center gap-3 px-3 py-3 mb-3 rounded-xl"
+                className="flex items-center gap-3 px-3 py-3 rounded-xl"
                 style={{ backgroundColor: "white" }}
               >
                 <UserAvatar user={user} size={44} />
@@ -731,8 +751,11 @@ function DashboardDropdown({
                   </div>
                 </div>
               </div>
+            </div>
 
-              <div className="space-y-4 max-h-[480px] overflow-y-auto pr-1 header-scroll-area">
+            {/* Scrollable links area */}
+            <div className="flex-1 min-h-0 overflow-y-auto header-scroll-area px-4 pb-2">
+              <div className="space-y-4">
                 {dashboardGroups.map((groupName) => {
                   const groupLinks = dashboardQuickLinks.filter(
                     (l) => l.group === groupName
@@ -773,6 +796,28 @@ function DashboardDropdown({
                   );
                 })}
               </div>
+            </div>
+
+            {/* Footer CTA — fixed at bottom */}
+            <div
+              className="p-3 shrink-0"
+              style={{
+                backgroundColor: "white",
+                boxShadow: "inset 0 1px 0 rgba(18,32,59,0.06)",
+              }}
+            >
+              <Link
+                href="/dashboard"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center justify-between rounded-xl px-4 py-3 text-[13.5px] font-bold transition-transform hover:-translate-y-px"
+                style={{
+                  backgroundColor: COLORS.navy,
+                  color: COLORS.white,
+                }}
+              >
+                <span>Go to Dashboard</span>
+                <ArrowUpRight size={15} strokeWidth={2.4} />
+              </Link>
             </div>
           </motion.div>
         )}
@@ -1226,7 +1271,7 @@ export default function Header2() {
         </div>
 
         {/* ================================================================== */}
-        {/* ROW 3 — IDENTITY STRIP + ONLINE USERS (always visible)             */}
+        {/* ROW 3 — IDENTITY STRIP (always visible)                            */}
         {/* ================================================================== */}
         <div style={{ backgroundColor: COLORS.navy }}>
           <div className="mx-auto flex min-h-10 max-w-[1440px] items-center justify-between gap-3 px-4 py-2.5 sm:px-6 lg:px-8">
