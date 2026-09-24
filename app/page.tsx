@@ -379,7 +379,7 @@ export default function HomePage() {
       <div className="min-h-screen flex flex-col bg-[#F1F1EC]">
         <Header2 />
 
-        <main className="flex-1 pt-[104px] sm:pt-[112px] lg:pt-[118px]">
+        <main className="flex-1 pt-[140px] sm:pt-[150px] lg:pt-[160px]">
 
           {/* =====================================================
               HERO
