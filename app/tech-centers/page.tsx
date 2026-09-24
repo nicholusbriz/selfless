@@ -150,7 +150,7 @@ export default function TechCentersPage() {
         {/* =====================================================
             HERO
         ====================================================== */}
-        <section className="relative flex min-h-[72vh] items-end px-5 pb-14 pt-24 sm:px-8 sm:pb-16 sm:pt-28 lg:min-h-[76vh] lg:px-12 lg:pb-20 lg:pt-32">
+        <section className="relative flex min-h-[72vh] items-end px-5 pb-14 pt-[140px] sm:px-8 sm:pb-16 sm:pt-[150px] lg:min-h-[76vh] lg:px-12 lg:pb-20 lg:pt-[160px]">
           <div className="mx-auto w-full max-w-7xl">
             <motion.div
               initial={shouldReduceMotion ? false : "hidden"}

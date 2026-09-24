@@ -126,7 +126,7 @@ export default function AboutPage() {
           {/* =====================================================
               HERO
           ====================================================== */}
-          <section className="flex min-h-[calc(100vh-76px)] items-center px-5 pt-24 pb-14 sm:px-8 sm:pt-28 lg:px-12 lg:pt-32">
+          <section className="flex min-h-[calc(100vh-76px)] items-center px-5 pt-[140px] pb-14 sm:px-8 sm:pt-[150px] lg:px-12 lg:pt-[160px]">
             <div className="mx-auto w-full max-w-7xl">
               <motion.div
                 initial={shouldReduceMotion ? false : "hidden"}
