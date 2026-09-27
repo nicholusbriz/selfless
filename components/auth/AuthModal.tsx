@@ -428,6 +428,7 @@ function RegisterForm({
   const [success, setSuccess] = useState(false);
   const [techCenters, setTechCenters] = useState<TechCenter[]>([]);
   const [isLoadingCenters, setIsLoadingCenters] = useState(true);
+  const [emailError, setEmailError] = useState('');
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -462,6 +463,21 @@ function RegisterForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate email before submission
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const isValidFormat = emailRegex.test(formData.email);
+    const domain = formData.email.split('@')[1]?.toLowerCase();
+
+    if (!isValidFormat) {
+      setEmailError('Please enter a valid email address');
+      return;
+    }
+
+    if (domain !== 'gmail.com') {
+      setEmailError('Please enter your personal email with @gmail.com');
+      return;
+    }
 
     setLoading(true);
     setError('');
@@ -514,10 +530,31 @@ function RegisterForm({
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
+    const { name, value } = e.target;
     setFormData((previous) => ({
       ...previous,
-      [e.target.name]: e.target.value,
+      [name]: value,
     }));
+
+    // Validate email when email field changes
+    if (name === 'email') {
+      if (value) {
+        // More robust email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const isValidFormat = emailRegex.test(value);
+        const domain = value.split('@')[1]?.toLowerCase();
+
+        if (!isValidFormat) {
+          setEmailError('Please enter a valid email address');
+        } else if (domain !== 'gmail.com') {
+          setEmailError('Please enter your personal email with @gmail.com');
+        } else {
+          setEmailError('');
+        }
+      } else {
+        setEmailError('');
+      }
+    }
   };
 
   return (
@@ -582,11 +619,17 @@ function RegisterForm({
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="your@email.com"
+              placeholder="your@gmail.com"
               className={inputClassName}
               autoComplete="email"
               required
             />
+
+            {emailError && (
+              <p className="text-xs text-[#B23A3A] mt-1.5">
+                {emailError}
+              </p>
+            )}
           </div>
 
           <div className="space-y-1.5">
