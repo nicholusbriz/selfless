@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
   Users,
@@ -13,7 +13,8 @@ import {
   XCircle,
   Loader2,
   Building2,
-  UserRound,
+  Clock,
+  AlertCircle,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -37,6 +38,24 @@ interface AdminUser {
   };
 }
 
+interface PendingUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber?: string;
+  country?: string;
+  city?: string;
+  createdAt: string;
+  profileImageUrl?: string;
+  techCenter?: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  gender?: string;
+}
+
 interface TechCenterData {
   users: AdminUser[];
   techCenter: {
@@ -47,37 +66,42 @@ interface TechCenterData {
 }
 
 const TOKENS = {
-  brand: '#1a365d',
-  brandHover: '#14294a',
-  brandLight: '#2c5282',
-  brandSoft: '#eef2f8',
-  success: '#17734b',
-  successSoft: '#edf7f2',
-  warning: '#8a5a00',
-  warningSoft: '#fff8e7',
-  danger: '#a52121',
-  dangerSoft: '#fdf0f0',
-  border: '#dfe5ec',
-  borderStrong: '#cbd5e1',
-  surface: '#ffffff',
-  surfaceMuted: '#f8fafc',
-  page: '#f4f6f9',
-  text: '#172033',
-  textMuted: '#64748b',
-  textSoft: '#94a3b8',
+  brand: '#12203B',
+  brandHover: '#1B2D4F',
+  brandSoft: '#EEF2F8',
+
+  success: '#17734B',
+  successSoft: '#EDF7F2',
+
+  warning: '#8A5A00',
+  warningSoft: '#FFF8E7',
+
+  danger: '#A52121',
+  dangerSoft: '#FDF0F0',
+
+  border: '#DADCD3',
+  borderStrong: '#C9CCC3',
+
+  surface: '#FFFFFF',
+  surfaceMuted: '#F7F6F2',
+  page: '#F1F1EC',
+
+  text: '#12203B',
+  textMuted: '#4B564C',
+  textSoft: '#7B8178',
 };
 
 const focusRing =
-  'focus:outline-none focus:ring-2 focus:ring-[#1a365d]/20 focus:ring-offset-2';
+  'focus:outline-none focus:ring-2 focus:ring-[#12203B]/20 focus:ring-offset-2';
 
 function getStatusStyles(admin: AdminUser) {
   if (admin.status === 'SUSPENDED') {
     return {
       label: 'Suspended',
       icon: XCircle,
-      text: 'text-[#a52121]',
-      bg: 'bg-[#fdf0f0]',
-      border: 'border-[#f1c8c8]',
+      text: 'text-[#A52121]',
+      bg: 'bg-[#FDF0F0]',
+      border: 'border-[#E9C7C7]',
     };
   }
 
@@ -85,18 +109,18 @@ function getStatusStyles(admin: AdminUser) {
     return {
       label: 'Active',
       icon: CheckCircle,
-      text: 'text-[#17734b]',
-      bg: 'bg-[#edf7f2]',
-      border: 'border-[#c8e7d8]',
+      text: 'text-[#17734B]',
+      bg: 'bg-[#EDF7F2]',
+      border: 'border-[#C8E7D8]',
     };
   }
 
   return {
     label: 'Inactive',
     icon: XCircle,
-    text: 'text-[#64748b]',
-    bg: 'bg-[#f1f5f9]',
-    border: 'border-[#dbe2ea]',
+    text: 'text-[#647065]',
+    bg: 'bg-[#F1F3EF]',
+    border: 'border-[#D9DDD5]',
   };
 }
 
@@ -118,9 +142,91 @@ function getInitials(firstName: string, lastName: string) {
   return `${firstName?.charAt(0) ?? ''}${lastName?.charAt(0) ?? ''}`.toUpperCase();
 }
 
+function UserAvatar({
+  firstName,
+  lastName,
+  imageUrl,
+  size = 'normal',
+}: {
+  firstName: string;
+  lastName: string;
+  imageUrl?: string;
+  size?: 'normal' | 'large';
+}) {
+  const sizeClass =
+    size === 'large' ? 'h-11 w-11' : 'h-10 w-10';
+
+  if (imageUrl) {
+    return (
+      <Image
+        src={imageUrl}
+        alt={`${firstName} ${lastName}`}
+        width={48}
+        height={48}
+        unoptimized
+        className={`${sizeClass} shrink-0 rounded-full border border-[#DADCD3] object-cover`}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full bg-[#EEF2F8] text-sm font-bold text-[#12203B]`}
+    >
+      {getInitials(firstName, lastName)}
+    </div>
+  );
+}
+
+function SectionTitle({
+  icon: Icon,
+  iconClassName,
+  title,
+  description,
+  count,
+}: {
+  icon: typeof Clock;
+  iconClassName: string;
+  title: string;
+  description: string;
+  count?: number;
+}) {
+  return (
+    <div className="flex min-w-0 items-start gap-3">
+      <div
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${iconClassName}`}
+      >
+        <Icon className="h-[18px] w-[18px]" />
+      </div>
+
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-base font-bold tracking-tight text-[#12203B] sm:text-lg">
+            {title}
+          </h2>
+
+          {typeof count === 'number' && (
+            <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-[#12203B] px-2 py-0.5 text-[11px] font-bold text-white">
+              {count}
+            </span>
+          )}
+        </div>
+
+        <p className="mt-0.5 max-w-2xl text-sm leading-5 text-[#6B7268]">
+          {description}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminOverviewPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
+  /*
+   * ADMINISTRATORS
+   */
   const {
     data: techCenterData,
     isLoading,
@@ -140,133 +246,734 @@ export default function AdminOverviewPage() {
     },
   });
 
+  /*
+   * PENDING REGISTRATIONS
+   */
+  const {
+    data: pendingUsers,
+    isLoading: isLoadingPending,
+    error: pendingError,
+  } = useQuery({
+    queryKey: ['pending-approvals'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/pending-approvals');
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch pending approvals');
+      }
+
+      return response.json() as Promise<PendingUser[]>;
+    },
+  });
+
+  /*
+   * APPROVE USER
+   */
+  const approveMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await fetch('/api/admin/approve-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          action: 'approve',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.error || 'Failed to approve user'
+        );
+      }
+
+      return response.json();
+    },
+
+    onMutate: async (userId: string) => {
+      await queryClient.cancelQueries({
+        queryKey: ['pending-approvals'],
+      });
+
+      const previousUsers =
+        queryClient.getQueryData<PendingUser[]>([
+          'pending-approvals',
+        ]);
+
+      queryClient.setQueryData<PendingUser[]>(
+        ['pending-approvals'],
+        (old = []) => old.filter((user) => user.id !== userId)
+      );
+
+      return {
+        previousUsers,
+      };
+    },
+
+    onSuccess: () => {
+      alert('Account verified successfully!');
+    },
+
+    onError: (error, variables, context) => {
+      if (context?.previousUsers) {
+        queryClient.setQueryData(
+          ['pending-approvals'],
+          context.previousUsers
+        );
+      }
+
+      alert(error.message);
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['pending-approvals'],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ['admin-tech-center-admins'],
+      });
+    },
+  });
+
+  /*
+   * REJECT USER
+   */
+  const rejectMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await fetch('/api/admin/approve-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          action: 'reject',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+
+        throw new Error(
+          errorData.error || 'Failed to reject user'
+        );
+      }
+
+      return response.json();
+    },
+
+    onMutate: async (userId: string) => {
+      await queryClient.cancelQueries({
+        queryKey: ['pending-approvals'],
+      });
+
+      const previousUsers =
+        queryClient.getQueryData<PendingUser[]>([
+          'pending-approvals',
+        ]);
+
+      queryClient.setQueryData<PendingUser[]>(
+        ['pending-approvals'],
+        (old = []) => old.filter((user) => user.id !== userId)
+      );
+
+      return {
+        previousUsers,
+      };
+    },
+
+    onSuccess: () => {
+      alert('User rejected and account deleted successfully!');
+    },
+
+    onError: (error, variables, context) => {
+      if (context?.previousUsers) {
+        queryClient.setQueryData(
+          ['pending-approvals'],
+          context.previousUsers
+        );
+      }
+
+      alert(error.message);
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['pending-approvals'],
+      });
+    },
+  });
+
+  const handleApprove = (userId: string) => {
+    approveMutation.mutate(userId);
+  };
+
+  const handleReject = (userId: string) => {
+    if (
+      confirm(
+        'Are you sure you want to reject this registration?'
+      )
+    ) {
+      rejectMutation.mutate(userId);
+    }
+  };
+
   const adminUsers = techCenterData?.users ?? [];
-  const techCenter = techCenterData?.techCenter ?? adminUsers[0]?.techCenter;
+
+  const techCenter =
+    techCenterData?.techCenter ??
+    adminUsers[0]?.techCenter;
 
   const activeCount = adminUsers.filter(
-    (admin) => admin.isActive && admin.status === 'ACTIVE'
+    (admin) =>
+      admin.isActive && admin.status === 'ACTIVE'
   ).length;
 
   const inactiveCount = adminUsers.filter(
-    (admin) => !admin.isActive || admin.status !== 'ACTIVE'
+    (admin) =>
+      !admin.isActive || admin.status !== 'ACTIVE'
   ).length;
 
+  const pendingCount = pendingUsers?.length ?? 0;
+
   return (
-    <main
-      className="min-h-screen bg-[#f4f6f9] text-[#172033]"
-      style={
-        {
-          '--brand': TOKENS.brand,
-          '--brand-hover': TOKENS.brandHover,
-          '--border': TOKENS.border,
-        } as React.CSSProperties
-      }
-    >
-      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        {/* Page navigation */}
-        <div className="mb-6 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#dfe5ec] bg-white text-[#64748b] shadow-sm transition-colors hover:border-[#cbd5e1] hover:bg-[#f8fafc] hover:text-[#1a365d] ${focusRing}`}
-            aria-label="Go back"
-          >
-            <ArrowLeft className="h-4.5 w-4.5" />
-          </button>
+    <main className="min-h-screen bg-[#F1F1EC] text-[#12203B]">
+      <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
 
-          <div className="mx-1 hidden h-6 w-px bg-[#dfe5ec] sm:block" />
+        {/* PAGE HEADER */}
+        <header className="mb-6">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              aria-label="Go back"
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#DADCD3] bg-white text-[#6B7268] transition hover:border-[#C9CCC3] hover:bg-[#F7F6F2] hover:text-[#12203B] ${focusRing}`}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
 
-          <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-[0.08em] text-[#94a3b8]">
-              Administration
-            </p>
-            <h1 className="truncate text-xl font-bold tracking-tight text-[#172033] sm:text-2xl">
-              Admin Overview
-            </h1>
+            <div className="h-6 w-px bg-[#DADCD3]" />
+
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8A9088]">
+                Administration
+              </p>
+
+              <h1 className="mt-0.5 truncate text-xl font-bold tracking-tight text-[#12203B] sm:text-2xl">
+                Admin Overview
+              </h1>
+            </div>
           </div>
-        </div>
+        </header>
 
-        {/* Main panel */}
-        <section className="overflow-hidden rounded-xl border border-[#dfe5ec] bg-white shadow-sm">
-          {/* Section header */}
-          <div className="border-b border-[#dfe5ec] px-5 py-5 sm:px-7">
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex min-w-0 items-start gap-4">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#eef2f8] text-[#1a365d]">
-                  <Shield className="h-5 w-5" />
-                </div>
+        {/* =========================================================
+            PRIORITY AREA — PENDING REGISTRATIONS
+           ========================================================= */}
+        <section className="overflow-hidden rounded-xl border border-[#DADCD3] bg-white">
 
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-lg font-bold text-[#172033] sm:text-xl">
-                      {techCenter?.name ?? 'Tech Center Administrators'}
-                    </h2>
+          {/* Header */}
+          <div className="border-b border-[#DADCD3] px-4 py-4 sm:px-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
-                    {techCenter?.code && (
-                      <span className="rounded-md border border-[#dfe5ec] bg-[#f8fafc] px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#64748b]">
-                        {techCenter.code}
-                      </span>
-                    )}
-                  </div>
+              <SectionTitle
+                icon={Clock}
+                iconClassName="bg-[#FFF8E7] text-[#8A5A00]"
+                title="Pending Registrations"
+                description="Review new registrations before granting dashboard access."
+                count={
+                  !isLoadingPending
+                    ? pendingCount
+                    : undefined
+                }
+              />
 
-                  <p className="mt-1 max-w-2xl text-sm leading-6 text-[#64748b]">
-                    Administrators assigned to manage this technology center
-                    and support its day-to-day operations.
-                  </p>
-                </div>
-              </div>
-
-              {!isLoading && !error && adminUsers.length > 0 && (
-                <div className="flex shrink-0 items-center gap-2">
-                  <div className="rounded-lg border border-[#dfe5ec] bg-[#f8fafc] px-3 py-2">
-                    <p className="text-[11px] font-medium uppercase tracking-wide text-[#94a3b8]">
-                      Total
-                    </p>
-                    <p className="mt-0.5 text-lg font-bold text-[#172033]">
-                      {adminUsers.length}
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg border border-[#c8e7d8] bg-[#edf7f2] px-3 py-2">
-                    <p className="text-[11px] font-medium uppercase tracking-wide text-[#17734b]">
-                      Active
-                    </p>
-                    <p className="mt-0.5 text-lg font-bold text-[#17734b]">
-                      {activeCount}
-                    </p>
-                  </div>
+              {pendingCount > 0 && (
+                <div className="hidden shrink-0 items-center gap-2 sm:flex">
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-[#FFF8E7] px-2.5 py-1.5 text-xs font-semibold text-[#8A5A00]">
+                    <Clock className="h-3.5 w-3.5" />
+                    Action required
+                  </span>
                 </div>
               )}
             </div>
           </div>
 
           {/* Content */}
-          <div className="p-5 sm:p-7">
-            {isLoading ? (
+          <div className="px-4 py-4 sm:px-5">
+
+            {/* Loading */}
+            {isLoadingPending ? (
               <div
-                className="flex min-h-[280px] flex-col items-center justify-center rounded-lg border border-dashed border-[#dfe5ec] bg-[#f8fafc]"
+                className="space-y-3"
                 role="status"
                 aria-live="polite"
               >
-                <Loader2 className="h-7 w-7 animate-spin text-[#1a365d]" />
-                <p className="mt-3 text-sm font-medium text-[#64748b]">
-                  Loading administrators...
+                {[1, 2].map((item) => (
+                  <div
+                    key={item}
+                    className="animate-pulse rounded-lg border border-[#DADCD3] p-4"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-[#E8E9E4]" />
+
+                      <div className="flex-1">
+                        <div className="h-3.5 w-40 rounded bg-[#E8E9E4]" />
+                        <div className="mt-2 h-3 w-28 rounded bg-[#EEF0EB]" />
+                      </div>
+                    </div>
+
+                    <div className="mt-4 h-10 rounded bg-[#F7F6F2]" />
+                  </div>
+                ))}
+              </div>
+            ) : pendingError ? (
+              <div
+                className="flex min-h-[180px] flex-col items-center justify-center rounded-lg border border-[#E9C7C7] bg-[#FDF0F0] px-6 text-center"
+                role="alert"
+              >
+                <AlertCircle className="h-6 w-6 text-[#A52121]" />
+
+                <h3 className="mt-3 text-sm font-semibold text-[#12203B]">
+                  Unable to load registrations
+                </h3>
+
+                <p className="mt-1 max-w-md text-xs leading-5 text-[#6B7268]">
+                  {pendingError instanceof Error
+                    ? pendingError.message
+                    : 'Something went wrong while loading pending registrations.'}
                 </p>
+
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className={`mt-4 rounded-lg bg-[#12203B] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#1B2D4F] ${focusRing}`}
+                >
+                  Try again
+                </button>
+              </div>
+            ) : pendingCount === 0 ? (
+              <div className="flex min-h-[160px] flex-col items-center justify-center rounded-lg border border-dashed border-[#DADCD3] bg-[#F7F6F2] px-6 text-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EDF7F2] text-[#17734B]">
+                  <CheckCircle className="h-5 w-5" />
+                </div>
+
+                <h3 className="mt-3 text-sm font-semibold text-[#12203B]">
+                  All registrations are processed
+                </h3>
+
+                <p className="mt-1 max-w-md text-xs leading-5 text-[#6B7268]">
+                  New registrations requiring approval will appear here.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* DESKTOP TABLE */}
+                <div className="hidden overflow-hidden rounded-lg border border-[#DADCD3] md:block">
+
+                  <div className="grid grid-cols-[minmax(220px,1.25fr)_minmax(210px,1fr)_minmax(150px,.8fr)_minmax(140px,.7fr)_170px] border-b border-[#DADCD3] bg-[#F7F6F2] px-4 py-3">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6B7268]">
+                      Applicant
+                    </div>
+
+                    <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6B7268]">
+                      Contact
+                    </div>
+
+                    <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6B7268]">
+                      Tech Center
+                    </div>
+
+                    <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6B7268]">
+                      Location
+                    </div>
+
+                    <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6B7268]">
+                      Actions
+                    </div>
+                  </div>
+
+                  <div className="divide-y divide-[#E6E8E1]">
+                    {pendingUsers!.map((user) => (
+                      <div
+                        key={user.id}
+                        className="grid grid-cols-[minmax(220px,1.25fr)_minmax(210px,1fr)_minmax(150px,.8fr)_minmax(140px,.7fr)_170px] items-center px-4 py-4 transition-colors hover:bg-[#FBFBF8]"
+                      >
+
+                        {/* Applicant */}
+                        <div className="flex min-w-0 items-center gap-3">
+                          <UserAvatar
+                            firstName={user.firstName}
+                            lastName={user.lastName}
+                            imageUrl={user.profileImageUrl}
+                          />
+
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-[#12203B]">
+                              {user.firstName} {user.lastName}
+                            </p>
+
+                            <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[#8A9088]">
+                              <Calendar className="h-3 w-3 shrink-0" />
+                              <span>
+                                Registered{' '}
+                                {formatJoinedDate(
+                                  user.createdAt
+                                )}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Contact */}
+                        <div className="min-w-0 space-y-1.5 pr-4">
+                          <div className="flex min-w-0 items-center gap-2 text-xs text-[#4B564C]">
+                            <Mail className="h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
+
+                            <span className="truncate">
+                              {user.email}
+                            </span>
+                          </div>
+
+                          {user.phoneNumber && (
+                            <div className="flex items-center gap-2 text-[11px] text-[#6B7268]">
+                              <Phone className="h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
+                              <span>
+                                {user.phoneNumber}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Tech Center */}
+                        <div className="min-w-0 pr-4">
+                          {user.techCenter ? (
+                            <div className="flex items-start gap-2 text-xs text-[#4B564C]">
+                              <Building2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
+
+                              <span className="truncate">
+                                {user.techCenter.name}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-[#8A9088]">
+                              No tech center
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Location */}
+                        <div className="min-w-0 pr-4">
+                          {user.city || user.country ? (
+                            <div className="flex items-start gap-2 text-xs text-[#4B564C]">
+                              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
+
+                              <span className="truncate">
+                                {user.city &&
+                                user.country
+                                  ? `${user.city}, ${user.country}`
+                                  : user.city ||
+                                    user.country}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-[#8A9088]">
+                              Not provided
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleApprove(user.id)
+                            }
+                            disabled={
+                              approveMutation.isPending
+                            }
+                            className={`inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-[#C8E7D8] bg-[#EDF7F2] px-3 text-xs font-semibold text-[#17734B] transition hover:border-[#A9D9BE] hover:bg-[#E1F3E9] disabled:cursor-not-allowed disabled:opacity-50 ${focusRing}`}
+                          >
+                            {approveMutation.isPending &&
+                            approveMutation.variables ===
+                              user.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <CheckCircle className="h-3.5 w-3.5" />
+                            )}
+
+                            Approve
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleReject(user.id)
+                            }
+                            disabled={
+                              rejectMutation.isPending
+                            }
+                            className={`inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-[#E9C7C7] bg-[#FDF0F0] px-3 text-xs font-semibold text-[#A52121] transition hover:border-[#DFAAAA] hover:bg-[#FAEAEA] disabled:cursor-not-allowed disabled:opacity-50 ${focusRing}`}
+                          >
+                            {rejectMutation.isPending &&
+                            rejectMutation.variables ===
+                              user.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <XCircle className="h-3.5 w-3.5" />
+                            )}
+
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* MOBILE */}
+                <div className="space-y-3 md:hidden">
+                  {pendingUsers!.map((user) => (
+                    <article
+                      key={user.id}
+                      className="rounded-lg border border-[#DADCD3] bg-white p-4"
+                    >
+                      <div className="flex items-start gap-3">
+                        <UserAvatar
+                          firstName={user.firstName}
+                          lastName={user.lastName}
+                          imageUrl={user.profileImageUrl}
+                        />
+
+                        <div className="min-w-0 flex-1">
+                          <h3 className="truncate text-sm font-semibold text-[#12203B]">
+                            {user.firstName}{' '}
+                            {user.lastName}
+                          </h3>
+
+                          <p className="mt-0.5 text-[11px] text-[#8A9088]">
+                            Pending approval
+                          </p>
+                        </div>
+
+                        <span className="shrink-0 rounded-full bg-[#FFF8E7] px-2 py-1 text-[10px] font-semibold text-[#8A5A00]">
+                          Pending
+                        </span>
+                      </div>
+
+                      <div className="mt-4 space-y-2 border-t border-[#EEF0EB] pt-3">
+                        <div className="flex items-start gap-2 text-xs text-[#4B564C]">
+                          <Mail className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
+                          <span className="min-w-0 break-all">
+                            {user.email}
+                          </span>
+                        </div>
+
+                        {user.phoneNumber && (
+                          <div className="flex items-center gap-2 text-xs text-[#4B564C]">
+                            <Phone className="h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
+                            <span>
+                              {user.phoneNumber}
+                            </span>
+                          </div>
+                        )}
+
+                        {user.techCenter && (
+                          <div className="flex items-center gap-2 text-xs text-[#4B564C]">
+                            <Building2 className="h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
+                            <span>
+                              {user.techCenter.name}
+                            </span>
+                          </div>
+                        )}
+
+                        {(user.city || user.country) && (
+                          <div className="flex items-start gap-2 text-xs text-[#4B564C]">
+                            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
+
+                            <span>
+                              {user.city &&
+                              user.country
+                                ? `${user.city}, ${user.country}`
+                                : user.city ||
+                                  user.country}
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-2 text-[11px] text-[#8A9088]">
+                          <Calendar className="h-3.5 w-3.5 shrink-0" />
+                          <span>
+                            Registered{' '}
+                            {formatJoinedDate(
+                              user.createdAt
+                            )}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 gap-2 border-t border-[#EEF0EB] pt-3">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleApprove(user.id)
+                          }
+                          disabled={
+                            approveMutation.isPending
+                          }
+                          className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-[#C8E7D8] bg-[#EDF7F2] text-xs font-semibold text-[#17734B] transition hover:bg-[#E1F3E9] disabled:cursor-not-allowed disabled:opacity-50 ${focusRing}`}
+                        >
+                          {approveMutation.isPending &&
+                          approveMutation.variables ===
+                            user.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <CheckCircle className="h-3.5 w-3.5" />
+                          )}
+
+                          Approve
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleReject(user.id)
+                          }
+                          disabled={
+                            rejectMutation.isPending
+                          }
+                          className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-[#E9C7C7] bg-[#FDF0F0] text-xs font-semibold text-[#A52121] transition hover:bg-[#FAEAEA] disabled:cursor-not-allowed disabled:opacity-50 ${focusRing}`}
+                        >
+                          {rejectMutation.isPending &&
+                          rejectMutation.variables ===
+                            user.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <XCircle className="h-3.5 w-3.5" />
+                          )}
+
+                          Reject
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </section>
+
+        {/* =========================================================
+            ADMINISTRATORS
+           ========================================================= */}
+        <section className="mt-8 overflow-hidden rounded-xl border border-[#DADCD3] bg-white">
+
+          {/* Header */}
+          <div className="border-b border-[#DADCD3] px-4 py-4 sm:px-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+              <SectionTitle
+                icon={Shield}
+                iconClassName="bg-[#EEF2F8] text-[#12203B]"
+                title={
+                  techCenter?.name
+                    ? `${techCenter.name} Administrators`
+                    : 'Administrators'
+                }
+                description="Manage administrator accounts assigned to this technology center."
+              />
+
+              {!isLoading && !error && (
+                <div className="flex items-center gap-2">
+                  <div className="rounded-md border border-[#DADCD3] bg-[#F7F6F2] px-3 py-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-[#8A9088]">
+                      Total
+                    </span>
+
+                    <span className="ml-2 text-sm font-bold text-[#12203B]">
+                      {adminUsers.length}
+                    </span>
+                  </div>
+
+                  <div className="rounded-md border border-[#C8E7D8] bg-[#EDF7F2] px-3 py-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-[#17734B]">
+                      Active
+                    </span>
+
+                    <span className="ml-2 text-sm font-bold text-[#17734B]">
+                      {activeCount}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {techCenter?.code && (
+              <div className="mt-3 flex items-center gap-2 text-[11px] text-[#8A9088]">
+                <Building2 className="h-3.5 w-3.5" />
+
+                <span>
+                  Technology center code:
+                </span>
+
+                <span className="font-semibold text-[#4B564C]">
+                  {techCenter.code}
+                </span>
+
+                {inactiveCount > 0 && (
+                  <>
+                    <span className="mx-1 h-3 w-px bg-[#DADCD3]" />
+
+                    <span>
+                      {inactiveCount} inactive or suspended
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Content */}
+          <div className="px-4 py-4 sm:px-5">
+
+            {isLoading ? (
+              <div
+                className="space-y-2"
+                role="status"
+                aria-live="polite"
+              >
+                {[1, 2, 3].map((item) => (
+                  <div
+                    key={item}
+                    className="flex animate-pulse items-center gap-3 rounded-lg border border-[#DADCD3] p-4"
+                  >
+                    <div className="h-10 w-10 rounded-full bg-[#E8E9E4]" />
+
+                    <div className="flex-1">
+                      <div className="h-3.5 w-40 rounded bg-[#E8E9E4]" />
+
+                      <div className="mt-2 h-3 w-56 rounded bg-[#EEF0EB]" />
+                    </div>
+
+                    <div className="hidden h-7 w-16 rounded bg-[#EEF0EB] sm:block" />
+                  </div>
+                ))}
               </div>
             ) : error ? (
               <div
-                className="flex min-h-[280px] flex-col items-center justify-center rounded-lg border border-[#f1c8c8] bg-[#fdf0f0] px-6 text-center"
+                className="flex min-h-[180px] flex-col items-center justify-center rounded-lg border border-[#E9C7C7] bg-[#FDF0F0] px-6 text-center"
                 role="alert"
               >
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#a52121] shadow-sm">
-                  <XCircle className="h-5 w-5" />
-                </div>
+                <XCircle className="h-6 w-6 text-[#A52121]" />
 
-                <h3 className="mt-4 text-base font-semibold text-[#172033]">
+                <h3 className="mt-3 text-sm font-semibold text-[#12203B]">
                   Unable to load administrators
                 </h3>
 
-                <p className="mt-1 max-w-md text-sm text-[#64748b]">
+                <p className="mt-1 max-w-md text-xs leading-5 text-[#6B7268]">
                   {error instanceof Error
                     ? error.message
                     : 'Something went wrong while loading the administrator list.'}
@@ -275,103 +982,86 @@ export default function AdminOverviewPage() {
                 <button
                   type="button"
                   onClick={() => window.location.reload()}
-                  className={`mt-5 inline-flex items-center rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#14294a] ${focusRing}`}
+                  className={`mt-4 rounded-lg bg-[#12203B] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#1B2D4F] ${focusRing}`}
                 >
                   Try again
                 </button>
               </div>
             ) : adminUsers.length === 0 ? (
-              <div className="flex min-h-[280px] flex-col items-center justify-center rounded-lg border border-dashed border-[#dfe5ec] bg-[#f8fafc] px-6 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#eef2f8] text-[#64748b]">
-                  <Users className="h-6 w-6" />
+              <div className="flex min-h-[160px] flex-col items-center justify-center rounded-lg border border-dashed border-[#DADCD3] bg-[#F7F6F2] px-6 text-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EEF2F8] text-[#6B7268]">
+                  <Users className="h-5 w-5" />
                 </div>
 
-                <h3 className="mt-4 text-base font-semibold text-[#172033]">
-                  No administrators found
+                <h3 className="mt-3 text-sm font-semibold text-[#12203B]">
+                  No administrators assigned
                 </h3>
 
-                <p className="mt-1 max-w-md text-sm leading-6 text-[#64748b]">
-                  There are currently no administrator accounts assigned to
-                  this technology center.
+                <p className="mt-1 max-w-md text-xs leading-5 text-[#6B7268]">
+                  There are currently no administrator
+                  accounts assigned to this technology
+                  center.
                 </p>
               </div>
             ) : (
-              <div>
-                {/* List heading */}
-                <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold text-[#172033]">
-                      Administrator Accounts
-                    </h3>
-                    <p className="mt-0.5 text-xs text-[#94a3b8]">
-                      Contact and account information for the current
-                      administrators.
-                    </p>
-                  </div>
+              <>
+                {/* DESKTOP ADMIN TABLE */}
+                <div className="hidden overflow-hidden rounded-lg border border-[#DADCD3] md:block">
 
-                  {inactiveCount > 0 && (
-                    <span className="inline-flex w-fit items-center rounded-md bg-[#f1f5f9] px-2.5 py-1 text-xs font-medium text-[#64748b]">
-                      {inactiveCount} inactive or suspended
-                    </span>
-                  )}
-                </div>
-
-                {/* Desktop table */}
-                <div className="hidden overflow-hidden rounded-lg border border-[#dfe5ec] md:block">
-                  <div className="grid grid-cols-[minmax(220px,1.4fr)_minmax(200px,1fr)_minmax(160px,0.8fr)_130px] border-b border-[#dfe5ec] bg-[#f8fafc] px-5 py-3">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#64748b]">
+                  <div className="grid grid-cols-[minmax(220px,1.35fr)_minmax(220px,1fr)_minmax(160px,.8fr)_120px] border-b border-[#DADCD3] bg-[#F7F6F2] px-4 py-3">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6B7268]">
                       Administrator
                     </div>
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#64748b]">
+
+                    <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6B7268]">
                       Contact
                     </div>
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#64748b]">
+
+                    <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6B7268]">
                       Location
                     </div>
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#64748b]">
+
+                    <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6B7268]">
                       Status
                     </div>
                   </div>
 
-                  <div className="divide-y divide-[#dfe5ec]">
+                  <div className="divide-y divide-[#E6E8E1]">
                     {adminUsers.map((admin) => {
-                      const status = getStatusStyles(admin);
+                      const status =
+                        getStatusStyles(admin);
+
                       const StatusIcon = status.icon;
 
                       return (
                         <div
                           key={admin.id}
-                          className="grid grid-cols-[minmax(220px,1.4fr)_minmax(200px,1fr)_minmax(160px,0.8fr)_130px] items-center px-5 py-4 transition-colors hover:bg-[#fbfcfd]"
+                          className="grid grid-cols-[minmax(220px,1.35fr)_minmax(220px,1fr)_minmax(160px,.8fr)_120px] items-center px-4 py-4 transition-colors hover:bg-[#FBFBF8]"
                         >
                           {/* Administrator */}
                           <div className="flex min-w-0 items-center gap-3">
-                            {admin.profileImageUrl ? (
-                              <Image
-                                src={admin.profileImageUrl}
-                                alt={`${admin.firstName} ${admin.lastName}`}
-                                width={42}
-                                height={42}
-                                unoptimized
-                                className="h-10.5 w-10.5 shrink-0 rounded-full border border-[#dfe5ec] object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-10.5 w-10.5 shrink-0 items-center justify-center rounded-full bg-[#eef2f8] text-sm font-bold text-[#1a365d]">
-                                {getInitials(
-                                  admin.firstName,
-                                  admin.lastName
-                                )}
-                              </div>
-                            )}
+                            <UserAvatar
+                              firstName={admin.firstName}
+                              lastName={admin.lastName}
+                              imageUrl={
+                                admin.profileImageUrl
+                              }
+                            />
 
                             <div className="min-w-0">
-                              <p className="truncate text-sm font-semibold text-[#172033]">
-                                {admin.firstName} {admin.lastName}
+                              <p className="truncate text-sm font-semibold text-[#12203B]">
+                                {admin.firstName}{' '}
+                                {admin.lastName}
                               </p>
 
-                              <div className="mt-1 flex items-center gap-1.5 text-xs text-[#94a3b8]">
-                                <Calendar className="h-3.5 w-3.5 shrink-0" />
+                              <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[#8A9088]">
+                                <Calendar className="h-3 w-3 shrink-0" />
+
                                 <span>
-                                  Joined {formatJoinedDate(admin.createdAt)}
+                                  Joined{' '}
+                                  {formatJoinedDate(
+                                    admin.createdAt
+                                  )}
                                 </span>
                               </div>
                             </div>
@@ -379,37 +1069,43 @@ export default function AdminOverviewPage() {
 
                           {/* Contact */}
                           <div className="min-w-0 space-y-1.5 pr-4">
-                            <div className="flex min-w-0 items-center gap-2 text-sm text-[#475569]">
-                              <Mail className="h-3.5 w-3.5 shrink-0 text-[#94a3b8]" />
-                              <span className="truncate">{admin.email}</span>
+                            <div className="flex min-w-0 items-center gap-2 text-xs text-[#4B564C]">
+                              <Mail className="h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
+
+                              <span className="truncate">
+                                {admin.email}
+                              </span>
                             </div>
 
-                            {admin.phoneNumber ? (
-                              <div className="flex items-center gap-2 text-xs text-[#64748b]">
-                                <Phone className="h-3.5 w-3.5 shrink-0 text-[#94a3b8]" />
-                                <span>{admin.phoneNumber}</span>
+                            {admin.phoneNumber && (
+                              <div className="flex items-center gap-2 text-[11px] text-[#6B7268]">
+                                <Phone className="h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
+
+                                <span>
+                                  {admin.phoneNumber}
+                                </span>
                               </div>
-                            ) : (
-                              <span className="text-xs text-[#94a3b8]">
-                                No phone number
-                              </span>
                             )}
                           </div>
 
                           {/* Location */}
                           <div className="min-w-0 pr-4">
-                            {admin.city || admin.country ? (
-                              <div className="flex items-start gap-2 text-sm text-[#475569]">
-                                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#94a3b8]" />
+                            {admin.city ||
+                            admin.country ? (
+                              <div className="flex items-start gap-2 text-xs text-[#4B564C]">
+                                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
+
                                 <span className="truncate">
-                                  {admin.city && admin.country
+                                  {admin.city &&
+                                  admin.country
                                     ? `${admin.city}, ${admin.country}`
-                                    : admin.city || admin.country}
+                                    : admin.city ||
+                                      admin.country}
                                 </span>
                               </div>
                             ) : (
-                              <span className="text-xs text-[#94a3b8]">
-                                Location not provided
+                              <span className="text-xs text-[#8A9088]">
+                                Not provided
                               </span>
                             )}
                           </div>
@@ -417,9 +1113,10 @@ export default function AdminOverviewPage() {
                           {/* Status */}
                           <div>
                             <span
-                              className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-semibold ${status.bg} ${status.border} ${status.text}`}
+                              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${status.bg} ${status.border} ${status.text}`}
                             >
-                              <StatusIcon className="h-3.5 w-3.5" />
+                              <StatusIcon className="h-3 w-3" />
+
                               {status.label}
                             </span>
                           </div>
@@ -429,118 +1126,103 @@ export default function AdminOverviewPage() {
                   </div>
                 </div>
 
-                {/* Mobile cards */}
-                <div className="space-y-3 md:hidden">
+                {/* MOBILE ADMIN LIST */}
+                <div className="space-y-2 md:hidden">
                   {adminUsers.map((admin) => {
-                    const status = getStatusStyles(admin);
+                    const status =
+                      getStatusStyles(admin);
+
                     const StatusIcon = status.icon;
 
                     return (
                       <article
                         key={admin.id}
-                        className="rounded-lg border border-[#dfe5ec] bg-white p-4 shadow-sm"
+                        className="rounded-lg border border-[#DADCD3] bg-white p-4"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-3">
-                            {admin.profileImageUrl ? (
-                              <Image
-                                src={admin.profileImageUrl}
-                                alt={`${admin.firstName} ${admin.lastName}`}
-                                width={42}
-                                height={42}
-                                unoptimized
-                                className="h-10.5 w-10.5 shrink-0 rounded-full border border-[#dfe5ec] object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-10.5 w-10.5 shrink-0 items-center justify-center rounded-full bg-[#eef2f8] text-sm font-bold text-[#1a365d]">
-                                {getInitials(
-                                  admin.firstName,
-                                  admin.lastName
-                                )}
-                              </div>
-                            )}
+                            <UserAvatar
+                              firstName={admin.firstName}
+                              lastName={admin.lastName}
+                              imageUrl={
+                                admin.profileImageUrl
+                              }
+                            />
 
                             <div className="min-w-0">
-                              <h3 className="truncate text-sm font-semibold text-[#172033]">
-                                {admin.firstName} {admin.lastName}
+                              <h3 className="truncate text-sm font-semibold text-[#12203B]">
+                                {admin.firstName}{' '}
+                                {admin.lastName}
                               </h3>
 
-                              <p className="mt-0.5 truncate text-xs text-[#94a3b8]">
+                              <p className="mt-0.5 text-[11px] text-[#8A9088]">
                                 Administrator
                               </p>
                             </div>
                           </div>
 
                           <span
-                            className={`inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold ${status.bg} ${status.border} ${status.text}`}
+                            className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-bold ${status.bg} ${status.border} ${status.text}`}
                           >
                             <StatusIcon className="h-3 w-3" />
                             {status.label}
                           </span>
                         </div>
 
-                        <div className="mt-4 space-y-2 border-t border-[#eef1f5] pt-4">
-                          <div className="flex items-start gap-2.5 text-sm text-[#475569]">
-                            <Mail className="mt-0.5 h-4 w-4 shrink-0 text-[#94a3b8]" />
+                        <div className="mt-4 space-y-2 border-t border-[#EEF0EB] pt-3">
+                          <div className="flex items-start gap-2 text-xs text-[#4B564C]">
+                            <Mail className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
+
                             <span className="min-w-0 break-all">
                               {admin.email}
                             </span>
                           </div>
 
                           {admin.phoneNumber && (
-                            <div className="flex items-center gap-2.5 text-sm text-[#475569]">
-                              <Phone className="h-4 w-4 shrink-0 text-[#94a3b8]" />
-                              <span>{admin.phoneNumber}</span>
-                            </div>
-                          )}
+                            <div className="flex items-center gap-2 text-xs text-[#4B564C]">
+                              <Phone className="h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
 
-                          {(admin.city || admin.country) && (
-                            <div className="flex items-start gap-2.5 text-sm text-[#475569]">
-                              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#94a3b8]" />
                               <span>
-                                {admin.city && admin.country
-                                  ? `${admin.city}, ${admin.country}`
-                                  : admin.city || admin.country}
+                                {admin.phoneNumber}
                               </span>
                             </div>
                           )}
 
-                          <div className="flex items-center gap-2.5 text-xs text-[#94a3b8]">
-                            <Calendar className="h-4 w-4 shrink-0" />
-                            <span>
-                              Joined {formatJoinedDate(admin.createdAt)}
-                            </span>
-                          </div>
+                          {(admin.city ||
+                            admin.country) && (
+                            <div className="flex items-start gap-2 text-xs text-[#4B564C]">
+                              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
 
-                          {admin.techCenter && (
-                            <div className="flex items-center gap-2.5 pt-1 text-xs text-[#64748b]">
-                              <Building2 className="h-4 w-4 shrink-0 text-[#94a3b8]" />
-                              <span>{admin.techCenter.name}</span>
+                              <span>
+                                {admin.city &&
+                                admin.country
+                                  ? `${admin.city}, ${admin.country}`
+                                  : admin.city ||
+                                    admin.country}
+                              </span>
                             </div>
                           )}
+
+                          <div className="flex items-center gap-2 text-[11px] text-[#8A9088]">
+                            <Calendar className="h-3.5 w-3.5 shrink-0" />
+
+                            <span>
+                              Joined{' '}
+                              {formatJoinedDate(
+                                admin.createdAt
+                              )}
+                            </span>
+                          </div>
                         </div>
                       </article>
                     );
                   })}
                 </div>
-              </div>
+              </>
             )}
           </div>
         </section>
 
-        {/* Footer information */}
-        {!isLoading && !error && adminUsers.length > 0 && (
-          <div className="mt-4 flex items-center gap-2 px-1 text-xs text-[#94a3b8]">
-            <UserRound className="h-3.5 w-3.5" />
-            <span>
-              {adminUsers.length}{' '}
-              {adminUsers.length === 1
-                ? 'administrator account'
-                : 'administrator accounts'}{' '}
-              associated with this center.
-            </span>
-          </div>
-        )}
       </div>
     </main>
   );

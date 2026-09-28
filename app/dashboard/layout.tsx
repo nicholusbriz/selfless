@@ -62,6 +62,7 @@ import {
   LifeBuoy,
   User,
   X,
+  Activity,
 } from 'lucide-react';
 
 import {
@@ -71,6 +72,7 @@ import {
 import { useUnreadMessageCount } from '@/hooks/useMessages';
 import { GlobalOnlineUsersPopup } from '@/components/GlobalOnlineUsersPopup';
 import { useOnlineUsers } from '@/lib/hooks/useOnlineUsers';
+import { useActivityTracker } from '@/lib/hooks/useActivityTracker';
 
 // ============================================================
 // LAYOUT CONSTANTS — single source of truth for widths
@@ -2322,6 +2324,12 @@ export default function DashboardLayout({
     isLoading,
     router,
   ]);
+
+  // ----------------------------------------------------------
+  // ACTIVITY TRACKING
+  // ----------------------------------------------------------
+
+  useActivityTracker();
 
   // ----------------------------------------------------------
   // LOGOUT

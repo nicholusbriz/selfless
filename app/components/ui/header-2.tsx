@@ -1282,12 +1282,17 @@ export default function Header2() {
               Student Self Service Portal
             </p>
 
-            <p
-              className="font-mono text-[9px] uppercase tracking-[0.14em] sm:text-[10px] sm:tracking-[0.18em]"
-              style={{ color: "rgba(232,163,61,0.9)" }}
-            >
-              All education in one place
-            </p>
+            <div className="flex items-center gap-2">
+              <span
+                className="hidden h-px w-6 bg-[#E8A33D]/50 sm:block"
+              />
+              <p
+                className="font-serif text-[12px] italic sm:text-[14px]"
+                style={{ color: "rgba(232,163,61,0.95)" }}
+              >
+                Nurturing resilient minds
+              </p>
+            </div>
           </div>
         </div>
 

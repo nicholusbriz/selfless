@@ -20,6 +20,7 @@ import {
   Key,
   MessageCircle,
 } from 'lucide-react';
+import PendingApprovalMessage from './PendingApprovalMessage';
 
 // ============================================
 // THEME TOKENS — matches Header2 exactly
@@ -277,19 +278,65 @@ function LoginForm({
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [loginStep, setLoginStep] = useState<string>('');
+  const [authMessageIndex, setAuthMessageIndex] = useState(0);
+
+  const authMessages = [
+    'Authenticating...',
+    'Verifying credentials...',
+    'Securing connection...',
+    'Validating session...',
+    'Establishing secure access...',
+  ];
+
+  // Cycle through auth messages when authenticating (only once)
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (loginStep === 'Authenticating...' && !error && authMessageIndex < authMessages.length - 1) {
+      interval = setInterval(() => {
+        setAuthMessageIndex((prev) => {
+          if (prev < authMessages.length - 1) {
+            return prev + 1;
+          }
+          return prev;
+        });
+      }, 800);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [loginStep, error, authMessageIndex, authMessages.length]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     setError('');
     setIsLoading(true);
+    setLoginStep('Checking account verification...');
+
+    // Simulate checking account verification
+    await new Promise(resolve => setTimeout(resolve, 400));
+
+    setLoginStep('Authenticating...');
+    setAuthMessageIndex(0);
 
     try {
       const result = await login(email, password);
 
       if (result?.error) {
-        setError(result.error);
+        // Check if error is due to pending approval
+        if (result.error.includes('pending') || result.error.includes('approval')) {
+          setError('Your account is pending admin approval. Please wait for verification before accessing the dashboard.');
+        } else {
+          setError(result.error);
+        }
       } else {
+        setLoginStep('Signing in...');
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        setLoginStep('Redirecting to dashboard...');
+        await new Promise(resolve => setTimeout(resolve, 200));
+
         onClose();
         router.push('/dashboard');
         router.refresh();
@@ -300,6 +347,8 @@ function LoginForm({
       );
     } finally {
       setIsLoading(false);
+      setLoginStep('');
+      setAuthMessageIndex(0);
     }
   };
 
@@ -379,7 +428,13 @@ function LoginForm({
             {isLoading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Signing in...</span>
+                <span>
+                  {error
+                    ? 'Signing in...'
+                    : loginStep === 'Authenticating...'
+                    ? authMessages[authMessageIndex]
+                    : loginStep || 'Signing in...'}
+                </span>
               </>
             ) : (
               <>
@@ -426,6 +481,8 @@ function RegisterForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [showPendingApproval, setShowPendingApproval] = useState(false);
+  const [registeredUser, setRegisteredUser] = useState<any>(null);
   const [techCenters, setTechCenters] = useState<TechCenter[]>([]);
   const [isLoadingCenters, setIsLoadingCenters] = useState(true);
   const [emailError, setEmailError] = useState('');
@@ -500,19 +557,18 @@ function RegisterForm({
         data.user.id
       ) {
         setSuccess(true);
+        
+        // Set registered user info for pending approval message
+        setRegisteredUser({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phoneNumber: formData.phoneNumber,
+          techCenter: techCenters.find(tc => tc.id === formData.techCenterId),
+        });
 
-        const loginResult = await login(
-          formData.email,
-          formData.password
-        );
-
-        if (loginResult?.error) {
-          router.push('/login?registered=true');
-        } else {
-          onClose();
-          router.push('/dashboard');
-          router.refresh();
-        }
+        // Show pending approval message instead of auto-login
+        setShowPendingApproval(true);
       } else {
         setError(data.error || 'Registration failed');
       }
@@ -565,13 +621,16 @@ function RegisterForm({
       transition={{ duration: 0.3 }}
       className="w-full max-w-md mx-auto"
     >
-      <div className={cardClassName}>
-        <AuthHeader
-          title="Create Account"
-          description="Join the SELFLESS CE community"
-        />
+      {showPendingApproval && registeredUser ? (
+        <PendingApprovalMessage user={registeredUser} />
+      ) : (
+        <div className={cardClassName}>
+          <AuthHeader
+            title="Create Account"
+            description="Join the SELFLESS CE community"
+          />
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <label className={labelClassName}>
               <User className="w-4 h-4 text-[#8A9088]" />
@@ -779,6 +838,7 @@ function RegisterForm({
           </button>
         </p>
       </div>
+      )}
     </motion.div>
   );
 }
