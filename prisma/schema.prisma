@@ -83,7 +83,15 @@ model User {
   isVerified Boolean @default(true) // Default to true for existing users compatibility
   verificationStatus String @default("APPROVED") // "PENDING", "APPROVED", "REJECTED"
   verifiedAt DateTime?
-  verifiedBy String? @db.ObjectId // Admin who verified
+  verifiedById String? @db.ObjectId // Admin who verified
+  verifiedByAdmin User? @relation("VerifiedUsers", fields: [verifiedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  verifiedUsers User[] @relation("VerifiedUsers")
+  
+  // Rejection tracking (NEW)
+  rejectedAt    DateTime?
+  rejectedById  String?  @db.ObjectId
+  rejectedBy    User?    @relation("RejectedUsers", fields: [rejectedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  rejectedUsers User[]   @relation("RejectedUsers")
   
   // Tech Center Association
   techCenterId String? @db.ObjectId
@@ -132,11 +140,6 @@ model User {
   promotedBy   User?    @relation("PromotedUsers", fields: [promotedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
   promotedUsers User[]  @relation("PromotedUsers")
   
-  // Verification ownership — tracks which admin verified this user
-  verifiedById String? @db.ObjectId
-  verifiedByAdmin User? @relation("VerifiedUsers", fields: [verifiedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  verifiedUsers User[] @relation("VerifiedUsers")
-  
   // Teacher-Student Assignment
   teacherId    String?  @db.ObjectId
   teacher      User?    @relation("TeacherStudents", fields: [teacherId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -176,7 +179,7 @@ model User {
   aiLearningProfile AILearningProfile?
 
   // ============================================
-  // MESSAGING RELATIONS - Add these
+  // MESSAGING RELATIONS
   // ============================================
 
   // Messages sent by this user
@@ -185,15 +188,16 @@ model User {
   // Video Requests
   videoRequests VideoRequest[] @relation("VideoRequests")
   
-
-  
   @@index([techCenterId])
   @@index([previousTechCenterId])
   @@index([roleId])
   @@index([teacherId])
   @@index([promotedById])
+  @@index([verifiedById])
+  @@index([rejectedById])
   @@index([status])
   @@index([country])
+  @@index([verificationStatus])
   @@map("users")
 }
 

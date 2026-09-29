@@ -1,38 +1,251 @@
+// app/dashboard/super-admin/page.tsx
 'use client';
 
 import {
   ArrowLeft,
-  ArrowRight,
   Building2,
-  CheckCircle2,
   Shield,
-  Users,
-  School,
-  Settings2,
+  Clock,
+  AlertCircle,
+  CheckCircle,
+  Loader2,
+  Filter,
+  Calendar,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
 
-const sections = [
-  {
-    title: 'Tech Centers',
-    description:
-      'Manage technology centers, locations, and center-level information.',
-    action: 'Open center management',
-    href: '/dashboard/super-admin/centers',
-    icon: School,
-  },
-  {
-    title: 'Users',
-    description:
-      'Manage user accounts, roles, access, and account status across the platform.',
-    action: 'Open user management',
-    href: '/dashboard/super-admin/users',
-    icon: Users,
-  },
-];
+// ============================================================
+// TYPES
+// ============================================================
+
+interface PendingUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber?: string;
+  country?: string;
+  city?: string;
+  createdAt: string;
+  profileImageUrl?: string;
+  techCenter?: {
+    id: string;
+    name: string;
+    code: string;
+  };
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+const focusRing =
+  'focus:outline-none focus:ring-2 focus:ring-[#12203B]/20 focus:ring-offset-2';
+
+function formatJoinedDate(date: string) {
+  const parsed = new Date(date);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return 'Unknown date';
+  }
+
+  return parsed.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+// ============================================================
+// PAGE
+// ============================================================
 
 export default function SuperAdminOverviewPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+
+  const [selectedCenterId, setSelectedCenterId] = useState<string>('all');
+
+  // ----------------------------------------------------------
+  // FETCH PENDING APPROVALS (across all centers)
+  // ----------------------------------------------------------
+  const {
+    data: pendingUsers,
+    isLoading: isLoadingPending,
+    error: pendingError,
+  } = useQuery({
+    queryKey: ['super-admin-pending-approvals'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/pending-approvals');
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch pending approvals');
+      }
+
+      return response.json() as Promise<PendingUser[]>;
+    },
+  });
+
+  // ----------------------------------------------------------
+  // DERIVE TECH CENTERS FROM PENDING REGISTRATIONS ONLY
+  // ----------------------------------------------------------
+  const allCenters = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; code: string }>();
+
+    (pendingUsers ?? []).forEach((user) => {
+      if (user.techCenter) {
+        map.set(user.techCenter.id, user.techCenter);
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+  }, [pendingUsers]);
+
+  // ----------------------------------------------------------
+  // FILTERED LIST
+  // ----------------------------------------------------------
+  const filteredPendingUsers = useMemo(() => {
+    if (!pendingUsers) return [];
+
+    if (selectedCenterId === 'all') return pendingUsers;
+
+    return pendingUsers.filter(
+      (user) => user.techCenter?.id === selectedCenterId
+    );
+  }, [pendingUsers, selectedCenterId]);
+
+  const pendingCount = pendingUsers?.length ?? 0;
+  const filteredCount = filteredPendingUsers.length;
+
+  // ----------------------------------------------------------
+  // APPROVE MUTATION
+  // ----------------------------------------------------------
+  const approveMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await fetch('/api/admin/approve-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, action: 'approve' }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to approve user');
+      }
+
+      return response.json();
+    },
+
+    onMutate: async (userId: string) => {
+      await queryClient.cancelQueries({
+        queryKey: ['super-admin-pending-approvals'],
+      });
+
+      const previousUsers = queryClient.getQueryData<PendingUser[]>([
+        'super-admin-pending-approvals',
+      ]);
+
+      queryClient.setQueryData<PendingUser[]>(
+        ['super-admin-pending-approvals'],
+        (old = []) => old.filter((user) => user.id !== userId)
+      );
+
+      return { previousUsers };
+    },
+
+    onSuccess: () => {
+      alert('Account verified successfully!');
+    },
+
+    onError: (error, _vars, context) => {
+      if (context?.previousUsers) {
+        queryClient.setQueryData(
+          ['super-admin-pending-approvals'],
+          context.previousUsers
+        );
+      }
+
+      alert(error.message);
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['super-admin-pending-approvals'],
+      });
+    },
+  });
+
+  // ----------------------------------------------------------
+  // REJECT MUTATION
+  // ----------------------------------------------------------
+  const rejectMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await fetch('/api/admin/approve-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, action: 'reject' }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to reject user');
+      }
+
+      return response.json();
+    },
+
+    onMutate: async (userId: string) => {
+      await queryClient.cancelQueries({
+        queryKey: ['super-admin-pending-approvals'],
+      });
+
+      const previousUsers = queryClient.getQueryData<PendingUser[]>([
+        'super-admin-pending-approvals',
+      ]);
+
+      queryClient.setQueryData<PendingUser[]>(
+        ['super-admin-pending-approvals'],
+        (old = []) => old.filter((user) => user.id !== userId)
+      );
+
+      return { previousUsers };
+    },
+
+    onSuccess: () => {
+      alert('User rejected and account deleted successfully!');
+    },
+
+    onError: (error, _vars, context) => {
+      if (context?.previousUsers) {
+        queryClient.setQueryData(
+          ['super-admin-pending-approvals'],
+          context.previousUsers
+        );
+      }
+
+      alert(error.message);
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['super-admin-pending-approvals'],
+      });
+    },
+  });
+
+  const handleApprove = (userId: string) => {
+    approveMutation.mutate(userId);
+  };
+
+  const handleReject = (userId: string) => {
+    if (confirm('Are you sure you want to reject this registration?')) {
+      rejectMutation.mutate(userId);
+    }
+  };
 
   return (
     <main className="min-h-screen bg-[#F7F8FA]">
@@ -67,259 +280,241 @@ export default function SuperAdminOverviewPage() {
                 </h1>
 
                 <p className="truncate text-xs text-[#6F7B8D] sm:text-sm">
-                  Platform administration and system oversight
+                  Review and manage new registrations
                 </p>
               </div>
             </div>
           </div>
+
+          {pendingCount > 0 && (
+            <div className="hidden shrink-0 items-center gap-2 rounded-lg border border-[#F0E1C4] bg-[#FBF6EB] px-3 py-2 sm:flex">
+              <Clock className="h-3.5 w-3.5 text-[#8A6E3A]" />
+              <span className="text-xs font-semibold text-[#8A6E3A]">
+                {pendingCount} pending
+              </span>
+            </div>
+          )}
         </header>
 
         {/* ---------------------------------------------------------------- */}
-        {/* Overview                                                         */}
+        {/* PENDING APPROVALS                                                 */}
         {/* ---------------------------------------------------------------- */}
 
-        <section className="mb-7">
-          <div className="mb-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8A6E3A]">
-              Overview
-            </p>
-
-            <h2 className="mt-1 text-lg font-semibold text-[#12203B]">
-              Platform administration
-            </h2>
-
-            <p className="mt-1 max-w-2xl text-sm leading-6 text-[#6F7B8D]">
-              Access and manage the core resources that keep the platform
-              running.
-            </p>
-          </div>
-
-          {/* Quick overview cards */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {/* Tech Centers */}
-            <button
-              onClick={() =>
-                router.push('/dashboard/super-admin/centers')
-              }
-              className="group flex items-center justify-between rounded-xl border border-[#E2E6EB] bg-white p-4 text-left transition-all duration-200 hover:border-[#D2D8E0] hover:shadow-sm"
-            >
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[#F8F3E8] text-[#8A6E3A]">
-                  <School className="h-5 w-5" />
+        <section className="overflow-hidden rounded-xl border border-[#E2E6EB] bg-white shadow-sm">
+          {/* Header */}
+          <div className="border-b border-[#E2E6EB] bg-[#FBFCFD] px-4 py-4 sm:px-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#FBF6EB] text-[#8A6E3A]">
+                  <Clock className="h-5 w-5" />
                 </div>
 
                 <div className="min-w-0">
-                  <p className="text-xs font-medium uppercase tracking-wide text-[#6F7B8D]">
-                    Resource
-                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-lg font-bold tracking-tight text-[#12203B]">
+                      Pending Approvals
+                    </h2>
 
-                  <h3 className="mt-0.5 text-sm font-semibold text-[#12203B]">
-                    Tech Centers
-                  </h3>
+                    {!isLoadingPending && (
+                      <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-[#C59B4C] px-2 py-0.5 text-[11px] font-bold text-white">
+                        {pendingCount}
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="mt-0.5 max-w-2xl text-sm leading-5 text-[#6F7B8D]">
+                    Review new registrations across all technology centers
+                    before granting dashboard access.
+                  </p>
                 </div>
               </div>
 
-              <ArrowRight className="h-4 w-4 flex-shrink-0 text-[#8993A3] transition-transform group-hover:translate-x-0.5 group-hover:text-[#12203B]" />
-            </button>
+              {/* Center filter */}
+              {!isLoadingPending && allCenters.length > 0 && (
+                <div className="flex shrink-0 items-center gap-2">
+                  <Filter className="h-3.5 w-3.5 text-[#8993A3]" />
 
-            {/* Users */}
-            <button
-              onClick={() =>
-                router.push('/dashboard/super-admin/users')
-              }
-              className="group flex items-center justify-between rounded-xl border border-[#E2E6EB] bg-white p-4 text-left transition-all duration-200 hover:border-[#D2D8E0] hover:shadow-sm"
-            >
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[#EEF2F7] text-[#12203B]">
-                  <Users className="h-5 w-5" />
+                  <select
+                    value={selectedCenterId}
+                    onChange={(e) => setSelectedCenterId(e.target.value)}
+                    className={`h-9 rounded-lg border border-[#E2E6EB] bg-white px-3 text-xs font-medium text-[#12203B] transition-colors hover:border-[#D2D8E0] ${focusRing}`}
+                  >
+                    <option value="all">
+                      All Centers ({pendingCount})
+                    </option>
+
+                    {allCenters.map((center) => {
+                      const count = (pendingUsers ?? []).filter(
+                        (u) => u.techCenter?.id === center.id
+                      ).length;
+
+                      return (
+                        <option key={center.id} value={center.id}>
+                          {center.name} ({count})
+                        </option>
+                      );
+                    })}
+                  </select>
                 </div>
-
-                <div className="min-w-0">
-                  <p className="text-xs font-medium uppercase tracking-wide text-[#6F7B8D]">
-                    Resource
-                  </p>
-
-                  <h3 className="mt-0.5 text-sm font-semibold text-[#12203B]">
-                    Users
-                  </h3>
-                </div>
-              </div>
-
-              <ArrowRight className="h-4 w-4 flex-shrink-0 text-[#8993A3] transition-transform group-hover:translate-x-0.5 group-hover:text-[#12203B]" />
-            </button>
-
-            {/* System status */}
-            <div className="flex items-center justify-between rounded-xl border border-[#E2E6EB] bg-white p-4">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[#EEF4EF] text-[#55705B]">
-                  <CheckCircle2 className="h-5 w-5" />
-                </div>
-
-                <div className="min-w-0">
-                  <p className="text-xs font-medium uppercase tracking-wide text-[#6F7B8D]">
-                    System
-                  </p>
-
-                  <h3 className="mt-0.5 text-sm font-semibold text-[#12203B]">
-                    Operational
-                  </h3>
-                </div>
-              </div>
-
-              <span className="h-2 w-2 flex-shrink-0 rounded-full bg-[#55705B]" />
-            </div>
-          </div>
-        </section>
-
-        {/* ---------------------------------------------------------------- */}
-        {/* Administration                                                    */}
-        {/* ---------------------------------------------------------------- */}
-
-        <section className="mb-7">
-          <div className="mb-4 flex items-end justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8A6E3A]">
-                Administration
-              </p>
-
-              <h2 className="mt-1 text-lg font-semibold text-[#12203B]">
-                Manage platform resources
-              </h2>
+              )}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {sections.map((section) => {
-              const Icon = section.icon;
-
-              return (
-                <button
-                  key={section.title}
-                  onClick={() => router.push(section.href)}
-                  className="group text-left"
-                >
-                  <div className="h-full rounded-xl border border-[#E2E6EB] bg-white p-5 transition-all duration-200 hover:border-[#D2D8E0] hover:shadow-sm">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex min-w-0 items-start gap-3.5">
-                        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-[#F7F8FA] text-[#12203B] transition-colors group-hover:bg-[#EEF2F7]">
-                          <Icon className="h-5 w-5" />
-                        </div>
-
-                        <div className="min-w-0">
-                          <h3 className="text-base font-semibold text-[#12203B]">
-                            {section.title}
-                          </h3>
-
-                          <p className="mt-1.5 max-w-lg text-sm leading-5 text-[#6F7B8D]">
-                            {section.description}
-                          </p>
-                        </div>
+          {/* Content */}
+          <div className="px-4 py-4 sm:px-5">
+            {/* Loading */}
+            {isLoadingPending ? (
+              <div className="space-y-3" role="status" aria-live="polite">
+                {[1, 2, 3].map((item) => (
+                  <div
+                    key={item}
+                    className="flex animate-pulse items-center justify-between rounded-lg border border-[#E2E6EB] p-4"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="space-y-2">
+                        <div className="h-3.5 w-32 rounded bg-[#E8EBF0]" />
+                        <div className="h-3 w-24 rounded bg-[#EEF1F5]" />
                       </div>
-
-                      <ArrowRight className="mt-1 h-4 w-4 flex-shrink-0 text-[#8993A3] transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-[#12203B]" />
                     </div>
-
-                    <div className="mt-5 flex items-center justify-between border-t border-[#E2E6EB] pt-3.5">
-                      <span className="text-xs font-medium text-[#43516A]">
-                        {section.action}
-                      </span>
-
-                      <span className="text-xs text-[#8993A3]">
-                        Manage
-                      </span>
+                    <div className="flex gap-3">
+                      <div className="h-3 w-14 rounded bg-[#EEF1F5]" />
+                      <div className="h-3 w-12 rounded bg-[#EEF1F5]" />
                     </div>
                   </div>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* ---------------------------------------------------------------- */}
-        {/* System information                                                */}
-        {/* ---------------------------------------------------------------- */}
-
-        <section>
-          <div className="mb-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8A6E3A]">
-              System
-            </p>
-
-            <h2 className="mt-1 text-lg font-semibold text-[#12203B]">
-              Platform status
-            </h2>
-          </div>
-
-          <div className="rounded-xl border border-[#E2E6EB] bg-white">
-            <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#EEF4EF] text-[#55705B]">
-                  <CheckCircle2 className="h-5 w-5" />
-                </div>
-
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-[#55705B]" />
-
-                    <p className="text-sm font-semibold text-[#12203B]">
-                      All systems operational
-                    </p>
-                  </div>
-
-                  <p className="mt-1 text-xs text-[#6F7B8D]">
-                    Platform services are currently available.
-                  </p>
-                </div>
+                ))}
               </div>
+            ) : pendingError ? (
+              <div
+                className="flex min-h-[180px] flex-col items-center justify-center rounded-lg border border-[#E9C7C7] bg-[#FDF0F0] px-6 text-center"
+                role="alert"
+              >
+                <AlertCircle className="h-6 w-6 text-[#A52121]" />
 
-              <div className="flex items-center gap-6 border-t border-[#E2E6EB] pt-3 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
-                <div>
-                  <p className="text-[11px] uppercase tracking-wide text-[#8993A3]">
-                    Access level
-                  </p>
-
-                  <p className="mt-0.5 text-sm font-medium text-[#12203B]">
-                    Super Admin
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-[11px] uppercase tracking-wide text-[#8993A3]">
-                    Environment
-                  </p>
-
-                  <p className="mt-0.5 text-sm font-medium text-[#12203B]">
-                    Production
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ---------------------------------------------------------------- */}
-        {/* Future administration area                                        */}
-        {/* ---------------------------------------------------------------- */}
-
-        <section className="mt-7">
-          <div className="rounded-xl border border-dashed border-[#D2D8E0] bg-white px-4 py-5">
-            <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[#F7F8FA] text-[#6F7B8D]">
-                <Settings2 className="h-4 w-4" />
-              </div>
-
-              <div>
-                <h3 className="text-sm font-semibold text-[#12203B]">
-                  More administration tools
+                <h3 className="mt-3 text-sm font-semibold text-[#12203B]">
+                  Unable to load registrations
                 </h3>
 
-                <p className="mt-1 max-w-2xl text-xs leading-5 text-[#6F7B8D]">
-                  As the platform grows, this area can include audit logs,
-                  system configuration, permissions, announcements, and other
-                  super-admin controls.
+                <p className="mt-1 max-w-md text-xs leading-5 text-[#6F7B8D]">
+                  {pendingError instanceof Error
+                    ? pendingError.message
+                    : 'Something went wrong while loading pending registrations.'}
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className={`mt-4 rounded-lg bg-[#12203B] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#1B2D4F] ${focusRing}`}
+                >
+                  Try again
+                </button>
+              </div>
+            ) : pendingCount === 0 ? (
+              <div className="flex min-h-[220px] flex-col items-center justify-center rounded-lg border border-dashed border-[#E2E6EB] bg-[#F7F8FA] px-6 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#EEF4EF] text-[#55705B]">
+                  <CheckCircle className="h-6 w-6" />
+                </div>
+
+                <h3 className="mt-4 text-base font-semibold text-[#12203B]">
+                  All caught up
+                </h3>
+
+                <p className="mt-1 max-w-md text-sm leading-5 text-[#6F7B8D]">
+                  There are no pending registrations waiting for approval.
+                  New sign-ups will appear here automatically.
                 </p>
               </div>
-            </div>
+            ) : filteredCount === 0 ? (
+              <div className="flex min-h-[180px] flex-col items-center justify-center rounded-lg border border-dashed border-[#E2E6EB] bg-[#F7F8FA] px-6 text-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EEF2F7] text-[#6F7B8D]">
+                  <Building2 className="h-5 w-5" />
+                </div>
+
+                <h3 className="mt-3 text-sm font-semibold text-[#12203B]">
+                  No pending approvals for this center
+                </h3>
+
+                <p className="mt-1 max-w-md text-xs leading-5 text-[#6F7B8D]">
+                  Try switching to a different tech center or viewing all
+                  centers.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedCenterId('all')}
+                  className={`mt-4 rounded-lg border border-[#E2E6EB] bg-white px-4 py-2 text-xs font-semibold text-[#12203B] transition hover:bg-[#F7F8FA] ${focusRing}`}
+                >
+                  Show all centers
+                </button>
+              </div>
+            ) : (
+              /* ROW LIST — same layout on desktop and mobile */
+              <div className="divide-y divide-[#EEF1F5]">
+                {filteredPendingUsers.map((user) => (
+                  <div
+                    key={user.id}
+                    className="flex items-center gap-3 py-3.5 sm:gap-4 sm:py-4"
+                  >
+                    {/* Name + Tech Center + Registered date stacked */}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[13px] font-semibold text-[#12203B] sm:text-sm">
+                        {user.firstName} {user.lastName}
+                      </p>
+
+                      <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-[#6F7B8D] sm:text-xs">
+                        {user.techCenter ? (
+                          <>
+                            <Building2 className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" />
+                            <span className="truncate">
+                              {user.techCenter.name}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="italic text-[#8993A3]">
+                            No tech center
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-[#8993A3] sm:text-[11px]">
+                        <Calendar className="h-3 w-3 shrink-0" />
+                        <span>
+                          Registered {formatJoinedDate(user.createdAt)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Text-only action buttons with underline */}
+                    <button
+                      type="button"
+                      onClick={() => handleApprove(user.id)}
+                      disabled={approveMutation.isPending}
+                      className={`shrink-0 rounded px-1.5 py-1 text-[12px] font-semibold text-[#17734B] underline underline-offset-2 transition hover:bg-[#EDF7F2] hover:no-underline disabled:cursor-not-allowed disabled:opacity-50 sm:text-[13px] ${focusRing}`}
+                    >
+                      {approveMutation.isPending &&
+                      approveMutation.variables === user.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        'Approve'
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleReject(user.id)}
+                      disabled={rejectMutation.isPending}
+                      className={`shrink-0 rounded px-1.5 py-1 text-[12px] font-semibold text-[#A52121] underline underline-offset-2 transition hover:bg-[#FDF0F0] hover:no-underline disabled:cursor-not-allowed disabled:opacity-50 sm:text-[13px] ${focusRing}`}
+                    >
+                      {rejectMutation.isPending &&
+                      rejectMutation.variables === user.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        'Reject'
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
       </div>

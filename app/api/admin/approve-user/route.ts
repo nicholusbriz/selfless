@@ -5,32 +5,84 @@ import { requireAuth } from '@/lib/auth/server';
 
 export async function POST(req: NextRequest) {
   try {
-    // Check if user is authenticated and has admin role
+    // ----------------------------------------------------------
+    // AUTH
+    // ----------------------------------------------------------
     const adminUser = await requireAuth();
-    
-    if (!adminUser || (adminUser.role?.name !== 'admin' && adminUser.role?.name !== 'super_admin' && adminUser.role?.name !== 'dev')) {
+
+    if (
+      !adminUser ||
+      (adminUser.role?.name !== 'admin' &&
+        adminUser.role?.name !== 'super_admin' &&
+        adminUser.role?.name !== 'dev')
+    ) {
       return NextResponse.json(
         { error: 'Unauthorized. Admin access required.' },
         { status: 403 }
       );
     }
 
-    const body = await req.json();
-    const { userId, action } = body;
-
-    if (!userId || !action || !['approve', 'reject'].includes(action)) {
+    // ----------------------------------------------------------
+    // PARSE BODY (with diagnostics)
+    // ----------------------------------------------------------
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      console.error('[approve-user] Failed to parse JSON body');
       return NextResponse.json(
-        { error: 'Invalid request. userId and action (approve/reject) are required.' },
+        { error: 'Invalid JSON body' },
         { status: 400 }
       );
     }
 
-    // Find the user to approve/reject
+    const rawUserId =
+      typeof body === 'object' && body !== null
+        ? (body as { userId?: unknown }).userId
+        : undefined;
+
+    const rawAction =
+      typeof body === 'object' && body !== null
+        ? (body as { action?: unknown }).action
+        : undefined;
+
+    // Log exactly what was received so we can debug 400s
+    console.log('[approve-user] Received body:', {
+      userId: rawUserId,
+      action: rawAction,
+      rawBody: body,
+    });
+
+    const userId =
+      typeof rawUserId === 'string' ? rawUserId.trim() : '';
+
+    const action =
+      typeof rawAction === 'string'
+        ? rawAction.trim().toLowerCase()
+        : '';
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Missing or invalid userId in request body.' },
+        { status: 400 }
+      );
+    }
+
+    if (action !== 'approve' && action !== 'reject') {
+      return NextResponse.json(
+        {
+          error: `Invalid action "${rawAction}". Must be "approve" or "reject".`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // ----------------------------------------------------------
+    // FIND TARGET USER
+    // ----------------------------------------------------------
     const targetUser = await prisma.user.findUnique({
       where: { id: userId },
-      include: {
-        techCenter: true,
-      },
+      include: { techCenter: true },
     });
 
     if (!targetUser) {
@@ -40,20 +92,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if admin has permission to approve this user
-    // Regular admins can only approve users from their own tech center
-    // Super admins and devs can approve any user
+    // ----------------------------------------------------------
+    // PERMISSION CHECK
+    // ----------------------------------------------------------
     if (adminUser.role?.name === 'admin' && adminUser.techCenterId) {
       if (targetUser.techCenterId !== adminUser.techCenterId) {
         return NextResponse.json(
-          { error: 'You can only approve users from your own tech center' },
+          { error: 'You can only manage users from your own tech center' },
           { status: 403 }
         );
       }
     }
 
+    // ==========================================================
+    // APPROVE
+    // ==========================================================
     if (action === 'approve') {
-      // Approve the user
       await prisma.user.update({
         where: { id: userId },
         data: {
@@ -74,11 +128,31 @@ export async function POST(req: NextRequest) {
           email: targetUser.email,
         },
       });
-    } else if (action === 'reject') {
-      // Reject the user - delete them from the database
-      await prisma.user.delete({
-        where: { id: userId },
-      });
+    }
+
+    // ==========================================================
+    // REJECT
+    // ==========================================================
+    if (action === 'reject') {
+      if (
+        targetUser.isVerified === true ||
+        targetUser.verificationStatus === 'APPROVED'
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              'Cannot reject an already-approved user. Suspend or disable the account instead.',
+          },
+          { status: 409 }
+        );
+      }
+
+      // Clean up pending-user artifacts, then delete
+      await prisma.$transaction([
+        prisma.activityLog.deleteMany({ where: { userId } }),
+        prisma.notification.deleteMany({ where: { userId } }),
+        prisma.user.delete({ where: { id: userId } }),
+      ]);
 
       return NextResponse.json({
         success: true,
@@ -92,12 +166,29 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Unreachable, but TypeScript wants it
     return NextResponse.json(
       { error: 'Invalid action' },
       { status: 400 }
     );
   } catch (error) {
-    console.error('Approve user error:', error);
+    console.error('[approve-user] Approve user error:', error);
+
+    if (
+      error &&
+      typeof error === 'object' &&
+      'code' in error &&
+      (error as { code?: string }).code === 'P2014'
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            'Cannot delete this user because they have related records. Please contact a developer.',
+        },
+        { status: 409 }
+      );
+    }
+
     return NextResponse.json(
       { error: 'Failed to process approval' },
       { status: 500 }
