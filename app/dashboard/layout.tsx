@@ -72,6 +72,7 @@ import { useUnreadMessageCount } from '@/hooks/useMessages';
 import { GlobalOnlineUsersPopup } from '@/components/GlobalOnlineUsersPopup';
 import { useOnlineUsers } from '@/lib/hooks/useOnlineUsers';
 import { useActivityTracker } from '@/lib/hooks/useActivityTracker';
+import { usePageVisitTracking } from '@/lib/hooks/usePageVisitTracking';
 
 // ============================================================
 // LAYOUT CONSTANTS — single source of truth for widths
@@ -2265,6 +2266,9 @@ export default function DashboardLayout({
     );
 
   const onlineUsers = useOnlineUsers(user);
+
+  // Track page visits (lightweight analytics, not stored as activity logs)
+  usePageVisitTracking();
 
   // ----------------------------------------------------------
   // CLOSE MOBILE NAV AFTER ROUTE CHANGE

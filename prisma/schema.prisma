@@ -622,6 +622,23 @@ model ActivityLog {
 }
 
 // ============================================
+// PAGE VISIT COUNT (Lightweight analytics)
+// ============================================
+
+model PageVisitCount {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  pagePath  String   @unique  // e.g., "/dashboard", "/login", etc.
+  count     Int      @default(0)
+  lastVisitAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([count])
+  @@index([lastVisitAt])
+  @@map("page_visit_counts")
+}
+
+// ============================================
 // FOOTBALL TEAM
 // ============================================
 

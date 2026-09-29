@@ -11,6 +11,8 @@ import {
   Loader2,
   Filter,
   Calendar,
+  UserCheck,
+  TrendingUp,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -35,6 +37,42 @@ interface PendingUser {
     name: string;
     code: string;
   };
+}
+
+interface ApprovalStats {
+  totalApprovals: number;
+  totalApprovers: number;
+  stats: Array<{
+    approver: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      role: {
+        name: string;
+        displayName: string;
+      } | null;
+      techCenter: {
+        id: string;
+        name: string;
+        code: string;
+      } | null;
+    };
+    approvalCount: number;
+    lastApprovalAt: string | null;
+    approvedUsers: Array<{
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      verifiedAt: string | null;
+      techCenter: {
+        id: string;
+        name: string;
+        code: string;
+      } | null;
+    }>;
+  }>;
 }
 
 // ============================================================
@@ -85,6 +123,26 @@ export default function SuperAdminOverviewPage() {
       }
 
       return response.json() as Promise<PendingUser[]>;
+    },
+  });
+
+  // ----------------------------------------------------------
+  // FETCH APPROVAL STATISTICS
+  // ----------------------------------------------------------
+  const {
+    data: approvalStats,
+    isLoading: isLoadingStats,
+    error: statsError,
+  } = useQuery({
+    queryKey: ['super-admin-approval-stats'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/approval-stats');
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch approval statistics');
+      }
+
+      return response.json() as Promise<ApprovalStats>;
     },
   });
 
@@ -511,6 +569,154 @@ export default function SuperAdminOverviewPage() {
                         'Reject'
                       )}
                     </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* ---------------------------------------------------------------- */}
+        {/* APPROVAL STATISTICS                                              */}
+        {/* ---------------------------------------------------------------- */}
+
+        <section className="mt-6 overflow-hidden rounded-xl border border-[#E2E6EB] bg-white shadow-sm">
+          {/* Header */}
+          <div className="border-b border-[#E2E6EB] bg-[#FBFCFD] px-4 py-4 sm:px-5">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#EDF7F2] text-[#17734B]">
+                <UserCheck className="h-5 w-5" />
+              </div>
+
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-lg font-bold tracking-tight text-[#12203B]">
+                    Approval Statistics
+                  </h2>
+
+                  {!isLoadingStats && approvalStats && (
+                    <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-[#17734B] px-2 py-0.5 text-[11px] font-bold text-white">
+                      {approvalStats.totalApprovals}
+                    </span>
+                  )}
+                </div>
+
+                <p className="mt-0.5 max-w-2xl text-sm leading-5 text-[#6F7B8D]">
+                  Track who has approved new registrations and how many accounts
+                  they have verified.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="px-4 py-4 sm:px-5">
+            {/* Loading */}
+            {isLoadingStats ? (
+              <div className="space-y-3" role="status" aria-live="polite">
+                {[1, 2, 3].map((item) => (
+                  <div
+                    key={item}
+                    className="flex animate-pulse items-center justify-between rounded-lg border border-[#E2E6EB] p-4"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="space-y-2">
+                        <div className="h-3.5 w-32 rounded bg-[#E8EBF0]" />
+                        <div className="h-3 w-24 rounded bg-[#EEF1F5]" />
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="h-3 w-14 rounded bg-[#EEF1F5]" />
+                      <div className="h-3 w-12 rounded bg-[#EEF1F5]" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : statsError ? (
+              <div
+                className="flex min-h-[180px] flex-col items-center justify-center rounded-lg border border-[#E9C7C7] bg-[#FDF0F0] px-6 text-center"
+                role="alert"
+              >
+                <AlertCircle className="h-6 w-6 text-[#A52121]" />
+
+                <h3 className="mt-3 text-sm font-semibold text-[#12203B]">
+                  Unable to load approval statistics
+                </h3>
+
+                <p className="mt-1 max-w-md text-xs leading-5 text-[#6F7B8D]">
+                  {statsError instanceof Error
+                    ? statsError.message
+                    : 'Something went wrong while loading approval statistics.'}
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className={`mt-4 rounded-lg bg-[#12203B] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#1B2D4F] ${focusRing}`}
+                >
+                  Try again
+                </button>
+              </div>
+            ) : !approvalStats || approvalStats.stats.length === 0 ? (
+              <div className="flex min-h-[220px] flex-col items-center justify-center rounded-lg border border-dashed border-[#E2E6EB] bg-[#F7F8FA] px-6 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#EEF2F7] text-[#6F7B8D]">
+                  <UserCheck className="h-6 w-6" />
+                </div>
+
+                <h3 className="mt-4 text-base font-semibold text-[#12203B]">
+                  No approval data yet
+                </h3>
+
+                <p className="mt-1 max-w-md text-sm leading-5 text-[#6F7B8D]">
+                  Approvals will be tracked here once administrators start
+                  approving new registrations.
+                </p>
+              </div>
+            ) : (
+              /* STATS LIST */
+              <div className="divide-y divide-[#EEF1F5]">
+                {approvalStats.stats.map((stat) => (
+                  <div
+                    key={stat.approver.id}
+                    className="flex items-center gap-3 py-3.5 sm:gap-4 sm:py-4"
+                  >
+                    {/* Approver Info */}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[13px] font-semibold text-[#12203B] sm:text-sm">
+                        {stat.approver.firstName} {stat.approver.lastName}
+                      </p>
+
+                      <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-[#6F7B8D] sm:text-xs">
+                        <span className="truncate">{stat.approver.email}</span>
+                        {stat.approver.role && (
+                          <>
+                            <span className="text-[#8993A3]">•</span>
+                            <span className="truncate">
+                              {stat.approver.role.displayName}
+                            </span>
+                          </>
+                        )}
+                      </div>
+
+                      {stat.approver.techCenter && (
+                        <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-[#8993A3] sm:text-[11px]">
+                          <Building2 className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" />
+                          <span className="truncate">
+                            {stat.approver.techCenter.name}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Approval Count */}
+                    <div className="flex shrink-0 items-center gap-2">
+                      <div className="flex items-center gap-1.5 rounded-lg bg-[#EDF7F2] px-2.5 py-1.5">
+                        <TrendingUp className="h-3.5 w-3.5 text-[#17734B]" />
+                        <span className="text-xs font-bold text-[#17734B]">
+                          {stat.approvalCount}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
