@@ -3,10 +3,10 @@
 import {
   Activity,
   ArrowLeft,
+  BarChart3,
   Building2,
   Calendar as CalendarIcon,
   ChevronDown,
-  Clock,
   Filter,
   Globe,
   Home,
@@ -20,6 +20,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 interface ActivityLog {
   id: string;
@@ -48,21 +49,14 @@ interface ActivityLog {
   };
 }
 
-interface ActiveUser {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  lastActiveAt: string;
-  currentSessionId?: string;
-  techCenter?: {
-    name: string;
-    code: string;
-  };
-  role?: {
-    name: string;
-    displayName: string;
-  };
+interface PageVisitStats {
+  totalVisits: number;
+  pageVisits: Array<{
+    pagePath: string;
+    count: number;
+    lastVisitAt: string;
+    createdAt: string;
+  }>;
 }
 
 const PAGE_SIZE = 50;
@@ -155,6 +149,9 @@ export default function ActivityLogsPage() {
   const total = data?.total || 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
+  // Filter out page_visit logs from system activity display
+  const systemActivityLogs = logs.filter((log) => log.action !== 'page_visit');
+
   // ------------------------------------------------------------
   // Extract tech centers from returned logs
   // ------------------------------------------------------------
@@ -171,29 +168,26 @@ export default function ActivityLogsPage() {
   }, [logs]);
 
   // ------------------------------------------------------------
-  // Fetch active sessions
+  // Fetch page visit statistics
   // ------------------------------------------------------------
   const {
-    data: sessionsData,
-    isLoading: isLoadingSessions,
+    data: pageVisitStats,
+    isLoading: isLoadingPageStats,
   } = useQuery({
-    queryKey: ['active-sessions'],
+    queryKey: ['page-visit-stats'],
     queryFn: async () => {
-      const response = await fetch('/api/admin/active-sessions');
+      const response = await fetch('/api/analytics/page-visit-stats');
 
       if (!response.ok) {
-        throw new Error('Failed to fetch active sessions');
+        throw new Error('Failed to fetch page visit statistics');
       }
 
-      return response.json();
+      return response.json() as Promise<PageVisitStats>;
     },
     enabled: !authLoading && !!user && user.role === 'dev',
-    staleTime: 5 * 60 * 1000,
-    refetchInterval: 5 * 60 * 1000,
+    staleTime: 60 * 1000, // Cache for 1 minute
+    refetchInterval: 60 * 1000, // Refresh every minute
   });
-
-  const activeUsers: ActiveUser[] = sessionsData?.activeUsers || [];
-  const activeUsersCount = sessionsData?.count || 0;
 
   // ------------------------------------------------------------
   // Derived statistics
@@ -207,6 +201,8 @@ export default function ActivityLogsPage() {
       .map((log) => log.techCenter?.id)
       .filter(Boolean)
   ).size;
+
+  const totalPageVisits = pageVisitStats?.totalVisits || 0;
 
   // ------------------------------------------------------------
   // Search
@@ -338,6 +334,38 @@ export default function ActivityLogsPage() {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  // ------------------------------------------------------------
+  // Prepare chart data
+  // ------------------------------------------------------------
+  const chartData = useMemo(() => {
+    if (!pageVisitStats?.pageVisits) return [];
+
+    // Take top 10 most visited pages
+    return pageVisitStats.pageVisits
+      .slice(0, 10)
+      .map((page) => ({
+        name: page.pagePath,
+        visits: page.count,
+      }));
+  }, [pageVisitStats]);
+
+  // Custom colors for bars
+  const getBarColor = (index: number) => {
+    const colors = [
+      '#12203B', // Dark blue
+      '#B98A3E', // Gold
+      '#55705B', // Green
+      '#8A651F', // Brown
+      '#A4462F', // Red
+      '#6B7268', // Gray
+      '#17734B', // Light green
+      '#C59B4C', // Light gold
+      '#4B564C', // Dark gray
+      '#8A9088', // Light gray
+    ];
+    return colors[index % colors.length];
   };
 
   // ------------------------------------------------------------
@@ -538,7 +566,6 @@ export default function ActivityLogsPage() {
                   <option value="update">Update</option>
                   <option value="delete">Delete</option>
                   <option value="ai_chat_opened">AI Chat Opened</option>
-                  <option value="page_visit">Page Visit</option>
                 </select>
               </div>
 
@@ -638,7 +665,7 @@ export default function ActivityLogsPage() {
         {/* ======================================================
             STATISTICS
         ====================================================== */}
-        <section className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <section className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-3">
 
           <div className="rounded-xl border border-[#DADCD3] bg-white px-4 py-4 shadow-[0_1px_2px_rgba(18,32,59,0.03)]">
             <div className="flex items-center gap-3">
@@ -659,23 +686,6 @@ export default function ActivityLogsPage() {
 
           <div className="rounded-xl border border-[#DADCD3] bg-white px-4 py-4 shadow-[0_1px_2px_rgba(18,32,59,0.03)]">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#55705B]/10">
-                <Clock className="h-4 w-4 text-[#55705B]" />
-              </div>
-
-              <div className="min-w-0">
-                <p className="truncate text-xs font-medium text-[#6B7268]">
-                  Active sessions
-                </p>
-                <p className="mt-0.5 text-xl font-semibold text-[#12203B]">
-                  {activeUsersCount.toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-[#DADCD3] bg-white px-4 py-4 shadow-[0_1px_2px_rgba(18,32,59,0.03)]">
-            <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50">
                 <Globe className="h-4 w-4 text-blue-600" />
               </div>
@@ -685,7 +695,7 @@ export default function ActivityLogsPage() {
                   Page visits
                 </p>
                 <p className="mt-0.5 text-xl font-semibold text-[#12203B]">
-                  {pageVisits.toLocaleString()}
+                  {totalPageVisits.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -710,7 +720,7 @@ export default function ActivityLogsPage() {
         </section>
 
         {/* ======================================================
-            ACTIVE SESSIONS
+            PAGE VISIT CHART
         ====================================================== */}
         <section className="mb-6 rounded-xl border border-[#DADCD3] bg-white shadow-[0_1px_2px_rgba(18,32,59,0.03)]">
 
@@ -718,128 +728,102 @@ export default function ActivityLogsPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-semibold text-[#12203B]">
-                  Active sessions
+                  Page Visit Analytics
                 </h2>
 
-                <span className="rounded-full bg-[#55705B]/10 px-2 py-0.5 text-[10px] font-semibold text-[#55705B]">
-                  LIVE
+                <span className="rounded-full bg-[#B98A3E]/10 px-2 py-0.5 text-[10px] font-semibold text-[#8A651F]">
+                  LIGHTWEIGHT
                 </span>
               </div>
 
               <p className="mt-0.5 text-xs text-[#6B7268]">
-                Sessions active within the last 24 hours.
+                Real-time page visit counts (not stored as activity logs).
               </p>
             </div>
 
             <div className="text-xs text-[#6B7268]">
               <span className="font-semibold text-[#12203B]">
-                {activeUsersCount}
+                {pageVisitStats?.totalVisits?.toLocaleString() || 0}
               </span>{' '}
-              active users
+              total visits
             </div>
           </div>
 
-          {isLoadingSessions ? (
-            <div className="grid grid-cols-1 gap-3 p-5 md:grid-cols-2 xl:grid-cols-3">
-              {[...Array(3)].map((_, index) => (
-                <div
-                  key={index}
-                  className="animate-pulse rounded-lg border border-[#DADCD3] p-4"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-[#E6E7E1]" />
-
-                    <div className="flex-1 space-y-2">
-                      <div className="h-3 w-2/3 rounded bg-[#E6E7E1]" />
-                      <div className="h-2.5 w-1/2 rounded bg-[#E6E7E1]" />
-                    </div>
-                  </div>
-
-                  <div className="mt-4 space-y-2">
-                    <div className="h-2.5 w-3/4 rounded bg-[#E6E7E1]" />
-                    <div className="h-2.5 w-2/3 rounded bg-[#E6E7E1]" />
-                  </div>
-                </div>
-              ))}
+          {isLoadingPageStats ? (
+            <div className="flex min-h-[300px] items-center justify-center p-5">
+              <div className="flex flex-col items-center gap-3">
+                <RefreshCw className="h-6 w-6 text-[#B98A3E] animate-spin" />
+                <p className="text-sm text-[#6B7268]">
+                  Loading page visit data...
+                </p>
+              </div>
             </div>
-          ) : activeUsers.length === 0 ? (
+          ) : !chartData || chartData.length === 0 ? (
             <div className="flex flex-col items-center justify-center px-5 py-12 text-center">
               <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-[#F7F6F2]">
-                <Clock className="h-5 w-5 text-[#8A9088]" />
+                <BarChart3 className="h-5 w-5 text-[#8A9088]" />
               </div>
 
               <p className="text-sm font-medium text-[#4B564C]">
-                No active sessions
+                No page visit data yet
               </p>
 
               <p className="mt-1 text-xs text-[#8A9088]">
-                There are currently no active users to display.
+                Page visits will be tracked automatically as users navigate the site.
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-3 p-5 md:grid-cols-2 xl:grid-cols-3">
-              {activeUsers.map((activeUser) => (
-                <div
-                  key={activeUser.id}
-                  className="rounded-lg border border-[#DADCD3] bg-[#F7F6F2]/60 p-4 transition-colors hover:border-[#B98A3E]/40 hover:bg-white"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#DADCD3] bg-white">
-                      <User className="h-4 w-4 text-[#6B7268]" />
-                    </div>
+            <div className="p-5">
+              <div className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E6E7E1" />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fill: '#6B7268', fontSize: 11 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                      interval={0}
+                    />
+                    <YAxis
+                      tick={{ fill: '#6B7268', fontSize: 11 }}
+                      width={50}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#12203B',
+                        border: 'none',
+                        borderRadius: '8px',
+                        color: '#fff',
+                        fontSize: '12px',
+                      }}
+                      cursor={{ fill: 'rgba(185, 138, 62, 0.1)' }}
+                    />
+                    <Bar dataKey="visits" radius={[4, 4, 0, 0]}>
+                      {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={getBarColor(index)} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
 
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-[#12203B]">
-                            {activeUser.firstName}{' '}
-                            {activeUser.lastName}
-                          </p>
-
-                          <p className="truncate text-xs text-[#6B7268]">
-                            {activeUser.email}
-                          </p>
-                        </div>
-
-                        <span
-                          className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#55705B]"
-                          title="Active"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 space-y-2 border-t border-[#DADCD3] pt-3">
-
-                    <div className="flex items-center gap-2 text-xs text-[#6B7268]">
-                      <Clock className="h-3.5 w-3.5 shrink-0" />
-                      <span>
-                        Active {formatDate(activeUser.lastActiveAt)}
-                      </span>
-                    </div>
-
-                    {activeUser.techCenter && (
-                      <div className="flex items-center gap-2 text-xs text-[#6B7268]">
-                        <Building2 className="h-3.5 w-3.5 shrink-0" />
-
-                        <span className="truncate">
-                          {activeUser.techCenter.name}{' '}
-                          <span className="text-[#8A9088]">
-                            ({activeUser.techCenter.code})
-                          </span>
-                        </span>
-                      </div>
-                    )}
-
-                    {activeUser.role && (
-                      <div className="flex items-center gap-2 text-xs text-[#6B7268]">
-                        <User className="h-3.5 w-3.5 shrink-0" />
-                        <span>{activeUser.role.displayName}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
+              <div className="mt-4 flex flex-wrap gap-2 text-xs text-[#6B7268]">
+                <span className="font-medium text-[#12203B]">Top pages:</span>
+                {chartData.slice(0, 5).map((page, index) => (
+                  <span key={page.name} className="inline-flex items-center gap-1">
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: getBarColor(index) }}
+                    />
+                    <span>{page.name}</span>
+                    <span className="font-semibold text-[#12203B]">
+                      ({page.visits})
+                    </span>
+                  </span>
+                ))}
+              </div>
             </div>
           )}
         </section>
@@ -911,7 +895,7 @@ export default function ActivityLogsPage() {
                 Try again
               </button>
             </div>
-          ) : logs.length === 0 ? (
+          ) : systemActivityLogs.length === 0 ? (
             <div className="flex flex-col items-center justify-center px-5 py-14 text-center">
               <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-[#F7F6F2]">
                 <CalendarIcon className="h-5 w-5 text-[#8A9088]" />
@@ -966,7 +950,7 @@ export default function ActivityLogsPage() {
                   </thead>
 
                   <tbody className="divide-y divide-[#E6E7E1]">
-                    {logs.map((log) => (
+                    {systemActivityLogs.map((log) => (
                       <tr
                         key={log.id}
                         className="group transition-colors hover:bg-[#F7F6F2]/70"
@@ -1121,13 +1105,13 @@ export default function ActivityLogsPage() {
                   </span>{' '}
                   to{' '}
                   <span className="font-semibold text-[#12203B]">
-                    {Math.min(page * PAGE_SIZE, total)}
+                    {Math.min(page * PAGE_SIZE, systemActivityLogs.length)}
                   </span>{' '}
                   of{' '}
                   <span className="font-semibold text-[#12203B]">
-                    {total}
+                    {systemActivityLogs.length}
                   </span>{' '}
-                  logs
+                  system activity logs
                 </p>
 
                 <div className="flex items-center gap-2">
