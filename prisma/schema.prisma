@@ -79,6 +79,12 @@ model User {
   isActive    Boolean  @default(true)
   media Media[] @relation("UserMedia")
   
+  // Account Verification - For admin approval workflow
+  isVerified Boolean @default(true) // Default to true for existing users compatibility
+  verificationStatus String @default("APPROVED") // "PENDING", "APPROVED", "REJECTED"
+  verifiedAt DateTime?
+  verifiedBy String? @db.ObjectId // Admin who verified
+  
   // Tech Center Association
   techCenterId String? @db.ObjectId
   techCenter   TechCenter? @relation("UserTechCenter", fields: [techCenterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -112,7 +118,10 @@ model User {
   
   // Tracking
   lastLoginAt  DateTime?
+  lastActiveAt DateTime?
+  currentSessionId String?
   roleUpdatedAt DateTime? // Tracks when role was last changed for token refresh
+  tokenVersion  Int       @default(0) // Bump to invalidate all active sessions/tokens
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -122,6 +131,11 @@ model User {
   promotedById String?  @db.ObjectId
   promotedBy   User?    @relation("PromotedUsers", fields: [promotedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
   promotedUsers User[]  @relation("PromotedUsers")
+  
+  // Verification ownership — tracks which admin verified this user
+  verifiedById String? @db.ObjectId
+  verifiedByAdmin User? @relation("VerifiedUsers", fields: [verifiedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  verifiedUsers User[] @relation("VerifiedUsers")
   
   // Teacher-Student Assignment
   teacherId    String?  @db.ObjectId
@@ -573,7 +587,7 @@ model ActivityLog {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   userId      String?  @db.ObjectId
   user        User?    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  
+
   action      String
   entityType  String
   entityId    String?
@@ -581,16 +595,20 @@ model ActivityLog {
   ipAddress   String?
   userAgent   String?
   location    String?
-  
+  sessionId   String?
+  page        String?
+  method      String?
+
   techCenterId String? @db.ObjectId
   techCenter   TechCenter? @relation(fields: [techCenterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  
+
   createdAt   DateTime @default(now())
-  
+
   @@index([userId])
   @@index([techCenterId])
   @@index([action])
   @@index([createdAt])
+  @@index([sessionId])
   @@map("activity_logs")
 }
 

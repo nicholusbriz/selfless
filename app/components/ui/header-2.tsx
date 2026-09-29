@@ -318,15 +318,16 @@ function TickerStrip() {
           style={{
             backgroundColor: COLORS.navyDeep,
             boxShadow: "inset -1px 0 0 rgba(232,163,61,0.18)",
+            borderRight: `1px solid ${COLORS.brassLight}`,
           }}
         >
           <span
             className="size-1.5 rounded-full"
-            style={{ backgroundColor: COLORS.brass }}
+            style={{ backgroundColor: COLORS.brassLight, boxShadow: `0 0 8px ${COLORS.brassLight}` }}
           />
           <span
             className="font-mono text-[9px] uppercase tracking-[0.14em] sm:text-[10px] sm:tracking-[0.2em]"
-            style={{ color: COLORS.brass }}
+            style={{ color: COLORS.brassLight }}
           >
             SELFLESS CE
           </span>
@@ -368,10 +369,10 @@ function NavLink({
       aria-current={active ? "page" : undefined}
       className="group relative whitespace-nowrap px-4 py-2.5 text-[14px] font-semibold outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-[#E8A33D] motion-reduce:transition-none"
       style={{
-        color: active ? COLORS.white : "rgba(255,255,255,0.78)",
+        color: active ? COLORS.brassLight : "rgba(255,255,255,0.78)",
       }}
     >
-      <span className="relative group-hover:text-white">
+      <span className="relative group-hover:text-white group-hover:transition-colors">
         {item.label}
       </span>
 
@@ -380,6 +381,7 @@ function NavLink({
         style={{
           backgroundColor: COLORS.brassLight,
           transform: active ? "scaleX(1)" : "scaleX(0)",
+          boxShadow: active ? `0 0 8px ${COLORS.brassLight}` : "none",
         }}
       />
     </Link>
@@ -452,7 +454,7 @@ function StatusIcons({
       <Link
         href="/dashboard/notifications"
         aria-label="Notifications"
-        className={`relative flex items-center justify-center ${buttonSize} rounded-lg transition-colors hover:bg-white/10`}
+        className={`relative flex items-center justify-center ${buttonSize} rounded-lg transition-all duration-200 hover:bg-white/10 hover:scale-110`}
         style={{ color: "rgba(255,255,255,0.9)" }}
       >
         <Bell size={size} strokeWidth={2} />
@@ -472,7 +474,7 @@ function StatusIcons({
       <Link
         href="/dashboard/messages"
         aria-label="Messages"
-        className={`relative flex items-center justify-center ${buttonSize} rounded-lg transition-colors hover:bg-white/10`}
+        className={`relative flex items-center justify-center ${buttonSize} rounded-lg transition-all duration-200 hover:bg-white/10 hover:scale-110`}
         style={{ color: "rgba(255,255,255,0.9)" }}
       >
         <MessageSquare size={size} strokeWidth={2} />
@@ -492,7 +494,7 @@ function StatusIcons({
       <Link
         href="/dashboard/announcements"
         aria-label="Announcements"
-        className={`relative flex items-center justify-center ${buttonSize} rounded-lg transition-colors hover:bg-white/10`}
+        className={`relative flex items-center justify-center ${buttonSize} rounded-lg transition-all duration-200 hover:bg-white/10 hover:scale-110`}
         style={{ color: "rgba(255,255,255,0.9)" }}
       >
         <Megaphone size={size} strokeWidth={2} />
@@ -1029,6 +1031,7 @@ export default function Header2() {
           boxShadow: scrolled
             ? "0 12px 36px rgba(13,24,44,0.28)"
             : "0 6px 22px rgba(13,24,44,0.16)",
+          borderBottom: scrolled ? `2px solid ${COLORS.brassLight}` : "none",
         }}
       >
         {/* ================================================================== */}
@@ -1058,8 +1061,15 @@ export default function Header2() {
               <Link
                 href="/"
                 aria-label="SELFLESS CE home"
-                className="group flex shrink-0 items-center"
+                className="group flex shrink-0 items-center relative"
               >
+                <div
+                  className="absolute -left-2 -top-1 w-1 h-6 rounded-full"
+                  style={{
+                    backgroundColor: COLORS.brassLight,
+                    boxShadow: `0 0 6px ${COLORS.brassLight}`,
+                  }}
+                />
                 <Image
                   src="/freedom.png"
                   alt="SELFLESS CE"
@@ -1169,8 +1179,15 @@ export default function Header2() {
               <Link
                 href="/"
                 aria-label="SELFLESS CE home"
-                className="group flex min-w-0 shrink items-center"
+                className="group flex min-w-0 shrink items-center relative"
               >
+                <div
+                  className="absolute -left-1.5 -top-0.5 w-0.5 h-5 rounded-full"
+                  style={{
+                    backgroundColor: COLORS.brassLight,
+                    boxShadow: `0 0 4px ${COLORS.brassLight}`,
+                  }}
+                />
                 <Image
                   src="/freedom.png"
                   alt="SELFLESS CE"
@@ -1282,12 +1299,17 @@ export default function Header2() {
               Student Self Service Portal
             </p>
 
-            <p
-              className="font-mono text-[9px] uppercase tracking-[0.14em] sm:text-[10px] sm:tracking-[0.18em]"
-              style={{ color: "rgba(232,163,61,0.9)" }}
-            >
-              All education in one place
-            </p>
+            <div className="flex items-center gap-2">
+              <span
+                className="hidden h-px w-6 bg-[#E8A33D]/50 sm:block"
+              />
+              <p
+                className="font-serif text-[12px] italic sm:text-[14px]"
+                style={{ color: "rgba(232,163,61,0.95)" }}
+              >
+                Nurturing resilient minds
+              </p>
+            </div>
           </div>
         </div>
 

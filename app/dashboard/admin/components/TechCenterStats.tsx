@@ -2,15 +2,14 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { 
-  Users, 
-  BookOpen, 
-  Calendar, 
+import {
+  Users,
+  BookOpen,
+  Calendar,
   Megaphone,
   UserCheck,
   Award,
   Clock,
-  Activity,
   Loader2
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -113,50 +112,10 @@ export default function TechCenterStats() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statsCards.map((card, index) => (
-          <StatsCard key={index} {...card} />
-        ))}
-      </div>
-
-      {/* Recent Activity */}
-      {stats.recentActivity && stats.recentActivity.length > 0 && (
-        <div className="bg-[#150F20] border border-[#2A2438] rounded-xl p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Activity className="w-5 h-5 text-[#E8A33D]" />
-            <h3 className="text-lg font-semibold text-[#F5F0E8]">Recent Activity</h3>
-          </div>
-          <div className="space-y-3">
-            {stats.recentActivity.map((activity) => (
-              <div
-                key={activity.id}
-                className="flex items-start gap-3 p-3 bg-[#0B0912] rounded-lg border border-[#2A2438]"
-              >
-                <div className="w-8 h-8 rounded-full bg-[#E8A33D]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Activity className="w-4 h-4 text-[#E8A33D]" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-[#F5F0E8]">
-                    {activity.user ? (
-                      `${activity.user.firstName || ''} ${activity.user.lastName || ''}`.trim() || 'Unknown User'
-                    ) : (
-                      'System'
-                    )}
-                  </p>
-                  <p className="text-xs text-[#A79C8C]">
-                    {activity.action ? activity.action.replace(/_/g, ' ').toUpperCase() : 'Unknown Action'}
-                    {activity.details && activity.details.name && ` - ${activity.details.name}`}
-                  </p>
-                  <p className="text-xs text-[#6B6358] mt-0.5">
-                    {activity.createdAt ? new Date(activity.createdAt).toLocaleString() : 'Unknown time'}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {statsCards.map((card, index) => (
+        <StatsCard key={index} {...card} />
+      ))}
     </div>
   );
 }

@@ -11,12 +11,38 @@ export function useAuth() {
   const isAuthenticated = status === 'authenticated';
 
   const login = async (email: string, password: string) => {
+    // First try the custom login endpoint which returns rich error data
+    // (e.g. pendingUser info when requiresApproval is true)
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await response.json();
+
+    // Account pending approval — return the data so the UI can show the
+    // PendingApprovalMessage component with the user's details.
+    if (response.status === 403 && data.requiresApproval) {
+      return { requiresApproval: true, user: data.user, error: data.error };
+    }
+
+    // Other login failure
+    if (!response.ok) {
+      return { error: data.error || 'Login failed' };
+    }
+
+    // Credentials valid — now create the NextAuth session
     const result = await signIn('credentials', {
       email,
       password,
       redirect: false,
     });
-    if (result?.error) throw new Error(result.error);
+
+    if (result?.error) {
+      return { error: result.error };
+    }
+
     return result;
   };
 

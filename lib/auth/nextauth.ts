@@ -87,13 +87,18 @@ export const authOptions: AuthOptions = {
           throw new Error('Invalid password');
         }
 
-        // 5. Update last login
+        // 5. Check if user account is verified
+        if (!user.isVerified) {
+          throw new Error('Your account is pending admin approval. Please wait for verification before accessing the dashboard.');
+        }
+
+        // 6. Update last login
         await prisma.user.update({
           where: { id: user.id },
           data: { lastLoginAt: new Date() }
         });
 
-        // 6. Return user object
+        // 7. Return user object
         return {
           id: user.id,
           email: user.email,

@@ -109,7 +109,7 @@ export function OnlineUsers({ onlineUsers, currentUserId }: OnlineUsersProps) {
             {/* User Info */}
             <div className="min-w-0 hidden sm:block">
               <p
-                className="text-[10px] font-bold leading-tight truncate text-[#1A2B4C] sm:text-[11px]"
+                className="text-[10px] font-extrabold leading-tight truncate text-[#B98A3E] sm:text-[11px]"
                 title={user.fullName || `${user.firstName} ${user.lastName}`}
               >
                 {user.fullName || `${user.firstName} ${user.lastName}`}

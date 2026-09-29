@@ -161,6 +161,9 @@ export async function registerUser(data: {
         preferredTeamRole: (data.preferredTeamRole as any) || null,
         takesReligion: false, // Default to false
         tuitionAmount: null, // Default to null
+        // Account verification - new users start as pending
+        isVerified: false,
+        verificationStatus: 'PENDING',
       },
       include: {
         role: {
@@ -199,6 +202,12 @@ export async function loginUser(email: string, password: string) {
             permissions: true,
           },
         },
+        techCenter: {
+          select: {
+            name: true,
+            code: true,
+          },
+        },
       },
     });
 
@@ -213,6 +222,23 @@ export async function loginUser(email: string, password: string) {
     const isValid = await verifyPassword(password, user.password);
     if (!isValid) {
       return { error: 'Invalid email or password' };
+    }
+
+    // Check if user is verified
+    if (!user.isVerified || user.verificationStatus !== 'APPROVED') {
+      return { 
+        error: 'Your account is pending admin approval. Please wait for verification before accessing the dashboard.',
+        requiresApproval: true,
+        pendingUser: {
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          phoneNumber: user.phoneNumber,
+          country: user.country,
+          city: user.city,
+          techCenter: user.techCenter as { name: string; code: string } | null | undefined,
+        },
+      };
     }
 
     // Update last login

@@ -4,6 +4,7 @@ import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from './providers';
 import PWAInstall from '@/components/PWAInstall';
+import { ActivityTracker } from '@/components/ActivityTracker';
 
 const plexSans = IBM_Plex_Sans({
   subsets: ["latin"],
@@ -332,6 +333,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col font-sans">
           <Providers>
+            <ActivityTracker />
             <PWAInstall />
               <main className="flex-1">
                 {children}

@@ -12,6 +12,8 @@ import {
   Check,
   ChevronRight,
   ArrowDownUp,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -119,11 +121,11 @@ const Stat = ({
   children: React.ReactNode;
 }) => (
   <div className="min-w-0">
-    <p className="font-mono text-[10px] uppercase tracking-[0.09em] text-[#6B7280]">
+    <p className="font-mono text-[10px] uppercase tracking-[0.09em] text-[#B98A3E] font-bold">
       {label}
     </p>
 
-    <div className="mt-1 text-[13px] font-semibold leading-4 text-[#1A2B4C] break-words">
+    <div className="mt-1 text-[13px] font-bold leading-4 text-[#1A2B4C] break-words">
       {children}
     </div>
   </div>
@@ -142,6 +144,8 @@ const SearchFilterBar = ({
   totalStudents,
   sortBy,
   setSortBy,
+  viewMode,
+  setViewMode,
 }: {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
@@ -151,6 +155,8 @@ const SearchFilterBar = ({
   totalStudents: number;
   sortBy: SortOption;
   setSortBy: (s: SortOption) => void;
+  viewMode: 'grid' | 'list';
+  setViewMode: (mode: 'grid' | 'list') => void;
 }) => {
   const activeLocation = locations.find((loc) => loc.id === selectedLocation);
 
@@ -164,14 +170,14 @@ const SearchFilterBar = ({
   const useDropdown = locations.length > 8;
 
   return (
-    <section className="rounded-lg border border-[#E5E7EB] bg-white shadow-sm">
+    <section className="rounded-lg border border-[#E5E7EB] bg-white shadow-md">
       {/* SEARCH */}
       <div className="px-4 py-4 sm:px-5">
         <div className="flex flex-col md:flex-row md:items-center gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span className="h-4 w-[3px] bg-[#B98A3E] rounded-full" />
-              <h2 className="text-[16px] font-semibold tracking-tight text-[#1A2B4C]">
+              <h2 className="text-[16px] font-bold tracking-tight text-[#1A2B4C]">
                 Search students
               </h2>
             </div>
@@ -194,11 +200,11 @@ const SearchFilterBar = ({
               aria-label="Search students"
               className="
                 w-full h-10 pl-9 pr-9
-                bg-[#F8F9FA]
+                bg-[#F7F6F2]
                 border border-[#E5E7EB] rounded
                 text-[#1A2B4C]
                 placeholder:text-[#9CA3AF]
-                text-[13px] font-medium
+                text-[13px] font-semibold
                 focus:outline-none
                 focus:bg-white
                 focus:border-[#B98A3E]
@@ -220,17 +226,17 @@ const SearchFilterBar = ({
       </div>
 
       {/* FILTERS */}
-      <div className="border-t border-[#E5E7EB] bg-[#F8F9FA] px-4 py-3 sm:px-5">
+      <div className="border-t border-[#E5E7EB] bg-[#F7F6F2] px-4 py-3 sm:px-5">
         <div className="flex flex-col gap-3">
           {/* TOP ROW: label + count + sort */}
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 shrink-0">
-              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-[#6B7280]">
+              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-[#B98A3E] font-bold">
                 Tech centers
               </span>
               <span className="inline-flex items-center gap-1 border border-[#E5E7EB] bg-white px-2 py-1 rounded">
                 <Users className="w-3 h-3 text-[#1A2B4C]" strokeWidth={2} />
-                <span className="font-mono text-[11px] font-semibold text-[#1A2B4C] tabular-nums">
+                <span className="font-mono text-[11px] font-bold text-[#1A2B4C] tabular-nums">
                   {totalStudents}
                 </span>
               </span>
@@ -238,7 +244,7 @@ const SearchFilterBar = ({
 
             {/* SORT */}
             <div className="ml-auto flex items-center gap-1.5">
-              <ArrowDownUp className="w-3.5 h-3.5 text-[#6B7280]" />
+              <ArrowDownUp className="w-3.5 h-3.5 text-[#B98A3E]" />
               <label htmlFor="sort-select" className="sr-only">
                 Sort students
               </label>
@@ -249,7 +255,7 @@ const SearchFilterBar = ({
                 className="
                   h-8 px-2 pr-7
                   bg-white border border-[#E5E7EB] rounded
-                  text-[11px] font-semibold text-[#1A2B4C]
+                  text-[11px] font-bold text-[#1A2B4C]
                   focus:outline-none focus:border-[#B98A3E]
                   cursor-pointer
                 "
@@ -274,7 +280,7 @@ const SearchFilterBar = ({
                 className="
                   w-full h-10 px-3
                   bg-white border border-[#E5E7EB] rounded
-                  text-[12px] font-semibold text-[#1A2B4C]
+                  text-[12px] font-bold text-[#1A2B4C]
                   focus:outline-none focus:border-[#B98A3E]
                   cursor-pointer
                 "
@@ -350,7 +356,7 @@ const SearchFilterBar = ({
           {selectedLocation !== 'all' && (
             <div className="flex items-center gap-1.5">
               <span className="text-[11px] text-[#6B7280]">Showing</span>
-              <span className="inline-flex items-center gap-1.5 border border-[#E5E7EB] bg-white px-2 py-1 text-[11px] font-semibold text-[#1A2B4C] rounded">
+              <span className="inline-flex items-center gap-1.5 border border-[#E5E7EB] bg-white px-2 py-1 text-[11px] font-bold text-[#1A2B4C] rounded">
                 <span
                   className="w-1.5 h-1.5 rounded-full"
                   style={{ backgroundColor: getTechCenterHue(activeLocation?.name) }}
@@ -360,6 +366,36 @@ const SearchFilterBar = ({
               </span>
             </div>
           )}
+
+          {/* VIEW MODE TOGGLE */}
+          <div className="flex items-center gap-1 border border-[#E5E7EB] bg-white rounded-lg p-1 ml-auto">
+            <button
+              type="button"
+              onClick={() => setViewMode('grid')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition-colors ${
+                viewMode === 'grid'
+                  ? 'bg-[#B98A3E] text-white'
+                  : 'text-[#6B7280] hover:text-[#1A2B4C]'
+              }`}
+              title="Grid view"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" strokeWidth={2} />
+              <span className="text-[11px] font-semibold">Grid</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('list')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition-colors ${
+                viewMode === 'list'
+                  ? 'bg-[#B98A3E] text-white'
+                  : 'text-[#6B7280] hover:text-[#1A2B4C]'
+              }`}
+              title="List view"
+            >
+              <List className="w-3.5 h-3.5" strokeWidth={2} />
+              <span className="text-[11px] font-semibold">List</span>
+            </button>
+          </div>
         </div>
       </div>
     </section>
@@ -367,7 +403,7 @@ const SearchFilterBar = ({
 };
 
 // ============================================================
-// STUDENT CARD
+// STUDENT CARD (Grid View)
 // ============================================================
 
 const StudentCard = ({
@@ -395,141 +431,283 @@ const StudentCard = ({
 
   return (
     <article
-      onClick={() => router.push(`/dashboard/students/${student.id}`)}
       className="
-        group bg-white border border-[#E5E7EB] rounded-lg
-        overflow-hidden cursor-pointer
+        group bg-white shadow-lg
+        overflow-hidden
         transition-all duration-200
-        hover:border-[#B98A3E] hover:shadow-md hover:-translate-y-0.5
-        focus-within:border-[#B98A3E] focus-within:shadow-md
+        hover:shadow-xl hover:-translate-y-0.5
       "
     >
-      {/* HEADER */}
-      <div className="px-4 py-3.5 bg-[#FCFCFA]">
-        <div className="flex items-center gap-3">
+      <div className="flex h-full">
+        {/* LEFT: User Image - Half Width */}
+        <div className="w-1/2 min-h-[200px] relative bg-[#F7F6F2]">
+          {student.profileImageUrl ? (
+            <Image
+              src={student.profileImageUrl}
+              alt={fullName}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 50vw, 200px"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-[#1A2B4C]">
+              <span className="text-white text-[24px] font-mono font-bold">
+                {initials}
+              </span>
+            </div>
+          )}
+
+          {/* Active Status Indicator */}
+          <span
+            className={`absolute top-3 right-3 w-2.5 h-2.5 border-2 border-white rounded-full ${
+              student.isActive ? 'bg-[#55705B]' : 'bg-[#9CA3AF]'
+            }`}
+            title={student.isActive ? 'Active' : 'Inactive'}
+          />
+        </div>
+
+        {/* RIGHT: Content - Half Width */}
+        <div className="w-1/2 flex flex-col p-3">
+          {/* Header */}
+          <div className="mb-2">
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="text-[14px] font-bold leading-tight text-[#1A2B4C] break-words flex-1">
+                {fullName}
+              </h3>
+              <span className="text-[9px] text-[#4B5646] shrink-0">
+                {student.role?.name === 'teacher' ? 'Tutor' : student.role?.name || 'Student'}
+              </span>
+            </div>
+
+            <div className="mt-1 flex items-center gap-1.5 text-[9px] text-[#4B5646]">
+              <span
+                className="w-1 h-1 rounded-full shrink-0"
+                style={{ backgroundColor: hue }}
+              />
+              <span className="truncate">
+                {student.techCenter?.name || 'No location'}
+              </span>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="space-y-1 flex-1 overflow-y-auto">
+            <div>
+              <p className="font-mono text-[7px] uppercase tracking-[0.09em] text-[#B98A3E] font-bold">
+                General Degree Course
+              </p>
+              <p className="mt-0.5 text-[9px] font-semibold text-[#1A2B4C] break-words">
+                {student.generalCourse || 'Not specified'}
+              </p>
+            </div>
+
+
+
+            {student.studentCourses?.length > 0 && (
+              <div>
+                <p className="flex items-center justify-between gap-1 font-mono text-[7px] uppercase tracking-[0.1em] text-[#B98A3E] font-bold mb-1">
+                  <span className="flex items-center gap-1">
+                    <BookOpen className="w-2 h-2 text-[#B98A3E]" strokeWidth={2.2} />
+                    Course Units taking
+                  </span>
+                  <span>{totalCredits} credits</span>
+                </p>
+                <div className="space-y-0.25">
+                  {student.studentCourses.map((course) => (
+                    <div key={course.id} className="flex items-center justify-between gap-1 px-2 py-0.5">
+                      <span className="text-[8px] font-semibold text-[#1A2B4C] flex-1">
+                        {course.courseUnit}
+                      </span>
+                      <span className="shrink-0 font-mono text-[7px] text-[#4B5646] tabular-nums font-bold">
+                        {course.credits}cr
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Action with Joined and Religion */}
+          <div className="mt-2 pt-2 border-t border-[#F3F4F6] flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => router.push(`/dashboard/students/${student.id}`)}
+              className="inline-flex items-center gap-1 text-[9px] font-bold text-[#B98A3E] transition-colors hover:text-[#1A2B4C] hover:gap-1.5 cursor-pointer"
+            >
+              View Profile
+              <ChevronRight className="w-2.5 h-2.5 transition-transform group-hover:translate-x-0.5" />
+            </button>
+
+            <div className="flex items-center gap-2">
+              <p className="font-mono text-[7px] text-[#4B5646]">
+                {new Date(student.createdAt).toLocaleDateString('en-US', {
+                  month: 'short',
+                  year: 'numeric',
+                })}
+              </p>
+              <span className="text-[#D1D5DB]">•</span>
+              <p className="font-mono text-[7px] text-[#4B5646]">
+                Religion: {student.takesReligion === null
+                  ? 'N/A'
+                  : student.takesReligion
+                    ? 'Yes'
+                    : 'No'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+};
+
+// ============================================================
+// STUDENT LIST CARD (List View)
+// ============================================================
+
+const StudentListCard = ({
+  student,
+  router,
+}: {
+  student: Student;
+  router: Router;
+}) => {
+  const getInitials = (firstName: string, lastName: string) =>
+    `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+
+  const getTotalCredits = (s: Student) =>
+    s.studentCourses?.reduce(
+      (total, course) => total + (course.credits || 0),
+      0,
+    ) ?? 0;
+
+  const initials = getInitials(student.firstName, student.lastName);
+  const fullName = `${student.firstName} ${student.lastName}`;
+  const totalCredits = getTotalCredits(student);
+  const hue = getTechCenterHue(student.techCenter?.name);
+
+  return (
+    <article className="bg-white shadow-md rounded-lg overflow-hidden transition-all duration-200 hover:shadow-lg">
+      <div className="p-2.5">
+        {/* Header Row */}
+        <div className="flex items-start justify-between gap-2 mb-1.5">
+          <div className="flex-1">
+            <h3 className="text-[14px] font-bold text-[#1A2B4C]">
+              {fullName}
+            </h3>
+            <div className="mt-0.75 flex items-center gap-1 text-[9px] text-[#4B5646]">
+              <span
+                className="w-1 h-1 rounded-full shrink-0"
+                style={{ backgroundColor: hue }}
+              />
+              <span>{student.techCenter?.name || 'No location'}</span>
+              <span className="text-[#D1D5DB]">•</span>
+              <span>{student.role?.name === 'teacher' ? 'Tutor' : student.role?.name || 'Student'}</span>
+              <span className="text-[#D1D5DB]">•</span>
+              <span className={student.isActive ? 'text-[#55705B] font-semibold' : 'text-[#9CA3AF]'}>
+                {student.isActive ? 'Active' : 'Inactive'}
+              </span>
+            </div>
+          </div>
+
+          <div className="shrink-0 flex flex-col items-end gap-0.5">
+            <span className="font-mono text-[9px] text-[#B98A3E] font-bold">
+              {student.studentCourses?.length || 0} courses
+            </span>
+            <span className="font-mono text-[9px] text-[#4B5646]">
+              {totalCredits} credits
+            </span>
+          </div>
+        </div>
+
+        {/* Details */}
+        <div className="mb-1.5 space-y-0.75">
+          <div className="flex items-baseline gap-1">
+            <p className="font-mono text-[7px] uppercase tracking-[0.09em] text-[#B98A3E] font-bold shrink-0">
+              General Degree Course:
+            </p>
+            <p className="text-[9px] font-semibold text-[#1A2B4C]">
+              {student.generalCourse || 'Not specified'}
+            </p>
+          </div>
+
+          {student.studentCourses?.length > 0 && (
+            <div>
+              <p className="flex items-center gap-0.75 font-mono text-[7px] uppercase tracking-[0.1em] text-[#B98A3E] font-bold mb-0.75">
+                <BookOpen className="w-2 h-2 text-[#B98A3E]" strokeWidth={2.2} />
+                Course Units taking
+              </p>
+              <div className="space-y-0.25">
+                {student.studentCourses.map((course) => (
+                  <div key={course.id} className="flex items-center justify-between gap-0.75 px-2 py-0.5">
+                    <span className="text-[8px] font-semibold text-[#1A2B4C] flex-1">
+                      {course.courseUnit}
+                    </span>
+                    <span className="shrink-0 font-mono text-[7px] text-[#4B5646] tabular-nums font-bold">
+                      {course.credits}cr
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Action with Joined, Religion, and Profile Image */}
+        <div className="pt-1.5 border-t border-[#F3F4F6] flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => router.push(`/dashboard/students/${student.id}`)}
+            className="inline-flex items-center gap-1 text-[9px] font-bold text-[#B98A3E] transition-colors hover:text-[#1A2B4C] hover:gap-1.5 cursor-pointer"
+          >
+            View Profile
+            <ChevronRight className="w-2.5 h-2.5 transition-transform hover:translate-x-0.5" />
+          </button>
+
+          <div className="flex items-center gap-1.5">
+            <p className="font-mono text-[7px] text-[#4B5646]">
+              {new Date(student.createdAt).toLocaleDateString('en-US', {
+                month: 'short',
+                year: 'numeric',
+              })}
+            </p>
+            <span className="text-[#D1D5DB]">•</span>
+            <p className="font-mono text-[7px] text-[#4B5646]">
+              Religion: {student.takesReligion === null
+                ? 'N/A'
+                : student.takesReligion
+                  ? 'Yes'
+                  : 'No'}
+            </p>
+          </div>
+
+          {/* Profile Image */}
           <div className="relative shrink-0">
             {student.profileImageUrl ? (
               <Image
                 src={student.profileImageUrl}
                 alt={fullName}
-                width={46}
-                height={46}
-                className="w-[46px] h-[46px] object-cover rounded"
+                width={28}
+                height={28}
+                className="w-7 h-7 object-cover rounded"
               />
             ) : (
-              <div className="w-[46px] h-[46px] flex items-center justify-center bg-[#1A2B4C] rounded">
-                <span className="text-white text-[11px] font-mono font-semibold">
+              <div className="w-7 h-7 flex items-center justify-center bg-[#1A2B4C] rounded">
+                <span className="text-white text-[9px] font-mono font-bold">
                   {initials}
                 </span>
               </div>
             )}
 
             <span
-              className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 border-2 border-white rounded-full ${
+              className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 border-2 border-white rounded-full ${
                 student.isActive ? 'bg-[#55705B]' : 'bg-[#9CA3AF]'
               }`}
               title={student.isActive ? 'Active' : 'Inactive'}
             />
           </div>
-
-          <div className="min-w-0 flex-1">
-            <h3 className="text-[15px] font-semibold leading-5 text-[#1A2B4C] break-words text-left">
-              {fullName}
-            </h3>
-
-            <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[#4B5646]">
-              <span
-                className="w-1.5 h-1.5 rounded-full shrink-0"
-                style={{ backgroundColor: hue }}
-              />
-              <span className="truncate">
-                {student.techCenter?.name || 'No location'}
-              </span>
-              <span className="text-[#D1D5DB]">|</span>
-              <span className="truncate">{student.role?.name || 'Student'}</span>
-            </div>
-          </div>
-
-          <span className="shrink-0 font-mono text-[10px] text-[#9CA3AF] tabular-nums">
-            {String(index + 1).padStart(2, '0')}
-          </span>
         </div>
-      </div>
-
-      {/* BODY */}
-      <div className="px-4 py-3 border-t border-[#F3F4F6]">
-        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-          <Stat label="General Degree Course">
-            {student.generalCourse || 'Not specified'}
-          </Stat>
-          <Stat label="Religion">
-            {student.takesReligion === null
-              ? 'N/A'
-              : student.takesReligion
-                ? 'Yes'
-                : 'No'}
-          </Stat>
-          <Stat label="Location">
-            {student.techCenter?.name || 'Not specified'}
-          </Stat>
-          <Stat label="Joined">
-            {new Date(student.createdAt).toLocaleDateString('en-US', {
-              month: 'short',
-              year: 'numeric',
-            })}
-          </Stat>
-        </div>
-      </div>
-
-      {/* COURSES */}
-      {student.studentCourses?.length > 0 && (
-        <div className="px-4 py-3 bg-[#FCFCFA] border-t border-[#F3F4F6]">
-          <div className="flex items-center justify-between gap-2">
-            <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-[#6B7280]">
-              <BookOpen className="w-3 h-3 text-[#B98A3E]" strokeWidth={2.2} />
-              Enrolled Courses
-            </p>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-[10px] text-[#4B5646] bg-white px-1.5 py-0.5 rounded border border-[#E5E7EB]">
-                {student.studentCourses.length} courses
-              </span>
-              <span className="font-mono text-[10px] text-[#8A6328] bg-[#FBF7EE] px-1.5 py-0.5 rounded">
-                {totalCredits} credits
-              </span>
-            </div>
-          </div>
-
-          <div className="mt-2 space-y-1.5">
-            {student.studentCourses.slice(0, 3).map((course) => (
-              <div key={course.id} className="flex items-center justify-between gap-2">
-                <div className="min-w-0 flex items-center gap-2">
-                  <span className="text-[10px] font-mono text-[#8A6328] font-semibold shrink-0">
-                    {course.code}
-                  </span>
-                  <span className="block truncate text-[11px] leading-4 text-[#4B5646]">
-                    {course.courseUnit}
-                  </span>
-                </div>
-                <span className="shrink-0 font-mono text-[10px] text-[#4B5646] tabular-nums bg-white px-1.5 py-0.5 rounded border border-[#E5E7EB]">
-                  {course.credits} cr
-                </span>
-              </div>
-            ))}
-            {student.studentCourses.length > 3 && (
-              <div className="text-[10px] text-[#6B7280] text-right pt-0.5">
-                +{student.studentCourses.length - 3} more courses
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ACTION */}
-      <div className="px-4 py-3">
-        <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#8A6328] transition-colors group-hover:text-[#1A2B4C] group-hover:gap-2">
-          View Profile
-          <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
-        </span>
       </div>
     </article>
   );
@@ -545,12 +723,14 @@ const StudentSection = ({
   router,
   collapsible = false,
   onViewAll,
+  viewMode,
 }: {
   title: string;
   students: Student[];
   router: Router;
   collapsible?: boolean;
   onViewAll?: () => void;
+  viewMode: 'grid' | 'list';
 }) => {
   if (students.length === 0) return null;
 
@@ -568,14 +748,14 @@ const StudentSection = ({
             className="h-4 w-[3px] shrink-0 rounded-full"
             style={{ backgroundColor: hue }}
           />
-          <h2 className="text-[16px] font-semibold tracking-tight text-[#1A2B4C] truncate">
+          <h2 className="text-[16px] font-bold tracking-tight text-[#1A2B4C] truncate">
             {title}
           </h2>
           <div className="shrink-0 flex items-center gap-1.5 bg-white px-2.5 py-1 border border-[#E5E7EB] rounded">
-            <span className="font-mono text-[11px] font-semibold text-[#1A2B4C] tabular-nums">
+            <span className="font-mono text-[11px] font-bold text-[#1A2B4C] tabular-nums">
               {students.length}
             </span>
-            <span className="font-mono text-[9px] uppercase tracking-wider text-[#6B7280]">
+            <span className="font-mono text-[9px] uppercase tracking-wider text-[#B98A3E]">
               students
             </span>
           </div>
@@ -583,16 +763,28 @@ const StudentSection = ({
       </header>
 
       {/* CARDS */}
-      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-        {visibleStudents.map((student, index) => (
-          <StudentCard
-            key={student.id}
-            student={student}
-            index={index}
-            router={router}
-          />
-        ))}
-      </div>
+      {viewMode === 'grid' ? (
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          {visibleStudents.map((student, index) => (
+            <StudentCard
+              key={student.id}
+              student={student}
+              index={index}
+              router={router}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="grid gap-3 grid-cols-1 lg:grid-cols-2">
+          {visibleStudents.map((student) => (
+            <StudentListCard
+              key={student.id}
+              student={student}
+              router={router}
+            />
+          ))}
+        </div>
+      )}
 
       {/* VIEW ALL */}
       {hasMore && (
@@ -603,8 +795,8 @@ const StudentSection = ({
             className="
               inline-flex items-center gap-1.5 h-9 px-4
               border border-[#E5E7EB] bg-white
-              text-[12px] font-semibold text-[#1A2B4C]
-              rounded hover:border-[#B98A3E] hover:bg-[#F8F9FA]
+              text-[12px] font-bold text-[#1A2B4C]
+              rounded hover:border-[#B98A3E] hover:bg-[#F7F6F2]
               transition-colors
               focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] focus-visible:ring-offset-1
             "
@@ -622,46 +814,57 @@ const StudentSection = ({
 // COMMUNITY TICKER
 // ============================================================
 
-const CommunityTicker = () => {
-  const messages = [
-    'Course Registration',
-    'Course Submission',
-    'Stay Connected With Your Tutors',
-    'Participate In Your Cleaning Day',
-    'Keep Your Academic Work On Time',
-    'Student Community',
-  ];
-
-  const tickerItems = [...messages, ...messages];
+const CommunityTicker = ({ students }: { students: Student[] }) => {
+  // Only students with a usable profile image are included in the avatar ticker.
+  const profileStudents = students.filter(
+    (student) =>
+      typeof student.profileImageUrl === 'string' &&
+      student.profileImageUrl.trim().length > 0,
+  );
+  const tickerStudents = [...profileStudents, ...profileStudents];
 
   return (
-    <div className="overflow-hidden border border-[#E5E7EB] bg-white rounded-lg">
-      <div className="flex h-9 items-center overflow-hidden">
-        <div className="shrink-0 border-r border-[#E5E7EB] bg-[#1A2B4C] px-3 h-full flex items-center">
-          <span className="font-mono text-[9px] uppercase tracking-[0.13em] text-white">
+    <div className="overflow-hidden border border-[#E5E7EB] bg-white rounded-lg shadow-md">
+      <div className="flex h-14 items-center overflow-hidden">
+        <div className="h-full shrink-0 border-r border-[#E5E7EB] bg-[#1A2B4C] px-3 flex items-center">
+          <span className="font-mono text-[9px] uppercase tracking-[0.13em] text-white font-bold">
             Community
           </span>
         </div>
 
         <div className="relative min-w-0 flex-1 overflow-hidden">
-          <div className="student-ticker flex w-max items-center whitespace-nowrap">
-            {tickerItems.map((message, index) => (
-              <div key={`${message}-${index}`} className="flex items-center">
-                <span className="px-4 font-mono text-[10px] uppercase tracking-[0.08em] text-[#4B5646]">
-                  {message}
-                </span>
-                <span className="text-[#B98A3E] text-[10px]">•</span>
-              </div>
-            ))}
-          </div>
+          {profileStudents.length > 0 ? (
+            <div className="student-avatar-ticker flex w-max items-center gap-3 px-3">
+              {tickerStudents.map((student, index) => (
+                <div
+                  key={`${student.id}-${index}`}
+                  className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border-2 border-white shadow-sm ring-1 ring-[#DADCD3]"
+                  title={`${student.firstName} ${student.lastName}`}
+                >
+                  <Image
+                    src={student.profileImageUrl!}
+                    alt={`${student.firstName} ${student.lastName}`}
+                    fill
+                    sizes="36px"
+                    className="object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="px-4 text-[11px] font-medium text-[#6B7268]">
+              Student community
+            </p>
+          )}
         </div>
       </div>
 
       <style jsx>{`
-        .student-ticker {
-          animation: studentTicker 34s linear infinite;
+        .student-avatar-ticker {
+          animation: studentAvatarTicker 34s linear infinite;
+          will-change: transform;
         }
-        @keyframes studentTicker {
+        @keyframes studentAvatarTicker {
           from {
             transform: translateX(0);
           }
@@ -670,7 +873,7 @@ const CommunityTicker = () => {
           }
         }
         @media (prefers-reduced-motion: reduce) {
-          .student-ticker {
+          .student-avatar-ticker {
             animation: none;
           }
         }
@@ -690,6 +893,7 @@ export default function StudentsPage() {
   const [selectedLocation, setSelectedLocation] = useState('all');
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('name');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -785,15 +989,15 @@ export default function StudentsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#F8F9FA]">
+      <div className="min-h-screen bg-[#F7F6F2]">
         <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-6 animate-pulse">
-          <div className="h-24 bg-white border border-[#E5E7EB] rounded-lg" />
-          <div className="mt-4 h-28 bg-white border border-[#E5E7EB] rounded-lg" />
+          <div className="h-24 bg-white border border-[#E5E7EB] rounded-lg shadow-md" />
+          <div className="mt-4 h-28 bg-white border border-[#E5E7EB] rounded-lg shadow-md" />
           <div className="mt-6 grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
               <div
                 key={i}
-                className="h-[360px] bg-white border border-[#E5E7EB] rounded-lg"
+                className="h-[360px] bg-white border border-[#E5E7EB] rounded-lg shadow-md"
               />
             ))}
           </div>
@@ -808,12 +1012,12 @@ export default function StudentsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center px-4">
-        <div className="max-w-sm w-full text-center border border-[#E5E7EB] bg-white p-8 rounded-lg shadow-sm">
+      <div className="min-h-screen bg-[#F7F6F2] flex items-center justify-center px-4">
+        <div className="max-w-sm w-full text-center border border-[#E5E7EB] bg-white p-8 rounded-lg shadow-md">
           <div className="mx-auto w-12 h-12 bg-[#FBF0EC] flex items-center justify-center rounded">
             <AlertCircle className="w-6 h-6 text-[#A4462F]" strokeWidth={2} />
           </div>
-          <h2 className="mt-4 text-[17px] font-semibold text-[#1A2B4C]">
+          <h2 className="mt-4 text-[17px] font-bold text-[#1A2B4C]">
             Failed to load students
           </h2>
           <p className="mt-1.5 text-[13px] leading-5 text-[#4B5646]">
@@ -821,7 +1025,7 @@ export default function StudentsPage() {
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-5 h-10 px-5 bg-[#1A2B4C] text-white font-mono text-[11px] uppercase tracking-widest hover:bg-[#2C3E5A] transition-colors rounded"
+            className="mt-5 h-10 px-5 bg-[#1A2B4C] text-white font-mono text-[11px] uppercase tracking-widest hover:bg-[#2C3E5A] transition-colors rounded font-bold"
           >
             Retry
           </button>
@@ -835,14 +1039,14 @@ export default function StudentsPage() {
   ========================================================== */
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA]">
+    <div className="min-h-screen bg-[#F7F6F2]">
       {showBackToTop && (
         <button
           type="button"
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           aria-label="Back to top"
           title="Back to top"
-          className="fixed bottom-5 left-3 z-40 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#1A2B4C] shadow-md transition-all hover:-translate-y-0.5 hover:border-[#B98A3E] hover:bg-[#F8F9FA] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] focus-visible:ring-offset-2 sm:left-5"
+          className="fixed bottom-5 left-3 z-40 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#1A2B4C] shadow-lg transition-all hover:-translate-y-0.5 hover:border-[#B98A3E] hover:bg-[#F7F6F2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] focus-visible:ring-offset-2 sm:left-5"
         >
           <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
         </button>
@@ -857,19 +1061,19 @@ export default function StudentsPage() {
           <div className="flex flex-wrap items-center gap-1.5 mb-4">
             <Link
               href="/dashboard"
-              className="border border-[#E5E7EB] bg-white px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wide text-[#4B5646] hover:border-[#B98A3E] hover:text-[#1A2B4C] transition-colors rounded"
+              className="border border-[#E5E7EB] bg-white px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wide text-[#4B5646] hover:border-[#B98A3E] hover:text-[#1A2B4C] transition-colors rounded font-semibold"
             >
               Dashboard
             </Link>
             <Link
               href="/dashboard/courses"
-              className="border border-[#E5E7EB] bg-white px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wide text-[#4B5646] hover:border-[#B98A3E] hover:text-[#1A2B4C] transition-colors rounded"
+              className="border border-[#E5E7EB] bg-white px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wide text-[#4B5646] hover:border-[#B98A3E] hover:text-[#1A2B4C] transition-colors rounded font-semibold"
             >
               Courses
             </Link>
             <Link
               href="/dashboard/cleaning"
-              className="border border-[#E5E7EB] bg-white px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wide text-[#4B5646] hover:border-[#B98A3E] hover:text-[#1A2B4C] transition-colors rounded"
+              className="border border-[#E5E7EB] bg-white px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wide text-[#4B5646] hover:border-[#B98A3E] hover:text-[#1A2B4C] transition-colors rounded font-semibold"
             >
               Cleaning
             </Link>
@@ -877,10 +1081,10 @@ export default function StudentsPage() {
 
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
             <div>
-              <h1 className="text-[30px] sm:text-[34px] font-semibold tracking-tight text-[#1A2B4C] leading-tight">
+              <h1 className="text-[30px] sm:text-[34px] font-bold tracking-tight text-[#1A2B4C] leading-tight">
                 Students
               </h1>
-              <p className="mt-1.5 text-[13px] leading-5 text-[#4B5646]">
+              <p className="mt-1.5 text-[13px] leading-5 text-[#B98A3E] font-semibold">
                 {totalStudents} students across {techCenters.length} tech centers.
               </p>
             </div>
@@ -900,6 +1104,8 @@ export default function StudentsPage() {
           totalStudents={totalStudents}
           sortBy={sortBy}
           setSortBy={setSortBy}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
         />
 
         {/* ====================================================
@@ -907,7 +1113,7 @@ export default function StudentsPage() {
         ==================================================== */}
 
         <div className="mt-4">
-          <CommunityTicker />
+          <CommunityTicker students={allStudents} />
         </div>
 
         {/* ====================================================
@@ -917,9 +1123,9 @@ export default function StudentsPage() {
         <main className="pt-6">
           {/* NO STUDENTS */}
           {!hasStudents && (
-            <div className="border border-dashed border-[#D1D5DB] bg-white py-20 text-center rounded-lg">
+            <div className="border border-dashed border-[#D1D5DB] bg-white py-20 text-center rounded-lg shadow-md">
               <Users className="mx-auto w-10 h-10 text-[#9CA3AF]" strokeWidth={1.6} />
-              <h3 className="mt-4 text-[16px] font-semibold text-[#1A2B4C]">
+              <h3 className="mt-4 text-[16px] font-bold text-[#1A2B4C]">
                 No students yet
               </h3>
               <p className="mt-1.5 text-[13px] text-[#4B5646]">
@@ -932,9 +1138,9 @@ export default function StudentsPage() {
           {hasStudents && hasActiveFilters && (
             <>
               {filteredAllStudents.length === 0 ? (
-                <div className="border border-[#E5E7EB] bg-white py-16 text-center px-6 rounded-lg">
+                <div className="border border-[#E5E7EB] bg-white py-16 text-center px-6 rounded-lg shadow-md">
                   <Search className="mx-auto w-9 h-9 text-[#9CA3AF]" strokeWidth={1.8} />
-                  <h3 className="mt-3 text-[16px] font-semibold text-[#1A2B4C]">
+                  <h3 className="mt-3 text-[16px] font-bold text-[#1A2B4C]">
                     No matching students
                   </h3>
                   <p className="mt-1.5 text-[13px] leading-5 text-[#4B5646]">
@@ -942,22 +1148,36 @@ export default function StudentsPage() {
                   </p>
                   <button
                     onClick={clearFilter}
-                    className="mt-5 h-10 px-5 bg-[#1A2B4C] text-white font-mono text-[11px] uppercase tracking-widest hover:bg-[#2C3E5A] transition-colors rounded"
+                    className="mt-5 h-10 px-5 bg-[#1A2B4C] text-white font-mono text-[11px] uppercase tracking-widest hover:bg-[#2C3E5A] transition-colors rounded font-bold"
                   >
                     Clear Filters
                   </button>
                 </div>
               ) : (
-                <StudentSection
-                  title={
-                    selectedLocation !== 'all'
-                      ? locations.find((loc) => loc.id === selectedLocation)?.name ||
-                        'Filtered Results'
-                      : 'Filtered Results'
-                  }
-                  students={filteredAllStudents}
-                  router={router}
-                />
+                <>
+                  {viewMode === 'grid' ? (
+                    <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                      {filteredAllStudents.map((student, index) => (
+                        <StudentCard
+                          key={student.id}
+                          student={student}
+                          index={index}
+                          router={router}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid gap-3 grid-cols-1 lg:grid-cols-2">
+                      {filteredAllStudents.map((student) => (
+                        <StudentListCard
+                          key={student.id}
+                          student={student}
+                          router={router}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
@@ -973,20 +1193,84 @@ export default function StudentsPage() {
                   const techCenter = techCenters.find(
                     (tc) => tc.name === locationName,
                   );
+                  const hue = getTechCenterHue(locationName);
+                  const previewCount = 3;
+                  const hasMore = studentList.length > previewCount;
+                  const visibleStudents = hasMore ? studentList.slice(0, previewCount) : studentList;
+
                   return (
-                    <StudentSection
-                      key={locationName}
-                      title={locationName}
-                      students={studentList}
-                      router={router}
-                      collapsible
-                      onViewAll={() => {
-                        if (techCenter) {
-                          setSelectedLocation(techCenter.id);
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }
-                      }}
-                    />
+                    <section key={locationName} className="mb-8">
+                      {/* HEADER */}
+                      <header className="mb-4 flex items-center justify-between gap-3 flex-wrap">
+                        <div className="min-w-0 flex items-center gap-2.5">
+                          <span
+                            className="h-4 w-[3px] shrink-0 rounded-full"
+                            style={{ backgroundColor: hue }}
+                          />
+                          <h2 className="text-[16px] font-bold tracking-tight text-[#1A2B4C] truncate">
+                            {locationName}
+                          </h2>
+                          <div className="shrink-0 flex items-center gap-1.5 bg-white px-2.5 py-1 border border-[#E5E7EB] rounded">
+                            <span className="font-mono text-[11px] font-bold text-[#1A2B4C] tabular-nums">
+                              {studentList.length}
+                            </span>
+                            <span className="font-mono text-[9px] uppercase tracking-wider text-[#B98A3E]">
+                              students
+                            </span>
+                          </div>
+                        </div>
+                      </header>
+
+                      {/* CARDS */}
+                      {viewMode === 'grid' ? (
+                        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                          {visibleStudents.map((student, index) => (
+                            <StudentCard
+                              key={student.id}
+                              student={student}
+                              index={index}
+                              router={router}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="grid gap-3 grid-cols-1 lg:grid-cols-2">
+                          {visibleStudents.map((student) => (
+                            <StudentListCard
+                              key={student.id}
+                              student={student}
+                              router={router}
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      {/* VIEW ALL */}
+                      {hasMore && (
+                        <div className="mt-4 flex justify-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (techCenter) {
+                                setSelectedLocation(techCenter.id);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }
+                            }}
+                            className="
+                              inline-flex items-center gap-1.5 h-9 px-4
+                              border border-[#E5E7EB] bg-white
+                              text-[12px] font-bold text-[#1A2B4C]
+                              rounded hover:border-[#B98A3E] hover:bg-[#F7F6F2]
+                              transition-colors
+                              focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] focus-visible:ring-offset-1
+                            "
+                          >
+                            View all {locationName} students
+                            <ChevronRight className="w-3.5 h-3.5" strokeWidth={2.5} />
+                          </button>
+                        </div>
+                      )}
+                    </section>
                   );
                 })}
             </>
@@ -994,12 +1278,12 @@ export default function StudentsPage() {
 
           {/* FOOTER */}
           {hasStudents && (
-            <footer className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border border-[#E5E7EB] bg-white px-4 py-3 rounded-lg">
-              <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[#4B5646]">
+            <footer className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border border-[#E5E7EB] bg-white px-4 py-3 rounded-lg shadow-md">
+              <p className="flex items-center gap-1.5 text-[11px] font-bold text-[#4B5646]">
                 <Users className="w-3.5 h-3.5 text-[#1A2B4C]" strokeWidth={2} />
                 Student Community Directory
               </p>
-              <span className="font-mono text-[11px] font-semibold text-[#1A2B4C] tabular-nums">
+              <span className="font-mono text-[11px] font-bold text-[#B98A3E] tabular-nums">
                 {hasActiveFilters
                   ? `${filteredAllStudents.length} of ${totalStudents} students`
                   : `${totalStudents} students`}
