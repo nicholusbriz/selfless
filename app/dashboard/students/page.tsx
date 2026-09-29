@@ -21,8 +21,6 @@ import { useQuery } from '@tanstack/react-query';
 
 // ============================================================
 // STUDENTS DIRECTORY
-// Clean institutional light theme
-// Enhanced text visibility · no horizontal scroll
 // ============================================================
 
 interface Student {
@@ -61,7 +59,6 @@ type Router = ReturnType<typeof useRouter>;
 
 // ============================================================
 // TECH CENTER HUES
-// Each tech center gets a consistent color dot for wayfinding.
 // ============================================================
 
 const TECH_CENTER_HUES: Record<string, string> = {
@@ -76,7 +73,6 @@ const getTechCenterHue = (name: string | undefined): string => {
   if (!name) return '#9CA3AF';
   if (TECH_CENTER_HUES[name]) return TECH_CENTER_HUES[name];
 
-  // Fallback: deterministic hue from string
   const palette = ['#55705B', '#3E5C76', '#7C3AED', '#B98A3E', '#A4462F', '#0F766E'];
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
@@ -105,31 +101,8 @@ const sortStudents = (students: Student[], sortBy: SortOption): Student[] => {
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
   }
-  // active
   return copy.sort((a, b) => Number(b.isActive) - Number(a.isActive));
 };
-
-// ============================================================
-// SMALL STAT
-// ============================================================
-
-const Stat = ({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) => (
-  <div className="min-w-0">
-    <p className="font-mono text-[10px] uppercase tracking-[0.09em] text-[#B98A3E] font-bold">
-      {label}
-    </p>
-
-    <div className="mt-1 text-[13px] font-bold leading-4 text-[#1A2B4C] break-words">
-      {children}
-    </div>
-  </div>
-);
 
 // ============================================================
 // SEARCH & FILTER
@@ -181,14 +154,14 @@ const SearchFilterBar = ({
                 Search students
               </h2>
             </div>
-            <p className="mt-1 text-[12px] text-[#4B5646]">
+            <p className="mt-1 text-[13px] text-[#4B5646]">
               Find students by name, course, or tech center.
             </p>
           </div>
 
           <div className="relative w-full md:w-[390px] lg:w-[450px] shrink-0">
             <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#6B7280] pointer-events-none"
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B7280] pointer-events-none"
               strokeWidth={2}
             />
             <input
@@ -199,12 +172,12 @@ const SearchFilterBar = ({
               placeholder="Search students, courses..."
               aria-label="Search students"
               className="
-                w-full h-10 pl-9 pr-9
+                w-full h-10 pl-10 pr-9
                 bg-[#F7F6F2]
                 border border-[#E5E7EB] rounded
                 text-[#1A2B4C]
                 placeholder:text-[#9CA3AF]
-                text-[13px] font-semibold
+                text-[14px] font-semibold
                 focus:outline-none
                 focus:bg-white
                 focus:border-[#B98A3E]
@@ -218,7 +191,7 @@ const SearchFilterBar = ({
                 aria-label="Clear search"
                 className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#6B7280] hover:text-[#1A2B4C]"
               >
-                <X className="w-3.5 h-3.5" strokeWidth={2.5} />
+                <X className="w-4 h-4" strokeWidth={2.5} />
               </button>
             )}
           </div>
@@ -228,23 +201,21 @@ const SearchFilterBar = ({
       {/* FILTERS */}
       <div className="border-t border-[#E5E7EB] bg-[#F7F6F2] px-4 py-3 sm:px-5">
         <div className="flex flex-col gap-3">
-          {/* TOP ROW: label + count + sort */}
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 shrink-0">
-              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-[#B98A3E] font-bold">
+              <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-[#B98A3E] font-bold">
                 Tech centers
               </span>
               <span className="inline-flex items-center gap-1 border border-[#E5E7EB] bg-white px-2 py-1 rounded">
-                <Users className="w-3 h-3 text-[#1A2B4C]" strokeWidth={2} />
-                <span className="font-mono text-[11px] font-bold text-[#1A2B4C] tabular-nums">
+                <Users className="w-3.5 h-3.5 text-[#1A2B4C]" strokeWidth={2} />
+                <span className="font-mono text-[12px] font-bold text-[#1A2B4C] tabular-nums">
                   {totalStudents}
                 </span>
               </span>
             </div>
 
-            {/* SORT */}
             <div className="ml-auto flex items-center gap-1.5">
-              <ArrowDownUp className="w-3.5 h-3.5 text-[#B98A3E]" />
+              <ArrowDownUp className="w-4 h-4 text-[#B98A3E]" />
               <label htmlFor="sort-select" className="sr-only">
                 Sort students
               </label>
@@ -253,9 +224,9 @@ const SearchFilterBar = ({
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortOption)}
                 className="
-                  h-8 px-2 pr-7
+                  h-9 px-3 pr-8
                   bg-white border border-[#E5E7EB] rounded
-                  text-[11px] font-bold text-[#1A2B4C]
+                  text-[12px] font-bold text-[#1A2B4C]
                   focus:outline-none focus:border-[#B98A3E]
                   cursor-pointer
                 "
@@ -267,7 +238,6 @@ const SearchFilterBar = ({
             </div>
           </div>
 
-          {/* CHIPS or DROPDOWN */}
           {useDropdown ? (
             <div className="flex items-center gap-2">
               <label htmlFor="tech-center-select" className="sr-only">
@@ -280,7 +250,7 @@ const SearchFilterBar = ({
                 className="
                   w-full h-10 px-3
                   bg-white border border-[#E5E7EB] rounded
-                  text-[12px] font-bold text-[#1A2B4C]
+                  text-[13px] font-bold text-[#1A2B4C]
                   focus:outline-none focus:border-[#B98A3E]
                   cursor-pointer
                 "
@@ -311,7 +281,7 @@ const SearchFilterBar = ({
                 <Users className="w-3.5 h-3.5" strokeWidth={2.2} />
                 <span>All</span>
                 <span
-                  className={`font-mono text-[10px] tabular-nums ${
+                  className={`font-mono text-[11px] tabular-nums ${
                     selectedLocation === 'all' ? 'text-white/80' : 'text-[#6B7280]'
                   }`}
                 >
@@ -340,7 +310,7 @@ const SearchFilterBar = ({
                     />
                     <span className="break-words text-left">{location.name}</span>
                     <span
-                      className={`font-mono text-[10px] tabular-nums ${
+                      className={`font-mono text-[11px] tabular-nums ${
                         isSelected ? 'text-white/80' : 'text-[#6B7280]'
                       }`}
                     >
@@ -352,11 +322,10 @@ const SearchFilterBar = ({
             </div>
           )}
 
-          {/* ACTIVE FILTER */}
           {selectedLocation !== 'all' && (
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] text-[#6B7280]">Showing</span>
-              <span className="inline-flex items-center gap-1.5 border border-[#E5E7EB] bg-white px-2 py-1 text-[11px] font-bold text-[#1A2B4C] rounded">
+              <span className="text-[12px] text-[#6B7280]">Showing</span>
+              <span className="inline-flex items-center gap-1.5 border border-[#E5E7EB] bg-white px-2 py-1 text-[12px] font-bold text-[#1A2B4C] rounded">
                 <span
                   className="w-1.5 h-1.5 rounded-full"
                   style={{ backgroundColor: getTechCenterHue(activeLocation?.name) }}
@@ -367,7 +336,6 @@ const SearchFilterBar = ({
             </div>
           )}
 
-          {/* VIEW MODE TOGGLE */}
           <div className="flex items-center gap-1 border border-[#E5E7EB] bg-white rounded-lg p-1 ml-auto">
             <button
               type="button"
@@ -380,7 +348,7 @@ const SearchFilterBar = ({
               title="Grid view"
             >
               <LayoutGrid className="w-3.5 h-3.5" strokeWidth={2} />
-              <span className="text-[11px] font-semibold">Grid</span>
+              <span className="text-[12px] font-semibold">Grid</span>
             </button>
             <button
               type="button"
@@ -393,7 +361,7 @@ const SearchFilterBar = ({
               title="List view"
             >
               <List className="w-3.5 h-3.5" strokeWidth={2} />
-              <span className="text-[11px] font-semibold">List</span>
+              <span className="text-[12px] font-semibold">List</span>
             </button>
           </div>
         </div>
@@ -403,12 +371,11 @@ const SearchFilterBar = ({
 };
 
 // ============================================================
-// STUDENT CARD (Grid View)
+// STUDENT CARD (Grid View) — restored card design, 2-col desktop
 // ============================================================
 
 const StudentCard = ({
   student,
-  index,
   router,
 }: {
   student: Student;
@@ -432,128 +399,148 @@ const StudentCard = ({
   return (
     <article
       className="
-        group bg-white shadow-lg
+        group bg-white shadow-lg rounded-lg
         overflow-hidden
         transition-all duration-200
         hover:shadow-xl hover:-translate-y-0.5
       "
     >
       <div className="flex h-full">
-        {/* LEFT: User Image - Half Width */}
-        <div className="w-1/2 min-h-[200px] relative bg-[#F7F6F2]">
+        {/* LEFT: User Image */}
+        <div className="w-1/2 min-h-[220px] relative bg-[#F7F6F2]">
           {student.profileImageUrl ? (
             <Image
               src={student.profileImageUrl}
               alt={fullName}
               fill
               className="object-cover"
-              sizes="(max-width: 768px) 50vw, 200px"
+              sizes="(max-width: 768px) 50vw, 300px"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-[#1A2B4C]">
-              <span className="text-white text-[24px] font-mono font-bold">
+              <span className="text-white text-[32px] font-mono font-bold">
                 {initials}
               </span>
             </div>
           )}
 
-          {/* Active Status Indicator */}
           <span
-            className={`absolute top-3 right-3 w-2.5 h-2.5 border-2 border-white rounded-full ${
+            className={`absolute top-3 right-3 w-3 h-3 border-2 border-white rounded-full ${
               student.isActive ? 'bg-[#55705B]' : 'bg-[#9CA3AF]'
             }`}
             title={student.isActive ? 'Active' : 'Inactive'}
           />
         </div>
 
-        {/* RIGHT: Content - Half Width */}
-        <div className="w-1/2 flex flex-col p-3">
+        {/* RIGHT: Content */}
+        <div className="w-1/2 flex flex-col p-4">
           {/* Header */}
-          <div className="mb-2">
+          <div className="mb-3">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="text-[14px] font-bold leading-tight text-[#1A2B4C] break-words flex-1">
+              <h3 className="text-[16px] font-bold leading-tight text-[#1A2B4C] break-words flex-1">
                 {fullName}
               </h3>
-              <span className="text-[9px] text-[#4B5646] shrink-0">
-                {student.role?.name === 'teacher' ? 'Tutor' : student.role?.name || 'Student'}
+              <span className="text-[11px] font-semibold text-[#4B5646] shrink-0 bg-[#F7F6F2] px-2 py-0.5 rounded">
+                {student.role?.name === 'teacher'
+                  ? 'Tutor'
+                  : student.role?.name || 'Student'}
               </span>
             </div>
 
-            <div className="mt-1 flex items-center gap-1.5 text-[9px] text-[#4B5646]">
+            <div className="mt-2 flex items-center gap-1.5 text-[12px] text-[#4B5646]">
               <span
-                className="w-1 h-1 rounded-full shrink-0"
+                className="w-1.5 h-1.5 rounded-full shrink-0"
                 style={{ backgroundColor: hue }}
               />
-              <span className="truncate">
+              <span className="truncate font-medium">
                 {student.techCenter?.name || 'No location'}
+              </span>
+            </div>
+
+            <div className="mt-1 flex items-center gap-2 text-[11px] text-[#6B7280]">
+              <span
+                className={
+                  student.isActive
+                    ? 'text-[#55705B] font-semibold'
+                    : 'text-[#9CA3AF] font-medium'
+                }
+              >
+                {student.isActive ? 'Active' : 'Inactive'}
               </span>
             </div>
           </div>
 
           {/* Stats */}
-          <div className="space-y-1 flex-1 overflow-y-auto">
+          <div className="space-y-3 flex-1 overflow-y-auto">
             <div>
-              <p className="font-mono text-[7px] uppercase tracking-[0.09em] text-[#B98A3E] font-bold">
+              <p className="font-mono text-[10px] uppercase tracking-[0.09em] text-[#B98A3E] font-bold">
                 General Degree Course
               </p>
-              <p className="mt-0.5 text-[9px] font-semibold text-[#1A2B4C] break-words">
+              <p className="mt-1 text-[13px] font-semibold text-[#1A2B4C] break-words leading-5">
                 {student.generalCourse || 'Not specified'}
               </p>
             </div>
 
-
-
             {student.studentCourses?.length > 0 && (
               <div>
-                <p className="flex items-center justify-between gap-1 font-mono text-[7px] uppercase tracking-[0.1em] text-[#B98A3E] font-bold mb-1">
-                  <span className="flex items-center gap-1">
-                    <BookOpen className="w-2 h-2 text-[#B98A3E]" strokeWidth={2.2} />
-                    Course Units taking
+                <p className="flex items-center justify-between gap-1 font-mono text-[10px] uppercase tracking-[0.1em] text-[#B98A3E] font-bold mb-1.5">
+                  <span className="flex items-center gap-1.5">
+                    <BookOpen className="w-3 h-3 text-[#B98A3E]" strokeWidth={2.2} />
+                    Course Units
                   </span>
-                  <span>{totalCredits} credits</span>
+                  <span className="text-[#1A2B4C]">{totalCredits} cr</span>
                 </p>
-                <div className="space-y-0.25">
-                  {student.studentCourses.map((course) => (
-                    <div key={course.id} className="flex items-center justify-between gap-1 px-2 py-0.5">
-                      <span className="text-[8px] font-semibold text-[#1A2B4C] flex-1">
+                <div className="space-y-1">
+                  {student.studentCourses.slice(0, 4).map((course) => (
+                    <div
+                      key={course.id}
+                      className="flex items-center justify-between gap-2"
+                    >
+                      <span className="text-[12px] font-medium text-[#1A2B4C] truncate flex-1">
                         {course.courseUnit}
                       </span>
-                      <span className="shrink-0 font-mono text-[7px] text-[#4B5646] tabular-nums font-bold">
+                      <span className="shrink-0 font-mono text-[11px] text-[#4B5646] tabular-nums font-bold">
                         {course.credits}cr
                       </span>
                     </div>
                   ))}
+                  {student.studentCourses.length > 4 && (
+                    <p className="text-[11px] text-[#6B7280] italic pt-0.5">
+                      +{student.studentCourses.length - 4} more
+                    </p>
+                  )}
                 </div>
               </div>
             )}
           </div>
 
           {/* Action with Joined and Religion */}
-          <div className="mt-2 pt-2 border-t border-[#F3F4F6] flex items-center justify-between">
+          <div className="mt-3 pt-3 border-t border-[#F3F4F6] flex items-center justify-between flex-wrap gap-2">
             <button
               type="button"
               onClick={() => router.push(`/dashboard/students/${student.id}`)}
-              className="inline-flex items-center gap-1 text-[9px] font-bold text-[#B98A3E] transition-colors hover:text-[#1A2B4C] hover:gap-1.5 cursor-pointer"
+              className="inline-flex items-center gap-1 text-[13px] font-bold text-[#B98A3E] transition-colors hover:text-[#1A2B4C] cursor-pointer"
             >
               View Profile
-              <ChevronRight className="w-2.5 h-2.5 transition-transform group-hover:translate-x-0.5" />
+              <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
             </button>
 
-            <div className="flex items-center gap-2">
-              <p className="font-mono text-[7px] text-[#4B5646]">
+            <div className="flex items-center gap-2 text-[11px] text-[#4B5646] font-medium">
+              <span>
                 {new Date(student.createdAt).toLocaleDateString('en-US', {
                   month: 'short',
                   year: 'numeric',
                 })}
-              </p>
+              </span>
               <span className="text-[#D1D5DB]">•</span>
-              <p className="font-mono text-[7px] text-[#4B5646]">
-                Religion: {student.takesReligion === null
+              <span>
+                Religion:{' '}
+                {student.takesReligion === null
                   ? 'N/A'
                   : student.takesReligion
                     ? 'Yes'
                     : 'No'}
-              </p>
+              </span>
             </div>
           </div>
         </div>
@@ -563,7 +550,7 @@ const StudentCard = ({
 };
 
 // ============================================================
-// STUDENT LIST CARD (List View)
+// STUDENT LIST CARD (List View) — enhanced text only
 // ============================================================
 
 const StudentListCard = ({
@@ -589,63 +576,118 @@ const StudentListCard = ({
 
   return (
     <article className="bg-white shadow-md rounded-lg overflow-hidden transition-all duration-200 hover:shadow-lg">
-      <div className="p-2.5">
-        {/* Header Row */}
-        <div className="flex items-start justify-between gap-2 mb-1.5">
-          <div className="flex-1">
-            <h3 className="text-[14px] font-bold text-[#1A2B4C]">
-              {fullName}
-            </h3>
-            <div className="mt-0.75 flex items-center gap-1 text-[9px] text-[#4B5646]">
-              <span
-                className="w-1 h-1 rounded-full shrink-0"
-                style={{ backgroundColor: hue }}
+      <div className="p-4">
+        {/* Header Row: Image + Name + Meta + Stats */}
+        <div className="flex items-start gap-4">
+          {/* Profile Image */}
+          <div className="relative shrink-0">
+            {student.profileImageUrl ? (
+              <Image
+                src={student.profileImageUrl}
+                alt={fullName}
+                width={56}
+                height={56}
+                className="w-14 h-14 object-cover rounded-lg"
               />
-              <span>{student.techCenter?.name || 'No location'}</span>
-              <span className="text-[#D1D5DB]">•</span>
-              <span>{student.role?.name === 'teacher' ? 'Tutor' : student.role?.name || 'Student'}</span>
-              <span className="text-[#D1D5DB]">•</span>
-              <span className={student.isActive ? 'text-[#55705B] font-semibold' : 'text-[#9CA3AF]'}>
-                {student.isActive ? 'Active' : 'Inactive'}
-              </span>
-            </div>
+            ) : (
+              <div className="w-14 h-14 flex items-center justify-center bg-[#1A2B4C] rounded-lg">
+                <span className="text-white text-[16px] font-mono font-bold">
+                  {initials}
+                </span>
+              </div>
+            )}
+
+            <span
+              className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 border-2 border-white rounded-full ${
+                student.isActive ? 'bg-[#55705B]' : 'bg-[#9CA3AF]'
+              }`}
+              title={student.isActive ? 'Active' : 'Inactive'}
+            />
           </div>
 
-          <div className="shrink-0 flex flex-col items-end gap-0.5">
-            <span className="font-mono text-[9px] text-[#B98A3E] font-bold">
-              {student.studentCourses?.length || 0} courses
-            </span>
-            <span className="font-mono text-[9px] text-[#4B5646]">
-              {totalCredits} credits
-            </span>
+          {/* Name + Meta */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="min-w-0">
+                <h3 className="text-[16px] font-bold text-[#1A2B4C] truncate">
+                  {fullName}
+                </h3>
+
+                <div className="mt-1.5 flex items-center flex-wrap gap-x-2 gap-y-1 text-[12px] text-[#4B5646]">
+                  <span className="flex items-center gap-1.5">
+                    <span
+                      className="w-1.5 h-1.5 rounded-full shrink-0"
+                      style={{ backgroundColor: hue }}
+                    />
+                    <span className="font-medium">
+                      {student.techCenter?.name || 'No location'}
+                    </span>
+                  </span>
+
+                  <span className="text-[#D1D5DB]">•</span>
+
+                  <span className="font-medium">
+                    {student.role?.name === 'teacher'
+                      ? 'Tutor'
+                      : student.role?.name || 'Student'}
+                  </span>
+
+                  <span className="text-[#D1D5DB]">•</span>
+
+                  <span
+                    className={
+                      student.isActive
+                        ? 'text-[#55705B] font-semibold'
+                        : 'text-[#9CA3AF] font-medium'
+                    }
+                  >
+                    {student.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Stats right-aligned */}
+              <div className="shrink-0 flex items-center gap-3 text-[12px]">
+                <span className="font-mono text-[#B98A3E] font-bold">
+                  {student.studentCourses?.length || 0} courses
+                </span>
+                <span className="font-mono text-[#4B5646] font-bold">
+                  {totalCredits} cr
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Details */}
-        <div className="mb-1.5 space-y-0.75">
-          <div className="flex items-baseline gap-1">
-            <p className="font-mono text-[7px] uppercase tracking-[0.09em] text-[#B98A3E] font-bold shrink-0">
+        <div className="mt-3 space-y-2">
+          <div className="flex flex-wrap items-baseline gap-2">
+            <p className="font-mono text-[10px] uppercase tracking-[0.09em] text-[#B98A3E] font-bold">
               General Degree Course:
             </p>
-            <p className="text-[9px] font-semibold text-[#1A2B4C]">
+            <p className="text-[13px] font-semibold text-[#1A2B4C]">
               {student.generalCourse || 'Not specified'}
             </p>
           </div>
 
           {student.studentCourses?.length > 0 && (
             <div>
-              <p className="flex items-center gap-0.75 font-mono text-[7px] uppercase tracking-[0.1em] text-[#B98A3E] font-bold mb-0.75">
-                <BookOpen className="w-2 h-2 text-[#B98A3E]" strokeWidth={2.2} />
+              <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-[#B98A3E] font-bold mb-1.5">
+                <BookOpen className="w-3 h-3 text-[#B98A3E]" strokeWidth={2.2} />
                 Course Units taking
               </p>
-              <div className="space-y-0.25">
+
+              <div className="space-y-1">
                 {student.studentCourses.map((course) => (
-                  <div key={course.id} className="flex items-center justify-between gap-0.75 px-2 py-0.5">
-                    <span className="text-[8px] font-semibold text-[#1A2B4C] flex-1">
+                  <div
+                    key={course.id}
+                    className="flex items-center justify-between gap-2"
+                  >
+                    <span className="text-[12px] font-medium text-[#1A2B4C] flex-1 truncate">
                       {course.courseUnit}
                     </span>
-                    <span className="shrink-0 font-mono text-[7px] text-[#4B5646] tabular-nums font-bold">
-                      {course.credits}cr
+                    <span className="shrink-0 font-mono text-[11px] text-[#4B5646] tabular-nums font-bold">
+                      {course.credits} cr
                     </span>
                   </div>
                 ))}
@@ -654,58 +696,33 @@ const StudentListCard = ({
           )}
         </div>
 
-        {/* Action with Joined, Religion, and Profile Image */}
-        <div className="pt-1.5 border-t border-[#F3F4F6] flex items-center justify-between">
+        {/* Action Bar */}
+        <div className="mt-3 pt-3 border-t border-[#F3F4F6] flex items-center justify-between gap-3 flex-wrap">
           <button
             type="button"
             onClick={() => router.push(`/dashboard/students/${student.id}`)}
-            className="inline-flex items-center gap-1 text-[9px] font-bold text-[#B98A3E] transition-colors hover:text-[#1A2B4C] hover:gap-1.5 cursor-pointer"
+            className="inline-flex items-center gap-1 text-[13px] font-bold text-[#B98A3E] transition-colors hover:text-[#1A2B4C] cursor-pointer"
           >
             View Profile
-            <ChevronRight className="w-2.5 h-2.5 transition-transform hover:translate-x-0.5" />
+            <ChevronRight className="w-3.5 h-3.5" />
           </button>
 
-          <div className="flex items-center gap-1.5">
-            <p className="font-mono text-[7px] text-[#4B5646]">
+          <div className="flex items-center gap-2 text-[12px] text-[#4B5646] font-medium">
+            <span>
               {new Date(student.createdAt).toLocaleDateString('en-US', {
                 month: 'short',
                 year: 'numeric',
               })}
-            </p>
+            </span>
             <span className="text-[#D1D5DB]">•</span>
-            <p className="font-mono text-[7px] text-[#4B5646]">
-              Religion: {student.takesReligion === null
+            <span>
+              Religion:{' '}
+              {student.takesReligion === null
                 ? 'N/A'
                 : student.takesReligion
                   ? 'Yes'
                   : 'No'}
-            </p>
-          </div>
-
-          {/* Profile Image */}
-          <div className="relative shrink-0">
-            {student.profileImageUrl ? (
-              <Image
-                src={student.profileImageUrl}
-                alt={fullName}
-                width={28}
-                height={28}
-                className="w-7 h-7 object-cover rounded"
-              />
-            ) : (
-              <div className="w-7 h-7 flex items-center justify-center bg-[#1A2B4C] rounded">
-                <span className="text-white text-[9px] font-mono font-bold">
-                  {initials}
-                </span>
-              </div>
-            )}
-
-            <span
-              className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 border-2 border-white rounded-full ${
-                student.isActive ? 'bg-[#55705B]' : 'bg-[#9CA3AF]'
-              }`}
-              title={student.isActive ? 'Active' : 'Inactive'}
-            />
+            </span>
           </div>
         </div>
       </div>
@@ -714,108 +731,10 @@ const StudentListCard = ({
 };
 
 // ============================================================
-// STUDENT SECTION
-// ============================================================
-
-const StudentSection = ({
-  title,
-  students,
-  router,
-  collapsible = false,
-  onViewAll,
-  viewMode,
-}: {
-  title: string;
-  students: Student[];
-  router: Router;
-  collapsible?: boolean;
-  onViewAll?: () => void;
-  viewMode: 'grid' | 'list';
-}) => {
-  if (students.length === 0) return null;
-
-  const previewCount = 3;
-  const hasMore = collapsible && students.length > previewCount;
-  const visibleStudents = hasMore ? students.slice(0, previewCount) : students;
-  const hue = getTechCenterHue(title);
-
-  return (
-    <section className="mb-8">
-      {/* HEADER */}
-      <header className="mb-4 flex items-center justify-between gap-3 flex-wrap">
-        <div className="min-w-0 flex items-center gap-2.5">
-          <span
-            className="h-4 w-[3px] shrink-0 rounded-full"
-            style={{ backgroundColor: hue }}
-          />
-          <h2 className="text-[16px] font-bold tracking-tight text-[#1A2B4C] truncate">
-            {title}
-          </h2>
-          <div className="shrink-0 flex items-center gap-1.5 bg-white px-2.5 py-1 border border-[#E5E7EB] rounded">
-            <span className="font-mono text-[11px] font-bold text-[#1A2B4C] tabular-nums">
-              {students.length}
-            </span>
-            <span className="font-mono text-[9px] uppercase tracking-wider text-[#B98A3E]">
-              students
-            </span>
-          </div>
-        </div>
-      </header>
-
-      {/* CARDS */}
-      {viewMode === 'grid' ? (
-        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {visibleStudents.map((student, index) => (
-            <StudentCard
-              key={student.id}
-              student={student}
-              index={index}
-              router={router}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="grid gap-3 grid-cols-1 lg:grid-cols-2">
-          {visibleStudents.map((student) => (
-            <StudentListCard
-              key={student.id}
-              student={student}
-              router={router}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* VIEW ALL */}
-      {hasMore && (
-        <div className="mt-4 flex justify-center">
-          <button
-            type="button"
-            onClick={onViewAll}
-            className="
-              inline-flex items-center gap-1.5 h-9 px-4
-              border border-[#E5E7EB] bg-white
-              text-[12px] font-bold text-[#1A2B4C]
-              rounded hover:border-[#B98A3E] hover:bg-[#F7F6F2]
-              transition-colors
-              focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] focus-visible:ring-offset-1
-            "
-          >
-            View all {title} students
-            <ChevronRight className="w-3.5 h-3.5" strokeWidth={2.5} />
-          </button>
-        </div>
-      )}
-    </section>
-  );
-};
-
-// ============================================================
 // COMMUNITY TICKER
 // ============================================================
 
 const CommunityTicker = ({ students }: { students: Student[] }) => {
-  // Only students with a usable profile image are included in the avatar ticker.
   const profileStudents = students.filter(
     (student) =>
       typeof student.profileImageUrl === 'string' &&
@@ -827,7 +746,7 @@ const CommunityTicker = ({ students }: { students: Student[] }) => {
     <div className="overflow-hidden border border-[#E5E7EB] bg-white rounded-lg shadow-md">
       <div className="flex h-14 items-center overflow-hidden">
         <div className="h-full shrink-0 border-r border-[#E5E7EB] bg-[#1A2B4C] px-3 flex items-center">
-          <span className="font-mono text-[9px] uppercase tracking-[0.13em] text-white font-bold">
+          <span className="font-mono text-[10px] uppercase tracking-[0.13em] text-white font-bold">
             Community
           </span>
         </div>
@@ -852,7 +771,7 @@ const CommunityTicker = ({ students }: { students: Student[] }) => {
               ))}
             </div>
           ) : (
-            <p className="px-4 text-[11px] font-medium text-[#6B7268]">
+            <p className="px-4 text-[12px] font-medium text-[#6B7268]">
               Student community
             </p>
           )}
@@ -993,11 +912,11 @@ export default function StudentsPage() {
         <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-6 animate-pulse">
           <div className="h-24 bg-white border border-[#E5E7EB] rounded-lg shadow-md" />
           <div className="mt-4 h-28 bg-white border border-[#E5E7EB] rounded-lg shadow-md" />
-          <div className="mt-6 grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+          <div className="mt-6 grid gap-3 grid-cols-1 lg:grid-cols-2">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
                 key={i}
-                className="h-[360px] bg-white border border-[#E5E7EB] rounded-lg shadow-md"
+                className="h-[220px] bg-white border border-[#E5E7EB] rounded-lg shadow-md"
               />
             ))}
           </div>
@@ -1025,7 +944,7 @@ export default function StudentsPage() {
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-5 h-10 px-5 bg-[#1A2B4C] text-white font-mono text-[11px] uppercase tracking-widest hover:bg-[#2C3E5A] transition-colors rounded font-bold"
+            className="mt-5 h-10 px-5 bg-[#1A2B4C] text-white font-mono text-[12px] uppercase tracking-widest hover:bg-[#2C3E5A] transition-colors rounded font-bold"
           >
             Retry
           </button>
@@ -1053,27 +972,24 @@ export default function StudentsPage() {
       )}
 
       <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 pb-10">
-        {/* ====================================================
-            PAGE HEADER — SIMPLIFIED
-        ==================================================== */}
-
+        {/* HEADER */}
         <header className="pt-6 pb-5">
           <div className="flex flex-wrap items-center gap-1.5 mb-4">
             <Link
               href="/dashboard"
-              className="border border-[#E5E7EB] bg-white px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wide text-[#4B5646] hover:border-[#B98A3E] hover:text-[#1A2B4C] transition-colors rounded font-semibold"
+              className="border border-[#E5E7EB] bg-white px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-wide text-[#4B5646] hover:border-[#B98A3E] hover:text-[#1A2B4C] transition-colors rounded font-semibold"
             >
               Dashboard
             </Link>
             <Link
               href="/dashboard/courses"
-              className="border border-[#E5E7EB] bg-white px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wide text-[#4B5646] hover:border-[#B98A3E] hover:text-[#1A2B4C] transition-colors rounded font-semibold"
+              className="border border-[#E5E7EB] bg-white px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-wide text-[#4B5646] hover:border-[#B98A3E] hover:text-[#1A2B4C] transition-colors rounded font-semibold"
             >
               Courses
             </Link>
             <Link
               href="/dashboard/cleaning"
-              className="border border-[#E5E7EB] bg-white px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wide text-[#4B5646] hover:border-[#B98A3E] hover:text-[#1A2B4C] transition-colors rounded font-semibold"
+              className="border border-[#E5E7EB] bg-white px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-wide text-[#4B5646] hover:border-[#B98A3E] hover:text-[#1A2B4C] transition-colors rounded font-semibold"
             >
               Cleaning
             </Link>
@@ -1084,17 +1000,14 @@ export default function StudentsPage() {
               <h1 className="text-[30px] sm:text-[34px] font-bold tracking-tight text-[#1A2B4C] leading-tight">
                 Students
               </h1>
-              <p className="mt-1.5 text-[13px] leading-5 text-[#B98A3E] font-semibold">
+              <p className="mt-1.5 text-[14px] leading-5 text-[#B98A3E] font-semibold">
                 {totalStudents} students across {techCenters.length} tech centers.
               </p>
             </div>
           </div>
         </header>
 
-        {/* ====================================================
-            SEARCH + FILTER
-        ==================================================== */}
-
+        {/* SEARCH + FILTER */}
         <SearchFilterBar
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
@@ -1108,18 +1021,12 @@ export default function StudentsPage() {
           setViewMode={setViewMode}
         />
 
-        {/* ====================================================
-            TICKER (Moved below search/filter)
-        ==================================================== */}
-
+        {/* TICKER */}
         <div className="mt-4">
           <CommunityTicker students={allStudents} />
         </div>
 
-        {/* ====================================================
-            RESULTS
-        ==================================================== */}
-
+        {/* RESULTS */}
         <main className="pt-6">
           {/* NO STUDENTS */}
           {!hasStudents && (
@@ -1128,7 +1035,7 @@ export default function StudentsPage() {
               <h3 className="mt-4 text-[16px] font-bold text-[#1A2B4C]">
                 No students yet
               </h3>
-              <p className="mt-1.5 text-[13px] text-[#4B5646]">
+              <p className="mt-1.5 text-[14px] text-[#4B5646]">
                 Students will appear here once they register.
               </p>
             </div>
@@ -1143,12 +1050,12 @@ export default function StudentsPage() {
                   <h3 className="mt-3 text-[16px] font-bold text-[#1A2B4C]">
                     No matching students
                   </h3>
-                  <p className="mt-1.5 text-[13px] leading-5 text-[#4B5646]">
+                  <p className="mt-1.5 text-[14px] leading-5 text-[#4B5646]">
                     Try changing your search or location filter.
                   </p>
                   <button
                     onClick={clearFilter}
-                    className="mt-5 h-10 px-5 bg-[#1A2B4C] text-white font-mono text-[11px] uppercase tracking-widest hover:bg-[#2C3E5A] transition-colors rounded font-bold"
+                    className="mt-5 h-10 px-5 bg-[#1A2B4C] text-white font-mono text-[12px] uppercase tracking-widest hover:bg-[#2C3E5A] transition-colors rounded font-bold"
                   >
                     Clear Filters
                   </button>
@@ -1156,7 +1063,7 @@ export default function StudentsPage() {
               ) : (
                 <>
                   {viewMode === 'grid' ? (
-                    <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                    <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
                       {filteredAllStudents.map((student, index) => (
                         <StudentCard
                           key={student.id}
@@ -1167,7 +1074,7 @@ export default function StudentsPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="grid gap-3 grid-cols-1 lg:grid-cols-2">
+                    <div className="grid gap-3 grid-cols-1">
                       {filteredAllStudents.map((student) => (
                         <StudentListCard
                           key={student.id}
@@ -1194,9 +1101,11 @@ export default function StudentsPage() {
                     (tc) => tc.name === locationName,
                   );
                   const hue = getTechCenterHue(locationName);
-                  const previewCount = 3;
+                  const previewCount = 4;
                   const hasMore = studentList.length > previewCount;
-                  const visibleStudents = hasMore ? studentList.slice(0, previewCount) : studentList;
+                  const visibleStudents = hasMore
+                    ? studentList.slice(0, previewCount)
+                    : studentList;
 
                   return (
                     <section key={locationName} className="mb-8">
@@ -1207,14 +1116,14 @@ export default function StudentsPage() {
                             className="h-4 w-[3px] shrink-0 rounded-full"
                             style={{ backgroundColor: hue }}
                           />
-                          <h2 className="text-[16px] font-bold tracking-tight text-[#1A2B4C] truncate">
+                          <h2 className="text-[17px] font-bold tracking-tight text-[#1A2B4C] truncate">
                             {locationName}
                           </h2>
                           <div className="shrink-0 flex items-center gap-1.5 bg-white px-2.5 py-1 border border-[#E5E7EB] rounded">
-                            <span className="font-mono text-[11px] font-bold text-[#1A2B4C] tabular-nums">
+                            <span className="font-mono text-[12px] font-bold text-[#1A2B4C] tabular-nums">
                               {studentList.length}
                             </span>
-                            <span className="font-mono text-[9px] uppercase tracking-wider text-[#B98A3E]">
+                            <span className="font-mono text-[10px] uppercase tracking-wider text-[#B98A3E]">
                               students
                             </span>
                           </div>
@@ -1223,7 +1132,7 @@ export default function StudentsPage() {
 
                       {/* CARDS */}
                       {viewMode === 'grid' ? (
-                        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
                           {visibleStudents.map((student, index) => (
                             <StudentCard
                               key={student.id}
@@ -1234,7 +1143,7 @@ export default function StudentsPage() {
                           ))}
                         </div>
                       ) : (
-                        <div className="grid gap-3 grid-cols-1 lg:grid-cols-2">
+                        <div className="grid gap-3 grid-cols-1">
                           {visibleStudents.map((student) => (
                             <StudentListCard
                               key={student.id}
@@ -1259,14 +1168,14 @@ export default function StudentsPage() {
                             className="
                               inline-flex items-center gap-1.5 h-9 px-4
                               border border-[#E5E7EB] bg-white
-                              text-[12px] font-bold text-[#1A2B4C]
+                              text-[13px] font-bold text-[#1A2B4C]
                               rounded hover:border-[#B98A3E] hover:bg-[#F7F6F2]
                               transition-colors
                               focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] focus-visible:ring-offset-1
                             "
                           >
                             View all {locationName} students
-                            <ChevronRight className="w-3.5 h-3.5" strokeWidth={2.5} />
+                            <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
                           </button>
                         </div>
                       )}
@@ -1279,11 +1188,11 @@ export default function StudentsPage() {
           {/* FOOTER */}
           {hasStudents && (
             <footer className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border border-[#E5E7EB] bg-white px-4 py-3 rounded-lg shadow-md">
-              <p className="flex items-center gap-1.5 text-[11px] font-bold text-[#4B5646]">
-                <Users className="w-3.5 h-3.5 text-[#1A2B4C]" strokeWidth={2} />
+              <p className="flex items-center gap-1.5 text-[13px] font-bold text-[#4B5646]">
+                <Users className="w-4 h-4 text-[#1A2B4C]" strokeWidth={2} />
                 Student Community Directory
               </p>
-              <span className="font-mono text-[11px] font-bold text-[#B98A3E] tabular-nums">
+              <span className="font-mono text-[13px] font-bold text-[#B98A3E] tabular-nums">
                 {hasActiveFilters
                   ? `${filteredAllStudents.length} of ${totalStudents} students`
                   : `${totalStudents} students`}
