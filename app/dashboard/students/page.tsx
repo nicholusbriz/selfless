@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Users,
   Search,
@@ -9,15 +11,17 @@ import {
   BookOpen,
   ArrowUp,
   AlertCircle,
-  Check,
   ChevronRight,
   ArrowDownUp,
   LayoutGrid,
   List,
+  Heart,
+  UserPlus,
+  Loader2,
+  Check,
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
 
 // ============================================================
 // STUDENTS DIRECTORY
@@ -46,6 +50,11 @@ interface Student {
     credits: number;
     status: string;
   }>;
+  followersCount: number;
+  followingCount: number;
+  likesReceivedCount: number;
+  isFollowing?: boolean;
+  isLiked?: boolean;
 }
 
 interface TechCenter {
@@ -85,10 +94,34 @@ const getTechCenterHue = (name: string | undefined): string => {
 // SORT HELPERS
 // ============================================================
 
-type SortOption = 'name' | 'newest' | 'active';
+type SortOption =
+  | 'popularity'
+  | 'name'
+  | 'newest'
+  | 'active'
+  | 'mostFollowed'
+  | 'mostLiked';
+
+const popularityScore = (s: Student): number =>
+  (s.followersCount || 0) * 2 + (s.likesReceivedCount || 0);
 
 const sortStudents = (students: Student[], sortBy: SortOption): Student[] => {
   const copy = [...students];
+
+  if (sortBy === 'popularity') {
+    return copy.sort((a, b) => {
+      const diff = popularityScore(b) - popularityScore(a);
+      if (diff !== 0) return diff;
+      return (
+        b.followersCount - a.followersCount ||
+        b.likesReceivedCount - a.likesReceivedCount ||
+        `${a.firstName} ${a.lastName}`.localeCompare(
+          `${b.firstName} ${b.lastName}`,
+        )
+      );
+    });
+  }
+
   if (sortBy === 'name') {
     return copy.sort((a, b) => {
       const nameA = `${a.firstName} ${a.lastName}`.trim().toLowerCase();
@@ -101,8 +134,152 @@ const sortStudents = (students: Student[], sortBy: SortOption): Student[] => {
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
   }
+  if (sortBy === 'mostFollowed') {
+    return copy.sort((a, b) => b.followersCount - a.followersCount);
+  }
+  if (sortBy === 'mostLiked') {
+    return copy.sort((a, b) => b.likesReceivedCount - a.likesReceivedCount);
+  }
   return copy.sort((a, b) => Number(b.isActive) - Number(a.isActive));
 };
+
+// ============================================================
+// SKELETONS
+// ============================================================
+
+const SkeletonCard = () => (
+  <article className="bg-white shadow-md rounded-lg overflow-hidden animate-pulse">
+    <div className="grid grid-cols-3">
+      {/* Top-left: avatar block */}
+      <div className="bg-[#F7F6F2] aspect-square" />
+      {/* Top-right: info block */}
+      <div className="col-span-2 px-2.5 py-2 space-y-1.5">
+        <div className="h-3 w-3/4 bg-[#E5E7EB] rounded" />
+        <div className="h-2.5 w-1/2 bg-[#F3F4F6] rounded" />
+        <div className="flex items-center gap-2 pt-1">
+          <div className="h-2.5 w-10 bg-[#E5E7EB] rounded" />
+          <div className="h-2.5 w-10 bg-[#F3F4F6] rounded" />
+        </div>
+      </div>
+
+      {/* Bottom: course area */}
+      <div className="col-span-3 px-2.5 py-2 border-t border-[#F3F4F6] space-y-1.5">
+        <div className="h-2.5 w-24 bg-[#F3F4F6] rounded" />
+        <div className="h-3 w-4/5 bg-[#E5E7EB] rounded" />
+        <div className="h-3 w-3/5 bg-[#F3F4F6] rounded" />
+      </div>
+
+      {/* Footer actions */}
+      <div className="col-span-3 px-2.5 py-1.5 border-t border-[#F3F4F6] flex items-center justify-between">
+        <div className="h-3 w-16 bg-[#E5E7EB] rounded" />
+        <div className="flex items-center gap-1">
+          <div className="h-4 w-10 bg-[#F3F4F6] rounded" />
+          <div className="h-4 w-12 bg-[#F3F4F6] rounded" />
+        </div>
+      </div>
+    </div>
+  </article>
+);
+
+const SkeletonListCard = () => (
+  <article className="bg-white shadow-sm rounded-lg overflow-hidden animate-pulse">
+    <div className="px-4 py-3 space-y-2">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 space-y-1.5">
+          <div className="h-3.5 w-40 bg-[#E5E7EB] rounded" />
+          <div className="h-2.5 w-52 bg-[#F3F4F6] rounded" />
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-14 bg-[#E5E7EB] rounded" />
+          <div className="h-3 w-10 bg-[#F3F4F6] rounded" />
+        </div>
+      </div>
+
+      <div className="space-y-1">
+        <div className="h-2.5 w-28 bg-[#F3F4F6] rounded" />
+        <div className="h-3 w-5/6 bg-[#E5E7EB] rounded" />
+      </div>
+
+      <div className="pt-2 border-t border-[#F3F4F6] flex items-center justify-between">
+        <div className="h-3 w-16 bg-[#E5E7EB] rounded" />
+        <div className="flex items-center gap-1.5">
+          <div className="h-4 w-10 bg-[#F3F4F6] rounded" />
+          <div className="h-4 w-12 bg-[#F3F4F6] rounded" />
+        </div>
+      </div>
+    </div>
+  </article>
+);
+
+const SectionHeaderSkeleton = () => (
+  <div className="mb-4 flex items-center gap-2.5 animate-pulse">
+    <span className="h-4 w-[3px] rounded-full bg-[#E5E7EB]" />
+    <div className="h-4 w-40 bg-[#E5E7EB] rounded" />
+    <div className="h-6 w-20 bg-[#F3F4F6] rounded" />
+  </div>
+);
+
+const StudentsGridSkeleton = ({
+  viewMode,
+  count = 6,
+}: {
+  viewMode: 'grid' | 'list';
+  count?: number;
+}) => {
+  if (viewMode === 'grid') {
+    return (
+      <div className="grid gap-3 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: count }).map((_, i) => (
+          <SkeletonCard key={i} />
+        ))}
+      </div>
+    );
+  }
+  return (
+    <div className="grid gap-2 grid-cols-1">
+      {Array.from({ length: count }).map((_, i) => (
+        <SkeletonListCard key={i} />
+      ))}
+    </div>
+  );
+};
+
+const SectionSkeleton = ({ viewMode }: { viewMode: 'grid' | 'list' }) => (
+  <section className="mb-8">
+    <SectionHeaderSkeleton />
+    <StudentsGridSkeleton viewMode={viewMode} count={6} />
+  </section>
+);
+
+const FullPageSkeleton = ({ viewMode }: { viewMode: 'grid' | 'list' }) => (
+  <div className="min-h-screen bg-[#F7F6F2]">
+    <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-6">
+      {/* Header skeleton */}
+      <div className="animate-pulse space-y-3">
+        <div className="flex gap-1.5">
+          <div className="h-7 w-20 bg-white border border-[#E5E7EB] rounded" />
+          <div className="h-7 w-20 bg-white border border-[#E5E7EB] rounded" />
+          <div className="h-7 w-20 bg-white border border-[#E5E7EB] rounded" />
+        </div>
+        <div className="h-8 w-40 bg-white border border-[#E5E7EB] rounded" />
+        <div className="h-4 w-64 bg-white border border-[#E5E7EB] rounded" />
+      </div>
+
+      {/* Search/filter skeleton */}
+      <div className="mt-4 h-24 bg-white border border-[#E5E7EB] rounded-lg shadow-md animate-pulse" />
+
+      {/* Ticker skeleton */}
+      <div className="mt-4 h-14 bg-white border border-[#E5E7EB] rounded-lg shadow-md animate-pulse" />
+
+      {/* Sections skeleton — 3 fake sections */}
+      <div className="pt-6">
+        {[1, 2, 3].map((i) => (
+          <SectionSkeleton key={i} viewMode={viewMode} />
+        ))}
+      </div>
+    </div>
+  </div>
+);
 
 // ============================================================
 // SEARCH & FILTER
@@ -231,9 +408,12 @@ const SearchFilterBar = ({
                   cursor-pointer
                 "
               >
+                <option value="popularity">Sort: Most Popular</option>
                 <option value="name">Sort: Name (A–Z)</option>
                 <option value="newest">Sort: Newest</option>
                 <option value="active">Sort: Recently Active</option>
+                <option value="mostFollowed">Sort: Most Followed</option>
+                <option value="mostLiked">Sort: Most Liked</option>
               </select>
             </div>
           </div>
@@ -371,16 +551,27 @@ const SearchFilterBar = ({
 };
 
 // ============================================================
-// STUDENT CARD (Grid View) — restored card design, 2-col desktop
+// STUDENT CARD (Grid View)
 // ============================================================
 
 const StudentCard = ({
   student,
   router,
+  currentUserId,
+  onFollowToggle,
+  onLikeToggle,
+  isFollowing,
+  isLiked,
+  isFollowLoading,
 }: {
   student: Student;
-  index: number;
   router: Router;
+  currentUserId?: string;
+  onFollowToggle?: (studentId: string) => void;
+  onLikeToggle?: (studentId: string) => void;
+  isFollowing?: boolean;
+  isLiked?: boolean;
+  isFollowLoading?: boolean;
 }) => {
   const getInitials = (firstName: string, lastName: string) =>
     `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
@@ -395,154 +586,171 @@ const StudentCard = ({
   const fullName = `${student.firstName} ${student.lastName}`;
   const totalCredits = getTotalCredits(student);
   const hue = getTechCenterHue(student.techCenter?.name);
+  const isCurrentUser = currentUserId === student.id;
 
   return (
     <article
       className="
-        group bg-white shadow-lg rounded-lg
+        group bg-white shadow-md rounded-lg
         overflow-hidden
         transition-all duration-200
-        hover:shadow-xl hover:-translate-y-0.5
+        hover:shadow-lg hover:-translate-y-0.5
       "
     >
-      <div className="flex h-full">
-        {/* LEFT: User Image */}
-        <div className="w-1/2 min-h-[220px] relative bg-[#F7F6F2]">
+      <div className="grid grid-cols-3">
+        <div className="relative bg-[#F7F6F2] aspect-square">
           {student.profileImageUrl ? (
             <Image
               src={student.profileImageUrl}
               alt={fullName}
               fill
               className="object-cover"
-              sizes="(max-width: 768px) 50vw, 300px"
+              sizes="(max-width: 768px) 33vw, 160px"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-[#1A2B4C]">
-              <span className="text-white text-[32px] font-mono font-bold">
+              <span className="text-white text-[18px] font-mono font-bold">
                 {initials}
               </span>
             </div>
           )}
-
-          <span
-            className={`absolute top-3 right-3 w-3 h-3 border-2 border-white rounded-full ${
-              student.isActive ? 'bg-[#55705B]' : 'bg-[#9CA3AF]'
-            }`}
-            title={student.isActive ? 'Active' : 'Inactive'}
-          />
         </div>
 
-        {/* RIGHT: Content */}
-        <div className="w-1/2 flex flex-col p-4">
-          {/* Header */}
-          <div className="mb-3">
-            <div className="flex items-start justify-between gap-2">
-              <h3 className="text-[16px] font-bold leading-tight text-[#1A2B4C] break-words flex-1">
-                {fullName}
-              </h3>
-              <span className="text-[11px] font-semibold text-[#4B5646] shrink-0 bg-[#F7F6F2] px-2 py-0.5 rounded">
-                {student.role?.name === 'teacher'
-                  ? 'Tutor'
-                  : student.role?.name || 'Student'}
-              </span>
-            </div>
-
-            <div className="mt-2 flex items-center gap-1.5 text-[12px] text-[#4B5646]">
-              <span
-                className="w-1.5 h-1.5 rounded-full shrink-0"
-                style={{ backgroundColor: hue }}
-              />
-              <span className="truncate font-medium">
-                {student.techCenter?.name || 'No location'}
-              </span>
-            </div>
-
-            <div className="mt-1 flex items-center gap-2 text-[11px] text-[#6B7280]">
-              <span
-                className={
-                  student.isActive
-                    ? 'text-[#55705B] font-semibold'
-                    : 'text-[#9CA3AF] font-medium'
-                }
-              >
-                {student.isActive ? 'Active' : 'Inactive'}
-              </span>
-            </div>
+        <div className="col-span-2 px-2.5 py-2 flex flex-col justify-center">
+          <div className="flex items-start justify-between gap-1 mb-1">
+            <h3 className="text-[13px] font-bold leading-tight text-[#1A2B4C] break-words flex-1">
+              {fullName}
+            </h3>
+            <span className="text-[9px] font-semibold text-[#4B5646] shrink-0 bg-[#F7F6F2] px-1 py-0.5 rounded">
+              {student.role?.name === 'teacher'
+                ? 'Tutor'
+                : student.role?.name || 'Student'}
+            </span>
           </div>
 
-          {/* Stats */}
-          <div className="space-y-3 flex-1 overflow-y-auto">
+          <div className="flex items-center gap-1 text-[10px] text-[#4B5646] mb-1.5">
+            <span
+              className="w-1.5 h-1.5 rounded-full shrink-0"
+              style={{ backgroundColor: hue }}
+            />
+            <span className="truncate font-medium">
+              {student.techCenter?.name || 'No location'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2.5 text-[9px]">
+            <div className="flex items-center gap-0.5">
+              <Users className="w-2.5 h-2.5 text-[#B98A3E]" strokeWidth={2.2} />
+              <span className="font-mono font-bold text-[#1A2B4C]">
+                {student.followersCount}
+              </span>
+              <span className="text-[#6B7280] font-medium">followers</span>
+            </div>
+            <div className="flex items-center gap-0.5">
+              <Heart className="w-2.5 h-2.5 text-red-500" strokeWidth={2.2} />
+              <span className="font-mono font-bold text-[#1A2B4C]">
+                {Math.max(0, student.likesReceivedCount)}
+              </span>
+              <span className="text-[#6B7280] font-medium">likes</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-span-3 px-2.5 py-2 border-t border-[#F3F4F6]">
+          <div>
+            <p className="font-mono text-[8px] uppercase tracking-[0.09em] text-[#B98A3E] font-bold mb-0.5">
+              General Degree Course
+            </p>
+            <p className="text-[11px] font-semibold text-[#1A2B4C] break-words leading-4 mb-1.5">
+              {student.generalCourse || 'Not specified'}
+            </p>
+          </div>
+
+          {student.studentCourses?.length > 0 && (
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.09em] text-[#B98A3E] font-bold">
-                General Degree Course
+              <p className="flex items-center justify-between gap-1 font-mono text-[8px] uppercase tracking-[0.1em] text-[#B98A3E] font-bold mb-1">
+                <span className="flex items-center gap-1">
+                  <BookOpen className="w-2.5 h-2.5 text-[#B98A3E]" strokeWidth={2.2} />
+                  Course Units
+                </span>
+                <span className="text-[#1A2B4C]">{totalCredits} cr</span>
               </p>
-              <p className="mt-1 text-[13px] font-semibold text-[#1A2B4C] break-words leading-5">
-                {student.generalCourse || 'Not specified'}
-              </p>
-            </div>
-
-            {student.studentCourses?.length > 0 && (
-              <div>
-                <p className="flex items-center justify-between gap-1 font-mono text-[10px] uppercase tracking-[0.1em] text-[#B98A3E] font-bold mb-1.5">
-                  <span className="flex items-center gap-1.5">
-                    <BookOpen className="w-3 h-3 text-[#B98A3E]" strokeWidth={2.2} />
-                    Course Units
-                  </span>
-                  <span className="text-[#1A2B4C]">{totalCredits} cr</span>
-                </p>
-                <div className="space-y-1">
-                  {student.studentCourses.slice(0, 4).map((course) => (
-                    <div
-                      key={course.id}
-                      className="flex items-center justify-between gap-2"
-                    >
-                      <span className="text-[12px] font-medium text-[#1A2B4C] truncate flex-1">
-                        {course.courseUnit}
-                      </span>
-                      <span className="shrink-0 font-mono text-[11px] text-[#4B5646] tabular-nums font-bold">
-                        {course.credits}cr
-                      </span>
-                    </div>
-                  ))}
-                  {student.studentCourses.length > 4 && (
-                    <p className="text-[11px] text-[#6B7280] italic pt-0.5">
-                      +{student.studentCourses.length - 4} more
-                    </p>
-                  )}
-                </div>
+              <div className="space-y-0.5">
+                {student.studentCourses.map((course) => (
+                  <div
+                    key={course.id}
+                    className="flex items-center justify-between gap-1.5"
+                  >
+                    <span className="text-[10px] font-medium text-[#1A2B4C] break-words flex-1">
+                      {course.courseUnit}
+                    </span>
+                    <span className="shrink-0 font-mono text-[9px] text-[#4B5646] tabular-nums font-bold">
+                      {course.credits}cr
+                    </span>
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
-
-          {/* Action with Joined and Religion */}
-          <div className="mt-3 pt-3 border-t border-[#F3F4F6] flex items-center justify-between flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => router.push(`/dashboard/students/${student.id}`)}
-              className="inline-flex items-center gap-1 text-[13px] font-bold text-[#B98A3E] transition-colors hover:text-[#1A2B4C] cursor-pointer"
-            >
-              View Profile
-              <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
-            </button>
-
-            <div className="flex items-center gap-2 text-[11px] text-[#4B5646] font-medium">
-              <span>
-                {new Date(student.createdAt).toLocaleDateString('en-US', {
-                  month: 'short',
-                  year: 'numeric',
-                })}
-              </span>
-              <span className="text-[#D1D5DB]">•</span>
-              <span>
-                Religion:{' '}
-                {student.takesReligion === null
-                  ? 'N/A'
-                  : student.takesReligion
-                    ? 'Yes'
-                    : 'No'}
-              </span>
             </div>
-          </div>
+          )}
+        </div>
+
+        <div className="col-span-3 px-2.5 py-1.5 border-t border-[#F3F4F6] flex items-center justify-between flex-wrap gap-1">
+          <button
+            type="button"
+            onClick={() => router.push(`/dashboard/students/${student.id}`)}
+            className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#B98A3E] transition-colors hover:text-[#1A2B4C] cursor-pointer"
+          >
+            View Profile
+            <ChevronRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
+          </button>
+
+          {!isCurrentUser && (
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => onLikeToggle?.(student.id)}
+                className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border transition-colors ${
+                  isLiked
+                    ? 'border-red-500 bg-red-50 hover:bg-red-100'
+                    : 'border-[#E5E7EB] bg-white hover:border-[#B98A3E]'
+                }`}
+                title={isLiked ? 'Unlike' : 'Like'}
+              >
+                <Heart
+                  className={`w-3 h-3 ${isLiked ? 'fill-red-500 text-red-500' : 'text-[#6B7280]'}`}
+                  strokeWidth={2}
+                />
+                <span
+                  className={`text-[9px] font-bold ${
+                    isLiked ? 'text-red-600' : 'text-[#1A2B4C]'
+                  }`}
+                >
+                  {isLiked ? 'Liked' : 'Like'}
+                </span>
+              </button>
+
+              {isFollowing ? (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-[#55705B] bg-[#55705B] text-[9px] font-bold text-white">
+                  Following
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onFollowToggle?.(student.id)}
+                  disabled={isFollowLoading}
+                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-[#E5E7EB] bg-white hover:border-[#B98A3E] text-[#1A2B4C] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Follow"
+                >
+                  {isFollowLoading ? (
+                    <Loader2 className="w-3 h-3 animate-spin" strokeWidth={2} />
+                  ) : (
+                    <UserPlus className="w-3 h-3" strokeWidth={2} />
+                  )}
+                  <span className="text-[9px] font-bold">Follow</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </article>
@@ -550,143 +758,106 @@ const StudentCard = ({
 };
 
 // ============================================================
-// STUDENT LIST CARD (List View) — enhanced text only
+// STUDENT LIST CARD (List View)
 // ============================================================
 
 const StudentListCard = ({
   student,
   router,
+  currentUserId,
+  onFollowToggle,
+  onLikeToggle,
+  isFollowing,
+  isLiked,
+  isFollowLoading,
 }: {
   student: Student;
   router: Router;
+  currentUserId?: string;
+  onFollowToggle?: (studentId: string) => void;
+  onLikeToggle?: (studentId: string) => void;
+  isFollowing?: boolean;
+  isLiked?: boolean;
+  isFollowLoading?: boolean;
 }) => {
-  const getInitials = (firstName: string, lastName: string) =>
-    `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-
   const getTotalCredits = (s: Student) =>
     s.studentCourses?.reduce(
       (total, course) => total + (course.credits || 0),
       0,
     ) ?? 0;
 
-  const initials = getInitials(student.firstName, student.lastName);
   const fullName = `${student.firstName} ${student.lastName}`;
   const totalCredits = getTotalCredits(student);
   const hue = getTechCenterHue(student.techCenter?.name);
+  const isCurrentUser = currentUserId === student.id;
 
   return (
-    <article className="bg-white shadow-md rounded-lg overflow-hidden transition-all duration-200 hover:shadow-lg">
-      <div className="p-4">
-        {/* Header Row: Image + Name + Meta + Stats */}
-        <div className="flex items-start gap-4">
-          {/* Profile Image */}
-          <div className="relative shrink-0">
-            {student.profileImageUrl ? (
-              <Image
-                src={student.profileImageUrl}
-                alt={fullName}
-                width={56}
-                height={56}
-                className="w-14 h-14 object-cover rounded-lg"
-              />
-            ) : (
-              <div className="w-14 h-14 flex items-center justify-center bg-[#1A2B4C] rounded-lg">
-                <span className="text-white text-[16px] font-mono font-bold">
-                  {initials}
-                </span>
-              </div>
-            )}
+    <article className="bg-white shadow-sm rounded-lg overflow-hidden transition-all duration-200 hover:shadow-md">
+      <div className="px-4 py-3">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-[15px] font-bold text-[#1A2B4C] truncate">
+              {fullName}
+            </h3>
 
-            <span
-              className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 border-2 border-white rounded-full ${
-                student.isActive ? 'bg-[#55705B]' : 'bg-[#9CA3AF]'
-              }`}
-              title={student.isActive ? 'Active' : 'Inactive'}
-            />
+            <div className="mt-1 flex items-center flex-wrap gap-x-2 gap-y-0.5 text-[12px] text-[#4B5646]">
+              <span className="flex items-center gap-1">
+                <span
+                  className="w-1.5 h-1.5 rounded-full shrink-0"
+                  style={{ backgroundColor: hue }}
+                />
+                <span className="font-medium">
+                  {student.techCenter?.name || 'No location'}
+                </span>
+              </span>
+
+              <span className="text-[#D1D5DB]">•</span>
+
+              <span className="font-medium">
+                {student.role?.name === 'teacher'
+                  ? 'Tutor'
+                  : student.role?.name || 'Student'}
+              </span>
+            </div>
           </div>
 
-          {/* Name + Meta */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-3 flex-wrap">
-              <div className="min-w-0">
-                <h3 className="text-[16px] font-bold text-[#1A2B4C] truncate">
-                  {fullName}
-                </h3>
-
-                <div className="mt-1.5 flex items-center flex-wrap gap-x-2 gap-y-1 text-[12px] text-[#4B5646]">
-                  <span className="flex items-center gap-1.5">
-                    <span
-                      className="w-1.5 h-1.5 rounded-full shrink-0"
-                      style={{ backgroundColor: hue }}
-                    />
-                    <span className="font-medium">
-                      {student.techCenter?.name || 'No location'}
-                    </span>
-                  </span>
-
-                  <span className="text-[#D1D5DB]">•</span>
-
-                  <span className="font-medium">
-                    {student.role?.name === 'teacher'
-                      ? 'Tutor'
-                      : student.role?.name || 'Student'}
-                  </span>
-
-                  <span className="text-[#D1D5DB]">•</span>
-
-                  <span
-                    className={
-                      student.isActive
-                        ? 'text-[#55705B] font-semibold'
-                        : 'text-[#9CA3AF] font-medium'
-                    }
-                  >
-                    {student.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Stats right-aligned */}
-              <div className="shrink-0 flex items-center gap-3 text-[12px]">
-                <span className="font-mono text-[#B98A3E] font-bold">
-                  {student.studentCourses?.length || 0} courses
-                </span>
-                <span className="font-mono text-[#4B5646] font-bold">
-                  {totalCredits} cr
-                </span>
-              </div>
-            </div>
+          <div className="shrink-0 flex items-center gap-3 text-[12px]">
+            <span className="font-mono text-[#B98A3E] font-bold">
+              {student.studentCourses?.length || 0} courses
+            </span>
+            <span className="font-mono text-[#4B5646] font-bold">
+              {totalCredits} cr
+            </span>
           </div>
         </div>
 
-        {/* Details */}
-        <div className="mt-3 space-y-2">
-          <div className="flex flex-wrap items-baseline gap-2">
-            <p className="font-mono text-[10px] uppercase tracking-[0.09em] text-[#B98A3E] font-bold">
+        <div className="mt-2 space-y-1.5">
+          <div className="flex flex-wrap items-baseline gap-1.5">
+            <p className="font-mono text-[9px] uppercase tracking-[0.09em] text-[#B98A3E] font-bold">
               General Degree Course:
             </p>
-            <p className="text-[13px] font-semibold text-[#1A2B4C]">
+            <p className="text-[12px] font-semibold text-[#1A2B4C]">
               {student.generalCourse || 'Not specified'}
             </p>
           </div>
 
           {student.studentCourses?.length > 0 && (
             <div>
-              <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-[#B98A3E] font-bold mb-1.5">
-                <BookOpen className="w-3 h-3 text-[#B98A3E]" strokeWidth={2.2} />
+              <p className="flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.1em] text-[#B98A3E] font-bold mb-1">
+                <BookOpen className="w-2.5 h-2.5 text-[#B98A3E]" strokeWidth={2.2} />
                 Course Units taking
               </p>
 
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {student.studentCourses.map((course) => (
                   <div
                     key={course.id}
                     className="flex items-center justify-between gap-2"
                   >
-                    <span className="text-[12px] font-medium text-[#1A2B4C] flex-1 truncate">
+                    <span className="text-[11px] font-medium text-[#1A2B4C] flex-1 truncate">
                       {course.courseUnit}
                     </span>
-                    <span className="shrink-0 font-mono text-[11px] text-[#4B5646] tabular-nums font-bold">
+                    <span className="shrink-0 font-mono text-[10px] text-[#4B5646] tabular-nums font-bold">
                       {course.credits} cr
                     </span>
                   </div>
@@ -696,34 +867,63 @@ const StudentListCard = ({
           )}
         </div>
 
-        {/* Action Bar */}
-        <div className="mt-3 pt-3 border-t border-[#F3F4F6] flex items-center justify-between gap-3 flex-wrap">
+        <div className="mt-2.5 pt-2.5 border-t border-[#F3F4F6] flex items-center justify-between gap-3 flex-wrap">
           <button
             type="button"
             onClick={() => router.push(`/dashboard/students/${student.id}`)}
-            className="inline-flex items-center gap-1 text-[13px] font-bold text-[#B98A3E] transition-colors hover:text-[#1A2B4C] cursor-pointer"
+            className="inline-flex items-center gap-0.5 text-[12px] font-bold text-[#B98A3E] transition-colors hover:text-[#1A2B4C] cursor-pointer"
           >
             View Profile
-            <ChevronRight className="w-3.5 h-3.5" />
+            <ChevronRight className="w-3 h-3" />
           </button>
 
-          <div className="flex items-center gap-2 text-[12px] text-[#4B5646] font-medium">
-            <span>
-              {new Date(student.createdAt).toLocaleDateString('en-US', {
-                month: 'short',
-                year: 'numeric',
-              })}
-            </span>
-            <span className="text-[#D1D5DB]">•</span>
-            <span>
-              Religion:{' '}
-              {student.takesReligion === null
-                ? 'N/A'
-                : student.takesReligion
-                  ? 'Yes'
-                  : 'No'}
-            </span>
-          </div>
+          {!isCurrentUser && (
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => onLikeToggle?.(student.id)}
+                className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border transition-colors ${
+                  isLiked
+                    ? 'border-red-500 bg-red-50 hover:bg-red-100'
+                    : 'border-[#E5E7EB] bg-white hover:border-[#B98A3E]'
+                }`}
+                title={isLiked ? 'Unlike' : 'Like'}
+              >
+                <Heart
+                  className={`w-3.5 h-3.5 ${isLiked ? 'fill-red-500 text-red-500' : 'text-[#6B7280]'}`}
+                  strokeWidth={2}
+                />
+                <span
+                  className={`text-[10px] font-bold ${
+                    isLiked ? 'text-red-600' : 'text-[#1A2B4C]'
+                  }`}
+                >
+                  {isLiked ? 'Liked' : 'Like'}
+                </span>
+              </button>
+
+              {isFollowing ? (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-[#55705B] bg-[#55705B] text-[10px] font-bold text-white">
+                  Following
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onFollowToggle?.(student.id)}
+                  disabled={isFollowLoading}
+                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-[#E5E7EB] bg-white hover:border-[#B98A3E] text-[#1A2B4C] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Follow"
+                >
+                  {isFollowLoading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2} />
+                  ) : (
+                    <UserPlus className="w-3.5 h-3.5" strokeWidth={2} />
+                  )}
+                  <span className="text-[10px] font-bold">Follow</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </article>
@@ -807,11 +1007,14 @@ const CommunityTicker = ({ students }: { students: Student[] }) => {
 
 export default function StudentsPage() {
   const router = useRouter();
+  const { data: session } = useSession();
+  const queryClient = useQueryClient();
+  const currentUserId = session?.user?.id;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('all');
   const [showBackToTop, setShowBackToTop] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>('name');
+  const [sortBy, setSortBy] = useState<SortOption>('popularity');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   useEffect(() => {
@@ -823,7 +1026,13 @@ export default function StudentsPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const { data, isLoading, error } = useQuery({
+  const {
+    data,
+    isLoading,
+    isFetching,
+    error,
+    refetch: refetchStudents,
+  } = useQuery({
     queryKey: ['students'],
     queryFn: async () => {
       const response = await fetch('/api/students');
@@ -835,8 +1044,9 @@ export default function StudentsPage() {
         totalStudents: number;
       };
     },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 5 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchInterval: 10 * 1000,
   });
 
   const studentsByTechCenter = useMemo(
@@ -902,27 +1112,219 @@ export default function StudentsPage() {
     selectedLocation !== 'all' || Boolean(searchQuery.trim());
   const hasStudents = allStudents.length > 0;
 
+  // Show the full-page skeleton only when we truly have no data yet.
+  // Background refetches (isFetching) do NOT trigger it.
+  const isInitialLoading = isLoading && !data;
+
+  const socialStatus = useMemo(() => {
+    const status: Record<string, { isFollowing: boolean; isLiked: boolean }> = {};
+    allStudents.forEach((student) => {
+      if (student.id !== currentUserId) {
+        status[student.id] = {
+          isFollowing: student.isFollowing || false,
+          isLiked: student.isLiked || false,
+        };
+      }
+    });
+    return status;
+  }, [allStudents, currentUserId]);
+
+  const followMutation = useMutation({
+    mutationFn: async (studentId: string) => {
+      const response = await fetch(`/api/social/follow/${studentId}`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to follow');
+      }
+      return response.json();
+    },
+    onMutate: async (studentId: string) => {
+      await queryClient.cancelQueries({ queryKey: ['students'] });
+      const previousStudents = queryClient.getQueryData(['students']);
+
+      queryClient.setQueryData(['students'], (old: any) => {
+        if (!old) return old;
+        const updateStudent = (students: any[]) =>
+          students.map((student: any) => {
+            if (student.id === studentId) {
+              return {
+                ...student,
+                isFollowing: true,
+                followersCount: student.followersCount + 1,
+              };
+            }
+            if (student.id === currentUserId) {
+              return {
+                ...student,
+                followingCount: student.followingCount + 1,
+              };
+            }
+            return student;
+          });
+
+        return {
+          ...old,
+          studentsByTechCenter: Object.fromEntries(
+            Object.entries(old.studentsByTechCenter).map(
+              ([key, students]: [string, any]) => [key, updateStudent(students)],
+            ),
+          ),
+        };
+      });
+
+      return { previousStudents };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+    },
+    onError: (_err: any, _variables: any, context: any) => {
+      if (context?.previousStudents) {
+        queryClient.setQueryData(['students'], context.previousStudents);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+    },
+  });
+
+  const likeMutation = useMutation({
+    mutationFn: async ({
+      studentId,
+      isLiked,
+    }: {
+      studentId: string;
+      isLiked: boolean;
+    }) => {
+      const response = await fetch(`/api/social/like/${studentId}`, {
+        method: isLiked ? 'DELETE' : 'POST',
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to toggle like');
+      }
+      return response.json();
+    },
+    onMutate: async ({
+      studentId,
+      isLiked,
+    }: {
+      studentId: string;
+      isLiked: boolean;
+    }) => {
+      await queryClient.cancelQueries({ queryKey: ['students'] });
+      const previousStudents = queryClient.getQueryData(['students']);
+
+      queryClient.setQueryData(['students'], (old: any) => {
+        if (!old) return old;
+        const updateStudent = (students: any[]) =>
+          students.map((student: any) => {
+            if (student.id === studentId) {
+              return {
+                ...student,
+                isLiked: !isLiked,
+                likesReceivedCount: isLiked
+                  ? Math.max(0, student.likesReceivedCount - 1)
+                  : student.likesReceivedCount + 1,
+              };
+            }
+            return student;
+          });
+
+        return {
+          ...old,
+          studentsByTechCenter: Object.fromEntries(
+            Object.entries(old.studentsByTechCenter).map(
+              ([key, students]: [string, any]) => [key, updateStudent(students)],
+            ),
+          ),
+        };
+      });
+
+      return { previousStudents };
+    },
+    onSuccess: (
+      data: any,
+      { studentId, isLiked }: { studentId: string; isLiked: boolean },
+    ) => {
+      queryClient.setQueryData(['students'], (old: any) => {
+        if (!old) return old;
+        const updateStudent = (students: any[]) =>
+          students.map((student: any) => {
+            if (student.id === studentId) {
+              return {
+                ...student,
+                isLiked: !isLiked,
+                likesReceivedCount:
+                  data.counts?.likesReceivedCount ?? student.likesReceivedCount,
+              };
+            }
+            return student;
+          });
+
+        return {
+          ...old,
+          studentsByTechCenter: Object.fromEntries(
+            Object.entries(old.studentsByTechCenter).map(
+              ([key, students]: [string, any]) => [key, updateStudent(students)],
+            ),
+          ),
+        };
+      });
+    },
+    onError: (_err: any, _variables: any, context: any) => {
+      if (context?.previousStudents) {
+        queryClient.setQueryData(['students'], context.previousStudents);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+    },
+  });
+
+  const handleFollowToggle = (studentId: string) => {
+    const liveStatus = queryClient.getQueryData<any>(['students']);
+    let isCurrentlyFollowing = false;
+    if (liveStatus?.studentsByTechCenter) {
+      for (const students of Object.values(
+        liveStatus.studentsByTechCenter,
+      ) as any[]) {
+        const found = students.find((s: any) => s.id === studentId);
+        if (found) {
+          isCurrentlyFollowing = found.isFollowing || false;
+          break;
+        }
+      }
+    }
+    if (!isCurrentlyFollowing) {
+      followMutation.mutate(studentId);
+    }
+  };
+
+  const handleLikeToggle = (studentId: string) => {
+    const liveStatus = queryClient.getQueryData<any>(['students']);
+    let isCurrentlyLiked = false;
+    if (liveStatus?.studentsByTechCenter) {
+      for (const students of Object.values(
+        liveStatus.studentsByTechCenter,
+      ) as any[]) {
+        const found = students.find((s: any) => s.id === studentId);
+        if (found) {
+          isCurrentlyLiked = found.isLiked || false;
+          break;
+        }
+      }
+    }
+    likeMutation.mutate({ studentId, isLiked: isCurrentlyLiked });
+  };
+
   /* ==========================================================
-     LOADING
+     INITIAL LOADING (full-page skeleton)
   ========================================================== */
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#F7F6F2]">
-        <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-6 animate-pulse">
-          <div className="h-24 bg-white border border-[#E5E7EB] rounded-lg shadow-md" />
-          <div className="mt-4 h-28 bg-white border border-[#E5E7EB] rounded-lg shadow-md" />
-          <div className="mt-6 grid gap-3 grid-cols-1 lg:grid-cols-2">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div
-                key={i}
-                className="h-[220px] bg-white border border-[#E5E7EB] rounded-lg shadow-md"
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+  if (isInitialLoading) {
+    return <FullPageSkeleton viewMode={viewMode} />;
   }
 
   /* ==========================================================
@@ -956,6 +1358,10 @@ export default function StudentsPage() {
   /* ==========================================================
      PAGE
   ========================================================== */
+
+  // When a background refetch is happening AND we have no students yet,
+  // still show section skeletons instead of the empty state.
+  const showSectionSkeletons = isFetching && !hasStudents;
 
   return (
     <div className="min-h-screen bg-[#F7F6F2]">
@@ -1004,6 +1410,12 @@ export default function StudentsPage() {
                 {totalStudents} students across {techCenters.length} tech centers.
               </p>
             </div>
+            <button
+              onClick={() => refetchStudents()}
+              className="inline-flex items-center gap-1.5 px-3 py-2 border border-[#E5E7EB] bg-white rounded text-[12px] font-bold text-[#1A2B4C] hover:border-[#B98A3E] hover:bg-[#F7F6F2] transition-colors"
+            >
+              Refresh
+            </button>
           </div>
         </header>
 
@@ -1028,8 +1440,17 @@ export default function StudentsPage() {
 
         {/* RESULTS */}
         <main className="pt-6">
+          {/* SKELETON — no students yet but still fetching */}
+          {showSectionSkeletons && (
+            <>
+              {[1, 2, 3].map((i) => (
+                <SectionSkeleton key={i} viewMode={viewMode} />
+              ))}
+            </>
+          )}
+
           {/* NO STUDENTS */}
-          {!hasStudents && (
+          {!showSectionSkeletons && !hasStudents && (
             <div className="border border-dashed border-[#D1D5DB] bg-white py-20 text-center rounded-lg shadow-md">
               <Users className="mx-auto w-10 h-10 text-[#9CA3AF]" strokeWidth={1.6} />
               <h3 className="mt-4 text-[16px] font-bold text-[#1A2B4C]">
@@ -1063,23 +1484,40 @@ export default function StudentsPage() {
               ) : (
                 <>
                   {viewMode === 'grid' ? (
-                    <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-                      {filteredAllStudents.map((student, index) => (
+                    <div className="grid gap-3 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+                      {filteredAllStudents.map((student) => (
                         <StudentCard
                           key={student.id}
                           student={student}
-                          index={index}
                           router={router}
+                          currentUserId={currentUserId}
+                          onFollowToggle={handleFollowToggle}
+                          onLikeToggle={handleLikeToggle}
+                          isFollowing={socialStatus?.[student.id]?.isFollowing}
+                          isLiked={socialStatus?.[student.id]?.isLiked}
+                          isFollowLoading={
+                            followMutation.isPending &&
+                            followMutation.variables === student.id
+                          }
                         />
                       ))}
                     </div>
                   ) : (
-                    <div className="grid gap-3 grid-cols-1">
+                    <div className="grid gap-2 grid-cols-1">
                       {filteredAllStudents.map((student) => (
                         <StudentListCard
                           key={student.id}
                           student={student}
                           router={router}
+                          currentUserId={currentUserId}
+                          onFollowToggle={handleFollowToggle}
+                          onLikeToggle={handleLikeToggle}
+                          isFollowing={socialStatus?.[student.id]?.isFollowing}
+                          isLiked={socialStatus?.[student.id]?.isLiked}
+                          isFollowLoading={
+                            followMutation.isPending &&
+                            followMutation.variables === student.id
+                          }
                         />
                       ))}
                     </div>
@@ -1101,7 +1539,7 @@ export default function StudentsPage() {
                     (tc) => tc.name === locationName,
                   );
                   const hue = getTechCenterHue(locationName);
-                  const previewCount = 4;
+                  const previewCount = 6;
                   const hasMore = studentList.length > previewCount;
                   const visibleStudents = hasMore
                     ? studentList.slice(0, previewCount)
@@ -1109,7 +1547,6 @@ export default function StudentsPage() {
 
                   return (
                     <section key={locationName} className="mb-8">
-                      {/* HEADER */}
                       <header className="mb-4 flex items-center justify-between gap-3 flex-wrap">
                         <div className="min-w-0 flex items-center gap-2.5">
                           <span
@@ -1130,31 +1567,46 @@ export default function StudentsPage() {
                         </div>
                       </header>
 
-                      {/* CARDS */}
                       {viewMode === 'grid' ? (
-                        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-                          {visibleStudents.map((student, index) => (
+                        <div className="grid gap-3 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+                          {visibleStudents.map((student) => (
                             <StudentCard
                               key={student.id}
                               student={student}
-                              index={index}
                               router={router}
+                              currentUserId={currentUserId}
+                              onFollowToggle={handleFollowToggle}
+                              onLikeToggle={handleLikeToggle}
+                              isFollowing={socialStatus?.[student.id]?.isFollowing}
+                              isLiked={socialStatus?.[student.id]?.isLiked}
+                              isFollowLoading={
+                                followMutation.isPending &&
+                                followMutation.variables === student.id
+                              }
                             />
                           ))}
                         </div>
                       ) : (
-                        <div className="grid gap-3 grid-cols-1">
+                        <div className="grid gap-2 grid-cols-1">
                           {visibleStudents.map((student) => (
                             <StudentListCard
                               key={student.id}
                               student={student}
                               router={router}
+                              currentUserId={currentUserId}
+                              onFollowToggle={handleFollowToggle}
+                              onLikeToggle={handleLikeToggle}
+                              isFollowing={socialStatus?.[student.id]?.isFollowing}
+                              isLiked={socialStatus?.[student.id]?.isLiked}
+                              isFollowLoading={
+                                followMutation.isPending &&
+                                followMutation.variables === student.id
+                              }
                             />
                           ))}
                         </div>
                       )}
 
-                      {/* VIEW ALL */}
                       {hasMore && (
                         <div className="mt-4 flex justify-center">
                           <button

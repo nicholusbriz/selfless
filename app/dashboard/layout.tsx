@@ -62,6 +62,7 @@ import {
   User,
   X,
   Grid3x3,
+  UserCheck,
 } from 'lucide-react';
 
 import {
@@ -156,6 +157,13 @@ const sharedNavigation: NavSection[] = [
         label: 'Students',
         path: '/dashboard/students',
         icon: <Users className={iconClass} />,
+        roles: ALL_ROLES,
+      },
+      {
+        id: 'connections',
+        label: 'Connections',
+        path: '/dashboard/connections',
+        icon: <UserCheck className={iconClass} />,
         roles: ALL_ROLES,
       },
       {

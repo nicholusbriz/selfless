@@ -39,6 +39,8 @@ interface StudentWithTechCenter {
     credits: number;
     status: string;
   }>;
+  isFollowing?: boolean;
+  isLiked?: boolean;
 }
 
 interface TechCenterWithCountry {
@@ -52,12 +54,17 @@ interface TechCenterWithCountry {
 // Type for the grouped student (without submittedCourses, with studentCourses)
 type GroupedStudent = Omit<StudentWithTechCenter, 'submittedCourses'> & {
   studentCourses: StudentWithTechCenter['submittedCourses'];
+  followersCount: number;
+  followingCount: number;
+  likesReceivedCount: number;
+  isFollowing?: boolean;
+  isLiked?: boolean;
 };
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     // Get authenticated user
-    await requireAuth();
+    const currentUser = await requireAuth();
 
     // Fetch all tech centers for filter
     const techCenters: TechCenterWithCountry[] = await prisma.techCenter.findMany({
@@ -123,6 +130,42 @@ export async function GET() {
       ]
     });
 
+    // Fetch current user's follows and likes in a single query
+    const [userFollows, userLikes, allFollows, allLikes] = await Promise.all([
+      prisma.follow.findMany({
+        where: { followerId: currentUser.id },
+        select: { followingId: true }
+      }),
+      prisma.like.findMany({
+        where: { likerId: currentUser.id },
+        select: { likedUserId: true }
+      }),
+      prisma.follow.findMany({
+        select: { followerId: true, followingId: true }
+      }),
+      prisma.like.findMany({
+        select: { likerId: true, likedUserId: true }
+      })
+    ]);
+
+    // Create sets for quick lookup
+    const followingIds = new Set(userFollows.map(f => f.followingId));
+    const likedUserIds = new Set(userLikes.map(l => l.likedUserId));
+
+    // Calculate dynamic counts for all users
+    const followerCounts = new Map<string, number>();
+    const followingCounts = new Map<string, number>();
+    const likeCounts = new Map<string, number>();
+
+    allFollows.forEach(follow => {
+      followerCounts.set(follow.followingId, (followerCounts.get(follow.followingId) || 0) + 1);
+      followingCounts.set(follow.followerId, (followingCounts.get(follow.followerId) || 0) + 1);
+    });
+
+    allLikes.forEach(like => {
+      likeCounts.set(like.likedUserId, (likeCounts.get(like.likedUserId) || 0) + 1);
+    });
+
     // Group students by tech center
     const studentsByTechCenter: Record<string, GroupedStudent[]> = {};
     
@@ -145,7 +188,12 @@ export async function GET() {
         status: student.status,
         isActive: student.isActive,
         createdAt: student.createdAt,
-        studentCourses: student.submittedCourses
+        followersCount: followerCounts.get(student.id) || 0,
+        followingCount: followingCounts.get(student.id) || 0,
+        likesReceivedCount: likeCounts.get(student.id) || 0,
+        studentCourses: student.submittedCourses,
+        isFollowing: followingIds.has(student.id),
+        isLiked: likedUserIds.has(student.id)
       });
     });
 
