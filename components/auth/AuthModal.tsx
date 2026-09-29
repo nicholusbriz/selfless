@@ -280,6 +280,7 @@ function LoginForm({
   const [isLoading, setIsLoading] = useState(false);
   const [loginStep, setLoginStep] = useState<string>('');
   const [authMessageIndex, setAuthMessageIndex] = useState(0);
+  const [pendingUser, setPendingUser] = useState<any>(null);
 
   const authMessages = [
     'Authenticating...',
@@ -323,13 +324,16 @@ function LoginForm({
     try {
       const result = await login(email, password);
 
-      if (result?.error) {
-        // Check if error is due to pending approval
-        if (result.error.includes('pending') || result.error.includes('approval')) {
-          setError('Your account is pending admin approval. Please wait for verification before accessing the dashboard.');
-        } else {
-          setError(result.error);
-        }
+      if (result && 'requiresApproval' in result && result.requiresApproval) {
+        // Show the PendingApprovalMessage with the user's details
+        setPendingUser((result as any).user);
+        setIsLoading(false);
+        setLoginStep('');
+        return;
+      }
+
+      if (result && 'error' in result && result.error) {
+        setError((result as any).error);
       } else {
         setLoginStep('Signing in...');
         await new Promise(resolve => setTimeout(resolve, 300));
@@ -360,6 +364,9 @@ function LoginForm({
       transition={{ duration: 0.3 }}
       className="w-full max-w-md mx-auto"
     >
+      {pendingUser ? (
+        <PendingApprovalMessage user={pendingUser} />
+      ) : (
       <div className={cardClassName}>
         <AuthHeader
           title="Welcome Back"
@@ -456,6 +463,7 @@ function LoginForm({
           </button>
         </p>
       </div>
+      )}
     </motion.div>
   );
 }

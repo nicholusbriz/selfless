@@ -35,6 +35,28 @@ export async function POST(req: NextRequest) {
 
     // Handle authentication failure
     if (result.error || !result.user) {
+      // If the account is pending approval, return basic user info so the
+      // client can display the PendingApprovalMessage component with context.
+      if (result.requiresApproval && result.pendingUser) {
+        return NextResponse.json(
+          {
+            error: result.error,
+            requiresApproval: true,
+            user: {
+              firstName: result.pendingUser.firstName,
+              lastName: result.pendingUser.lastName,
+              email: result.pendingUser.email,
+              phoneNumber: result.pendingUser.phoneNumber,
+              techCenter: result.pendingUser.techCenter
+                ? { name: result.pendingUser.techCenter.name, code: result.pendingUser.techCenter.code }
+                : undefined,
+              country: result.pendingUser.country,
+              city: result.pendingUser.city,
+            },
+          },
+          { status: 403 }
+        );
+      }
       return NextResponse.json(
         { error: result.error || 'Login failed' },
         { status: 401 }

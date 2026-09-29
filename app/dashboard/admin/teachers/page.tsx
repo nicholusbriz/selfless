@@ -1084,7 +1084,7 @@ export default function ManageTeachersPage() {
                                               'teacher' && (
                                               <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#12203B]/10 px-2 py-0.5 text-[10px] font-medium text-[#12203B]">
                                                 <GraduationCap size={10} />
-                                                Teacher
+                                                Tutor
                                               </span>
                                             )}
                                           </div>

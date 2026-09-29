@@ -72,7 +72,6 @@ export default withAuth(
         await prisma.activityLog.create({
           data: {
             action: 'page_visit',
-            page: path,
             method: req.method,
             entityType: 'page',
             entityId: path,
@@ -87,6 +86,7 @@ export default withAuth(
             details: {
               referrer: req.headers.get('referer'),
               query: Object.fromEntries(req.nextUrl.searchParams),
+              page: path, // Store page path in details instead
             },
           },
         });

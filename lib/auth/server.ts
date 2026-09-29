@@ -202,6 +202,12 @@ export async function loginUser(email: string, password: string) {
             permissions: true,
           },
         },
+        techCenter: {
+          select: {
+            name: true,
+            code: true,
+          },
+        },
       },
     });
 
@@ -222,7 +228,16 @@ export async function loginUser(email: string, password: string) {
     if (!user.isVerified || user.verificationStatus !== 'APPROVED') {
       return { 
         error: 'Your account is pending admin approval. Please wait for verification before accessing the dashboard.',
-        requiresApproval: true
+        requiresApproval: true,
+        pendingUser: {
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          phoneNumber: user.phoneNumber,
+          country: user.country,
+          city: user.city,
+          techCenter: user.techCenter as { name: string; code: string } | null | undefined,
+        },
       };
     }
 

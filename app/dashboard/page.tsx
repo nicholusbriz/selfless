@@ -54,14 +54,14 @@ const COLORS = {
   inkLight: '#2C3E5A',
   paper: '#F8F9FA',
   surface: '#FFFFFF',
-  surfaceSoft: '#F3F4F6',
+  surfaceSoft: '#F7F6F2',
   surfaceHover: '#F8F9FA',
   line: '#E5E7EB',
   lineStrong: '#D1D5DB',
   muted: '#6B7280',
   mutedLight: '#9CA3AF',
-  brass: '#C59B4C',
-  brassHover: '#B08A3E',
+  brass: '#B98A3E',
+  brassHover: '#E8A33D',
   moss: '#55705B',
   rust: '#A4462F',
   slate: '#3E5C76',
@@ -316,7 +316,7 @@ function MediaLibrary() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center gap-2 rounded-xl border border-[#E5E7EB] bg-white py-12 text-sm text-[#6B7280] shadow-sm">
+      <div className="flex items-center justify-center gap-2 rounded-xl border border-[#E5E7EB] bg-white py-12 text-sm text-[#6B7280] shadow-md">
         <Loader2 className="h-4 w-4 animate-spin" />
         Loading media…
       </div>
@@ -325,7 +325,7 @@ function MediaLibrary() {
 
   if (error) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+      <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow-md">
         {error instanceof Error ? error.message : 'Could not load media'}
       </div>
     );
@@ -333,10 +333,10 @@ function MediaLibrary() {
 
   if (videos.length === 0) {
     return (
-      <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-md">
         <div className="rounded-xl border border-dashed border-[#D1D5DB] bg-white px-6 py-8 text-center">
           <Video className="mx-auto mb-2 h-6 w-6 text-[#9CA3AF]" />
-          <p className="text-xs font-medium text-[#1A2B4C]">
+          <p className="text-xs font-bold text-[#1A2B4C]">
             No videos in the library yet
           </p>
         </div>
@@ -351,13 +351,13 @@ function MediaLibrary() {
               onKeyPress={(e) => e.key === "Enter" && handleRequestSubmit(requestInput)}
               placeholder="Request what you need to watch today..."
               maxLength={30}
-              className="flex-1 h-7 px-2 bg-[#F8F9FA] border border-[#E5E7EB] rounded text-[10px] text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#C59B4C] focus:bg-white transition-colors"
+              className="flex-1 h-7 px-2 bg-[#F7F6F2] border border-[#E5E7EB] rounded text-[10px] text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#B98A3E] focus:bg-white transition-colors font-semibold"
               disabled={isSubmittingRequest}
             />
             <button
               onClick={() => handleRequestSubmit(requestInput)}
               disabled={!requestInput.trim() || isSubmittingRequest}
-              className="inline-flex items-center justify-center gap-1 h-7 px-2 bg-[#C59B4C] text-white text-[9px] font-medium rounded hover:bg-[#B08A3E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center justify-center gap-1 h-7 px-2 bg-[#B98A3E] text-white text-[9px] font-bold rounded hover:bg-[#E8A33D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmittingRequest ? (
                 <div className="w-2.5 h-2.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -369,12 +369,12 @@ function MediaLibrary() {
 
           {/* Recent Requests - Scrollable */}
           {videoRequests.length > 0 && (
-            <div className="bg-[#F8F9FA] rounded border border-[#E5E7EB] p-1.5">
+            <div className="bg-[#F7F6F2] rounded border border-[#E5E7EB] p-1.5">
               <div className="max-h-20 overflow-y-auto space-y-1">
                 {videoRequests.map((item) => (
                   <div key={item.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-[9px] text-[#1A2B4C] border-b border-[#E5E7EB] pb-0.5 last:border-0">
                     <div className="flex items-center gap-1 flex-1 min-w-0 mb-0.5 sm:mb-0">
-                      <span className="font-medium text-[#C59B4C] shrink-0 whitespace-nowrap">
+                      <span className="font-bold text-[#B98A3E] shrink-0 whitespace-nowrap">
                         {item.user.firstName} {item.user.lastName}
                       </span>
                       {item.techCenter && (
@@ -408,7 +408,7 @@ function MediaLibrary() {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-[#0F1923] shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-[#0F1923] shadow-md">
       {/* Player — aspect-video wraps the full flex-col component */}
       <div className="w-full bg-black">
         {current && (
@@ -445,8 +445,8 @@ function MediaLibrary() {
           <div className="border-t border-white/[0.07]">
             {/* Header */}
             <div className="flex items-center gap-2 px-4 py-2 border-b border-white/[0.06]">
-              <Video className="h-3 w-3 text-[#C59B4C] shrink-0" />
-              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#C59B4C]">
+              <Video className="h-3 w-3 text-[#B98A3E] shrink-0" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#B98A3E]">
                 Media Library
               </span>
               <span className="ml-auto text-[10px] text-white/30 tabular-nums">
@@ -467,20 +467,20 @@ function MediaLibrary() {
                       group w-full text-left px-4 py-2 flex items-center gap-3
                       transition-colors duration-150
                       ${isActive
-                        ? "bg-[#C59B4C]/[0.12] border-l-2 border-l-[#C59B4C]"
+                        ? "bg-[#B98A3E]/[0.12] border-l-2 border-l-[#B98A3E]"
                         : "border-l-2 border-l-transparent hover:bg-white/[0.04]"
                       }
                     `}
                   >
                     {/* Track number / playing indicator */}
-                    <span className={`shrink-0 w-5 text-center text-[10px] tabular-nums font-medium ${isActive ? "text-[#C59B4C]" : "text-white/25 group-hover:text-white/50"
+                    <span className={`shrink-0 w-5 text-center text-[10px] tabular-nums font-bold ${isActive ? "text-[#B98A3E]" : "text-white/25 group-hover:text-white/50"
                       }`}>
                       {isActive ? (
                         /* animated bars when active */
                         <span className="inline-flex items-end gap-[2px] h-3">
-                          <span className="w-[2px] bg-[#C59B4C] animate-[equalize_0.8s_ease-in-out_infinite]" style={{ height: "60%" }} />
-                          <span className="w-[2px] bg-[#C59B4C] animate-[equalize_0.8s_ease-in-out_0.2s_infinite]" style={{ height: "100%" }} />
-                          <span className="w-[2px] bg-[#C59B4C] animate-[equalize_0.8s_ease-in-out_0.4s_infinite]" style={{ height: "40%" }} />
+                          <span className="w-[2px] bg-[#B98A3E] animate-[equalize_0.8s_ease-in-out_infinite]" style={{ height: "60%" }} />
+                          <span className="w-[2px] bg-[#B98A3E] animate-[equalize_0.8s_ease-in-out_0.2s_infinite]" style={{ height: "100%" }} />
+                          <span className="w-[2px] bg-[#B98A3E] animate-[equalize_0.8s_ease-in-out_0.4s_infinite]" style={{ height: "40%" }} />
                         </span>
                       ) : (
                         idx + 1
@@ -488,14 +488,14 @@ function MediaLibrary() {
                     </span>
 
                     {/* Title */}
-                    <span className={`flex-1 truncate text-[11px] font-medium ${isActive ? "text-[#C59B4C]" : "text-white/70 group-hover:text-white/90"
+                    <span className={`flex-1 truncate text-[11px] font-bold ${isActive ? "text-[#B98A3E]" : "text-white/70 group-hover:text-white/90"
                       }`}>
                       {item.title}
                     </span>
 
                     {/* Active dot */}
                     {isActive && (
-                      <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-[#C59B4C]" />
+                      <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-[#B98A3E]" />
                     )}
                   </button>
                 );
@@ -515,12 +515,12 @@ function MediaLibrary() {
               placeholder="Request what you need to watch today…"
               maxLength={30}
               disabled={isSubmittingRequest}
-              className="flex-1 h-8 px-3 rounded-lg bg-white/[0.06] border border-white/10 text-[11px] text-white/80 placeholder:text-white/25 focus:outline-none focus:border-[#C59B4C]/60 focus:bg-white/[0.09] transition-colors"
+              className="flex-1 h-8 px-3 rounded-lg bg-white/[0.06] border border-white/10 text-[11px] text-white/80 placeholder:text-white/25 focus:outline-none focus:border-[#B98A3E]/60 focus:bg-white/[0.09] transition-colors font-semibold"
             />
             <button
               onClick={() => handleRequestSubmit(requestInput)}
               disabled={!requestInput.trim() || isSubmittingRequest}
-              className="shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-lg bg-[#C59B4C] text-white hover:bg-[#D4A84F] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-lg bg-[#B98A3E] text-white hover:bg-[#E8A33D] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label="Send request"
             >
               {isSubmittingRequest ? (
@@ -539,7 +539,7 @@ function MediaLibrary() {
                   key={item.id}
                   className="flex items-center gap-1.5 py-1 border-b border-white/[0.05] last:border-0"
                 >
-                  <span className="shrink-0 text-[10px] font-semibold text-[#C59B4C] whitespace-nowrap">
+                  <span className="shrink-0 text-[10px] font-bold text-[#B98A3E] whitespace-nowrap">
                     {item.user.firstName} {item.user.lastName}
                   </span>
                   {item.techCenter && (
@@ -1136,7 +1136,7 @@ export default function DashboardPage() {
           transition={{ duration: 0.4, delay: 0.25 }}
           className="mt-6"
         >
-          <div className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3.5 shadow-sm sm:px-5">
+          <div className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3.5 shadow-md sm:px-5">
             {/* Selfless logo */}
             <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg">
               <Image
@@ -1149,7 +1149,7 @@ export default function DashboardPage() {
               />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-[#C59B4C] mb-1">
+              <p className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-[#B98A3E] mb-1">
                 Today&apos;s Focus
               </p>
               <div className="relative h-5 overflow-hidden">
@@ -1160,7 +1160,7 @@ export default function DashboardPage() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -8 }}
                     transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                    className="text-[13px] font-medium text-[#1A2B4C] leading-snug"
+                    className="text-[13px] font-bold text-[#1A2B4C] leading-snug"
                   >
                     {motivationMessages[messageIndex]}
                   </motion.p>
@@ -1178,8 +1178,8 @@ export default function DashboardPage() {
           className="mt-6"
         >
           <div className="flex items-center gap-2 mb-3">
-            <Video className="h-4 w-4 text-[#C59B4C]" />
-            <h2 className="font-mono text-xs uppercase tracking-[0.15em] text-[#6B7280]">
+            <Video className="h-4 w-4 text-[#B98A3E]" />
+            <h2 className="font-mono text-xs uppercase tracking-[0.15em] text-[#B98A3E] font-bold">
               Media Library
             </h2>
           </div>
@@ -1194,8 +1194,8 @@ export default function DashboardPage() {
           className="mt-6"
         >
           <div className="flex items-center gap-2 mb-3">
-            <div className="h-1.5 w-1.5 rounded-full bg-[#C59B4C]" />
-            <h2 className="font-mono text-xs uppercase tracking-[0.15em] text-[#6B7280]">
+            <div className="h-1.5 w-1.5 rounded-full bg-[#B98A3E]" />
+            <h2 className="font-mono text-xs uppercase tracking-[0.15em] text-[#B98A3E] font-bold">
               Quick Access
             </h2>
           </div>
@@ -1209,17 +1209,17 @@ export default function DashboardPage() {
                 transition={{ delay: 0.3 + idx * 0.05 }}
                 whileHover={{
                   y: -2,
-                  boxShadow: '0 8px 20px rgba(26,43,76,0.06)',
+                  boxShadow: '0 8px 20px rgba(26,43,76,0.12)',
                 }}
                 whileTap={{ scale: 0.98 }}
                 type="button"
                 onClick={() => router.push(link.path)}
-                className="group flex flex-col items-center gap-2.5 rounded-xl border border-[#E5E7EB] bg-white p-4 transition-all duration-200 hover:border-[#C59B4C]/40"
+                className="group flex flex-col items-center gap-2.5 rounded-xl border border-[#E5E7EB] bg-white p-4 transition-all duration-200 hover:border-[#B98A3E]/40 shadow-sm"
               >
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F8F9FA] text-[#1A2B4C] transition-colors group-hover:bg-[#C59B4C]/10 group-hover:text-[#C59B4C]">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F7F6F2] text-[#1A2B4C] transition-colors group-hover:bg-[#B98A3E]/10 group-hover:text-[#B98A3E]">
                   {link.icon}
                 </span>
-                <span className="text-xs font-semibold text-[#1A2B4C] text-center">
+                <span className="text-xs font-bold text-[#1A2B4C] text-center">
                   {link.label}
                 </span>
                 <span className="text-[10px] text-[#9CA3AF] text-center leading-tight">
@@ -1505,7 +1505,7 @@ export default function DashboardPage() {
                 </h2>
               </div>
 
-              <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-sm max-h-[300px] overflow-y-auto">
+              <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-md max-h-[300px] overflow-y-auto">
                 {recentActivity.map((item, index) => {
                   const meta = getActivityMeta(item.action);
                   return (
@@ -1593,10 +1593,10 @@ export default function DashboardPage() {
                 whileTap={{ scale: 0.98 }}
                 type="button"
                 onClick={() => router.push(item.path)}
-                className="flex flex-col items-center gap-2.5 rounded-xl border border-[#E5E7EB] bg-white p-4 transition-all hover:border-[#C59B4C]/40"
+                className="flex flex-col items-center gap-2.5 rounded-xl border border-[#E5E7EB] bg-white p-4 transition-all hover:border-[#B98A3E]/40 shadow-sm"
               >
                 <span
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F8F9FA]"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F7F6F2]"
                   style={{ color: item.color }}
                 >
                   {item.icon}

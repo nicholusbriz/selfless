@@ -55,9 +55,9 @@ export function GlobalOnlineUsersPopup({
       className={cn(
         'fixed z-[100]',
         // Mobile - pushed further left
-        'top-2 left-[30%] -translate-x-1/2 w-auto',
+        'top-2 left-[35%] -translate-x-1/2 w-auto',
         // Desktop
-        'sm:top-3 sm:left-1/2 sm:-translate-x-1/2 sm:w-auto'
+        'sm:top-3 sm:left-[55%] sm:-translate-x-1/2 sm:w-auto'
       )}
     >
       <AnimatePresence mode="wait">
@@ -103,7 +103,7 @@ export function GlobalOnlineUsersPopup({
           {/* Text Block - 3 rows max */}
           <div className="min-w-0 flex flex-col leading-tight">
             {/* Row 1: Full Name (no break, no truncate) */}
-            <p className="text-[9px] font-semibold text-[#12203B] whitespace-nowrap">
+            <p className="text-[9px] font-bold text-[#B98A3E] whitespace-nowrap">
               {displayName}
             </p>
 
