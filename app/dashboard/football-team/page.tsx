@@ -117,7 +117,7 @@ const roles: Record<TeamRole, RoleConfig> = {
 
 // Solid, non-gradient role colors for badges (light theme)
 const roleBadgeStyles: Record<string, { bg: string; text: string; border: string }> = {
-  PLAYER: { bg: "bg-emerald-500", text: "text-white", border: "border-emerald-600" },
+  PLAYER: { bg: "bg-emerald-500", text: "text-white", border: "border-[#55705B]" },
   COACH: { bg: "bg-amber-500", text: "text-white", border: "border-amber-600" },
   KIT_MANAGER: { bg: "bg-orange-500", text: "text-white", border: "border-orange-600" },
   CHEERLEADER: { bg: "bg-pink-500", text: "text-white", border: "border-pink-600" },
@@ -409,7 +409,7 @@ function PlayerAvatar({
           loading="lazy"
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center bg-emerald-50 text-emerald-700 font-black">
+        <div className="flex h-full w-full items-center justify-center bg-emerald-50 text-[#55705B] font-black">
           {initials(member.user.firstName, member.user.lastName)}
         </div>
       )}
@@ -875,9 +875,9 @@ export default function FootballTeamPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 text-slate-700 p-6 flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-[#F1F1EC] text-[#12203B] p-6 flex flex-col items-center justify-center">
         <div className="flex items-center gap-3">
-          <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+          <Loader2 className="h-6 w-6 animate-spin text-[#55705B]" />
           <span className="text-sm font-bold tracking-wider uppercase text-slate-700">
             Loading {sport.name} Squad...
           </span>
@@ -888,7 +888,7 @@ export default function FootballTeamPage() {
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6 text-slate-900">
+      <div className="flex min-h-screen items-center justify-center bg-[#F1F1EC] p-6 text-[#12203B]">
         <div className="max-w-md rounded-2xl border border-red-200 bg-white p-8 text-center shadow-xl">
           <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-xl bg-red-50 text-red-600 border border-red-200">
             <X className="h-6 w-6" />
@@ -909,28 +909,28 @@ export default function FootballTeamPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900 selection:bg-amber-200 selection:text-slate-900">
+    <main className="min-h-screen bg-[#F1F1EC] text-[#12203B] selection:bg-amber-200 selection:text-[#12203B]">
       {/* Top Club Header Banner */}
-      <header className="border-b border-slate-200 bg-white">
+      <header className="border-b border-[#DADCD3] bg-white">
         <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
               <button
                 onClick={() => router.back()}
                 aria-label="Back"
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-emerald-700 transition hover:bg-slate-50 hover:text-slate-900"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-[#55705B] transition hover:bg-slate-50 hover:text-slate-900"
               >
                 <ArrowLeft className="h-4 w-4" />
               </button>
 
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-500 text-slate-900 font-black shadow-sm">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#12203B] text-[#E8A33D] font-black shadow-sm">
                 <Shield className="h-5 w-5 fill-current" />
               </div>
 
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="truncate text-base font-black tracking-wider text-slate-900">SELFLESS FC</span>
-                  <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-emerald-700 border border-slate-200">
+                  <span className="truncate text-base font-black tracking-wider text-slate-900">FREEDOM FC</span>
+                  <span className="rounded bg-[#F7F6F2] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#55705B] border border-[#DADCD3]">
                     Official Hub
                   </span>
                 </div>
@@ -942,13 +942,13 @@ export default function FootballTeamPage() {
 
             <button
               onClick={() => setShowProfileModal(true)}
-              className="flex shrink-0 items-center gap-2.5 rounded-full border border-slate-200 bg-white py-1 pl-1.5 pr-3 transition hover:border-emerald-600 hover:bg-slate-50"
+              className="flex shrink-0 items-center gap-2.5 rounded-full border border-slate-200 bg-white py-1 pl-1.5 pr-3 transition hover:border-[#55705B] hover:bg-[#F7F6F2]"
             >
               <div className="h-7 w-7 overflow-hidden rounded-full bg-slate-100 border border-slate-200">
                 {user?.profileImageUrl ? (
                   <img src={user.profileImageUrl} alt="User" className="h-full w-full object-cover" />
                 ) : (
-                  <div className="grid h-full w-full place-items-center text-emerald-700">
+                  <div className="grid h-full w-full place-items-center text-[#55705B]">
                     <User className="h-3.5 w-3.5" />
                   </div>
                 )}
@@ -962,7 +962,7 @@ export default function FootballTeamPage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8 space-y-6">
         {/* Sport Switcher Tabs */}
         <nav className="flex flex-wrap items-center gap-1.5 text-xs border-b border-slate-200 pb-2">
           {(Object.entries(sports) as [SportType, SportConfig][]).map(([key, cfg]) => {
@@ -974,13 +974,13 @@ export default function FootballTeamPage() {
                 onClick={() => changeSport(key)}
                 className={`relative flex items-center gap-2 rounded-lg px-3.5 py-2 font-bold transition ${
                   active
-                    ? "bg-slate-100 text-emerald-700 border border-slate-200 shadow-sm"
+                    ? "bg-[#12203B] text-white border border-[#12203B] shadow-sm"
                     : "text-slate-500 hover:text-slate-700 hover:bg-white"
                 }`}
               >
                 <Icon className="h-3.5 w-3.5" />
                 <span>{cfg.name}</span>
-                {active && <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />}
+                {active && <span className="h-1.5 w-1.5 rounded-full bg-[#E8A33D]" />}
               </button>
             );
           })}
@@ -988,7 +988,7 @@ export default function FootballTeamPage() {
 
         {/* Squad size warning */}
         {showSquadWarning && (
-          <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <div className="flex items-start gap-3 rounded-xl border border-[#E8A33D]/40 bg-[#FFF8E8] p-4">
             <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-bold text-amber-900">
@@ -1004,16 +1004,16 @@ export default function FootballTeamPage() {
 
         {/* Club Squad Metrics Bar */}
         <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm">
+          <div className="rounded-xl border border-[#DADCD3] bg-white p-3.5 shadow-[0_8px_24px_rgba(18,32,59,0.05)]">
             <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
               <span>Total Roster</span>
-              <Users className="h-3.5 w-3.5 text-emerald-600" />
+              <Users className="h-3.5 w-3.5 text-[#55705B]" />
             </div>
             <p className="mt-1 text-2xl font-black tracking-tight text-slate-900">{totalMembers}</p>
             <p className="mt-0.5 text-[10px] text-slate-500 font-semibold">Registered squad</p>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm">
+          <div className="rounded-xl border border-[#DADCD3] bg-white p-3.5 shadow-[0_8px_24px_rgba(18,32,59,0.05)]">
             <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
               <span>Field Players</span>
               <Shirt className="h-3.5 w-3.5 text-blue-500" />
@@ -1022,7 +1022,7 @@ export default function FootballTeamPage() {
             <p className="mt-0.5 text-[10px] text-slate-500 font-semibold">Ready for selection</p>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm">
+          <div className="rounded-xl border border-[#DADCD3] bg-white p-3.5 shadow-[0_8px_24px_rgba(18,32,59,0.05)]">
             <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
               <span>Technical Staff</span>
               <Crown className="h-3.5 w-3.5 text-amber-500" />
@@ -1031,10 +1031,10 @@ export default function FootballTeamPage() {
             <p className="mt-0.5 text-[10px] text-slate-500 font-semibold">Coaches & Managers</p>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm">
+          <div className="rounded-xl border border-[#DADCD3] bg-white p-3.5 shadow-[0_8px_24px_rgba(18,32,59,0.05)]">
             <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
               <span>Active Status</span>
-              <UserCheck className="h-3.5 w-3.5 text-emerald-600" />
+              <UserCheck className="h-3.5 w-3.5 text-[#55705B]" />
             </div>
             <p className="mt-1 text-2xl font-black tracking-tight text-slate-900">{activeCount}</p>
             <p className="mt-0.5 text-[10px] text-slate-500 font-semibold">Confirmed match-ready</p>
@@ -1047,7 +1047,7 @@ export default function FootballTeamPage() {
             <div className="rounded-xl border border-slate-200 bg-white p-4 text-slate-700 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="grid h-10 w-10 place-items-center rounded-xl bg-slate-100 border border-slate-200 text-emerald-700 font-mono font-black text-base">
+                  <div className="grid h-10 w-10 place-items-center rounded-xl bg-slate-100 border border-slate-200 text-[#55705B] font-mono font-black text-base">
                     #{currentUserMembership.jerseyNumber ?? "—"}
                   </div>
                   <div>
@@ -1069,7 +1069,7 @@ export default function FootballTeamPage() {
                       onClick={handleEditMembership}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
                     >
-                      <UserCog className="h-3.5 w-3.5 text-emerald-600" /> Edit Role
+                      <UserCog className="h-3.5 w-3.5 text-[#55705B]" /> Edit Role
                     </button>
                     <button
                       onClick={() => handleLeaveTeam(currentUserMembership.id)}
@@ -1092,7 +1092,7 @@ export default function FootballTeamPage() {
                       value={editJerseyNumber}
                       onChange={(e) => setEditJerseyNumber(e.target.value)}
                       placeholder="e.g. 10"
-                      className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-600"
+                      className="mt-1 w-full rounded-lg border border-slate-200 bg-[#F7F6F2] px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#55705B] focus:ring-2 focus:ring-[#55705B]/10"
                     />
                   </div>
                   <div>
@@ -1100,7 +1100,7 @@ export default function FootballTeamPage() {
                     <select
                       value={editPosition}
                       onChange={(e) => setEditPosition(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-600"
+                      className="mt-1 w-full rounded-lg border border-slate-200 bg-[#F7F6F2] px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#55705B] focus:ring-2 focus:ring-[#55705B]/10"
                     >
                       {sport.positions.map((p) => (
                         <option key={p} value={p}>
@@ -1142,7 +1142,7 @@ export default function FootballTeamPage() {
                   <p className="text-xs text-slate-500">Register your jersey number and position</p>
                 </div>
               </div>
-              <ChevronRight className="h-5 w-5 text-emerald-600" />
+              <ChevronRight className="h-5 w-5 text-[#55705B]" />
             </button>
           )}
         </section>
@@ -1176,7 +1176,7 @@ export default function FootballTeamPage() {
                     <select
                       value={selectedRole}
                       onChange={(e) => setSelectedRole(e.target.value as TeamRole)}
-                      className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-600"
+                      className="mt-1 w-full rounded-lg border border-slate-200 bg-[#F7F6F2] px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#55705B] focus:ring-2 focus:ring-[#55705B]/10"
                     >
                       {(Object.entries(roles) as [TeamRole, RoleConfig][]).map(([k, cfg]) => (
                         <option key={k} value={k}>
@@ -1194,7 +1194,7 @@ export default function FootballTeamPage() {
                       value={jerseyNumber}
                       onChange={(e) => setJerseyNumber(e.target.value)}
                       placeholder="e.g. 7"
-                      className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-600"
+                      className="mt-1 w-full rounded-lg border border-slate-200 bg-[#F7F6F2] px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#55705B] focus:ring-2 focus:ring-[#55705B]/10"
                     />
                   </div>
                   <div>
@@ -1202,7 +1202,7 @@ export default function FootballTeamPage() {
                     <select
                       value={position}
                       onChange={(e) => setPosition(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-600"
+                      className="mt-1 w-full rounded-lg border border-slate-200 bg-[#F7F6F2] px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#55705B] focus:ring-2 focus:ring-[#55705B]/10"
                     >
                       <option value="">Select Position</option>
                       {sport.positions.map((p) => (
@@ -1302,7 +1302,7 @@ export default function FootballTeamPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search player name, position, or jersey #..."
-                className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs text-slate-900 placeholder-slate-400 outline-none transition focus:border-emerald-600 shadow-sm"
+                className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs text-slate-900 placeholder-slate-400 outline-none transition focus:border-[#55705B] focus:ring-2 focus:ring-[#55705B]/10 shadow-sm"
               />
             </div>
 
@@ -1310,7 +1310,7 @@ export default function FootballTeamPage() {
               <select
                 value={positionFilter}
                 onChange={(e) => setPositionFilter(e.target.value)}
-                className="w-full sm:w-48 appearance-none rounded-lg border border-slate-200 bg-white py-2 pl-3 pr-8 text-xs font-bold text-slate-700 outline-none focus:border-emerald-600 shadow-sm"
+                className="w-full sm:w-48 appearance-none rounded-lg border border-slate-200 bg-white py-2 pl-3 pr-8 text-xs font-bold text-slate-700 outline-none focus:border-[#55705B] focus:ring-2 focus:ring-[#55705B]/10 shadow-sm"
               >
                 {positionOptions.map((p) => (
                   <option key={p} value={p}>
@@ -1326,7 +1326,7 @@ export default function FootballTeamPage() {
               <select
                 value={formationKey}
                 onChange={(e) => setFormationKey(e.target.value)}
-                className="w-full sm:w-48 appearance-none rounded-lg border border-slate-200 bg-slate-50 py-2 pl-3 pr-8 text-xs font-bold text-emerald-700 outline-none shadow-sm"
+                className="w-full sm:w-48 appearance-none rounded-lg border border-slate-200 bg-[#F7F6F2] py-2 pl-3 pr-8 text-xs font-bold text-[#55705B] outline-none focus:border-[#55705B] focus:ring-2 focus:ring-[#55705B]/10 shadow-sm"
               >
                 {Object.entries(formationsBySport[selectedSport]).map(([key, f]) => (
                   <option key={key} value={key}>
@@ -1334,7 +1334,7 @@ export default function FootballTeamPage() {
                   </option>
                 ))}
               </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-emerald-700" />
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#55705B]" />
             </div>
           </div>
         </section>
@@ -1342,8 +1342,8 @@ export default function FootballTeamPage() {
         {/* FORMATION / LINEUP VIEW — all sports */}
         <section id="formation-section" className="mt-8 space-y-4">
           <div className="flex items-center gap-2 mb-4">
-            <span className="h-1 w-7 rounded-full bg-emerald-500" />
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">
+            <span className="h-1 w-7 rounded-full bg-[#E8A33D]" />
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#55705B]">
               {selectedSport === "FOOTBALL"
                 ? "Team formation"
                 : selectedSport === "VOLLEYBALL"
@@ -1357,13 +1357,13 @@ export default function FootballTeamPage() {
           </div>
 
           <div
-            className={`relative overflow-hidden rounded-2xl border-4 shadow-xl ${courtBg[selectedSport]}`}
+            className={`relative overflow-hidden rounded-2xl border-4 shadow-[0_20px_55px_rgba(18,32,59,0.16)] ${courtBg[selectedSport]}`}
           >
             <div className="absolute inset-0" />
             <CourtMarkings sport={selectedSport} />
 
             {/* Starting lineup — same layout engine across sports */}
-            <div className="relative z-10 flex min-h-[660px] flex-col justify-between pt-8 pb-28 px-4 sm:px-8 sm:min-h-[740px] sm:pb-32">
+            <div className="relative z-10 flex min-h-[660px] flex-col justify-between pt-8 pb-28 px-3 sm:px-8 sm:min-h-[740px] sm:pb-32">
               {tacticalLineup.linesWithPlayers.map((line, lineIdx) => (
                 <div key={`${line.label}-${lineIdx}`} className="w-full">
                   <div className="flex justify-around items-center gap-2">
@@ -1419,7 +1419,7 @@ export default function FootballTeamPage() {
                                   className="h-full w-full object-cover"
                                 />
                               ) : (
-                                <div className="flex h-full w-full items-center justify-center font-black text-xs text-emerald-700 bg-emerald-50">
+                                <div className="flex h-full w-full items-center justify-center font-black text-xs text-[#55705B] bg-emerald-50">
                                   {initials(member.user.firstName, member.user.lastName)}
                                 </div>
                               )}
@@ -1430,11 +1430,11 @@ export default function FootballTeamPage() {
                             </span>
                           </div>
 
-                          <div className="rounded bg-black/70 px-2 py-0.5 backdrop-blur-sm border border-white/10 max-w-[90px] sm:max-w-[110px] truncate shadow">
-                            <p className="text-[10px] sm:text-xs font-black text-white leading-tight truncate">
+                          <div className="rounded bg-black/70 px-2 py-0.5 backdrop-blur-sm border border-white/10 max-w-[110px] sm:max-w-[145px] shadow">
+                            <p className="text-[10px] sm:text-xs font-black text-white leading-tight whitespace-normal break-words">
                               {member.user.lastName || member.user.firstName}
                             </p>
-                            <p className="text-[8px] font-semibold text-emerald-300 uppercase truncate">
+                            <p className="text-[8px] font-semibold text-emerald-300 uppercase whitespace-normal break-words">
                               {member.position || line.label}
                             </p>
                           </div>
@@ -1487,7 +1487,7 @@ export default function FootballTeamPage() {
                                 className="h-full w-full object-cover"
                               />
                             ) : (
-                              <div className="grid h-full w-full place-items-center text-[9px] font-black text-emerald-700">
+                              <div className="grid h-full w-full place-items-center text-[9px] font-black text-[#55705B]">
                                 {initials(m.user.firstName, m.user.lastName)}
                               </div>
                             )}
@@ -1498,10 +1498,10 @@ export default function FootballTeamPage() {
                         </div>
 
                         <div className="min-w-0">
-                          <p className="text-[10px] font-black text-white leading-tight truncate max-w-[90px]">
+                          <p className="text-[10px] font-black text-white leading-tight whitespace-normal break-words max-w-[105px]">
                             {m.user.lastName || m.user.firstName}
                           </p>
-                          <p className="text-[8px] font-semibold text-emerald-300 uppercase truncate max-w-[90px]">
+                          <p className="text-[8px] font-semibold text-emerald-300 uppercase whitespace-normal break-words max-w-[90px]">
                             {m.position || "Squad"}
                           </p>
                         </div>
@@ -1534,7 +1534,7 @@ export default function FootballTeamPage() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-xs font-bold text-emerald-700">
+                <p className="text-xs font-bold text-[#55705B]">
                   Starting {tacticalLineup.startersOnPitch}
                 </p>
                 <p className="text-[10px] text-slate-500">
@@ -1551,7 +1551,7 @@ export default function FootballTeamPage() {
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-2">
-                  <Users className="h-3.5 w-3.5 text-emerald-600" />
+                  <Users className="h-3.5 w-3.5 text-[#55705B]" />
                   Squad Depth · Bench ({tacticalLineup.bench.length})
                 </h4>
                 <span className="text-[10px] text-slate-400 font-semibold">
@@ -1588,7 +1588,7 @@ export default function FootballTeamPage() {
 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <p className="text-sm font-black text-slate-900 truncate">
+                          <p className="text-sm font-black text-slate-900 whitespace-normal break-words">
                             {fullName(m)}
                           </p>
                           {promotionReady && (
@@ -1597,10 +1597,10 @@ export default function FootballTeamPage() {
                             </span>
                           )}
                         </div>
-                        <p className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wide truncate">
+                        <p className="text-[10px] font-semibold text-[#55705B] uppercase tracking-wide whitespace-normal break-words">
                           {m.position || "Squad"}
                         </p>
-                        <p className="text-[10px] text-slate-500 truncate">
+                        <p className="text-[10px] text-slate-500 whitespace-normal break-words">
                           {m.isActive ? "Match Active" : "Reserve"} ·{" "}
                           {new Date(m.joinedAt).toLocaleDateString(undefined, {
                             month: "short",
@@ -1643,7 +1643,7 @@ export default function FootballTeamPage() {
                       onClick={() => setSelectedMember(member)}
                       className="w-full flex items-center justify-between gap-3 p-3 text-left transition hover:bg-slate-50 sm:grid sm:grid-cols-12 sm:gap-3 sm:px-4 sm:py-3.5 focus-visible:outline-none"
                     >
-                      <div className="hidden sm:col-span-1 sm:flex sm:items-center sm:justify-center font-mono font-black text-sm text-emerald-700">
+                      <div className="hidden sm:col-span-1 sm:flex sm:items-center sm:justify-center font-mono font-black text-sm text-[#55705B]">
                         {member.jerseyNumber ? `#${member.jerseyNumber}` : "—"}
                       </div>
 
@@ -1661,7 +1661,7 @@ export default function FootballTeamPage() {
                           </p>
                           <div className="flex items-center gap-1.5 mt-0.5 sm:hidden">
                             <RoleBadge teamRole={member.teamRole} size="xs" />
-                            <span className="text-xs font-semibold text-emerald-700">
+                            <span className="text-xs font-semibold text-[#55705B]">
                               {member.position || roleConfig.name}
                             </span>
                           </div>
@@ -1669,7 +1669,7 @@ export default function FootballTeamPage() {
                       </div>
 
                       <div className="hidden sm:col-span-3 sm:block">
-                        <span className="inline-flex rounded bg-slate-50 px-2 py-1 text-xs font-bold text-slate-700 border border-slate-200">
+                        <span className="inline-flex rounded-md bg-[#F7F6F2] px-2 py-1 text-xs font-bold text-slate-700 border border-[#DADCD3]">
                           {member.position || "—"}
                         </span>
                       </div>
@@ -1682,7 +1682,7 @@ export default function FootballTeamPage() {
                         <span
                           className={`inline-flex items-center rounded px-2 py-0.5 text-[10px] font-bold ${
                             member.isActive
-                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              ? "bg-emerald-50 text-[#55705B] border border-emerald-200"
                               : "bg-slate-100 text-slate-500 border border-slate-200"
                           }`}
                         >
@@ -1702,7 +1702,7 @@ export default function FootballTeamPage() {
           <section className="space-y-8">
             {filteredMembers.length === 0 ? (
               <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
-                <Shirt className="mx-auto h-10 w-10 text-emerald-600 mb-3" />
+                <Shirt className="mx-auto h-10 w-10 text-[#55705B] mb-3" />
                 <h3 className="text-base font-bold text-slate-900">No Players Found</h3>
                 <p className="mt-1 text-xs text-slate-500">
                   Try adjusting your search terms or position filter.
@@ -1724,55 +1724,67 @@ export default function FootballTeamPage() {
                   <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                     {group.members.map((member) => {
                       const roleConfig = roles[member.teamRole as TeamRole] ?? roles.PLAYER;
+                      const displayRole =
+                        member.teamRole === "PLAYER"
+                          ? member.position || roleConfig.name
+                          : roleConfig.name;
+
                       return (
                         <motion.button
                           key={member.id}
+                          type="button"
                           whileHover={{ y: -4 }}
                           whileTap={{ scale: 0.98 }}
                           onClick={() => setSelectedMember(member)}
-                          className="group relative flex flex-col overflow-hidden rounded-xl bg-white text-left shadow-sm transition hover:shadow-lg focus-visible:outline-none"
+                          className="group relative aspect-[3/3.8] w-full overflow-hidden rounded-2xl border border-slate-200 bg-[#12203B] text-left shadow-sm transition duration-200 hover:border-[#B98A3E]/60 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A33D] focus-visible:ring-offset-2"
                         >
-                          <div className="relative aspect-[3/3.8] w-full overflow-hidden bg-emerald-50">
-                            {member.user.profileImageUrl ? (
-                              <img
-                                src={member.user.profileImageUrl}
-                                alt={fullName(member)}
-                                loading="lazy"
-                                className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center font-black text-4xl text-emerald-600/50 bg-emerald-50">
-                                {initials(member.user.firstName, member.user.lastName)}
-                              </div>
-                            )}
-
-                            <div className="absolute top-2.5 right-2.5 flex items-center justify-center rounded-lg bg-white px-2 py-1 font-mono font-black text-xs text-emerald-700 shadow-sm">
-                              #{member.jerseyNumber ?? "—"}
+                          {/* Full-card player profile */}
+                          {member.user.profileImageUrl ? (
+                            <img
+                              src={member.user.profileImageUrl}
+                              alt={fullName(member)}
+                              loading="lazy"
+                              className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 flex h-full w-full items-center justify-center bg-[#E8A33D] text-5xl font-black text-[#12203B] sm:text-6xl">
+                              {initials(member.user.firstName, member.user.lastName)}
                             </div>
+                          )}
 
-                            <div className="absolute top-2.5 left-2.5">
-                              <RoleBadge teamRole={member.teamRole} size="xs" />
-                            </div>
+                          {/* Subtle readability layer — intentionally flat, not a gradient */}
+                          <div className="absolute inset-0 bg-black/10 transition group-hover:bg-black/20" />
 
-                            {member.isActive && (
-                              <span className="absolute bottom-2.5 left-2.5 rounded bg-emerald-500 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white shadow-sm">
-                                Active
-                              </span>
-                            )}
+                          {/* Jersey number */}
+                          <div className="absolute right-2.5 top-2.5 z-10 flex min-h-9 min-w-9 items-center justify-center rounded-xl border border-white/30 bg-[#12203B]/85 px-2 font-mono text-xs font-black text-white shadow-lg backdrop-blur-sm sm:min-h-10 sm:min-w-10">
+                            #{member.jerseyNumber ?? "—"}
                           </div>
 
-                          <div className="px-3 py-2.5 bg-slate-50">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate">
-                              {member.user.firstName}
-                            </p>
-                            <p className="text-base font-black tracking-tight text-slate-900 leading-tight uppercase truncate">
-                              {member.user.lastName || member.user.firstName}
-                            </p>
-                            <p className="text-xs font-bold text-emerald-700 truncate mt-0.5">
-                              {member.teamRole === "PLAYER"
-                                ? (member.position || roleConfig.name)
-                                : roleConfig.name}
-                            </p>
+                          {/* Role */}
+                          <div className="absolute left-2.5 top-2.5 z-10 max-w-[70%]">
+                            <RoleBadge teamRole={member.teamRole} size="xs" />
+                          </div>
+
+                          {/* Player information directly over the photograph */}
+                          <div className="absolute inset-x-0 bottom-0 z-10 px-3 pb-3 pt-10 sm:px-3.5 sm:pb-3.5">
+                            <div className="rounded-xl border border-white/15 bg-[#12203B]/88 px-3 py-2.5 shadow-lg backdrop-blur-sm">
+                              <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#E8A33D]">
+                                {member.user.firstName}
+                              </p>
+                              <p className="mt-0.5 text-sm font-black uppercase leading-tight tracking-tight text-white sm:text-base break-words">
+                                {member.user.lastName || member.user.firstName}
+                              </p>
+                              <div className="mt-1.5 flex items-center justify-between gap-2">
+                                <p className="min-w-0 text-[10px] font-bold uppercase tracking-wider text-white/80 break-words">
+                                  {displayRole}
+                                </p>
+                                {member.isActive && (
+                                  <span className="shrink-0 rounded-md bg-[#55705B] px-1.5 py-0.5 text-[7px] font-black uppercase tracking-wider text-white">
+                                    Active
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </motion.button>
                       );
@@ -1796,7 +1808,7 @@ export default function FootballTeamPage() {
                 <p className="text-xs text-slate-500">Match footage, drills, and team highlights</p>
               </div>
             </div>
-            <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-slate-200">
+            <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-[#55705B] border border-slate-200">
               Season Reel
             </span>
           </div>
@@ -1828,11 +1840,11 @@ export default function FootballTeamPage() {
                 <X className="h-4 w-4" />
               </button>
 
-              <div className="mx-auto mb-3 grid h-20 w-20 place-items-center rounded-full border-2 border-emerald-600 bg-slate-100 overflow-hidden">
+              <div className="mx-auto mb-3 grid h-20 w-20 place-items-center rounded-full border-2 border-[#55705B] bg-slate-100 overflow-hidden">
                 {user.profileImageUrl ? (
                   <img src={user.profileImageUrl} alt="User" className="h-full w-full object-cover" />
                 ) : (
-                  <User className="h-8 w-8 text-emerald-700" />
+                  <User className="h-8 w-8 text-[#55705B]" />
                 )}
               </div>
 
@@ -1849,7 +1861,7 @@ export default function FootballTeamPage() {
               </div>
               <div className="flex justify-between py-1 border-b border-slate-200">
                 <span className="text-slate-500">Club Sport</span>
-                <span className="font-bold text-emerald-700">{sport.name}</span>
+                <span className="font-bold text-[#55705B]">{sport.name}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-200">
                 <span className="text-slate-500">Squad Status</span>
@@ -1888,12 +1900,12 @@ export default function FootballTeamPage() {
                 <X className="h-4 w-4" />
               </button>
 
-              <div className="relative mx-auto mb-3 h-20 w-20 overflow-hidden rounded-full border-2 border-emerald-600 shadow-md">
+              <div className="relative mx-auto mb-3 h-20 w-20 overflow-hidden rounded-full border-2 border-[#55705B] shadow-md">
                 <PlayerAvatar member={selectedMember} size="xl" className="h-full w-full" />
               </div>
 
               <div className="flex items-center justify-center gap-2 mb-1">
-                <span className="font-mono text-sm font-bold text-emerald-700">
+                <span className="font-mono text-sm font-bold text-[#55705B]">
                   #{selectedMember.jerseyNumber ?? "—"}
                 </span>
                 <RoleBadge teamRole={selectedMember.teamRole} />
@@ -1914,7 +1926,7 @@ export default function FootballTeamPage() {
                 </div>
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-center">
                   <span className="text-[10px] uppercase font-bold text-slate-500">Squad Role</span>
-                  <p className="mt-1 font-black text-emerald-700 text-sm">
+                  <p className="mt-1 font-black text-[#55705B] text-sm">
                     {roles[selectedMember.teamRole as TeamRole]?.name ?? selectedMember.teamRole}
                   </p>
                 </div>
@@ -1927,7 +1939,7 @@ export default function FootballTeamPage() {
                 </div>
                 <div className="flex justify-between py-1">
                   <span className="text-slate-500">Status</span>
-                  <span className="font-semibold text-emerald-700">
+                  <span className="font-semibold text-[#55705B]">
                     {selectedMember.isActive ? "Match Active" : "Reserve"}
                   </span>
                 </div>
