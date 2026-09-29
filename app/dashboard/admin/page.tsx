@@ -65,32 +65,6 @@ interface TechCenterData {
   };
 }
 
-const TOKENS = {
-  brand: '#12203B',
-  brandHover: '#1B2D4F',
-  brandSoft: '#EEF2F8',
-
-  success: '#17734B',
-  successSoft: '#EDF7F2',
-
-  warning: '#8A5A00',
-  warningSoft: '#FFF8E7',
-
-  danger: '#A52121',
-  dangerSoft: '#FDF0F0',
-
-  border: '#DADCD3',
-  borderStrong: '#C9CCC3',
-
-  surface: '#FFFFFF',
-  surfaceMuted: '#F7F6F2',
-  page: '#F1F1EC',
-
-  text: '#12203B',
-  textMuted: '#4B564C',
-  textSoft: '#7B8178',
-};
-
 const focusRing =
   'focus:outline-none focus:ring-2 focus:ring-[#12203B]/20 focus:ring-offset-2';
 
@@ -153,8 +127,7 @@ function UserAvatar({
   imageUrl?: string;
   size?: 'normal' | 'large';
 }) {
-  const sizeClass =
-    size === 'large' ? 'h-11 w-11' : 'h-10 w-10';
+  const sizeClass = size === 'large' ? 'h-11 w-11' : 'h-10 w-10';
 
   if (imageUrl) {
     return (
@@ -284,9 +257,7 @@ export default function AdminOverviewPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(
-          errorData.error || 'Failed to approve user'
-        );
+        throw new Error(errorData.error || 'Failed to approve user');
       }
 
       return response.json();
@@ -297,19 +268,16 @@ export default function AdminOverviewPage() {
         queryKey: ['pending-approvals'],
       });
 
-      const previousUsers =
-        queryClient.getQueryData<PendingUser[]>([
-          'pending-approvals',
-        ]);
+      const previousUsers = queryClient.getQueryData<PendingUser[]>([
+        'pending-approvals',
+      ]);
 
       queryClient.setQueryData<PendingUser[]>(
         ['pending-approvals'],
         (old = []) => old.filter((user) => user.id !== userId)
       );
 
-      return {
-        previousUsers,
-      };
+      return { previousUsers };
     },
 
     onSuccess: () => {
@@ -357,9 +325,7 @@ export default function AdminOverviewPage() {
       if (!response.ok) {
         const errorData = await response.json();
 
-        throw new Error(
-          errorData.error || 'Failed to reject user'
-        );
+        throw new Error(errorData.error || 'Failed to reject user');
       }
 
       return response.json();
@@ -370,19 +336,16 @@ export default function AdminOverviewPage() {
         queryKey: ['pending-approvals'],
       });
 
-      const previousUsers =
-        queryClient.getQueryData<PendingUser[]>([
-          'pending-approvals',
-        ]);
+      const previousUsers = queryClient.getQueryData<PendingUser[]>([
+        'pending-approvals',
+      ]);
 
       queryClient.setQueryData<PendingUser[]>(
         ['pending-approvals'],
         (old = []) => old.filter((user) => user.id !== userId)
       );
 
-      return {
-        previousUsers,
-      };
+      return { previousUsers };
     },
 
     onSuccess: () => {
@@ -413,9 +376,7 @@ export default function AdminOverviewPage() {
 
   const handleReject = (userId: string) => {
     if (
-      confirm(
-        'Are you sure you want to reject this registration?'
-      )
+      confirm('Are you sure you want to reject this registration?')
     ) {
       rejectMutation.mutate(userId);
     }
@@ -424,17 +385,14 @@ export default function AdminOverviewPage() {
   const adminUsers = techCenterData?.users ?? [];
 
   const techCenter =
-    techCenterData?.techCenter ??
-    adminUsers[0]?.techCenter;
+    techCenterData?.techCenter ?? adminUsers[0]?.techCenter;
 
   const activeCount = adminUsers.filter(
-    (admin) =>
-      admin.isActive && admin.status === 'ACTIVE'
+    (admin) => admin.isActive && admin.status === 'ACTIVE'
   ).length;
 
   const inactiveCount = adminUsers.filter(
-    (admin) =>
-      !admin.isActive || admin.status !== 'ACTIVE'
+    (admin) => !admin.isActive || admin.status !== 'ACTIVE'
   ).length;
 
   const pendingCount = pendingUsers?.length ?? 0;
@@ -442,7 +400,6 @@ export default function AdminOverviewPage() {
   return (
     <main className="min-h-screen bg-[#F1F1EC] text-[#12203B]">
       <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
-
         {/* PAGE HEADER */}
         <header className="mb-6">
           <div className="flex items-center gap-3">
@@ -473,21 +430,15 @@ export default function AdminOverviewPage() {
             PRIORITY AREA — PENDING REGISTRATIONS
            ========================================================= */}
         <section className="overflow-hidden rounded-xl border border-[#DADCD3] bg-white">
-
           {/* Header */}
           <div className="border-b border-[#DADCD3] px-4 py-4 sm:px-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
               <SectionTitle
                 icon={Clock}
                 iconClassName="bg-[#FFF8E7] text-[#8A5A00]"
                 title="Pending Registrations"
                 description="Review new registrations before granting dashboard access."
-                count={
-                  !isLoadingPending
-                    ? pendingCount
-                    : undefined
-                }
+                count={!isLoadingPending ? pendingCount : undefined}
               />
 
               {pendingCount > 0 && (
@@ -503,29 +454,22 @@ export default function AdminOverviewPage() {
 
           {/* Content */}
           <div className="px-4 py-4 sm:px-5">
-
             {/* Loading */}
             {isLoadingPending ? (
-              <div
-                className="space-y-3"
-                role="status"
-                aria-live="polite"
-              >
+              <div className="space-y-3" role="status" aria-live="polite">
                 {[1, 2].map((item) => (
                   <div
                     key={item}
-                    className="animate-pulse rounded-lg border border-[#DADCD3] p-4"
+                    className="flex animate-pulse items-center justify-between rounded-lg border border-[#DADCD3] px-4 py-3.5"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-[#E8E9E4]" />
-
-                      <div className="flex-1">
-                        <div className="h-3.5 w-40 rounded bg-[#E8E9E4]" />
-                        <div className="mt-2 h-3 w-28 rounded bg-[#EEF0EB]" />
-                      </div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3.5 w-40 rounded bg-[#E8E9E4]" />
+                      <div className="h-3 w-28 rounded bg-[#EEF0EB]" />
                     </div>
-
-                    <div className="mt-4 h-10 rounded bg-[#F7F6F2]" />
+                    <div className="flex gap-3">
+                      <div className="h-3 w-14 rounded bg-[#EEF0EB]" />
+                      <div className="h-3 w-12 rounded bg-[#EEF0EB]" />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -569,299 +513,73 @@ export default function AdminOverviewPage() {
                 </p>
               </div>
             ) : (
-              <>
-                {/* DESKTOP TABLE */}
-                <div className="hidden overflow-hidden rounded-lg border border-[#DADCD3] md:block">
+              /* ROW LIST — same layout on desktop and mobile */
+              <div className="divide-y divide-[#E6E8E1]">
+                {pendingUsers!.map((user) => (
+                  <div
+                    key={user.id}
+                    className="flex items-center gap-3 py-3.5 sm:gap-4 sm:py-4"
+                  >
+                    {/* Name + Tech Center + Registered date stacked */}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[13px] font-semibold text-[#12203B] sm:text-sm">
+                        {user.firstName} {user.lastName}
+                      </p>
 
-                  <div className="grid grid-cols-[minmax(220px,1.25fr)_minmax(210px,1fr)_minmax(150px,.8fr)_minmax(140px,.7fr)_170px] border-b border-[#DADCD3] bg-[#F7F6F2] px-4 py-3">
-                    <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6B7268]">
-                      Applicant
-                    </div>
-
-                    <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6B7268]">
-                      Contact
-                    </div>
-
-                    <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6B7268]">
-                      Tech Center
-                    </div>
-
-                    <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6B7268]">
-                      Location
-                    </div>
-
-                    <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6B7268]">
-                      Actions
-                    </div>
-                  </div>
-
-                  <div className="divide-y divide-[#E6E8E1]">
-                    {pendingUsers!.map((user) => (
-                      <div
-                        key={user.id}
-                        className="grid grid-cols-[minmax(220px,1.25fr)_minmax(210px,1fr)_minmax(150px,.8fr)_minmax(140px,.7fr)_170px] items-center px-4 py-4 transition-colors hover:bg-[#FBFBF8]"
-                      >
-
-                        {/* Applicant */}
-                        <div className="flex min-w-0 items-center gap-3">
-                          <UserAvatar
-                            firstName={user.firstName}
-                            lastName={user.lastName}
-                            imageUrl={user.profileImageUrl}
-                          />
-
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-[#12203B]">
-                              {user.firstName} {user.lastName}
-                            </p>
-
-                            <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[#8A9088]">
-                              <Calendar className="h-3 w-3 shrink-0" />
-                              <span>
-                                Registered{' '}
-                                {formatJoinedDate(
-                                  user.createdAt
-                                )}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Contact */}
-                        <div className="min-w-0 space-y-1.5 pr-4">
-                          <div className="flex min-w-0 items-center gap-2 text-xs text-[#4B564C]">
-                            <Mail className="h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
-
+                      <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-[#6B7268] sm:text-xs">
+                        {user.techCenter ? (
+                          <>
+                            <Building2 className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" />
                             <span className="truncate">
-                              {user.email}
-                            </span>
-                          </div>
-
-                          {user.phoneNumber && (
-                            <div className="flex items-center gap-2 text-[11px] text-[#6B7268]">
-                              <Phone className="h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
-                              <span>
-                                {user.phoneNumber}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Tech Center */}
-                        <div className="min-w-0 pr-4">
-                          {user.techCenter ? (
-                            <div className="flex items-start gap-2 text-xs text-[#4B564C]">
-                              <Building2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
-
-                              <span className="truncate">
-                                {user.techCenter.name}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-[#8A9088]">
-                              No tech center
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Location */}
-                        <div className="min-w-0 pr-4">
-                          {user.city || user.country ? (
-                            <div className="flex items-start gap-2 text-xs text-[#4B564C]">
-                              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
-
-                              <span className="truncate">
-                                {user.city &&
-                                user.country
-                                  ? `${user.city}, ${user.country}`
-                                  : user.city ||
-                                    user.country}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-[#8A9088]">
-                              Not provided
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleApprove(user.id)
-                            }
-                            disabled={
-                              approveMutation.isPending
-                            }
-                            className={`inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-[#C8E7D8] bg-[#EDF7F2] px-3 text-xs font-semibold text-[#17734B] transition hover:border-[#A9D9BE] hover:bg-[#E1F3E9] disabled:cursor-not-allowed disabled:opacity-50 ${focusRing}`}
-                          >
-                            {approveMutation.isPending &&
-                            approveMutation.variables ===
-                              user.id ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <CheckCircle className="h-3.5 w-3.5" />
-                            )}
-
-                            Approve
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleReject(user.id)
-                            }
-                            disabled={
-                              rejectMutation.isPending
-                            }
-                            className={`inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-[#E9C7C7] bg-[#FDF0F0] px-3 text-xs font-semibold text-[#A52121] transition hover:border-[#DFAAAA] hover:bg-[#FAEAEA] disabled:cursor-not-allowed disabled:opacity-50 ${focusRing}`}
-                          >
-                            {rejectMutation.isPending &&
-                            rejectMutation.variables ===
-                              user.id ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <XCircle className="h-3.5 w-3.5" />
-                            )}
-
-                            Reject
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* MOBILE */}
-                <div className="space-y-3 md:hidden">
-                  {pendingUsers!.map((user) => (
-                    <article
-                      key={user.id}
-                      className="rounded-lg border border-[#DADCD3] bg-white p-4"
-                    >
-                      <div className="flex items-start gap-3">
-                        <UserAvatar
-                          firstName={user.firstName}
-                          lastName={user.lastName}
-                          imageUrl={user.profileImageUrl}
-                        />
-
-                        <div className="min-w-0 flex-1">
-                          <h3 className="truncate text-sm font-semibold text-[#12203B]">
-                            {user.firstName}{' '}
-                            {user.lastName}
-                          </h3>
-
-                          <p className="mt-0.5 text-[11px] text-[#8A9088]">
-                            Pending approval
-                          </p>
-                        </div>
-
-                        <span className="shrink-0 rounded-full bg-[#FFF8E7] px-2 py-1 text-[10px] font-semibold text-[#8A5A00]">
-                          Pending
-                        </span>
-                      </div>
-
-                      <div className="mt-4 space-y-2 border-t border-[#EEF0EB] pt-3">
-                        <div className="flex items-start gap-2 text-xs text-[#4B564C]">
-                          <Mail className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
-                          <span className="min-w-0 break-all">
-                            {user.email}
-                          </span>
-                        </div>
-
-                        {user.phoneNumber && (
-                          <div className="flex items-center gap-2 text-xs text-[#4B564C]">
-                            <Phone className="h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
-                            <span>
-                              {user.phoneNumber}
-                            </span>
-                          </div>
-                        )}
-
-                        {user.techCenter && (
-                          <div className="flex items-center gap-2 text-xs text-[#4B564C]">
-                            <Building2 className="h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
-                            <span>
                               {user.techCenter.name}
                             </span>
-                          </div>
-                        )}
-
-                        {(user.city || user.country) && (
-                          <div className="flex items-start gap-2 text-xs text-[#4B564C]">
-                            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
-
-                            <span>
-                              {user.city &&
-                              user.country
-                                ? `${user.city}, ${user.country}`
-                                : user.city ||
-                                  user.country}
-                            </span>
-                          </div>
-                        )}
-
-                        <div className="flex items-center gap-2 text-[11px] text-[#8A9088]">
-                          <Calendar className="h-3.5 w-3.5 shrink-0" />
-                          <span>
-                            Registered{' '}
-                            {formatJoinedDate(
-                              user.createdAt
-                            )}
+                          </>
+                        ) : (
+                          <span className="text-[#8A9088]">
+                            No tech center
                           </span>
-                        </div>
+                        )}
                       </div>
 
-                      <div className="mt-4 grid grid-cols-2 gap-2 border-t border-[#EEF0EB] pt-3">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleApprove(user.id)
-                          }
-                          disabled={
-                            approveMutation.isPending
-                          }
-                          className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-[#C8E7D8] bg-[#EDF7F2] text-xs font-semibold text-[#17734B] transition hover:bg-[#E1F3E9] disabled:cursor-not-allowed disabled:opacity-50 ${focusRing}`}
-                        >
-                          {approveMutation.isPending &&
-                          approveMutation.variables ===
-                            user.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <CheckCircle className="h-3.5 w-3.5" />
-                          )}
-
-                          Approve
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleReject(user.id)
-                          }
-                          disabled={
-                            rejectMutation.isPending
-                          }
-                          className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-[#E9C7C7] bg-[#FDF0F0] text-xs font-semibold text-[#A52121] transition hover:bg-[#FAEAEA] disabled:cursor-not-allowed disabled:opacity-50 ${focusRing}`}
-                        >
-                          {rejectMutation.isPending &&
-                          rejectMutation.variables ===
-                            user.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <XCircle className="h-3.5 w-3.5" />
-                          )}
-
-                          Reject
-                        </button>
+                      <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-[#8A9088] sm:text-[11px]">
+                        <Calendar className="h-3 w-3 shrink-0" />
+                        <span>
+                          Registered {formatJoinedDate(user.createdAt)}
+                        </span>
                       </div>
-                    </article>
-                  ))}
-                </div>
-              </>
+                    </div>
+
+                    {/* Text-only action buttons with underline */}
+                    <button
+                      type="button"
+                      onClick={() => handleApprove(user.id)}
+                      disabled={approveMutation.isPending}
+                      className={`shrink-0 rounded px-1.5 py-1 text-[12px] font-semibold text-[#17734B] underline underline-offset-2 transition hover:bg-[#EDF7F2] hover:no-underline disabled:cursor-not-allowed disabled:opacity-50 sm:text-[13px] ${focusRing}`}
+                    >
+                      {approveMutation.isPending &&
+                      approveMutation.variables === user.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        'Approve'
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleReject(user.id)}
+                      disabled={rejectMutation.isPending}
+                      className={`shrink-0 rounded px-1.5 py-1 text-[12px] font-semibold text-[#A52121] underline underline-offset-2 transition hover:bg-[#FDF0F0] hover:no-underline disabled:cursor-not-allowed disabled:opacity-50 sm:text-[13px] ${focusRing}`}
+                    >
+                      {rejectMutation.isPending &&
+                      rejectMutation.variables === user.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        'Reject'
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </section>
@@ -870,11 +588,9 @@ export default function AdminOverviewPage() {
             ADMINISTRATORS
            ========================================================= */}
         <section className="mt-8 overflow-hidden rounded-xl border border-[#DADCD3] bg-white">
-
           {/* Header */}
           <div className="border-b border-[#DADCD3] px-4 py-4 sm:px-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
               <SectionTitle
                 icon={Shield}
                 iconClassName="bg-[#EEF2F8] text-[#12203B]"
@@ -915,9 +631,7 @@ export default function AdminOverviewPage() {
               <div className="mt-3 flex items-center gap-2 text-[11px] text-[#8A9088]">
                 <Building2 className="h-3.5 w-3.5" />
 
-                <span>
-                  Technology center code:
-                </span>
+                <span>Technology center code:</span>
 
                 <span className="font-semibold text-[#4B564C]">
                   {techCenter.code}
@@ -927,9 +641,7 @@ export default function AdminOverviewPage() {
                   <>
                     <span className="mx-1 h-3 w-px bg-[#DADCD3]" />
 
-                    <span>
-                      {inactiveCount} inactive or suspended
-                    </span>
+                    <span>{inactiveCount} inactive or suspended</span>
                   </>
                 )}
               </div>
@@ -938,13 +650,8 @@ export default function AdminOverviewPage() {
 
           {/* Content */}
           <div className="px-4 py-4 sm:px-5">
-
             {isLoading ? (
-              <div
-                className="space-y-2"
-                role="status"
-                aria-live="polite"
-              >
+              <div className="space-y-2" role="status" aria-live="polite">
                 {[1, 2, 3].map((item) => (
                   <div
                     key={item}
@@ -998,16 +705,14 @@ export default function AdminOverviewPage() {
                 </h3>
 
                 <p className="mt-1 max-w-md text-xs leading-5 text-[#6B7268]">
-                  There are currently no administrator
-                  accounts assigned to this technology
-                  center.
+                  There are currently no administrator accounts assigned to
+                  this technology center.
                 </p>
               </div>
             ) : (
               <>
                 {/* DESKTOP ADMIN TABLE */}
                 <div className="hidden overflow-hidden rounded-lg border border-[#DADCD3] md:block">
-
                   <div className="grid grid-cols-[minmax(220px,1.35fr)_minmax(220px,1fr)_minmax(160px,.8fr)_120px] border-b border-[#DADCD3] bg-[#F7F6F2] px-4 py-3">
                     <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6B7268]">
                       Administrator
@@ -1028,9 +733,7 @@ export default function AdminOverviewPage() {
 
                   <div className="divide-y divide-[#E6E8E1]">
                     {adminUsers.map((admin) => {
-                      const status =
-                        getStatusStyles(admin);
-
+                      const status = getStatusStyles(admin);
                       const StatusIcon = status.icon;
 
                       return (
@@ -1043,25 +746,19 @@ export default function AdminOverviewPage() {
                             <UserAvatar
                               firstName={admin.firstName}
                               lastName={admin.lastName}
-                              imageUrl={
-                                admin.profileImageUrl
-                              }
+                              imageUrl={admin.profileImageUrl}
                             />
 
                             <div className="min-w-0">
                               <p className="truncate text-sm font-semibold text-[#12203B]">
-                                {admin.firstName}{' '}
-                                {admin.lastName}
+                                {admin.firstName} {admin.lastName}
                               </p>
 
                               <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[#8A9088]">
                                 <Calendar className="h-3 w-3 shrink-0" />
 
                                 <span>
-                                  Joined{' '}
-                                  {formatJoinedDate(
-                                    admin.createdAt
-                                  )}
+                                  Joined {formatJoinedDate(admin.createdAt)}
                                 </span>
                               </div>
                             </div>
@@ -1072,35 +769,28 @@ export default function AdminOverviewPage() {
                             <div className="flex min-w-0 items-center gap-2 text-xs text-[#4B564C]">
                               <Mail className="h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
 
-                              <span className="truncate">
-                                {admin.email}
-                              </span>
+                              <span className="truncate">{admin.email}</span>
                             </div>
 
                             {admin.phoneNumber && (
                               <div className="flex items-center gap-2 text-[11px] text-[#6B7268]">
                                 <Phone className="h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
 
-                                <span>
-                                  {admin.phoneNumber}
-                                </span>
+                                <span>{admin.phoneNumber}</span>
                               </div>
                             )}
                           </div>
 
                           {/* Location */}
                           <div className="min-w-0 pr-4">
-                            {admin.city ||
-                            admin.country ? (
+                            {admin.city || admin.country ? (
                               <div className="flex items-start gap-2 text-xs text-[#4B564C]">
                                 <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
 
                                 <span className="truncate">
-                                  {admin.city &&
-                                  admin.country
+                                  {admin.city && admin.country
                                     ? `${admin.city}, ${admin.country}`
-                                    : admin.city ||
-                                      admin.country}
+                                    : admin.city || admin.country}
                                 </span>
                               </div>
                             ) : (
@@ -1129,9 +819,7 @@ export default function AdminOverviewPage() {
                 {/* MOBILE ADMIN LIST */}
                 <div className="space-y-2 md:hidden">
                   {adminUsers.map((admin) => {
-                    const status =
-                      getStatusStyles(admin);
-
+                    const status = getStatusStyles(admin);
                     const StatusIcon = status.icon;
 
                     return (
@@ -1144,15 +832,12 @@ export default function AdminOverviewPage() {
                             <UserAvatar
                               firstName={admin.firstName}
                               lastName={admin.lastName}
-                              imageUrl={
-                                admin.profileImageUrl
-                              }
+                              imageUrl={admin.profileImageUrl}
                             />
 
                             <div className="min-w-0">
                               <h3 className="truncate text-sm font-semibold text-[#12203B]">
-                                {admin.firstName}{' '}
-                                {admin.lastName}
+                                {admin.firstName} {admin.lastName}
                               </h3>
 
                               <p className="mt-0.5 text-[11px] text-[#8A9088]">
@@ -1182,23 +867,18 @@ export default function AdminOverviewPage() {
                             <div className="flex items-center gap-2 text-xs text-[#4B564C]">
                               <Phone className="h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
 
-                              <span>
-                                {admin.phoneNumber}
-                              </span>
+                              <span>{admin.phoneNumber}</span>
                             </div>
                           )}
 
-                          {(admin.city ||
-                            admin.country) && (
+                          {(admin.city || admin.country) && (
                             <div className="flex items-start gap-2 text-xs text-[#4B564C]">
                               <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#8A9088]" />
 
                               <span>
-                                {admin.city &&
-                                admin.country
+                                {admin.city && admin.country
                                   ? `${admin.city}, ${admin.country}`
-                                  : admin.city ||
-                                    admin.country}
+                                  : admin.city || admin.country}
                               </span>
                             </div>
                           )}
@@ -1207,10 +887,7 @@ export default function AdminOverviewPage() {
                             <Calendar className="h-3.5 w-3.5 shrink-0" />
 
                             <span>
-                              Joined{' '}
-                              {formatJoinedDate(
-                                admin.createdAt
-                              )}
+                              Joined {formatJoinedDate(admin.createdAt)}
                             </span>
                           </div>
                         </div>
@@ -1222,7 +899,6 @@ export default function AdminOverviewPage() {
             )}
           </div>
         </section>
-
       </div>
     </main>
   );
