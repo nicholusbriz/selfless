@@ -26,7 +26,6 @@ import {
   LayoutDashboard,
   Home,
   LogOut,
-  Menu,
   Bell,
   ChevronDown,
   Users,
@@ -62,7 +61,6 @@ import {
   LifeBuoy,
   User,
   X,
-  Activity,
   Grid3x3,
 } from 'lucide-react';
 
@@ -894,17 +892,18 @@ function TopBar({
               whileHover={{ scale: 1.04 }}
               onClick={onMenuToggle}
               className={cn(
-                'flex items-center gap-2 px-3 py-2 rounded-lg',
+                'flex items-center justify-center',
+                'w-10 h-10 rounded-lg',
+                'bg-[#F7F6F2] border border-[#E5E7EB]',
                 'text-[#1A2B4C]',
                 'hover:text-[#B98A3E]',
-                'hover:bg-[#F7F6F2]',
+                'hover:bg-white hover:border-[#B98A3E]',
                 'transition-all duration-200',
                 'focus:outline-none focus:ring-2 focus:ring-[#B98A3E]/30'
               )}
               aria-label="Open sidebar"
             >
               <Grid3x3 className="w-5 h-5" />
-              <span className="text-xs font-semibold">Menu</span>
             </motion.button>
           ) : (
             <motion.button
