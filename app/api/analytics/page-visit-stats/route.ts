@@ -1,99 +1,142 @@
 // app/api/analytics/page-visit-stats/route.ts
+/**
+ * Page Visit Stats — 24-hour rolling window
+ *
+ * Reads from `PageVisitEvent` filtered to the last 24 hours.
+ * Rows older than that are auto-deleted by MongoDB's TTL index,
+ * so this endpoint never needs to clean up.
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma/client';
-import { requireAuth } from '@/lib/auth/server';
+import { getServerAuthUser } from '@/lib/auth/server';
 
-export async function GET(req: NextRequest) {
+const WINDOW_HOURS = 24;
+
+export async function GET(_req: NextRequest) {
   try {
-    // Check if user is authenticated and has dev role
-    const user = await requireAuth();
-    
+    const user = await getServerAuthUser();
+
     if (!user || user.role?.name !== 'dev') {
       return NextResponse.json(
         { error: 'Unauthorized. Dev access required.' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
-    // Fetch all page visit counts, sorted by count (descending)
-    const pageVisits = await prisma.pageVisitCount.findMany({
-      orderBy: {
-        count: 'desc',
-      },
+    const since = new Date(Date.now() - WINDOW_HOURS * 60 * 60 * 1000);
+    const where = { visitedAt: { gte: since } };
+
+    // -------- 1. Per-page totals --------
+    const pageGroups = await prisma.pageVisitEvent.groupBy({
+      by: ['pagePath'],
+      where,
+      _count: { _all: true },
+      _max: { visitedAt: true },
     });
 
-    const userPageVisits = await prisma.userPageVisitCount.findMany({
-      include: {
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            techCenter: {
-              select: { name: true },
-            },
+    const pageVisits = pageGroups
+      .map((g) => ({
+        pagePath: g.pagePath,
+        count: g._count._all,
+        lastVisitAt: (g._max.visitedAt ?? new Date()).toISOString(),
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    const totalVisits = pageVisits.reduce((sum, p) => sum + p.count, 0);
+
+    // -------- 2. Per-user totals --------
+    const userGroups = await prisma.pageVisitEvent.groupBy({
+      by: ['userId'],
+      where,
+      _count: { _all: true },
+      _max: { visitedAt: true },
+    });
+
+    if (userGroups.length === 0) {
+      return NextResponse.json(
+        {
+          totalVisits: 0,
+          users: [],
+          pageVisits,
+          window: '24h',
+          generatedAt: new Date().toISOString(),
+        },
+        {
+          headers: {
+            'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
           },
         },
+      );
+    }
+
+    // -------- 3. Per-user distinct page counts --------
+    const userPageCombos = await prisma.pageVisitEvent.groupBy({
+      by: ['userId', 'pagePath'],
+      where,
+    });
+
+    const distinctPageMap = new Map<string, number>();
+    for (const combo of userPageCombos) {
+      distinctPageMap.set(
+        combo.userId,
+        (distinctPageMap.get(combo.userId) ?? 0) + 1,
+      );
+    }
+
+    // -------- 4. Enrich with user profiles --------
+    const userIds = userGroups.map((g) => g.userId);
+    const profiles = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        techCenter: { select: { name: true } },
       },
-      orderBy: { count: 'desc' },
     });
+    const profileById = new Map(profiles.map((p) => [p.id, p]));
 
-    // Calculate total visits
-    const totalVisits = pageVisits.reduce((sum, page) => sum + page.count, 0);
-    const userVisitTotals = new Map<
-      string,
-      {
-        user: (typeof userPageVisits)[number]['user'];
-        totalVisits: number;
-        pagePaths: Set<string>;
-        lastVisitAt: Date;
-      }
-    >();
+    // -------- 5. Build response --------
+    const users = userGroups
+      .map((g) => {
+        const profile = profileById.get(g.userId);
+        if (!profile) return null;
 
-    userPageVisits.forEach((visit) => {
-      const current = userVisitTotals.get(visit.userId) ?? {
-        user: visit.user,
-        totalVisits: 0,
-        pagePaths: new Set<string>(),
-        lastVisitAt: visit.lastVisitAt,
-      };
-      current.totalVisits += visit.count;
-      current.pagePaths.add(visit.pagePath);
-      if (visit.lastVisitAt > current.lastVisitAt) {
-        current.lastVisitAt = visit.lastVisitAt;
-      }
-      userVisitTotals.set(visit.userId, current);
-    });
-
-    const users = Array.from(userVisitTotals.values())
-      .map(({ user, totalVisits: visitCount, pagePaths, lastVisitAt }) => ({
-        userId: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        techCenterName: user.techCenter?.name ?? null,
-        totalVisits: visitCount,
-        pagesVisited: pagePaths.size,
-        lastVisitAt: lastVisitAt.toISOString(),
-      }))
+        return {
+          userId: profile.id,
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          email: profile.email,
+          techCenterName: profile.techCenter?.name ?? null,
+          totalVisits: g._count._all,
+          pagesVisited: distinctPageMap.get(g.userId) ?? 0,
+          lastVisitAt: (g._max.visitedAt ?? new Date()).toISOString(),
+        };
+      })
+      .filter((u): u is NonNullable<typeof u> => u !== null)
       .sort((a, b) => b.totalVisits - a.totalVisits);
 
-    return NextResponse.json({
-      totalVisits,
-      users,
-      pageVisits: pageVisits.map((page) => ({
-        pagePath: page.pagePath,
-        count: page.count,
-        lastVisitAt: page.lastVisitAt.toISOString(),
-        createdAt: page.createdAt.toISOString(),
-      })),
-    });
+    return NextResponse.json(
+      {
+        totalVisits,
+        users,
+        pageVisits,
+        window: '24h',
+        generatedAt: new Date().toISOString(),
+      },
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
+        },
+      },
+    );
   } catch (error) {
     console.error('Fetch page visit stats error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch page visit statistics' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
