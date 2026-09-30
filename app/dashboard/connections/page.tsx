@@ -199,7 +199,6 @@ function findCachedStudent(
   return students.find((student) => student.id === studentId);
 }
 
-// Update a user everywhere they appear in any cache across all tabs.
 function syncUserAcrossAllCaches(
   queryClient: ReturnType<typeof useQueryClient>,
   currentUserId: string | undefined,
@@ -212,7 +211,6 @@ function syncUserAcrossAllCaches(
     likesReceivedCount: number;
   }>,
 ) {
-  // 1. Trending
   queryClient.setQueryData<TrendingStudent[]>(
     ['social', 'trending'],
     (old) =>
@@ -221,7 +219,6 @@ function syncUserAcrossAllCaches(
         : old,
   );
 
-  // 2. Students (used by page for stale-while-revalidate on followers/following)
   queryClient.setQueryData(['students'], (old) =>
     updateStudentsCache(old, (student) => {
       if (student.id === userId) return { ...student, ...patch };
@@ -232,7 +229,6 @@ function syncUserAcrossAllCaches(
     }),
   );
 
-  // 3. Followers list (people who follow me)
   if (currentUserId) {
     queryClient.setQueryData<ConnectionUser[]>(
       ['connections', 'followers', currentUserId],
@@ -242,7 +238,6 @@ function syncUserAcrossAllCaches(
           : old,
     );
 
-    // 4. Following list (people I follow)
     queryClient.setQueryData<ConnectionUser[]>(
       ['connections', 'following', currentUserId],
       (old) =>
@@ -251,7 +246,6 @@ function syncUserAcrossAllCaches(
           : old,
     );
 
-    // 5. Likes data — likers + likedUsers
     queryClient.setQueryData<LikesData>(
       ['connections', 'likes', currentUserId],
       (old) => {
@@ -504,7 +498,25 @@ export default function ConnectionsPage() {
 
     // ---------- FOLLOWERS ----------
     const data = activeQuery?.data;
-    return Array.isArray(data) ? (data as ConnectionUser[]) : [];
+    const base = Array.isArray(data) ? (data as ConnectionUser[]) : [];
+    const source = Array.isArray(studentsQuery.data)
+      ? studentsQuery.data
+      : [];
+    const byId = new Map(source.map((s) => [s.id, s]));
+
+    return base.map((c) => {
+      const live = byId.get(c.id);
+      if (!live) return c;
+      return {
+        ...c,
+        followersCount: live.followersCount ?? c.followersCount,
+        followingCount: live.followingCount ?? c.followingCount,
+        likesReceivedCount:
+          live.likesReceivedCount ?? c.likesReceivedCount,
+        isFollowing: live.isFollowing ?? c.isFollowing,
+        isLiked: live.isLiked ?? c.isLiked,
+      };
+    });
   }, [
     activeTab,
     likesView,
@@ -554,12 +566,10 @@ export default function ConnectionsPage() {
         StudentStats | null | undefined
       >(['currentUserStats', currentUserId]);
 
-      // Remove from following list
       queryClient.setQueryData<ConnectionUser[]>(followingKey, (old) =>
         Array.isArray(old) ? old.filter((u) => u.id !== userId) : old,
       );
 
-      // Decrement my following count
       queryClient.setQueryData<StudentStats | null | undefined>(
         ['currentUserStats', currentUserId],
         (old) =>
@@ -571,12 +581,10 @@ export default function ConnectionsPage() {
             : old,
       );
 
-      // Patch everywhere else via shared helper
       syncUserAcrossAllCaches(queryClient, currentUserId, userId, {
         isFollowing: false,
       });
 
-      // Also bump the target's followersCount down in students + trending
       queryClient.setQueryData(['students'], (old) =>
         updateStudentsCache(old, (student) => {
           if (student.id === userId) {
@@ -638,7 +646,6 @@ export default function ConnectionsPage() {
       );
     },
     onSettled: () => {
-      // Refresh every cache the change could affect — across all tabs.
       queryClient.invalidateQueries({
         queryKey: ['connections', 'following', currentUserId],
         refetchType: 'active',
@@ -698,11 +705,11 @@ export default function ConnectionsPage() {
         queryClient.getQueryData<ConnectionUser[]>(followersKey);
       const previousLikes = queryClient.getQueryData<LikesData>(likesKey);
       const previousTrending = queryClient.getQueryData<TrendingStudent[]>([
-        'social', 'trending',
+        'social',
+        'trending',
       ]);
       const followedStudent = findCachedStudent(previousStudents, studentId);
 
-      // Patch everywhere isFollowing / followersCount changes
       syncUserAcrossAllCaches(queryClient, currentUserId, studentId, {
         isFollowing: true,
       });
@@ -870,16 +877,13 @@ export default function ConnectionsPage() {
       const previousFollowers =
         queryClient.getQueryData<ConnectionUser[]>(followersKey);
       const previousTrending = queryClient.getQueryData<TrendingStudent[]>([
-        'social', 'trending',
+        'social',
+        'trending',
       ]);
       const targetStudent = findCachedStudent(previousStudents, studentId);
 
-      // Patch isLiked + likesReceivedCount everywhere
       syncUserAcrossAllCaches(queryClient, currentUserId, studentId, {
         isLiked: !isLiked,
-        likesReceivedCount: isLiked
-          ? undefined // handled below with proper old value
-          : undefined,
       });
 
       queryClient.setQueryData(['students'], (old) =>
@@ -914,7 +918,6 @@ export default function ConnectionsPage() {
             : old,
       );
 
-      // Patch the likes lists too (likers + likedUsers)
       queryClient.setQueryData<LikesData>(likesKey, (old) => {
         if (!old) return old;
         if (isLiked) {
@@ -961,7 +964,6 @@ export default function ConnectionsPage() {
       data: { counts?: { likesReceivedCount?: number } },
       { studentId, isLiked }: { studentId: string; isLiked: boolean },
     ) => {
-      // Sync confirmed count from server
       queryClient.setQueryData(['students'], (old) =>
         updateStudentsCache(old, (student) =>
           student.id === studentId
@@ -1339,6 +1341,7 @@ export default function ConnectionsPage() {
                 const isTopThree = rank <= 3;
                 const isTrending = activeTab === 'trending';
                 const isFeatured = isTrending && isTopThree;
+                const isSelf = currentUserId === user.id;
 
                 const initials = getInitials(user.firstName, user.lastName);
                 const fullName =
@@ -1352,6 +1355,9 @@ export default function ConnectionsPage() {
                   likeMutation.isPending &&
                   likeMutation.variables?.studentId === user.id &&
                   likeMutation.variables.isLiked;
+                const isFollowingBack =
+                  followMutation.isPending &&
+                  followMutation.variables === user.id;
 
                 const connectedDate = formatDate(user.connectedAt);
                 const likedDate = formatDate(user.likedAt);
@@ -1427,9 +1433,16 @@ export default function ConnectionsPage() {
                             </div>
 
                             <div className="min-w-0 flex-1">
-                              <h3 className="text-[15px] font-bold tracking-[-0.01em] text-[#1A2B4C] leading-tight break-words sm:text-[15.5px]">
-                                {fullName}
-                              </h3>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <h3 className="text-[15px] font-bold tracking-[-0.01em] text-[#1A2B4C] leading-tight break-words sm:text-[15.5px]">
+                                  {fullName}
+                                </h3>
+                                {isSelf && (
+                                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#B98A3E]/40 bg-[#B98A3E]/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#8A6A2E]">
+                                    You
+                                  </span>
+                                )}
+                              </div>
                               {user.techCenter && (
                                 <p className="mt-0.5 text-[11.5px] font-medium text-[#4B5646] break-words">
                                   {user.techCenter.name}
@@ -1462,54 +1475,87 @@ export default function ConnectionsPage() {
                             </span>
                           </div>
 
+                          {/* ---------- Actions ---------- */}
                           <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                            {user.isLiked ? (
-                              <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-600">
-                                <Heart
-                                  className="h-3.5 w-3.5 fill-red-500 text-red-500"
-                                  strokeWidth={2}
-                                />
-                                Liked
-                              </span>
+                            {isSelf ? (
+                              <>
+                                <span
+                                  className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white/60 px-2.5 py-1 text-[11px] font-semibold text-[#9CA3AF] cursor-not-allowed"
+                                  aria-disabled="true"
+                                  title="You cannot like your own profile"
+                                >
+                                  <Heart className="h-3.5 w-3.5" strokeWidth={2} />
+                                  Like
+                                </span>
+                                <span
+                                  className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white/60 px-2.5 py-1 text-[11px] font-semibold text-[#9CA3AF] cursor-not-allowed"
+                                  aria-disabled="true"
+                                  title="You cannot follow yourself"
+                                >
+                                  <UserPlus className="h-3.5 w-3.5" strokeWidth={2} />
+                                  Follow
+                                </span>
+                                <span className="inline-flex items-center gap-1 rounded-full border border-[#B98A3E]/40 bg-[#B98A3E]/10 px-2.5 py-1 text-[11px] font-bold text-[#8A6A2E]">
+                                  This is you
+                                </span>
+                                <Link
+                                  href={`/dashboard/students/${user.id}`}
+                                  className="inline-flex items-center gap-1 rounded-full border border-transparent px-2.5 py-1 text-[11px] font-semibold text-[#4B5646] transition-all hover:border-[#E5E7EB] hover:bg-white/70 active:scale-95"
+                                >
+                                  View
+                                </Link>
+                              </>
                             ) : (
-                              <button
-                                type="button"
-                                onClick={() => handleLikeToggle(user.id)}
-                                className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-[#1A2B4C] backdrop-blur-sm transition-all hover:border-red-300 hover:bg-red-50 hover:text-red-600 active:scale-95"
-                              >
-                                <Heart className="h-3.5 w-3.5" strokeWidth={2} />
-                                Like
-                              </button>
-                            )}
+                              <>
+                                {user.isLiked ? (
+                                  <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-600">
+                                    <Heart
+                                      className="h-3.5 w-3.5 fill-red-500 text-red-500"
+                                      strokeWidth={2}
+                                    />
+                                    Liked
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleLikeToggle(user.id)}
+                                    className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-[#1A2B4C] backdrop-blur-sm transition-all hover:border-red-300 hover:bg-red-50 hover:text-red-600 active:scale-95"
+                                  >
+                                    <Heart className="h-3.5 w-3.5" strokeWidth={2} />
+                                    Like
+                                  </button>
+                                )}
 
-                            {user.isFollowing ? (
-                              <span className="inline-flex items-center gap-1 rounded-full border border-[#55705B] bg-[#55705B] px-2.5 py-1 text-[11px] font-semibold text-white">
-                                <Check
-                                  className="h-3.5 w-3.5"
-                                  strokeWidth={2.5}
-                                />
-                                Following
-                              </span>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => handleFollow(user.id)}
-                                className="inline-flex items-center gap-1 rounded-full bg-[#1A2B4C] px-2.5 py-1 text-[11px] font-semibold text-white transition-all hover:bg-[#2C3E5A] hover:shadow-md active:scale-95"
-                              >
-                                <UserPlus
-                                  className="h-3.5 w-3.5"
-                                  strokeWidth={2}
-                                />
-                                Follow
-                              </button>
-                            )}
+                                {user.isFollowing ? (
+                                  <span className="inline-flex items-center gap-1 rounded-full border border-[#55705B] bg-[#55705B] px-2.5 py-1 text-[11px] font-semibold text-white">
+                                    <Check
+                                      className="h-3.5 w-3.5"
+                                      strokeWidth={2.5}
+                                    />
+                                    Following
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleFollow(user.id)}
+                                    className="inline-flex items-center gap-1 rounded-full bg-[#1A2B4C] px-2.5 py-1 text-[11px] font-semibold text-white transition-all hover:bg-[#2C3E5A] hover:shadow-md active:scale-95"
+                                  >
+                                    <UserPlus
+                                      className="h-3.5 w-3.5"
+                                      strokeWidth={2}
+                                    />
+                                    Follow
+                                  </button>
+                                )}
 
-                            <Link
-                              href={`/dashboard/students/${user.id}`}
-                              className="inline-flex items-center gap-1 rounded-full border border-transparent px-2.5 py-1 text-[11px] font-semibold text-[#4B5646] transition-all hover:border-[#E5E7EB] hover:bg-white/70 active:scale-95"
-                            >
-                              View
-                            </Link>
+                                <Link
+                                  href={`/dashboard/students/${user.id}`}
+                                  className="inline-flex items-center gap-1 rounded-full border border-transparent px-2.5 py-1 text-[11px] font-semibold text-[#4B5646] transition-all hover:border-[#E5E7EB] hover:bg-white/70 active:scale-95"
+                                >
+                                  View
+                                </Link>
+                              </>
+                            )}
                           </div>
                         </div>
 
@@ -1582,9 +1628,16 @@ export default function ConnectionsPage() {
                         </div>
 
                         <div className="min-w-0 flex-1">
-                          <h3 className="text-[14.5px] font-bold tracking-[-0.01em] text-[#1A2B4C] leading-tight break-words">
-                            {fullName}
-                          </h3>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <h3 className="text-[14.5px] font-bold tracking-[-0.01em] text-[#1A2B4C] leading-tight break-words">
+                              {fullName}
+                            </h3>
+                            {isSelf && (
+                              <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#B98A3E]/40 bg-[#B98A3E]/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#8A6A2E]">
+                                You
+                              </span>
+                            )}
+                          </div>
 
                           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-[#4B5646] leading-snug">
                             {user.techCenter && (
@@ -1623,8 +1676,37 @@ export default function ConnectionsPage() {
                           </div>
                         </div>
 
+                        {/* ---------- Actions ---------- */}
                         <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-1.5 sm:w-auto">
-                          {isTrending ? (
+                          {isSelf ? (
+                            <>
+                              <span
+                                className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#9CA3AF] cursor-not-allowed"
+                                aria-disabled="true"
+                                title="You cannot like your own profile"
+                              >
+                                <Heart className="h-3.5 w-3.5" strokeWidth={2} />
+                                Like
+                              </span>
+                              <span
+                                className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#9CA3AF] cursor-not-allowed"
+                                aria-disabled="true"
+                                title="You cannot follow yourself"
+                              >
+                                <UserPlus className="h-3.5 w-3.5" strokeWidth={2} />
+                                Follow
+                              </span>
+                              <span className="inline-flex items-center gap-1 rounded-full border border-[#B98A3E]/40 bg-[#B98A3E]/10 px-2.5 py-1 text-[11px] font-bold text-[#8A6A2E]">
+                                This is you
+                              </span>
+                              <Link
+                                href={`/dashboard/students/${user.id}`}
+                                className="inline-flex items-center gap-1 rounded-full border border-transparent px-2.5 py-1 text-[11px] font-semibold text-[#1A2B4C] transition-all hover:border-[#E5E7EB] hover:bg-[#F7F6F2] active:scale-95"
+                              >
+                                View Profile
+                              </Link>
+                            </>
+                          ) : isTrending ? (
                             <>
                               {user.isLiked ? (
                                 <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-600">
@@ -1688,6 +1770,40 @@ export default function ConnectionsPage() {
                               >
                                 View Profile
                               </button>
+
+                              {/* Follow Back — Followers tab only */}
+                              {activeTab === 'followers' &&
+                                (user.isFollowing ? (
+                                  <span className="inline-flex items-center gap-1 rounded-full border border-[#55705B] bg-[#55705B] px-2.5 py-1 text-[11px] font-semibold text-white">
+                                    <Check
+                                      className="h-3.5 w-3.5"
+                                      strokeWidth={2.5}
+                                    />
+                                    Following
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleFollow(user.id)}
+                                    disabled={isFollowingBack}
+                                    className="inline-flex items-center gap-1 rounded-full bg-[#1A2B4C] px-2.5 py-1 text-[11px] font-semibold text-white transition-all hover:bg-[#2C3E5A] hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 active:scale-95"
+                                  >
+                                    {isFollowingBack ? (
+                                      <Loader2
+                                        className="h-3.5 w-3.5 animate-spin"
+                                        strokeWidth={2}
+                                      />
+                                    ) : (
+                                      <UserPlus
+                                        className="h-3.5 w-3.5"
+                                        strokeWidth={2}
+                                      />
+                                    )}
+                                    {isFollowingBack
+                                      ? 'Following…'
+                                      : 'Follow Back'}
+                                  </button>
+                                ))}
 
                               {activeTab === 'following' && (
                                 <button
