@@ -695,16 +695,16 @@ const StudentCard = ({
                 </span>
                 <span className="text-[#1A2B4C]">{totalCredits} cr</span>
               </p>
-              <div className="space-y-0">
+              <div className="divide-y divide-[#EDF1F4]">
                 {student.studentCourses.map((course) => (
                   <div
                     key={course.id}
                     className="flex items-center justify-between gap-1.5"
                   >
-                    <span className="text-[10px] font-medium text-[#1A2B4C] break-words flex-1">
+                    <span className="min-w-0 flex-1 break-words text-[10px] font-semibold leading-tight text-[#1A2B4C]">
                       {course.courseUnit}
                     </span>
-                    <span className="shrink-0 font-mono text-[9px] text-[#4B5646] tabular-nums font-bold">
+                    <span className="shrink-0 rounded-sm bg-[#F7F6F2] px-1 font-mono text-[9px] font-bold tabular-nums text-[#4B5646]">
                       {course.credits}cr
                     </span>
                   </div>
