@@ -11,6 +11,7 @@ import {
   AlertCircle,
   TrendingUp,
   UserPlus,
+  Check,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -75,10 +76,10 @@ interface TrendingStudent {
 interface TrendingApiResponse {
   students: TrendingStudent[];
   generatedAt: string;
-  meta: {
-    weights: { followers: number; likes: number };
-    limit: number;
-    techCenterId: string | null;
+  meta?: {
+    weights?: { followers: number; likes: number };
+    limit?: number;
+    minActivity?: number;
   };
 }
 
@@ -130,7 +131,10 @@ async function fetchAllStudents(): Promise<StudentStats[]> {
 }
 
 async function fetchTrending(limit = 10): Promise<TrendingStudent[]> {
-  const res = await fetch(`/api/social/trending?limit=${limit}`);
+  const res = await fetch(
+    `/api/social/trending?limit=${limit}&_t=${Date.now()}`,
+    { cache: 'no-store' },
+  );
   if (!res.ok) throw new Error('Failed to fetch trending');
   const data: TrendingApiResponse = await res.json();
   return Array.isArray(data.students) ? data.students : [];
@@ -200,15 +204,17 @@ function findCachedStudent(
 // ============================================================
 
 const SkeletonRow = () => (
-  <li className="px-4 py-2.5 flex items-center gap-3 animate-pulse">
-    <div className="w-9 h-9 shrink-0 rounded-full bg-[#E5E7EB]" />
-    <div className="flex-1 min-w-0 space-y-1.5">
-      <div className="h-3 w-32 max-w-[45%] bg-[#E5E7EB] rounded" />
-      <div className="h-2.5 w-40 max-w-[55%] bg-[#F3F4F6] rounded" />
+  <li className="px-4 py-3 flex items-center gap-3">
+    <div className="h-7 w-7 shrink-0 rounded-full shimmer" />
+    <div className="h-10 w-10 shrink-0 rounded-full shimmer" />
+    <div className="flex-1 min-w-0 space-y-2">
+      <div className="h-3.5 w-32 max-w-[45%] rounded shimmer" />
+      <div className="h-2.5 w-40 max-w-[55%] rounded shimmer" />
     </div>
-    <div className="flex items-center gap-4 shrink-0">
-      <div className="h-3 w-16 bg-[#E5E7EB] rounded" />
-      <div className="h-3 w-14 bg-[#F3F4F6] rounded" />
+    <div className="flex items-center gap-2 shrink-0">
+      <div className="h-6 w-14 rounded-full shimmer" />
+      <div className="h-6 w-16 rounded-full shimmer" />
+      <div className="h-6 w-12 rounded-full shimmer" />
     </div>
   </li>
 );
@@ -223,17 +229,17 @@ const SkeletonList = ({ rows = 8 }: { rows?: number }) => (
 
 const StatsSkeleton = () => (
   <div className="mt-4 flex flex-wrap items-center gap-4 animate-pulse">
-    <div className="h-4 w-24 bg-[#E5E7EB] rounded" />
-    <div className="h-4 w-24 bg-[#E5E7EB] rounded" />
-    <div className="h-4 w-20 bg-[#E5E7EB] rounded" />
-    <div className="h-4 w-20 bg-[#E5E7EB] rounded" />
+    <div className="h-4 w-24 rounded shimmer" />
+    <div className="h-4 w-24 rounded shimmer" />
+    <div className="h-4 w-20 rounded shimmer" />
+    <div className="h-4 w-20 rounded shimmer" />
   </div>
 );
 
 const InlineCountSkeleton = () => (
   <span
     aria-hidden="true"
-    className="inline-block h-3 w-5 animate-pulse rounded bg-[#E5E7EB] align-middle"
+    className="inline-block h-3 w-5 rounded shimmer align-middle"
   />
 );
 
@@ -274,7 +280,7 @@ export default function ConnectionsPage() {
     queryClient.prefetchQuery({
       queryKey: ['social', 'trending'],
       queryFn: () => fetchTrending(10),
-      staleTime: 60 * 1000,
+      staleTime: 0,
     });
 
     queryClient.prefetchQuery({
@@ -345,13 +351,13 @@ export default function ConnectionsPage() {
     queryKey: ['social', 'trending'],
     queryFn: () => fetchTrending(10),
     enabled: !!currentUserId,
-    staleTime: 60 * 1000,
-    gcTime: 30 * 60 * 1000,
-    refetchInterval: 60 * 1000,
-    refetchIntervalInBackground: true,
+    staleTime: 0,
+    gcTime: 5 * 60 * 1000,
+    refetchInterval: 30 * 1000,
+    refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    refetchOnMount: false,
+    refetchOnMount: 'always',
   });
 
   const currentUserStats = statsQuery.data;
@@ -374,30 +380,25 @@ export default function ConnectionsPage() {
 
   const connections: ConnectionUser[] = useMemo(() => {
     // ---------- TRENDING ----------
+    // Trust the trending endpoint's isFollowing/isLiked/counts directly.
+    // Do NOT overlay the students cache — it lags and causes the wrong
+    // button state to render on first paint.
     if (activeTab === 'trending') {
       const trending = trendingQuery.data ?? [];
       if (trending.length === 0) return [];
 
-      const source = Array.isArray(studentsQuery.data)
-        ? studentsQuery.data
-        : [];
-      const byId = new Map(source.map((s) => [s.id, s]));
-
-      return trending.map((u) => {
-        const live = byId.get(u.id);
-        return {
-          id: u.id,
-          firstName: u.firstName,
-          lastName: u.lastName,
-          profileImageUrl: u.profileImageUrl,
-          techCenter: u.techCenter,
-          followersCount: live?.followersCount ?? u.followersCount,
-          followingCount: live?.followingCount ?? u.followingCount,
-          likesReceivedCount: live?.likesReceivedCount ?? u.likesReceivedCount,
-          isFollowing: live?.isFollowing ?? u.isFollowing,
-          isLiked: live?.isLiked ?? u.isLiked,
-        };
-      });
+      return trending.map((u) => ({
+        id: u.id,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        profileImageUrl: u.profileImageUrl,
+        techCenter: u.techCenter,
+        followersCount: u.followersCount,
+        followingCount: u.followingCount,
+        likesReceivedCount: u.likesReceivedCount,
+        isFollowing: u.isFollowing,
+        isLiked: u.isLiked,
+      }));
     }
 
     // ---------- LIKES ----------
@@ -574,6 +575,10 @@ export default function ConnectionsPage() {
         queryKey: ['students'],
         refetchType: 'none',
       });
+      // NOTE: we deliberately do NOT invalidate ['social', 'trending'] here.
+      // The optimistic update above already wrote the correct state, and the
+      // trending query refetches every 30s anyway. Forcing an immediate
+      // refetch causes a brief flicker back to the old state.
     },
   });
 
@@ -706,6 +711,7 @@ export default function ConnectionsPage() {
         queryKey: ['currentUserStats', currentUserId],
         refetchType: 'none',
       });
+      // No trending invalidation — see note on unfollowMutation above.
     },
   });
 
@@ -814,6 +820,7 @@ export default function ConnectionsPage() {
       data: { counts?: { likesReceivedCount?: number } },
       { studentId, isLiked }: { studentId: string; isLiked: boolean },
     ) => {
+      // Sync the confirmed count from the server into the students cache.
       queryClient.setQueryData(['students'], (old) =>
         updateStudentsCache(old, (student) =>
           student.id === studentId
@@ -852,6 +859,7 @@ export default function ConnectionsPage() {
         queryKey: ['connections', 'likes', currentUserId],
         refetchType: 'none',
       });
+      // No trending invalidation — see note on unfollowMutation above.
     },
   });
 
@@ -860,6 +868,19 @@ export default function ConnectionsPage() {
   const handleUnfollow = (userId: string) => unfollowMutation.mutate(userId);
 
   const handleFollow = (studentId: string) => {
+    // Prefer the trending cache first (source of truth), fall back to students.
+    const trending = queryClient.getQueryData<TrendingStudent[]>([
+      'social',
+      'trending',
+    ]);
+    const fromTrending = trending?.find((u) => u.id === studentId);
+
+    if (fromTrending) {
+      if (fromTrending.isFollowing) unfollowMutation.mutate(studentId);
+      else followMutation.mutate(studentId);
+      return;
+    }
+
     const student = findCachedStudent(
       queryClient.getQueryData(['students']),
       studentId,
@@ -869,6 +890,20 @@ export default function ConnectionsPage() {
   };
 
   const handleLikeToggle = (studentId: string) => {
+    const trending = queryClient.getQueryData<TrendingStudent[]>([
+      'social',
+      'trending',
+    ]);
+    const fromTrending = trending?.find((u) => u.id === studentId);
+
+    if (fromTrending) {
+      likeMutation.mutate({
+        studentId,
+        isLiked: fromTrending.isLiked,
+      });
+      return;
+    }
+
     const student = findCachedStudent(
       queryClient.getQueryData(['students']),
       studentId,
@@ -896,6 +931,46 @@ export default function ConnectionsPage() {
 
   return (
     <div className="min-h-screen bg-[#F7F6F2]">
+      <style jsx global>{`
+        @keyframes shimmerMove {
+          0% {
+            background-position: -200% 0;
+          }
+          100% {
+            background-position: 200% 0;
+          }
+        }
+        .shimmer {
+          background: linear-gradient(
+            90deg,
+            #e5e7eb 0%,
+            #f3f4f6 50%,
+            #e5e7eb 100%
+          );
+          background-size: 200% 100%;
+          animation: shimmerMove 1.4s ease-in-out infinite;
+        }
+        @keyframes rowEnter {
+          from {
+            opacity: 0;
+            transform: translateY(6px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .row-enter {
+          animation: rowEnter 240ms ease-out both;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .shimmer,
+          .row-enter {
+            animation: none;
+          }
+        }
+      `}</style>
+
       <div className="mx-auto max-w-[900px] px-4 sm:px-6 lg:px-8 py-6">
         {/* HEADER */}
         <header className="mb-6">
@@ -911,13 +986,12 @@ export default function ConnectionsPage() {
             <button
               type="button"
               onClick={handleRefresh}
-              className="inline-flex items-center gap-1.5 px-3 py-2 border border-[#E5E7EB] bg-white rounded text-[12px] font-bold text-[#1A2B4C] hover:border-[#B98A3E] hover:bg-[#F7F6F2] transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#E5E7EB] bg-white px-3.5 py-2 text-[12px] font-bold text-[#1A2B4C] transition-colors hover:border-[#B98A3E] hover:bg-[#F7F6F2] active:scale-95"
             >
               Refresh
             </button>
           </div>
 
-          {/* Stats / Tabs */}
           {showSessionLoading || statsQuery.isLoading ? (
             <StatsSkeleton />
           ) : (
@@ -932,7 +1006,15 @@ export default function ConnectionsPage() {
                       : 'text-[#1A2B4C] hover:text-[#B98A3E]'
                   }`}
                 >
-                  <TrendingUp className="w-4 h-4" strokeWidth={2} />
+                  <span className="relative flex h-4 w-4 items-center justify-center">
+                    <TrendingUp className="h-4 w-4" strokeWidth={2} />
+                    {activeTab === 'trending' && (
+                      <span className="absolute -right-1.5 -top-1 flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#55705B] opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-[#55705B]" />
+                      </span>
+                    )}
+                  </span>
                   <span className="text-[14px]">Trending</span>
                 </button>
 
@@ -1004,7 +1086,11 @@ export default function ConnectionsPage() {
                 role="tab"
                 aria-selected={likesView === 'received'}
                 onClick={() => setLikesView('received')}
-                className={`text-[13px] font-semibold underline underline-offset-4 ${likesView === 'received' ? 'text-red-600' : 'text-[#6B7280] hover:text-[#1A2B4C]'}`}
+                className={`text-[13px] font-semibold underline underline-offset-4 ${
+                  likesView === 'received'
+                    ? 'text-red-600'
+                    : 'text-[#6B7280] hover:text-[#1A2B4C]'
+                }`}
               >
                 Received (
                 {likesQuery.data ? (
@@ -1019,7 +1105,11 @@ export default function ConnectionsPage() {
                 role="tab"
                 aria-selected={likesView === 'sent'}
                 onClick={() => setLikesView('sent')}
-                className={`text-[13px] font-semibold underline underline-offset-4 ${likesView === 'sent' ? 'text-red-600' : 'text-[#6B7280] hover:text-[#1A2B4C]'}`}
+                className={`text-[13px] font-semibold underline underline-offset-4 ${
+                  likesView === 'sent'
+                    ? 'text-red-600'
+                    : 'text-[#6B7280] hover:text-[#1A2B4C]'
+                }`}
               >
                 You liked (
                 {likesQuery.data ? (
@@ -1061,7 +1151,10 @@ export default function ConnectionsPage() {
               {activeTab === 'likes' ? (
                 <Heart className="w-10 h-10 text-[#9CA3AF] mb-4" strokeWidth={1.6} />
               ) : activeTab === 'trending' ? (
-                <TrendingUp className="w-10 h-10 text-[#9CA3AF] mb-4" strokeWidth={1.6} />
+                <TrendingUp
+                  className="w-10 h-10 text-[#9CA3AF] mb-4"
+                  strokeWidth={1.6}
+                />
               ) : (
                 <Users className="w-10 h-10 text-[#9CA3AF] mb-4" strokeWidth={1.6} />
               )}
@@ -1081,12 +1174,17 @@ export default function ConnectionsPage() {
                       ? 'Follow other students to see them here.'
                       : activeTab === 'likes'
                         ? 'When people like your profile, they will appear here.'
-                        : 'Students will appear here as the community grows.'}
+                        : 'Students with followers or likes will appear here as the community grows.'}
               </p>
             </div>
           ) : (
             <ul className="divide-y divide-[#F3F4F6]">
-              {connections.map((user) => {
+              {connections.map((user, index) => {
+                const rank = index + 1;
+                const isTopThree = rank <= 3;
+                const isTrending = activeTab === 'trending';
+                const isFeatured = isTrending && isTopThree;
+
                 const initials = getInitials(user.firstName, user.lastName);
                 const fullName =
                   `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() ||
@@ -1122,149 +1220,370 @@ export default function ConnectionsPage() {
                     : likeMessage;
                 }
 
+                const rankBadgeStyles =
+                  rank === 1
+                    ? 'bg-gradient-to-br from-[#F5C518] to-[#D4A017] text-white shadow-[0_0_0_1px_rgba(212,160,23,0.25)]'
+                    : rank === 2
+                      ? 'bg-gradient-to-br from-[#C0C0C0] to-[#9CA3AF] text-white shadow-[0_0_0_1px_rgba(156,163,175,0.25)]'
+                      : rank === 3
+                        ? 'bg-gradient-to-br from-[#CD7F32] to-[#A65E2E] text-white shadow-[0_0_0_1px_rgba(166,94,46,0.25)]'
+                        : 'bg-[#F7F6F2] text-[#4B5646]';
+
                 return (
                   <li
                     key={user.id}
-                    className="px-4 py-2.5 flex flex-wrap items-center gap-3 hover:bg-[#F7F6F2] transition-colors sm:flex-nowrap"
+                    className={`
+                      row-enter relative transition-colors
+                      ${
+                        isFeatured
+                          ? 'overflow-hidden min-h-[210px] sm:min-h-[220px]'
+                          : 'px-4 py-3 hover:bg-[#F7F6F2]/60'
+                      }
+                      ${
+                        isTrending && rank === 1
+                          ? 'bg-[#FBF7E9]'
+                          : isTrending && rank === 2
+                            ? 'bg-[#F5F6F7]'
+                            : isTrending && rank === 3
+                              ? 'bg-[#FBF4EF]'
+                              : ''
+                      }
+                    `}
+                    style={{
+                      animationDelay: `${Math.min(index * 30, 300)}ms`,
+                    }}
                   >
-                    <div className="relative shrink-0">
-                      {user.profileImageUrl ? (
-                        <Image
-                          src={user.profileImageUrl}
-                          alt={fullName}
-                          width={36}
-                          height={36}
-                          className="w-9 h-9 object-cover rounded-full"
-                        />
-                      ) : (
-                        <div className="w-9 h-9 flex items-center justify-center bg-[#1A2B4C] rounded-full">
-                          <span className="text-white text-[11px] font-mono font-bold">
-                            {initials}
-                          </span>
-                        </div>
-                      )}
-                    </div>
+                    {isFeatured ? (
+                      /* ============================================================
+                         FEATURED CARD (top 3 trending) — warrior layout
+                         ============================================================ */
+                      <div className="relative flex min-h-[210px] items-stretch sm:min-h-[220px]">
+                        {/* Left content column */}
+                        <div className="relative z-10 flex w-1/2 min-w-0 flex-col justify-between p-4 sm:p-5">
+                          {/* Top: rank + name + tech center */}
+                          <div className="flex items-start gap-2">
+                            <div
+                              className={`
+                                mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center
+                                rounded-full font-mono text-[11px] font-bold tabular-nums
+                                ${rankBadgeStyles}
+                              `}
+                              aria-label={`Rank ${rank}`}
+                            >
+                              {rank}
+                            </div>
 
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-[14px] font-bold text-[#1A2B4C] leading-tight break-words">
-                        {fullName}
-                      </h3>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[#4B5646] leading-snug">
-                        {user.techCenter && (
-                          <span className="font-medium break-words">
-                            {user.techCenter.name}
-                          </span>
-                        )}
-                        {activeTab === 'trending' ? (
-                          <>
-                            <span className="text-[#D1D5DB]">•</span>
-                            <span className="text-[#6B7280]">
-                              {user.followersCount} followers ·{' '}
-                              {user.likesReceivedCount} likes
-                            </span>
-                          </>
-                        ) : (
-                          dateLabel && (
-                            <span className="text-[#6B7280] break-words">
-                              {dateLabel}
-                            </span>
-                          )
-                        )}
-                      </div>
-                    </div>
+                            <div className="min-w-0 flex-1">
+                              <h3 className="text-[15px] font-bold tracking-[-0.01em] text-[#1A2B4C] leading-tight break-words sm:text-[15.5px]">
+                                {fullName}
+                              </h3>
+                              {user.techCenter && (
+                                <p className="mt-0.5 text-[11.5px] font-medium text-[#4B5646] break-words">
+                                  {user.techCenter.name}
+                                </p>
+                              )}
+                            </div>
+                          </div>
 
-                    <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-x-3 gap-y-2 sm:w-auto">
-                      {activeTab === 'trending' ? (
-                        <>
-                          {user.isLiked ? (
-                            <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-red-600">
+                          {/* Middle: stat chips */}
+                          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#B98A3E]/10 px-2 py-1 font-mono text-[10px] font-bold text-[#8A6A2E] tabular-nums">
+                              <Users
+                                className="h-3 w-3 shrink-0"
+                                strokeWidth={2.4}
+                              />
+                              <span>{user.followersCount}</span>
+                              <span className="font-sans font-semibold">
+                                Followers
+                              </span>
+                            </span>
+
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 px-2 py-1 font-mono text-[10px] font-bold text-red-600 tabular-nums">
                               <Heart
-                                className="w-3.5 h-3.5 fill-red-500 text-red-500"
+                                className="h-3 w-3 shrink-0 fill-red-500 text-red-500"
                                 strokeWidth={2}
                               />
-                              Liked
+                              <span>{user.likesReceivedCount}</span>
+                              <span className="font-sans font-semibold">
+                                Likes
+                              </span>
                             </span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleLikeToggle(user.id)}
-                              className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#1A2B4C] underline underline-offset-2 decoration-[#B98A3E] transition-colors hover:text-[#B98A3E]"
-                            >
-                              <Heart className="w-3.5 h-3.5" strokeWidth={2} />
-                              Like
-                            </button>
-                          )}
+                          </div>
 
-                          {user.isFollowing ? (
-                            <span className="text-[12px] font-semibold text-[#55705B]">
-                              Following
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleFollow(user.id)}
-                              className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#1A2B4C] underline underline-offset-2 decoration-[#B98A3E] transition-colors hover:text-[#B98A3E]"
-                            >
-                              <UserPlus className="w-3.5 h-3.5" strokeWidth={2} />
-                              Follow
-                            </button>
-                          )}
-
-                          <Link
-                            href={`/dashboard/students/${user.id}`}
-                            className="text-[12px] font-semibold text-[#1A2B4C] underline underline-offset-2 decoration-[#B98A3E] hover:text-[#B98A3E] transition-colors"
-                          >
-                            View
-                          </Link>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              router.push(`/dashboard/students/${user.id}`)
-                            }
-                            className="text-[12px] font-semibold text-[#1A2B4C] underline underline-offset-2 decoration-[#B98A3E] hover:text-[#B98A3E] transition-colors"
-                          >
-                            View Profile
-                          </button>
-
-                          {activeTab === 'following' && (
-                            <button
-                              type="button"
-                              onClick={() => handleUnfollow(user.id)}
-                              disabled={isUnfollowing}
-                              className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#A4462F] underline underline-offset-2 decoration-[#A4462F] hover:opacity-70 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {isUnfollowing && (
-                                <Loader2
-                                  className="w-3 h-3 animate-spin"
+                          {/* Bottom: actions */}
+                          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                            {user.isLiked ? (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-600">
+                                <Heart
+                                  className="h-3.5 w-3.5 fill-red-500 text-red-500"
                                   strokeWidth={2}
                                 />
-                              )}
-                              {isUnfollowing ? 'Unfollowing…' : 'Unfollow'}
-                            </button>
-                          )}
+                                Liked
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleLikeToggle(user.id)}
+                                className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-[#1A2B4C] backdrop-blur-sm transition-all hover:border-red-300 hover:bg-red-50 hover:text-red-600 active:scale-95"
+                              >
+                                <Heart className="h-3.5 w-3.5" strokeWidth={2} />
+                                Like
+                              </button>
+                            )}
 
-                          {activeTab === 'likes' && likesView === 'sent' && (
-                            <button
-                              type="button"
-                              onClick={() => handleUnlike(user.id)}
-                              disabled={isUnliking}
-                              className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#A4462F] underline underline-offset-2 decoration-[#A4462F] hover:opacity-70 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {isUnliking && (
-                                <Loader2
-                                  className="w-3 h-3 animate-spin"
+                            {user.isFollowing ? (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-[#55705B] bg-[#55705B] px-2.5 py-1 text-[11px] font-semibold text-white">
+                                <Check
+                                  className="h-3.5 w-3.5"
+                                  strokeWidth={2.5}
+                                />
+                                Following
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleFollow(user.id)}
+                                className="inline-flex items-center gap-1 rounded-full bg-[#1A2B4C] px-2.5 py-1 text-[11px] font-semibold text-white transition-all hover:bg-[#2C3E5A] hover:shadow-md active:scale-95"
+                              >
+                                <UserPlus
+                                  className="h-3.5 w-3.5"
                                   strokeWidth={2}
                                 />
-                              )}
-                              {isUnliking ? 'Unliking…' : 'Unlike'}
-                            </button>
+                                Follow
+                              </button>
+                            )}
+
+                            <Link
+                              href={`/dashboard/students/${user.id}`}
+                              className="inline-flex items-center gap-1 rounded-full border border-transparent px-2.5 py-1 text-[11px] font-semibold text-[#4B5646] transition-all hover:border-[#E5E7EB] hover:bg-white/70 active:scale-95"
+                            >
+                              View
+                            </Link>
+                          </div>
+                        </div>
+
+                        {/* Right: hero portrait fills the other half */}
+                        <div className="pointer-events-none absolute inset-y-0 right-0 w-1/2 overflow-hidden">
+                          {user.profileImageUrl ? (
+                            <Image
+                              src={user.profileImageUrl}
+                              alt={fullName}
+                              fill
+                              sizes="(max-width: 640px) 50vw, 450px"
+                              className="object-cover object-center"
+                              priority={rank === 1}
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center bg-[#DCE2E8]">
+                              <span className="text-5xl font-black tracking-tight text-[#1A2B4C]/35">
+                                {initials}
+                              </span>
+                            </div>
                           )}
-                        </>
-                      )}
-                    </div>
+                          <div
+                            className={`
+                              absolute inset-0
+                              ${
+                                rank === 1
+                                  ? 'bg-gradient-to-r from-[#FBF7E9] via-[#FBF7E9]/30 to-transparent'
+                                  : rank === 2
+                                    ? 'bg-gradient-to-r from-[#F5F6F7] via-[#F5F6F7]/30 to-transparent'
+                                    : 'bg-gradient-to-r from-[#FBF4EF] via-[#FBF4EF]/30 to-transparent'
+                              }
+                            `}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#12203B]/35 via-transparent to-transparent" />
+                          <div className="absolute right-3 top-3 rounded-full border border-white/70 bg-[#12203B]/75 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-white backdrop-blur-sm">
+                            {rank === 1
+                              ? 'Champion'
+                              : rank === 2
+                                ? 'Warrior'
+                                : 'Contender'}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      /* ============================================================
+                         COMPACT ROW (rank 4+, or any non-trending tab)
+                         ============================================================ */
+                      <div className="flex flex-wrap items-center gap-3 sm:flex-nowrap">
+                        {isTrending && (
+                          <div
+                            className={`
+                              flex h-7 w-7 shrink-0 items-center justify-center
+                              rounded-full font-mono text-[11px] font-bold tabular-nums
+                              ${rankBadgeStyles}
+                            `}
+                            aria-label={`Rank ${rank}`}
+                          >
+                            {rank}
+                          </div>
+                        )}
+
+                        <div className="relative shrink-0">
+                          {user.profileImageUrl ? (
+                            <Image
+                              src={user.profileImageUrl}
+                              alt={fullName}
+                              width={40}
+                              height={40}
+                              className="h-10 w-10 rounded-full object-cover ring-1 ring-[#E5E7EB]"
+                            />
+                          ) : (
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1A2B4C]">
+                              <span className="text-[12px] font-mono font-bold text-white">
+                                {initials}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-[14.5px] font-bold tracking-[-0.01em] text-[#1A2B4C] leading-tight break-words">
+                            {fullName}
+                          </h3>
+
+                          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-[#4B5646] leading-snug">
+                            {user.techCenter && (
+                              <span className="font-medium break-words">
+                                {user.techCenter.name}
+                              </span>
+                            )}
+
+                            {isTrending ? (
+                              <>
+                                <span className="hidden text-[#D1D5DB] sm:inline">
+                                  ·
+                                </span>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-[#B98A3E]/10 px-2 py-0.5 font-mono text-[10px] font-bold text-[#8A6A2E] tabular-nums">
+                                  <Users
+                                    className="h-3 w-3"
+                                    strokeWidth={2.4}
+                                  />
+                                  {user.followersCount}
+                                </span>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-red-600 tabular-nums">
+                                  <Heart
+                                    className="h-3 w-3 fill-red-500 text-red-500"
+                                    strokeWidth={2}
+                                  />
+                                  {user.likesReceivedCount}
+                                </span>
+                              </>
+                            ) : (
+                              dateLabel && (
+                                <span className="text-[#6B7280] break-words">
+                                  {dateLabel}
+                                </span>
+                              )
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-1.5 sm:w-auto">
+                          {isTrending ? (
+                            <>
+                              {user.isLiked ? (
+                                <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-600">
+                                  <Heart
+                                    className="h-3.5 w-3.5 fill-red-500 text-red-500"
+                                    strokeWidth={2}
+                                  />
+                                  Liked
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleLikeToggle(user.id)}
+                                  className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#1A2B4C] transition-all hover:border-red-300 hover:bg-red-50 hover:text-red-600 active:scale-95"
+                                >
+                                  <Heart
+                                    className="h-3.5 w-3.5"
+                                    strokeWidth={2}
+                                  />
+                                  Like
+                                </button>
+                              )}
+
+                              {user.isFollowing ? (
+                                <span className="inline-flex items-center gap-1 rounded-full border border-[#55705B] bg-[#55705B] px-2.5 py-1 text-[11px] font-semibold text-white">
+                                  <Check
+                                    className="h-3.5 w-3.5"
+                                    strokeWidth={2.5}
+                                  />
+                                  Following
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleFollow(user.id)}
+                                  className="inline-flex items-center gap-1 rounded-full bg-[#1A2B4C] px-2.5 py-1 text-[11px] font-semibold text-white transition-all hover:bg-[#2C3E5A] hover:shadow-md active:scale-95"
+                                >
+                                  <UserPlus
+                                    className="h-3.5 w-3.5"
+                                    strokeWidth={2}
+                                  />
+                                  Follow
+                                </button>
+                              )}
+
+                              <Link
+                                href={`/dashboard/students/${user.id}`}
+                                className="inline-flex items-center gap-1 rounded-full border border-transparent px-2.5 py-1 text-[11px] font-semibold text-[#4B5646] transition-all hover:border-[#E5E7EB] hover:bg-[#F7F6F2] active:scale-95"
+                              >
+                                View
+                              </Link>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  router.push(`/dashboard/students/${user.id}`)
+                                }
+                                className="inline-flex items-center gap-1 rounded-full border border-transparent px-2.5 py-1 text-[11px] font-semibold text-[#1A2B4C] transition-all hover:border-[#E5E7EB] hover:bg-[#F7F6F2] active:scale-95"
+                              >
+                                View Profile
+                              </button>
+
+                              {activeTab === 'following' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleUnfollow(user.id)}
+                                  disabled={isUnfollowing}
+                                  className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-[#A4462F] transition-all hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 active:scale-95"
+                                >
+                                  {isUnfollowing && (
+                                    <Loader2
+                                      className="h-3 w-3 animate-spin"
+                                      strokeWidth={2}
+                                    />
+                                  )}
+                                  {isUnfollowing ? 'Unfollowing…' : 'Unfollow'}
+                                </button>
+                              )}
+
+                              {activeTab === 'likes' && likesView === 'sent' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleUnlike(user.id)}
+                                  disabled={isUnliking}
+                                  className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-[#A4462F] transition-all hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 active:scale-95"
+                                >
+                                  {isUnliking && (
+                                    <Loader2
+                                      className="h-3 w-3 animate-spin"
+                                      strokeWidth={2}
+                                    />
+                                  )}
+                                  {isUnliking ? 'Unliking…' : 'Unlike'}
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </li>
                 );
               })}
@@ -1279,8 +1598,8 @@ export default function ConnectionsPage() {
               strokeWidth={2}
             />
             <span>
-              Ranked by followers and likes received; followers carry extra
-              weight.
+              Showing only students with at least one follower or like — ranked
+              by followers first, then likes.
             </span>
           </p>
         )}
