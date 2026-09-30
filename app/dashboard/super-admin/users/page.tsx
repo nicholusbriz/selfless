@@ -124,7 +124,9 @@ const RoleBadge = ({ role }: { role: string }) => {
       className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium tracking-wide ${styles[role] || styles.student
         }`}
     >
-      {role.replace('_', ' ').toUpperCase()}
+      {role.toLowerCase() === 'teacher'
+        ? 'TUTOR'
+        : role.replace('_', ' ').toUpperCase()}
     </span>
   );
 };
@@ -476,29 +478,23 @@ export default function SuperAdminUsersPage() {
         data: editFormData,
       },
       {
-        onSuccess: () => {
-          closeExpanded();
-          refetch();
-        },
         onError: (error: any) => {
           window.alert(error.message || 'Failed to update user');
         },
       }
     );
+    closeExpanded();
   };
 
   const handleDeleteUser = () => {
     if (!selectedUser) return;
 
     deleteMutation.mutate(selectedUser.id, {
-      onSuccess: () => {
-        closeExpanded();
-        refetch();
-      },
       onError: (error: any) => {
         window.alert(error.message || 'Failed to delete user');
       },
     });
+    closeExpanded();
   };
 
   const handleChangeRole = (roleId: string) => {
@@ -510,15 +506,12 @@ export default function SuperAdminUsersPage() {
         roleId,
       },
       {
-        onSuccess: () => {
-          closeExpanded();
-          refetch();
-        },
         onError: (error: any) => {
           window.alert(error.message || 'Failed to update user role');
         },
       }
     );
+    closeExpanded();
   };
 
   const handleChangeStatus = (status: string) => {
@@ -530,15 +523,12 @@ export default function SuperAdminUsersPage() {
         status,
       },
       {
-        onSuccess: () => {
-          closeExpanded();
-          refetch();
-        },
         onError: (error: any) => {
           window.alert(error.message || 'Failed to update user status');
         },
       }
     );
+    closeExpanded();
   };
 
   const handlePageChange = (newPage: number) => {
@@ -599,17 +589,14 @@ export default function SuperAdminUsersPage() {
           <h2 className="text-lg font-semibold text-[#12203B]">
             Unable to load users
           </h2>
-
-          <p className="mt-1 text-sm text-[#6F7B8D]">
-            {(error as Error)?.message ||
-              'Something went wrong while loading users.'}
+          <p className="mt-2 text-sm text-[#6F7B8D]">
+            {error instanceof Error ? error.message : 'Please try again.'}
           </p>
-
           <button
+            type="button"
             onClick={() => refetch()}
             className={`${primaryButton} mt-5 px-4 py-2 text-sm`}
           >
-            <RefreshCw className="h-4 w-4" />
             Try again
           </button>
         </div>
@@ -618,7 +605,7 @@ export default function SuperAdminUsersPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F7F8FA]">
+    <main className="min-h-screen bg-[#F7F8FA] text-[#12203B]">
       <div className="mx-auto max-w-[1500px] px-3 py-4 sm:px-5 lg:px-6 lg:py-5">
         {/* ---------------------------------------------------------------- */}
         {/* Header                                                            */}
@@ -821,7 +808,7 @@ export default function SuperAdminUsersPage() {
 
                       {usersData.filters.roles.map((role) => (
                         <option key={role.id} value={role.name}>
-                          {role.displayName}
+                          {role.name === 'teacher' ? 'Tutor' : role.displayName}
                         </option>
                       ))}
                     </select>
@@ -1163,17 +1150,8 @@ export default function SuperAdminUsersPage() {
                                     disabled={updateUserMutation.isPending}
                                     className={`${primaryButton} px-4 py-2 text-sm`}
                                   >
-                                    {updateUserMutation.isPending ? (
-                                      <>
-                                        <span className="h-4 w-4 animate-pulse rounded-full bg-white/60" />
-                                        Saving...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Save className="h-4 w-4" />
-                                        Save changes
-                                      </>
-                                    )}
+                                    <Save className="h-4 w-4" />
+                                    Save changes
                                   </button>
                                 </div>
                               </form>
@@ -1216,10 +1194,10 @@ export default function SuperAdminUsersPage() {
                                       >
                                         <div>
                                           <p className="text-sm font-medium text-[#12203B]">
-                                            {role.displayName}
+                                            {role.name === 'teacher' ? 'Tutor' : role.displayName}
                                           </p>
                                           <p className="mt-0.5 text-[11px] text-[#8993A3]">
-                                            {role.name}
+                                            {role.name === 'teacher' ? 'Tutor' : role.name}
                                           </p>
                                         </div>
 
@@ -1350,9 +1328,7 @@ export default function SuperAdminUsersPage() {
                                     className={`${dangerButton} px-4 py-2 text-sm`}
                                   >
                                     <Trash2 className="h-4 w-4" />
-                                    {deleteMutation.isPending
-                                      ? 'Deleting...'
-                                      : 'Delete user'}
+                                    Delete user
                                   </button>
                                 </div>
                               </div>
@@ -1556,9 +1532,7 @@ export default function SuperAdminUsersPage() {
                                     className={`${primaryButton} flex-1 px-4 py-2 text-sm`}
                                   >
                                     <Save className="h-4 w-4" />
-                                    {updateUserMutation.isPending
-                                      ? 'Saving...'
-                                      : 'Save'}
+                                    Save
                                   </button>
                                 </div>
                               </form>
@@ -1595,7 +1569,7 @@ export default function SuperAdminUsersPage() {
                                           }`}
                                       >
                                         <span className="text-sm font-medium text-[#12203B]">
-                                          {role.displayName}
+                                          {role.name === 'teacher' ? 'Tutor' : role.displayName}
                                         </span>
 
                                         {selected && (
@@ -1710,9 +1684,7 @@ export default function SuperAdminUsersPage() {
                                     className={`${dangerButton} flex-1 px-4 py-2 text-sm`}
                                   >
                                     <Trash2 className="h-4 w-4" />
-                                    {deleteMutation.isPending
-                                      ? 'Deleting...'
-                                      : 'Delete'}
+                                    Delete
                                   </button>
                                 </div>
                               </div>

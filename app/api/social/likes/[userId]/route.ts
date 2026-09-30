@@ -2,10 +2,10 @@
 /**
  * LIKES LIST API ROUTE
  * 
- * Fetches all users who liked a specific user's profile.
+ * Fetches users who liked a specific profile and users that profile liked.
  * Requires authentication.
  * 
- * GET /api/social/likes/[userId] - Get users who liked this user
+ * GET /api/social/likes/[userId] - Get received and sent likes
  */
 
 import { NextResponse } from 'next/server';
@@ -20,47 +20,97 @@ export async function GET(
     const currentUser = await requireAuth();
     const { userId: targetUserId } = await params;
 
-    // Fetch all likes for the target user
-    const likes = await prisma.like.findMany({
-      where: { likedUserId: targetUserId },
-      include: {
-        liker: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            profileImageUrl: true,
-            techCenter: {
-              select: {
-                id: true,
-                name: true,
-              }
-            },
-            followersCount: true,
-            followingCount: true,
-            likesReceivedCount: true,
-          }
+    const userSelect = {
+      id: true,
+      firstName: true,
+      lastName: true,
+      profileImageUrl: true,
+      previousTechCenterId: true,
+      role: { select: { name: true } },
+      techCenter: {
+        select: {
+          id: true,
+          name: true,
         }
       },
-      orderBy: { createdAt: 'desc' }
-    });
+      followersCount: true,
+      followingCount: true,
+      likesReceivedCount: true,
+    } as const;
 
-    // Transform the data to match the expected format
-    const likers = likes.map(like => ({
+    const [receivedLikes, sentLikes] = await Promise.all([
+      prisma.like.findMany({
+        where: { likedUserId: targetUserId },
+        include: { liker: { select: userSelect } },
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.like.findMany({
+        where: { likerId: targetUserId },
+        include: { likedUser: { select: userSelect } },
+        orderBy: { createdAt: 'desc' }
+      }),
+    ]);
+
+    const relatedUsers = [
+      ...receivedLikes.map((like) => like.liker),
+      ...sentLikes.map((like) => like.likedUser),
+    ];
+    const previousTechCenterIds = Array.from(
+      new Set(
+        relatedUsers.flatMap((user) =>
+          !user.techCenter &&
+          user.role?.name === 'super_admin' &&
+          user.previousTechCenterId
+            ? [user.previousTechCenterId]
+            : [],
+        ),
+      ),
+    );
+    const previousTechCenters = previousTechCenterIds.length
+      ? await prisma.techCenter.findMany({
+          where: { id: { in: previousTechCenterIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const previousTechCentersById = new Map(
+      previousTechCenters.map((techCenter) => [techCenter.id, techCenter]),
+    );
+    const getTechCenter = (user: (typeof relatedUsers)[number]) =>
+      user.techCenter ??
+      (user.role?.name === 'super_admin' && user.previousTechCenterId
+        ? previousTechCentersById.get(user.previousTechCenterId) ?? null
+        : null);
+
+    const likers = receivedLikes.map(like => ({
       id: like.liker.id,
       firstName: like.liker.firstName,
       lastName: like.liker.lastName,
       profileImageUrl: like.liker.profileImageUrl,
-      techCenter: like.liker.techCenter,
+      techCenter: getTechCenter(like.liker),
       followersCount: like.liker.followersCount,
       followingCount: like.liker.followingCount,
       likesReceivedCount: like.liker.likesReceivedCount,
       likedAt: like.createdAt,
     }));
 
+    const likedUsers = sentLikes.map(like => ({
+      id: like.likedUser.id,
+      firstName: like.likedUser.firstName,
+      lastName: like.likedUser.lastName,
+      profileImageUrl: like.likedUser.profileImageUrl,
+      techCenter: getTechCenter(like.likedUser),
+      followersCount: like.likedUser.followersCount,
+      followingCount: like.likedUser.followingCount,
+      likesReceivedCount: like.likedUser.likesReceivedCount,
+      likedAt: like.createdAt,
+      isLiked: true,
+    }));
+
     return NextResponse.json({
       likers,
       totalLikes: likers.length,
+      likedUsers,
+      totalLikedUsers: likedUsers.length,
     });
   } catch (error: unknown) {
     console.error('Likes list API error:', error);

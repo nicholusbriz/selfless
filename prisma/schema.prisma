@@ -159,6 +159,7 @@ model User {
   announcementComments  AnnouncementComment[] @relation("AnnouncementCommentAuthor")
   notifications         Notification[]
   activityLogs          ActivityLog[]
+  pageVisitCounts       UserPageVisitCount[]
   
   // Simple tracking fields
   createdTechCenterIds String[]
@@ -174,6 +175,8 @@ model User {
   following Follow[] @relation("UserFollowing")
   likesReceived Like[] @relation("UserLikesReceived")
   likesGiven Like[] @relation("UserLikesGiven")
+  profileViewsMade ProfileView[] @relation("ProfileViewViewer")
+  profileViewsReceived ProfileView[] @relation("ProfileViewProfile")
   
   // NextAuth Relations
   accounts Account[]
@@ -474,7 +477,7 @@ model CleaningDay {
 // CLEANING REGISTRATION
 model CleaningRegistration {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId        String   @unique
+  userId        String   @unique @db.ObjectId
   user          User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   cleaningDayId String   @db.ObjectId
   cleaningDay   CleaningDay @relation(fields: [cleaningDayId], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -647,6 +650,24 @@ model PageVisitCount {
   @@index([count])
   @@index([lastVisitAt])
   @@map("page_visit_counts")
+}
+
+// PAGE VISITS PER USER (Aggregate counters only; no individual visit records)
+model UserPageVisitCount {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pagePath    String
+  count       Int      @default(0)
+  lastVisitAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, pagePath], name: "userId_pagePath")
+  @@index([userId])
+  @@index([pagePath])
+  @@index([count])
+  @@index([lastVisitAt])
+  @@map("user_page_visit_counts")
 }
 
 // ============================================
@@ -1126,4 +1147,19 @@ model Like {
   @@index([likedUserId])
   @@index([createdAt])
   @@map("likes")
+}
+
+// PROFILE VIEW - One view record per viewer/profile pair
+model ProfileView {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  viewerId      String   @db.ObjectId
+  viewer        User     @relation("ProfileViewViewer", fields: [viewerId], references: [id], onDelete: Cascade)
+  profileUserId String   @db.ObjectId
+  profileUser   User     @relation("ProfileViewProfile", fields: [profileUserId], references: [id], onDelete: Cascade)
+  viewedAt      DateTime @default(now())
+
+  @@unique([viewerId, profileUserId], name: "viewerId_profileUserId")
+  @@index([profileUserId])
+  @@index([viewerId])
+  @@map("profile_views")
 }

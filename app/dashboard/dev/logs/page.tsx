@@ -51,6 +51,16 @@ interface ActivityLog {
 
 interface PageVisitStats {
   totalVisits: number;
+  users: Array<{
+    userId: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    techCenterName: string | null;
+    totalVisits: number;
+    pagesVisited: number;
+    lastVisitAt: string;
+  }>;
   pageVisits: Array<{
     pagePath: string;
     count: number;
@@ -59,7 +69,16 @@ interface PageVisitStats {
   }>;
 }
 
-const PAGE_SIZE = 50;
+interface ActionStat {
+  action: string;
+  count: number;
+}
+
+interface TechCenterOption {
+  id: string;
+  name: string;
+  code: string;
+}
 
 export default function ActivityLogsPage() {
   const router = useRouter();
@@ -71,15 +90,10 @@ export default function ActivityLogsPage() {
   const [userId, setUserId] = useState('');
   const [techCenterId, setTechCenterId] = useState('');
   const [action, setAction] = useState('');
-  const [entityType, setEntityType] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [isAnonymous, setIsAnonymous] = useState('');
 
   // ------------------------------------------------------------
   // Pagination / UI
   // ------------------------------------------------------------
-  const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
 
   // ------------------------------------------------------------
@@ -99,11 +113,6 @@ export default function ActivityLogsPage() {
     userId,
     techCenterId,
     action,
-    entityType,
-    startDate,
-    endDate,
-    isAnonymous,
-    page,
   ];
 
   // ------------------------------------------------------------
@@ -122,13 +131,7 @@ export default function ActivityLogsPage() {
       if (userId) params.append('userId', userId);
       if (techCenterId) params.append('techCenterId', techCenterId);
       if (action) params.append('action', action);
-      if (entityType) params.append('entityType', entityType);
-      if (startDate) params.append('startDate', startDate);
-      if (endDate) params.append('endDate', endDate);
-      if (isAnonymous) params.append('isAnonymous', isAnonymous);
-
-      params.append('limit', String(PAGE_SIZE));
-      params.append('offset', String((page - 1) * PAGE_SIZE));
+      params.append('all', 'true');
 
       const response = await fetch(
         `/api/admin/activity-logs?${params.toString()}`
@@ -147,25 +150,23 @@ export default function ActivityLogsPage() {
 
   const logs: ActivityLog[] = data?.logs || [];
   const total = data?.total || 0;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const actionStats: ActionStat[] = data?.actionStats ?? [];
 
-  // Filter out page_visit logs from system activity display
-  const systemActivityLogs = logs.filter((log) => log.action !== 'page_visit');
+  const systemActivityLogs = logs;
 
   // ------------------------------------------------------------
-  // Extract tech centers from returned logs
+  // Fetch tech centers directly so filters include centers with no log rows
   // ------------------------------------------------------------
-  const uniqueTechCenters = useMemo(() => {
-    const centers = new Map<string, ActivityLog['techCenter']>();
-
-    logs.forEach((log) => {
-      if (log.techCenter?.id) {
-        centers.set(log.techCenter.id, log.techCenter);
-      }
-    });
-
-    return Array.from(centers.values()).filter(Boolean);
-  }, [logs]);
+  const { data: techCenters = [] } = useQuery<TechCenterOption[]>({
+    queryKey: ['dev-log-tech-centers'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/all-tech-centers');
+      if (!response.ok) throw new Error('Failed to fetch tech centers');
+      return response.json();
+    },
+    enabled: !authLoading && !!user && user.role === 'dev',
+    staleTime: 5 * 60 * 1000,
+  });
 
   // ------------------------------------------------------------
   // Fetch page visit statistics
@@ -196,11 +197,7 @@ export default function ActivityLogsPage() {
     (log) => log.action === 'page_visit'
   ).length;
 
-  const techCenterCount = new Set(
-    logs
-      .map((log) => log.techCenter?.id)
-      .filter(Boolean)
-  ).size;
+  const techCenterCount = techCenters.length;
 
   const totalPageVisits = pageVisitStats?.totalVisits || 0;
 
@@ -208,7 +205,6 @@ export default function ActivityLogsPage() {
   // Search
   // ------------------------------------------------------------
   const handleSearch = () => {
-    setPage(1);
     refetch();
   };
 
@@ -219,11 +215,6 @@ export default function ActivityLogsPage() {
     setUserId('');
     setTechCenterId('');
     setAction('');
-    setEntityType('');
-    setStartDate('');
-    setEndDate('');
-    setIsAnonymous('');
-    setPage(1);
 
     setTimeout(() => {
       refetch();
@@ -234,7 +225,7 @@ export default function ActivityLogsPage() {
   // Delete logs
   // ------------------------------------------------------------
   const handleDeleteLogs = async (
-    deleteType: 'single' | 'action' | 'date-range',
+    deleteType: 'single' | 'action',
     logId?: string
   ) => {
     if (
@@ -254,15 +245,6 @@ export default function ActivityLogsPage() {
 
       if (deleteType === 'action' && action) {
         params.append('action', action);
-      }
-
-      if (deleteType === 'date-range') {
-        if (startDate) params.append('startDate', startDate);
-        if (endDate) params.append('endDate', endDate);
-        if (action) params.append('action', action);
-        if (techCenterId) {
-          params.append('techCenterId', techCenterId);
-        }
       }
 
       const response = await fetch(
@@ -504,7 +486,7 @@ export default function ActivityLogsPage() {
                   type="text"
                   value={userId}
                   onChange={(e) => setUserId(e.target.value)}
-                  placeholder="Enter user ID"
+                  placeholder="Search user ID across all logs"
                   className="h-10 w-full rounded-lg border border-[#DADCD3] bg-white px-3 text-sm text-[#12203B] outline-none transition-colors placeholder:text-[#8A9088] focus:border-[#B98A3E] focus:ring-2 focus:ring-[#B98A3E]/10"
                 />
               </div>
@@ -522,28 +504,11 @@ export default function ActivityLogsPage() {
                 >
                   <option value="">All Tech Centers</option>
 
-                  {uniqueTechCenters.map((tc) => (
-                    <option key={tc?.id} value={tc?.id}>
-                      {tc?.name} ({tc?.code})
+                  {techCenters.map((techCenter) => (
+                    <option key={techCenter.id} value={techCenter.id}>
+                      {techCenter.name} ({techCenter.code})
                     </option>
                   ))}
-                </select>
-              </div>
-
-              {/* User Type */}
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#6B7268]">
-                  User Type
-                </label>
-
-                <select
-                  value={isAnonymous}
-                  onChange={(e) => setIsAnonymous(e.target.value)}
-                  className="h-10 w-full rounded-lg border border-[#DADCD3] bg-white px-3 text-sm text-[#12203B] outline-none transition-colors focus:border-[#B98A3E] focus:ring-2 focus:ring-[#B98A3E]/10"
-                >
-                  <option value="">All Users</option>
-                  <option value="false">Logged In Users</option>
-                  <option value="true">Anonymous Visitors</option>
                 </select>
               </div>
 
@@ -559,64 +524,14 @@ export default function ActivityLogsPage() {
                   className="h-10 w-full rounded-lg border border-[#DADCD3] bg-white px-3 text-sm text-[#12203B] outline-none transition-colors focus:border-[#B98A3E] focus:ring-2 focus:ring-[#B98A3E]/10"
                 >
                   <option value="">All Actions</option>
-                  <option value="login">Login</option>
-                  <option value="logout">Logout</option>
-                  <option value="register">Register</option>
-                  <option value="create">Create</option>
-                  <option value="update">Update</option>
-                  <option value="delete">Delete</option>
-                  <option value="ai_chat_opened">AI Chat Opened</option>
+                  {actionStats.map((actionStat) => (
+                    <option key={actionStat.action} value={actionStat.action}>
+                      {actionStat.action.replace(/_/g, ' ')} ({actionStat.count})
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              {/* Entity */}
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#6B7268]">
-                  Entity Type
-                </label>
-
-                <select
-                  value={entityType}
-                  onChange={(e) => setEntityType(e.target.value)}
-                  className="h-10 w-full rounded-lg border border-[#DADCD3] bg-white px-3 text-sm text-[#12203B] outline-none transition-colors focus:border-[#B98A3E] focus:ring-2 focus:ring-[#B98A3E]/10"
-                >
-                  <option value="">All Entities</option>
-                  <option value="user">User</option>
-                  <option value="tech_center">Tech Center</option>
-                  <option value="course">Course</option>
-                  <option value="grade">Grade</option>
-                  <option value="cleaning">Cleaning</option>
-                  <option value="ai_assistant">AI Assistant</option>
-                </select>
-              </div>
-
-              {/* Start Date */}
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#6B7268]">
-                  Start Date
-                </label>
-
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="h-10 w-full rounded-lg border border-[#DADCD3] bg-white px-3 text-sm text-[#12203B] outline-none transition-colors focus:border-[#B98A3E] focus:ring-2 focus:ring-[#B98A3E]/10"
-                />
-              </div>
-
-              {/* End Date */}
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#6B7268]">
-                  End Date
-                </label>
-
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="h-10 w-full rounded-lg border border-[#DADCD3] bg-white px-3 text-sm text-[#12203B] outline-none transition-colors focus:border-[#B98A3E] focus:ring-2 focus:ring-[#B98A3E]/10"
-                />
-              </div>
             </div>
 
             <div className="flex flex-col gap-3 border-t border-[#DADCD3] px-5 py-4 lg:flex-row lg:items-center">
@@ -649,14 +564,6 @@ export default function ActivityLogsPage() {
                   Delete by action
                 </button>
 
-                <button
-                  onClick={() => handleDeleteLogs('date-range')}
-                  disabled={!startDate && !endDate}
-                  className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#A4462F]/20 bg-[#A4462F]/5 px-3 text-xs font-semibold text-[#A4462F] transition-colors hover:bg-[#A4462F]/10 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Delete date range
-                </button>
               </div>
             </div>
           </section>
@@ -665,7 +572,7 @@ export default function ActivityLogsPage() {
         {/* ======================================================
             STATISTICS
         ====================================================== */}
-        <section className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <section className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
 
           <div className="rounded-xl border border-[#DADCD3] bg-white px-4 py-4 shadow-[0_1px_2px_rgba(18,32,59,0.03)]">
             <div className="flex items-center gap-3">
@@ -717,6 +624,56 @@ export default function ActivityLogsPage() {
               </div>
             </div>
           </div>
+
+          <div className="rounded-xl border border-[#DADCD3] bg-white px-4 py-4 shadow-[0_1px_2px_rgba(18,32,59,0.03)]">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#55705B]/10">
+                <User className="h-4 w-4 text-[#55705B]" />
+              </div>
+
+              <div className="min-w-0">
+                <p className="truncate text-xs font-medium text-[#6B7268]">
+                  Users tracked
+                </p>
+                <p className="mt-0.5 text-xl font-semibold text-[#12203B]">
+                  {pageVisitStats?.users.length.toLocaleString() || 0}
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mb-6 overflow-hidden rounded-xl border border-[#DADCD3] bg-white shadow-[0_1px_2px_rgba(18,32,59,0.03)]">
+          <div className="flex items-center justify-between gap-3 border-b border-[#DADCD3] px-5 py-4">
+            <div>
+              <h2 className="text-sm font-semibold text-[#12203B]">Activity by action</h2>
+              <p className="mt-0.5 text-xs text-[#6B7268]">
+                Counts reflect the current user and tech-center filters.
+              </p>
+            </div>
+            <span className="shrink-0 text-xs font-medium text-[#6B7268]">
+              {actionStats.length} action types
+            </span>
+          </div>
+          {actionStats.length ? (
+            <div className="grid grid-cols-2 gap-2 p-4 sm:grid-cols-3 lg:grid-cols-5">
+              {actionStats.map((actionStat) => (
+                <div
+                  key={actionStat.action}
+                  className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-[#E6E7E1] bg-[#FBFBF9] px-3 py-2"
+                >
+                  <span className="truncate text-xs font-medium capitalize text-[#4B564C]">
+                    {actionStat.action.replace(/_/g, ' ')}
+                  </span>
+                  <span className="shrink-0 font-mono text-sm font-semibold tabular-nums text-[#12203B]">
+                    {actionStat.count.toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="px-5 py-6 text-sm text-[#6B7268]">No action counts for this scope.</p>
+          )}
         </section>
 
         {/* ======================================================
@@ -824,6 +781,59 @@ export default function ActivityLogsPage() {
                   </span>
                 ))}
               </div>
+            </div>
+          )}
+        </section>
+
+        <section className="mb-6 overflow-hidden rounded-xl border border-[#DADCD3] bg-white shadow-[0_1px_2px_rgba(18,32,59,0.03)]">
+          <div className="border-b border-[#DADCD3] px-5 py-4">
+            <h2 className="text-sm font-semibold text-[#12203B]">Page visits by user</h2>
+            <p className="mt-0.5 text-xs text-[#6B7268]">
+              Aggregate counters only; individual visit events are not stored here.
+            </p>
+          </div>
+
+          {isLoadingPageStats ? (
+            <div className="px-5 py-8 text-sm text-[#6B7268]">Loading user visit counts...</div>
+          ) : !pageVisitStats?.users.length ? (
+            <div className="px-5 py-8 text-sm text-[#6B7268]">No signed-in user visits recorded yet.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px]">
+                <thead>
+                  <tr className="border-b border-[#DADCD3] bg-[#F7F6F2]/70">
+                    <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[#6B7268]">User</th>
+                    <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[#6B7268]">Tech center</th>
+                    <th className="px-5 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-[#6B7268]">Visits</th>
+                    <th className="px-5 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-[#6B7268]">Pages</th>
+                    <th className="px-5 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-[#6B7268]">Last visit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageVisitStats.users.map((visitUser) => (
+                    <tr key={visitUser.userId} className="border-b border-[#E8E9E4] last:border-b-0">
+                      <td className="px-5 py-3">
+                        <p className="text-sm font-medium text-[#12203B]">
+                          {visitUser.firstName} {visitUser.lastName}
+                        </p>
+                        <p className="mt-0.5 text-xs text-[#6B7268]">{visitUser.email}</p>
+                      </td>
+                      <td className="px-5 py-3 text-sm text-[#4B564C]">
+                        {visitUser.techCenterName || 'No tech center'}
+                      </td>
+                      <td className="px-5 py-3 text-right text-sm font-semibold tabular-nums text-[#12203B]">
+                        {visitUser.totalVisits.toLocaleString()}
+                      </td>
+                      <td className="px-5 py-3 text-right text-sm tabular-nums text-[#4B564C]">
+                        {visitUser.pagesVisited.toLocaleString()}
+                      </td>
+                      <td className="px-5 py-3 text-right text-xs text-[#6B7268]">
+                        {formatDate(visitUser.lastVisitAt)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </section>
@@ -1094,54 +1104,6 @@ export default function ActivityLogsPage() {
                 </table>
               </div>
 
-              {/* ==================================================
-                  PAGINATION
-              ================================================== */}
-              <div className="flex flex-col gap-3 border-t border-[#DADCD3] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs text-[#6B7268]">
-                  Showing{' '}
-                  <span className="font-semibold text-[#12203B]">
-                    {(page - 1) * PAGE_SIZE + 1}
-                  </span>{' '}
-                  to{' '}
-                  <span className="font-semibold text-[#12203B]">
-                    {Math.min(page * PAGE_SIZE, systemActivityLogs.length)}
-                  </span>{' '}
-                  of{' '}
-                  <span className="font-semibold text-[#12203B]">
-                    {systemActivityLogs.length}
-                  </span>{' '}
-                  system activity logs
-                </p>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() =>
-                      setPage((current) => Math.max(1, current - 1))
-                    }
-                    disabled={page === 1}
-                    className="h-9 rounded-lg border border-[#DADCD3] bg-white px-3.5 text-xs font-medium text-[#4B564C] transition-colors hover:bg-[#F7F6F2] hover:text-[#12203B] disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Previous
-                  </button>
-
-                  <div className="flex h-9 items-center rounded-lg bg-[#F7F6F2] px-3 text-xs font-semibold text-[#12203B]">
-                    Page {page} of {totalPages}
-                  </div>
-
-                  <button
-                    onClick={() =>
-                      setPage((current) =>
-                        Math.min(totalPages, current + 1)
-                      )
-                    }
-                    disabled={page >= totalPages}
-                    className="h-9 rounded-lg border border-[#DADCD3] bg-white px-3.5 text-xs font-medium text-[#4B564C] transition-colors hover:bg-[#F7F6F2] hover:text-[#12203B] disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
             </>
           )}
         </section>

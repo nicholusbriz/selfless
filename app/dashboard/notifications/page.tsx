@@ -2,13 +2,8 @@
 
 import {
   ArrowLeft,
-  Home,
-  Bell,
   Check,
-  CheckCircle,
   Loader2,
-  Calendar,
-  Trophy,
   AlertCircle,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -73,46 +68,6 @@ export default function NotificationsPage() {
   };
 
   /* ============================================================
-     NOTIFICATION ICON
-  ============================================================ */
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'football_team':
-        return (
-          <Trophy className="h-5 w-5 text-[#1A365D]" />
-        );
-
-      case 'cleaning':
-        return (
-          <Calendar className="h-5 w-5 text-[#087F6C]" />
-        );
-
-      default:
-        return (
-          <Bell className="h-5 w-5 text-[#3182CE]" />
-        );
-    }
-  };
-
-  /* ============================================================
-     NOTIFICATION ICON BACKGROUND
-  ============================================================ */
-
-  const getNotificationIconBackground = (type: string) => {
-    switch (type) {
-      case 'football_team':
-        return 'bg-[#EEF5FB]';
-
-      case 'cleaning':
-        return 'bg-[#E8F6F3]';
-
-      default:
-        return 'bg-[#EEF5FB]';
-    }
-  };
-
-  /* ============================================================
      PAGE
   ============================================================ */
 
@@ -162,44 +117,11 @@ export default function NotificationsPage() {
                     <ArrowLeft className="h-5 w-5" />
                   </button>
 
-                  {/* Home */}
-
-                  <button
-                    onClick={() => router.push('/dashboard')}
-                    className="
-                      flex h-10 w-10 shrink-0 items-center
-                      justify-center rounded-lg
-                      border border-[#D9E2EC]
-                      bg-white text-[#64788A]
-                      transition-all duration-200
-                      hover:border-[#1A365D]
-                      hover:bg-[#F4F7FA]
-                      hover:text-[#1A365D]
-                    "
-                    aria-label="Go home"
-                  >
-                    <Home className="h-5 w-5" />
-                  </button>
-
                   <div className="hidden h-8 w-px bg-[#E7EDF3] sm:block" />
 
                   {/* TITLE */}
 
-                  <div className="flex min-w-0 items-center gap-3">
-
-                    <div
-                      className="
-                        flex h-11 w-11 shrink-0
-                        items-center justify-center
-                        rounded-xl
-                        border border-[#D9E7F3]
-                        bg-[#EEF5FB]
-                      "
-                    >
-                      <Bell className="h-5 w-5 text-[#1A365D]" />
-                    </div>
-
-                    <div className="min-w-0">
+                  <div className="min-w-0">
                       <h1 className="truncate text-xl font-bold tracking-tight text-[#0F2440] sm:text-2xl">
                         Notifications
                       </h1>
@@ -217,7 +139,6 @@ export default function NotificationsPage() {
                           Stay up to date with your dashboard
                         </p>
                       )}
-                    </div>
                   </div>
                 </div>
 
@@ -234,15 +155,13 @@ export default function NotificationsPage() {
                       inline-flex shrink-0
                       items-center justify-center
                       gap-2 rounded-lg
-                      border border-[#C9D5E1]
-                      bg-white px-4 py-2.5
-                      text-sm font-semibold
-                      text-[#1A365D]
-                      transition-all duration-200
-                      hover:border-[#1A365D]
-                      hover:bg-[#F4F7FA]
-                      disabled:cursor-not-allowed
-                      disabled:opacity-50
+                      bg-[#1A365D] px-4 py-2.5
+                      text-sm font-semibold text-white
+                      shadow-sm transition-all duration-200
+                      hover:bg-[#153475] hover:shadow
+                      focus:outline-none focus-visible:ring-2
+                      focus-visible:ring-[#3182CE] focus-visible:ring-offset-2
+                      disabled:cursor-not-allowed disabled:opacity-60
                     "
                   >
                     {markAllAsReadMutation.isPending ? (
@@ -251,7 +170,9 @@ export default function NotificationsPage() {
                       <Check className="h-4 w-4" />
                     )}
 
-                    Mark all as read
+                    {markAllAsReadMutation.isPending
+                      ? 'Marking as read...'
+                      : 'Mark all as read'}
                   </button>
                 ) : null}
               </div>
@@ -274,21 +195,13 @@ export default function NotificationsPage() {
                 <div
                   key={item}
                   className="
-                    rounded-xl
+                    rounded-lg
                     border border-[#D9E2EC]
-                    bg-white p-5
+                    bg-white p-4
                     shadow-sm
                   "
                 >
-                  <div className="flex items-start gap-4">
-
-                    <div className="
-                      h-11 w-11 shrink-0
-                      animate-pulse rounded-xl
-                      bg-[#EEF2F6]
-                    " />
-
-                    <div className="min-w-0 flex-1">
+                  <div className="min-w-0">
 
                       <div className="
                         h-4 w-48
@@ -313,7 +226,6 @@ export default function NotificationsPage() {
                         animate-pulse rounded
                         bg-[#F0F3F6]
                       " />
-                    </div>
                   </div>
                 </div>
               ))}
@@ -370,17 +282,7 @@ export default function NotificationsPage() {
                 text-center shadow-sm
               "
             >
-              <div className="
-                mx-auto flex h-16 w-16
-                items-center justify-center
-                rounded-2xl
-                border border-[#D9E7F3]
-                bg-[#EEF5FB]
-              ">
-                <Bell className="h-7 w-7 text-[#1A365D]" />
-              </div>
-
-              <h2 className="mt-5 text-lg font-bold text-[#0F2440]">
+              <h2 className="text-lg font-bold text-[#0F2440]">
                 No notifications yet
               </h2>
 
@@ -394,22 +296,6 @@ export default function NotificationsPage() {
                 appear here.
               </p>
 
-              <button
-                onClick={() => router.push('/dashboard')}
-                className="
-                  mt-6 inline-flex
-                  items-center justify-center
-                  gap-2 rounded-lg
-                  bg-[#1A365D]
-                  px-4 py-2.5
-                  text-sm font-semibold text-white
-                  transition-colors
-                  hover:bg-[#153475]
-                "
-              >
-                <Home className="h-4 w-4" />
-                Back to Dashboard
-              </button>
             </motion.div>
 
           ) : (
@@ -418,7 +304,7 @@ export default function NotificationsPage() {
                NOTIFICATION LIST
             ================================================== */
 
-            <div className="space-y-3">
+            <div className="space-y-2.5">
 
               {data.notifications.map(
                 (
@@ -447,9 +333,9 @@ export default function NotificationsPage() {
                     className={cn(
                       `
                         group cursor-pointer
-                        overflow-hidden rounded-xl
+                        overflow-hidden rounded-lg
                         border bg-white
-                        p-5 shadow-sm
+                        p-4 shadow-sm
                         transition-all duration-200
                       `,
                       !notification.isRead
@@ -467,39 +353,7 @@ export default function NotificationsPage() {
                         `,
                     )}
                   >
-                    <div className="flex items-start gap-4">
-
-                      {/* ICON */}
-
-                      <div
-                        className={cn(
-                          `
-                            flex h-11 w-11
-                            shrink-0 items-center
-                            justify-center rounded-xl
-                            border
-                          `,
-                          !notification.isRead
-                            ? `
-                              border-[#D5E5F2]
-                              ${getNotificationIconBackground(
-                                notification.type,
-                              )}
-                            `
-                            : `
-                              border-[#E3EAF0]
-                              bg-[#F5F7F9]
-                            `,
-                        )}
-                      >
-                        {getNotificationIcon(
-                          notification.type,
-                        )}
-                      </div>
-
-                      {/* CONTENT */}
-
-                      <div className="min-w-0 flex-1">
+                    <div className="min-w-0">
 
                         {/* TITLE ROW */}
 
@@ -548,7 +402,7 @@ export default function NotificationsPage() {
 
                         {/* FOOTER */}
 
-                        <div className="mt-4 flex flex-wrap items-center gap-3">
+                        <div className="mt-3 flex flex-wrap items-center gap-3">
 
                           <p
                             className="
@@ -579,7 +433,6 @@ export default function NotificationsPage() {
                           )}
                         </div>
                       </div>
-                    </div>
                   </motion.div>
                 ),
               )}
