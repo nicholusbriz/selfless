@@ -2,12 +2,16 @@
 /**
  * TRENDING STUDENTS API ROUTE
  *
- * Fetches ALL users with their live follower/like counters,
- * sorts them by score = (followersCount × 2) + likesReceivedCount,
- * and returns the top N.
+ * Counts followers/likes LIVE from the Follow and Like collections on
+ * every request — so updates, deletes, and unfollows are reflected
+ * immediately. No counter fields on User are trusted.
  *
- * No filters. No exclusions. Every user from every tech center
- * is a candidate.
+ * Only users with at least 1 follower OR at least 1 like are returned.
+ *
+ * Ranked by:
+ *   1. followersCount DESC
+ *   2. likesReceivedCount DESC
+ *   3. name A-Z
  *
  * GET /api/social/trending?limit=10
  */
@@ -16,8 +20,9 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma/client';
 import { requireAuth } from '@/lib/auth/server';
 
-const FOLLOWERS_WEIGHT = 2;
-const LIKES_WEIGHT = 1;
+// Never cache this route — the response depends on live DB counts.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 interface TrendingStudent {
   id: string;
@@ -28,24 +33,8 @@ interface TrendingStudent {
   followersCount: number;
   followingCount: number;
   likesReceivedCount: number;
-  score: number;
   isFollowing: boolean;
   isLiked: boolean;
-}
-
-interface CandidateRow {
-  id: string;
-  firstName: string;
-  lastName: string;
-  profileImageUrl: string | null;
-  techCenter: { id: string; name: string } | null;
-  followersCount: number;
-  followingCount: number;
-  likesReceivedCount: number;
-}
-
-interface ScoredRow extends CandidateRow {
-  score: number;
 }
 
 export async function GET(request: Request) {
@@ -65,8 +54,53 @@ export async function GET(request: Request) {
       100,
     );
 
-    // -------- Fetch ALL users, no filters --------
-    const candidates: CandidateRow[] = await prisma.user.findMany({
+    // -------- 1. Aggregate live counts from Follow / Like --------
+    // Only fetch IDs that actually appear in a relationship.
+    const [followerGroups, followingGroups, likeGroups] = await Promise.all([
+      prisma.follow.groupBy({
+        by: ['followingId'],
+        _count: { _all: true },
+      }),
+      prisma.follow.groupBy({
+        by: ['followerId'],
+        _count: { _all: true },
+      }),
+      prisma.like.groupBy({
+        by: ['likedUserId'],
+        _count: { _all: true },
+      }),
+    ]);
+
+    const followerMap = new Map<string, number>(
+      followerGroups.map((g) => [g.followingId, g._count._all]),
+    );
+    const followingMap = new Map<string, number>(
+      followingGroups.map((g) => [g.followerId, g._count._all]),
+    );
+    const likeMap = new Map<string, number>(
+      likeGroups.map((g) => [g.likedUserId, g._count._all]),
+    );
+
+    // -------- 2. Candidate IDs = anyone with followers or likes --------
+    const activeIds = new Set<string>([
+      ...followerMap.keys(),
+      ...likeMap.keys(),
+    ]);
+
+    if (activeIds.size === 0) {
+      return NextResponse.json(
+        { students: [], generatedAt: new Date().toISOString() },
+        {
+          headers: {
+            'Cache-Control': 'no-store, max-age=0',
+          },
+        },
+      );
+    }
+
+    // -------- 3. Fetch only the active users' profile info --------
+    const users = await prisma.user.findMany({
+      where: { id: { in: Array.from(activeIds) } },
       select: {
         id: true,
         firstName: true,
@@ -75,40 +109,24 @@ export async function GET(request: Request) {
         techCenter: {
           select: { id: true, name: true },
         },
-        followersCount: true,
-        followingCount: true,
-        likesReceivedCount: true,
       },
     });
 
-    if (candidates.length === 0) {
-      return NextResponse.json(
-        {
-          students: [],
-          generatedAt: new Date().toISOString(),
-          meta: {
-            weights: { followers: FOLLOWERS_WEIGHT, likes: LIKES_WEIGHT },
-            limit,
-          },
-        },
-        {
-          headers: {
-            'Cache-Control': 'private, max-age=0, must-revalidate',
-          },
-        },
-      );
-    }
-
-    // -------- Score and rank --------
-    const scored: ScoredRow[] = candidates
-      .map((u: CandidateRow): ScoredRow => ({
-        ...u,
-        score:
-          u.followersCount * FOLLOWERS_WEIGHT +
-          u.likesReceivedCount * LIKES_WEIGHT,
-      }))
-      .sort((a: ScoredRow, b: ScoredRow): number => {
-        if (b.score !== a.score) return b.score - a.score;
+    // -------- 4. Score and rank (followers first) --------
+    const ranked = users
+      .map((u) => {
+        const followersCount = followerMap.get(u.id) ?? 0;
+        const followingCount = followingMap.get(u.id) ?? 0;
+        const likesReceivedCount = likeMap.get(u.id) ?? 0;
+        return {
+          ...u,
+          followersCount,
+          followingCount,
+          likesReceivedCount,
+        };
+      })
+      .filter((u) => u.followersCount > 0 || u.likesReceivedCount > 0)
+      .sort((a, b) => {
         if (b.followersCount !== a.followersCount)
           return b.followersCount - a.followersCount;
         if (b.likesReceivedCount !== a.likesReceivedCount)
@@ -119,9 +137,8 @@ export async function GET(request: Request) {
       })
       .slice(0, limit);
 
-    const topIds = scored.map((u: ScoredRow) => u.id);
-
-    // -------- Overlay live follow/like state for current user --------
+    // -------- 5. Overlay current user's follow/like state --------
+    const topIds = ranked.map((u) => u.id);
     let followingSet = new Set<string>();
     let likingSet = new Set<string>();
 
@@ -140,34 +157,24 @@ export async function GET(request: Request) {
       likingSet = new Set(likes.map((l) => l.likedUserId));
     }
 
-    const students: TrendingStudent[] = scored.map(
-      (u: ScoredRow): TrendingStudent => ({
-        id: u.id,
-        firstName: u.firstName,
-        lastName: u.lastName,
-        profileImageUrl: u.profileImageUrl,
-        techCenter: u.techCenter,
-        followersCount: u.followersCount,
-        followingCount: u.followingCount,
-        likesReceivedCount: u.likesReceivedCount,
-        score: u.score,
-        isFollowing: followingSet.has(u.id),
-        isLiked: likingSet.has(u.id),
-      }),
-    );
+    const students: TrendingStudent[] = ranked.map((u) => ({
+      id: u.id,
+      firstName: u.firstName,
+      lastName: u.lastName,
+      profileImageUrl: u.profileImageUrl,
+      techCenter: u.techCenter,
+      followersCount: u.followersCount,
+      followingCount: u.followingCount,
+      likesReceivedCount: u.likesReceivedCount,
+      isFollowing: followingSet.has(u.id),
+      isLiked: likingSet.has(u.id),
+    }));
 
     return NextResponse.json(
-      {
-        students,
-        generatedAt: new Date().toISOString(),
-        meta: {
-          weights: { followers: FOLLOWERS_WEIGHT, likes: LIKES_WEIGHT },
-          limit,
-        },
-      },
+      { students, generatedAt: new Date().toISOString() },
       {
         headers: {
-          'Cache-Control': 'private, max-age=0, must-revalidate',
+          'Cache-Control': 'no-store, max-age=0',
         },
       },
     );
