@@ -174,6 +174,8 @@ model User {
   following Follow[] @relation("UserFollowing")
   likesReceived Like[] @relation("UserLikesReceived")
   likesGiven Like[] @relation("UserLikesGiven")
+  profileViewsMade ProfileView[] @relation("ProfileViewViewer")
+  profileViewsReceived ProfileView[] @relation("ProfileViewProfile")
   
   // NextAuth Relations
   accounts Account[]
@@ -1126,4 +1128,19 @@ model Like {
   @@index([likedUserId])
   @@index([createdAt])
   @@map("likes")
+}
+
+// PROFILE VIEW - One view record per viewer/profile pair
+model ProfileView {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  viewerId      String   @db.ObjectId
+  viewer        User     @relation("ProfileViewViewer", fields: [viewerId], references: [id], onDelete: Cascade)
+  profileUserId String   @db.ObjectId
+  profileUser   User     @relation("ProfileViewProfile", fields: [profileUserId], references: [id], onDelete: Cascade)
+  viewedAt      DateTime @default(now())
+
+  @@unique([viewerId, profileUserId], name: "viewerId_profileUserId")
+  @@index([profileUserId])
+  @@index([viewerId])
+  @@map("profile_views")
 }

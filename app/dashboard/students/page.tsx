@@ -12,6 +12,7 @@ import {
   ArrowUp,
   AlertCircle,
   ChevronRight,
+  Eye,
   ArrowDownUp,
   LayoutGrid,
   List,
@@ -19,9 +20,11 @@ import {
   UserPlus,
   Loader2,
   Check,
+  Send,
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import type { Message } from '@/types/messaging';
 
 // ============================================================
 // STUDENTS DIRECTORY
@@ -53,6 +56,7 @@ interface Student {
   followersCount: number;
   followingCount: number;
   likesReceivedCount: number;
+  profileViewsCount: number;
   isFollowing?: boolean;
   isLiked?: boolean;
 }
@@ -653,29 +657,45 @@ const StudentCard = ({
               </span>
               <span className="text-[#6B7280] font-medium">likes</span>
             </div>
+            <div className="flex items-center gap-0.5">
+              <Eye className="w-2.5 h-2.5 text-[#3E5C76]" strokeWidth={2.2} />
+              <span className="font-mono font-bold text-[#1A2B4C]">
+                {student.profileViewsCount}
+              </span>
+              <span className="text-[#6B7280] font-medium">views</span>
+            </div>
           </div>
+
+          {!isCurrentUser && currentUserId && (
+            <div className="mt-1 min-w-0">
+              <StudentMessageComposer
+                recipientId={student.id}
+                currentUserId={currentUserId}
+              />
+            </div>
+          )}
         </div>
 
-        <div className="col-span-3 px-2.5 py-2 border-t border-[#F3F4F6]">
+        <div className="col-span-3 px-2.5 pt-1.5 pb-1">
           <div>
             <p className="font-mono text-[8px] uppercase tracking-[0.09em] text-[#B98A3E] font-bold mb-0.5">
               General Degree Course
             </p>
-            <p className="text-[11px] font-semibold text-[#1A2B4C] break-words leading-4 mb-1.5">
+            <p className="text-[11px] font-semibold text-[#1A2B4C] break-words leading-4 mb-1">
               {student.generalCourse || 'Not specified'}
             </p>
           </div>
 
           {student.studentCourses?.length > 0 && (
             <div>
-              <p className="flex items-center justify-between gap-1 font-mono text-[8px] uppercase tracking-[0.1em] text-[#B98A3E] font-bold mb-1">
+              <p className="flex items-center justify-between gap-1 font-mono text-[8px] uppercase tracking-[0.1em] text-[#B98A3E] font-bold mb-0.5">
                 <span className="flex items-center gap-1">
                   <BookOpen className="w-2.5 h-2.5 text-[#B98A3E]" strokeWidth={2.2} />
                   Course Units
                 </span>
                 <span className="text-[#1A2B4C]">{totalCredits} cr</span>
               </p>
-              <div className="space-y-0.5">
+              <div className="space-y-0">
                 {student.studentCourses.map((course) => (
                   <div
                     key={course.id}
@@ -694,7 +714,7 @@ const StudentCard = ({
           )}
         </div>
 
-        <div className="col-span-3 px-2.5 py-1.5 border-t border-[#F3F4F6] flex items-center justify-between flex-wrap gap-1">
+        <div className="col-span-3 px-2.5 py-1 flex items-center justify-between flex-wrap gap-1">
           <button
             type="button"
             onClick={() => router.push(`/dashboard/students/${student.id}`)}
@@ -706,28 +726,22 @@ const StudentCard = ({
 
           {!isCurrentUser && (
             <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => onLikeToggle?.(student.id)}
-                className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border transition-colors ${
-                  isLiked
-                    ? 'border-red-500 bg-red-50 hover:bg-red-100'
-                    : 'border-[#E5E7EB] bg-white hover:border-[#B98A3E]'
-                }`}
-                title={isLiked ? 'Unlike' : 'Like'}
-              >
-                <Heart
-                  className={`w-3 h-3 ${isLiked ? 'fill-red-500 text-red-500' : 'text-[#6B7280]'}`}
-                  strokeWidth={2}
-                />
-                <span
-                  className={`text-[9px] font-bold ${
-                    isLiked ? 'text-red-600' : 'text-[#1A2B4C]'
-                  }`}
-                >
-                  {isLiked ? 'Liked' : 'Like'}
+              {isLiked ? (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-red-500 bg-red-50 text-red-600">
+                  <Heart className="w-3 h-3 fill-red-500 text-red-500" strokeWidth={2} />
+                  <span className="text-[9px] font-bold">Liked</span>
                 </span>
-              </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onLikeToggle?.(student.id)}
+                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-[#E5E7EB] bg-white hover:border-[#B98A3E] transition-colors"
+                  title="Like"
+                >
+                  <Heart className="w-3 h-3 text-[#6B7280]" strokeWidth={2} />
+                  <span className="text-[9px] font-bold text-[#1A2B4C]">Like</span>
+                </button>
+              )}
 
               {isFollowing ? (
                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-[#55705B] bg-[#55705B] text-[9px] font-bold text-white">
@@ -751,9 +765,114 @@ const StudentCard = ({
               )}
             </div>
           )}
+
         </div>
       </div>
     </article>
+  );
+};
+
+const StudentMessageComposer = ({
+  recipientId,
+  currentUserId,
+}: {
+  recipientId: string;
+  currentUserId: string;
+}) => {
+  const [message, setMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [sendStatus, setSendStatus] = useState<'sent' | 'error' | null>(null);
+  const queryClient = useQueryClient();
+
+  const handleSend = async () => {
+    const content = message.trim();
+    if (!content || isSending) return;
+
+    setIsSending(true);
+    setMessage('');
+    setSendStatus('sent');
+
+    try {
+      const conversationResponse = await fetch('/api/messages/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ participantId: recipientId }),
+      });
+      const conversationData = await conversationResponse.json().catch(() => ({}));
+      if (!conversationResponse.ok || !conversationData.conversation?.id) {
+        throw new Error(conversationData.error || 'Failed to start conversation');
+      }
+
+      const conversationId = conversationData.conversation.id as string;
+      const messageResponse = await fetch(`/api/messages/${conversationId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content }),
+      });
+      const messageData = await messageResponse.json().catch(() => ({}));
+      if (!messageResponse.ok) {
+        throw new Error(messageData.error || 'Failed to send message');
+      }
+
+      if (messageData.message) {
+        queryClient.setQueryData<Message[] | undefined>(
+          ['messages', conversationId],
+          (oldMessages) => {
+            if (!oldMessages) return oldMessages;
+            if (oldMessages.some((item) => item.id === messageData.message.id)) {
+              return oldMessages;
+            }
+            return [...oldMessages, messageData.message];
+          },
+        );
+      }
+      void queryClient.invalidateQueries({
+        queryKey: ['conversations', currentUserId],
+      });
+    } catch {
+      setMessage(content);
+      setSendStatus('error');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        void handleSend();
+      }}
+      className="flex w-full min-w-0 items-center gap-1"
+    >
+      <input
+        type="text"
+        value={message}
+        onChange={(event) => {
+          setMessage(event.target.value);
+          setSendStatus(null);
+        }}
+        placeholder="Write a message..."
+        aria-label="Write a message"
+        disabled={isSending}
+        className="h-7 min-w-0 w-0 flex-1 rounded border border-[#E5E7EB] px-2 text-[11px] text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:border-[#B98A3E] focus:outline-none disabled:opacity-60 sm:w-28 sm:flex-none"
+      />
+      <button
+        type="submit"
+        disabled={!message.trim() || isSending}
+        aria-label="Send message"
+        title="Send message"
+        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded bg-[#1A2B4C] text-white transition-colors hover:bg-[#2C3E5A] disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <Send className="h-3.5 w-3.5" strokeWidth={2} />
+      </button>
+      <span
+        className={`shrink-0 text-[10px] ${sendStatus === 'error' ? 'text-[#A4462F]' : 'text-[#55705B]'}`}
+        aria-live="polite"
+      >
+        {sendStatus === 'sent' ? 'Sent' : sendStatus === 'error' ? 'Failed' : ''}
+      </span>
+    </form>
   );
 };
 
@@ -800,20 +919,18 @@ const StudentListCard = ({
               {fullName}
             </h3>
 
-            <div className="mt-1 flex items-center flex-wrap gap-x-2 gap-y-0.5 text-[12px] text-[#4B5646]">
-              <span className="flex items-center gap-1">
+            <div className="mt-1 flex items-center gap-2 text-[12px] text-[#4B5646]">
+              <span className="flex shrink-0 items-center gap-1 whitespace-nowrap">
                 <span
                   className="w-1.5 h-1.5 rounded-full shrink-0"
                   style={{ backgroundColor: hue }}
                 />
-                <span className="font-medium">
+                <span className="whitespace-nowrap font-medium">
                   {student.techCenter?.name || 'No location'}
                 </span>
               </span>
 
-              <span className="text-[#D1D5DB]">•</span>
-
-              <span className="font-medium">
+              <span className="ml-auto shrink-0 whitespace-nowrap font-medium">
                 {student.role?.name === 'teacher'
                   ? 'Tutor'
                   : student.role?.name || 'Student'}
@@ -821,7 +938,15 @@ const StudentListCard = ({
             </div>
           </div>
 
-          <div className="shrink-0 flex items-center gap-3 text-[12px]">
+          <div className="shrink-0 flex flex-wrap items-center justify-start gap-x-3 gap-y-1 text-[12px] sm:justify-end">
+            <span className="inline-flex items-center gap-1 font-mono text-[#4B5646] font-bold">
+              <Users className="h-3.5 w-3.5 text-[#B98A3E]" strokeWidth={2.2} />
+              {student.followersCount} followers
+            </span>
+            <span className="inline-flex items-center gap-1 font-mono text-[#4B5646] font-bold">
+              <Heart className="h-3.5 w-3.5 text-red-500" strokeWidth={2.2} />
+              {Math.max(0, student.likesReceivedCount)} likes
+            </span>
             <span className="font-mono text-[#B98A3E] font-bold">
               {student.studentCourses?.length || 0} courses
             </span>
@@ -879,28 +1004,22 @@ const StudentListCard = ({
 
           {!isCurrentUser && (
             <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => onLikeToggle?.(student.id)}
-                className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border transition-colors ${
-                  isLiked
-                    ? 'border-red-500 bg-red-50 hover:bg-red-100'
-                    : 'border-[#E5E7EB] bg-white hover:border-[#B98A3E]'
-                }`}
-                title={isLiked ? 'Unlike' : 'Like'}
-              >
-                <Heart
-                  className={`w-3.5 h-3.5 ${isLiked ? 'fill-red-500 text-red-500' : 'text-[#6B7280]'}`}
-                  strokeWidth={2}
-                />
-                <span
-                  className={`text-[10px] font-bold ${
-                    isLiked ? 'text-red-600' : 'text-[#1A2B4C]'
-                  }`}
-                >
-                  {isLiked ? 'Liked' : 'Like'}
+              {isLiked ? (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-red-500 bg-red-50 text-red-600">
+                  <Heart className="w-3.5 h-3.5 fill-red-500 text-red-500" strokeWidth={2} />
+                  <span className="text-[10px] font-bold">Liked</span>
                 </span>
-              </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onLikeToggle?.(student.id)}
+                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-[#E5E7EB] bg-white hover:border-[#B98A3E] transition-colors"
+                  title="Like"
+                >
+                  <Heart className="w-3.5 h-3.5 text-[#6B7280]" strokeWidth={2} />
+                  <span className="text-[10px] font-bold text-[#1A2B4C]">Like</span>
+                </button>
+              )}
 
               {isFollowing ? (
                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-[#55705B] bg-[#55705B] text-[10px] font-bold text-white">
@@ -1033,7 +1152,7 @@ export default function StudentsPage() {
     error,
     refetch: refetchStudents,
   } = useQuery({
-    queryKey: ['students'],
+    queryKey: ['studentDirectory'],
     queryFn: async () => {
       const response = await fetch('/api/students');
       if (!response.ok) throw new Error('Failed to fetch students');
@@ -1141,10 +1260,10 @@ export default function StudentsPage() {
       return response.json();
     },
     onMutate: async (studentId: string) => {
-      await queryClient.cancelQueries({ queryKey: ['students'] });
-      const previousStudents = queryClient.getQueryData(['students']);
+      await queryClient.cancelQueries({ queryKey: ['studentDirectory'] });
+      const previousStudents = queryClient.getQueryData(['studentDirectory']);
 
-      queryClient.setQueryData(['students'], (old: any) => {
+      queryClient.setQueryData(['studentDirectory'], (old: any) => {
         if (!old) return old;
         const updateStudent = (students: any[]) =>
           students.map((student: any) => {
@@ -1177,15 +1296,15 @@ export default function StudentsPage() {
       return { previousStudents };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ['studentDirectory'] });
     },
     onError: (_err: any, _variables: any, context: any) => {
       if (context?.previousStudents) {
-        queryClient.setQueryData(['students'], context.previousStudents);
+        queryClient.setQueryData(['studentDirectory'], context.previousStudents);
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ['studentDirectory'] });
     },
   });
 
@@ -1213,10 +1332,10 @@ export default function StudentsPage() {
       studentId: string;
       isLiked: boolean;
     }) => {
-      await queryClient.cancelQueries({ queryKey: ['students'] });
-      const previousStudents = queryClient.getQueryData(['students']);
+      await queryClient.cancelQueries({ queryKey: ['studentDirectory'] });
+      const previousStudents = queryClient.getQueryData(['studentDirectory']);
 
-      queryClient.setQueryData(['students'], (old: any) => {
+      queryClient.setQueryData(['studentDirectory'], (old: any) => {
         if (!old) return old;
         const updateStudent = (students: any[]) =>
           students.map((student: any) => {
@@ -1248,7 +1367,7 @@ export default function StudentsPage() {
       data: any,
       { studentId, isLiked }: { studentId: string; isLiked: boolean },
     ) => {
-      queryClient.setQueryData(['students'], (old: any) => {
+      queryClient.setQueryData(['studentDirectory'], (old: any) => {
         if (!old) return old;
         const updateStudent = (students: any[]) =>
           students.map((student: any) => {
@@ -1275,16 +1394,16 @@ export default function StudentsPage() {
     },
     onError: (_err: any, _variables: any, context: any) => {
       if (context?.previousStudents) {
-        queryClient.setQueryData(['students'], context.previousStudents);
+        queryClient.setQueryData(['studentDirectory'], context.previousStudents);
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ['studentDirectory'] });
     },
   });
 
   const handleFollowToggle = (studentId: string) => {
-    const liveStatus = queryClient.getQueryData<any>(['students']);
+    const liveStatus = queryClient.getQueryData<any>(['studentDirectory']);
     let isCurrentlyFollowing = false;
     if (liveStatus?.studentsByTechCenter) {
       for (const students of Object.values(
@@ -1303,7 +1422,7 @@ export default function StudentsPage() {
   };
 
   const handleLikeToggle = (studentId: string) => {
-    const liveStatus = queryClient.getQueryData<any>(['students']);
+    const liveStatus = queryClient.getQueryData<any>(['studentDirectory']);
     let isCurrentlyLiked = false;
     if (liveStatus?.studentsByTechCenter) {
       for (const students of Object.values(
@@ -1418,6 +1537,10 @@ export default function StudentsPage() {
             </button>
           </div>
         </header>
+
+        <p className="mb-3 text-[12px] leading-5 text-[#3E5C76]">
+          High engagement can earn a blue verification badge and a free Pro upgrade.
+        </p>
 
         {/* SEARCH + FILTER */}
         <SearchFilterBar

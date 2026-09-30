@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Award, Check, ChevronDown, ChevronRight, Circle,
   Crown, Gamepad2, Globe, Grid, List, Loader2, Megaphone,
@@ -42,6 +42,15 @@ export interface TeamData {
   teamMembers: TeamMember[];
   currentUserMembership: TeamMember | null;
   totalMembers: number;
+}
+
+interface TeamContext {
+  techCenterId: string | null;
+  techCenter: {
+    id: string;
+    name: string;
+    country: { name: string } | null;
+  } | null;
 }
 
 export type SportType = "FOOTBALL" | "VOLLEYBALL" | "NETBALL" | "BASKETBALL" | "ATHLETICS";
@@ -585,13 +594,28 @@ export default function FootballTeamPage() {
   const [formationKey, setFormationKey] = useState<string>(defaultFormationKey.FOOTBALL);
 
   const videoRef = useRef<HTMLDivElement>(null);
-  const techCenterId = user?.techCenterId || null;
+  const teamContextQuery = useQuery<TeamContext>({
+    queryKey: ["team-context", user?.id],
+    queryFn: async () => {
+      const response = await fetch("/api/team/context");
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to load team context");
+      }
+      return result as TeamContext;
+    },
+    enabled: Boolean(user?.id),
+    staleTime: 5 * 60 * 1000,
+  });
+  const techCenterId = teamContextQuery.data?.techCenterId ?? null;
 
-  const { data, isLoading, error } = useTeam(techCenterId, selectedSport) as {
+  const { data, isLoading: teamLoading, error: teamError } = useTeam(techCenterId, selectedSport) as {
     data: TeamData | null | undefined;
     isLoading: boolean;
     error: Error | null;
   };
+  const isLoading = teamContextQuery.isLoading || (Boolean(techCenterId) && teamLoading);
+  const error = (teamContextQuery.error as Error | null) ?? teamError;
 
   const registerMutation = useRegisterForTeam();
   const leaveMutation = useLeaveTeam();
@@ -621,7 +645,8 @@ export default function FootballTeamPage() {
   const currentUserMembership = data?.currentUserMembership ?? null;
   const totalMembers = data?.totalMembers ?? teamMembers.length;
   const sport = sports[selectedSport];
-  const techCenterName = teamMembers[0]?.techCenter?.name || "Tech Center";
+  const techCenterName =
+    teamMembers[0]?.techCenter?.name || teamContextQuery.data?.techCenter?.name || "Tech Center";
 
   // Role categorizations
   const players = useMemo(() => teamMembers.filter((m) => m.teamRole === "PLAYER"), [teamMembers]);
@@ -903,6 +928,21 @@ export default function FootballTeamPage() {
           >
             Retry
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!techCenterId) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F1F1EC] p-6 text-[#12203B]">
+        <div className="max-w-md rounded-xl border border-[#DADCD3] bg-white p-8 text-center shadow-sm">
+          <h1 className="text-lg font-black tracking-tight text-slate-900">Football Team unavailable</h1>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            {user?.role === "super_admin"
+              ? "This Super Admin account has no previous tech center to join a team from."
+              : "Your account is not assigned to a tech center."}
+          </p>
         </div>
       </div>
     );

@@ -125,6 +125,7 @@ interface NavSection {
 
 const ALL_ROLES = ['student', 'teacher', 'admin', 'dev', 'super_admin'];
 const NON_SUPER_ADMIN_ROLES = ['student', 'teacher', 'admin', 'dev'];
+const FOOTBALL_TEAM_ROLES = [...NON_SUPER_ADMIN_ROLES, 'super_admin'];
 
 const iconClass = 'w-[18px] h-[18px] flex-shrink-0';
 
@@ -277,7 +278,7 @@ const sharedNavigation: NavSection[] = [
         label: 'Football Team',
         path: '/dashboard/football-team',
         icon: <Trophy className={iconClass} />,
-        roles: NON_SUPER_ADMIN_ROLES,
+        roles: FOOTBALL_TEAM_ROLES,
       },
     ],
   },

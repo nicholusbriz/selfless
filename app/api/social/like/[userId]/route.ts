@@ -12,6 +12,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
+import { createNotificationForUser } from '@/lib/notifications';
 
 export async function POST(
   request: Request,
@@ -66,6 +67,23 @@ export async function POST(
       }
     });
 
+    const actorName = `${currentUser.firstName} ${currentUser.lastName}`.trim();
+    const actorCenter = currentUser.techCenter?.name;
+    try {
+      await createNotificationForUser({
+        userId: targetUserId,
+        title: 'New like',
+        message: `${actorName}${actorCenter ? ` from ${actorCenter}` : ''} liked your account.`,
+        type: 'social_like',
+        link: `/dashboard/students/${currentUser.id}`,
+        generatedBy: currentUser.id,
+        entityType: 'like',
+        entityId: currentUser.id,
+      });
+    } catch (notificationError) {
+      console.error('Failed to notify user about like:', notificationError);
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Successfully liked user'
@@ -97,30 +115,11 @@ export async function DELETE(
     const currentUser = await requireAuth();
     const { userId: targetUserId } = await params;
 
-    // Check if like relationship exists
-    const existingLike = await prisma.like.findUnique({
+    // DELETE is idempotent: the relationship may already be gone.
+    await prisma.like.deleteMany({
       where: {
-        likerId_likedUserId: {
-          likerId: currentUser.id,
-          likedUserId: targetUserId
-        }
-      }
-    });
-
-    if (!existingLike) {
-      return NextResponse.json(
-        { error: 'Not liked this user' },
-        { status: 400 }
-      );
-    }
-
-    // Delete like relationship
-    await prisma.like.delete({
-      where: {
-        likerId_likedUserId: {
-          likerId: currentUser.id,
-          likedUserId: targetUserId
-        }
+        likerId: currentUser.id,
+        likedUserId: targetUserId
       }
     });
 
