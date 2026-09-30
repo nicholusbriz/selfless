@@ -164,6 +164,17 @@ model User {
   createdTechCenterIds String[]
   updatedTechCenterIds String[]
   
+  // Social counters
+  followersCount Int @default(0)
+  followingCount Int @default(0)
+  likesReceivedCount Int @default(0)
+  
+  // Social Relations
+  followers Follow[] @relation("UserFollowers")
+  following Follow[] @relation("UserFollowing")
+  likesReceived Like[] @relation("UserLikesReceived")
+  likesGiven Like[] @relation("UserLikesGiven")
+  
   // NextAuth Relations
   accounts Account[]
   sessions Session[]
@@ -1067,4 +1078,52 @@ model VideoRequest {
   @@index([status])
   @@index([createdAt])
   @@map("video_requests")
+}
+
+// ============================================
+// SOCIAL FEATURES
+// ============================================
+
+// FOLLOW - User follows another user
+model Follow {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // User who is following
+  followerId  String   @db.ObjectId
+  follower    User     @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  
+  // User being followed
+  followingId String   @db.ObjectId
+  following   User     @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+  
+  // Timestamp
+  createdAt   DateTime @default(now())
+  
+  @@unique([followerId, followingId], name: "followerId_followingId")
+  @@index([followerId])
+  @@index([followingId])
+  @@index([createdAt])
+  @@map("follows")
+}
+
+// LIKE - User likes another user's profile
+model Like {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // User who is liking
+  likerId     String   @db.ObjectId
+  liker       User     @relation("UserLikesGiven", fields: [likerId], references: [id], onDelete: Cascade)
+  
+  // User being liked
+  likedUserId String   @db.ObjectId
+  likedUser   User     @relation("UserLikesReceived", fields: [likedUserId], references: [id], onDelete: Cascade)
+  
+  // Timestamp
+  createdAt   DateTime @default(now())
+  
+  @@unique([likerId, likedUserId], name: "likerId_likedUserId")
+  @@index([likerId])
+  @@index([likedUserId])
+  @@index([createdAt])
+  @@map("likes")
 }
