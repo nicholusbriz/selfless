@@ -199,6 +199,76 @@ function findCachedStudent(
   return students.find((student) => student.id === studentId);
 }
 
+// Update a user everywhere they appear in any cache across all tabs.
+function syncUserAcrossAllCaches(
+  queryClient: ReturnType<typeof useQueryClient>,
+  currentUserId: string | undefined,
+  userId: string,
+  patch: Partial<{
+    isFollowing: boolean;
+    isLiked: boolean;
+    followersCount: number;
+    followingCount: number;
+    likesReceivedCount: number;
+  }>,
+) {
+  // 1. Trending
+  queryClient.setQueryData<TrendingStudent[]>(
+    ['social', 'trending'],
+    (old) =>
+      Array.isArray(old)
+        ? old.map((u) => (u.id === userId ? { ...u, ...patch } : u))
+        : old,
+  );
+
+  // 2. Students (used by page for stale-while-revalidate on followers/following)
+  queryClient.setQueryData(['students'], (old) =>
+    updateStudentsCache(old, (student) => {
+      if (student.id === userId) return { ...student, ...patch };
+      if (student.id === currentUserId && patch.followingCount !== undefined) {
+        return { ...student, followingCount: patch.followingCount };
+      }
+      return student;
+    }),
+  );
+
+  // 3. Followers list (people who follow me)
+  if (currentUserId) {
+    queryClient.setQueryData<ConnectionUser[]>(
+      ['connections', 'followers', currentUserId],
+      (old) =>
+        Array.isArray(old)
+          ? old.map((u) => (u.id === userId ? { ...u, ...patch } : u))
+          : old,
+    );
+
+    // 4. Following list (people I follow)
+    queryClient.setQueryData<ConnectionUser[]>(
+      ['connections', 'following', currentUserId],
+      (old) =>
+        Array.isArray(old)
+          ? old.map((u) => (u.id === userId ? { ...u, ...patch } : u))
+          : old,
+    );
+
+    // 5. Likes data — likers + likedUsers
+    queryClient.setQueryData<LikesData>(
+      ['connections', 'likes', currentUserId],
+      (old) => {
+        if (!old) return old;
+        return {
+          likers: old.likers.map((u) =>
+            u.id === userId ? { ...u, ...patch } : u,
+          ),
+          likedUsers: old.likedUsers.map((u) =>
+            u.id === userId ? { ...u, ...patch } : u,
+          ),
+        };
+      },
+    );
+  }
+}
+
 // ============================================================
 // SKELETONS
 // ============================================================
@@ -380,9 +450,6 @@ export default function ConnectionsPage() {
 
   const connections: ConnectionUser[] = useMemo(() => {
     // ---------- TRENDING ----------
-    // Trust the trending endpoint's isFollowing/isLiked/counts directly.
-    // Do NOT overlay the students cache — it lags and causes the wrong
-    // button state to render on first paint.
     if (activeTab === 'trending') {
       const trending = trendingQuery.data ?? [];
       if (trending.length === 0) return [];
@@ -463,10 +530,12 @@ export default function ConnectionsPage() {
     onMutate: async (userId) => {
       const followingKey = ['connections', 'following', currentUserId];
       const followersKey = ['connections', 'followers', currentUserId];
+      const likesKey = ['connections', 'likes', currentUserId];
 
       await Promise.all([
         queryClient.cancelQueries({ queryKey: followingKey }),
         queryClient.cancelQueries({ queryKey: followersKey }),
+        queryClient.cancelQueries({ queryKey: likesKey }),
         queryClient.cancelQueries({ queryKey: ['students'] }),
         queryClient.cancelQueries({ queryKey: ['social', 'trending'] }),
       ]);
@@ -475,6 +544,7 @@ export default function ConnectionsPage() {
         queryClient.getQueryData<ConnectionUser[]>(followingKey);
       const previousFollowers =
         queryClient.getQueryData<ConnectionUser[]>(followersKey);
+      const previousLikes = queryClient.getQueryData<LikesData>(likesKey);
       const previousStudents = queryClient.getQueryData(['students']);
       const previousTrending = queryClient.getQueryData<TrendingStudent[]>([
         'social',
@@ -484,26 +554,12 @@ export default function ConnectionsPage() {
         StudentStats | null | undefined
       >(['currentUserStats', currentUserId]);
 
+      // Remove from following list
       queryClient.setQueryData<ConnectionUser[]>(followingKey, (old) =>
         Array.isArray(old) ? old.filter((u) => u.id !== userId) : old,
       );
 
-      queryClient.setQueryData<TrendingStudent[]>(
-        ['social', 'trending'],
-        (old) =>
-          Array.isArray(old)
-            ? old.map((u) =>
-                u.id === userId
-                  ? {
-                      ...u,
-                      isFollowing: false,
-                      followersCount: Math.max(0, u.followersCount - 1),
-                    }
-                  : u,
-              )
-            : old,
-      );
-
+      // Decrement my following count
       queryClient.setQueryData<StudentStats | null | undefined>(
         ['currentUserStats', currentUserId],
         (old) =>
@@ -515,28 +571,43 @@ export default function ConnectionsPage() {
             : old,
       );
 
+      // Patch everywhere else via shared helper
+      syncUserAcrossAllCaches(queryClient, currentUserId, userId, {
+        isFollowing: false,
+      });
+
+      // Also bump the target's followersCount down in students + trending
       queryClient.setQueryData(['students'], (old) =>
         updateStudentsCache(old, (student) => {
           if (student.id === userId) {
             return {
               ...student,
-              isFollowing: false,
               followersCount: Math.max(0, (student.followersCount || 0) - 1),
-            };
-          }
-          if (student.id === currentUserId) {
-            return {
-              ...student,
-              followingCount: Math.max(0, (student.followingCount || 0) - 1),
             };
           }
           return student;
         }),
       );
 
+      queryClient.setQueryData<TrendingStudent[]>(
+        ['social', 'trending'],
+        (old) =>
+          Array.isArray(old)
+            ? old.map((u) =>
+                u.id === userId
+                  ? {
+                      ...u,
+                      followersCount: Math.max(0, u.followersCount - 1),
+                    }
+                  : u,
+              )
+            : old,
+      );
+
       return {
         previousFollowing,
         previousFollowers,
+        previousLikes,
         previousStudents,
         previousTrending,
         previousStats,
@@ -552,6 +623,10 @@ export default function ConnectionsPage() {
         ['connections', 'followers', currentUserId],
         context.previousFollowers,
       );
+      queryClient.setQueryData(
+        ['connections', 'likes', currentUserId],
+        context.previousLikes,
+      );
       queryClient.setQueryData(['students'], context.previousStudents);
       queryClient.setQueryData(
         ['social', 'trending'],
@@ -563,22 +638,31 @@ export default function ConnectionsPage() {
       );
     },
     onSettled: () => {
+      // Refresh every cache the change could affect — across all tabs.
       queryClient.invalidateQueries({
         queryKey: ['connections', 'following', currentUserId],
-        refetchType: 'none',
+        refetchType: 'active',
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['connections', 'followers', currentUserId],
+        refetchType: 'active',
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['connections', 'likes', currentUserId],
+        refetchType: 'active',
       });
       queryClient.invalidateQueries({
         queryKey: ['currentUserStats', currentUserId],
-        refetchType: 'none',
+        refetchType: 'active',
       });
       queryClient.invalidateQueries({
         queryKey: ['students'],
         refetchType: 'none',
       });
-      // NOTE: we deliberately do NOT invalidate ['social', 'trending'] here.
-      // The optimistic update above already wrote the correct state, and the
-      // trending query refetches every 30s anyway. Forcing an immediate
-      // refetch causes a brief flicker back to the old state.
+      queryClient.invalidateQueries({
+        queryKey: ['social', 'trending'],
+        refetchType: 'active',
+      });
     },
   });
 
@@ -596,26 +680,38 @@ export default function ConnectionsPage() {
     },
     onMutate: async (studentId: string) => {
       const followingKey = ['connections', 'following', currentUserId];
+      const followersKey = ['connections', 'followers', currentUserId];
+      const likesKey = ['connections', 'likes', currentUserId];
+
       await Promise.all([
         queryClient.cancelQueries({ queryKey: ['students'] }),
         queryClient.cancelQueries({ queryKey: followingKey }),
+        queryClient.cancelQueries({ queryKey: followersKey }),
+        queryClient.cancelQueries({ queryKey: likesKey }),
         queryClient.cancelQueries({ queryKey: ['social', 'trending'] }),
       ]);
+
       const previousStudents = queryClient.getQueryData(['students']);
       const previousFollowing =
         queryClient.getQueryData<ConnectionUser[]>(followingKey);
+      const previousFollowers =
+        queryClient.getQueryData<ConnectionUser[]>(followersKey);
+      const previousLikes = queryClient.getQueryData<LikesData>(likesKey);
       const previousTrending = queryClient.getQueryData<TrendingStudent[]>([
-        'social',
-        'trending',
+        'social', 'trending',
       ]);
       const followedStudent = findCachedStudent(previousStudents, studentId);
+
+      // Patch everywhere isFollowing / followersCount changes
+      syncUserAcrossAllCaches(queryClient, currentUserId, studentId, {
+        isFollowing: true,
+      });
 
       queryClient.setQueryData(['students'], (old) =>
         updateStudentsCache(old, (student) => {
           if (student.id === studentId) {
             return {
               ...student,
-              isFollowing: true,
               followersCount: (student.followersCount || 0) + 1,
             };
           }
@@ -635,11 +731,7 @@ export default function ConnectionsPage() {
           Array.isArray(old)
             ? old.map((u) =>
                 u.id === studentId
-                  ? {
-                      ...u,
-                      isFollowing: true,
-                      followersCount: u.followersCount + 1,
-                    }
+                  ? { ...u, followersCount: u.followersCount + 1 }
                   : u,
               )
             : old,
@@ -674,7 +766,13 @@ export default function ConnectionsPage() {
         });
       }
 
-      return { previousStudents, previousFollowing, previousTrending };
+      return {
+        previousStudents,
+        previousFollowing,
+        previousFollowers,
+        previousLikes,
+        previousTrending,
+      };
     },
     onError: (_err, _variables, context) => {
       if (!context) return;
@@ -682,6 +780,14 @@ export default function ConnectionsPage() {
       queryClient.setQueryData(
         ['connections', 'following', currentUserId],
         context.previousFollowing,
+      );
+      queryClient.setQueryData(
+        ['connections', 'followers', currentUserId],
+        context.previousFollowers,
+      );
+      queryClient.setQueryData(
+        ['connections', 'likes', currentUserId],
+        context.previousLikes,
       );
       queryClient.setQueryData(
         ['social', 'trending'],
@@ -700,18 +806,29 @@ export default function ConnectionsPage() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({
+        queryKey: ['connections', 'following', currentUserId],
+        refetchType: 'active',
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['connections', 'followers', currentUserId],
+        refetchType: 'active',
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['connections', 'likes', currentUserId],
+        refetchType: 'active',
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['currentUserStats', currentUserId],
+        refetchType: 'active',
+      });
+      queryClient.invalidateQueries({
         queryKey: ['students'],
         refetchType: 'none',
       });
       queryClient.invalidateQueries({
-        queryKey: ['connections', 'following', currentUserId],
-        refetchType: 'none',
+        queryKey: ['social', 'trending'],
+        refetchType: 'active',
       });
-      queryClient.invalidateQueries({
-        queryKey: ['currentUserStats', currentUserId],
-        refetchType: 'none',
-      });
-      // No trending invalidation — see note on unfollowMutation above.
     },
   });
 
@@ -735,18 +852,35 @@ export default function ConnectionsPage() {
     },
     onMutate: async ({ studentId, isLiked }) => {
       const likesKey = ['connections', 'likes', currentUserId];
+      const followingKey = ['connections', 'following', currentUserId];
+      const followersKey = ['connections', 'followers', currentUserId];
+
       await Promise.all([
         queryClient.cancelQueries({ queryKey: ['students'] }),
         queryClient.cancelQueries({ queryKey: likesKey }),
+        queryClient.cancelQueries({ queryKey: followingKey }),
+        queryClient.cancelQueries({ queryKey: followersKey }),
         queryClient.cancelQueries({ queryKey: ['social', 'trending'] }),
       ]);
+
       const previousStudents = queryClient.getQueryData(['students']);
       const previousLikes = queryClient.getQueryData<LikesData>(likesKey);
+      const previousFollowing =
+        queryClient.getQueryData<ConnectionUser[]>(followingKey);
+      const previousFollowers =
+        queryClient.getQueryData<ConnectionUser[]>(followersKey);
       const previousTrending = queryClient.getQueryData<TrendingStudent[]>([
-        'social',
-        'trending',
+        'social', 'trending',
       ]);
       const targetStudent = findCachedStudent(previousStudents, studentId);
+
+      // Patch isLiked + likesReceivedCount everywhere
+      syncUserAcrossAllCaches(queryClient, currentUserId, studentId, {
+        isLiked: !isLiked,
+        likesReceivedCount: isLiked
+          ? undefined // handled below with proper old value
+          : undefined,
+      });
 
       queryClient.setQueryData(['students'], (old) =>
         updateStudentsCache(old, (student) =>
@@ -780,6 +914,7 @@ export default function ConnectionsPage() {
             : old,
       );
 
+      // Patch the likes lists too (likers + likedUsers)
       queryClient.setQueryData<LikesData>(likesKey, (old) => {
         if (!old) return old;
         if (isLiked) {
@@ -814,13 +949,19 @@ export default function ConnectionsPage() {
         };
       });
 
-      return { previousStudents, previousLikes, previousTrending };
+      return {
+        previousStudents,
+        previousLikes,
+        previousFollowing,
+        previousFollowers,
+        previousTrending,
+      };
     },
     onSuccess: (
       data: { counts?: { likesReceivedCount?: number } },
       { studentId, isLiked }: { studentId: string; isLiked: boolean },
     ) => {
-      // Sync the confirmed count from the server into the students cache.
+      // Sync confirmed count from server
       queryClient.setQueryData(['students'], (old) =>
         updateStudentsCache(old, (student) =>
           student.id === studentId
@@ -845,6 +986,14 @@ export default function ConnectionsPage() {
           context.previousLikes,
         );
         queryClient.setQueryData(
+          ['connections', 'following', currentUserId],
+          context.previousFollowing,
+        );
+        queryClient.setQueryData(
+          ['connections', 'followers', currentUserId],
+          context.previousFollowers,
+        );
+        queryClient.setQueryData(
           ['social', 'trending'],
           context.previousTrending,
         );
@@ -852,14 +1001,25 @@ export default function ConnectionsPage() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({
+        queryKey: ['connections', 'likes', currentUserId],
+        refetchType: 'active',
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['connections', 'followers', currentUserId],
+        refetchType: 'active',
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['connections', 'following', currentUserId],
+        refetchType: 'active',
+      });
+      queryClient.invalidateQueries({
         queryKey: ['students'],
         refetchType: 'none',
       });
       queryClient.invalidateQueries({
-        queryKey: ['connections', 'likes', currentUserId],
-        refetchType: 'none',
+        queryKey: ['social', 'trending'],
+        refetchType: 'active',
       });
-      // No trending invalidation — see note on unfollowMutation above.
     },
   });
 
@@ -868,13 +1028,11 @@ export default function ConnectionsPage() {
   const handleUnfollow = (userId: string) => unfollowMutation.mutate(userId);
 
   const handleFollow = (studentId: string) => {
-    // Prefer the trending cache first (source of truth), fall back to students.
     const trending = queryClient.getQueryData<TrendingStudent[]>([
       'social',
       'trending',
     ]);
     const fromTrending = trending?.find((u) => u.id === studentId);
-
     if (fromTrending) {
       if (fromTrending.isFollowing) unfollowMutation.mutate(studentId);
       else followMutation.mutate(studentId);
@@ -897,10 +1055,7 @@ export default function ConnectionsPage() {
     const fromTrending = trending?.find((u) => u.id === studentId);
 
     if (fromTrending) {
-      likeMutation.mutate({
-        studentId,
-        isLiked: fromTrending.isLiked,
-      });
+      likeMutation.mutate({ studentId, isLiked: fromTrending.isLiked });
       return;
     }
 
@@ -1255,12 +1410,10 @@ export default function ConnectionsPage() {
                   >
                     {isFeatured ? (
                       /* ============================================================
-                         FEATURED CARD (top 3 trending) — warrior layout
+                         FEATURED CARD (top 3 trending)
                          ============================================================ */
                       <div className="relative flex min-h-[210px] items-stretch sm:min-h-[220px]">
-                        {/* Left content column */}
                         <div className="relative z-10 flex w-1/2 min-w-0 flex-col justify-between p-4 sm:p-5">
-                          {/* Top: rank + name + tech center */}
                           <div className="flex items-start gap-2">
                             <div
                               className={`
@@ -1285,7 +1438,6 @@ export default function ConnectionsPage() {
                             </div>
                           </div>
 
-                          {/* Middle: stat chips */}
                           <div className="mt-3 flex flex-wrap items-center gap-1.5">
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-[#B98A3E]/10 px-2 py-1 font-mono text-[10px] font-bold text-[#8A6A2E] tabular-nums">
                               <Users
@@ -1310,7 +1462,6 @@ export default function ConnectionsPage() {
                             </span>
                           </div>
 
-                          {/* Bottom: actions */}
                           <div className="mt-3 flex flex-wrap items-center gap-1.5">
                             {user.isLiked ? (
                               <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-600">
@@ -1362,7 +1513,6 @@ export default function ConnectionsPage() {
                           </div>
                         </div>
 
-                        {/* Right: hero portrait fills the other half */}
                         <div className="pointer-events-none absolute inset-y-0 right-0 w-1/2 overflow-hidden">
                           {user.profileImageUrl ? (
                             <Image
@@ -1392,14 +1542,7 @@ export default function ConnectionsPage() {
                               }
                             `}
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-[#12203B]/35 via-transparent to-transparent" />
-                          <div className="absolute right-3 top-3 rounded-full border border-white/70 bg-[#12203B]/75 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-white backdrop-blur-sm">
-                            {rank === 1
-                              ? 'Champion'
-                              : rank === 2
-                                ? 'Warrior'
-                                : 'Contender'}
-                          </div>
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#12203B]/30 via-transparent to-transparent" />
                         </div>
                       </div>
                     ) : (
@@ -1592,14 +1735,14 @@ export default function ConnectionsPage() {
         </div>
 
         {activeTab === 'trending' && connections.length > 0 && (
-          <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-[12px] text-[#6B7280]">
+          <p className="mt-3 flex flex-wrap items-center justify-center gap-1.5 text-center text-[12px] text-[#6B7280]">
             <TrendingUp
               className="h-3.5 w-3.5 shrink-0 text-[#B98A3E]"
               strokeWidth={2}
             />
             <span>
-              Showing only students with at least one follower or like — ranked
-              by followers first, then likes.
+              Showing the most popular students, ranked by followers first,
+              then likes.
             </span>
           </p>
         )}
