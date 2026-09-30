@@ -10,15 +10,14 @@ import {
   UserCheck,
   UserX,
   ArrowLeft,
-  Loader2,
   ChevronDown,
   ChevronUp,
   X,
   Check,
-  Filter,
   ChevronLeft,
   ChevronRight,
   RefreshCw,
+  Filter,
   Save,
   Trash2,
   AlertTriangle,
@@ -100,7 +99,9 @@ const RoleBadge = ({ role }: { role: string }) => {
         'bg-slate-100 text-slate-600 border border-slate-200'
         }`}
     >
-      {role?.replace('_', ' ').toUpperCase() || 'STUDENT'}
+      {normalizedRole === 'teacher'
+        ? 'TUTOR'
+        : role?.replace('_', ' ').toUpperCase() || 'STUDENT'}
     </span>
   );
 };
@@ -315,10 +316,6 @@ export default function AdminUsersPage() {
         data: editFormData,
       },
       {
-        onSuccess: (data) => {
-          closeExpandedAction();
-          alert(data.message);
-        },
         onError: (mutationError: any) => {
           alert(
             mutationError.message ||
@@ -327,6 +324,7 @@ export default function AdminUsersPage() {
         },
       }
     );
+    closeExpandedAction();
   };
 
   const handleChangeRole = (roleId: string) => {
@@ -338,10 +336,6 @@ export default function AdminUsersPage() {
         roleId,
       },
       {
-        onSuccess: (data) => {
-          closeExpandedAction();
-          alert(data.message);
-        },
         onError: (mutationError: any) => {
           alert(
             mutationError.message ||
@@ -350,6 +344,7 @@ export default function AdminUsersPage() {
         },
       }
     );
+    closeExpandedAction();
   };
 
   const handleChangeStatus = (status: string) => {
@@ -361,10 +356,6 @@ export default function AdminUsersPage() {
         status,
       },
       {
-        onSuccess: (data) => {
-          closeExpandedAction();
-          alert(data.message);
-        },
         onError: (mutationError: any) => {
           alert(
             mutationError.message ||
@@ -373,6 +364,7 @@ export default function AdminUsersPage() {
         },
       }
     );
+    closeExpandedAction();
   };
 
   const handleDeleteUser = (user: any) => {
@@ -392,12 +384,6 @@ export default function AdminUsersPage() {
     setUserToDelete(null);
 
     deleteUserMutation.mutate(userId, {
-      onSuccess: (data) => {
-        // refetch ensures the list is fresh even if the optimistic
-        // update targeted a different cache shape than this page uses
-        refetch();
-        alert(data.message);
-      },
       onError: (mutationError: any) => {
         // The optimistic rollback in onError already restores the user
         // to the list — just show the error message.
@@ -766,7 +752,7 @@ export default function AdminUsersPage() {
                             key={role.id}
                             value={role.name}
                           >
-                            {role.displayName}
+                            {role.name === 'teacher' ? 'Tutor' : role.displayName}
                           </option>
                         )
                       )}
@@ -1178,17 +1164,8 @@ export default function AdminUsersPage() {
                                             }
                                             className="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
                                           >
-                                            {updateUserMutation.isPending ? (
-                                              <>
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                Saving...
-                                              </>
-                                            ) : (
-                                              <>
-                                                <Save className="h-4 w-4" />
-                                                Save Changes
-                                              </>
-                                            )}
+                                            <Save className="h-4 w-4" />
+                                            Save Changes
                                           </button>
                                         </div>
                                       </form>
@@ -1249,13 +1226,13 @@ export default function AdminUsersPage() {
                                                     <div>
                                                       <p className="font-semibold text-slate-900">
                                                         {
-                                                          role.displayName
+                                                          role.name === 'teacher' ? 'Tutor' : role.displayName
                                                         }
                                                       </p>
 
                                                       <p className="mt-1 text-xs text-slate-500">
                                                         {
-                                                          role.name
+                                                          role.name === 'teacher' ? 'Tutor' : role.name
                                                         }
                                                       </p>
                                                     </div>
@@ -1276,12 +1253,6 @@ export default function AdminUsersPage() {
                                           )}
                                         </div>
 
-                                        {updateRoleMutation.isPending && (
-                                          <div className="flex items-center gap-2 text-sm font-medium text-blue-700">
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                            Updating role...
-                                          </div>
-                                        )}
                                       </div>
                                     )}
 
@@ -1377,12 +1348,6 @@ export default function AdminUsersPage() {
                                           )}
                                         </div>
 
-                                        {updateStatusMutation.isPending && (
-                                          <div className="flex items-center gap-2 text-sm font-medium text-blue-700">
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                            Updating status...
-                                          </div>
-                                        )}
                                       </div>
                                     )}
                                 </div>
@@ -1687,9 +1652,7 @@ export default function AdminUsersPage() {
                                           }
                                           className="flex-1 rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
                                         >
-                                          {updateUserMutation.isPending
-                                            ? 'Saving...'
-                                            : 'Save Changes'}
+                                          Save Changes
                                         </button>
                                       </div>
                                     </form>
@@ -1741,13 +1704,13 @@ export default function AdminUsersPage() {
                                               <div>
                                                 <p className="font-semibold text-slate-900">
                                                   {
-                                                    role.displayName
+                                                    role.name === 'teacher' ? 'Tutor' : role.displayName
                                                   }
                                                 </p>
 
                                                 <p className="mt-1 text-xs text-slate-500">
                                                   {
-                                                    role.name
+                                                    role.name === 'teacher' ? 'Tutor' : role.name
                                                   }
                                                 </p>
                                               </div>
@@ -1760,12 +1723,6 @@ export default function AdminUsersPage() {
                                         }
                                       )}
 
-                                      {updateRoleMutation.isPending && (
-                                        <div className="flex items-center gap-2 text-sm font-medium text-blue-700">
-                                          <Loader2 className="h-4 w-4 animate-spin" />
-                                          Updating role...
-                                        </div>
-                                      )}
                                     </div>
                                   )}
 
@@ -1827,12 +1784,6 @@ export default function AdminUsersPage() {
                                         }
                                       )}
 
-                                      {updateStatusMutation.isPending && (
-                                        <div className="flex items-center gap-2 text-sm font-medium text-blue-700">
-                                          <Loader2 className="h-4 w-4 animate-spin" />
-                                          Updating status...
-                                        </div>
-                                      )}
                                     </div>
                                   )}
                               </div>
@@ -1948,17 +1899,8 @@ export default function AdminUsersPage() {
                       disabled={deleteUserMutation.isPending}
                       className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {deleteUserMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin inline" />
-                          Deleting...
-                        </>
-                      ) : (
-                        <>
-                          <Trash2 className="mr-2 h-4 w-4 inline" />
-                          Delete User
-                        </>
-                      )}
+                      <Trash2 className="mr-2 h-4 w-4 inline" />
+                      Delete User
                     </button>
                   </div>
                 </div>

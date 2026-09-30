@@ -22,11 +22,66 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    const userPageVisits = await prisma.userPageVisitCount.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            techCenter: {
+              select: { name: true },
+            },
+          },
+        },
+      },
+      orderBy: { count: 'desc' },
+    });
+
     // Calculate total visits
     const totalVisits = pageVisits.reduce((sum, page) => sum + page.count, 0);
+    const userVisitTotals = new Map<
+      string,
+      {
+        user: (typeof userPageVisits)[number]['user'];
+        totalVisits: number;
+        pagePaths: Set<string>;
+        lastVisitAt: Date;
+      }
+    >();
+
+    userPageVisits.forEach((visit) => {
+      const current = userVisitTotals.get(visit.userId) ?? {
+        user: visit.user,
+        totalVisits: 0,
+        pagePaths: new Set<string>(),
+        lastVisitAt: visit.lastVisitAt,
+      };
+      current.totalVisits += visit.count;
+      current.pagePaths.add(visit.pagePath);
+      if (visit.lastVisitAt > current.lastVisitAt) {
+        current.lastVisitAt = visit.lastVisitAt;
+      }
+      userVisitTotals.set(visit.userId, current);
+    });
+
+    const users = Array.from(userVisitTotals.values())
+      .map(({ user, totalVisits: visitCount, pagePaths, lastVisitAt }) => ({
+        userId: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        techCenterName: user.techCenter?.name ?? null,
+        totalVisits: visitCount,
+        pagesVisited: pagePaths.size,
+        lastVisitAt: lastVisitAt.toISOString(),
+      }))
+      .sort((a, b) => b.totalVisits - a.totalVisits);
 
     return NextResponse.json({
       totalVisits,
+      users,
       pageVisits: pageVisits.map((page) => ({
         pagePath: page.pagePath,
         count: page.count,
