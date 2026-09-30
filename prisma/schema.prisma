@@ -216,6 +216,8 @@ model User {
   @@index([status])
   @@index([country])
   @@index([verificationStatus])
+  @@index([followersCount(sort: Desc)])       
+  @@index([likesReceivedCount(sort: Desc)]) 
   @@map("users")
 }
 
