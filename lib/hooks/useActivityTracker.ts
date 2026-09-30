@@ -2,20 +2,20 @@ import { useEffect } from 'react';
 
 export function useActivityTracker() {
   useEffect(() => {
-    // Track activity every 30 seconds
+    // Heartbeat every 30 seconds
     const interval = setInterval(async () => {
       try {
-        await fetch('/api/user/activity', { method: 'POST' });
+        await fetch('/api/user/heartbeat', { method: 'POST' });
       } catch (error) {
-        console.error('Activity tracking failed:', error);
+        console.error('Heartbeat failed:', error);
       }
     }, 30000);
 
-    // Track on visibility change (user returns to tab)
+    // Heartbeat on visibility change (user returns to tab)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        fetch('/api/user/activity', { method: 'POST' }).catch((error) => {
-          console.error('Activity tracking failed:', error);
+        fetch('/api/user/heartbeat', { method: 'POST' }).catch((error) => {
+          console.error('Heartbeat failed:', error);
         });
       }
     };

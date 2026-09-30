@@ -21,6 +21,7 @@ import {
 } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { PageTracker } from './components/PageTracker';
 
 import {
   LayoutDashboard,
@@ -2477,6 +2478,9 @@ export default function DashboardLayout({
           {pageInfo.title} | Selfless CE
         </title>
       </Head>
+
+    {/* 🎯 Page visit tracker — fires POST /api/user/activity on route change */}
+      <PageTracker />
 
       <div className="min-h-screen bg-white">
         {/* ================================================== */}

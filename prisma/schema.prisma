@@ -68,6 +68,7 @@ model User {
   email       String   @unique
   password    String?  // Optional for OAuth users
   phoneNumber String?
+  pageVisitEvents    PageVisitEvent[] 
   
   // OAuth Fields (NextAuth)
   emailVerified DateTime?
@@ -1164,4 +1165,41 @@ model ProfileView {
   @@index([profileUserId])
   @@index([viewerId])
   @@map("profile_views")
+}
+
+// ============================================
+// PAGE VISIT EVENT (24-hour rolling window)
+// ============================================
+//
+// One row per (user, page) visit. Deduped within a 24-hour window
+// so each user/page pair counts at most once per 24h.
+//
+// MongoDB TTL index on `expiresAt` auto-deletes rows 24h after
+// they're written. The TTL index itself must be created manually
+// in Atlas (Prisma can't declare it — see Step 3).
+
+model PageVisitEvent {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+
+  userId      String   @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  pagePath    String
+
+  // Timestamps
+  visitedAt   DateTime @default(now())
+
+  // TTL anchor — MongoDB deletes the doc when `expiresAt` < now.
+  // Set to `visitedAt + 24h` at insert time.
+  expiresAt   DateTime
+
+  // Optional metadata
+  ipAddress   String?
+  userAgent   String?
+
+  @@index([userId, pagePath, visitedAt])
+  @@index([pagePath, visitedAt])
+  @@index([visitedAt])
+  @@index([expiresAt])
+  @@map("page_visit_events")
 }
