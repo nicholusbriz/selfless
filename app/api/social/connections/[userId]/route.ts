@@ -26,6 +26,8 @@ interface ConnectionUser {
   followingCount: number;
   likesReceivedCount: number;
   connectedAt: Date;
+  previousTechCenterId?: string | null;
+  roleName?: string | null;
 }
 
 export async function GET(
@@ -63,6 +65,8 @@ export async function GET(
               firstName: true,
               lastName: true,
               profileImageUrl: true,
+              previousTechCenterId: true,
+              role: { select: { name: true } },
               techCenter: {
                 select: {
                   id: true,
@@ -84,6 +88,8 @@ export async function GET(
         lastName: follow.follower.lastName,
         profileImageUrl: follow.follower.profileImageUrl,
         techCenter: follow.follower.techCenter,
+        previousTechCenterId: follow.follower.previousTechCenterId,
+        roleName: follow.follower.role?.name,
         followersCount: follow.follower.followersCount,
         followingCount: follow.follower.followingCount,
         likesReceivedCount: follow.follower.likesReceivedCount,
@@ -100,6 +106,8 @@ export async function GET(
               firstName: true,
               lastName: true,
               profileImageUrl: true,
+              previousTechCenterId: true,
+              role: { select: { name: true } },
               techCenter: {
                 select: {
                   id: true,
@@ -121,6 +129,8 @@ export async function GET(
         lastName: follow.following.lastName,
         profileImageUrl: follow.following.profileImageUrl,
         techCenter: follow.following.techCenter,
+        previousTechCenterId: follow.following.previousTechCenterId,
+        roleName: follow.following.role?.name,
         followersCount: follow.following.followersCount,
         followingCount: follow.following.followingCount,
         likesReceivedCount: follow.following.likesReceivedCount,
@@ -133,8 +143,39 @@ export async function GET(
       );
     }
 
+    const previousTechCenterIds = Array.from(
+      new Set(
+        connections.flatMap((connection) =>
+          !connection.techCenter &&
+          connection.roleName === 'super_admin' &&
+          connection.previousTechCenterId
+            ? [connection.previousTechCenterId]
+            : [],
+        ),
+      ),
+    );
+    const previousTechCenters = previousTechCenterIds.length
+      ? await prisma.techCenter.findMany({
+          where: { id: { in: previousTechCenterIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const previousTechCentersById = new Map(
+      previousTechCenters.map((techCenter) => [techCenter.id, techCenter]),
+    );
+    const connectionsWithTechCenters = connections.map(
+      ({ previousTechCenterId, roleName, ...connection }) => ({
+        ...connection,
+        techCenter:
+          connection.techCenter ??
+          (roleName === 'super_admin' && previousTechCenterId
+            ? previousTechCentersById.get(previousTechCenterId) ?? null
+            : null),
+      }),
+    );
+
     return NextResponse.json({
-      connections,
+      connections: connectionsWithTechCenters,
       type,
       count: connections.length
     });

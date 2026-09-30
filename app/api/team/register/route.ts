@@ -50,10 +50,18 @@ export async function POST(request: NextRequest) {
     // Check if user belongs to this tech center
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { techCenterId: true }
+      select: {
+        techCenterId: true,
+        previousTechCenterId: true,
+        role: { select: { name: true } },
+      }
     });
 
-    if (!user || user.techCenterId !== techCenterId) {
+    const allowedTechCenterId = user?.role?.name === 'super_admin'
+      ? user.previousTechCenterId
+      : user?.techCenterId;
+
+    if (!user || allowedTechCenterId !== techCenterId) {
       return NextResponse.json({ error: 'User must belong to this tech center to join the team' }, { status: 400 });
     }
 

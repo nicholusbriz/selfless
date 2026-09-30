@@ -16,6 +16,56 @@ export default withAuth(
       return NextResponse.next();
     }
 
+    // Store aggregate counters only; don't create one activity log per visit.
+    if (
+      !path.startsWith('/_next') &&
+      !path.startsWith('/api') &&
+      !path.includes('.') &&
+      !path.startsWith('/favicon') &&
+      !path.startsWith('/public')
+    ) {
+      const sessionToken =
+        req.cookies.get('next-auth.session-token')?.value ||
+        req.cookies.get('__Secure-next-auth.session-token')?.value;
+
+      let userId = token?.sub as string | undefined;
+      if (!userId && sessionToken) {
+        try {
+          const decoded = jwt.verify(sessionToken, JWT_SECRET) as {
+            userId?: string;
+            sub?: string;
+          };
+          userId = decoded.userId || decoded.sub;
+        } catch {
+          userId = undefined;
+        }
+      }
+
+      try {
+        if (userId) {
+          await Promise.all([
+            prisma.pageVisitCount.upsert({
+              where: { pagePath: path },
+              create: { pagePath: path, count: 1 },
+              update: { count: { increment: 1 } },
+            }),
+            prisma.userPageVisitCount.upsert({
+              where: {
+                userId_pagePath: { userId, pagePath: path },
+              },
+              create: { userId, pagePath: path, count: 1 },
+              update: {
+                count: { increment: 1 },
+                lastVisitAt: new Date(),
+              },
+            }),
+          ]);
+        }
+      } catch (error) {
+        console.error('Page visit counter error:', error);
+      }
+    }
+
     // ✅ If user is authenticated and tries to access home, LET THEM STAY
     if (path === '/' && token) {
       return NextResponse.next(); // ← This is the key change
@@ -29,71 +79,6 @@ export default withAuth(
     // Only protect dashboard routes
     if (path.startsWith('/dashboard') && !token) {
       return NextResponse.redirect(new URL('/', req.url));
-    }
-
-    // Activity logging - track page visits
-    // Skip tracking for static assets, API routes, etc.
-    if (
-      !path.startsWith('/_next') &&
-      !path.startsWith('/api') &&
-      !path.includes('.') &&
-      !path.startsWith('/favicon') &&
-      !path.startsWith('/public')
-    ) {
-      // Get session token
-      const sessionToken =
-        req.cookies.get('next-auth.session-token')?.value ||
-        req.cookies.get('__Secure-next-auth.session-token')?.value;
-
-      // Get user ID from JWT token (since we're using JWT strategy)
-      let userId: string | null = null;
-      let techCenterId: string | null = null;
-
-      if (token) {
-        // User is authenticated via NextAuth middleware
-        userId = token.sub as string;
-        techCenterId = token.techCenterId as string || null;
-      } else if (sessionToken) {
-        // Fallback: try to decode JWT token directly
-        try {
-          const decoded = jwt.verify(sessionToken, JWT_SECRET) as any;
-          if (decoded && decoded.userId) {
-            userId = decoded.userId;
-            techCenterId = decoded.techCenterId || null;
-          }
-        } catch (error) {
-          // JWT verification failed, user is anonymous
-          console.log('JWT verification failed for page:', path);
-        }
-      }
-
-      try {
-        // Log the page visit
-        await prisma.activityLog.create({
-          data: {
-            action: 'page_visit',
-            method: req.method,
-            entityType: 'page',
-            entityId: path,
-            ipAddress:
-              req.headers.get('x-forwarded-for') ||
-              req.headers.get('x-real-ip') ||
-              'unknown',
-            userAgent: req.headers.get('user-agent') || 'unknown',
-            sessionId: sessionToken || 'anonymous',
-            userId: userId,
-            techCenterId: techCenterId,
-            details: {
-              referrer: req.headers.get('referer'),
-              query: Object.fromEntries(req.nextUrl.searchParams),
-              page: path, // Store page path in details instead
-            },
-          },
-        });
-      } catch (error) {
-        // Don't block requests if logging fails
-        console.error('Activity log error:', error);
-      }
     }
 
     return NextResponse.next();

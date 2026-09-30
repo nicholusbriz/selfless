@@ -28,6 +28,16 @@ export async function GET(request: NextRequest) {
     // Build where clause
     const where: any = {};
 
+    if (session.user.role === 'super_admin') {
+      const devRole = await prisma.role.findUnique({
+        where: { name: 'dev' },
+        select: { id: true },
+      });
+      if (devRole) {
+        where.roleId = { not: devRole.id };
+      }
+    }
+
     // Search across multiple fields
     if (search) {
       where.OR = [

@@ -57,6 +57,7 @@ type GroupedStudent = Omit<StudentWithTechCenter, 'submittedCourses'> & {
   followersCount: number;
   followingCount: number;
   likesReceivedCount: number;
+  profileViewsCount: number;
   isFollowing?: boolean;
   isLiked?: boolean;
 };
@@ -81,14 +82,17 @@ export async function GET(request: Request) {
     });
 
     // Fetch all users with tech center info and course data
-    const students = await prisma.user.findMany({
+    const studentCandidates = await prisma.user.findMany({
       where: {
-        techCenterId: {
-          not: null
-        }
+        OR: [
+          { techCenterId: { not: null } },
+          { previousTechCenterId: { not: null } },
+        ],
       },
       select: {
         id: true,
+        techCenterId: true,
+        previousTechCenterId: true,
         firstName: true,
         lastName: true,
         profileImageUrl: true,
@@ -130,8 +134,17 @@ export async function GET(request: Request) {
       ]
     });
 
+    const students = studentCandidates.filter(
+      (student) =>
+        student.role?.name !== 'dev' &&
+        (student.techCenterId !== null ||
+          (student.role?.name === 'super_admin' &&
+            student.previousTechCenterId !== null &&
+            techCenters.some((center) => center.id === student.previousTechCenterId))),
+    );
+
     // Fetch current user's follows and likes in a single query
-    const [userFollows, userLikes, allFollows, allLikes] = await Promise.all([
+    const [userFollows, userLikes, allFollows, allLikes, profileViews] = await Promise.all([
       prisma.follow.findMany({
         where: { followerId: currentUser.id },
         select: { followingId: true }
@@ -145,6 +158,10 @@ export async function GET(request: Request) {
       }),
       prisma.like.findMany({
         select: { likerId: true, likedUserId: true }
+      }),
+      prisma.profileView.findMany({
+        where: { profileUserId: { in: students.map((student) => student.id) } },
+        select: { profileUserId: true }
       })
     ]);
 
@@ -156,6 +173,7 @@ export async function GET(request: Request) {
     const followerCounts = new Map<string, number>();
     const followingCounts = new Map<string, number>();
     const likeCounts = new Map<string, number>();
+    const profileViewCounts = new Map<string, number>();
 
     allFollows.forEach(follow => {
       followerCounts.set(follow.followingId, (followerCounts.get(follow.followingId) || 0) + 1);
@@ -166,11 +184,23 @@ export async function GET(request: Request) {
       likeCounts.set(like.likedUserId, (likeCounts.get(like.likedUserId) || 0) + 1);
     });
 
+    profileViews.forEach(view => {
+      profileViewCounts.set(
+        view.profileUserId,
+        (profileViewCounts.get(view.profileUserId) || 0) + 1,
+      );
+    });
+
     // Group students by tech center
     const studentsByTechCenter: Record<string, GroupedStudent[]> = {};
     
     students.forEach((student) => {
-      const techCenterName = student.techCenter?.name || 'No Tech Center';
+      const previousTechCenter =
+        student.role?.name === 'super_admin' && student.previousTechCenterId
+          ? techCenters.find((center) => center.id === student.previousTechCenterId) ?? null
+          : null;
+      const studentTechCenter = student.techCenter ?? previousTechCenter;
+      const techCenterName = studentTechCenter?.name || 'No Tech Center';
       
       if (!studentsByTechCenter[techCenterName]) {
         studentsByTechCenter[techCenterName] = [];
@@ -182,7 +212,7 @@ export async function GET(request: Request) {
         lastName: student.lastName,
         profileImageUrl: student.profileImageUrl,
         role: student.role,
-        techCenter: student.techCenter,
+        techCenter: studentTechCenter,
         generalCourse: student.generalCourse,
         takesReligion: student.takesReligion,
         status: student.status,
@@ -191,6 +221,7 @@ export async function GET(request: Request) {
         followersCount: followerCounts.get(student.id) || 0,
         followingCount: followingCounts.get(student.id) || 0,
         likesReceivedCount: likeCounts.get(student.id) || 0,
+        profileViewsCount: profileViewCounts.get(student.id) || 0,
         studentCourses: student.submittedCourses,
         isFollowing: followingIds.has(student.id),
         isLiked: likedUserIds.has(student.id)

@@ -73,7 +73,6 @@ import { useUnreadMessageCount } from '@/hooks/useMessages';
 import { GlobalOnlineUsersPopup } from '@/components/GlobalOnlineUsersPopup';
 import { useOnlineUsers } from '@/lib/hooks/useOnlineUsers';
 import { useActivityTracker } from '@/lib/hooks/useActivityTracker';
-import { usePageVisitTracking } from '@/lib/hooks/usePageVisitTracking';
 
 // ============================================================
 // LAYOUT CONSTANTS — single source of truth for widths
@@ -125,6 +124,7 @@ interface NavSection {
 
 const ALL_ROLES = ['student', 'teacher', 'admin', 'dev', 'super_admin'];
 const NON_SUPER_ADMIN_ROLES = ['student', 'teacher', 'admin', 'dev'];
+const FOOTBALL_TEAM_ROLES = [...NON_SUPER_ADMIN_ROLES, 'super_admin'];
 
 const iconClass = 'w-[18px] h-[18px] flex-shrink-0';
 
@@ -277,7 +277,7 @@ const sharedNavigation: NavSection[] = [
         label: 'Football Team',
         path: '/dashboard/football-team',
         icon: <Trophy className={iconClass} />,
-        roles: NON_SUPER_ADMIN_ROLES,
+        roles: FOOTBALL_TEAM_ROLES,
       },
     ],
   },
@@ -2276,8 +2276,6 @@ export default function DashboardLayout({
   const onlineUsers = useOnlineUsers(user);
 
   // Track page visits (lightweight analytics, not stored as activity logs)
-  usePageVisitTracking();
-
   // ----------------------------------------------------------
   // CLOSE MOBILE NAV AFTER ROUTE CHANGE
   // ----------------------------------------------------------

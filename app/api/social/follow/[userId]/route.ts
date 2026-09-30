@@ -12,6 +12,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
+import { createNotificationForUser } from '@/lib/notifications';
 
 export async function POST(
   request: Request,
@@ -65,6 +66,23 @@ export async function POST(
         followingId: targetUserId
       }
     });
+
+    const actorName = `${currentUser.firstName} ${currentUser.lastName}`.trim();
+    const actorCenter = currentUser.techCenter?.name;
+    try {
+      await createNotificationForUser({
+        userId: targetUserId,
+        title: 'New follower',
+        message: `${actorName}${actorCenter ? ` from ${actorCenter}` : ''} followed your account.`,
+        type: 'social_follow',
+        link: `/dashboard/students/${currentUser.id}`,
+        generatedBy: currentUser.id,
+        entityType: 'follow',
+        entityId: currentUser.id,
+      });
+    } catch (notificationError) {
+      console.error('Failed to notify user about follow:', notificationError);
+    }
 
     return NextResponse.json({
       success: true,

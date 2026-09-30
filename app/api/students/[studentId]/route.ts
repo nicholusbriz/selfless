@@ -19,7 +19,7 @@ export async function GET(
 ) {
   try {
     // Get authenticated user
-    await requireAuth();
+    const viewer = await requireAuth();
 
     const { studentId } = await params;
 
@@ -89,6 +89,26 @@ export async function GET(
         { error: 'Student not found' },
         { status: 404 }
       );
+    }
+
+    if (viewer.id !== student.id) {
+      try {
+        await prisma.profileView.upsert({
+          where: {
+            viewerId_profileUserId: {
+              viewerId: viewer.id,
+              profileUserId: student.id,
+            },
+          },
+          update: { viewedAt: new Date() },
+          create: {
+            viewerId: viewer.id,
+            profileUserId: student.id,
+          },
+        });
+      } catch (viewError) {
+        console.error('Failed to record student profile view:', viewError);
+      }
     }
 
     // Return student profile data with cache headers
