@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Users,
   Search,
@@ -17,22 +17,17 @@ import {
   LayoutGrid,
   List,
   Heart,
+  UserPlus,
+  Loader2,
+  Check,
   Send,
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-
-import { SocialActions } from '@/components/social/SocialActions';
-import { rankByTrending } from '@/lib/social/ranking';
-import {
-  patchStudentsShape,
-  findInStudentsShape,
-} from '@/lib/social/patchHelpers';
-import type { PageCacheAdapter } from '@/lib/social/cacheKeys';
-import { getTechCenterHue } from '@/lib/social/constants';
+import type { Message } from '@/types/messaging';
 
 // ============================================================
-// TYPES
+// STUDENTS DIRECTORY
 // ============================================================
 
 interface Student {
@@ -58,13 +53,12 @@ interface Student {
     credits: number;
     status: string;
   }>;
-  // Social fields — now included by /api/students
   followersCount: number;
   followingCount: number;
   likesReceivedCount: number;
   profileViewsCount: number;
-  isFollowing: boolean;
-  isLiked: boolean;
+  isFollowing?: boolean;
+  isLiked?: boolean;
 }
 
 interface TechCenter {
@@ -77,24 +71,34 @@ interface TechCenter {
 type Router = ReturnType<typeof useRouter>;
 
 // ============================================================
-// PAGE CACHE ADAPTER
+// TECH CENTER HUES
 // ============================================================
 
-const STUDENT_DIRECTORY_ADAPTERS: PageCacheAdapter[] = [
-  {
-    queryKey: ['studentDirectory'],
-    patch: (old, targetId, patch) =>
-      patchStudentsShape(old, targetId, patch),
-    find: (old, targetId) => findInStudentsShape(old, targetId),
-  },
-];
+const TECH_CENTER_HUES: Record<string, string> = {
+  'Freedom City Tech Center': '#55705B',
+  'Kampala Central': '#3E5C76',
+  'Gulu Hub': '#7C3AED',
+  'Mbarara Tech': '#B98A3E',
+  'Jinja Center': '#A4462F',
+};
+
+const getTechCenterHue = (name: string | undefined): string => {
+  if (!name) return '#9CA3AF';
+  if (TECH_CENTER_HUES[name]) return TECH_CENTER_HUES[name];
+
+  const palette = ['#55705B', '#3E5C76', '#7C3AED', '#B98A3E', '#A4462F', '#0F766E'];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return palette[Math.abs(hash) % palette.length];
+};
 
 // ============================================================
-// SORT
+// SORT HELPERS
 // ============================================================
 
 type SortOption =
-  | 'trending'
   | 'popularity'
   | 'name'
   | 'newest'
@@ -106,10 +110,6 @@ const popularityScore = (s: Student): number =>
   (s.followersCount || 0) * 2 + (s.likesReceivedCount || 0);
 
 const sortStudents = (students: Student[], sortBy: SortOption): Student[] => {
-  if (sortBy === 'trending') {
-    return rankByTrending(students);
-  }
-
   const copy = [...students];
 
   if (sortBy === 'popularity') {
@@ -135,8 +135,7 @@ const sortStudents = (students: Student[], sortBy: SortOption): Student[] => {
   }
   if (sortBy === 'newest') {
     return copy.sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
   }
   if (sortBy === 'mostFollowed') {
@@ -164,11 +163,13 @@ const SkeletonCard = () => (
           <div className="h-3 w-12 bg-[#F3F4F6] rounded" />
         </div>
       </div>
+
       <div className="col-span-3 px-3 py-2 border-t border-[#F3F4F6] space-y-2">
         <div className="h-3 w-28 bg-[#F3F4F6] rounded" />
         <div className="h-3.5 w-4/5 bg-[#E5E7EB] rounded" />
         <div className="h-3.5 w-3/5 bg-[#F3F4F6] rounded" />
       </div>
+
       <div className="col-span-3 px-3 py-2 border-t border-[#F3F4F6] flex items-center justify-between">
         <div className="h-3.5 w-20 bg-[#E5E7EB] rounded" />
         <div className="flex items-center gap-1.5">
@@ -193,10 +194,12 @@ const SkeletonListCard = () => (
           <div className="h-3 w-10 bg-[#F3F4F6] rounded" />
         </div>
       </div>
+
       <div className="space-y-1">
         <div className="h-2.5 w-28 bg-[#F3F4F6] rounded" />
         <div className="h-3 w-5/6 bg-[#E5E7EB] rounded" />
       </div>
+
       <div className="pt-2 border-t border-[#F3F4F6] flex items-center justify-between">
         <div className="h-3 w-16 bg-[#E5E7EB] rounded" />
         <div className="flex items-center gap-1.5">
@@ -260,8 +263,10 @@ const FullPageSkeleton = ({ viewMode }: { viewMode: 'grid' | 'list' }) => (
         <div className="h-8 w-40 bg-white border border-[#E5E7EB] rounded" />
         <div className="h-4 w-64 bg-white border border-[#E5E7EB] rounded" />
       </div>
+
       <div className="mt-4 h-24 bg-white border border-[#E5E7EB] rounded-lg shadow-md animate-pulse" />
       <div className="mt-4 h-14 bg-white border border-[#E5E7EB] rounded-lg shadow-md animate-pulse" />
+
       <div className="pt-6">
         {[1, 2, 3].map((i) => (
           <SectionSkeleton key={i} viewMode={viewMode} />
@@ -272,7 +277,7 @@ const FullPageSkeleton = ({ viewMode }: { viewMode: 'grid' | 'list' }) => (
 );
 
 // ============================================================
-// SEARCH & FILTER BAR
+// SEARCH & FILTER
 // ============================================================
 
 const SearchFilterBar = ({
@@ -396,7 +401,6 @@ const SearchFilterBar = ({
                   cursor-pointer
                 "
               >
-                <option value="trending">Sort: Trending (followers → likes)</option>
                 <option value="popularity">Sort: Most Popular</option>
                 <option value="name">Sort: Name (A–Z)</option>
                 <option value="newest">Sort: Newest</option>
@@ -500,6 +504,7 @@ const SearchFilterBar = ({
                   style={{ backgroundColor: getTechCenterHue(activeLocation?.name) }}
                 />
                 {activeLocation?.name || 'Selected center'}
+                <Check className="w-3 h-3 text-[#B98A3E]" strokeWidth={3} />
               </span>
             </div>
           )}
@@ -539,17 +544,20 @@ const SearchFilterBar = ({
 };
 
 // ============================================================
-// MESSAGE COMPOSER
+// STUDENT MESSAGE COMPOSER (must be defined BEFORE StudentCard)
 // ============================================================
 
 const StudentMessageComposer = ({
   recipientId,
+  currentUserId,
 }: {
   recipientId: string;
+  currentUserId: string;
 }) => {
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [sendStatus, setSendStatus] = useState<'sent' | 'error' | null>(null);
+  const queryClient = useQueryClient();
 
   const handleSend = async () => {
     const content = message.trim();
@@ -565,9 +573,7 @@ const StudentMessageComposer = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ participantId: recipientId }),
       });
-      const conversationData = await conversationResponse
-        .json()
-        .catch(() => ({}));
+      const conversationData = await conversationResponse.json().catch(() => ({}));
       if (!conversationResponse.ok || !conversationData.conversation?.id) {
         throw new Error(conversationData.error || 'Failed to start conversation');
       }
@@ -582,6 +588,22 @@ const StudentMessageComposer = ({
       if (!messageResponse.ok) {
         throw new Error(messageData.error || 'Failed to send message');
       }
+
+      if (messageData.message) {
+        queryClient.setQueryData<Message[] | undefined>(
+          ['messages', conversationId],
+          (oldMessages) => {
+            if (!oldMessages) return oldMessages;
+            if (oldMessages.some((item) => item.id === messageData.message.id)) {
+              return oldMessages;
+            }
+            return [...oldMessages, messageData.message];
+          },
+        );
+      }
+      void queryClient.invalidateQueries({
+        queryKey: ['conversations', currentUserId],
+      });
     } catch {
       setMessage(content);
       setSendStatus('error');
@@ -632,17 +654,27 @@ const StudentMessageComposer = ({
 };
 
 // ============================================================
-// STUDENT CARD (Grid)
+// STUDENT CARD (Grid View) — enhanced readability
 // ============================================================
 
 const StudentCard = ({
   student,
   router,
   currentUserId,
+  onFollowToggle,
+  onLikeToggle,
+  isFollowing,
+  isLiked,
+  isFollowLoading,
 }: {
   student: Student;
   router: Router;
   currentUserId?: string;
+  onFollowToggle?: (studentId: string) => void;
+  onLikeToggle?: (studentId: string) => void;
+  isFollowing?: boolean;
+  isLiked?: boolean;
+  isFollowLoading?: boolean;
 }) => {
   const getInitials = (firstName: string, lastName: string) =>
     `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
@@ -669,6 +701,7 @@ const StudentCard = ({
       "
     >
       <div className="grid grid-cols-3">
+        {/* AVATAR */}
         <div className="relative bg-[#F7F6F2] aspect-square">
           {student.profileImageUrl ? (
             <Image
@@ -687,6 +720,7 @@ const StudentCard = ({
           )}
         </div>
 
+        {/* NAME + STATS */}
         <div className="col-span-2 px-3 py-2.5 flex flex-col justify-center">
           <div className="flex items-start justify-between gap-2 mb-1.5">
             <h3 className="text-[14px] font-bold leading-snug text-[#1A2B4C] break-words flex-1">
@@ -709,6 +743,7 @@ const StudentCard = ({
             </span>
           </div>
 
+          {/* STATS */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px]">
             <div className="flex items-center gap-1">
               <Users className="w-3 h-3 text-[#B98A3E]" strokeWidth={2.2} />
@@ -735,11 +770,15 @@ const StudentCard = ({
 
           {!isCurrentUser && currentUserId && (
             <div className="mt-1.5 min-w-0">
-              <StudentMessageComposer recipientId={student.id} />
+              <StudentMessageComposer
+                recipientId={student.id}
+                currentUserId={currentUserId}
+              />
             </div>
           )}
         </div>
 
+        {/* COURSES */}
         <div className="col-span-3 px-3 pt-2 pb-2">
           <div>
             <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-[#8A6A2E] font-bold mb-1">
@@ -778,6 +817,7 @@ const StudentCard = ({
           )}
         </div>
 
+        {/* FOOTER */}
         <div className="col-span-3 px-3 py-2 flex items-center justify-between flex-wrap gap-1.5 border-t border-[#F3F4F6]">
           <button
             type="button"
@@ -789,14 +829,45 @@ const StudentCard = ({
           </button>
 
           {!isCurrentUser && (
-            <SocialActions
-              userId={student.id}
-              currentUserId={currentUserId}
-              pageAdapters={STUDENT_DIRECTORY_ADAPTERS}
-              size="xs"
-              allowUnfollow={false}
-              allowUnlike={true}
-            />
+            <div className="flex items-center gap-1.5">
+              {isLiked ? (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded border border-red-500 bg-red-50 text-red-600">
+                  <Heart className="w-3.5 h-3.5 fill-red-500 text-red-500" strokeWidth={2} />
+                  <span className="text-[10px] font-bold">Liked</span>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onLikeToggle?.(student.id)}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded border border-[#E5E7EB] bg-white hover:border-[#B98A3E] transition-colors"
+                  title="Like"
+                >
+                  <Heart className="w-3.5 h-3.5 text-[#6B7280]" strokeWidth={2} />
+                  <span className="text-[10px] font-bold text-[#1A2B4C]">Like</span>
+                </button>
+              )}
+
+              {isFollowing ? (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded border border-[#55705B] bg-[#55705B] text-[10px] font-bold text-white">
+                  Following
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onFollowToggle?.(student.id)}
+                  disabled={isFollowLoading}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded border border-[#E5E7EB] bg-white hover:border-[#B98A3E] text-[#1A2B4C] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Follow"
+                >
+                  {isFollowLoading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2} />
+                  ) : (
+                    <UserPlus className="w-3.5 h-3.5" strokeWidth={2} />
+                  )}
+                  <span className="text-[10px] font-bold">Follow</span>
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -805,17 +876,27 @@ const StudentCard = ({
 };
 
 // ============================================================
-// STUDENT LIST CARD (List)
+// STUDENT LIST CARD (List View)
 // ============================================================
 
 const StudentListCard = ({
   student,
   router,
   currentUserId,
+  onFollowToggle,
+  onLikeToggle,
+  isFollowing,
+  isLiked,
+  isFollowLoading,
 }: {
   student: Student;
   router: Router;
   currentUserId?: string;
+  onFollowToggle?: (studentId: string) => void;
+  onLikeToggle?: (studentId: string) => void;
+  isFollowing?: boolean;
+  isLiked?: boolean;
+  isFollowLoading?: boolean;
 }) => {
   const getTotalCredits = (s: Student) =>
     s.studentCourses?.reduce(
@@ -847,6 +928,7 @@ const StudentListCard = ({
                   {student.techCenter?.name || 'No location'}
                 </span>
               </span>
+
               <span className="ml-auto shrink-0 whitespace-nowrap font-medium">
                 {student.role?.name === 'teacher'
                   ? 'Tutor'
@@ -863,10 +945,6 @@ const StudentListCard = ({
             <span className="inline-flex items-center gap-1 font-mono text-[#4B5646] font-bold">
               <Heart className="h-3.5 w-3.5 text-red-500" strokeWidth={2.2} />
               {Math.max(0, student.likesReceivedCount)} likes
-            </span>
-            <span className="inline-flex items-center gap-1 font-mono text-[#4B5646] font-bold">
-              <Eye className="h-3.5 w-3.5 text-[#3E5C76]" strokeWidth={2.2} />
-              {student.profileViewsCount} views
             </span>
             <span className="font-mono text-[#B98A3E] font-bold">
               {student.studentCourses?.length || 0} courses
@@ -924,14 +1002,45 @@ const StudentListCard = ({
           </button>
 
           {!isCurrentUser && (
-            <SocialActions
-              userId={student.id}
-              currentUserId={currentUserId}
-              pageAdapters={STUDENT_DIRECTORY_ADAPTERS}
-              size="xs"
-              allowUnfollow={false}
-              allowUnlike={true}
-            />
+            <div className="flex items-center gap-1.5">
+              {isLiked ? (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-red-500 bg-red-50 text-red-600">
+                  <Heart className="w-3.5 h-3.5 fill-red-500 text-red-500" strokeWidth={2} />
+                  <span className="text-[10px] font-bold">Liked</span>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onLikeToggle?.(student.id)}
+                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-[#E5E7EB] bg-white hover:border-[#B98A3E] transition-colors"
+                  title="Like"
+                >
+                  <Heart className="w-3.5 h-3.5 text-[#6B7280]" strokeWidth={2} />
+                  <span className="text-[10px] font-bold text-[#1A2B4C]">Like</span>
+                </button>
+              )}
+
+              {isFollowing ? (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-[#55705B] bg-[#55705B] text-[10px] font-bold text-white">
+                  Following
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onFollowToggle?.(student.id)}
+                  disabled={isFollowLoading}
+                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-[#E5E7EB] bg-white hover:border-[#B98A3E] text-[#1A2B4C] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Follow"
+                >
+                  {isFollowLoading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2} />
+                  ) : (
+                    <UserPlus className="w-3.5 h-3.5" strokeWidth={2} />
+                  )}
+                  <span className="text-[10px] font-bold">Follow</span>
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -1017,12 +1126,13 @@ const CommunityTicker = ({ students }: { students: Student[] }) => {
 export default function StudentsPage() {
   const router = useRouter();
   const { data: session } = useSession();
+  const queryClient = useQueryClient();
   const currentUserId = session?.user?.id;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('all');
   const [showBackToTop, setShowBackToTop] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>('trending');
+  const [sortBy, setSortBy] = useState<SortOption>('popularity');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   useEffect(() => {
@@ -1034,7 +1144,6 @@ export default function StudentsPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Single fetch — directory + stats in one response
   const {
     data,
     isLoading,
@@ -1046,20 +1155,24 @@ export default function StudentsPage() {
     queryFn: async () => {
       const response = await fetch('/api/students');
       if (!response.ok) throw new Error('Failed to fetch students');
-      return response.json() as Promise<{
-        studentsByTechCenter: Record<string, Student[]>;
+      const result = await response.json();
+      return result as {
+        studentsByTechCenter: { [key: string]: Student[] };
         techCenters: TechCenter[];
         totalStudents: number;
-      }>;
+      };
     },
-    staleTime: 30 * 1000,
+    staleTime: 5 * 1000,
     gcTime: 5 * 60 * 1000,
-    refetchInterval: 30 * 1000,
+    refetchInterval: 10 * 1000,
   });
 
-  const studentsByTechCenter = data?.studentsByTechCenter ?? {};
-  const techCenters = data?.techCenters ?? [];
-  const totalStudents = data?.totalStudents ?? 0;
+  const studentsByTechCenter = useMemo(
+    () => data?.studentsByTechCenter || {},
+    [data?.studentsByTechCenter],
+  );
+  const techCenters = data?.techCenters || [];
+  const totalStudents = data?.totalStudents || 0;
 
   const allStudents = useMemo(
     () => Object.values(studentsByTechCenter).flat() as Student[],
@@ -1095,10 +1208,7 @@ export default function StudentsPage() {
     return filtered;
   };
 
-  const filteredAllStudents = sortStudents(
-    filterStudents(allStudents),
-    sortBy,
-  );
+  const filteredAllStudents = sortStudents(filterStudents(allStudents), sortBy);
 
   const getLocationCount = (locationId: string) =>
     allStudents.filter((student) => student.techCenter?.id === locationId)
@@ -1122,9 +1232,220 @@ export default function StudentsPage() {
 
   const isInitialLoading = isLoading && !data;
 
+  const socialStatus = useMemo(() => {
+    const status: Record<string, { isFollowing: boolean; isLiked: boolean }> = {};
+    allStudents.forEach((student) => {
+      if (student.id !== currentUserId) {
+        status[student.id] = {
+          isFollowing: student.isFollowing || false,
+          isLiked: student.isLiked || false,
+        };
+      }
+    });
+    return status;
+  }, [allStudents, currentUserId]);
+
+  const followMutation = useMutation({
+    mutationFn: async (studentId: string) => {
+      const response = await fetch(`/api/social/follow/${studentId}`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to follow');
+      }
+      return response.json();
+    },
+    onMutate: async (studentId: string) => {
+      await queryClient.cancelQueries({ queryKey: ['studentDirectory'] });
+      const previousStudents = queryClient.getQueryData(['studentDirectory']);
+
+      queryClient.setQueryData(['studentDirectory'], (old: any) => {
+        if (!old) return old;
+        const updateStudent = (students: any[]) =>
+          students.map((student: any) => {
+            if (student.id === studentId) {
+              return {
+                ...student,
+                isFollowing: true,
+                followersCount: student.followersCount + 1,
+              };
+            }
+            if (student.id === currentUserId) {
+              return {
+                ...student,
+                followingCount: student.followingCount + 1,
+              };
+            }
+            return student;
+          });
+
+        return {
+          ...old,
+          studentsByTechCenter: Object.fromEntries(
+            Object.entries(old.studentsByTechCenter).map(
+              ([key, students]: [string, any]) => [key, updateStudent(students)],
+            ),
+          ),
+        };
+      });
+
+      return { previousStudents };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['studentDirectory'] });
+    },
+    onError: (_err: any, _variables: any, context: any) => {
+      if (context?.previousStudents) {
+        queryClient.setQueryData(['studentDirectory'], context.previousStudents);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['studentDirectory'] });
+    },
+  });
+
+  const likeMutation = useMutation({
+    mutationFn: async ({
+      studentId,
+      isLiked,
+    }: {
+      studentId: string;
+      isLiked: boolean;
+    }) => {
+      const response = await fetch(`/api/social/like/${studentId}`, {
+        method: isLiked ? 'DELETE' : 'POST',
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to toggle like');
+      }
+      return response.json();
+    },
+    onMutate: async ({
+      studentId,
+      isLiked,
+    }: {
+      studentId: string;
+      isLiked: boolean;
+    }) => {
+      await queryClient.cancelQueries({ queryKey: ['studentDirectory'] });
+      const previousStudents = queryClient.getQueryData(['studentDirectory']);
+
+      queryClient.setQueryData(['studentDirectory'], (old: any) => {
+        if (!old) return old;
+        const updateStudent = (students: any[]) =>
+          students.map((student: any) => {
+            if (student.id === studentId) {
+              return {
+                ...student,
+                isLiked: !isLiked,
+                likesReceivedCount: isLiked
+                  ? Math.max(0, student.likesReceivedCount - 1)
+                  : student.likesReceivedCount + 1,
+              };
+            }
+            return student;
+          });
+
+        return {
+          ...old,
+          studentsByTechCenter: Object.fromEntries(
+            Object.entries(old.studentsByTechCenter).map(
+              ([key, students]: [string, any]) => [key, updateStudent(students)],
+            ),
+          ),
+        };
+      });
+
+      return { previousStudents };
+    },
+    onSuccess: (
+      data: any,
+      { studentId, isLiked }: { studentId: string; isLiked: boolean },
+    ) => {
+      queryClient.setQueryData(['studentDirectory'], (old: any) => {
+        if (!old) return old;
+        const updateStudent = (students: any[]) =>
+          students.map((student: any) => {
+            if (student.id === studentId) {
+              return {
+                ...student,
+                isLiked: !isLiked,
+                likesReceivedCount:
+                  data.counts?.likesReceivedCount ?? student.likesReceivedCount,
+              };
+            }
+            return student;
+          });
+
+        return {
+          ...old,
+          studentsByTechCenter: Object.fromEntries(
+            Object.entries(old.studentsByTechCenter).map(
+              ([key, students]: [string, any]) => [key, updateStudent(students)],
+            ),
+          ),
+        };
+      });
+    },
+    onError: (_err: any, _variables: any, context: any) => {
+      if (context?.previousStudents) {
+        queryClient.setQueryData(['studentDirectory'], context.previousStudents);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['studentDirectory'] });
+    },
+  });
+
+  const handleFollowToggle = (studentId: string) => {
+    const liveStatus = queryClient.getQueryData<any>(['studentDirectory']);
+    let isCurrentlyFollowing = false;
+    if (liveStatus?.studentsByTechCenter) {
+      for (const students of Object.values(
+        liveStatus.studentsByTechCenter,
+      ) as any[]) {
+        const found = students.find((s: any) => s.id === studentId);
+        if (found) {
+          isCurrentlyFollowing = found.isFollowing || false;
+          break;
+        }
+      }
+    }
+    if (!isCurrentlyFollowing) {
+      followMutation.mutate(studentId);
+    }
+  };
+
+  const handleLikeToggle = (studentId: string) => {
+    const liveStatus = queryClient.getQueryData<any>(['studentDirectory']);
+    let isCurrentlyLiked = false;
+    if (liveStatus?.studentsByTechCenter) {
+      for (const students of Object.values(
+        liveStatus.studentsByTechCenter,
+      ) as any[]) {
+        const found = students.find((s: any) => s.id === studentId);
+        if (found) {
+          isCurrentlyLiked = found.isLiked || false;
+          break;
+        }
+      }
+    }
+    likeMutation.mutate({ studentId, isLiked: isCurrentlyLiked });
+  };
+
+  /* ==========================================================
+     INITIAL LOADING (full-page skeleton)
+  ========================================================== */
+
   if (isInitialLoading) {
     return <FullPageSkeleton viewMode={viewMode} />;
   }
+
+  /* ==========================================================
+     ERROR
+  ========================================================== */
 
   if (error) {
     return (
@@ -1140,7 +1461,7 @@ export default function StudentsPage() {
             {error instanceof Error ? error.message : 'Please try again later'}
           </p>
           <button
-            onClick={() => refetchStudents()}
+            onClick={() => window.location.reload()}
             className="mt-5 h-10 px-5 bg-[#1A2B4C] text-white font-mono text-[12px] uppercase tracking-widest hover:bg-[#2C3E5A] transition-colors rounded font-bold"
           >
             Retry
@@ -1149,6 +1470,10 @@ export default function StudentsPage() {
       </div>
     );
   }
+
+  /* ==========================================================
+     PAGE
+  ========================================================== */
 
   const showSectionSkeletons = isFetching && !hasStudents;
 
@@ -1167,6 +1492,7 @@ export default function StudentsPage() {
       )}
 
       <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 pb-10">
+        {/* HEADER */}
         <header className="pt-6 pb-5">
           <div className="flex flex-wrap items-center gap-1.5 mb-4">
             <Link
@@ -1208,10 +1534,10 @@ export default function StudentsPage() {
         </header>
 
         <p className="mb-3 text-[12px] leading-5 text-[#3E5C76]">
-          High engagement can earn a blue verification badge and a free Pro
-          upgrade.
+          High engagement can earn a blue verification badge and a free Pro upgrade.
         </p>
 
+        {/* SEARCH + FILTER */}
         <SearchFilterBar
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
@@ -1225,10 +1551,12 @@ export default function StudentsPage() {
           setViewMode={setViewMode}
         />
 
+        {/* TICKER */}
         <div className="mt-4">
           <CommunityTicker students={allStudents} />
         </div>
 
+        {/* RESULTS */}
         <main className="pt-6">
           {showSectionSkeletons && (
             <>
@@ -1240,10 +1568,7 @@ export default function StudentsPage() {
 
           {!showSectionSkeletons && !hasStudents && (
             <div className="border border-dashed border-[#D1D5DB] bg-white py-20 text-center rounded-lg shadow-md">
-              <Users
-                className="mx-auto w-10 h-10 text-[#9CA3AF]"
-                strokeWidth={1.6}
-              />
+              <Users className="mx-auto w-10 h-10 text-[#9CA3AF]" strokeWidth={1.6} />
               <h3 className="mt-4 text-[16px] font-bold text-[#1A2B4C]">
                 No students yet
               </h3>
@@ -1257,10 +1582,7 @@ export default function StudentsPage() {
             <>
               {filteredAllStudents.length === 0 ? (
                 <div className="border border-[#E5E7EB] bg-white py-16 text-center px-6 rounded-lg shadow-md">
-                  <Search
-                    className="mx-auto w-9 h-9 text-[#9CA3AF]"
-                    strokeWidth={1.8}
-                  />
+                  <Search className="mx-auto w-9 h-9 text-[#9CA3AF]" strokeWidth={1.8} />
                   <h3 className="mt-3 text-[16px] font-bold text-[#1A2B4C]">
                     No matching students
                   </h3>
@@ -1284,6 +1606,14 @@ export default function StudentsPage() {
                           student={student}
                           router={router}
                           currentUserId={currentUserId}
+                          onFollowToggle={handleFollowToggle}
+                          onLikeToggle={handleLikeToggle}
+                          isFollowing={socialStatus?.[student.id]?.isFollowing}
+                          isLiked={socialStatus?.[student.id]?.isLiked}
+                          isFollowLoading={
+                            followMutation.isPending &&
+                            followMutation.variables === student.id
+                          }
                         />
                       ))}
                     </div>
@@ -1295,6 +1625,14 @@ export default function StudentsPage() {
                           student={student}
                           router={router}
                           currentUserId={currentUserId}
+                          onFollowToggle={handleFollowToggle}
+                          onLikeToggle={handleLikeToggle}
+                          isFollowing={socialStatus?.[student.id]?.isFollowing}
+                          isLiked={socialStatus?.[student.id]?.isLiked}
+                          isFollowLoading={
+                            followMutation.isPending &&
+                            followMutation.variables === student.id
+                          }
                         />
                       ))}
                     </div>
@@ -1309,10 +1647,7 @@ export default function StudentsPage() {
               {Object.entries(studentsByTechCenter)
                 .sort(([nameA], [nameB]) => nameA.localeCompare(nameB))
                 .map(([locationName, students]) => {
-                  const studentList = sortStudents(
-                    students as Student[],
-                    sortBy,
-                  );
+                  const studentList = sortStudents(students as Student[], sortBy);
                   if (studentList.length === 0) return null;
                   const techCenter = techCenters.find(
                     (tc) => tc.name === locationName,
@@ -1354,6 +1689,14 @@ export default function StudentsPage() {
                               student={student}
                               router={router}
                               currentUserId={currentUserId}
+                              onFollowToggle={handleFollowToggle}
+                              onLikeToggle={handleLikeToggle}
+                              isFollowing={socialStatus?.[student.id]?.isFollowing}
+                              isLiked={socialStatus?.[student.id]?.isLiked}
+                              isFollowLoading={
+                                followMutation.isPending &&
+                                followMutation.variables === student.id
+                              }
                             />
                           ))}
                         </div>
@@ -1365,6 +1708,14 @@ export default function StudentsPage() {
                               student={student}
                               router={router}
                               currentUserId={currentUserId}
+                              onFollowToggle={handleFollowToggle}
+                              onLikeToggle={handleLikeToggle}
+                              isFollowing={socialStatus?.[student.id]?.isFollowing}
+                              isLiked={socialStatus?.[student.id]?.isLiked}
+                              isFollowLoading={
+                                followMutation.isPending &&
+                                followMutation.variables === student.id
+                              }
                             />
                           ))}
                         </div>
@@ -1377,10 +1728,7 @@ export default function StudentsPage() {
                             onClick={() => {
                               if (techCenter) {
                                 setSelectedLocation(techCenter.id);
-                                window.scrollTo({
-                                  top: 0,
-                                  behavior: 'smooth',
-                                });
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
                               }
                             }}
                             className="

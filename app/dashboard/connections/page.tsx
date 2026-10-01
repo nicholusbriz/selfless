@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Users,
   Heart,
@@ -12,12 +12,17 @@ import {
   TrendingUp,
   UserPlus,
   Check,
+  Eye,
 } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
+
+import { SocialActions } from '@/components/social/SocialActions';
+import { UnfollowButton } from '@/components/social/UnfollowButton';
+import { UnlikeButton } from '@/components/social/UnlikeButton';
+import { useSocialActions } from '@/lib/hooks/useSocialActions';
 
 // ============================================================
-// TYPES
+// TYPES — every list returns rows with stats already attached
 // ============================================================
 
 interface ConnectionUser {
@@ -29,29 +34,11 @@ interface ConnectionUser {
   followersCount: number;
   followingCount: number;
   likesReceivedCount: number;
+  profileViewsCount: number;
+  isFollowing: boolean;
+  isLiked: boolean;
   connectedAt?: string;
   likedAt?: string;
-  isFollowing?: boolean;
-  isLiked?: boolean;
-}
-
-interface StudentStats {
-  id: string;
-  firstName?: string;
-  lastName?: string;
-  profileImageUrl?: string | null;
-  techCenter?: { id: string; name: string } | null;
-  followersCount: number;
-  followingCount: number;
-  likesReceivedCount: number;
-  isFollowing?: boolean;
-  isLiked?: boolean;
-}
-
-interface StudentsApiResponse {
-  studentsByTechCenter?: Record<string, StudentStats[]>;
-  students?: StudentStats[];
-  totalStudents?: number;
 }
 
 interface LikesData {
@@ -59,28 +46,17 @@ interface LikesData {
   likedUsers: ConnectionUser[];
 }
 
-interface TrendingStudent {
+interface TrendingApiResponse {
+  students: ConnectionUser[];
+  generatedAt: string;
+}
+
+interface MeStats {
   id: string;
-  firstName: string;
-  lastName: string;
-  profileImageUrl: string | null;
-  techCenter: { id: string; name: string } | null;
   followersCount: number;
   followingCount: number;
   likesReceivedCount: number;
-  score: number;
-  isFollowing: boolean;
-  isLiked: boolean;
-}
-
-interface TrendingApiResponse {
-  students: TrendingStudent[];
-  generatedAt: string;
-  meta?: {
-    weights?: { followers: number; likes: number };
-    limit?: number;
-    minActivity?: number;
-  };
+  profileViewsCount: number;
 }
 
 type TabKey = 'trending' | 'followers' | 'following' | 'likes';
@@ -110,27 +86,7 @@ async function fetchLikes(userId: string): Promise<LikesData> {
   };
 }
 
-async function fetchAllStudents(): Promise<StudentStats[]> {
-  const res = await fetch('/api/students');
-  if (!res.ok) throw new Error('Failed to fetch students');
-  const data: unknown = await res.json();
-
-  if (Array.isArray(data)) return data as StudentStats[];
-
-  if (data && typeof data === 'object') {
-    const obj = data as StudentsApiResponse;
-    if (Array.isArray(obj.students)) return obj.students;
-    if (
-      obj.studentsByTechCenter &&
-      typeof obj.studentsByTechCenter === 'object'
-    ) {
-      return Object.values(obj.studentsByTechCenter).flat();
-    }
-  }
-  return [];
-}
-
-async function fetchTrending(limit = 10): Promise<TrendingStudent[]> {
+async function fetchTrending(limit = 10): Promise<ConnectionUser[]> {
   const res = await fetch(
     `/api/social/trending?limit=${limit}&_t=${Date.now()}`,
     { cache: 'no-store' },
@@ -138,6 +94,12 @@ async function fetchTrending(limit = 10): Promise<TrendingStudent[]> {
   if (!res.ok) throw new Error('Failed to fetch trending');
   const data: TrendingApiResponse = await res.json();
   return Array.isArray(data.students) ? data.students : [];
+}
+
+async function fetchMe(): Promise<MeStats | null> {
+  const res = await fetch('/api/social/me');
+  if (!res.ok) throw new Error('Failed to fetch personal stats');
+  return res.json();
 }
 
 // ============================================================
@@ -153,114 +115,6 @@ function formatDate(value?: string): string | null {
     month: 'short',
     day: 'numeric',
   });
-}
-
-function updateStudentsCache(
-  old: unknown,
-  update: (student: StudentStats) => StudentStats,
-): unknown {
-  if (Array.isArray(old)) {
-    return old.map((student) => update(student as StudentStats));
-  }
-  if (!old || typeof old !== 'object') return old;
-
-  const data = old as StudentsApiResponse;
-  if (Array.isArray(data.students)) {
-    return { ...data, students: data.students.map(update) };
-  }
-  if (data.studentsByTechCenter) {
-    return {
-      ...data,
-      studentsByTechCenter: Object.fromEntries(
-        Object.entries(data.studentsByTechCenter).map(([key, students]) => [
-          key,
-          students.map(update),
-        ]),
-      ),
-    };
-  }
-  return old;
-}
-
-function findCachedStudent(
-  old: unknown,
-  studentId: string,
-): StudentStats | undefined {
-  if (Array.isArray(old)) {
-    return old.find((student) => student?.id === studentId) as
-      | StudentStats
-      | undefined;
-  }
-  if (!old || typeof old !== 'object') return undefined;
-
-  const data = old as StudentsApiResponse;
-  const students =
-    data.students ?? Object.values(data.studentsByTechCenter ?? {}).flat();
-  return students.find((student) => student.id === studentId);
-}
-
-function syncUserAcrossAllCaches(
-  queryClient: ReturnType<typeof useQueryClient>,
-  currentUserId: string | undefined,
-  userId: string,
-  patch: Partial<{
-    isFollowing: boolean;
-    isLiked: boolean;
-    followersCount: number;
-    followingCount: number;
-    likesReceivedCount: number;
-  }>,
-) {
-  queryClient.setQueryData<TrendingStudent[]>(
-    ['social', 'trending'],
-    (old) =>
-      Array.isArray(old)
-        ? old.map((u) => (u.id === userId ? { ...u, ...patch } : u))
-        : old,
-  );
-
-  queryClient.setQueryData(['students'], (old) =>
-    updateStudentsCache(old, (student) => {
-      if (student.id === userId) return { ...student, ...patch };
-      if (student.id === currentUserId && patch.followingCount !== undefined) {
-        return { ...student, followingCount: patch.followingCount };
-      }
-      return student;
-    }),
-  );
-
-  if (currentUserId) {
-    queryClient.setQueryData<ConnectionUser[]>(
-      ['connections', 'followers', currentUserId],
-      (old) =>
-        Array.isArray(old)
-          ? old.map((u) => (u.id === userId ? { ...u, ...patch } : u))
-          : old,
-    );
-
-    queryClient.setQueryData<ConnectionUser[]>(
-      ['connections', 'following', currentUserId],
-      (old) =>
-        Array.isArray(old)
-          ? old.map((u) => (u.id === userId ? { ...u, ...patch } : u))
-          : old,
-    );
-
-    queryClient.setQueryData<LikesData>(
-      ['connections', 'likes', currentUserId],
-      (old) => {
-        if (!old) return old;
-        return {
-          likers: old.likers.map((u) =>
-            u.id === userId ? { ...u, ...patch } : u,
-          ),
-          likedUsers: old.likedUsers.map((u) =>
-            u.id === userId ? { ...u, ...patch } : u,
-          ),
-        };
-      },
-    );
-  }
 }
 
 // ============================================================
@@ -300,13 +154,6 @@ const StatsSkeleton = () => (
   </div>
 );
 
-const InlineCountSkeleton = () => (
-  <span
-    aria-hidden="true"
-    className="inline-block h-3 w-5 rounded shimmer align-middle"
-  />
-);
-
 // ============================================================
 // MAIN PAGE
 // ============================================================
@@ -320,9 +167,11 @@ export default function ConnectionsPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('trending');
   const [likesView, setLikesView] = useState<LikesView>('received');
 
+  const social = useSocialActions();
+
   const sharedQueryOptions = {
     enabled: !!currentUserId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
     gcTime: 30 * 60 * 1000,
     refetchInterval: 60 * 1000,
     refetchIntervalInBackground: true,
@@ -331,20 +180,20 @@ export default function ConnectionsPage() {
     refetchOnMount: false,
   } as const;
 
-  // ---------- Prefetch on mount ----------
+  // ---------- prefetch ----------
   useEffect(() => {
     if (!currentUserId) return;
-
-    queryClient.prefetchQuery({
-      queryKey: ['students'],
-      queryFn: fetchAllStudents,
-      staleTime: sharedQueryOptions.staleTime,
-    });
 
     queryClient.prefetchQuery({
       queryKey: ['social', 'trending'],
       queryFn: () => fetchTrending(10),
       staleTime: 0,
+    });
+
+    queryClient.prefetchQuery({
+      queryKey: ['social', 'me'],
+      queryFn: fetchMe,
+      staleTime: sharedQueryOptions.staleTime,
     });
 
     queryClient.prefetchQuery({
@@ -364,18 +213,15 @@ export default function ConnectionsPage() {
       queryFn: () => fetchLikes(currentUserId),
       staleTime: sharedQueryOptions.staleTime,
     });
-
-    queryClient.prefetchQuery({
-      queryKey: ['currentUserStats', currentUserId],
-      queryFn: async () => {
-        const all = await fetchAllStudents();
-        return all.find((s) => s.id === currentUserId) ?? null;
-      },
-      staleTime: sharedQueryOptions.staleTime,
-    });
   }, [currentUserId, queryClient, sharedQueryOptions.staleTime]);
 
-  // ---------- Queries ----------
+  // ---------- queries ----------
+
+  const meQuery = useQuery({
+    queryKey: ['social', 'me'],
+    queryFn: fetchMe,
+    ...sharedQueryOptions,
+  });
 
   const followersQuery = useQuery({
     queryKey: ['connections', 'followers', currentUserId],
@@ -395,22 +241,6 @@ export default function ConnectionsPage() {
     ...sharedQueryOptions,
   });
 
-  const studentsQuery = useQuery({
-    queryKey: ['students'],
-    queryFn: fetchAllStudents,
-    ...sharedQueryOptions,
-  });
-
-  const statsQuery = useQuery({
-    queryKey: ['currentUserStats', currentUserId],
-    queryFn: async (): Promise<StudentStats | null> => {
-      if (!currentUserId) return null;
-      const all = await fetchAllStudents();
-      return all.find((s) => s.id === currentUserId) ?? null;
-    },
-    ...sharedQueryOptions,
-  });
-
   const trendingQuery = useQuery({
     queryKey: ['social', 'trending'],
     queryFn: () => fetchTrending(10),
@@ -424,667 +254,55 @@ export default function ConnectionsPage() {
     refetchOnMount: 'always',
   });
 
-  const currentUserStats = statsQuery.data;
-
-  // ---------- Active dataset ----------
   const activeQuery = useMemo(() => {
     if (activeTab === 'followers') return followersQuery;
     if (activeTab === 'following') return followingQuery;
     if (activeTab === 'likes') return likesQuery;
-    if (activeTab === 'trending') return trendingQuery;
-    return studentsQuery;
-  }, [
-    activeTab,
-    followersQuery,
-    followingQuery,
-    likesQuery,
-    trendingQuery,
-    studentsQuery,
-  ]);
+    return trendingQuery;
+  }, [activeTab, followersQuery, followingQuery, likesQuery, trendingQuery]);
 
+  // ---------- rows for the active tab — already contain stats ----------
   const connections: ConnectionUser[] = useMemo(() => {
-    // ---------- TRENDING ----------
     if (activeTab === 'trending') {
-      const trending = trendingQuery.data ?? [];
-      if (trending.length === 0) return [];
-
-      return trending.map((u) => ({
-        id: u.id,
-        firstName: u.firstName,
-        lastName: u.lastName,
-        profileImageUrl: u.profileImageUrl,
-        techCenter: u.techCenter,
-        followersCount: u.followersCount,
-        followingCount: u.followingCount,
-        likesReceivedCount: u.likesReceivedCount,
-        isFollowing: u.isFollowing,
-        isLiked: u.isLiked,
-      }));
+      return trendingQuery.data ?? [];
     }
 
-    // ---------- LIKES ----------
     if (activeTab === 'likes') {
       return likesView === 'sent'
         ? likesQuery.data?.likedUsers ?? []
         : likesQuery.data?.likers ?? [];
     }
 
-    // ---------- FOLLOWING ----------
     if (activeTab === 'following') {
-      const source = Array.isArray(studentsQuery.data)
-        ? studentsQuery.data
-        : [];
-      const byId = new Map(source.map((s) => [s.id, s]));
-      const base = Array.isArray(activeQuery?.data)
-        ? (activeQuery?.data as ConnectionUser[])
-        : [];
-
-      return base
-        .map((c) => {
-          const live = byId.get(c.id);
-          if (!live) return c;
-          return {
-            ...c,
-            followersCount: live.followersCount ?? c.followersCount,
-            followingCount: live.followingCount ?? c.followingCount,
-            likesReceivedCount:
-              live.likesReceivedCount ?? c.likesReceivedCount,
-            isFollowing: live.isFollowing ?? c.isFollowing,
-            isLiked: live.isLiked ?? c.isLiked,
-          };
-        })
-        .filter((c) => c.isFollowing !== false);
+      const base = followingQuery.data ?? [];
+      return base.filter((c) => c.isFollowing !== false);
     }
 
-    // ---------- FOLLOWERS ----------
-    const data = activeQuery?.data;
-    const base = Array.isArray(data) ? (data as ConnectionUser[]) : [];
-    const source = Array.isArray(studentsQuery.data)
-      ? studentsQuery.data
-      : [];
-    const byId = new Map(source.map((s) => [s.id, s]));
-
-    return base.map((c) => {
-      const live = byId.get(c.id);
-      if (!live) return c;
-      return {
-        ...c,
-        followersCount: live.followersCount ?? c.followersCount,
-        followingCount: live.followingCount ?? c.followingCount,
-        likesReceivedCount:
-          live.likesReceivedCount ?? c.likesReceivedCount,
-        isFollowing: live.isFollowing ?? c.isFollowing,
-        isLiked: live.isLiked ?? c.isLiked,
-      };
-    });
+    return followersQuery.data ?? [];
   }, [
     activeTab,
     likesView,
-    likesQuery.data,
     trendingQuery.data,
-    activeQuery,
-    studentsQuery.data,
+    likesQuery.data,
+    followingQuery.data,
+    followersQuery.data,
   ]);
 
   const isFetchingWithoutData =
     !!activeQuery?.isFetching && activeQuery.data === undefined;
   const error = activeQuery?.error;
 
-  // ---------- Unfollow mutation ----------
-  const unfollowMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      const res = await fetch(`/api/social/follow/${userId}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) throw new Error('Failed to unfollow');
-      return res.json();
-    },
-    onMutate: async (userId) => {
-      const followingKey = ['connections', 'following', currentUserId];
-      const followersKey = ['connections', 'followers', currentUserId];
-      const likesKey = ['connections', 'likes', currentUserId];
-
-      await Promise.all([
-        queryClient.cancelQueries({ queryKey: followingKey }),
-        queryClient.cancelQueries({ queryKey: followersKey }),
-        queryClient.cancelQueries({ queryKey: likesKey }),
-        queryClient.cancelQueries({ queryKey: ['students'] }),
-        queryClient.cancelQueries({ queryKey: ['social', 'trending'] }),
-      ]);
-
-      const previousFollowing =
-        queryClient.getQueryData<ConnectionUser[]>(followingKey);
-      const previousFollowers =
-        queryClient.getQueryData<ConnectionUser[]>(followersKey);
-      const previousLikes = queryClient.getQueryData<LikesData>(likesKey);
-      const previousStudents = queryClient.getQueryData(['students']);
-      const previousTrending = queryClient.getQueryData<TrendingStudent[]>([
-        'social',
-        'trending',
-      ]);
-      const previousStats = queryClient.getQueryData<
-        StudentStats | null | undefined
-      >(['currentUserStats', currentUserId]);
-
-      queryClient.setQueryData<ConnectionUser[]>(followingKey, (old) =>
-        Array.isArray(old) ? old.filter((u) => u.id !== userId) : old,
-      );
-
-      queryClient.setQueryData<StudentStats | null | undefined>(
-        ['currentUserStats', currentUserId],
-        (old) =>
-          old
-            ? {
-                ...old,
-                followingCount: Math.max(0, (old.followingCount || 0) - 1),
-              }
-            : old,
-      );
-
-      syncUserAcrossAllCaches(queryClient, currentUserId, userId, {
-        isFollowing: false,
-      });
-
-      queryClient.setQueryData(['students'], (old) =>
-        updateStudentsCache(old, (student) => {
-          if (student.id === userId) {
-            return {
-              ...student,
-              followersCount: Math.max(0, (student.followersCount || 0) - 1),
-            };
-          }
-          return student;
-        }),
-      );
-
-      queryClient.setQueryData<TrendingStudent[]>(
-        ['social', 'trending'],
-        (old) =>
-          Array.isArray(old)
-            ? old.map((u) =>
-                u.id === userId
-                  ? {
-                      ...u,
-                      followersCount: Math.max(0, u.followersCount - 1),
-                    }
-                  : u,
-              )
-            : old,
-      );
-
-      return {
-        previousFollowing,
-        previousFollowers,
-        previousLikes,
-        previousStudents,
-        previousTrending,
-        previousStats,
-      };
-    },
-    onError: (_err, _userId, context) => {
-      if (!context) return;
-      queryClient.setQueryData(
-        ['connections', 'following', currentUserId],
-        context.previousFollowing,
-      );
-      queryClient.setQueryData(
-        ['connections', 'followers', currentUserId],
-        context.previousFollowers,
-      );
-      queryClient.setQueryData(
-        ['connections', 'likes', currentUserId],
-        context.previousLikes,
-      );
-      queryClient.setQueryData(['students'], context.previousStudents);
-      queryClient.setQueryData(
-        ['social', 'trending'],
-        context.previousTrending,
-      );
-      queryClient.setQueryData(
-        ['currentUserStats', currentUserId],
-        context.previousStats,
-      );
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['connections', 'following', currentUserId],
-        refetchType: 'active',
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['connections', 'followers', currentUserId],
-        refetchType: 'active',
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['connections', 'likes', currentUserId],
-        refetchType: 'active',
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['currentUserStats', currentUserId],
-        refetchType: 'active',
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['students'],
-        refetchType: 'none',
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['social', 'trending'],
-        refetchType: 'active',
-      });
-    },
-  });
-
-  // ---------- Follow mutation ----------
-  const followMutation = useMutation({
-    mutationFn: async (studentId: string) => {
-      const response = await fetch(`/api/social/follow/${studentId}`, {
-        method: 'POST',
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to follow');
-      }
-      return response.json();
-    },
-    onMutate: async (studentId: string) => {
-      const followingKey = ['connections', 'following', currentUserId];
-      const followersKey = ['connections', 'followers', currentUserId];
-      const likesKey = ['connections', 'likes', currentUserId];
-
-      await Promise.all([
-        queryClient.cancelQueries({ queryKey: ['students'] }),
-        queryClient.cancelQueries({ queryKey: followingKey }),
-        queryClient.cancelQueries({ queryKey: followersKey }),
-        queryClient.cancelQueries({ queryKey: likesKey }),
-        queryClient.cancelQueries({ queryKey: ['social', 'trending'] }),
-      ]);
-
-      const previousStudents = queryClient.getQueryData(['students']);
-      const previousFollowing =
-        queryClient.getQueryData<ConnectionUser[]>(followingKey);
-      const previousFollowers =
-        queryClient.getQueryData<ConnectionUser[]>(followersKey);
-      const previousLikes = queryClient.getQueryData<LikesData>(likesKey);
-      const previousTrending = queryClient.getQueryData<TrendingStudent[]>([
-        'social',
-        'trending',
-      ]);
-      const followedStudent = findCachedStudent(previousStudents, studentId);
-
-      syncUserAcrossAllCaches(queryClient, currentUserId, studentId, {
-        isFollowing: true,
-      });
-
-      queryClient.setQueryData(['students'], (old) =>
-        updateStudentsCache(old, (student) => {
-          if (student.id === studentId) {
-            return {
-              ...student,
-              followersCount: (student.followersCount || 0) + 1,
-            };
-          }
-          if (student.id === currentUserId) {
-            return {
-              ...student,
-              followingCount: (student.followingCount || 0) + 1,
-            };
-          }
-          return student;
-        }),
-      );
-
-      queryClient.setQueryData<TrendingStudent[]>(
-        ['social', 'trending'],
-        (old) =>
-          Array.isArray(old)
-            ? old.map((u) =>
-                u.id === studentId
-                  ? { ...u, followersCount: u.followersCount + 1 }
-                  : u,
-              )
-            : old,
-      );
-
-      queryClient.setQueryData<StudentStats | null | undefined>(
-        ['currentUserStats', currentUserId],
-        (old) =>
-          old ? { ...old, followingCount: (old.followingCount || 0) + 1 } : old,
-      );
-
-      if (followedStudent) {
-        queryClient.setQueryData<ConnectionUser[]>(followingKey, (old) => {
-          if (!Array.isArray(old) || old.some((user) => user.id === studentId)) {
-            return old;
-          }
-          return [
-            ...old,
-            {
-              id: followedStudent.id,
-              firstName: followedStudent.firstName ?? '',
-              lastName: followedStudent.lastName ?? '',
-              profileImageUrl: followedStudent.profileImageUrl ?? null,
-              techCenter: followedStudent.techCenter ?? null,
-              followersCount: followedStudent.followersCount || 0,
-              followingCount: followedStudent.followingCount || 0,
-              likesReceivedCount: followedStudent.likesReceivedCount || 0,
-              isFollowing: true,
-              isLiked: followedStudent.isLiked,
-            },
-          ];
-        });
-      }
-
-      return {
-        previousStudents,
-        previousFollowing,
-        previousFollowers,
-        previousLikes,
-        previousTrending,
-      };
-    },
-    onError: (_err, _variables, context) => {
-      if (!context) return;
-      queryClient.setQueryData(['students'], context.previousStudents);
-      queryClient.setQueryData(
-        ['connections', 'following', currentUserId],
-        context.previousFollowing,
-      );
-      queryClient.setQueryData(
-        ['connections', 'followers', currentUserId],
-        context.previousFollowers,
-      );
-      queryClient.setQueryData(
-        ['connections', 'likes', currentUserId],
-        context.previousLikes,
-      );
-      queryClient.setQueryData(
-        ['social', 'trending'],
-        context.previousTrending,
-      );
-      queryClient.setQueryData<StudentStats | null | undefined>(
-        ['currentUserStats', currentUserId],
-        (old) =>
-          old
-            ? {
-                ...old,
-                followingCount: Math.max(0, (old.followingCount || 0) - 1),
-              }
-            : old,
-      );
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['connections', 'following', currentUserId],
-        refetchType: 'active',
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['connections', 'followers', currentUserId],
-        refetchType: 'active',
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['connections', 'likes', currentUserId],
-        refetchType: 'active',
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['currentUserStats', currentUserId],
-        refetchType: 'active',
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['students'],
-        refetchType: 'none',
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['social', 'trending'],
-        refetchType: 'active',
-      });
-    },
-  });
-
-  // ---------- Like / Unlike mutation ----------
-  const likeMutation = useMutation({
-    mutationFn: async ({
-      studentId,
-      isLiked,
-    }: {
-      studentId: string;
-      isLiked: boolean;
-    }) => {
-      const response = await fetch(`/api/social/like/${studentId}`, {
-        method: isLiked ? 'DELETE' : 'POST',
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to toggle like');
-      }
-      return response.json();
-    },
-    onMutate: async ({ studentId, isLiked }) => {
-      const likesKey = ['connections', 'likes', currentUserId];
-      const followingKey = ['connections', 'following', currentUserId];
-      const followersKey = ['connections', 'followers', currentUserId];
-
-      await Promise.all([
-        queryClient.cancelQueries({ queryKey: ['students'] }),
-        queryClient.cancelQueries({ queryKey: likesKey }),
-        queryClient.cancelQueries({ queryKey: followingKey }),
-        queryClient.cancelQueries({ queryKey: followersKey }),
-        queryClient.cancelQueries({ queryKey: ['social', 'trending'] }),
-      ]);
-
-      const previousStudents = queryClient.getQueryData(['students']);
-      const previousLikes = queryClient.getQueryData<LikesData>(likesKey);
-      const previousFollowing =
-        queryClient.getQueryData<ConnectionUser[]>(followingKey);
-      const previousFollowers =
-        queryClient.getQueryData<ConnectionUser[]>(followersKey);
-      const previousTrending = queryClient.getQueryData<TrendingStudent[]>([
-        'social',
-        'trending',
-      ]);
-      const targetStudent = findCachedStudent(previousStudents, studentId);
-
-      syncUserAcrossAllCaches(queryClient, currentUserId, studentId, {
-        isLiked: !isLiked,
-      });
-
-      queryClient.setQueryData(['students'], (old) =>
-        updateStudentsCache(old, (student) =>
-          student.id === studentId
-            ? {
-                ...student,
-                isLiked: !isLiked,
-                likesReceivedCount: isLiked
-                  ? Math.max(0, (student.likesReceivedCount || 0) - 1)
-                  : (student.likesReceivedCount || 0) + 1,
-              }
-            : student,
-        ),
-      );
-
-      queryClient.setQueryData<TrendingStudent[]>(
-        ['social', 'trending'],
-        (old) =>
-          Array.isArray(old)
-            ? old.map((u) =>
-                u.id === studentId
-                  ? {
-                      ...u,
-                      isLiked: !isLiked,
-                      likesReceivedCount: isLiked
-                        ? Math.max(0, u.likesReceivedCount - 1)
-                        : u.likesReceivedCount + 1,
-                    }
-                  : u,
-              )
-            : old,
-      );
-
-      queryClient.setQueryData<LikesData>(likesKey, (old) => {
-        if (!old) return old;
-        if (isLiked) {
-          return {
-            ...old,
-            likedUsers: old.likedUsers.filter((user) => user.id !== studentId),
-          };
-        }
-        if (
-          !targetStudent ||
-          old.likedUsers.some((user) => user.id === studentId)
-        ) {
-          return old;
-        }
-        return {
-          ...old,
-          likedUsers: [
-            {
-              id: targetStudent.id,
-              firstName: targetStudent.firstName ?? '',
-              lastName: targetStudent.lastName ?? '',
-              profileImageUrl: targetStudent.profileImageUrl ?? null,
-              techCenter: targetStudent.techCenter ?? null,
-              followersCount: targetStudent.followersCount || 0,
-              followingCount: targetStudent.followingCount || 0,
-              likesReceivedCount: targetStudent.likesReceivedCount || 0,
-              likedAt: new Date().toISOString(),
-              isLiked: true,
-            },
-            ...old.likedUsers,
-          ],
-        };
-      });
-
-      return {
-        previousStudents,
-        previousLikes,
-        previousFollowing,
-        previousFollowers,
-        previousTrending,
-      };
-    },
-    onSuccess: (
-      data: { counts?: { likesReceivedCount?: number } },
-      { studentId, isLiked }: { studentId: string; isLiked: boolean },
-    ) => {
-      queryClient.setQueryData(['students'], (old) =>
-        updateStudentsCache(old, (student) =>
-          student.id === studentId
-            ? {
-                ...student,
-                isLiked: !isLiked,
-                likesReceivedCount:
-                  data?.counts?.likesReceivedCount ??
-                  student.likesReceivedCount,
-              }
-            : student,
-        ),
-      );
-    },
-    onError: (_err, _variables, context) => {
-      if (context?.previousStudents) {
-        queryClient.setQueryData(['students'], context.previousStudents);
-      }
-      if (context) {
-        queryClient.setQueryData(
-          ['connections', 'likes', currentUserId],
-          context.previousLikes,
-        );
-        queryClient.setQueryData(
-          ['connections', 'following', currentUserId],
-          context.previousFollowing,
-        );
-        queryClient.setQueryData(
-          ['connections', 'followers', currentUserId],
-          context.previousFollowers,
-        );
-        queryClient.setQueryData(
-          ['social', 'trending'],
-          context.previousTrending,
-        );
-      }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['connections', 'likes', currentUserId],
-        refetchType: 'active',
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['connections', 'followers', currentUserId],
-        refetchType: 'active',
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['connections', 'following', currentUserId],
-        refetchType: 'active',
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['students'],
-        refetchType: 'none',
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['social', 'trending'],
-        refetchType: 'active',
-      });
-    },
-  });
-
-  // ---------- Handlers ----------
-
-  const handleUnfollow = (userId: string) => unfollowMutation.mutate(userId);
-
-  const handleFollow = (studentId: string) => {
-    const trending = queryClient.getQueryData<TrendingStudent[]>([
-      'social',
-      'trending',
-    ]);
-    const fromTrending = trending?.find((u) => u.id === studentId);
-    if (fromTrending) {
-      if (fromTrending.isFollowing) unfollowMutation.mutate(studentId);
-      else followMutation.mutate(studentId);
-      return;
-    }
-
-    const student = findCachedStudent(
-      queryClient.getQueryData(['students']),
-      studentId,
-    );
-    if (student?.isFollowing) unfollowMutation.mutate(studentId);
-    else followMutation.mutate(studentId);
-  };
-
-  const handleLikeToggle = (studentId: string) => {
-    const trending = queryClient.getQueryData<TrendingStudent[]>([
-      'social',
-      'trending',
-    ]);
-    const fromTrending = trending?.find((u) => u.id === studentId);
-
-    if (fromTrending) {
-      likeMutation.mutate({ studentId, isLiked: fromTrending.isLiked });
-      return;
-    }
-
-    const student = findCachedStudent(
-      queryClient.getQueryData(['students']),
-      studentId,
-    );
-    likeMutation.mutate({ studentId, isLiked: student?.isLiked || false });
-  };
-
-  const handleUnlike = (studentId: string) => {
-    likeMutation.mutate({ studentId, isLiked: true });
-  };
-
   const getInitials = (first?: string, last?: string) =>
     `${(first || '?').charAt(0)}${(last || '?').charAt(0)}`.toUpperCase();
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['connections'] });
-    queryClient.invalidateQueries({ queryKey: ['students'] });
     queryClient.invalidateQueries({ queryKey: ['social', 'trending'] });
-    queryClient.invalidateQueries({
-      queryKey: ['currentUserStats', currentUserId],
-    });
+    queryClient.invalidateQueries({ queryKey: ['social', 'me'] });
   };
 
   const showSessionLoading = status === 'loading';
+  const me = meQuery.data;
 
   return (
     <div className="min-h-screen bg-[#F7F6F2]">
@@ -1129,7 +347,6 @@ export default function ConnectionsPage() {
       `}</style>
 
       <div className="mx-auto max-w-[900px] px-4 sm:px-6 lg:px-8 py-6">
-        {/* HEADER */}
         <header className="mb-6">
           <div className="flex items-center justify-between">
             <div>
@@ -1149,88 +366,84 @@ export default function ConnectionsPage() {
             </button>
           </div>
 
-          {showSessionLoading || statsQuery.isLoading ? (
+          {showSessionLoading || !me ? (
             <StatsSkeleton />
           ) : (
-            currentUserStats && (
-              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('trending')}
-                  className={`flex items-center gap-2 transition-colors underline ${
-                    activeTab === 'trending'
-                      ? 'text-[#B98A3E] font-bold'
-                      : 'text-[#1A2B4C] hover:text-[#B98A3E]'
-                  }`}
-                >
-                  <span className="relative flex h-4 w-4 items-center justify-center">
-                    <TrendingUp className="h-4 w-4" strokeWidth={2} />
-                    {activeTab === 'trending' && (
-                      <span className="absolute -right-1.5 -top-1 flex h-2 w-2">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#55705B] opacity-75" />
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-[#55705B]" />
-                      </span>
-                    )}
-                  </span>
-                  <span className="text-[14px]">Trending</span>
-                </button>
+            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab('trending')}
+                className={`flex items-center gap-2 transition-colors underline ${
+                  activeTab === 'trending'
+                    ? 'text-[#B98A3E] font-bold'
+                    : 'text-[#1A2B4C] hover:text-[#B98A3E]'
+                }`}
+              >
+                <span className="relative flex h-4 w-4 items-center justify-center">
+                  <TrendingUp className="h-4 w-4" strokeWidth={2} />
+                  {activeTab === 'trending' && (
+                    <span className="absolute -right-1.5 -top-1 flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#55705B] opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-[#55705B]" />
+                    </span>
+                  )}
+                </span>
+                <span className="text-[14px]">Trending</span>
+              </button>
 
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('followers')}
-                  className={`flex items-center gap-2 transition-colors underline ${
-                    activeTab === 'followers'
-                      ? 'text-[#B98A3E] font-bold'
-                      : 'text-[#1A2B4C] hover:text-[#B98A3E]'
-                  }`}
-                >
-                  <Users className="w-4 h-4" strokeWidth={2} />
-                  <span className="text-[14px]">
-                    {currentUserStats.followersCount} followers
-                  </span>
-                </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('followers')}
+                className={`flex items-center gap-2 transition-colors underline ${
+                  activeTab === 'followers'
+                    ? 'text-[#B98A3E] font-bold'
+                    : 'text-[#1A2B4C] hover:text-[#B98A3E]'
+                }`}
+              >
+                <Users className="w-4 h-4" strokeWidth={2} />
+                <span className="text-[14px]">
+                  {me.followersCount} followers
+                </span>
+              </button>
 
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('following')}
-                  className={`flex items-center gap-2 transition-colors underline ${
-                    activeTab === 'following'
-                      ? 'text-[#55705B] font-bold'
-                      : 'text-[#1A2B4C] hover:text-[#55705B]'
-                  }`}
-                >
-                  <Users className="w-4 h-4" strokeWidth={2} />
-                  <span className="text-[14px]">
-                    {currentUserStats.followingCount} following
-                  </span>
-                </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('following')}
+                className={`flex items-center gap-2 transition-colors underline ${
+                  activeTab === 'following'
+                    ? 'text-[#55705B] font-bold'
+                    : 'text-[#1A2B4C] hover:text-[#55705B]'
+                }`}
+              >
+                <Users className="w-4 h-4" strokeWidth={2} />
+                <span className="text-[14px]">
+                  {me.followingCount} following
+                </span>
+              </button>
 
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('likes')}
-                  className={`flex items-center gap-2 transition-colors underline ${
-                    activeTab === 'likes'
-                      ? 'text-red-500 font-bold'
-                      : 'text-[#1A2B4C] hover:text-red-500'
-                  }`}
-                >
-                  <Heart className="w-4 h-4" strokeWidth={2} />
-                  <span className="text-[14px]">
-                    {likesQuery.data ? (
-                      `${likesQuery.data.likers.length + likesQuery.data.likedUsers.length} likes`
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5">
-                        <InlineCountSkeleton /> likes
-                      </span>
-                    )}
-                  </span>
-                </button>
-              </div>
-            )
+              <button
+                type="button"
+                onClick={() => setActiveTab('likes')}
+                className={`flex items-center gap-2 transition-colors underline ${
+                  activeTab === 'likes'
+                    ? 'text-red-500 font-bold'
+                    : 'text-[#1A2B4C] hover:text-red-500'
+                }`}
+              >
+                <Heart className="w-4 h-4" strokeWidth={2} />
+                <span className="text-[14px]">
+                  {me.likesReceivedCount} likes
+                </span>
+              </button>
+
+              <span className="inline-flex items-center gap-1.5 text-[12px] font-mono text-[#6B7280] tabular-nums">
+                <Eye className="h-3.5 w-3.5 text-[#3E5C76]" strokeWidth={2.2} />
+                {me.profileViewsCount} views
+              </span>
+            </div>
           )}
         </header>
 
-        {/* CONTENT */}
         <div className="bg-white border border-[#E5E7EB] rounded-lg shadow-md overflow-hidden">
           {activeTab === 'likes' && (
             <div
@@ -1249,13 +462,7 @@ export default function ConnectionsPage() {
                     : 'text-[#6B7280] hover:text-[#1A2B4C]'
                 }`}
               >
-                Received (
-                {likesQuery.data ? (
-                  likesQuery.data.likers.length
-                ) : (
-                  <InlineCountSkeleton />
-                )}
-                )
+                Received ({likesQuery.data?.likers.length ?? 0})
               </button>
               <button
                 type="button"
@@ -1268,13 +475,7 @@ export default function ConnectionsPage() {
                     : 'text-[#6B7280] hover:text-[#1A2B4C]'
                 }`}
               >
-                You liked (
-                {likesQuery.data ? (
-                  likesQuery.data.likedUsers.length
-                ) : (
-                  <InlineCountSkeleton />
-                )}
-                )
+                You liked ({likesQuery.data?.likedUsers.length ?? 0})
               </button>
             </div>
           )}
@@ -1348,17 +549,6 @@ export default function ConnectionsPage() {
                   `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() ||
                   'Unknown';
 
-                const isUnfollowing =
-                  unfollowMutation.isPending &&
-                  unfollowMutation.variables === user.id;
-                const isUnliking =
-                  likeMutation.isPending &&
-                  likeMutation.variables?.studentId === user.id &&
-                  likeMutation.variables.isLiked;
-                const isFollowingBack =
-                  followMutation.isPending &&
-                  followMutation.variables === user.id;
-
                 const connectedDate = formatDate(user.connectedAt);
                 const likedDate = formatDate(user.likedAt);
 
@@ -1415,9 +605,6 @@ export default function ConnectionsPage() {
                     }}
                   >
                     {isFeatured ? (
-                      /* ============================================================
-                         FEATURED CARD (top 3 trending)
-                         ============================================================ */
                       <div className="relative flex min-h-[210px] items-stretch sm:min-h-[220px]">
                         <div className="relative z-10 flex w-1/2 min-w-0 flex-col justify-between p-4 sm:p-5">
                           <div className="flex items-start gap-2">
@@ -1453,10 +640,7 @@ export default function ConnectionsPage() {
 
                           <div className="mt-3 flex flex-wrap items-center gap-1.5">
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-[#B98A3E]/10 px-2 py-1 font-mono text-[10px] font-bold text-[#8A6A2E] tabular-nums">
-                              <Users
-                                className="h-3 w-3 shrink-0"
-                                strokeWidth={2.4}
-                              />
+                              <Users className="h-3 w-3 shrink-0" strokeWidth={2.4} />
                               <span>{user.followersCount}</span>
                               <span className="font-sans font-semibold">
                                 Followers
@@ -1473,90 +657,28 @@ export default function ConnectionsPage() {
                                 Likes
                               </span>
                             </span>
+
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#3E5C76]/10 px-2 py-1 font-mono text-[10px] font-bold text-[#3E5C76] tabular-nums">
+                              <Eye className="h-3 w-3 shrink-0" strokeWidth={2.2} />
+                              <span>{user.profileViewsCount}</span>
+                              <span className="font-sans font-semibold">
+                                Views
+                              </span>
+                            </span>
                           </div>
 
-                          {/* ---------- Actions ---------- */}
-                          <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                            {isSelf ? (
-                              <>
-                                <span
-                                  className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white/60 px-2.5 py-1 text-[11px] font-semibold text-[#9CA3AF] cursor-not-allowed"
-                                  aria-disabled="true"
-                                  title="You cannot like your own profile"
-                                >
-                                  <Heart className="h-3.5 w-3.5" strokeWidth={2} />
-                                  Like
-                                </span>
-                                <span
-                                  className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white/60 px-2.5 py-1 text-[11px] font-semibold text-[#9CA3AF] cursor-not-allowed"
-                                  aria-disabled="true"
-                                  title="You cannot follow yourself"
-                                >
-                                  <UserPlus className="h-3.5 w-3.5" strokeWidth={2} />
-                                  Follow
-                                </span>
-                                <span className="inline-flex items-center gap-1 rounded-full border border-[#B98A3E]/40 bg-[#B98A3E]/10 px-2.5 py-1 text-[11px] font-bold text-[#8A6A2E]">
-                                  This is you
-                                </span>
-                                <Link
-                                  href={`/dashboard/students/${user.id}`}
-                                  className="inline-flex items-center gap-1 rounded-full border border-transparent px-2.5 py-1 text-[11px] font-semibold text-[#4B5646] transition-all hover:border-[#E5E7EB] hover:bg-white/70 active:scale-95"
-                                >
-                                  View
-                                </Link>
-                              </>
-                            ) : (
-                              <>
-                                {user.isLiked ? (
-                                  <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-600">
-                                    <Heart
-                                      className="h-3.5 w-3.5 fill-red-500 text-red-500"
-                                      strokeWidth={2}
-                                    />
-                                    Liked
-                                  </span>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleLikeToggle(user.id)}
-                                    className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-[#1A2B4C] backdrop-blur-sm transition-all hover:border-red-300 hover:bg-red-50 hover:text-red-600 active:scale-95"
-                                  >
-                                    <Heart className="h-3.5 w-3.5" strokeWidth={2} />
-                                    Like
-                                  </button>
-                                )}
-
-                                {user.isFollowing ? (
-                                  <span className="inline-flex items-center gap-1 rounded-full border border-[#55705B] bg-[#55705B] px-2.5 py-1 text-[11px] font-semibold text-white">
-                                    <Check
-                                      className="h-3.5 w-3.5"
-                                      strokeWidth={2.5}
-                                    />
-                                    Following
-                                  </span>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleFollow(user.id)}
-                                    className="inline-flex items-center gap-1 rounded-full bg-[#1A2B4C] px-2.5 py-1 text-[11px] font-semibold text-white transition-all hover:bg-[#2C3E5A] hover:shadow-md active:scale-95"
-                                  >
-                                    <UserPlus
-                                      className="h-3.5 w-3.5"
-                                      strokeWidth={2}
-                                    />
-                                    Follow
-                                  </button>
-                                )}
-
-                                <Link
-                                  href={`/dashboard/students/${user.id}`}
-                                  className="inline-flex items-center gap-1 rounded-full border border-transparent px-2.5 py-1 text-[11px] font-semibold text-[#4B5646] transition-all hover:border-[#E5E7EB] hover:bg-white/70 active:scale-95"
-                                >
-                                  View
-                                </Link>
-                              </>
-                            )}
-                          </div>
+                          {!isSelf && (
+                            <div className="mt-3">
+                              <SocialActions
+                                userId={user.id}
+                                currentUserId={currentUserId}
+                                size="sm"
+                                variant="featured"
+                                allowUnfollow={true}
+                                allowUnlike={true}
+                              />
+                            </div>
+                          )}
                         </div>
 
                         <div className="pointer-events-none absolute inset-y-0 right-0 w-1/2 overflow-hidden">
@@ -1592,9 +714,6 @@ export default function ConnectionsPage() {
                         </div>
                       </div>
                     ) : (
-                      /* ============================================================
-                         COMPACT ROW (rank 4+, or any non-trending tab)
-                         ============================================================ */
                       <div className="flex flex-wrap items-center gap-3 sm:flex-nowrap">
                         {isTrending && (
                           <div
@@ -1652,10 +771,7 @@ export default function ConnectionsPage() {
                                   ·
                                 </span>
                                 <span className="inline-flex items-center gap-1 rounded-full bg-[#B98A3E]/10 px-2 py-0.5 font-mono text-[10px] font-bold text-[#8A6A2E] tabular-nums">
-                                  <Users
-                                    className="h-3 w-3"
-                                    strokeWidth={2.4}
-                                  />
+                                  <Users className="h-3 w-3" strokeWidth={2.4} />
                                   {user.followersCount}
                                 </span>
                                 <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-red-600 tabular-nums">
@@ -1664,6 +780,10 @@ export default function ConnectionsPage() {
                                     strokeWidth={2}
                                   />
                                   {user.likesReceivedCount}
+                                </span>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-[#3E5C76]/10 px-2 py-0.5 font-mono text-[10px] font-bold text-[#3E5C76] tabular-nums">
+                                  <Eye className="h-3 w-3" strokeWidth={2.2} />
+                                  {user.profileViewsCount}
                                 </span>
                               </>
                             ) : (
@@ -1676,89 +796,18 @@ export default function ConnectionsPage() {
                           </div>
                         </div>
 
-                        {/* ---------- Actions ---------- */}
                         <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-1.5 sm:w-auto">
-                          {isSelf ? (
-                            <>
-                              <span
-                                className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#9CA3AF] cursor-not-allowed"
-                                aria-disabled="true"
-                                title="You cannot like your own profile"
-                              >
-                                <Heart className="h-3.5 w-3.5" strokeWidth={2} />
-                                Like
-                              </span>
-                              <span
-                                className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#9CA3AF] cursor-not-allowed"
-                                aria-disabled="true"
-                                title="You cannot follow yourself"
-                              >
-                                <UserPlus className="h-3.5 w-3.5" strokeWidth={2} />
-                                Follow
-                              </span>
-                              <span className="inline-flex items-center gap-1 rounded-full border border-[#B98A3E]/40 bg-[#B98A3E]/10 px-2.5 py-1 text-[11px] font-bold text-[#8A6A2E]">
-                                This is you
-                              </span>
-                              <Link
-                                href={`/dashboard/students/${user.id}`}
-                                className="inline-flex items-center gap-1 rounded-full border border-transparent px-2.5 py-1 text-[11px] font-semibold text-[#1A2B4C] transition-all hover:border-[#E5E7EB] hover:bg-[#F7F6F2] active:scale-95"
-                              >
-                                View Profile
-                              </Link>
-                            </>
-                          ) : isTrending ? (
-                            <>
-                              {user.isLiked ? (
-                                <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-600">
-                                  <Heart
-                                    className="h-3.5 w-3.5 fill-red-500 text-red-500"
-                                    strokeWidth={2}
-                                  />
-                                  Liked
-                                </span>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => handleLikeToggle(user.id)}
-                                  className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#1A2B4C] transition-all hover:border-red-300 hover:bg-red-50 hover:text-red-600 active:scale-95"
-                                >
-                                  <Heart
-                                    className="h-3.5 w-3.5"
-                                    strokeWidth={2}
-                                  />
-                                  Like
-                                </button>
-                              )}
-
-                              {user.isFollowing ? (
-                                <span className="inline-flex items-center gap-1 rounded-full border border-[#55705B] bg-[#55705B] px-2.5 py-1 text-[11px] font-semibold text-white">
-                                  <Check
-                                    className="h-3.5 w-3.5"
-                                    strokeWidth={2.5}
-                                  />
-                                  Following
-                                </span>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => handleFollow(user.id)}
-                                  className="inline-flex items-center gap-1 rounded-full bg-[#1A2B4C] px-2.5 py-1 text-[11px] font-semibold text-white transition-all hover:bg-[#2C3E5A] hover:shadow-md active:scale-95"
-                                >
-                                  <UserPlus
-                                    className="h-3.5 w-3.5"
-                                    strokeWidth={2}
-                                  />
-                                  Follow
-                                </button>
-                              )}
-
-                              <Link
-                                href={`/dashboard/students/${user.id}`}
-                                className="inline-flex items-center gap-1 rounded-full border border-transparent px-2.5 py-1 text-[11px] font-semibold text-[#4B5646] transition-all hover:border-[#E5E7EB] hover:bg-[#F7F6F2] active:scale-95"
-                              >
-                                View
-                              </Link>
-                            </>
+                          {isSelf ? null : isTrending ? (
+                            <SocialActions
+                              userId={user.id}
+                              currentUserId={currentUserId}
+                              size="sm"
+                              allowUnfollow={true}
+                              allowUnlike={true}
+                              onViewProfile={() =>
+                                router.push(`/dashboard/students/${user.id}`)
+                              }
+                            />
                           ) : (
                             <>
                               <button
@@ -1771,7 +820,6 @@ export default function ConnectionsPage() {
                                 View Profile
                               </button>
 
-                              {/* Follow Back — Followers tab only */}
                               {activeTab === 'followers' &&
                                 (user.isFollowing ? (
                                   <span className="inline-flex items-center gap-1 rounded-full border border-[#55705B] bg-[#55705B] px-2.5 py-1 text-[11px] font-semibold text-white">
@@ -1784,11 +832,15 @@ export default function ConnectionsPage() {
                                 ) : (
                                   <button
                                     type="button"
-                                    onClick={() => handleFollow(user.id)}
-                                    disabled={isFollowingBack}
+                                    onClick={() => social.follow(user.id)}
+                                    disabled={
+                                      social.isFollowPending &&
+                                      social.followTarget === user.id
+                                    }
                                     className="inline-flex items-center gap-1 rounded-full bg-[#1A2B4C] px-2.5 py-1 text-[11px] font-semibold text-white transition-all hover:bg-[#2C3E5A] hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 active:scale-95"
                                   >
-                                    {isFollowingBack ? (
+                                    {social.isFollowPending &&
+                                    social.followTarget === user.id ? (
                                       <Loader2
                                         className="h-3.5 w-3.5 animate-spin"
                                         strokeWidth={2}
@@ -1799,44 +851,19 @@ export default function ConnectionsPage() {
                                         strokeWidth={2}
                                       />
                                     )}
-                                    {isFollowingBack
+                                    {social.isFollowPending &&
+                                    social.followTarget === user.id
                                       ? 'Following…'
                                       : 'Follow Back'}
                                   </button>
                                 ))}
 
                               {activeTab === 'following' && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleUnfollow(user.id)}
-                                  disabled={isUnfollowing}
-                                  className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-[#A4462F] transition-all hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 active:scale-95"
-                                >
-                                  {isUnfollowing && (
-                                    <Loader2
-                                      className="h-3 w-3 animate-spin"
-                                      strokeWidth={2}
-                                    />
-                                  )}
-                                  {isUnfollowing ? 'Unfollowing…' : 'Unfollow'}
-                                </button>
+                                <UnfollowButton userId={user.id} />
                               )}
 
                               {activeTab === 'likes' && likesView === 'sent' && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleUnlike(user.id)}
-                                  disabled={isUnliking}
-                                  className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-[#A4462F] transition-all hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 active:scale-95"
-                                >
-                                  {isUnliking && (
-                                    <Loader2
-                                      className="h-3 w-3 animate-spin"
-                                      strokeWidth={2}
-                                    />
-                                  )}
-                                  {isUnliking ? 'Unliking…' : 'Unlike'}
-                                </button>
+                                <UnlikeButton userId={user.id} />
                               )}
                             </>
                           )}

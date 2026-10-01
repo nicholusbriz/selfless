@@ -1,31 +1,18 @@
 // app/api/students/route.ts
 /**
- * STUDENTS LIST API ROUTE
+ * STUDENTS DIRECTORY API ROUTE
  *
- * Fetches users grouped by tech center, with counters read directly
- * from the User model (no JS aggregation, no N+1 relations).
+ * Returns users grouped by tech center, WITH social counts
+ * (followersCount, followingCount, likesReceivedCount, profileViewsCount)
+ * AND the viewer's relationship (isFollowing, isLiked).
  *
- * Ranking:
- *   - Users are sorted by followersCount DESC, then likesReceivedCount DESC,
- *     then lastName/firstName ASC — both globally and inside each tech center.
- *   - Tech centers are ordered by total followers DESC so the most popular
- *     center floats to the top of the grouped response.
- *
- * Optimizations:
- *   - Uses User.followersCount / followingCount / likesReceivedCount
- *     counters instead of scanning the whole Follow / Like collections
- *   - Uses a single groupBy for profile views (not N+1)
- *   - Uses `select` on every relation
- *   - Hard cap on the number of users returned
- *
- * GET /api/students
+ * One endpoint. One response. No client-side merging.
  */
 
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
 
-// Hard cap so the endpoint can never return an unbounded payload.
 const MAX_STUDENTS = 1000;
 
 interface TechCenterWithCountry {
@@ -57,19 +44,14 @@ interface GroupedStudent {
     credits: number;
     status: string;
   }>;
+  profileViewsCount: number;
   followersCount: number;
   followingCount: number;
   likesReceivedCount: number;
-  profileViewsCount: number;
   isFollowing: boolean;
   isLiked: boolean;
 }
 
-/**
- * Comparator used both globally and inside each tech center bucket.
- * Bigger followersCount first; tie-break by likesReceivedCount; then
- * alphabetically by lastName / firstName so the order is stable.
- */
 function popularityComparator(a: GroupedStudent, b: GroupedStudent): number {
   if (b.followersCount !== a.followersCount) {
     return b.followersCount - a.followersCount;
@@ -86,10 +68,7 @@ export async function GET(_request: Request) {
   try {
     const currentUser = await requireAuth();
 
-    // -------- 1. Fetch tech centers + candidate users in parallel --------
-    // Note: we no longer rely on Prisma's orderBy for final ranking — the
-    // grouping + super_admin previousTechCenter resolution happens in JS,
-    // so the final sort is applied after the buckets are built.
+    // -------- 1. Fetch tech centers + candidate users --------
     const [techCenters, studentCandidates] = await Promise.all([
       prisma.techCenter.findMany({
         select: {
@@ -127,12 +106,10 @@ export async function GET(_request: Request) {
           status: true,
           isActive: true,
           createdAt: true,
-          // ✅ Read counters directly from the User row.
-          //    These are maintained by the follow/like endpoints.
+          // Social counters — read directly from User row
           followersCount: true,
           followingCount: true,
           likesReceivedCount: true,
-          // Course units — this is a bounded array per user, safe to include.
           submittedCourses: {
             select: {
               id: true,
@@ -143,8 +120,6 @@ export async function GET(_request: Request) {
             },
           },
         },
-        // Pre-sort by popularity at the DB level so the MAX_STUDENTS cap
-        // keeps the most-followed users if the table ever exceeds the cap.
         orderBy: [
           { followersCount: 'desc' },
           { likesReceivedCount: 'desc' },
@@ -155,7 +130,7 @@ export async function GET(_request: Request) {
       }),
     ]);
 
-    // -------- 2. Apply the same filter logic as before --------
+    // -------- 2. Filter --------
     const students = studentCandidates.filter(
       (student) =>
         student.role?.name !== 'dev' &&
@@ -169,7 +144,7 @@ export async function GET(_request: Request) {
 
     const studentIds = students.map((s) => s.id);
 
-    // -------- 3. Only fetch the calling user's own follow/like state --------
+    // -------- 3. Viewer state + profile views --------
     const [myFollows, myLikes, viewGroups] = await Promise.all([
       prisma.follow.findMany({
         where: { followerId: currentUser.id },
@@ -196,10 +171,7 @@ export async function GET(_request: Request) {
       profileViewCounts.set(row.profileUserId, row._count._all);
     }
 
-    // -------- 4. Build a FLAT ranked list first --------
-    // This is the authoritative ordering: biggest followers → biggest likes
-    // → alphabetical. Used as the source of truth for the global ordering
-    // AND as the insertion order when we bucket into tech centers.
+    // -------- 4. Build flat list --------
     const rankedStudents: GroupedStudent[] = students
       .map((student) => {
         const previousTechCenter =
@@ -223,21 +195,18 @@ export async function GET(_request: Request) {
           status: student.status,
           isActive: student.isActive,
           createdAt: student.createdAt,
+          studentCourses: student.submittedCourses,
+          profileViewsCount: profileViewCounts.get(student.id) ?? 0,
           followersCount: student.followersCount,
           followingCount: student.followingCount,
           likesReceivedCount: student.likesReceivedCount,
-          profileViewsCount: profileViewCounts.get(student.id) ?? 0,
-          studentCourses: student.submittedCourses,
           isFollowing: followingIds.has(student.id),
           isLiked: likedUserIds.has(student.id),
         };
       })
-      // 🔥 GLOBAL RANKING: most-followed users first, across all tech centers.
       .sort(popularityComparator);
 
-    // -------- 5. Group by tech center (preserving the ranked order) --------
-    // Because we iterate the already-sorted `rankedStudents`, each tech
-    // center bucket inherits the same popularity-first ordering.
+    // -------- 5. Group by tech center --------
     const studentsByTechCenter: Record<string, GroupedStudent[]> = {};
     const techCenterTotals: Record<string, number> = {};
 
@@ -253,10 +222,7 @@ export async function GET(_request: Request) {
       techCenterTotals[techCenterName] += student.followersCount;
     }
 
-    // -------- 6. Order tech centers by total popularity --------
-    // So the tech center with the most-followed users appears first.
-    // (Swap the comparator for `a.localeCompare(b)` if you'd rather keep
-    // them strictly alphabetical.)
+    // -------- 6. Order tech centers --------
     const sortedTechCenterNames = Object.keys(studentsByTechCenter).sort(
       (a, b) => {
         const diff = techCenterTotals[b] - techCenterTotals[a];
@@ -270,13 +236,6 @@ export async function GET(_request: Request) {
       orderedStudentsByTechCenter[name] = studentsByTechCenter[name];
     }
 
-    // -------- 7. Also expose a flat global leaderboard slice --------
-    // Convenient for a "Top students" section without re-sorting client-side.
-    const topStudents = rankedStudents.slice(0, 50);
-
-    // Keep the techCenters response sorted the same way as the grouping,
-    // so a client that renders the filter dropdown in-order matches the
-    // bucket order.
     const orderedTechCenters: TechCenterWithCountry[] = [...techCenters].sort(
       (a, b) => {
         const diff =
@@ -290,27 +249,21 @@ export async function GET(_request: Request) {
       {
         studentsByTechCenter: orderedStudentsByTechCenter,
         techCenters: orderedTechCenters,
-        topStudents, // 🔥 flat, popularity-first, across all tech centers
         totalStudents: rankedStudents.length,
       },
       {
         headers: {
-          // 30s cache — students list doesn't need to be real-time.
-          // Bump this to 300 if the client refetches on every nav.
           'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
         },
       },
     );
   } catch (error: unknown) {
     console.error('Students list API error:', error);
-
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error';
-
     if (errorMessage === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
     return NextResponse.json(
       { error: 'Failed to fetch students' },
       { status: 500 },
