@@ -2,16 +2,20 @@
 /**
  * TRENDING STUDENTS API ROUTE
  *
- * Counts followers/likes LIVE from the Follow and Like collections on
- * every request — so updates, deletes, and unfollows are reflected
- * immediately. No counter fields on User are trusted.
- *
- * Only users with at least 1 follower OR at least 1 like are returned.
- *
- * Ranked by:
+ * Returns the top N users ranked by:
  *   1. followersCount DESC
  *   2. likesReceivedCount DESC
  *   3. name A-Z
+ *
+ * Each user is returned with all their stats baked in:
+ *   - followersCount
+ *   - followingCount
+ *   - likesReceivedCount
+ *   - profileViewsCount
+ *   - isFollowing (does the viewer follow them)
+ *   - isLiked     (has the viewer liked them)
+ *
+ * Same shape as /api/students so the client renders rows identically.
  *
  * GET /api/social/trending?limit=10
  */
@@ -20,7 +24,6 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma/client';
 import { requireAuth } from '@/lib/auth/server';
 
-// Never cache this route — the response depends on live DB counts.
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -33,19 +36,15 @@ interface TrendingStudent {
   followersCount: number;
   followingCount: number;
   likesReceivedCount: number;
+  profileViewsCount: number;
   isFollowing: boolean;
   isLiked: boolean;
 }
 
 export async function GET(request: Request) {
   try {
-    let currentUserId: string | null = null;
-    try {
-      const currentUser = await requireAuth();
-      currentUserId = currentUser.id;
-    } catch {
-      currentUserId = null;
-    }
+    const currentUser = await requireAuth();
+    const viewerId = currentUser.id;
 
     const { searchParams } = new URL(request.url);
     const limitParam = Number(searchParams.get('limit') ?? '10');
@@ -54,22 +53,26 @@ export async function GET(request: Request) {
       100,
     );
 
-    // -------- 1. Aggregate live counts from Follow / Like --------
-    // Only fetch IDs that actually appear in a relationship.
-    const [followerGroups, followingGroups, likeGroups] = await Promise.all([
-      prisma.follow.groupBy({
-        by: ['followingId'],
-        _count: { _all: true },
-      }),
-      prisma.follow.groupBy({
-        by: ['followerId'],
-        _count: { _all: true },
-      }),
-      prisma.like.groupBy({
-        by: ['likedUserId'],
-        _count: { _all: true },
-      }),
-    ]);
+    // -------- 1. Live counts from Follow / Like / ProfileView --------
+    const [followerGroups, followingGroups, likeGroups, viewGroups] =
+      await Promise.all([
+        prisma.follow.groupBy({
+          by: ['followingId'],
+          _count: { _all: true },
+        }),
+        prisma.follow.groupBy({
+          by: ['followerId'],
+          _count: { _all: true },
+        }),
+        prisma.like.groupBy({
+          by: ['likedUserId'],
+          _count: { _all: true },
+        }),
+        prisma.profileView.groupBy({
+          by: ['profileUserId'],
+          _count: { _all: true },
+        }),
+      ]);
 
     const followerMap = new Map<string, number>(
       followerGroups.map((g) => [g.followingId, g._count._all]),
@@ -80,8 +83,11 @@ export async function GET(request: Request) {
     const likeMap = new Map<string, number>(
       likeGroups.map((g) => [g.likedUserId, g._count._all]),
     );
+    const viewMap = new Map<string, number>(
+      viewGroups.map((g) => [g.profileUserId, g._count._all]),
+    );
 
-    // -------- 2. Candidate IDs = anyone with followers or likes --------
+    // -------- 2. Candidate IDs = anyone with activity --------
     const activeIds = new Set<string>([
       ...followerMap.keys(),
       ...likeMap.keys(),
@@ -90,15 +96,11 @@ export async function GET(request: Request) {
     if (activeIds.size === 0) {
       return NextResponse.json(
         { students: [], generatedAt: new Date().toISOString() },
-        {
-          headers: {
-            'Cache-Control': 'no-store, max-age=0',
-          },
-        },
+        { headers: { 'Cache-Control': 'no-store, max-age=0' } },
       );
     }
 
-    // -------- 3. Fetch only the active users' profile info --------
+    // -------- 3. Fetch profile info for candidates --------
     const users = await prisma.user.findMany({
       where: { id: { in: Array.from(activeIds) } },
       select: {
@@ -106,25 +108,19 @@ export async function GET(request: Request) {
         firstName: true,
         lastName: true,
         profileImageUrl: true,
-        techCenter: {
-          select: { id: true, name: true },
-        },
+        techCenter: { select: { id: true, name: true } },
       },
     });
 
-    // -------- 4. Score and rank (followers first) --------
+    // -------- 4. Rank --------
     const ranked = users
-      .map((u) => {
-        const followersCount = followerMap.get(u.id) ?? 0;
-        const followingCount = followingMap.get(u.id) ?? 0;
-        const likesReceivedCount = likeMap.get(u.id) ?? 0;
-        return {
-          ...u,
-          followersCount,
-          followingCount,
-          likesReceivedCount,
-        };
-      })
+      .map((u) => ({
+        ...u,
+        followersCount: followerMap.get(u.id) ?? 0,
+        followingCount: followingMap.get(u.id) ?? 0,
+        likesReceivedCount: likeMap.get(u.id) ?? 0,
+        profileViewsCount: viewMap.get(u.id) ?? 0,
+      }))
       .filter((u) => u.followersCount > 0 || u.likesReceivedCount > 0)
       .sort((a, b) => {
         if (b.followersCount !== a.followersCount)
@@ -137,26 +133,28 @@ export async function GET(request: Request) {
       })
       .slice(0, limit);
 
-    // -------- 5. Overlay current user's follow/like state --------
+    // -------- 5. Viewer state (does the viewer follow/like each) --------
     const topIds = ranked.map((u) => u.id);
-    let followingSet = new Set<string>();
-    let likingSet = new Set<string>();
 
-    if (currentUserId && topIds.length > 0) {
-      const [follows, likes] = await Promise.all([
-        prisma.follow.findMany({
-          where: { followerId: currentUserId, followingId: { in: topIds } },
-          select: { followingId: true },
-        }),
-        prisma.like.findMany({
-          where: { likerId: currentUserId, likedUserId: { in: topIds } },
-          select: { likedUserId: true },
-        }),
-      ]);
-      followingSet = new Set(follows.map((f) => f.followingId));
-      likingSet = new Set(likes.map((l) => l.likedUserId));
-    }
+    const [myFollows, myLikes] = await Promise.all([
+      topIds.length > 0
+        ? prisma.follow.findMany({
+            where: { followerId: viewerId, followingId: { in: topIds } },
+            select: { followingId: true },
+          })
+        : Promise.resolve([]),
+      topIds.length > 0
+        ? prisma.like.findMany({
+            where: { likerId: viewerId, likedUserId: { in: topIds } },
+            select: { likedUserId: true },
+          })
+        : Promise.resolve([]),
+    ]);
 
+    const followingSet = new Set(myFollows.map((f) => f.followingId));
+    const likingSet = new Set(myLikes.map((l) => l.likedUserId));
+
+    // -------- 6. Build response rows --------
     const students: TrendingStudent[] = ranked.map((u) => ({
       id: u.id,
       firstName: u.firstName,
@@ -166,19 +164,21 @@ export async function GET(request: Request) {
       followersCount: u.followersCount,
       followingCount: u.followingCount,
       likesReceivedCount: u.likesReceivedCount,
+      profileViewsCount: u.profileViewsCount,
       isFollowing: followingSet.has(u.id),
       isLiked: likingSet.has(u.id),
     }));
 
     return NextResponse.json(
       { students, generatedAt: new Date().toISOString() },
-      {
-        headers: {
-          'Cache-Control': 'no-store, max-age=0',
-        },
-      },
+      { headers: { 'Cache-Control': 'no-store, max-age=0' } },
     );
   } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error';
+    if (errorMessage === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('[trending] error', error);
     return NextResponse.json(
       { error: 'Failed to fetch trending students' },

@@ -3,10 +3,7 @@
 /* ============================================================
    DASHBOARD PAGE
    ------------------------------------------------------------
-   Premium, cohesive dashboard experience with enhanced 
-   visual hierarchy, spacing, and micro-interactions.
-   Videos are served from the Azure-backed Media model.
-   Only the video's owner can delete their own upload.
+   Editorial, bold, solid. Structure over decoration.
 ============================================================ */
 
 import {
@@ -28,12 +25,17 @@ import {
   Trash2,
   Loader2,
   Send,
+  Heart,
+  Eye,
+  UserPlus,
+  TrendingUp,
 } from 'lucide-react';
 
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { useSession } from 'next-auth/react';
 import {
   useEffect,
   useMemo,
@@ -44,29 +46,25 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DiscoverStudents, type DiscoverStudent } from './components/DiscoverStudents';
 import { VideoPlayer } from './components/VideoPlayer';
+import { SocialActions } from '@/components/social/SocialActions';
 
 /* ============================================================
-   DESIGN TOKENS
+   TOKENS
 ============================================================ */
 
-const COLORS = {
-  ink: '#1A2B4C',
-  inkLight: '#2C3E5A',
-  paper: '#F8F9FA',
-  surface: '#FFFFFF',
-  surfaceSoft: '#F7F6F2',
-  surfaceHover: '#F8F9FA',
-  line: '#E5E7EB',
-  lineStrong: '#D1D5DB',
-  muted: '#6B7280',
-  mutedLight: '#9CA3AF',
-  brass: '#B98A3E',
-  brassHover: '#E8A33D',
-  moss: '#55705B',
-  rust: '#A4462F',
-  slate: '#3E5C76',
-  purple: '#7C3AED',
-};
+const INK = '#1A2B4C';
+const INK_LIGHT = '#2C3E5A';
+const PAPER = '#F8F9FA';
+const SURFACE = '#FFFFFF';
+const SURFACE_SOFT = '#F7F6F2';
+const LINE = '#E5E7EB';
+const LINE_STRONG = '#D1D5DB';
+const MUTED = '#6B7280';
+const MUTED_LIGHT = '#9CA3AF';
+const BRASS = '#B98A3E';
+const MOSS = '#55705B';
+const RUST = '#A4462F';
+const SLATE = '#3E5C76';
 
 /* ============================================================
    TYPES
@@ -158,29 +156,80 @@ interface VideoRequest {
   techCenter?: {
     id: string;
     name: string;
-    country?: {
-      name: string;
-    };
+    country?: { name: string };
   } | null;
 }
 
+interface MeStats {
+  id: string;
+  followersCount: number;
+  followingCount: number;
+  likesReceivedCount: number;
+  profileViewsCount: number;
+}
+
+interface SocialUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  profileImageUrl: string | null;
+  techCenter: { id: string; name: string } | null;
+  followersCount: number;
+  followingCount: number;
+  likesReceivedCount: number;
+  profileViewsCount: number;
+  isFollowing: boolean;
+  isLiked: boolean;
+}
+
+interface LikesData {
+  likers: Array<SocialUser & { likedAt?: string }>;
+  likedUsers: Array<SocialUser & { likedAt?: string }>;
+}
+
+interface FollowersData {
+  connections: Array<SocialUser & { connectedAt?: string }>;
+}
+
 /* ============================================================
-   MEDIA LIBRARY (Azure-backed)
-   ------------------------------------------------------------
-   Fetches from /api/media/list, plays videos with 
-   play / pause / next / previous controls.
-   Delete is only shown to the uploader.
+   SECTION HEADER — bold, editorial
+============================================================ */
+
+function SectionHeader({
+  label,
+  count,
+  action,
+}: {
+  label: string;
+  count?: number;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="mb-4 flex items-end justify-between gap-4 border-t-2 border-[#1A2B4C] pt-3">
+      <div className="flex items-baseline gap-3">
+        <h2 className="text-[17px] font-black uppercase tracking-tight text-[#1A2B4C] sm:text-[19px]">
+          {label}
+        </h2>
+        {typeof count === 'number' && (
+          <span className="font-mono text-[13px] font-bold tabular-nums text-[#B98A3E]">
+            {count}
+          </span>
+        )}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+/* ============================================================
+   MEDIA LIBRARY (Reels)
 ============================================================ */
 
 function MediaLibrary() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const {
-    data: items = [],
-    isLoading,
-    error,
-  } = useQuery<MediaItem[]>({
+  const { data: items = [], isLoading, error } = useQuery<MediaItem[]>({
     queryKey: ['dashboard-media'],
     queryFn: async () => {
       const response = await fetch('/api/media/list');
@@ -213,27 +262,18 @@ function MediaLibrary() {
   );
 
   const [rawIndex, setRawIndex] = useState(0);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [currentVideoKey, setCurrentVideoKey] = useState<string>("");
-  const [requestInput, setRequestInput] = useState("");
+  const [currentVideoKey, setCurrentVideoKey] = useState<string>('');
+  const [requestInput, setRequestInput] = useState('');
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
   const videoPlayerRef = useRef<{ play: () => void } | null>(null);
 
   const currentIndex =
     videos.length === 0 ? 0 : Math.min(rawIndex, videos.length - 1);
-
   const current = videos[currentIndex] ?? null;
 
-  // Update video key when current video changes to force re-render
   useEffect(() => {
-    if (current) {
-      setCurrentVideoKey(`video-${current.id}`);
-    }
+    if (current) setCurrentVideoKey(`video-${current.id}`);
   }, [current?.id]);
-
-  // Only the uploader can delete their own video
-  const canDeleteCurrent =
-    !!user?.id && !!current?.user?.id && current.user.id === user.id;
 
   const goNext = useCallback(() => {
     if (videos.length <= 1) return;
@@ -252,30 +292,6 @@ function MediaLibrary() {
     setTimeout(() => videoPlayerRef.current?.play(), 100);
   }, []);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this video permanently?')) return;
-    setDeletingId(id);
-    try {
-      const res = await fetch('/api/media/delete', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mediaId: id }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data?.error ?? 'Delete failed');
-      }
-      queryClient.setQueryData<MediaItem[]>(['dashboard-media'], (prev) =>
-        (prev ?? []).filter((item) => item.id !== id),
-      );
-      setRawIndex(0);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Delete failed');
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
   const handleRequestSubmit = async (request: string) => {
     try {
       const response = await fetch('/api/video-requests', {
@@ -287,9 +303,7 @@ function MediaLibrary() {
       if (!response.ok || !data.success) {
         throw new Error(data?.error ?? 'Request failed');
       }
-      // Clear input immediately
-      setRequestInput("");
-      // Invalidate requests query to refresh the list instantly
+      setRequestInput('');
       queryClient.invalidateQueries({ queryKey: ['video-requests'] });
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to submit request');
@@ -298,16 +312,12 @@ function MediaLibrary() {
 
   const handleDeleteRequest = async (requestId: string) => {
     if (!confirm('Delete this request?')) return;
-
     try {
       const response = await fetch(`/api/video-requests/${requestId}`, {
         method: 'DELETE',
       });
       const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data?.error ?? 'Delete failed');
-      }
-      // Invalidate requests query to refresh the list instantly
+      if (!response.ok || !data.success) throw new Error(data?.error ?? 'Failed');
       queryClient.invalidateQueries({ queryKey: ['video-requests'] });
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to delete request');
@@ -316,90 +326,84 @@ function MediaLibrary() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center gap-2 rounded-xl border border-[#E5E7EB] bg-white py-12 text-sm text-[#6B7280] shadow-md">
+      <div className="flex items-center justify-center gap-2 bg-[#0F1923] py-16 text-sm text-white/40">
         <Loader2 className="h-4 w-4 animate-spin" />
-        Loading media…
+        Loading reels…
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow-md">
-        {error instanceof Error ? error.message : 'Could not load media'}
+      <div className="border border-[#A4462F]/30 bg-[#A4462F]/5 p-4 text-sm text-[#A4462F]">
+        {error instanceof Error ? error.message : 'Could not load reels'}
       </div>
     );
   }
 
   if (videos.length === 0) {
     return (
-      <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-md">
-        <div className="rounded-xl border border-dashed border-[#D1D5DB] bg-white px-6 py-8 text-center">
-          <Video className="mx-auto mb-2 h-6 w-6 text-[#9CA3AF]" />
-          <p className="text-xs font-bold text-[#1A2B4C]">
-            No videos in the library yet
+      <div className="border border-[#1A2B4C] bg-white">
+        <div className="px-5 py-10 text-center">
+          <Video className="mx-auto mb-3 h-6 w-6 text-[#9CA3AF]" />
+          <p className="text-[15px] font-bold text-[#1A2B4C]">No reels yet</p>
+          <p className="mt-1 text-[12px] text-[#6B7280]">
+            Be the first to share a video with the community
           </p>
         </div>
 
-        {/* Compact Request Section */}
-        <div className="border-t border-[#E5E7EB] bg-white px-4 py-2">
-          <div className="flex items-center gap-2 mb-2">
+        <div className="border-t border-[#E5E7EB] px-4 py-3">
+          <div className="flex items-center gap-2">
             <input
               type="text"
               value={requestInput}
               onChange={(e) => setRequestInput(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleRequestSubmit(requestInput)}
-              placeholder="Request what you need to watch today..."
+              onKeyPress={(e) =>
+                e.key === 'Enter' && handleRequestSubmit(requestInput)
+              }
+              placeholder="Request a video topic…"
               maxLength={30}
-              className="flex-1 h-7 px-2 bg-[#F7F6F2] border border-[#E5E7EB] rounded text-[10px] text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#B98A3E] focus:bg-white transition-colors font-semibold"
               disabled={isSubmittingRequest}
+              className="h-9 flex-1 border border-[#E5E7EB] bg-white px-3 text-[12px] font-semibold text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:border-[#B98A3E] focus:outline-none"
             />
             <button
               onClick={() => handleRequestSubmit(requestInput)}
               disabled={!requestInput.trim() || isSubmittingRequest}
-              className="inline-flex items-center justify-center gap-1 h-7 px-2 bg-[#B98A3E] text-white text-[9px] font-bold rounded hover:bg-[#E8A33D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex h-9 w-9 items-center justify-center bg-[#1A2B4C] text-white transition-colors hover:bg-[#2C3E5A] disabled:opacity-40"
+              aria-label="Send request"
             >
               {isSubmittingRequest ? (
-                <div className="w-2.5 h-2.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
               ) : (
-                <Send className="w-2.5 h-2.5" />
+                <Send className="h-3.5 w-3.5" />
               )}
             </button>
           </div>
 
-          {/* Recent Requests - Scrollable */}
           {videoRequests.length > 0 && (
-            <div className="bg-[#F7F6F2] rounded border border-[#E5E7EB] p-1.5">
-              <div className="max-h-20 overflow-y-auto space-y-1">
-                {videoRequests.map((item) => (
-                  <div key={item.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-[9px] text-[#1A2B4C] border-b border-[#E5E7EB] pb-0.5 last:border-0">
-                    <div className="flex items-center gap-1 flex-1 min-w-0 mb-0.5 sm:mb-0">
-                      <span className="font-bold text-[#B98A3E] shrink-0 whitespace-nowrap">
-                        {item.user.firstName} {item.user.lastName}
-                      </span>
-                      {item.techCenter && (
-                        <>
-                          <span className="text-[#6B7280] shrink-0">•</span>
-                          <span className="ml-1 text-[#6B7280] shrink-0 whitespace-nowrap">{item.techCenter.name}</span>
-                        </>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1 flex-1 min-w-0">
-                      <span className="text-[#6B7280] shrink-0 hidden sm:inline">•</span>
-                      <span className="ml-1 truncate">{item.request.length > 30 ? `${item.request.substring(0, 30)}...` : item.request}</span>
-                      {item.user.id === user?.id && (
-                        <button
-                          onClick={() => handleDeleteRequest(item.id)}
-                          className="shrink-0 text-[#6B7280] hover:text-red-600 transition-colors ml-1"
-                          aria-label="Delete request"
-                        >
-                          <Trash2 className="h-2.5 w-2.5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <div className="mt-3 max-h-24 space-y-1 overflow-y-auto">
+              {videoRequests.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center gap-2 border-b border-[#F3F4F6] py-1 last:border-0"
+                >
+                  <span className="shrink-0 text-[10px] font-bold text-[#B98A3E]">
+                    {item.user.firstName} {item.user.lastName}
+                  </span>
+                  <span className="flex-1 truncate text-[11px] text-[#6B7280]">
+                    {item.request}
+                  </span>
+                  {item.user.id === user?.id && (
+                    <button
+                      onClick={() => handleDeleteRequest(item.id)}
+                      className="shrink-0 text-[#9CA3AF] transition-colors hover:text-[#A4462F]"
+                      aria-label="Delete request"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -408,8 +412,7 @@ function MediaLibrary() {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-[#0F1923] shadow-md">
-      {/* Player — aspect-video wraps the full flex-col component */}
+    <div className="overflow-hidden border border-[#1A2B4C] bg-[#0F1923]">
       <div className="w-full bg-black">
         {current && (
           <VideoPlayer
@@ -424,38 +427,26 @@ function MediaLibrary() {
             videoIndex={currentIndex}
             videoCount={videos.length}
             onEnded={() => {
-              if (videos.length > 1) {
-                goNext();
-              }
+              if (videos.length > 1) goNext();
             }}
           />
         )}
       </div>
 
-
-
-      {/* ── Media Library + Request ─────────────────────────────
-          Same dark palette as the player footer so the whole
-          block reads as one cohesive unit.
-      ──────────────────────────────────────────────────────── */}
       <div className="bg-[#0F1923]">
-
-        {/* Library */}
-        {videos.length > 0 && (
-          <div className="border-t border-white/[0.07]">
-            {/* Header */}
-            <div className="flex items-center gap-2 px-4 py-2 border-b border-white/[0.06]">
-              <Video className="h-3 w-3 text-[#B98A3E] shrink-0" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#B98A3E]">
-                Media Library
+        {videos.length > 1 && (
+          <div className="border-t border-white/[0.08]">
+            <div className="flex items-center gap-2 border-b border-white/[0.06] px-4 py-2.5">
+              <Video className="h-3 w-3 text-[#B98A3E]" />
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#B98A3E]">
+                Queue
               </span>
-              <span className="ml-auto text-[10px] text-white/30 tabular-nums">
-                {videos.length} {videos.length === 1 ? "video" : "videos"}
+              <span className="ml-auto font-mono text-[10px] tabular-nums text-white/30">
+                {currentIndex + 1} / {videos.length}
               </span>
             </div>
 
-            {/* Track list */}
-            <div className="max-h-[7.5rem] overflow-y-auto divide-y divide-white/[0.04]">
+            <div className="max-h-[7.5rem] divide-y divide-white/[0.04] overflow-y-auto">
               {videos.map((item, idx) => {
                 const isActive = idx === currentIndex;
                 return (
@@ -463,40 +454,30 @@ function MediaLibrary() {
                     key={item.id}
                     type="button"
                     onClick={() => selectVideo(idx)}
-                    className={`
-                      group w-full text-left px-4 py-2 flex items-center gap-3
-                      transition-colors duration-150
-                      ${isActive
-                        ? "bg-[#B98A3E]/[0.12] border-l-2 border-l-[#B98A3E]"
-                        : "border-l-2 border-l-transparent hover:bg-white/[0.04]"
-                      }
-                    `}
+                    className={`group flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+                      isActive
+                        ? 'border-l-2 border-l-[#B98A3E] bg-[#B98A3E]/[0.12]'
+                        : 'border-l-2 border-l-transparent hover:bg-white/[0.04]'
+                    }`}
                   >
-                    {/* Track number / playing indicator */}
-                    <span className={`shrink-0 w-5 text-center text-[10px] tabular-nums font-bold ${isActive ? "text-[#B98A3E]" : "text-white/25 group-hover:text-white/50"
-                      }`}>
-                      {isActive ? (
-                        /* animated bars when active */
-                        <span className="inline-flex items-end gap-[2px] h-3">
-                          <span className="w-[2px] bg-[#B98A3E] animate-[equalize_0.8s_ease-in-out_infinite]" style={{ height: "60%" }} />
-                          <span className="w-[2px] bg-[#B98A3E] animate-[equalize_0.8s_ease-in-out_0.2s_infinite]" style={{ height: "100%" }} />
-                          <span className="w-[2px] bg-[#B98A3E] animate-[equalize_0.8s_ease-in-out_0.4s_infinite]" style={{ height: "40%" }} />
-                        </span>
-                      ) : (
-                        idx + 1
-                      )}
+                    <span
+                      className={`w-5 shrink-0 text-center font-mono text-[10px] font-bold tabular-nums ${
+                        isActive
+                          ? 'text-[#B98A3E]'
+                          : 'text-white/25 group-hover:text-white/50'
+                      }`}
+                    >
+                      {String(idx + 1).padStart(2, '0')}
                     </span>
-
-                    {/* Title */}
-                    <span className={`flex-1 truncate text-[11px] font-bold ${isActive ? "text-[#B98A3E]" : "text-white/70 group-hover:text-white/90"
-                      }`}>
+                    <span
+                      className={`flex-1 truncate text-[11px] font-bold ${
+                        isActive
+                          ? 'text-[#B98A3E]'
+                          : 'text-white/70 group-hover:text-white/90'
+                      }`}
+                    >
                       {item.title}
                     </span>
-
-                    {/* Active dot */}
-                    {isActive && (
-                      <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-[#B98A3E]" />
-                    )}
                   </button>
                 );
               })}
@@ -504,57 +485,54 @@ function MediaLibrary() {
           </div>
         )}
 
-        {/* Request bar */}
-        <div className="border-t border-white/[0.07] px-4 py-3">
+        <div className="border-t border-white/[0.08] px-4 py-3">
           <div className="flex items-center gap-2">
             <input
               type="text"
               value={requestInput}
               onChange={(e) => setRequestInput(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleRequestSubmit(requestInput)}
-              placeholder="Request what you need to watch today…"
+              onKeyPress={(e) =>
+                e.key === 'Enter' && handleRequestSubmit(requestInput)
+              }
+              placeholder="Request a video topic…"
               maxLength={30}
               disabled={isSubmittingRequest}
-              className="flex-1 h-8 px-3 rounded-lg bg-white/[0.06] border border-white/10 text-[11px] text-white/80 placeholder:text-white/25 focus:outline-none focus:border-[#B98A3E]/60 focus:bg-white/[0.09] transition-colors font-semibold"
+              className="h-8 flex-1 border border-white/10 bg-white/[0.06] px-3 text-[11px] font-semibold text-white/80 placeholder:text-white/25 focus:border-[#B98A3E]/60 focus:outline-none"
             />
             <button
               onClick={() => handleRequestSubmit(requestInput)}
               disabled={!requestInput.trim() || isSubmittingRequest}
-              className="shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-lg bg-[#B98A3E] text-white hover:bg-[#E8A33D] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center bg-[#B98A3E] text-white transition-colors hover:bg-[#E8A33D] disabled:opacity-40"
               aria-label="Send request"
             >
               {isSubmittingRequest ? (
-                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
               ) : (
-                <Send className="w-3 h-3" />
+                <Send className="h-3 w-3" />
               )}
             </button>
           </div>
 
-          {/* Recent requests */}
           {videoRequests.length > 0 && (
-            <div className="mt-2 max-h-24 overflow-y-auto space-y-0.5">
+            <div className="mt-2 max-h-24 space-y-1 overflow-y-auto">
               {videoRequests.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center gap-1.5 py-1 border-b border-white/[0.05] last:border-0"
+                  className="flex items-center gap-2 border-b border-white/[0.05] py-1 last:border-0"
                 >
-                  <span className="shrink-0 text-[10px] font-bold text-[#B98A3E] whitespace-nowrap">
+                  <span className="shrink-0 text-[10px] font-bold text-[#B98A3E]">
                     {item.user.firstName} {item.user.lastName}
                   </span>
-                  {item.techCenter && (
-                    <span className="shrink-0 text-[10px] text-white/25">· {item.techCenter.name}</span>
-                  )}
-                  <span className="flex-1 truncate text-[10px] text-white/50 ml-1">
-                    {item.request.length > 30 ? `${item.request.substring(0, 30)}…` : item.request}
+                  <span className="flex-1 truncate text-[11px] text-white/50">
+                    {item.request}
                   </span>
                   {item.user.id === user?.id && (
                     <button
                       onClick={() => handleDeleteRequest(item.id)}
-                      className="shrink-0 text-white/25 hover:text-red-400 transition-colors"
+                      className="shrink-0 text-white/25 transition-colors hover:text-red-400"
                       aria-label="Delete request"
                     >
-                      <Trash2 className="h-2.5 w-2.5" />
+                      <Trash2 className="h-3 w-3" />
                     </button>
                   )}
                 </div>
@@ -563,8 +541,359 @@ function MediaLibrary() {
           )}
         </div>
       </div>
-
     </div>
+  );
+}
+
+/* ============================================================
+   STAT BLOCK — bold, solid, editorial
+============================================================ */
+
+function StatBlock({
+  value,
+  label,
+  accent,
+}: {
+  value: number | string;
+  label: string;
+  accent?: boolean;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col">
+      <span
+        className={`font-mono text-2xl font-black leading-none tabular-nums sm:text-3xl ${
+          accent ? 'text-[#B98A3E]' : 'text-white'
+        }`}
+      >
+        {value}
+      </span>
+      <span className="mt-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-white/45 sm:text-[10px]">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+/* ============================================================
+   SUGGESTED STUDENTS — mobile-first, no borders
+   ------------------------------------------------------------
+   Mobile: horizontal scroll, card-less rows.
+   Desktop: same, wider.
+   Words "followers", "likes", "views" always shown.
+============================================================ */
+
+function SuggestedStudents() {
+  const router = useRouter();
+  const { data: session } = useSession();
+  const currentUserId = session?.user?.id;
+
+  const { data: trending = [], isLoading } = useQuery<SocialUser[]>({
+    queryKey: ['social', 'trending', 6],
+    queryFn: async () => {
+      const res = await fetch('/api/social/trending?limit=6');
+      if (!res.ok) throw new Error('Failed to fetch trending');
+      const json = await res.json();
+      return Array.isArray(json.students) ? json.students : [];
+    },
+    enabled: !!currentUserId,
+    staleTime: 30 * 1000,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
+        {[1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className="h-48 w-40 shrink-0 animate-pulse bg-[#E5E7EB]"
+          />
+        ))}
+      </div>
+    );
+  }
+
+  if (trending.length === 0) {
+    return (
+      <div className="border border-[#D1D5DB] bg-white px-6 py-8 text-center">
+        <TrendingUp className="mx-auto mb-3 h-5 w-5 text-[#9CA3AF]" />
+        <p className="text-[14px] font-bold text-[#1A2B4C]">
+          No active students yet
+        </p>
+        <p className="mt-1 text-[12px] text-[#6B7280]">
+          Students appear here as they get followers and likes
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
+      {trending.map((user) => {
+        const initials = `${user.firstName[0] ?? ''}${
+          user.lastName[0] ?? ''
+        }`.toUpperCase();
+        const isSelf = user.id === currentUserId;
+
+        return (
+          <article
+            key={user.id}
+            className="w-40 shrink-0 bg-white transition-transform active:scale-[0.98]"
+          >
+            {/* Avatar — square, edge-to-edge, bold */}
+            <button
+              type="button"
+              onClick={() => router.push(`/dashboard/students/${user.id}`)}
+              className="block w-full"
+            >
+              <div className="relative aspect-square w-full overflow-hidden bg-[#1A2B4C]">
+                {user.profileImageUrl ? (
+                  <Image
+                    src={user.profileImageUrl}
+                    alt={`${user.firstName} ${user.lastName}`}
+                    fill
+                    sizes="160px"
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <span className="font-mono text-2xl font-black text-white/90">
+                      {initials}
+                    </span>
+                  </div>
+                )}
+
+                {/* Rank badge for top 3 */}
+                <span className="absolute left-2 top-2 inline-flex h-6 min-w-6 items-center justify-center bg-[#B98A3E] px-1.5 font-mono text-[10px] font-black tabular-nums text-white">
+                  #{trending.indexOf(user) + 1}
+                </span>
+              </div>
+            </button>
+
+            {/* Info — tight, editorial, words always visible */}
+            <div className="px-0 pt-2.5">
+              <p className="truncate text-[13px] font-black leading-tight text-[#1A2B4C]">
+                {user.firstName} {user.lastName}
+              </p>
+
+              <div className="mt-2 space-y-1">
+                <div className="flex items-baseline gap-1.5 text-[11px]">
+                  <Users
+                    className="h-3 w-3 shrink-0 translate-y-0.5 text-[#B98A3E]"
+                    strokeWidth={2.4}
+                  />
+                  <span className="font-mono font-black tabular-nums text-[#1A2B4C]">
+                    {user.followersCount}
+                  </span>
+                  <span className="font-medium text-[#6B7280]">
+                    follower{user.followersCount === 1 ? '' : 's'}
+                  </span>
+                </div>
+
+                <div className="flex items-baseline gap-1.5 text-[11px]">
+                  <Heart
+                    className="h-3 w-3 shrink-0 translate-y-0.5 text-[#A4462F]"
+                    strokeWidth={2.4}
+                  />
+                  <span className="font-mono font-black tabular-nums text-[#1A2B4C]">
+                    {user.likesReceivedCount}
+                  </span>
+                  <span className="font-medium text-[#6B7280]">
+                    like{user.likesReceivedCount === 1 ? '' : 's'}
+                  </span>
+                </div>
+
+                <div className="flex items-baseline gap-1.5 text-[11px]">
+                  <Eye
+                    className="h-3 w-3 shrink-0 translate-y-0.5 text-[#3E5C76]"
+                    strokeWidth={2.4}
+                  />
+                  <span className="font-mono font-black tabular-nums text-[#1A2B4C]">
+                    {user.profileViewsCount}
+                  </span>
+                  <span className="font-medium text-[#6B7280]">
+                    view{user.profileViewsCount === 1 ? '' : 's'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Action — full width */}
+              <div className="mt-3">
+                {isSelf ? (
+                  <span className="block border border-[#E5E7EB] bg-[#F7F6F2] py-1.5 text-center font-mono text-[9px] font-black uppercase tracking-[0.14em] text-[#9CA3AF]">
+                    You
+                  </span>
+                ) : (
+                  <SocialActions
+                    userId={user.id}
+                    currentUserId={currentUserId}
+                    size="xs"
+                    allowUnfollow={true}
+                    allowUnlike={true}
+                  />
+                )}
+              </div>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ============================================================
+   RECENT SOCIAL ACTIVITY — editorial rows, no card wrappers
+============================================================ */
+
+function RecentSocialActivity() {
+  const { data: session } = useSession();
+  const currentUserId = session?.user?.id;
+
+  const { data: likesData } = useQuery<LikesData>({
+    queryKey: ['social', 'likes-received', currentUserId],
+    queryFn: async () => {
+      const res = await fetch(`/api/social/likes/${currentUserId}`);
+      if (!res.ok) throw new Error('Failed to fetch likes');
+      const json = await res.json();
+      return {
+        likers: Array.isArray(json.likers) ? json.likers : [],
+        likedUsers: Array.isArray(json.likedUsers) ? json.likedUsers : [],
+      };
+    },
+    enabled: !!currentUserId,
+    staleTime: 30 * 1000,
+  });
+
+  const { data: followersData } = useQuery<FollowersData>({
+    queryKey: ['social', 'followers-recent', currentUserId],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/social/connections/${currentUserId}?type=followers`,
+      );
+      if (!res.ok) throw new Error('Failed to fetch followers');
+      return res.json();
+    },
+    enabled: !!currentUserId,
+    staleTime: 30 * 1000,
+  });
+
+  const events = useMemo(() => {
+    const items: Array<{
+      id: string;
+      kind: 'like' | 'follow';
+      user: {
+        id: string;
+        firstName: string;
+        lastName: string;
+        profileImageUrl: string | null;
+      };
+      at: string;
+    }> = [];
+
+    for (const liker of likesData?.likers ?? []) {
+      items.push({
+        id: `like-${liker.id}`,
+        kind: 'like',
+        user: {
+          id: liker.id,
+          firstName: liker.firstName,
+          lastName: liker.lastName,
+          profileImageUrl: liker.profileImageUrl,
+        },
+        at: (liker as any).likedAt ?? new Date().toISOString(),
+      });
+    }
+
+    for (const follower of followersData?.connections ?? []) {
+      items.push({
+        id: `follow-${follower.id}`,
+        kind: 'follow',
+        user: {
+          id: follower.id,
+          firstName: follower.firstName,
+          lastName: follower.lastName,
+          profileImageUrl: follower.profileImageUrl,
+        },
+        at: (follower as any).connectedAt ?? new Date().toISOString(),
+      });
+    }
+
+    return items
+      .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+      .slice(0, 6);
+  }, [likesData, followersData]);
+
+  if (events.length === 0) {
+    return (
+      <div className="border border-[#D1D5DB] bg-white px-6 py-8 text-center">
+        <Heart className="mx-auto mb-3 h-5 w-5 text-[#9CA3AF]" />
+        <p className="text-[14px] font-bold text-[#1A2B4C]">No activity yet</p>
+        <p className="mt-1 text-[12px] text-[#6B7280]">
+          Likes and follows on your profile appear here
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <ul className="divide-y divide-[#E5E7EB] border-y border-[#E5E7EB]">
+      {events.map((event) => {
+        const initials = `${event.user.firstName[0] ?? ''}${
+          event.user.lastName[0] ?? ''
+        }`.toUpperCase();
+        const isLike = event.kind === 'like';
+
+        return (
+          <li key={event.id} className="flex items-center gap-3 py-3">
+            <div className="relative h-9 w-9 shrink-0">
+              {event.user.profileImageUrl ? (
+                <Image
+                  src={event.user.profileImageUrl}
+                  alt={`${event.user.firstName} ${event.user.lastName}`}
+                  fill
+                  sizes="36px"
+                  className="object-cover"
+                />
+              ) : (
+                <div className="flex h-9 w-9 items-center justify-center bg-[#1A2B4C] font-mono text-[11px] font-bold text-white">
+                  {initials}
+                </div>
+              )}
+              <span
+                className={`absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center border border-white ${
+                  isLike ? 'bg-[#A4462F]' : 'bg-[#55705B]'
+                }`}
+              >
+                {isLike ? (
+                  <Heart className="h-2 w-2 text-white" fill="currentColor" />
+                ) : (
+                  <UserPlus className="h-2 w-2 text-white" />
+                )}
+              </span>
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] leading-snug text-[#1A2B4C]">
+                <span className="font-bold">
+                  {event.user.firstName} {event.user.lastName}
+                </span>{' '}
+                <span className="text-[#6B7280]">
+                  {isLike
+                    ? 'liked your profile'
+                    : 'started following you'}
+                </span>
+              </p>
+            </div>
+
+            <span className="shrink-0 font-mono text-[10px] tabular-nums text-[#9CA3AF]">
+              {new Date(event.at).toLocaleDateString(undefined, {
+                month: 'short',
+                day: 'numeric',
+              })}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -575,15 +904,25 @@ function MediaLibrary() {
 export default function DashboardPage() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
+  const { data: session } = useSession();
+  const currentUserId = session?.user?.id;
 
   const [techCenter, setTechCenter] = useState<TechCenter | null>(null);
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [messageIndex, setMessageIndex] = useState(0);
   const [currentTime] = useState(() => Date.now());
 
-  /* ============================================================
-     FETCH FUNCTIONS
-  ============================================================ */
+  const { data: meStats } = useQuery<MeStats>({
+    queryKey: ['social', 'me'],
+    queryFn: async () => {
+      const res = await fetch('/api/social/me');
+      if (!res.ok) throw new Error('Failed to fetch personal stats');
+      return res.json();
+    },
+    enabled: !!currentUserId,
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
+  });
 
   const fetchTechCenter = useCallback(async (techCenterId: string) => {
     try {
@@ -623,44 +962,36 @@ export default function DashboardPage() {
               `/api/tech-centers/${tc.id}/activity?limit=all`,
             );
             if (activityResponse.ok) {
-              const activities: ActivityItem[] =
-                await activityResponse.json();
+              const activities: ActivityItem[] = await activityResponse.json();
               return (activities || []).map((activity) => ({
                 ...activity,
                 techCenter: { id: tc.id, name: tc.name },
               }));
             }
             return [];
-          } catch (error) {
-            console.error(`Error fetching activity for ${tc.name}:`, error);
+          } catch {
             return [];
           }
         });
 
         const allActivities = await Promise.all(activityPromises);
-        const flattenedActivities = allActivities
+        const flattened = allActivities
           .flat()
           .sort(
             (a, b) =>
               new Date(b.createdAt).getTime() -
               new Date(a.createdAt).getTime(),
           );
-        setRecentActivity(flattenedActivities);
+        setRecentActivity(flattened);
       }
     } catch (error) {
       console.error('Error fetching all activity:', error);
     }
   }, []);
 
-  /* ============================================================
-     DATA FETCHING
-  ============================================================ */
-
   useEffect(() => {
     const loadData = async () => {
-      if (user?.techCenterId) {
-        await fetchTechCenter(user.techCenterId);
-      }
+      if (user?.techCenterId) await fetchTechCenter(user.techCenterId);
       if (user?.role === 'super_admin') {
         await fetchAllActivity();
       } else if (user?.techCenterId) {
@@ -675,10 +1006,6 @@ export default function DashboardPage() {
     fetchRecentActivity,
     fetchAllActivity,
   ]);
-
-  /* ============================================================
-     TUTORS
-  ============================================================ */
 
   const { data: tutorsData, isLoading: tutorsLoading } = useQuery({
     queryKey: ['tutors', user?.techCenterId],
@@ -714,10 +1041,6 @@ export default function DashboardPage() {
       enabled: !!user?.id,
     });
 
-  /* ============================================================
-     TUTOR ASSIGNMENT
-  ============================================================ */
-
   const { data: assignmentData, isLoading: loadingAssignment } = useQuery({
     queryKey: ['assignment-info', user?.id, user?.role],
     queryFn: async () => {
@@ -736,23 +1059,15 @@ export default function DashboardPage() {
   const tutorInfo = assignmentData?.tutor || null;
   const studentCount = assignmentData?.studentCount || 0;
 
-  /* ============================================================
-     ROTATING MESSAGES - Enhanced with more short, professional phrases
-  ============================================================ */
-
   const motivationMessages = useMemo(
     () => [
       'Learn with purpose. Build with confidence.',
       'Every lesson is another step toward your future.',
-      'Use your time well. Keep learning and keep building.',
-      'Your skills grow through practice, patience and consistency.',
+      'Your skills grow through practice and consistency.',
       'Stay curious. Ask questions. Keep moving forward.',
       'Small progress today creates opportunities tomorrow.',
-      'Focus on progress, not perfection.',
       'Consistency compounds. Show up daily.',
-      'Your future self is watching. Make them proud.',
       'Skills are built one session at a time.',
-      'Stay hungry. Stay humble. Keep building.',
       'Great things take time. Trust the process.',
     ],
     [],
@@ -763,43 +1078,26 @@ export default function DashboardPage() {
       setMessageIndex((current) =>
         current === motivationMessages.length - 1 ? 0 : current + 1,
       );
-    }, 5000);
+    }, 6000);
     return () => window.clearInterval(interval);
   }, [motivationMessages.length]);
 
-  /* ============================================================
-     ACTIVITY HELPERS
-  ============================================================ */
-
-  const ACTIVITY_META: Record<string, { label: string; color: string }> = {
-    course_submission: { label: 'submitted a course', color: COLORS.moss },
-    cleaning_registration: {
-      label: 'registered for cleaning day',
-      color: COLORS.brass,
-    },
-    cleaning_day_change: {
-      label: 'changed cleaning day',
-      color: COLORS.slate,
-    },
-    cleaning_week_created: {
-      label: 'created cleaning week',
-      color: COLORS.rust,
-    },
-    cleaning_day_created: {
-      label: 'created cleaning day',
-      color: COLORS.ink,
-    },
-    change_user_role: { label: 'changed user role', color: COLORS.purple },
-    create_user: { label: 'created new user', color: COLORS.moss },
-    delete_user: { label: 'deleted user', color: COLORS.rust },
-    create_tech_center: { label: 'created tech center', color: COLORS.brass },
-    update_tech_center: { label: 'updated tech center', color: COLORS.slate },
+  const ACTIVITY_META: Record<string, { label: string }> = {
+    course_submission: { label: 'submitted a course' },
+    cleaning_registration: { label: 'registered for cleaning day' },
+    cleaning_day_change: { label: 'changed cleaning day' },
+    cleaning_week_created: { label: 'created cleaning week' },
+    cleaning_day_created: { label: 'created cleaning day' },
+    change_user_role: { label: 'changed user role' },
+    create_user: { label: 'created new user' },
+    delete_user: { label: 'deleted user' },
+    create_tech_center: { label: 'created tech center' },
+    update_tech_center: { label: 'updated tech center' },
   };
 
   const getActivityMeta = (action: string) =>
     ACTIVITY_META[action.toLowerCase()] ?? {
       label: action.replace(/_/g, ' '),
-      color: COLORS.mutedLight,
     };
 
   const formatTimeAgo = (date: Date | string) => {
@@ -809,10 +1107,10 @@ export default function DashboardPage() {
     const mins = Math.floor(diffInMs / 60000);
     const hours = Math.floor(diffInMs / 3600000);
     const days = Math.floor(diffInMs / 86400000);
-    if (mins < 1) return 'Just now';
-    if (mins < 60) return `${mins}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 7) return `${days}d ago`;
+    if (mins < 1) return 'now';
+    if (mins < 60) return `${mins}m`;
+    if (hours < 24) return `${hours}h`;
+    if (days < 7) return `${days}d`;
     return new Date(date).toLocaleDateString();
   };
 
@@ -825,332 +1123,424 @@ export default function DashboardPage() {
 
   const greeting = getGreeting();
   const userName = user ? `${user.firstName} ${user.lastName}` : 'Guest';
-  const avatarUrl = user?.profileImageUrl || null;
-
-  /* ============================================================
-     QUICK LINKS
-  ============================================================ */
+  const firstName = user?.firstName || 'Guest';
 
   const quickLinks: QuickLink[] = useMemo(() => {
     const userRole = user?.role;
 
     if (userRole === 'super_admin') {
       return [
-        {
-          icon: <Users className="h-5 w-5" />,
-          label: 'Tech Centers',
-          description: 'Manage all tech centers',
-          path: '/dashboard/super-admin/centers',
-        },
-        {
-          icon: <Users className="h-5 w-5" />,
-          label: 'All Users',
-          description: 'Manage system users',
-          path: '/dashboard/super-admin/users',
-        },
-        {
-          icon: <Briefcase className="h-5 w-5" />,
-          label: 'Internships',
-          description: 'Discover opportunities',
-          path: '/dashboard/internships',
-        },
-        {
-          icon: <Library className="h-5 w-5" />,
-          label: 'Policy Book',
-          description: 'Read Selfless CE policies',
-          path: '/dashboard/policies',
-        },
-        {
-          icon: <BookOpen className="h-5 w-5" />,
-          label: 'Tuition',
-          description: 'View tuition and course information',
-          path: '/dashboard/courses',
-        },
-        {
-          icon: <MessageCircle className="h-5 w-5" />,
-          label: 'Support',
-          description: 'Meet the IT support team',
-          path: '/dashboard/support',
-        },
+        { icon: <Users className="h-5 w-5" />, label: 'Tech Centers', description: 'Manage all', path: '/dashboard/super-admin/centers' },
+        { icon: <Users className="h-5 w-5" />, label: 'All Users', description: 'Manage system', path: '/dashboard/super-admin/users' },
+        { icon: <Briefcase className="h-5 w-5" />, label: 'Internships', description: 'Opportunities', path: '/dashboard/internships' },
+        { icon: <Library className="h-5 w-5" />, label: 'Policy Book', description: 'Read policies', path: '/dashboard/policies' },
+        { icon: <BookOpen className="h-5 w-5" />, label: 'Tuition', description: 'View info', path: '/dashboard/courses' },
+        { icon: <MessageCircle className="h-5 w-5" />, label: 'Support', description: 'IT team', path: '/dashboard/support' },
       ];
     }
 
     if (userRole === 'admin') {
       return [
-        {
-          icon: <GraduationCap className="h-5 w-5" />,
-          label: 'Tutor Assignments',
-          description: 'Assign students to tutors',
-          path: '/dashboard/admin/teachers',
-        },
-        {
-          icon: <BookOpen className="h-5 w-5" />,
-          label: 'My Courses',
-          description: 'Access your enrolled courses',
-          path: '/dashboard/courses',
-        },
-        {
-          icon: <Users className="h-5 w-5" />,
-          label: 'Students',
-          description: 'Connect with your peers',
-          path: '/dashboard/students',
-        },
-        {
-          icon: <Briefcase className="h-5 w-5" />,
-          label: 'Internships',
-          description: 'Discover opportunities',
-          path: '/dashboard/internships',
-        },
-        {
-          icon: <Clock className="h-5 w-5" />,
-          label: 'Cleaning Rota',
-          description: 'View your schedule',
-          path: '/dashboard/cleaning',
-        },
-        {
-          icon: <Library className="h-5 w-5" />,
-          label: 'Policy Book',
-          description: 'Read Selfless CE policies',
-          path: '/dashboard/policies',
-        },
-        {
-          icon: <BookOpen className="h-5 w-5" />,
-          label: 'Tuition',
-          description: 'View tuition and course information',
-          path: '/dashboard/courses',
-        },
-        {
-          icon: <MessageCircle className="h-5 w-5" />,
-          label: 'Support',
-          description: 'Meet the IT support team',
-          path: '/dashboard/support',
-        },
+        { icon: <GraduationCap className="h-5 w-5" />, label: 'Tutors', description: 'Assign students', path: '/dashboard/admin/teachers' },
+        { icon: <BookOpen className="h-5 w-5" />, label: 'Courses', description: 'Enrolled units', path: '/dashboard/courses' },
+        { icon: <Users className="h-5 w-5" />, label: 'Students', description: 'Peer network', path: '/dashboard/students' },
+        { icon: <Briefcase className="h-5 w-5" />, label: 'Internships', description: 'Opportunities', path: '/dashboard/internships' },
+        { icon: <Clock className="h-5 w-5" />, label: 'Cleaning', description: 'Your schedule', path: '/dashboard/cleaning' },
+        { icon: <MessageCircle className="h-5 w-5" />, label: 'Support', description: 'IT team', path: '/dashboard/support' },
       ];
     }
 
     return [
-      {
-        icon: <BookOpen className="h-5 w-5" />,
-        label: 'My Courses',
-        description: 'Access your enrolled courses',
-        path: '/dashboard/courses',
-      },
-      {
-        icon: <Users className="h-5 w-5" />,
-        label: 'Students',
-        description: 'Connect with your peers',
-        path: '/dashboard/students',
-      },
-      {
-        icon: <Briefcase className="h-5 w-5" />,
-        label: 'Internships',
-        description: 'Discover opportunities',
-        path: '/dashboard/internships',
-      },
-      {
-        icon: <Clock className="h-5 w-5" />,
-        label: 'Cleaning Rota',
-        description: 'View your schedule',
-        path: '/dashboard/cleaning',
-      },
-      {
-        icon: <Library className="h-5 w-5" />,
-        label: 'Policy Book',
-        description: 'Read Selfless CE policies',
-        path: '/dashboard/policies',
-      },
-      {
-        icon: <BookOpen className="h-5 w-5" />,
-        label: 'Tuition',
-        description: 'View tuition and course information',
-        path: '/dashboard/courses',
-      },
-      {
-        icon: <MessageCircle className="h-5 w-5" />,
-        label: 'Support',
-        description: 'Meet the IT support team',
-        path: '/dashboard/support',
-      },
-      {
-        icon: <Trophy className="h-5 w-5" />,
-        label: 'Football Team',
-        description: 'Join activities',
-        path: '/dashboard/football-team',
-      },
+      { icon: <BookOpen className="h-5 w-5" />, label: 'Courses', description: 'Enrolled units', path: '/dashboard/courses' },
+      { icon: <Users className="h-5 w-5" />, label: 'Students', description: 'Peer network', path: '/dashboard/students' },
+      { icon: <Briefcase className="h-5 w-5" />, label: 'Internships', description: 'Opportunities', path: '/dashboard/internships' },
+      { icon: <Clock className="h-5 w-5" />, label: 'Cleaning', description: 'Your schedule', path: '/dashboard/cleaning' },
+      { icon: <Library className="h-5 w-5" />, label: 'Policies', description: 'Read policies', path: '/dashboard/policies' },
+      { icon: <Trophy className="h-5 w-5" />, label: 'Football', description: 'Join team', path: '/dashboard/football-team' },
     ];
   }, [user?.role]);
-
-  /* ============================================================
-     LOADING
-  ============================================================ */
 
   if (isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center bg-[#F8F9FA]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative flex h-10 w-10 items-center justify-center">
-            <div className="absolute h-full w-full animate-spin rounded-full border-2 border-[#E5E7EB] border-t-[#1A2B4C]" />
-            <div className="h-2 w-2 rounded-full bg-[#C59B4C]" />
-          </div>
-          <p className="font-mono text-xs uppercase tracking-widest text-[#6B7280]">
-            Loading Workspace
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#E5E7EB] border-t-[#1A2B4C]" />
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#6B7280]">
+            Loading
           </p>
         </div>
       </div>
     );
   }
 
-  /* ============================================================
-     PAGE
-  ============================================================ */
-
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-[#1A2B4C]">
-      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        {/* HERO */}
-        <motion.header
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="relative overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-sm"
-        >
-          <div className="relative h-[200px] overflow-hidden sm:h-[240px] md:h-[260px]">
-            {avatarUrl ? (
-              <Image
-                src={avatarUrl}
-                alt={userName}
-                fill
-                priority
-                sizes="(max-width: 768px) 100vw, 1152px"
-                className="object-cover"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center bg-[#1A2B4C]">
-                <User className="h-20 w-20 text-white/20" />
-              </div>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#1A2B4C]/90 via-[#1A2B4C]/40 to-transparent" />
-
-            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7 md:p-8">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                <div className="min-w-0">
-                  <motion.p
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#C59B4C]"
-                  >
-                    {greeting}
-                  </motion.p>
-                  <motion.h1
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.15 }}
-                    className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl md:text-4xl"
-                  >
-                    {userName}
-                  </motion.h1>
+      <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
+        {/* ============================================================
+            HERO — solid dark band, typography-led
+        ============================================================ */}
+        <header className="bg-[#1A2B4C] text-white">
+          <div className="px-5 py-6 sm:px-8 sm:py-8">
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+              {/* Left: greeting + name + tech center */}
+              <div className="min-w-0 flex-1">
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#B98A3E]">
+                  {greeting}
+                </p>
+                <h1 className="mt-2 text-3xl font-black leading-[0.95] tracking-tight sm:text-4xl md:text-5xl">
+                  {firstName}
+                  <span className="text-white/40">.</span>
+                </h1>
+                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-white/60">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#55705B]" />
+                    Active
+                  </span>
+                  {user?.role && (
+                    <span className="uppercase tracking-wider">
+                      {user.role.replace(/_/g, ' ')}
+                    </span>
+                  )}
                   {techCenter && (
-                    <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.2 }}
-                      className="mt-2 flex items-center gap-1.5 font-mono text-[11px] text-white/80"
-                    >
-                      <MapPin className="h-3.5 w-3.5 shrink-0 text-[#C59B4C]" />
-                      <span className="truncate">
-                        {techCenter.name}
-                        {techCenter.city ? ` · ${techCenter.city}` : ''}
-                      </span>
-                    </motion.p>
+                    <span className="inline-flex items-center gap-1.5">
+                      <MapPin className="h-3 w-3" />
+                      {techCenter.name}
+                    </span>
                   )}
                 </div>
-                <motion.button
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.25 }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+              </div>
+
+              {/* Right: avatar + edit */}
+              <div className="flex items-center gap-3">
+                <div className="relative h-16 w-16 shrink-0 overflow-hidden border border-white/20 sm:h-20 sm:w-20">
+                  {user?.profileImageUrl ? (
+                    <Image
+                      src={user.profileImageUrl}
+                      alt={userName}
+                      fill
+                      sizes="80px"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-white/10">
+                      <User className="h-7 w-7 text-white/50" />
+                    </div>
+                  )}
+                </div>
+                <button
                   type="button"
                   onClick={() => router.push('/dashboard/profile')}
-                  className="inline-flex shrink-0 items-center gap-2 self-start rounded-lg border border-white/20 bg-white/10 px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-white backdrop-blur-sm transition-colors hover:bg-white/20 sm:self-auto"
+                  className="inline-flex items-center gap-1.5 border border-white/20 bg-transparent px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-white/10"
                 >
-                  <Camera className="h-3.5 w-3.5" />
-                  Edit Profile
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </motion.button>
+                  <Camera className="h-3 w-3" />
+                  Edit
+                </button>
               </div>
             </div>
-          </div>
 
-          <div className="flex flex-col gap-2 border-t border-[#E5E7EB] bg-[#F8F9FA] px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-7">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#55705B] opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#55705B]" />
-                </span>
-                <span className="font-mono text-[10px] uppercase tracking-widest text-[#6B7280]">
-                  Active
-                </span>
+            {/* Stats row — bold, flat, no pills */}
+            {meStats && (
+              <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-white/10 pt-6 sm:grid-cols-4">
+                <StatBlock value={meStats.followersCount} label="Followers" />
+                <StatBlock value={meStats.followingCount} label="Following" />
+                <StatBlock
+                  value={meStats.likesReceivedCount}
+                  label="Likes"
+                  accent
+                />
+                <StatBlock value={meStats.profileViewsCount} label="Views" />
               </div>
-              {user?.role && (
-                <span className="font-mono text-[10px] uppercase tracking-widest text-[#9CA3AF]">
-                  {user.role.replace(/_/g, ' ')}
-                </span>
-              )}
-            </div>
-            <span className="font-mono text-[10px] uppercase tracking-widest text-[#9CA3AF]">
-              {user?.role === 'super_admin'
-                ? 'Super Admin Portal'
-                : 'Student Portal'}
-            </span>
+            )}
           </div>
-        </motion.header>
+        </header>
 
-        {/* DISCOVER STUDENTS */}
+        {/* ============================================================
+            Trending student profiles
+        ============================================================ */}
+        <section className="mt-10">
+          <SectionHeader
+            label="Trending student profiles"
+            action={
+              <button
+                type="button"
+                onClick={() => router.push('/dashboard/students')}
+                className="inline-flex items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[#B98A3E] transition-colors hover:text-[#1A2B4C]"
+              >
+                See all
+                <ChevronRight className="h-3 w-3" />
+              </button>
+            }
+          />
+          <SuggestedStudents />
+        </section>
+
+        {/* ============================================================
+            DISCOVER STUDENTS
+        ============================================================ */}
         {discoverStudents.length > 0 && (
-          <motion.section
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="mt-6"
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <Users className="h-4 w-4 text-[#C59B4C]" />
-              <h2 className="font-mono text-xs uppercase tracking-[0.15em] text-[#6B7280]">
-                Student Community
-              </h2>
-            </div>
+          <section className="mt-10">
+            <SectionHeader label="Discover students" />
             <DiscoverStudents
               students={discoverStudents}
               isLoading={discoverStudentsLoading}
             />
-          </motion.section>
+          </section>
         )}
 
-        {/* MOTIVATION STRIP - Enhanced with standard icon and animated short messages */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, delay: 0.25 }}
-          className="mt-6"
-        >
-          <div className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3.5 shadow-md sm:px-5">
-            {/* Selfless logo */}
-            <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg">
+        {/* ============================================================
+            REELS
+        ============================================================ */}
+        <section className="mt-10">
+          <SectionHeader label="Reels" />
+          <MediaLibrary />
+        </section>
+
+        {/* ============================================================
+            RECENT ACTIVITY ON YOUR PROFILE
+        ============================================================ */}
+        <section className="mt-10">
+          <SectionHeader label="On your profile" />
+          <RecentSocialActivity />
+        </section>
+
+        {/* ============================================================
+            QUICK ACCESS
+        ============================================================ */}
+        <section className="mt-10">
+          <SectionHeader label="Quick access" />
+          <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3 lg:grid-cols-6">
+            {quickLinks.map((link) => (
+              <button
+                key={`${link.label}-${link.path}`}
+                type="button"
+                onClick={() => router.push(link.path)}
+                className="group flex flex-col items-start gap-2 text-left transition-transform active:scale-[0.98]"
+              >
+                <span className="flex h-10 w-10 items-center justify-center bg-[#1A2B4C] text-white transition-colors group-hover:bg-[#B98A3E]">
+                  {link.icon}
+                </span>
+                <span className="text-[13px] font-black leading-tight text-[#1A2B4C]">
+                  {link.label}
+                </span>
+                <span className="text-[11px] leading-tight text-[#6B7280]">
+                  {link.description}
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* ============================================================
+            ADMIN BANNER
+        ============================================================ */}
+        {user?.role === 'admin' && (
+          <section className="mt-10">
+            <div className="border-l-4 border-[#B98A3E] bg-[#FBF7EE] p-5 sm:p-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center bg-[#B98A3E] text-white">
+                    <GraduationCap className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6328]">
+                      Action needed
+                    </p>
+                    <h3 className="mt-1 text-[15px] font-black text-[#1A2B4C]">
+                      Assign students to tutors
+                    </h3>
+                    <p className="mt-1 max-w-2xl text-[13px] leading-5 text-[#6B7280]">
+                      Help students get regular support by assigning them to
+                      tutors.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => router.push('/dashboard/admin/teachers')}
+                  className="inline-flex shrink-0 items-center gap-2 bg-[#1A2B4C] px-4 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-[#B98A3E]"
+                >
+                  Open
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ============================================================
+            TUTORS
+        ============================================================ */}
+        {(tutorsLoading || tutors.length > 0) &&
+          user?.role !== 'super_admin' && (
+            <section className="mt-10">
+              <SectionHeader
+                label={`${techCenter?.name || 'Your'} tutors`}
+                count={tutors.length}
+              />
+              {tutorsLoading ? (
+                <div className="flex flex-wrap gap-2">
+                  {[1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="h-8 w-32 animate-pulse bg-[#E5E7EB]"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {tutors.map((tutor: Tutor) => (
+                    <div
+                      key={tutor.id}
+                      className="inline-flex items-center gap-2 border border-[#E5E7EB] bg-white px-3 py-1.5"
+                    >
+                      {tutor.profileImageUrl ? (
+                        <Image
+                          src={tutor.profileImageUrl}
+                          alt={`${tutor.firstName} ${tutor.lastName}`}
+                          width={22}
+                          height={22}
+                          className="h-[22px] w-[22px] object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-[22px] w-[22px] items-center justify-center bg-[#1A2B4C] font-mono text-[9px] font-bold text-white">
+                          {tutor.firstName.charAt(0)}
+                          {tutor.lastName.charAt(0)}
+                        </div>
+                      )}
+                      <span className="text-[12px] font-bold text-[#1A2B4C]">
+                        {tutor.firstName} {tutor.lastName}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+
+        {/* ============================================================
+            ASSIGNMENT
+        ============================================================ */}
+        {(user?.role === 'student' || user?.role === 'teacher') && (
+          <section className="mt-10">
+            <SectionHeader
+              label={isTeacher ? 'Your students' : 'Your tutor'}
+            />
+            {loadingAssignment ? (
+              <div className="border border-[#E5E7EB] bg-white p-5">
+                <div className="h-4 w-48 animate-pulse bg-[#E5E7EB]" />
+              </div>
+            ) : isTeacher ? (
+              studentCount > 0 ? (
+                <div className="border border-[#E5E7EB] bg-white p-5">
+                  <p className="text-[14px] font-black text-[#1A2B4C]">
+                    {studentCount} student{studentCount > 1 ? 's' : ''} under
+                    your mentorship
+                  </p>
+                </div>
+              ) : (
+                <div className="border border-[#E5E7EB] bg-white p-5">
+                  <p className="text-[14px] font-black text-[#1A2B4C]">
+                    No students assigned yet
+                  </p>
+                  <p className="mt-1 text-[12px] text-[#6B7280]">
+                    Contact your tech center admin to be assigned students.
+                  </p>
+                </div>
+              )
+            ) : tutorInfo ? (
+              <div className="border border-[#E5E7EB] bg-white p-5">
+                <div className="flex items-center gap-4">
+                  {tutorInfo.profileImageUrl ? (
+                    <Image
+                      src={tutorInfo.profileImageUrl}
+                      alt={`${tutorInfo.firstName} ${tutorInfo.lastName}`}
+                      width={44}
+                      height={44}
+                      className="h-11 w-11 object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-11 w-11 items-center justify-center bg-[#1A2B4C] font-mono text-[13px] font-bold text-white">
+                      {tutorInfo.firstName.charAt(0)}
+                      {tutorInfo.lastName.charAt(0)}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[14px] font-black text-[#1A2B4C]">
+                      {tutorInfo.firstName} {tutorInfo.lastName}
+                    </p>
+                    <p className="font-mono text-[11px] text-[#6B7280]">
+                      {tutorInfo.email}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="border border-[#E5E7EB] bg-white p-5">
+                <p className="text-[14px] font-black text-[#1A2B4C]">
+                  Not assigned to a tutor yet
+                </p>
+                <p className="mt-1 text-[12px] text-[#6B7280]">
+                  Contact your tech center admin for support.
+                </p>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* ============================================================
+            COMMUNITY ACTIVITY
+        ============================================================ */}
+        {recentActivity.length > 0 &&
+          (user?.role === 'super_admin' || techCenter) && (
+            <section className="mt-10">
+              <SectionHeader label="Community activity" />
+              <div className="border-y border-[#E5E7EB]">
+                {recentActivity.slice(0, 20).map((item, index) => {
+                  const meta = getActivityMeta(item.action);
+                  return (
+                    <div
+                      key={item.id}
+                      className={`flex items-center gap-4 py-3 ${
+                        index < Math.min(recentActivity.length, 20) - 1
+                          ? 'border-b border-[#E5E7EB]'
+                          : ''
+                      }`}
+                    >
+                      <span className="w-12 shrink-0 font-mono text-[10px] font-bold tabular-nums text-[#9CA3AF]">
+                        {formatTimeAgo(item.createdAt)}
+                      </span>
+                      <p className="min-w-0 flex-1 truncate text-[13px] text-[#1A2B4C]">
+                        <span className="font-bold">
+                          {item.user
+                            ? `${item.user.firstName} ${item.user.lastName}`
+                            : 'System'}
+                        </span>{' '}
+                        <span className="text-[#6B7280]">{meta.label}</span>
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+        {/* ============================================================
+            MOTIVATION STRIP
+        ============================================================ */}
+        <section className="mt-10">
+          <div className="flex items-center gap-4 border-y border-[#E5E7EB] py-4">
+            <div className="relative h-10 w-10 shrink-0 overflow-hidden">
               <Image
                 src="/icon-192x192.png"
                 alt="Selfless CE"
                 fill
-                sizes="36px"
+                sizes="40px"
                 className="object-cover"
-                priority
               />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-[#B98A3E] mb-1">
-                Today&apos;s Focus
+              <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[#B98A3E]">
+                Today's focus
               </p>
               <div className="relative h-5 overflow-hidden">
                 <AnimatePresence mode="wait">
@@ -1159,8 +1549,8 @@ export default function DashboardPage() {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                    className="text-[13px] font-bold text-[#1A2B4C] leading-snug"
+                    transition={{ duration: 0.3 }}
+                    className="text-[13px] font-bold leading-tight text-[#1A2B4C]"
                   >
                     {motivationMessages[messageIndex]}
                   </motion.p>
@@ -1168,490 +1558,42 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-        </motion.div>
+        </section>
 
-        {/* MEDIA LIBRARY (Azure) */}
-        <motion.section
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.28 }}
-          className="mt-6"
-        >
-          <div className="flex items-center gap-2 mb-3">
-            <Video className="h-4 w-4 text-[#B98A3E]" />
-            <h2 className="font-mono text-xs uppercase tracking-[0.15em] text-[#B98A3E] font-bold">
-              Media Library
-            </h2>
-          </div>
-          <MediaLibrary />
-        </motion.section>
-
-        {/* QUICK LINKS */}
-        <motion.section
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-          className="mt-6"
-        >
-          <div className="flex items-center gap-2 mb-3">
-            <div className="h-1.5 w-1.5 rounded-full bg-[#B98A3E]" />
-            <h2 className="font-mono text-xs uppercase tracking-[0.15em] text-[#B98A3E] font-bold">
-              Quick Access
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {quickLinks.map((link, idx) => (
-              <motion.button
-                key={`${link.label}-${link.path}`}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 + idx * 0.05 }}
-                whileHover={{
-                  y: -2,
-                  boxShadow: '0 8px 20px rgba(26,43,76,0.12)',
-                }}
-                whileTap={{ scale: 0.98 }}
-                type="button"
-                onClick={() => router.push(link.path)}
-                className="group flex flex-col items-center gap-2.5 rounded-xl border border-[#E5E7EB] bg-white p-4 transition-all duration-200 hover:border-[#B98A3E]/40 shadow-sm"
-              >
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F7F6F2] text-[#1A2B4C] transition-colors group-hover:bg-[#B98A3E]/10 group-hover:text-[#B98A3E]">
-                  {link.icon}
-                </span>
-                <span className="text-xs font-bold text-[#1A2B4C] text-center">
-                  {link.label}
-                </span>
-                <span className="text-[10px] text-[#9CA3AF] text-center leading-tight">
-                  {link.description}
-                </span>
-              </motion.button>
-            ))}
-          </div>
-        </motion.section>
-
-        {/* ADMIN BANNER */}
-        {user?.role === 'admin' && (
-          <motion.section
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45 }}
-            className="mt-6"
-          >
-            <div className="flex flex-col gap-4 rounded-xl border border-[#C59B4C]/30 bg-gradient-to-r from-[#FBF7EE] to-white p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6 shadow-sm">
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#C59B4C]/15 text-[#8A6328]">
-                  <GraduationCap className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8A6328]">
-                    Action Needed
-                  </p>
-                  <h2 className="mt-1 text-base font-semibold text-[#1A2B4C] sm:text-lg">
-                    Assign students to tutors
-                  </h2>
-                  <p className="mt-1 max-w-2xl text-sm text-[#6B7280]">
-                    Help students receive regular support by assigning them to
-                    tutors who can follow up on their progress.
-                  </p>
-                </div>
-              </div>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="button"
-                onClick={() => router.push('/dashboard/admin/teachers')}
-                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#1A2B4C] px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-white transition-colors hover:bg-[#C59B4C]"
-              >
-                Open Tutors Page
-                <ArrowRight className="h-3.5 w-3.5" />
-              </motion.button>
-            </div>
-          </motion.section>
-        )}
-
-        {/* TUTORS LIST */}
-        {(tutorsLoading || tutors.length > 0) && user?.role !== 'super_admin' && (
-          <motion.section
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="mt-6"
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <GraduationCap className="h-4 w-4 text-[#C59B4C]" />
-              <h2 className="font-mono text-xs uppercase tracking-[0.15em] text-[#6B7280]">
-                {techCenter?.name || 'Your'} Tutors ({tutors.length})
-              </h2>
-            </div>
-
-            {tutorsLoading ? (
-              <div className="flex flex-wrap gap-2">
-                {[1, 2, 3].map((item) => (
-                  <div
-                    key={item}
-                    className="flex items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5"
-                  >
-                    <div className="h-6 w-6 animate-pulse rounded-full bg-[#E5E7EB]" />
-                    <div className="h-3 w-24 animate-pulse rounded bg-[#E5E7EB]" />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <>
-                <p className="mb-3 flex items-center gap-1.5 text-[11px] text-[#9CA3AF]">
-                  <MessageCircle className="h-3 w-3" />
-                  Reach out to them whenever you need more guidance and help
-                </p>
-
-                <div className="flex flex-wrap gap-2">
-                  {tutors.map((tutor: Tutor) => (
-                    <motion.div
-                      key={tutor.id}
-                      whileHover={{ y: -1 }}
-                      className="flex items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 shadow-sm transition-shadow hover:shadow-md"
-                    >
-                      {tutor.profileImageUrl ? (
-                        <Image
-                          src={tutor.profileImageUrl}
-                          alt={`${tutor.firstName} ${tutor.lastName}`}
-                          width={24}
-                          height={24}
-                          className="h-6 w-6 rounded-full object-cover border border-[#E5E7EB]"
-                        />
-                      ) : (
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold text-white bg-[#1A2B4C]">
-                          {tutor.firstName.charAt(0)}
-                          {tutor.lastName.charAt(0)}
-                        </div>
-                      )}
-                      <span className="text-[12px] font-medium text-[#1A2B4C]">
-                        {tutor.firstName} {tutor.lastName}
-                      </span>
-                    </motion.div>
-                  ))}
-                </div>
-              </>
-            )}
-          </motion.section>
-        )}
-
-        {/* ASSIGNMENT STATUS */}
-        {(user?.role === 'student' || user?.role === 'teacher') && (
-          <motion.section
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.55 }}
-            className="mt-6"
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <GraduationCap className="h-4 w-4 text-[#C59B4C]" />
-              <h2 className="font-mono text-xs uppercase tracking-[0.15em] text-[#6B7280]">
-                {isTeacher ? 'Student Assignment' : 'Tutor Assignment'}
-              </h2>
-            </div>
-
-            {loadingAssignment ? (
-              <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 animate-pulse rounded-full bg-[#E5E7EB]" />
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <div className="h-4 w-48 max-w-full animate-pulse rounded bg-[#E5E7EB]" />
-                    <div className="h-3 w-64 max-w-full animate-pulse rounded bg-[#F3F4F6]" />
-                  </div>
-                </div>
-              </div>
-            ) : isTeacher ? (
-              studentCount > 0 ? (
-                <div className="rounded-xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#55705B]/10">
-                      <Users className="h-6 w-6 text-[#55705B]" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-[#1A2B4C]">
-                        You are assigned to {studentCount} student
-                        {studentCount > 1 ? 's' : ''}
-                      </p>
-                      <p className="text-[11px] text-[#6B7280] mt-1">
-                        {studentCount} student
-                        {studentCount > 1 ? 's are' : ' is'} under your
-                        mentorship
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          router.push('/dashboard/admin/teachers')
-                        }
-                        className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-[#C59B4C] hover:text-[#B08A3E] transition-colors"
-                      >
-                        View Tutors Page <ArrowRight className="h-3 w-3" />
-                      </button>
-                    </div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#55705B]/10 px-3 py-1 text-[10px] font-medium text-[#55705B]">
-                      <Users className="h-3 w-3" /> {studentCount}
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#A4462F]/10">
-                      <GraduationCap className="h-6 w-6 text-[#A4462F]" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-[#1A2B4C]">
-                        You are a tutor but you are not assigned to students
-                        yet
-                      </p>
-                      <p className="text-[11px] text-[#6B7280] mt-1">
-                        Contact your tech center administration so that you are
-                        assigned to the students you will follow up on.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          router.push('/dashboard/admin/teachers')
-                        }
-                        className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-[#C59B4C] hover:text-[#B08A3E] transition-colors"
-                      >
-                        View Tutors Page <ArrowRight className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )
-            ) : tutorInfo ? (
-              <div className="rounded-xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
-                <div className="flex items-center gap-4">
-                  {tutorInfo.profileImageUrl ? (
-                    <Image
-                      src={tutorInfo.profileImageUrl}
-                      alt={`${tutorInfo.firstName} ${tutorInfo.lastName}`}
-                      width={48}
-                      height={48}
-                      className="h-12 w-12 rounded-full object-cover border-2 border-[#E5E7EB]"
-                    />
-                  ) : (
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-semibold text-white bg-[#1A2B4C]">
-                      {tutorInfo.firstName.charAt(0)}
-                      {tutorInfo.lastName.charAt(0)}
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-[#1A2B4C]">
-                      You are assigned to tutor
-                    </p>
-                    <p className="text-[13px] font-medium text-[#55705B]">
-                      {tutorInfo.firstName} {tutorInfo.lastName}
-                    </p>
-                    <p className="text-[11px] text-[#6B7280]">
-                      {tutorInfo.email}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => router.push('/dashboard/admin/teachers')}
-                      className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-[#C59B4C] hover:text-[#B08A3E] transition-colors"
-                    >
-                      View Tutors Page <ArrowRight className="h-3 w-3" />
-                    </button>
-                  </div>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#55705B]/10 px-3 py-1 text-[10px] font-medium text-[#55705B]">
-                    <GraduationCap className="h-3 w-3" /> Assigned
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#A4462F]/10">
-                    <GraduationCap className="h-6 w-6 text-[#A4462F]" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-[#1A2B4C]">
-                      You are not yet assigned to a tutor
-                    </p>
-                    <p className="text-[11px] text-[#6B7280] mt-1">
-                      Contact your tech center administration so that you are
-                      assigned to a tutor for better learning support.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => router.push('/dashboard/admin/teachers')}
-                      className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-[#C59B4C] hover:text-[#B08A3E] transition-colors"
-                    >
-                      View Tutors Page <ArrowRight className="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </motion.section>
-        )}
-
-        {/* ACTIVITY LOG */}
-        {recentActivity.length > 0 &&
-          (user?.role === 'super_admin' || techCenter) && (
-            <motion.section
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="mt-6"
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <Clock className="h-4 w-4 text-[#C59B4C]" />
-                <h2 className="font-mono text-xs uppercase tracking-[0.15em] text-[#6B7280]">
-                  Activity Log
-                </h2>
-              </div>
-
-              <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-md max-h-[300px] overflow-y-auto">
-                {recentActivity.map((item, index) => {
-                  const meta = getActivityMeta(item.action);
-                  return (
-                    <div
-                      key={item.id}
-                      className={`flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-[#F8F9FA] ${index < recentActivity.length - 1
-                        ? 'border-b border-[#E5E7EB]'
-                        : ''
-                        }`}
-                    >
-                      <span className="shrink-0 font-mono text-[11px] text-[#9CA3AF] min-w-[70px]">
-                        {formatTimeAgo(item.createdAt)}
-                      </span>
-
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm text-[#1A2B4C]">
-                          <span className="font-semibold">
-                            {item.user
-                              ? `${item.user.firstName} ${item.user.lastName}`
-                              : 'System'}
-                          </span>
-                          <span className="text-[#6B7280]">
-                            {' '}
-                            {meta.label}
-                          </span>
-                          {item.techCenter &&
-                            user?.role === 'super_admin' && (
-                              <span className="text-[#9CA3AF] ml-2 text-xs">
-                                · {item.techCenter.name}
-                              </span>
-                            )}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </motion.section>
-          )}
-
-        {/* LEARNING RESOURCES */}
-        <motion.section
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.65 }}
-          className="mt-6"
-        >
-          <div className="flex items-center gap-2 mb-3">
-            <BookOpen className="h-4 w-4 text-[#C59B4C]" />
-            <h2 className="font-mono text-xs uppercase tracking-[0.15em] text-[#6B7280]">
-              Learning Resources
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {[
-              {
-                icon: <BookOpen className="h-5 w-5" />,
-                label: 'Courses',
-                path: '/dashboard/live-streaming',
-                color: '#55705B',
-              },
-              {
-                icon: <Video className="h-5 w-5" />,
-                label: 'Videos',
-                path: '/dashboard/live-streaming',
-                color: '#3E5C76',
-              },
-              {
-                icon: <Library className="h-5 w-5" />,
-                label: 'Tutorials',
-                path: '/dashboard/live-streaming',
-                color: '#C59B4C',
-              },
-            ].map((item, idx) => (
-              <motion.button
-                key={item.label}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 + idx * 0.05 }}
-                whileHover={{
-                  y: -2,
-                  boxShadow: '0 8px 20px rgba(26,43,76,0.06)',
-                }}
-                whileTap={{ scale: 0.98 }}
-                type="button"
-                onClick={() => router.push(item.path)}
-                className="flex flex-col items-center gap-2.5 rounded-xl border border-[#E5E7EB] bg-white p-4 transition-all hover:border-[#B98A3E]/40 shadow-sm"
-              >
-                <span
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F7F6F2]"
-                  style={{ color: item.color }}
-                >
-                  {item.icon}
-                </span>
-                <span className="text-xs font-semibold text-[#1A2B4C]">
-                  {item.label}
-                </span>
-              </motion.button>
-            ))}
-          </div>
-        </motion.section>
-
-        {/* AI ASSISTANT */}
-        <motion.section
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.75 }}
-          className="mt-6"
-        >
-          <div className="relative overflow-hidden rounded-2xl bg-[#1A2B4C] p-6 shadow-lg sm:p-8">
-            <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[#C59B4C]/10 blur-3xl" />
-            <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-[#55705B]/10 blur-3xl" />
-
-            <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        {/* ============================================================
+            AI ASSISTANT
+        ============================================================ */}
+        <section className="mt-10">
+          <div className="relative overflow-hidden bg-[#1A2B4C] p-6 sm:p-8">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <Star className="h-4 w-4 text-[#C59B4C]" />
-                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/50">
+                  <Star className="h-3.5 w-3.5 text-[#B98A3E]" fill="currentColor" />
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#B98A3E]">
                     AI Assistant
                   </p>
                 </div>
-                <h3 className="mt-2 text-xl font-semibold text-white sm:text-2xl">
+                <h3 className="mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl">
                   Atbriz AI
                 </h3>
-                <p className="mt-1.5 text-sm text-white/60 max-w-lg">
-                  Ask questions, get study guidance, and accelerate your
-                  learning journey with your personal AI assistant.
+                <p className="mt-2 max-w-lg text-[13px] leading-5 text-white/60">
+                  Ask questions, get study guidance, accelerate your learning.
                 </p>
               </div>
 
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
+              <button
                 type="button"
                 onClick={() => router.push('/dashboard/ai')}
-                className="inline-flex shrink-0 items-center gap-2 self-start rounded-lg bg-white px-6 py-3 font-mono text-xs uppercase tracking-widest text-[#1A2B4C] transition-colors hover:bg-[#C59B4C] hover:text-white sm:self-auto"
+                className="inline-flex shrink-0 items-center gap-2 bg-[#B98A3E] px-5 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-white transition-colors hover:bg-[#E8A33D] sm:px-6"
               >
-                Open Assistant
-                <ChevronRight className="h-4 w-4" />
-              </motion.button>
+                Open
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
             </div>
           </div>
-        </motion.section>
+        </section>
 
-        <div className="h-8" />
+        <div className="h-10" />
       </div>
     </div>
   );
