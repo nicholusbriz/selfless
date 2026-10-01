@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
@@ -11,13 +11,13 @@ import {
   BookOpen,
   ArrowUp,
   AlertCircle,
+  ChevronLeft,
   ChevronRight,
   Eye,
   ArrowDownUp,
-  LayoutGrid,
-  List,
   Heart,
   Send,
+  Flame,
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -58,7 +58,6 @@ interface Student {
     credits: number;
     status: string;
   }>;
-  // Social fields — now included by /api/students
   followersCount: number;
   followingCount: number;
   likesReceivedCount: number;
@@ -75,6 +74,7 @@ interface TechCenter {
 }
 
 type Router = ReturnType<typeof useRouter>;
+type FeedScope = 'following' | 'all';
 
 // ============================================================
 // PAGE CACHE ADAPTER
@@ -106,9 +106,7 @@ const popularityScore = (s: Student): number =>
   (s.followersCount || 0) * 2 + (s.likesReceivedCount || 0);
 
 const sortStudents = (students: Student[], sortBy: SortOption): Student[] => {
-  if (sortBy === 'trending') {
-    return rankByTrending(students);
-  }
+  if (sortBy === 'trending') return rankByTrending(students);
 
   const copy = [...students];
 
@@ -125,13 +123,15 @@ const sortStudents = (students: Student[], sortBy: SortOption): Student[] => {
       );
     });
   }
-
   if (sortBy === 'name') {
-    return copy.sort((a, b) => {
-      const nameA = `${a.firstName} ${a.lastName}`.trim().toLowerCase();
-      const nameB = `${b.firstName} ${b.lastName}`.trim().toLowerCase();
-      return nameA.localeCompare(nameB);
-    });
+    return copy.sort((a, b) =>
+      `${a.firstName} ${a.lastName}`
+        .trim()
+        .toLowerCase()
+        .localeCompare(
+          `${b.firstName} ${b.lastName}`.trim().toLowerCase(),
+        ),
+    );
   }
   if (sortBy === 'newest') {
     return copy.sort(
@@ -146,396 +146,6 @@ const sortStudents = (students: Student[], sortBy: SortOption): Student[] => {
     return copy.sort((a, b) => b.likesReceivedCount - a.likesReceivedCount);
   }
   return copy.sort((a, b) => Number(b.isActive) - Number(a.isActive));
-};
-
-// ============================================================
-// SKELETONS
-// ============================================================
-
-const SkeletonCard = () => (
-  <article className="bg-white shadow-md rounded-lg overflow-hidden animate-pulse">
-    <div className="grid grid-cols-3">
-      <div className="bg-[#F7F6F2] aspect-square" />
-      <div className="col-span-2 px-3 py-2.5 space-y-2">
-        <div className="h-3.5 w-3/4 bg-[#E5E7EB] rounded" />
-        <div className="h-3 w-1/2 bg-[#F3F4F6] rounded" />
-        <div className="flex items-center gap-2 pt-1">
-          <div className="h-3 w-12 bg-[#E5E7EB] rounded" />
-          <div className="h-3 w-12 bg-[#F3F4F6] rounded" />
-        </div>
-      </div>
-      <div className="col-span-3 px-3 py-2 border-t border-[#F3F4F6] space-y-2">
-        <div className="h-3 w-28 bg-[#F3F4F6] rounded" />
-        <div className="h-3.5 w-4/5 bg-[#E5E7EB] rounded" />
-        <div className="h-3.5 w-3/5 bg-[#F3F4F6] rounded" />
-      </div>
-      <div className="col-span-3 px-3 py-2 border-t border-[#F3F4F6] flex items-center justify-between">
-        <div className="h-3.5 w-20 bg-[#E5E7EB] rounded" />
-        <div className="flex items-center gap-1.5">
-          <div className="h-5 w-12 bg-[#F3F4F6] rounded" />
-          <div className="h-5 w-14 bg-[#F3F4F6] rounded" />
-        </div>
-      </div>
-    </div>
-  </article>
-);
-
-const SkeletonListCard = () => (
-  <article className="bg-white shadow-sm rounded-lg overflow-hidden animate-pulse">
-    <div className="px-4 py-3 space-y-2">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 space-y-1.5">
-          <div className="h-3.5 w-40 bg-[#E5E7EB] rounded" />
-          <div className="h-2.5 w-52 bg-[#F3F4F6] rounded" />
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-14 bg-[#E5E7EB] rounded" />
-          <div className="h-3 w-10 bg-[#F3F4F6] rounded" />
-        </div>
-      </div>
-      <div className="space-y-1">
-        <div className="h-2.5 w-28 bg-[#F3F4F6] rounded" />
-        <div className="h-3 w-5/6 bg-[#E5E7EB] rounded" />
-      </div>
-      <div className="pt-2 border-t border-[#F3F4F6] flex items-center justify-between">
-        <div className="h-3 w-16 bg-[#E5E7EB] rounded" />
-        <div className="flex items-center gap-1.5">
-          <div className="h-4 w-10 bg-[#F3F4F6] rounded" />
-          <div className="h-4 w-12 bg-[#F3F4F6] rounded" />
-        </div>
-      </div>
-    </div>
-  </article>
-);
-
-const SectionHeaderSkeleton = () => (
-  <div className="mb-4 flex items-center gap-2.5 animate-pulse">
-    <span className="h-4 w-[3px] rounded-full bg-[#E5E7EB]" />
-    <div className="h-4 w-40 bg-[#E5E7EB] rounded" />
-    <div className="h-6 w-20 bg-[#F3F4F6] rounded" />
-  </div>
-);
-
-const StudentsGridSkeleton = ({
-  viewMode,
-  count = 6,
-}: {
-  viewMode: 'grid' | 'list';
-  count?: number;
-}) => {
-  if (viewMode === 'grid') {
-    return (
-      <div className="grid gap-3 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-        {Array.from({ length: count }).map((_, i) => (
-          <SkeletonCard key={i} />
-        ))}
-      </div>
-    );
-  }
-  return (
-    <div className="grid gap-2 grid-cols-1">
-      {Array.from({ length: count }).map((_, i) => (
-        <SkeletonListCard key={i} />
-      ))}
-    </div>
-  );
-};
-
-const SectionSkeleton = ({ viewMode }: { viewMode: 'grid' | 'list' }) => (
-  <section className="mb-8">
-    <SectionHeaderSkeleton />
-    <StudentsGridSkeleton viewMode={viewMode} count={6} />
-  </section>
-);
-
-const FullPageSkeleton = ({ viewMode }: { viewMode: 'grid' | 'list' }) => (
-  <div className="min-h-screen bg-[#F7F6F2]">
-    <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-6">
-      <div className="animate-pulse space-y-3">
-        <div className="flex gap-1.5">
-          <div className="h-7 w-20 bg-white border border-[#E5E7EB] rounded" />
-          <div className="h-7 w-20 bg-white border border-[#E5E7EB] rounded" />
-          <div className="h-7 w-20 bg-white border border-[#E5E7EB] rounded" />
-        </div>
-        <div className="h-8 w-40 bg-white border border-[#E5E7EB] rounded" />
-        <div className="h-4 w-64 bg-white border border-[#E5E7EB] rounded" />
-      </div>
-      <div className="mt-4 h-24 bg-white border border-[#E5E7EB] rounded-lg shadow-md animate-pulse" />
-      <div className="mt-4 h-14 bg-white border border-[#E5E7EB] rounded-lg shadow-md animate-pulse" />
-      <div className="pt-6">
-        {[1, 2, 3].map((i) => (
-          <SectionSkeleton key={i} viewMode={viewMode} />
-        ))}
-      </div>
-    </div>
-  </div>
-);
-
-// ============================================================
-// SEARCH & FILTER BAR
-// ============================================================
-
-const SearchFilterBar = ({
-  searchQuery,
-  setSearchQuery,
-  selectedLocation,
-  setSelectedLocation,
-  locations,
-  totalStudents,
-  sortBy,
-  setSortBy,
-  viewMode,
-  setViewMode,
-}: {
-  searchQuery: string;
-  setSearchQuery: (query: string) => void;
-  selectedLocation: string;
-  setSelectedLocation: (id: string) => void;
-  locations: TechCenter[];
-  totalStudents: number;
-  sortBy: SortOption;
-  setSortBy: (s: SortOption) => void;
-  viewMode: 'grid' | 'list';
-  setViewMode: (mode: 'grid' | 'list') => void;
-}) => {
-  const activeLocation = locations.find((loc) => loc.id === selectedLocation);
-
-  const chipBase =
-    'inline-flex items-center justify-center gap-1.5 min-h-[34px] px-3 py-1.5 border text-[12px] font-semibold leading-tight transition-colors duration-150 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] focus-visible:ring-offset-1';
-
-  const chipOn = 'bg-[#1A2B4C] border-[#1A2B4C] text-white';
-  const chipOff =
-    'bg-white border-[#E5E7EB] text-[#374151] hover:border-[#B98A3E] hover:text-[#1A2B4C] hover:bg-[#F8F9FA]';
-
-  const useDropdown = locations.length > 8;
-
-  return (
-    <section className="rounded-lg border border-[#E5E7EB] bg-white shadow-md">
-      <div className="px-4 py-4 sm:px-5">
-        <div className="flex flex-col md:flex-row md:items-center gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <span className="h-4 w-[3px] bg-[#B98A3E] rounded-full" />
-              <h2 className="text-[16px] font-bold tracking-tight text-[#1A2B4C]">
-                Search students
-              </h2>
-            </div>
-            <p className="mt-1 text-[13px] text-[#4B5646]">
-              Find students by name, course, or tech center.
-            </p>
-          </div>
-
-          <div className="relative w-full md:w-[390px] lg:w-[450px] shrink-0">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B7280] pointer-events-none"
-              strokeWidth={2}
-            />
-            <input
-              type="text"
-              inputMode="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search students, courses..."
-              aria-label="Search students"
-              className="
-                w-full h-10 pl-10 pr-9
-                bg-[#F7F6F2]
-                border border-[#E5E7EB] rounded
-                text-[#1A2B4C]
-                placeholder:text-[#9CA3AF]
-                text-[14px] font-semibold
-                focus:outline-none
-                focus:bg-white
-                focus:border-[#B98A3E]
-                transition-colors
-              "
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                aria-label="Clear search"
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#6B7280] hover:text-[#1A2B4C]"
-              >
-                <X className="w-4 h-4" strokeWidth={2.5} />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="border-t border-[#E5E7EB] bg-[#F7F6F2] px-4 py-3 sm:px-5">
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-[#B98A3E] font-bold">
-                Tech centers
-              </span>
-              <span className="inline-flex items-center gap-1 border border-[#E5E7EB] bg-white px-2 py-1 rounded">
-                <Users className="w-3.5 h-3.5 text-[#1A2B4C]" strokeWidth={2} />
-                <span className="font-mono text-[12px] font-bold text-[#1A2B4C] tabular-nums">
-                  {totalStudents}
-                </span>
-              </span>
-            </div>
-
-            <div className="ml-auto flex items-center gap-1.5">
-              <ArrowDownUp className="w-4 h-4 text-[#B98A3E]" />
-              <label htmlFor="sort-select" className="sr-only">
-                Sort students
-              </label>
-              <select
-                id="sort-select"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="
-                  h-9 px-3 pr-8
-                  bg-white border border-[#E5E7EB] rounded
-                  text-[12px] font-bold text-[#1A2B4C]
-                  focus:outline-none focus:border-[#B98A3E]
-                  cursor-pointer
-                "
-              >
-                <option value="trending">Sort: Trending (followers → likes)</option>
-                <option value="popularity">Sort: Most Popular</option>
-                <option value="name">Sort: Name (A–Z)</option>
-                <option value="newest">Sort: Newest</option>
-                <option value="active">Sort: Recently Active</option>
-                <option value="mostFollowed">Sort: Most Followed</option>
-                <option value="mostLiked">Sort: Most Liked</option>
-              </select>
-            </div>
-          </div>
-
-          {useDropdown ? (
-            <div className="flex items-center gap-2">
-              <label htmlFor="tech-center-select" className="sr-only">
-                Filter by tech center
-              </label>
-              <select
-                id="tech-center-select"
-                value={selectedLocation}
-                onChange={(e) => setSelectedLocation(e.target.value)}
-                className="
-                  w-full h-10 px-3
-                  bg-white border border-[#E5E7EB] rounded
-                  text-[13px] font-bold text-[#1A2B4C]
-                  focus:outline-none focus:border-[#B98A3E]
-                  cursor-pointer
-                "
-              >
-                <option value="all">
-                  All tech centers ({totalStudents})
-                </option>
-                {locations.map((loc) => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.name} ({loc._count?.students || 0})
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <div
-              className="flex flex-wrap items-center gap-1.5"
-              role="tablist"
-              aria-label="Filter by tech center"
-            >
-              <button
-                type="button"
-                role="tab"
-                aria-selected={selectedLocation === 'all'}
-                onClick={() => setSelectedLocation('all')}
-                className={`${chipBase} ${selectedLocation === 'all' ? chipOn : chipOff}`}
-              >
-                <Users className="w-3.5 h-3.5" strokeWidth={2.2} />
-                <span>All</span>
-                <span
-                  className={`font-mono text-[11px] tabular-nums ${
-                    selectedLocation === 'all' ? 'text-white/80' : 'text-[#6B7280]'
-                  }`}
-                >
-                  {totalStudents}
-                </span>
-              </button>
-
-              {locations.map((location) => {
-                const count = location._count?.students || 0;
-                const isSelected = selectedLocation === location.id;
-                const hue = getTechCenterHue(location.name);
-
-                return (
-                  <button
-                    key={location.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={isSelected}
-                    onClick={() => setSelectedLocation(location.id)}
-                    title={location.name}
-                    className={`${chipBase} ${isSelected ? chipOn : chipOff}`}
-                  >
-                    <span
-                      className="w-1.5 h-1.5 rounded-full shrink-0"
-                      style={{ backgroundColor: isSelected ? '#fff' : hue }}
-                    />
-                    <span className="break-words text-left">{location.name}</span>
-                    <span
-                      className={`font-mono text-[11px] tabular-nums ${
-                        isSelected ? 'text-white/80' : 'text-[#6B7280]'
-                      }`}
-                    >
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {selectedLocation !== 'all' && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-[12px] text-[#6B7280]">Showing</span>
-              <span className="inline-flex items-center gap-1.5 border border-[#E5E7EB] bg-white px-2 py-1 text-[12px] font-bold text-[#1A2B4C] rounded">
-                <span
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{ backgroundColor: getTechCenterHue(activeLocation?.name) }}
-                />
-                {activeLocation?.name || 'Selected center'}
-              </span>
-            </div>
-          )}
-
-          <div className="flex items-center gap-1 border border-[#E5E7EB] bg-white rounded-lg p-1 ml-auto">
-            <button
-              type="button"
-              onClick={() => setViewMode('grid')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition-colors ${
-                viewMode === 'grid'
-                  ? 'bg-[#B98A3E] text-white'
-                  : 'text-[#6B7280] hover:text-[#1A2B4C]'
-              }`}
-              title="Grid view"
-            >
-              <LayoutGrid className="w-3.5 h-3.5" strokeWidth={2} />
-              <span className="text-[12px] font-semibold">Grid</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('list')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition-colors ${
-                viewMode === 'list'
-                  ? 'bg-[#B98A3E] text-white'
-                  : 'text-[#6B7280] hover:text-[#1A2B4C]'
-              }`}
-              title="List view"
-            >
-              <List className="w-3.5 h-3.5" strokeWidth={2} />
-              <span className="text-[12px] font-semibold">List</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
 };
 
 // ============================================================
@@ -569,7 +179,9 @@ const StudentMessageComposer = ({
         .json()
         .catch(() => ({}));
       if (!conversationResponse.ok || !conversationData.conversation?.id) {
-        throw new Error(conversationData.error || 'Failed to start conversation');
+        throw new Error(
+          conversationData.error || 'Failed to start conversation',
+        );
       }
 
       const conversationId = conversationData.conversation.id as string;
@@ -605,345 +217,535 @@ const StudentMessageComposer = ({
           setMessage(event.target.value);
           setSendStatus(null);
         }}
-        placeholder="Write a message..."
+        placeholder="Send message..."
         aria-label="Write a message"
         disabled={isSending}
-        className="h-7 min-w-0 w-0 flex-1 rounded border border-[#E5E7EB] px-2 text-[11px] text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:border-[#B98A3E] focus:outline-none disabled:opacity-60 sm:w-28 sm:flex-none"
+        className="h-6 min-w-0 flex-1 border border-[#D1D5DB] bg-white px-1.5 text-[11px] font-normal text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:border-[#1A2B4C] focus:outline-none disabled:opacity-60"
       />
       <button
         type="submit"
         disabled={!message.trim() || isSending}
         aria-label="Send message"
-        title="Send message"
-        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded bg-[#1A2B4C] text-white transition-colors hover:bg-[#2C3E5A] disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex h-6 w-6 shrink-0 items-center justify-center bg-[#1A2B4C] text-white hover:bg-[#23385d] disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <Send className="h-3.5 w-3.5" strokeWidth={2} />
+        <Send className="h-3 w-3" strokeWidth={2} />
       </button>
       <span
-        className={`shrink-0 text-[10px] ${
+        className={`shrink-0 text-[10px] font-medium ${
           sendStatus === 'error' ? 'text-[#A4462F]' : 'text-[#55705B]'
         }`}
         aria-live="polite"
       >
-        {sendStatus === 'sent' ? 'Sent' : sendStatus === 'error' ? 'Failed' : ''}
+        {sendStatus === 'sent'
+          ? 'Sent'
+          : sendStatus === 'error'
+            ? 'Failed'
+            : ''}
       </span>
     </form>
   );
 };
 
 // ============================================================
-// STUDENT CARD (Grid)
+// STUDENT CARD
 // ============================================================
 
 const StudentCard = ({
   student,
   router,
   currentUserId,
+  rank,
+  isTrendingSection,
 }: {
   student: Student;
   router: Router;
   currentUserId?: string;
+  rank?: number;
+  isTrendingSection?: boolean;
 }) => {
-  const getInitials = (firstName: string, lastName: string) =>
-    `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-
-  const getTotalCredits = (s: Student) =>
-    s.studentCourses?.reduce(
+  const initials = `${student.firstName.charAt(0)}${student.lastName.charAt(
+    0,
+  )}`.toUpperCase();
+  const fullName = `${student.firstName} ${student.lastName}`;
+  const totalCredits =
+    student.studentCourses?.reduce(
       (total, course) => total + (course.credits || 0),
       0,
     ) ?? 0;
-
-  const initials = getInitials(student.firstName, student.lastName);
-  const fullName = `${student.firstName} ${student.lastName}`;
-  const totalCredits = getTotalCredits(student);
   const hue = getTechCenterHue(student.techCenter?.name);
   const isCurrentUser = currentUserId === student.id;
 
   return (
-    <article
-      className="
-        group bg-white shadow-md rounded-lg
-        overflow-hidden
-        transition-all duration-200
-        hover:shadow-lg hover:-translate-y-0.5
-      "
-    >
-      <div className="grid grid-cols-3">
-        <div className="relative bg-[#F7F6F2] aspect-square">
-          {student.profileImageUrl ? (
-            <Image
-              src={student.profileImageUrl}
-              alt={fullName}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 33vw, 160px"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-[#1A2B4C]">
-              <span className="text-white text-[20px] font-mono font-bold">
-                {initials}
-              </span>
-            </div>
-          )}
-        </div>
+    <article className="w-[270px] shrink-0 snap-start border border-[#D1D5DB] bg-white sm:w-[290px]">
+      <div className="bg-[#1A2B4C] px-3 py-2 text-white flex items-center justify-between">
+        <span className="font-mono text-[10px] font-bold tracking-wider text-[#B98A3E] uppercase">
+          {student.techCenter?.name || 'Student Record'}
+        </span>
+        {isTrendingSection && (
+          <span className="inline-flex items-center gap-1 bg-[#B98A3E] px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase text-white">
+            <Flame className="h-2.5 w-2.5" />
+            Trending
+          </span>
+        )}
+      </div>
 
-        <div className="col-span-2 px-3 py-2.5 flex flex-col justify-center">
-          <div className="flex items-start justify-between gap-2 mb-1.5">
-            <h3 className="text-[14px] font-bold leading-snug text-[#1A2B4C] break-words flex-1">
-              {fullName}
-            </h3>
-            <span className="text-[10px] font-semibold text-[#4B5646] shrink-0 bg-[#F7F6F2] px-1.5 py-0.5 rounded">
-              {student.role?.name === 'teacher'
-                ? 'Tutor'
-                : student.role?.name || 'Student'}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1.5 text-[11px] text-[#4B5646] mb-2">
-            <span
-              className="w-2 h-2 rounded-full shrink-0"
-              style={{ backgroundColor: hue }}
-            />
-            <span className="truncate font-medium">
-              {student.techCenter?.name || 'No location'}
-            </span>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px]">
-            <div className="flex items-center gap-1">
-              <Users className="w-3 h-3 text-[#B98A3E]" strokeWidth={2.2} />
-              <span className="font-mono font-bold text-[#1A2B4C]">
-                {student.followersCount}
-              </span>
-              <span className="text-[#4B5646] font-medium">followers</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Heart className="w-3 h-3 text-red-500" strokeWidth={2.2} />
-              <span className="font-mono font-bold text-[#1A2B4C]">
-                {Math.max(0, student.likesReceivedCount)}
-              </span>
-              <span className="text-[#4B5646] font-medium">likes</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Eye className="w-3 h-3 text-[#3E5C76]" strokeWidth={2.2} />
-              <span className="font-mono font-bold text-[#1A2B4C]">
-                {student.profileViewsCount}
-              </span>
-              <span className="text-[#4B5646] font-medium">views</span>
-            </div>
-          </div>
-
-          {!isCurrentUser && currentUserId && (
-            <div className="mt-1.5 min-w-0">
-              <StudentMessageComposer recipientId={student.id} />
-            </div>
-          )}
-        </div>
-
-        <div className="col-span-3 px-3 pt-2 pb-2">
-          <div>
-            <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-[#8A6A2E] font-bold mb-1">
-              General Degree Course
-            </p>
-            <p className="text-[12px] font-semibold text-[#1A2B4C] break-words leading-5 mb-1.5">
-              {student.generalCourse || 'Not specified'}
-            </p>
-          </div>
-
-          {student.studentCourses?.length > 0 && (
-            <div>
-              <p className="flex items-center justify-between gap-1 font-mono text-[9px] uppercase tracking-[0.1em] text-[#8A6A2E] font-bold mb-1">
-                <span className="flex items-center gap-1">
-                  <BookOpen className="w-3 h-3 text-[#B98A3E]" strokeWidth={2.2} />
-                  Course Units
-                </span>
-                <span className="text-[#1A2B4C]">{totalCredits} cr</span>
-              </p>
-              <div className="divide-y divide-[#EDF1F4]">
-                {student.studentCourses.map((course) => (
-                  <div
-                    key={course.id}
-                    className="flex items-center justify-between gap-2 py-1"
-                  >
-                    <span className="min-w-0 flex-1 break-words text-[11px] font-semibold leading-snug text-[#1A2B4C]">
-                      {course.courseUnit}
-                    </span>
-                    <span className="shrink-0 rounded-sm bg-[#F7F6F2] px-1.5 py-0.5 font-mono text-[10px] font-bold tabular-nums text-[#4B5646]">
-                      {course.credits}cr
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="col-span-3 px-3 py-2 flex items-center justify-between flex-wrap gap-1.5 border-t border-[#F3F4F6]">
+      <div className="p-3 border-b border-[#E5E7EB]">
+        <div className="flex items-start gap-3">
           <button
             type="button"
             onClick={() => router.push(`/dashboard/students/${student.id}`)}
-            className="inline-flex items-center gap-0.5 text-[12px] font-bold text-[#8A6A2E] transition-colors hover:text-[#1A2B4C] cursor-pointer"
+            className="relative h-12 w-12 shrink-0 border border-[#D1D5DB] bg-[#F7F6F2] text-left overflow-hidden"
+            aria-label={`Open ${fullName}'s profile`}
           >
-            View Profile
-            <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+            {student.profileImageUrl ? (
+              <Image
+                src={student.profileImageUrl}
+                alt={fullName}
+                fill
+                className="object-cover"
+                sizes="48px"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-[#1A2B4C] text-white">
+                <span className="font-mono text-[13px] font-bold tracking-wider text-[#B98A3E]">
+                  {initials}
+                </span>
+              </div>
+            )}
+
+            {typeof rank === 'number' && (
+              <span
+                className={`absolute left-0 top-0 inline-flex h-4 min-w-[16px] items-center justify-center px-1 font-mono text-[9px] font-bold tabular-nums ${
+                  rank === 1
+                    ? 'bg-[#B98A3E] text-white'
+                    : rank === 2
+                      ? 'bg-[#55705B] text-white'
+                      : rank === 3
+                        ? 'bg-[#A4462F] text-white'
+                        : 'bg-[#1A2B4C] text-white'
+                }`}
+              >
+                #{rank}
+              </span>
+            )}
           </button>
 
-          {!isCurrentUser && (
-            <SocialActions
-              userId={student.id}
-              currentUserId={currentUserId}
-              pageAdapters={STUDENT_DIRECTORY_ADAPTERS}
-              size="xs"
-              allowUnfollow={false}
-              allowUnlike={true}
-            />
-          )}
-        </div>
-      </div>
-    </article>
-  );
-};
-
-// ============================================================
-// STUDENT LIST CARD (List)
-// ============================================================
-
-const StudentListCard = ({
-  student,
-  router,
-  currentUserId,
-}: {
-  student: Student;
-  router: Router;
-  currentUserId?: string;
-}) => {
-  const getTotalCredits = (s: Student) =>
-    s.studentCourses?.reduce(
-      (total, course) => total + (course.credits || 0),
-      0,
-    ) ?? 0;
-
-  const fullName = `${student.firstName} ${student.lastName}`;
-  const totalCredits = getTotalCredits(student);
-  const hue = getTechCenterHue(student.techCenter?.name);
-  const isCurrentUser = currentUserId === student.id;
-
-  return (
-    <article className="bg-white shadow-sm rounded-lg overflow-hidden transition-all duration-200 hover:shadow-md">
-      <div className="px-4 py-3">
-        <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="min-w-0 flex-1">
-            <h3 className="text-[15px] font-bold text-[#1A2B4C] truncate">
-              {fullName}
-            </h3>
-
-            <div className="mt-1 flex items-center gap-2 text-[12px] text-[#4B5646]">
-              <span className="flex shrink-0 items-center gap-1 whitespace-nowrap">
-                <span
-                  className="w-1.5 h-1.5 rounded-full shrink-0"
-                  style={{ backgroundColor: hue }}
-                />
-                <span className="whitespace-nowrap font-medium">
-                  {student.techCenter?.name || 'No location'}
-                </span>
-              </span>
-              <span className="ml-auto shrink-0 whitespace-nowrap font-medium">
+            <div className="flex items-start justify-between gap-1">
+              <button
+                type="button"
+                onClick={() => router.push(`/dashboard/students/${student.id}`)}
+                className="min-w-0 flex-1 text-left"
+              >
+                <h3 className="truncate text-[13px] font-bold text-[#1A2B4C] hover:underline">
+                  {fullName}
+                </h3>
+              </button>
+              <span className="shrink-0 border border-[#D1D5DB] bg-[#F8F9FA] px-1.5 py-0.5 font-mono text-[9px] font-semibold text-[#4B5646]">
                 {student.role?.name === 'teacher'
                   ? 'Tutor'
                   : student.role?.name || 'Student'}
               </span>
             </div>
-          </div>
 
-          <div className="shrink-0 flex flex-wrap items-center justify-start gap-x-3 gap-y-1 text-[12px] sm:justify-end">
-            <span className="inline-flex items-center gap-1 font-mono text-[#4B5646] font-bold">
-              <Users className="h-3.5 w-3.5 text-[#B98A3E]" strokeWidth={2.2} />
-              {student.followersCount} followers
+            <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[#4B5646]">
+              <span
+                className="h-2 w-2 shrink-0 border border-[#D1D5DB]"
+                style={{ backgroundColor: hue || '#B98A3E' }}
+              />
+              <span className="truncate font-normal">
+                {student.techCenter?.name || student.techCenter?.country?.name || 'Campus Member'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-3 grid grid-cols-3 gap-1 border-t border-[#E5E7EB] pt-2 text-center text-[10px] text-[#4B5646]">
+          <div>
+            <span className="font-mono font-bold text-[#1A2B4C]">
+              {student.followersCount}
+            </span>{' '}
+            followers
+          </div>
+          <div>
+            <span className="font-mono font-bold text-[#1A2B4C]">
+              {Math.max(0, student.likesReceivedCount)}
+            </span>{' '}
+            likes
+          </div>
+          <div>
+            <span className="font-mono font-bold text-[#1A2B4C]">
+              {student.profileViewsCount}
+            </span>{' '}
+            views
+          </div>
+        </div>
+      </div>
+
+      <div className="border-b border-[#E5E7EB] bg-white px-3 py-2">
+        <span className="font-mono text-[9px] font-bold uppercase text-[#B98A3E] block">
+          Degree Program
+        </span>
+        <span className="mt-0.5 block truncate text-[11px] font-medium text-[#1A2B4C]">
+          {student.generalCourse || 'General Curriculum'}
+        </span>
+      </div>
+
+      {student.studentCourses?.length > 0 && (
+        <div className="border-b border-[#E5E7EB] bg-[#F7F6F2] px-3 py-2">
+          <div className="mb-1.5 flex items-center justify-between text-[10px]">
+            <span className="font-mono font-bold uppercase text-[#1A2B4C] flex items-center gap-1">
+              <BookOpen className="h-3 w-3 text-[#B98A3E]" />
+              Enrolled Course Units
             </span>
-            <span className="inline-flex items-center gap-1 font-mono text-[#4B5646] font-bold">
-              <Heart className="h-3.5 w-3.5 text-red-500" strokeWidth={2.2} />
-              {Math.max(0, student.likesReceivedCount)} likes
-            </span>
-            <span className="inline-flex items-center gap-1 font-mono text-[#4B5646] font-bold">
-              <Eye className="h-3.5 w-3.5 text-[#3E5C76]" strokeWidth={2.2} />
-              {student.profileViewsCount} views
-            </span>
-            <span className="font-mono text-[#B98A3E] font-bold">
-              {student.studentCourses?.length || 0} courses
-            </span>
-            <span className="font-mono text-[#4B5646] font-bold">
+            <span className="font-mono font-bold text-[#1A2B4C]">
               {totalCredits} cr
             </span>
           </div>
-        </div>
 
-        <div className="mt-2 space-y-1.5">
-          <div className="flex flex-wrap items-baseline gap-1.5">
-            <p className="font-mono text-[9px] uppercase tracking-[0.09em] text-[#B98A3E] font-bold">
-              General Degree Course:
-            </p>
-            <p className="text-[12px] font-semibold text-[#1A2B4C]">
-              {student.generalCourse || 'Not specified'}
-            </p>
-          </div>
-
-          {student.studentCourses?.length > 0 && (
-            <div>
-              <p className="flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.1em] text-[#B98A3E] font-bold mb-1">
-                <BookOpen className="w-2.5 h-2.5 text-[#B98A3E]" strokeWidth={2.2} />
-                Course Units taking
-              </p>
-
-              <div className="space-y-0.5">
-                {student.studentCourses.map((course) => (
-                  <div
-                    key={course.id}
-                    className="flex items-center justify-between gap-2"
-                  >
-                    <span className="text-[11px] font-medium text-[#1A2B4C] flex-1 truncate">
-                      {course.courseUnit}
-                    </span>
-                    <span className="shrink-0 font-mono text-[10px] text-[#4B5646] tabular-nums font-bold">
-                      {course.credits} cr
-                    </span>
-                  </div>
-                ))}
+          <div className="space-y-1">
+            {student.studentCourses.slice(0, 3).map((course) => (
+              <div
+                key={course.id}
+                className="flex items-center justify-between gap-1 bg-white border border-[#E5E7EB] px-2 py-1"
+              >
+                <span className="truncate text-[10px] font-normal text-[#1A2B4C]">
+                  {course.courseUnit}
+                </span>
+                <span className="shrink-0 font-mono text-[9px] font-bold text-[#55705B]">
+                  {course.credits}cr
+                </span>
               </div>
-            </div>
-          )}
+            ))}
+            {student.studentCourses.length > 3 && (
+              <p className="font-mono text-[9px] text-[#6B7280] pt-0.5">
+                +{student.studentCourses.length - 3} more units
+              </p>
+            )}
+          </div>
         </div>
+      )}
 
-        <div className="mt-2.5 pt-2.5 border-t border-[#F3F4F6] flex items-center justify-between gap-3 flex-wrap">
-          <button
-            type="button"
-            onClick={() => router.push(`/dashboard/students/${student.id}`)}
-            className="inline-flex items-center gap-0.5 text-[12px] font-bold text-[#B98A3E] transition-colors hover:text-[#1A2B4C] cursor-pointer"
-          >
-            View Profile
-            <ChevronRight className="w-3 h-3" />
-          </button>
-
-          {!isCurrentUser && (
-            <SocialActions
-              userId={student.id}
-              currentUserId={currentUserId}
-              pageAdapters={STUDENT_DIRECTORY_ADAPTERS}
-              size="xs"
-              allowUnfollow={false}
-              allowUnlike={true}
-            />
-          )}
+      {!isCurrentUser && currentUserId && (
+        <div className="border-b border-[#E5E7EB] bg-white px-3 py-2">
+          <StudentMessageComposer recipientId={student.id} />
         </div>
+      )}
+
+      <div className="flex items-center justify-between bg-white px-3 py-2">
+        <button
+          type="button"
+          onClick={() => router.push(`/dashboard/students/${student.id}`)}
+          className="inline-flex items-center gap-1 text-[11px] font-bold text-[#1A2B4C] hover:text-[#B98A3E]"
+        >
+          View profile
+          <ChevronRight className="h-3 w-3" />
+        </button>
+
+        {!isCurrentUser && (
+          <SocialActions
+            userId={student.id}
+            currentUserId={currentUserId}
+            pageAdapters={STUDENT_DIRECTORY_ADAPTERS}
+            size="xs"
+            allowUnfollow={false}
+            allowUnlike={true}
+          />
+        )}
       </div>
     </article>
   );
 };
 
 // ============================================================
+// HORIZONTAL RAIL
+// ============================================================
+
+function HorizontalRail({
+  label,
+  count,
+  hue,
+  students,
+  router,
+  currentUserId,
+  showRank,
+  isTrendingSection,
+}: {
+  label: string;
+  count?: number;
+  hue?: string;
+  students: Student[];
+  router: Router;
+  currentUserId?: string;
+  showRank?: boolean;
+  isTrendingSection?: boolean;
+}) {
+  const railRef = useRef<HTMLDivElement>(null);
+
+  const scrollLeft = () => {
+    railRef.current?.scrollBy({ left: -560, behavior: 'smooth' });
+  };
+  const scrollRight = () => {
+    railRef.current?.scrollBy({ left: 560, behavior: 'smooth' });
+  };
+
+  if (students.length === 0) {
+    return (
+      <section className="mb-6">
+        <div className="mb-2.5 flex items-baseline gap-3 border-t border-[#1A2B4C] pt-2">
+          {hue && (
+            <span
+              className="h-3 w-1 shrink-0"
+              style={{ backgroundColor: hue }}
+            />
+          )}
+          <h2 className="text-[15px] font-bold uppercase tracking-wide text-[#1A2B4C]">
+            {label}
+          </h2>
+          <span className="font-mono text-[11px] font-bold text-[#B98A3E]">0</span>
+        </div>
+        <div className="border border-[#D1D5DB] bg-white px-4 py-5 text-center">
+          <p className="text-[12px] text-[#4B5646]">No student records available</p>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="mb-6">
+      <div className="mb-2.5 flex items-baseline justify-between border-t border-[#1A2B4C] pt-2">
+        <div className="flex items-center gap-2">
+          {hue && (
+            <span
+              className="h-3 w-1 shrink-0"
+              style={{ backgroundColor: hue }}
+            />
+          )}
+          <h2 className="text-[15px] font-bold uppercase tracking-wide text-[#1A2B4C]">
+            {label}
+          </h2>
+          {typeof count === 'number' && (
+            <span className="font-mono text-[11px] font-bold text-[#B98A3E]">
+              ({count})
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div
+        ref={railRef}
+        className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 scroll-smooth"
+        style={{ scrollbarWidth: 'thin' }}
+      >
+        {students.map((student, idx) => (
+          <StudentCard
+            key={student.id}
+            student={student}
+            router={router}
+            currentUserId={currentUserId}
+            rank={showRank ? idx + 1 : undefined}
+            isTrendingSection={isTrendingSection}
+          />
+        ))}
+        <div className="w-1 shrink-0" aria-hidden />
+      </div>
+
+      <div className="mt-1 flex items-center justify-end gap-1">
+        <button
+          type="button"
+          onClick={scrollLeft}
+          aria-label="Scroll left"
+          className="inline-flex h-6 w-6 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C]"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={scrollRight}
+          aria-label="Scroll right"
+          className="inline-flex h-6 w-6 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C]"
+        >
+          <ChevronRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </section>
+  );
+}
+
+// ============================================================
+// SEARCH & FILTER BAR
+// ============================================================
+
+function SearchFilterBar({
+  searchQuery,
+  setSearchQuery,
+  selectedLocation,
+  setSelectedLocation,
+  locations,
+  totalStudents,
+  sortBy,
+  setSortBy,
+  studentsByTechCenter,
+}: {
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  selectedLocation: string;
+  setSelectedLocation: (id: string) => void;
+  locations: TechCenter[];
+  totalStudents: number;
+  sortBy: SortOption;
+  setSortBy: (s: SortOption) => void;
+  studentsByTechCenter: Record<string, Student[]>;
+}) {
+  const useDropdown = locations.length > 8;
+
+  const chipBase =
+    'inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] font-bold border transition-colors';
+  const chipOn = 'bg-[#1A2B4C] border-[#1A2B4C] text-white';
+  const chipOff = 'bg-white border-[#D1D5DB] text-[#4B5646] hover:border-[#1A2B4C]';
+
+  return (
+    <section className="border border-[#1A2B4C] bg-white">
+      <div className="border-b border-[#D1D5DB] px-3 py-2">
+        <div className="relative w-full">
+          <Search
+            className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#6B7280]"
+          />
+          <input
+            type="text"
+            inputMode="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search student records by name or course unit..."
+            aria-label="Search students"
+            className="h-8 w-full border border-[#D1D5DB] bg-white pl-8 pr-7 text-[12px] font-normal text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:border-[#1A2B4C] focus:outline-none"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              aria-label="Clear search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[#6B7280] hover:text-[#1A2B4C]"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-[#F7F6F2] px-3 py-2">
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                Total Records:
+              </span>
+              <span className="font-mono text-[11px] font-bold text-[#1A2B4C]">
+                {totalStudents}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <ArrowDownUp className="h-3 w-3 text-[#6B7280]" />
+              <label htmlFor="sort-select" className="sr-only">
+                Sort students
+              </label>
+              <select
+                id="sort-select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                className="h-7 border border-[#D1D5DB] bg-white px-2 pr-6 text-[11px] font-normal text-[#1A2B4C] focus:border-[#1A2B4C] focus:outline-none"
+              >
+                <option value="trending">Trending</option>
+                <option value="popularity">Most popular</option>
+                <option value="name">Name (A–Z)</option>
+                <option value="newest">Newest</option>
+                <option value="active">Recently active</option>
+                <option value="mostFollowed">Most followed</option>
+                <option value="mostLiked">Most liked</option>
+              </select>
+            </div>
+          </div>
+
+          {useDropdown ? (
+            <select
+              value={selectedLocation}
+              onChange={(e) => setSelectedLocation(e.target.value)}
+              className="h-7 w-full border border-[#D1D5DB] bg-white px-2 text-[11px] font-normal text-[#1A2B4C] focus:border-[#1A2B4C] focus:outline-none"
+            >
+              <option value="all">All Tech Centers ({totalStudents})</option>
+              {locations.map((loc) => {
+                const count = studentsByTechCenter[loc.name]?.length ?? loc._count?.students ?? 0;
+                return (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name} ({count})
+                  </option>
+                );
+              })}
+            </select>
+          ) : (
+            <div className="flex flex-wrap items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setSelectedLocation('all')}
+                className={`${chipBase} ${selectedLocation === 'all' ? chipOn : chipOff}`}
+              >
+                All
+                <span className="font-mono text-[10px]">
+                  ({totalStudents})
+                </span>
+              </button>
+
+              {locations.map((location) => {
+                const count = studentsByTechCenter[location.name]?.length ?? location._count?.students ?? 0;
+                const isSelected = selectedLocation === location.id;
+                const hue = getTechCenterHue(location.name);
+
+                return (
+                  <button
+                    key={location.id}
+                    type="button"
+                    onClick={() => setSelectedLocation(location.id)}
+                    className={`${chipBase} ${isSelected ? chipOn : chipOff}`}
+                  >
+                    <span
+                      className="h-1.5 w-1.5 shrink-0 border border-[#D1D5DB]"
+                      style={{ backgroundColor: hue }}
+                    />
+                    <span>{location.name}</span>
+                    <span className="font-mono text-[10px]">({count})</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {selectedLocation !== 'all' && (
+            <div className="flex items-center gap-2 text-[11px] text-[#4B5646]">
+              <span>Active center:</span>
+              <span className="font-bold text-[#1A2B4C]">
+                {locations.find((l) => l.id === selectedLocation)?.name}
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedLocation('all')}
+                className="text-[#A4462F] underline hover:text-[#1A2B4C]"
+              >
+                Clear filter
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ============================================================
 // COMMUNITY TICKER
 // ============================================================
 
-const CommunityTicker = ({ students }: { students: Student[] }) => {
+function CommunityTicker({ students }: { students: Student[] }) {
   const profileStudents = students.filter(
     (student) =>
       typeof student.profileImageUrl === 'string' &&
@@ -952,36 +754,36 @@ const CommunityTicker = ({ students }: { students: Student[] }) => {
   const tickerStudents = [...profileStudents, ...profileStudents];
 
   return (
-    <div className="overflow-hidden border border-[#E5E7EB] bg-white rounded-lg shadow-md">
-      <div className="flex h-14 items-center overflow-hidden">
-        <div className="h-full shrink-0 border-r border-[#E5E7EB] bg-[#1A2B4C] px-3 flex items-center">
-          <span className="font-mono text-[10px] uppercase tracking-[0.13em] text-white font-bold">
-            Community
+    <div className="border border-[#1A2B4C] bg-[#1A2B4C]">
+      <div className="flex h-9 items-center overflow-hidden">
+        <div className="flex h-full shrink-0 items-center border-r border-white/20 bg-[#0F1923] px-3">
+          <span className="font-mono text-[9px] font-bold tracking-widest text-[#B98A3E] uppercase">
+            Directory Stream
           </span>
         </div>
 
         <div className="relative min-w-0 flex-1 overflow-hidden">
           {profileStudents.length > 0 ? (
-            <div className="student-avatar-ticker flex w-max items-center gap-3 px-3">
+            <div className="student-avatar-ticker flex w-max items-center gap-2 px-3">
               {tickerStudents.map((student, index) => (
                 <div
                   key={`${student.id}-${index}`}
-                  className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border-2 border-white shadow-sm ring-1 ring-[#DADCD3]"
+                  className="relative h-6 w-6 shrink-0 border border-white/30 overflow-hidden bg-white"
                   title={`${student.firstName} ${student.lastName}`}
                 >
                   <Image
                     src={student.profileImageUrl!}
                     alt={`${student.firstName} ${student.lastName}`}
                     fill
-                    sizes="36px"
+                    sizes="24px"
                     className="object-cover"
                   />
                 </div>
               ))}
             </div>
           ) : (
-            <p className="px-4 text-[12px] font-medium text-[#6B7268]">
-              Student community
+            <p className="px-3 text-[11px] text-white/70">
+              Active student roster
             </p>
           )}
         </div>
@@ -1008,7 +810,7 @@ const CommunityTicker = ({ students }: { students: Student[] }) => {
       `}</style>
     </div>
   );
-};
+}
 
 // ============================================================
 // MAIN PAGE
@@ -1023,7 +825,7 @@ export default function StudentsPage() {
   const [selectedLocation, setSelectedLocation] = useState('all');
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('trending');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [feedScope, setFeedScope] = useState<FeedScope>('all');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -1034,11 +836,9 @@ export default function StudentsPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Single fetch — directory + stats in one response
   const {
     data,
     isLoading,
-    isFetching,
     error,
     refetch: refetchStudents,
   } = useQuery({
@@ -1065,6 +865,18 @@ export default function StudentsPage() {
     () => Object.values(studentsByTechCenter).flat() as Student[],
     [studentsByTechCenter],
   );
+
+  const followingCount = useMemo(
+    () => allStudents.filter((s) => s.isFollowing).length,
+    [allStudents],
+  );
+
+  const scopedStudents = useMemo(() => {
+    if (feedScope === 'following') {
+      return allStudents.filter((s) => s.isFollowing);
+    }
+    return allStudents;
+  }, [allStudents, feedScope]);
 
   const filterStudents = (students: Student[]) => {
     let filtered = students;
@@ -1095,329 +907,170 @@ export default function StudentsPage() {
     return filtered;
   };
 
-  const filteredAllStudents = sortStudents(
-    filterStudents(allStudents),
-    sortBy,
+  const filteredScoped = useMemo(
+    () => filterStudents(scopedStudents),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [scopedStudents, selectedLocation, searchQuery],
   );
 
-  const getLocationCount = (locationId: string) =>
-    allStudents.filter((student) => student.techCenter?.id === locationId)
-      .length;
-
-  const locations = [...techCenters]
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map((center) => ({
-      ...center,
-      _count: { students: getLocationCount(center.id) },
-    }));
-
-  const clearFilter = () => {
-    setSelectedLocation('all');
-    setSearchQuery('');
-  };
-
-  const hasActiveFilters =
-    selectedLocation !== 'all' || Boolean(searchQuery.trim());
-  const hasStudents = allStudents.length > 0;
-
-  const isInitialLoading = isLoading && !data;
-
-  if (isInitialLoading) {
-    return <FullPageSkeleton viewMode={viewMode} />;
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-[#F7F6F2] flex items-center justify-center px-4">
-        <div className="max-w-sm w-full text-center border border-[#E5E7EB] bg-white p-8 rounded-lg shadow-md">
-          <div className="mx-auto w-12 h-12 bg-[#FBF0EC] flex items-center justify-center rounded">
-            <AlertCircle className="w-6 h-6 text-[#A4462F]" strokeWidth={2} />
-          </div>
-          <h2 className="mt-4 text-[17px] font-bold text-[#1A2B4C]">
-            Failed to load students
-          </h2>
-          <p className="mt-1.5 text-[13px] leading-5 text-[#4B5646]">
-            {error instanceof Error ? error.message : 'Please try again later'}
-          </p>
-          <button
-            onClick={() => refetchStudents()}
-            className="mt-5 h-10 px-5 bg-[#1A2B4C] text-white font-mono text-[12px] uppercase tracking-widest hover:bg-[#2C3E5A] transition-colors rounded font-bold"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const showSectionSkeletons = isFetching && !hasStudents;
-
   return (
-    <div className="min-h-screen bg-[#F7F6F2]">
-      {showBackToTop && (
-        <button
-          type="button"
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          aria-label="Back to top"
-          title="Back to top"
-          className="fixed bottom-5 left-3 z-40 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#1A2B4C] shadow-lg transition-all hover:-translate-y-0.5 hover:border-[#B98A3E] hover:bg-[#F7F6F2] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] focus-visible:ring-offset-2 sm:left-5"
-        >
-          <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
-        </button>
-      )}
-
-      <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 pb-10">
-        <header className="pt-6 pb-5">
-          <div className="flex flex-wrap items-center gap-1.5 mb-4">
-            <Link
-              href="/dashboard"
-              className="border border-[#E5E7EB] bg-white px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-wide text-[#4B5646] hover:border-[#B98A3E] hover:text-[#1A2B4C] transition-colors rounded font-semibold"
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/dashboard/courses"
-              className="border border-[#E5E7EB] bg-white px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-wide text-[#4B5646] hover:border-[#B98A3E] hover:text-[#1A2B4C] transition-colors rounded font-semibold"
-            >
-              Courses
-            </Link>
-            <Link
-              href="/dashboard/cleaning"
-              className="border border-[#E5E7EB] bg-white px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-wide text-[#4B5646] hover:border-[#B98A3E] hover:text-[#1A2B4C] transition-colors rounded font-semibold"
-            >
-              Cleaning
-            </Link>
-          </div>
-
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+    <div className="min-h-screen bg-[#F7F6F2] text-[#1A2B4C]">
+      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6">
+        
+        {/* Institutional Header Banner */}
+        <div className="mb-5 border border-[#1A2B4C] bg-[#1A2B4C] p-4 text-white">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
-              <h1 className="text-[30px] sm:text-[34px] font-bold tracking-tight text-[#1A2B4C] leading-tight">
-                Students
+              <p className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#B98A3E]">
+                Official Directory
+              </p>
+              <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
+                Student Directory & Academic Roster
               </h1>
-              <p className="mt-1.5 text-[14px] leading-5 text-[#B98A3E] font-semibold">
-                {totalStudents} students across {techCenters.length} tech centers.
+              <p className="mt-1 text-[11px] text-white/80">
+                Browse student profiles, course registrations, and institutional campus locations.
               </p>
             </div>
-            <button
-              onClick={() => refetchStudents()}
-              className="inline-flex items-center gap-1.5 px-3 py-2 border border-[#E5E7EB] bg-white rounded text-[12px] font-bold text-[#1A2B4C] hover:border-[#B98A3E] hover:bg-[#F7F6F2] transition-colors"
-            >
-              Refresh
-            </button>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setFeedScope('all')}
+                className={`border px-3 py-1.5 text-[11px] font-bold transition-colors ${
+                  feedScope === 'all'
+                    ? 'border-[#B98A3E] bg-[#B98A3E] text-white'
+                    : 'border-white/20 bg-[#1A2B4C] text-white hover:border-white'
+                }`}
+              >
+                All Students ({totalStudents})
+              </button>
+              {currentUserId && (
+                <button
+                  type="button"
+                  onClick={() => setFeedScope('following')}
+                  className={`border px-3 py-1.5 text-[11px] font-bold transition-colors ${
+                    feedScope === 'following'
+                      ? 'border-[#B98A3E] bg-[#B98A3E] text-white'
+                      : 'border-white/20 bg-[#1A2B4C] text-white hover:border-white'
+                  }`}
+                >
+                  Following ({followingCount})
+                </button>
+              )}
+            </div>
           </div>
-        </header>
+        </div>
 
-        <p className="mb-3 text-[12px] leading-5 text-[#3E5C76]">
-          High engagement can earn a blue verification badge and a free Pro
-          upgrade.
-        </p>
-
-        <SearchFilterBar
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          selectedLocation={selectedLocation}
-          setSelectedLocation={setSelectedLocation}
-          locations={locations}
-          totalStudents={totalStudents}
-          sortBy={sortBy}
-          setSortBy={setSortBy}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-        />
-
-        <div className="mt-4">
+        {/* Community Ticker */}
+        <div className="mb-5">
           <CommunityTicker students={allStudents} />
         </div>
 
-        <main className="pt-6">
-          {showSectionSkeletons && (
-            <>
-              {[1, 2, 3].map((i) => (
-                <SectionSkeleton key={i} viewMode={viewMode} />
-              ))}
-            </>
-          )}
+        {/* Search & Filter Section */}
+        <div className="mb-6">
+          <SearchFilterBar
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            selectedLocation={selectedLocation}
+            setSelectedLocation={setSelectedLocation}
+            locations={techCenters}
+            totalStudents={totalStudents}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            studentsByTechCenter={studentsByTechCenter}
+          />
+        </div>
 
-          {!showSectionSkeletons && !hasStudents && (
-            <div className="border border-dashed border-[#D1D5DB] bg-white py-20 text-center rounded-lg shadow-md">
-              <Users
-                className="mx-auto w-10 h-10 text-[#9CA3AF]"
-                strokeWidth={1.6}
-              />
-              <h3 className="mt-4 text-[16px] font-bold text-[#1A2B4C]">
-                No students yet
-              </h3>
-              <p className="mt-1.5 text-[14px] text-[#4B5646]">
-                Students will appear here once they register.
-              </p>
-            </div>
-          )}
+        {/* Dynamic Rails / Content */}
+        {isLoading ? (
+          <div className="border border-[#D1D5DB] bg-white p-10 text-center">
+            <div className="inline-block h-6 w-6 animate-spin border-2 border-[#1A2B4C] border-t-transparent"></div>
+            <p className="mt-3 font-mono text-[11px] font-bold text-[#1A2B4C]">
+              Loading directory records...
+            </p>
+          </div>
+        ) : error ? (
+          <div className="border border-[#A4462F] bg-white p-6 text-center">
+            <AlertCircle className="mx-auto h-6 w-6 text-[#A4462F]" />
+            <p className="mt-2 text-[12px] font-bold text-[#1A2B4C]">
+              Unable to load roster records.
+            </p>
+            <button
+              type="button"
+              onClick={() => void refetchStudents()}
+              className="mt-3 border border-[#1A2B4C] bg-[#1A2B4C] px-3 py-1 text-[11px] font-bold text-white hover:bg-[#23385d]"
+            >
+              Retry
+            </button>
+          </div>
+        ) : filteredScoped.length === 0 ? (
+          <div className="border border-dashed border-[#D1D5DB] bg-white p-10 text-center">
+            <Users className="mx-auto h-8 w-8 text-[#6B7280]" />
+            <h3 className="mt-2 text-[13px] font-bold text-[#1A2B4C]">
+              No matching student records found
+            </h3>
+            <p className="mt-1 text-[11px] text-[#6B7280]">
+              Modify your search keywords or campus filter parameters.
+            </p>
+          </div>
+        ) : (
+          <div>
+            <HorizontalRail
+              label="Trending Student Profiles"
+              count={Math.min(10, sortStudents(filteredScoped, 'trending').length)}
+              hue="#B98A3E"
+              students={sortStudents(filteredScoped, 'trending').slice(0, 10)}
+              router={router}
+              currentUserId={currentUserId}
+              showRank={true}
+              isTrendingSection={true}
+            />
 
-          {hasStudents && hasActiveFilters && (
-            <>
-              {filteredAllStudents.length === 0 ? (
-                <div className="border border-[#E5E7EB] bg-white py-16 text-center px-6 rounded-lg shadow-md">
-                  <Search
-                    className="mx-auto w-9 h-9 text-[#9CA3AF]"
-                    strokeWidth={1.8}
-                  />
-                  <h3 className="mt-3 text-[16px] font-bold text-[#1A2B4C]">
-                    No matching students
-                  </h3>
-                  <p className="mt-1.5 text-[14px] leading-5 text-[#4B5646]">
-                    Try changing your search or location filter.
-                  </p>
-                  <button
-                    onClick={clearFilter}
-                    className="mt-5 h-10 px-5 bg-[#1A2B4C] text-white font-mono text-[12px] uppercase tracking-widest hover:bg-[#2C3E5A] transition-colors rounded font-bold"
-                  >
-                    Clear Filters
-                  </button>
-                </div>
-              ) : (
-                <>
-                  {viewMode === 'grid' ? (
-                    <div className="grid gap-3 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-                      {filteredAllStudents.map((student) => (
-                        <StudentCard
-                          key={student.id}
-                          student={student}
-                          router={router}
-                          currentUserId={currentUserId}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="grid gap-2 grid-cols-1">
-                      {filteredAllStudents.map((student) => (
-                        <StudentListCard
-                          key={student.id}
-                          student={student}
-                          router={router}
-                          currentUserId={currentUserId}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
-            </>
-          )}
+            <HorizontalRail
+              label="All Students"
+              count={sortStudents(filteredScoped, 'name').length}
+              hue="#1A2B4C"
+              students={sortStudents(filteredScoped, 'name')}
+              router={router}
+              currentUserId={currentUserId}
+            />
 
-          {hasStudents && !hasActiveFilters && (
-            <>
-              {Object.entries(studentsByTechCenter)
-                .sort(([nameA], [nameB]) => nameA.localeCompare(nameB))
-                .map(([locationName, students]) => {
-                  const studentList = sortStudents(
-                    students as Student[],
-                    sortBy,
-                  );
-                  if (studentList.length === 0) return null;
-                  const techCenter = techCenters.find(
-                    (tc) => tc.name === locationName,
-                  );
-                  const hue = getTechCenterHue(locationName);
-                  const previewCount = 6;
-                  const hasMore = studentList.length > previewCount;
-                  const visibleStudents = hasMore
-                    ? studentList.slice(0, previewCount)
-                    : studentList;
+            {techCenters.map((loc) => {
+              const centerStudents = filteredScoped.filter(
+                (s) => s.techCenter?.id === loc.id,
+              );
+              if (centerCentersCountIsZeroAndShouldHideIfUnfiltered(selectedLocation, centerStudents.length)) return null;
+              return (
+                <HorizontalRail
+                  key={loc.id}
+                  label={loc.name}
+                  count={centerStudents.length}
+                  hue={getTechCenterHue(loc.name)}
+                  students={sortStudents(centerStudents, sortBy)}
+                  router={router}
+                  currentUserId={currentUserId}
+                />
+              );
+            })}
+          </div>
+        )}
 
-                  return (
-                    <section key={locationName} className="mb-8">
-                      <header className="mb-4 flex items-center justify-between gap-3 flex-wrap">
-                        <div className="min-w-0 flex items-center gap-2.5">
-                          <span
-                            className="h-4 w-[3px] shrink-0 rounded-full"
-                            style={{ backgroundColor: hue }}
-                          />
-                          <h2 className="text-[17px] font-bold tracking-tight text-[#1A2B4C] truncate">
-                            {locationName}
-                          </h2>
-                          <div className="shrink-0 flex items-center gap-1.5 bg-white px-2.5 py-1 border border-[#E5E7EB] rounded">
-                            <span className="font-mono text-[12px] font-bold text-[#1A2B4C] tabular-nums">
-                              {studentList.length}
-                            </span>
-                            <span className="font-mono text-[10px] uppercase tracking-wider text-[#B98A3E]">
-                              students
-                            </span>
-                          </div>
-                        </div>
-                      </header>
-
-                      {viewMode === 'grid' ? (
-                        <div className="grid gap-3 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-                          {visibleStudents.map((student) => (
-                            <StudentCard
-                              key={student.id}
-                              student={student}
-                              router={router}
-                              currentUserId={currentUserId}
-                            />
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="grid gap-2 grid-cols-1">
-                          {visibleStudents.map((student) => (
-                            <StudentListCard
-                              key={student.id}
-                              student={student}
-                              router={router}
-                              currentUserId={currentUserId}
-                            />
-                          ))}
-                        </div>
-                      )}
-
-                      {hasMore && (
-                        <div className="mt-4 flex justify-center">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (techCenter) {
-                                setSelectedLocation(techCenter.id);
-                                window.scrollTo({
-                                  top: 0,
-                                  behavior: 'smooth',
-                                });
-                              }
-                            }}
-                            className="
-                              inline-flex items-center gap-1.5 h-9 px-4
-                              border border-[#E5E7EB] bg-white
-                              text-[13px] font-bold text-[#1A2B4C]
-                              rounded hover:border-[#B98A3E] hover:bg-[#F7F6F2]
-                              transition-colors
-                              focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] focus-visible:ring-offset-1
-                            "
-                          >
-                            View all {locationName} students
-                            <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
-                          </button>
-                        </div>
-                      )}
-                    </section>
-                  );
-                })}
-            </>
-          )}
-
-          {hasStudents && (
-            <footer className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border border-[#E5E7EB] bg-white px-4 py-3 rounded-lg shadow-md">
-              <p className="flex items-center gap-1.5 text-[13px] font-bold text-[#4B5646]">
-                <Users className="w-4 h-4 text-[#1A2B4C]" strokeWidth={2} />
-                Student Community Directory
-              </p>
-              <span className="font-mono text-[13px] font-bold text-[#B98A3E] tabular-nums">
-                {hasActiveFilters
-                  ? `${filteredAllStudents.length} of ${totalStudents} students`
-                  : `${totalStudents} students`}
-              </span>
-            </footer>
-          )}
-        </main>
+        {/* Back to Top */}
+        {showBackToTop && (
+          <button
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            aria-label="Back to top"
+            className="fixed bottom-5 right-5 z-50 inline-flex h-8 w-8 items-center justify-center border border-[#1A2B4C] bg-[#1A2B4C] text-white hover:bg-[#23385d]"
+          >
+            <ArrowUp className="h-4 w-4" />
+          </button>
+        )}
       </div>
     </div>
   );
+}
+
+function centerCentersCountIsZeroAndShouldHideIfUnfiltered(selectedLocation: string, len: number) {
+  return selectedLocation === 'all' && len === 0;
 }

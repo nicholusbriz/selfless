@@ -37,9 +37,9 @@ const iconSize: Record<Size, string> = {
 };
 
 const likeIdleOutlined =
-  'border border-[#E5E7EB] bg-white text-[#1A2B4C] hover:border-red-300 hover:bg-red-50 hover:text-red-600';
+  'border border-[#E5E7EB] bg-white text-[#1A2B4C] hover:border-red-500 hover:bg-red-50 hover:text-red-600';
 const likeIdleFeatured =
-  'border border-[#E5E7EB] bg-white/90 text-[#1A2B4C] backdrop-blur-sm hover:border-red-300 hover:bg-red-50 hover:text-red-600';
+  'border border-[#E5E7EB] bg-white/90 text-[#1A2B4C] backdrop-blur-sm hover:border-red-500 hover:bg-red-50 hover:text-red-600';
 const likeActive = 'border border-red-200 bg-red-50 text-red-600';
 const followIdle = 'bg-[#1A2B4C] text-white hover:bg-[#2C3E5A] hover:shadow-md';
 const followActive = 'border border-[#55705B] bg-[#55705B] text-white';
@@ -79,7 +79,7 @@ export function SocialActions({
           aria-disabled="true"
           title="You cannot like your own profile"
         >
-          <Heart className={iconCls} strokeWidth={2} />
+          <Heart className={`${iconCls} text-red-500`} strokeWidth={2} />
           Like
         </span>
         <span
@@ -125,10 +125,7 @@ export function SocialActions({
             {likePending ? (
               <Loader2 className={`${iconCls} animate-spin`} strokeWidth={2} />
             ) : (
-              <Heart
-                className={`${iconCls} fill-red-500 text-red-500`}
-                strokeWidth={2}
-              />
+              <Heart className={`${iconCls} fill-red-500 text-red-500`} strokeWidth={2} />
             )}
             Liked
           </button>
@@ -138,10 +135,7 @@ export function SocialActions({
             aria-label="Already liked"
             title="You liked this profile"
           >
-            <Heart
-              className={`${iconCls} fill-red-500 text-red-500`}
-              strokeWidth={2}
-            />
+            <Heart className={`${iconCls} fill-red-500 text-red-500`} strokeWidth={2} />
             Liked
           </span>
         )
@@ -159,7 +153,7 @@ export function SocialActions({
           {likePending ? (
             <Loader2 className={`${iconCls} animate-spin`} strokeWidth={2} />
           ) : (
-            <Heart className={iconCls} strokeWidth={2} />
+            <Heart className={`${iconCls} text-red-500`} strokeWidth={2} />
           )}
           Like
         </button>
