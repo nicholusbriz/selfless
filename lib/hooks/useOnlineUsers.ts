@@ -56,6 +56,7 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
       console.error('PartyKit presence socket could not be created.');
       return;
     }
+    console.info('[presence] Connecting to PartyKit online-users room.');
 
     let disposed = false;
     const onlineUserIds = new Set<string>();
@@ -65,18 +66,24 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
     ): Promise<OnlineUser[]> => {
       if (userIds.length === 0) return [];
 
+      console.info('[presence] Requesting online profiles.', {
+        requestedCount: userIds.length,
+      });
       const response = await fetch(
         `/api/users/presence?ids=${encodeURIComponent(userIds.join(','))}`,
         { cache: 'no-store' },
       );
       if (!response.ok) {
+        console.error('[presence] Profile request failed.', {
+          status: response.status,
+        });
         throw new Error(
           `Presence profile request failed with status ${response.status}`,
         );
       }
 
       const data: { users?: PresenceProfile[] } = await response.json();
-      return (Array.isArray(data.users) ? data.users : []).map((profile) => ({
+      const users = (Array.isArray(data.users) ? data.users : []).map((profile) => ({
         userId: profile.id,
         firstName: profile.firstName,
         lastName: profile.lastName,
@@ -85,6 +92,10 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
         techCenter: profile.techCenter || undefined,
         connectedAt: new Date().toISOString(),
       }));
+      console.info('[presence] Online profiles received.', {
+        returnedCount: users.length,
+      });
+      return users;
     };
 
     const refreshPresenceUsers = async (userIds: string[]) => {
@@ -120,6 +131,12 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
         const parsed: unknown = JSON.parse(event.data);
         if (!parsed || typeof parsed !== 'object') return;
         const message = parsed as PresenceMessage;
+        console.info('[presence] PartyKit message received.', {
+          type: typeof message.type === 'string' ? message.type : 'unknown',
+          userCount: Array.isArray(message.userIds)
+            ? message.userIds.length
+            : undefined,
+        });
 
         if (message.type === 'current-online-users') {
           onlineUserIds.clear();
@@ -177,13 +194,28 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
       });
     };
 
+    const handleOpen = () => {
+      console.info('[presence] PartyKit WebSocket connected.');
+    };
+
+    const handleClose = (event: CloseEvent) => {
+      console.warn('[presence] PartyKit WebSocket closed.', {
+        code: event.code,
+        wasClean: event.wasClean,
+      });
+    };
+
     socket.addEventListener('message', handleMessage);
     socket.addEventListener('error', handleError);
+    socket.addEventListener('open', handleOpen);
+    socket.addEventListener('close', handleClose);
 
     return () => {
       disposed = true;
       socket.removeEventListener('message', handleMessage);
       socket.removeEventListener('error', handleError);
+      socket.removeEventListener('open', handleOpen);
+      socket.removeEventListener('close', handleClose);
       socket.close();
     };
   }, [user?.id, user?.role, queryClient]);
