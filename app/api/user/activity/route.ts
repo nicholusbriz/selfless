@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma/client';
 import { getServerAuthUser } from '@/lib/auth/server';
+import { updateUserLastActiveAt } from '@/lib/user-activity';
 
 const DEDUPE_WINDOW_MS = 24 * 60 * 60 * 1000;
 const TTL_MS = 24 * 60 * 60 * 1000;
@@ -27,14 +28,7 @@ export async function POST(req: NextRequest) {
     const pagePath = rawPath?.trim() || null;
 
     if (!pagePath) {
-      // A heartbeat without a page → just update lastActiveAt, don't count a visit.
-      // Use updateMany to avoid write conflicts
-      void prisma.user
-        .updateMany({
-          where: { id: user.id },
-          data: { lastActiveAt: new Date() },
-        })
-        .catch(() => {});
+      updateUserLastActiveAt(user.id);
       return NextResponse.json({ success: true, counted: false });
     }
 

@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useMemo, useRef } from 'react';
-import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -13,9 +12,7 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
-  Eye,
   ArrowDownUp,
-  Heart,
   Send,
   Flame,
 } from 'lucide-react';
@@ -335,7 +332,7 @@ const StudentCard = ({
                 onClick={() => router.push(`/dashboard/students/${student.id}`)}
                 className="min-w-0 flex-1 text-left"
               >
-                <h3 className="truncate text-[13px] font-bold text-[#1A2B4C] hover:underline">
+                <h3 className="break-words text-[13px] font-bold text-[#1A2B4C] hover:underline">
                   {fullName}
                 </h3>
               </button>
@@ -972,7 +969,10 @@ export default function StudentsPage() {
     refetchInterval: 30 * 1000,
   });
 
-  const studentsByTechCenter = data?.studentsByTechCenter ?? {};
+  const studentsByTechCenter = useMemo(
+    () => data?.studentsByTechCenter ?? {},
+    [data?.studentsByTechCenter],
+  );
   const techCenters = data?.techCenters ?? [];
   const totalStudents = data?.totalStudents ?? 0;
 
