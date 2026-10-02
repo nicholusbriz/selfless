@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
+import { publishSocialInvalidation } from '@/lib/partykit-server';
 
 export async function GET(
   req: NextRequest,
@@ -93,6 +94,16 @@ export async function GET(
 
     if (viewer.id !== student.id) {
       try {
+        const existingView = await prisma.profileView.findUnique({
+          where: {
+            viewerId_profileUserId: {
+              viewerId: viewer.id,
+              profileUserId: student.id,
+            },
+          },
+          select: { id: true },
+        });
+
         await prisma.profileView.upsert({
           where: {
             viewerId_profileUserId: {
@@ -106,6 +117,10 @@ export async function GET(
             profileUserId: student.id,
           },
         });
+
+        if (!existingView) {
+          await publishSocialInvalidation([student.id]);
+        }
       } catch (viewError) {
         console.error('Failed to record student profile view:', viewError);
       }

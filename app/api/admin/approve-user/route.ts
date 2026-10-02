@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma/client';
 import { requireAuth } from '@/lib/auth/server';
+import { publishApprovalInvalidation } from '@/lib/partykit-server';
 
 export async function POST(req: NextRequest) {
   try {
@@ -118,6 +119,8 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      await publishApprovalInvalidation();
+
       return NextResponse.json({
         success: true,
         message: 'User approved successfully',
@@ -153,6 +156,8 @@ export async function POST(req: NextRequest) {
         prisma.notification.deleteMany({ where: { userId } }),
         prisma.user.delete({ where: { id: userId } }),
       ]);
+
+      await publishApprovalInvalidation();
 
       return NextResponse.json({
         success: true,

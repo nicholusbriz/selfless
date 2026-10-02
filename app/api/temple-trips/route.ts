@@ -30,17 +30,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Filter: Active trips for user's tech center or global trips
-    const whereClause: any = {
-      isActive: true,
-      OR: [
-        { techCenterId: user.techCenterId },
-        { techCenterId: null }
-      ]
-    };
-
     const trips = await prisma.templeTrip.findMany({
-      where: whereClause,
+      where: { isActive: true },
       include: {
         createdBy: {
           select: {

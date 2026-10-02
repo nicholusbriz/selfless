@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import PartySocket from 'partysocket';
+import { useQueryClient } from '@tanstack/react-query';
+import { createPartySocket } from '@/lib/partykit';
 
 export interface OnlineUser {
   userId: string;
@@ -20,7 +21,7 @@ interface PresenceUser {
   id?: string | null;
   firstName?: string | null;
   lastName?: string | null;
-  email?: string | null;
+  role?: string | null;
   profileImageUrl?: string | null;
   techCenter?: {
     id: string;
@@ -30,9 +31,11 @@ interface PresenceUser {
 
 export function useOnlineUsers(user: PresenceUser | null | undefined) {
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!user?.id) {
+      setOnlineUsers([]);
       return;
     }
 
@@ -45,38 +48,89 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
       return;
     }
 
-    const userInfo = {
-      userId: user.id,
-      firstName: user.firstName || '',
-      lastName: user.lastName || '',
-      fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-      email: user.email || '',
-      image: user.profileImageUrl || null,
-      techCenter: user.techCenter || undefined,
+    let socket: Awaited<ReturnType<typeof createPartySocket>> = null;
+    let disposed = false;
+    const onlineUserIds = new Set<string>();
+
+    const fetchPresenceUsers = async (userIds: string[]) => {
+      if (userIds.length === 0) return [];
+
+      const response = await fetch(
+        `/api/users/presence?ids=${encodeURIComponent(userIds.join(','))}`,
+        { cache: 'no-store' },
+      );
+      if (!response.ok) throw new Error('Failed to fetch online user profiles');
+
+      const data = await response.json();
+      return (Array.isArray(data.users) ? data.users : []).map(
+        (presenceUser: Omit<OnlineUser, 'userId' | 'image' | 'fullName' | 'connectedAt'> & { id: string }) => ({
+          userId: presenceUser.id,
+          firstName: presenceUser.firstName,
+          lastName: presenceUser.lastName,
+          fullName: `${presenceUser.firstName} ${presenceUser.lastName}`.trim(),
+          image: presenceUser.profileImageUrl,
+          techCenter: presenceUser.techCenter || undefined,
+          connectedAt: new Date().toISOString(),
+        }),
+      ) as OnlineUser[];
     };
 
-    const socket = new PartySocket({
-      room: 'online-users',
-      host: partyKitHost || 'localhost:1999',
-      query: { user: JSON.stringify(userInfo) },
-    });
+    const refreshPresenceUsers = async (userIds: string[]) => {
+      try {
+        const fetchedUsers = await fetchPresenceUsers(userIds);
+        setOnlineUsers((previous) => {
+          const currentUsers = new Map(
+            previous.map((onlineUser) => [onlineUser.userId, onlineUser]),
+          );
+          for (const onlineUser of fetchedUsers) {
+            if (onlineUserIds.has(onlineUser.userId)) {
+              currentUsers.set(onlineUser.userId, onlineUser);
+            }
+          }
+          return Array.from(currentUsers.values()).filter((onlineUser) =>
+            onlineUserIds.has(onlineUser.userId),
+          );
+        });
+      } catch (error) {
+        console.error('Failed to refresh online user profiles:', error);
+      }
+    };
 
     const handleMessage = (event: MessageEvent<string>) => {
       try {
         const data = JSON.parse(event.data);
 
         if (data.type === 'current-online-users') {
-          setOnlineUsers(data.users || []);
-        } else if (data.type === 'user-joined' && data.user) {
-          setOnlineUsers((previous) => (
-            previous.some((onlineUser) => onlineUser.userId === data.user.userId)
-              ? previous
-              : [...previous, data.user]
-          ));
+          onlineUserIds.clear();
+          for (const userId of Array.isArray(data.userIds) ? data.userIds : []) {
+            if (typeof userId === 'string') onlineUserIds.add(userId);
+          }
+          void refreshPresenceUsers(Array.from(onlineUserIds));
+        } else if (data.type === 'user-joined' && typeof data.userId === 'string') {
+          onlineUserIds.add(data.userId);
+          void refreshPresenceUsers([data.userId]);
         } else if (data.type === 'user-left') {
+          onlineUserIds.delete(data.userId);
           setOnlineUsers((previous) => (
             previous.filter((onlineUser) => onlineUser.userId !== data.userId)
           ));
+        } else if (
+          data.type === 'invalidate' &&
+          data.resource === 'profile' &&
+          onlineUserIds.has(data.userId)
+        ) {
+          void refreshPresenceUsers([data.userId]);
+        } else if (
+          data.type === 'invalidate' &&
+          data.resource === 'approvals' &&
+          ['admin', 'super_admin', 'dev'].includes(user.role || '')
+        ) {
+          void queryClient.invalidateQueries({
+            queryKey: ['super-admin-pending-approvals'],
+          });
+          void queryClient.invalidateQueries({
+            queryKey: ['super-admin-approval-stats'],
+          });
         }
       } catch (error) {
         console.error('Failed to parse presence message:', error);
@@ -88,20 +142,29 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
         'PartyKit presence connection interrupted; the client will reconnect.',
         {
           eventType: error.type,
-          readyState: socket.readyState,
+          readyState: socket?.readyState,
         }
       );
     };
 
-    socket.addEventListener('message', handleMessage);
-    socket.addEventListener('error', handleError);
+    void createPartySocket('online-users').then((connectedSocket) => {
+      if (!connectedSocket || disposed) {
+        connectedSocket?.close();
+        return;
+      }
+
+      socket = connectedSocket;
+      socket.addEventListener('message', handleMessage);
+      socket.addEventListener('error', handleError);
+    });
 
     return () => {
-      socket.removeEventListener('message', handleMessage);
-      socket.removeEventListener('error', handleError);
-      socket.close();
+      disposed = true;
+      socket?.removeEventListener('message', handleMessage);
+      socket?.removeEventListener('error', handleError);
+      socket?.close();
     };
-  }, [user?.id, user?.firstName, user?.lastName, user?.email, user?.profileImageUrl, user?.techCenter]);
+  }, [user?.id, user?.role, queryClient]);
 
   return user?.id ? onlineUsers : [];
 }

@@ -23,7 +23,10 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 import { SocialActions } from '@/components/social/SocialActions';
-import { rankByTrending } from '@/lib/social/ranking';
+import {
+  compareFollowersThenLikes,
+  rankByTrending,
+} from '@/lib/social/ranking';
 import {
   patchStudentsShape,
   findInStudentsShape,
@@ -105,8 +108,18 @@ type SortOption =
 const popularityScore = (s: Student): number =>
   (s.followersCount || 0) * 2 + (s.likesReceivedCount || 0);
 
+const compareStudentNames = (a: Student, b: Student): number =>
+  `${a.firstName} ${a.lastName}`
+    .trim()
+    .toLowerCase()
+    .localeCompare(`${b.firstName} ${b.lastName}`.trim().toLowerCase());
+const getStudentInitial = (student: Student): string =>
+  student.firstName.trim().charAt(0).toUpperCase();
+
 const sortStudents = (students: Student[], sortBy: SortOption): Student[] => {
-  if (sortBy === 'trending') return rankByTrending(students);
+  if (sortBy === 'trending') {
+    return [...students].sort(compareFollowersThenLikes);
+  }
 
   const copy = [...students];
 
@@ -124,14 +137,7 @@ const sortStudents = (students: Student[], sortBy: SortOption): Student[] => {
     });
   }
   if (sortBy === 'name') {
-    return copy.sort((a, b) =>
-      `${a.firstName} ${a.lastName}`
-        .trim()
-        .toLowerCase()
-        .localeCompare(
-          `${b.firstName} ${b.lastName}`.trim().toLowerCase(),
-        ),
-    );
+    return copy.sort(compareStudentNames);
   }
   if (sortBy === 'newest') {
     return copy.sort(
@@ -148,26 +154,24 @@ const sortStudents = (students: Student[], sortBy: SortOption): Student[] => {
   return copy.sort((a, b) => Number(b.isActive) - Number(a.isActive));
 };
 
-// ============================================================
-// MESSAGE COMPOSER
-// ============================================================
-
-const StudentMessageComposer = ({
+function StudentMessageComposer({
   recipientId,
+  recipientName,
 }: {
   recipientId: string;
-}) => {
+  recipientName: string;
+}) {
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [sendStatus, setSendStatus] = useState<'sent' | 'error' | null>(null);
 
-  const handleSend = async () => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     const content = message.trim();
     if (!content || isSending) return;
 
     setIsSending(true);
-    setMessage('');
-    setSendStatus('sent');
+    setSendStatus(null);
 
     try {
       const conversationResponse = await fetch('/api/messages/conversations', {
@@ -179,23 +183,22 @@ const StudentMessageComposer = ({
         .json()
         .catch(() => ({}));
       if (!conversationResponse.ok || !conversationData.conversation?.id) {
-        throw new Error(
-          conversationData.error || 'Failed to start conversation',
-        );
+        throw new Error('Failed to start conversation');
       }
 
-      const conversationId = conversationData.conversation.id as string;
-      const messageResponse = await fetch(`/api/messages/${conversationId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
-      });
-      const messageData = await messageResponse.json().catch(() => ({}));
-      if (!messageResponse.ok) {
-        throw new Error(messageData.error || 'Failed to send message');
-      }
+      const response = await fetch(
+        `/api/messages/${conversationData.conversation.id}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content }),
+        },
+      );
+      if (!response.ok) throw new Error('Failed to send message');
+
+      setMessage('');
+      setSendStatus('sent');
     } catch {
-      setMessage(content);
       setSendStatus('error');
     } finally {
       setIsSending(false);
@@ -203,48 +206,43 @@ const StudentMessageComposer = ({
   };
 
   return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault();
-        void handleSend();
-      }}
-      className="flex w-full min-w-0 items-center gap-1"
-    >
-      <input
-        type="text"
-        value={message}
-        onChange={(event) => {
-          setMessage(event.target.value);
-          setSendStatus(null);
-        }}
-        placeholder="Send message..."
-        aria-label="Write a message"
-        disabled={isSending}
-        className="h-6 min-w-0 flex-1 border border-[#D1D5DB] bg-white px-1.5 text-[11px] font-normal text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:border-[#1A2B4C] focus:outline-none disabled:opacity-60"
-      />
-      <button
-        type="submit"
-        disabled={!message.trim() || isSending}
-        aria-label="Send message"
-        className="inline-flex h-6 w-6 shrink-0 items-center justify-center bg-[#1A2B4C] text-white hover:bg-[#23385d] disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        <Send className="h-3 w-3" strokeWidth={2} />
-      </button>
-      <span
-        className={`shrink-0 text-[10px] font-medium ${
-          sendStatus === 'error' ? 'text-[#A4462F]' : 'text-[#55705B]'
-        }`}
-        aria-live="polite"
-      >
-        {sendStatus === 'sent'
-          ? 'Sent'
-          : sendStatus === 'error'
-            ? 'Failed'
-            : ''}
-      </span>
-    </form>
+    <div className="px-3 pb-3">
+      <form onSubmit={handleSubmit} className="flex min-w-0 items-center gap-1.5">
+        <input
+          type="text"
+          value={message}
+          onChange={(event) => {
+            setMessage(event.target.value);
+            setSendStatus(null);
+          }}
+          placeholder={`Message ${recipientName}...`}
+          aria-label={`Message ${recipientName}`}
+          disabled={isSending}
+          className="h-8 min-w-0 flex-1 border border-[#D1D5DB] bg-white px-2 text-[11px] text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:border-[#1A2B4C] focus:outline-none disabled:opacity-60"
+        />
+        <button
+          type="submit"
+          disabled={!message.trim() || isSending}
+          aria-label="Send message"
+          title="Send message"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center bg-[#1A2B4C] text-white transition-colors hover:bg-[#23385d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Send className="h-3.5 w-3.5" />
+        </button>
+      </form>
+      {sendStatus && (
+        <p
+          className={`mt-1 text-[10px] ${
+            sendStatus === 'error' ? 'text-[#A4462F]' : 'text-[#55705B]'
+          }`}
+          aria-live="polite"
+        >
+          {sendStatus === 'sent' ? 'Message sent' : 'Could not send message'}
+        </p>
+      )}
+    </div>
   );
-};
+}
 
 // ============================================================
 // STUDENT CARD
@@ -289,7 +287,7 @@ const StudentCard = ({
         )}
       </div>
 
-      <div className="p-3 border-b border-[#E5E7EB]">
+      <div className="p-3">
         <div className="flex items-start gap-3">
           <button
             type="button"
@@ -382,7 +380,7 @@ const StudentCard = ({
         </div>
       </div>
 
-      <div className="border-b border-[#E5E7EB] bg-white px-3 py-2">
+      <div className="px-3 py-2">
         <span className="font-mono text-[9px] font-bold uppercase text-[#B98A3E] block">
           Degree Program
         </span>
@@ -392,7 +390,7 @@ const StudentCard = ({
       </div>
 
       {student.studentCourses?.length > 0 && (
-        <div className="border-b border-[#E5E7EB] bg-[#F7F6F2] px-3 py-2">
+        <div className="px-3 py-2">
           <div className="mb-1.5 flex items-center justify-between text-[10px]">
             <span className="font-mono font-bold uppercase text-[#1A2B4C] flex items-center gap-1">
               <BookOpen className="h-3 w-3 text-[#B98A3E]" />
@@ -407,7 +405,7 @@ const StudentCard = ({
             {student.studentCourses.slice(0, 3).map((course) => (
               <div
                 key={course.id}
-                className="flex items-center justify-between gap-1 bg-white border border-[#E5E7EB] px-2 py-1"
+                className="flex items-center justify-between gap-1 py-1"
               >
                 <span className="truncate text-[10px] font-normal text-[#1A2B4C]">
                   {course.courseUnit}
@@ -426,13 +424,7 @@ const StudentCard = ({
         </div>
       )}
 
-      {!isCurrentUser && currentUserId && (
-        <div className="border-b border-[#E5E7EB] bg-white px-3 py-2">
-          <StudentMessageComposer recipientId={student.id} />
-        </div>
-      )}
-
-      <div className="flex items-center justify-between bg-white px-3 py-2">
+      <div className="flex items-center justify-between gap-2 px-3 py-2">
         <button
           type="button"
           onClick={() => router.push(`/dashboard/students/${student.id}`)}
@@ -443,16 +435,24 @@ const StudentCard = ({
         </button>
 
         {!isCurrentUser && (
-          <SocialActions
-            userId={student.id}
-            currentUserId={currentUserId}
-            pageAdapters={STUDENT_DIRECTORY_ADAPTERS}
-            size="xs"
-            allowUnfollow={false}
-            allowUnlike={true}
-          />
+          <div className="flex min-w-0 flex-wrap items-center justify-end gap-1">
+            <SocialActions
+              userId={student.id}
+              currentUserId={currentUserId}
+              pageAdapters={STUDENT_DIRECTORY_ADAPTERS}
+              size="xs"
+              allowUnfollow={false}
+              allowUnlike={true}
+            />
+          </div>
         )}
       </div>
+      {!isCurrentUser && currentUserId && (
+        <StudentMessageComposer
+          recipientId={student.id}
+          recipientName={fullName}
+        />
+      )}
     </article>
   );
 };
@@ -470,6 +470,7 @@ function HorizontalRail({
   currentUserId,
   showRank,
   isTrendingSection,
+  enableAlphabetNav,
 }: {
   label: string;
   count?: number;
@@ -479,8 +480,17 @@ function HorizontalRail({
   currentUserId?: string;
   showRank?: boolean;
   isTrendingSection?: boolean;
+  enableAlphabetNav?: boolean;
 }) {
   const railRef = useRef<HTMLDivElement>(null);
+  const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  const availableLetters = new Set(students.map(getStudentInitial));
+  const visibleStudents = selectedLetter
+    ? students
+        .filter((student) => getStudentInitial(student) === selectedLetter)
+        .sort(compareStudentNames)
+    : students;
 
   const scrollLeft = () => {
     railRef.current?.scrollBy({ left: -560, behavior: 'smooth' });
@@ -526,18 +536,61 @@ function HorizontalRail({
           </h2>
           {typeof count === 'number' && (
             <span className="font-mono text-[11px] font-bold text-[#B98A3E]">
-              ({count})
+              ({selectedLetter ? `${visibleStudents.length} / ${count}` : count})
             </span>
           )}
         </div>
       </div>
+
+      {enableAlphabetNav && (
+        <nav
+          aria-label={`Browse ${label} by first name`}
+          className="mb-2 flex min-w-0 flex-nowrap items-center gap-2.5 overflow-x-auto whitespace-nowrap"
+          style={{ scrollbarWidth: 'none' }}
+        >
+          <button
+            type="button"
+            onClick={() => setSelectedLetter(null)}
+            aria-pressed={selectedLetter === null}
+            className={`shrink-0 font-mono text-[10px] font-bold transition-colors focus-visible:outline-none focus-visible:underline ${
+              selectedLetter === null
+                ? 'text-[#B98A3E] underline underline-offset-4'
+                : 'text-[#6B7280] hover:text-[#1A2B4C]'
+            }`}
+          >
+            All
+          </button>
+          {letters.map((letter) => {
+            const isAvailable = availableLetters.has(letter);
+            return (
+              <button
+                key={letter}
+                type="button"
+                disabled={!isAvailable}
+                onClick={() => setSelectedLetter(letter)}
+                aria-label={`Show ${label} names beginning with ${letter}`}
+                aria-pressed={selectedLetter === letter}
+                className={`shrink-0 font-mono text-[10px] font-semibold transition-colors focus-visible:outline-none focus-visible:underline ${
+                  selectedLetter === letter
+                    ? 'text-[#B98A3E] underline underline-offset-4'
+                    : isAvailable
+                      ? 'text-[#1A2B4C] hover:text-[#B98A3E]'
+                      : 'cursor-not-allowed text-[#C4C8CE]'
+                }`}
+              >
+                {letter}
+              </button>
+            );
+          })}
+        </nav>
+      )}
 
       <div
         ref={railRef}
         className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 scroll-smooth"
         style={{ scrollbarWidth: 'thin' }}
       >
-        {students.map((student, idx) => (
+        {visibleStudents.map((student, idx) => (
           <StudentCard
             key={student.id}
             student={student}
@@ -572,6 +625,52 @@ function HorizontalRail({
   );
 }
 
+function StudentDirectorySkeleton() {
+  return (
+    <div className="space-y-5" aria-label="Loading student directory" aria-busy="true">
+      {[0, 1, 2].map((rail) => (
+        <section key={rail} className="mb-6">
+          <div className="mb-2.5 flex items-center gap-2 border-t border-[#1A2B4C] pt-2">
+            <span className="h-3 w-1 shrink-0 bg-[#D1D5DB]" />
+            <span className="h-4 w-36 animate-pulse bg-[#E5E7EB]" />
+          </div>
+          <div className="flex gap-3 overflow-hidden pb-2">
+            {[0, 1, 2, 3].map((card) => (
+              <div
+                key={card}
+                aria-hidden="true"
+                className="h-[250px] w-[270px] shrink-0 border border-[#D1D5DB] bg-white sm:w-[290px]"
+              >
+                <div className="h-8 animate-pulse bg-[#E5E7EB]" />
+                <div className="p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 shrink-0 animate-pulse bg-[#E5E7EB]" />
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <div className="h-3 w-3/4 animate-pulse bg-[#E5E7EB]" />
+                      <div className="h-2.5 w-1/2 animate-pulse bg-[#F0F1F2]" />
+                    </div>
+                  </div>
+                  <div className="mt-4 grid grid-cols-3 gap-2">
+                    {[0, 1, 2].map((stat) => (
+                      <div
+                        key={stat}
+                        className="h-7 animate-pulse bg-[#F0F1F2]"
+                      />
+                    ))}
+                  </div>
+                  <div className="mt-4 h-2.5 w-1/3 animate-pulse bg-[#E5E7EB]" />
+                  <div className="mt-2 h-3 w-2/3 animate-pulse bg-[#F0F1F2]" />
+                  <div className="mt-4 h-8 animate-pulse bg-[#F0F1F2]" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 // ============================================================
 // SEARCH & FILTER BAR
 // ============================================================
@@ -583,6 +682,7 @@ function SearchFilterBar({
   setSelectedLocation,
   locations,
   totalStudents,
+  isLoading,
   sortBy,
   setSortBy,
   studentsByTechCenter,
@@ -593,6 +693,7 @@ function SearchFilterBar({
   setSelectedLocation: (id: string) => void;
   locations: TechCenter[];
   totalStudents: number;
+  isLoading: boolean;
   sortBy: SortOption;
   setSortBy: (s: SortOption) => void;
   studentsByTechCenter: Record<string, Student[]>;
@@ -606,33 +707,6 @@ function SearchFilterBar({
 
   return (
     <section className="border border-[#1A2B4C] bg-white">
-      <div className="border-b border-[#D1D5DB] px-3 py-2">
-        <div className="relative w-full">
-          <Search
-            className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#6B7280]"
-          />
-          <input
-            type="text"
-            inputMode="search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search student records by name or course unit..."
-            aria-label="Search students"
-            className="h-8 w-full border border-[#D1D5DB] bg-white pl-8 pr-7 text-[12px] font-normal text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:border-[#1A2B4C] focus:outline-none"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              aria-label="Clear search"
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-[#6B7280] hover:text-[#1A2B4C]"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          )}
-        </div>
-      </div>
-
       <div className="bg-[#F7F6F2] px-3 py-2">
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -640,9 +714,16 @@ function SearchFilterBar({
               <span className="font-mono text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
                 Total Records:
               </span>
-              <span className="font-mono text-[11px] font-bold text-[#1A2B4C]">
-                {totalStudents}
-              </span>
+              {isLoading ? (
+                <span
+                  aria-label="Loading total records"
+                  className="inline-block h-3 w-7 animate-pulse bg-[#D1D5DB]"
+                />
+              ) : (
+                <span className="font-mono text-[11px] font-bold text-[#1A2B4C]">
+                  {totalStudents}
+                </span>
+              )}
             </div>
 
             <div className="flex items-center gap-1.5">
@@ -691,9 +772,16 @@ function SearchFilterBar({
                 className={`${chipBase} ${selectedLocation === 'all' ? chipOn : chipOff}`}
               >
                 All
-                <span className="font-mono text-[10px]">
-                  ({totalStudents})
-                </span>
+                {isLoading ? (
+                  <span
+                    aria-label="Loading total records"
+                    className="inline-block h-2.5 w-6 animate-pulse bg-white/30"
+                  />
+                ) : (
+                  <span className="font-mono text-[10px]">
+                    ({totalStudents})
+                  </span>
+                )}
               </button>
 
               {locations.map((location) => {
@@ -734,6 +822,33 @@ function SearchFilterBar({
                 Clear filter
               </button>
             </div>
+          )}
+        </div>
+      </div>
+
+      <div className="border-t border-[#D1D5DB] px-3 py-2">
+        <div className="relative w-full">
+          <Search
+            className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#6B7280]"
+          />
+          <input
+            type="text"
+            inputMode="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search student records by name or course unit..."
+            aria-label="Search students"
+            className="h-8 w-full border border-[#D1D5DB] bg-white pl-8 pr-7 text-[12px] font-normal text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:border-[#1A2B4C] focus:outline-none"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              aria-label="Clear search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[#6B7280] hover:text-[#1A2B4C]"
+            >
+              <X className="h-3 w-3" />
+            </button>
           )}
         </div>
       </div>
@@ -912,6 +1027,7 @@ export default function StudentsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [scopedStudents, selectedLocation, searchQuery],
   );
+  const isSearching = searchQuery.trim().length > 0;
 
   return (
     <div className="min-h-screen bg-[#F7F6F2] text-[#1A2B4C]">
@@ -942,7 +1058,15 @@ export default function StudentsPage() {
                     : 'border-white/20 bg-[#1A2B4C] text-white hover:border-white'
                 }`}
               >
-                All Students ({totalStudents})
+                All Students (
+                {isLoading ? (
+                  <span
+                    aria-label="Loading student count"
+                    className="inline-block h-3 w-6 animate-pulse bg-white/30 align-middle"
+                  />
+                ) : (
+                  totalStudents
+                )}
               </button>
               {currentUserId && (
                 <button
@@ -954,7 +1078,15 @@ export default function StudentsPage() {
                       : 'border-white/20 bg-[#1A2B4C] text-white hover:border-white'
                   }`}
                 >
-                  Following ({followingCount})
+                    Following (
+                    {isLoading ? (
+                      <span
+                        aria-label="Loading following count"
+                        className="inline-block h-3 w-6 animate-pulse bg-white/30 align-middle"
+                      />
+                    ) : (
+                      followingCount
+                    )}
                 </button>
               )}
             </div>
@@ -962,9 +1094,11 @@ export default function StudentsPage() {
         </div>
 
         {/* Community Ticker */}
-        <div className="mb-5">
-          <CommunityTicker students={allStudents} />
-        </div>
+        {!isSearching && !isLoading && (
+          <div className="mb-5">
+            <CommunityTicker students={allStudents} />
+          </div>
+        )}
 
         {/* Search & Filter Section */}
         <div className="mb-6">
@@ -975,6 +1109,7 @@ export default function StudentsPage() {
             setSelectedLocation={setSelectedLocation}
             locations={techCenters}
             totalStudents={totalStudents}
+            isLoading={isLoading}
             sortBy={sortBy}
             setSortBy={setSortBy}
             studentsByTechCenter={studentsByTechCenter}
@@ -983,12 +1118,7 @@ export default function StudentsPage() {
 
         {/* Dynamic Rails / Content */}
         {isLoading ? (
-          <div className="border border-[#D1D5DB] bg-white p-10 text-center">
-            <div className="inline-block h-6 w-6 animate-spin border-2 border-[#1A2B4C] border-t-transparent"></div>
-            <p className="mt-3 font-mono text-[11px] font-bold text-[#1A2B4C]">
-              Loading directory records...
-            </p>
-          </div>
+          <StudentDirectorySkeleton />
         ) : error ? (
           <div className="border border-[#A4462F] bg-white p-6 text-center">
             <AlertCircle className="mx-auto h-6 w-6 text-[#A4462F]" />
@@ -1015,31 +1145,43 @@ export default function StudentsPage() {
           </div>
         ) : (
           <div>
-            <HorizontalRail
-              label="Trending Student Profiles"
-              count={Math.min(10, sortStudents(filteredScoped, 'trending').length)}
-              hue="#B98A3E"
-              students={sortStudents(filteredScoped, 'trending').slice(0, 10)}
-              router={router}
-              currentUserId={currentUserId}
-              showRank={true}
-              isTrendingSection={true}
-            />
+            {!isSearching && (
+              <>
+                <HorizontalRail
+                  label="Trending Student Profiles"
+                  count={Math.min(10, rankByTrending(filteredScoped).length)}
+                  hue="#B98A3E"
+                  students={rankByTrending(filteredScoped).slice(0, 10)}
+                  router={router}
+                  currentUserId={currentUserId}
+                  showRank={true}
+                  isTrendingSection={true}
+                />
 
-            <HorizontalRail
-              label="All Students"
-              count={sortStudents(filteredScoped, 'name').length}
-              hue="#1A2B4C"
-              students={sortStudents(filteredScoped, 'name')}
-              router={router}
-              currentUserId={currentUserId}
-            />
+                <HorizontalRail
+                  label="All Students"
+                  count={sortStudents(filteredScoped, 'name').length}
+                  hue="#1A2B4C"
+                  students={sortStudents(filteredScoped, 'name')}
+                  router={router}
+                  currentUserId={currentUserId}
+                  enableAlphabetNav={true}
+                />
+              </>
+            )}
 
             {techCenters.map((loc) => {
               const centerStudents = filteredScoped.filter(
                 (s) => s.techCenter?.id === loc.id,
               );
-              if (centerCentersCountIsZeroAndShouldHideIfUnfiltered(selectedLocation, centerStudents.length)) return null;
+              if (
+                isSearching
+                  ? centerStudents.length === 0
+                  : centerCentersCountIsZeroAndShouldHideIfUnfiltered(
+                      selectedLocation,
+                      centerStudents.length,
+                    )
+              ) return null;
               return (
                 <HorizontalRail
                   key={loc.id}
@@ -1049,6 +1191,7 @@ export default function StudentsPage() {
                   students={sortStudents(centerStudents, sortBy)}
                   router={router}
                   currentUserId={currentUserId}
+                  enableAlphabetNav={true}
                 />
               );
             })}

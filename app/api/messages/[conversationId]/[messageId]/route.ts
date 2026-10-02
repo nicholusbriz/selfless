@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import { publishPartyInvalidation } from '@/lib/partykit-server';
 
 export async function DELETE(
   _request: Request,
@@ -30,7 +31,6 @@ export async function DELETE(
       select: {
         id: true,
         conversationId: true,
-        isRead: true,
         conversation: {
           select: { participantIds: true },
         },
@@ -43,8 +43,6 @@ export async function DELETE(
         { status: 404 }
       );
     }
-
-    let lastMessage: { content: string; senderId: string; createdAt: Date } | null = null;
 
     await prisma.$transaction(async (transaction) => {
       await transaction.message.delete({
@@ -63,8 +61,6 @@ export async function DELETE(
           select: { id: true, content: true, senderId: true, createdAt: true },
         });
 
-        lastMessage = previousMessage;
-
         await transaction.conversation.update({
           where: { id: message.conversationId },
           data: {
@@ -76,12 +72,18 @@ export async function DELETE(
       }
     });
 
+    await Promise.all(
+      message.conversation.participantIds.map((participantId) =>
+        publishPartyInvalidation(`user:${participantId}`, {
+          type: 'invalidate',
+          resource: 'messages',
+          conversationId,
+        }),
+      ),
+    );
+
     return NextResponse.json({
       success: true,
-      messageId: message.id,
-      recipientIds: message.conversation.participantIds.filter((participantId) => participantId !== userId),
-      wasUnread: !message.isRead,
-      lastMessage,
     });
   } catch (error) {
     console.error('Error deleting message:', error);

@@ -28,8 +28,9 @@ export async function POST(req: NextRequest) {
 
     if (!pagePath) {
       // A heartbeat without a page → just update lastActiveAt, don't count a visit.
+      // Use updateMany to avoid write conflicts
       void prisma.user
-        .update({
+        .updateMany({
           where: { id: user.id },
           data: { lastActiveAt: new Date() },
         })

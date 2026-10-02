@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import { publishPartyInvalidation } from '@/lib/partykit-server';
 
 export async function GET(
   request: NextRequest,
@@ -115,10 +116,17 @@ export async function POST(
       },
     });
 
-    return NextResponse.json({
-      message: newMessage,
-      recipientIds: conversation.participantIds.filter((participantId) => participantId !== userId),
-    });
+    await Promise.all(
+      conversation.participantIds.map((participantId) =>
+        publishPartyInvalidation(`user:${participantId}`, {
+          type: 'invalidate',
+          resource: 'messages',
+          conversationId,
+        }),
+      ),
+    );
+
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error sending message:', error);
     return NextResponse.json(

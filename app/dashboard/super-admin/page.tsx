@@ -13,9 +13,11 @@ import {
   Calendar,
   UserCheck,
   TrendingUp,
+  Trash2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSession } from 'next-auth/react';
 import { useMemo, useState } from 'react';
 
 // ============================================================
@@ -103,6 +105,8 @@ function formatJoinedDate(date: string) {
 export default function SuperAdminOverviewPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
+  const canClearApprovalHistory = session?.user?.role === 'dev';
 
   const [selectedCenterId, setSelectedCenterId] = useState<string>('all');
 
@@ -144,6 +148,30 @@ export default function SuperAdminOverviewPage() {
 
       return response.json() as Promise<ApprovalStats>;
     },
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+  });
+
+  const clearApprovalHistoryMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/admin/approval-stats/clear', {
+        method: 'DELETE',
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to clear approval history');
+      }
+      return data as { clearedCount: number };
+    },
+    onSuccess: ({ clearedCount }) => {
+      void queryClient.invalidateQueries({
+        queryKey: ['super-admin-approval-stats'],
+      });
+      alert(
+        `Cleared approval history for ${clearedCount} accounts. Accounts remain approved.`,
+      );
+    },
+    onError: (error: Error) => alert(error.message),
   });
 
   // ----------------------------------------------------------
@@ -216,6 +244,9 @@ export default function SuperAdminOverviewPage() {
     },
 
     onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ['super-admin-approval-stats'],
+      });
       alert('Account verified successfully!');
     },
 
@@ -303,6 +334,18 @@ export default function SuperAdminOverviewPage() {
     if (confirm('Are you sure you want to reject this registration?')) {
       rejectMutation.mutate(userId);
     }
+  };
+
+  const handleClearApprovalHistory = () => {
+    if (
+      !window.confirm(
+        'Clear approval history across all tech centers? This permanently removes approver names and approval dates. Approved accounts will remain approved.',
+      )
+    ) {
+      return;
+    }
+
+    clearApprovalHistoryMutation.mutate();
   };
 
   return (
@@ -582,8 +625,8 @@ export default function SuperAdminOverviewPage() {
 
         <section className="mt-6 overflow-hidden rounded-xl border border-[#E2E6EB] bg-white shadow-sm">
           {/* Header */}
-          <div className="border-b border-[#E2E6EB] bg-[#FBFCFD] px-4 py-4 sm:px-5">
-            <div className="flex items-start gap-3">
+          <div className="flex flex-col gap-4 border-b border-[#E2E6EB] bg-[#FBFCFD] px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-5">
+            <div className="flex min-w-0 items-start gap-3">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#EDF7F2] text-[#17734B]">
                 <UserCheck className="h-5 w-5" />
               </div>
@@ -602,11 +645,26 @@ export default function SuperAdminOverviewPage() {
                 </div>
 
                 <p className="mt-0.5 max-w-2xl text-sm leading-5 text-[#6F7B8D]">
-                  Track who has approved new registrations and how many accounts
-                  they have verified.
+                  Track who approved each registration across all tech centers.
                 </p>
               </div>
             </div>
+
+            {canClearApprovalHistory && (
+              <button
+                type="button"
+                onClick={handleClearApprovalHistory}
+                disabled={clearApprovalHistoryMutation.isPending}
+                className={`inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-lg border border-[#E4B9B9] bg-white px-3 py-2 text-xs font-semibold text-[#9B2525] transition hover:bg-[#FDF0F0] disabled:cursor-not-allowed disabled:opacity-50 ${focusRing}`}
+              >
+                {clearApprovalHistoryMutation.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
+                Clear approval history
+              </button>
+            )}
           </div>
 
           {/* Content */}
@@ -678,44 +736,71 @@ export default function SuperAdminOverviewPage() {
                 {approvalStats.stats.map((stat) => (
                   <div
                     key={stat.approver.id}
-                    className="flex items-center gap-3 py-3.5 sm:gap-4 sm:py-4"
+                    className="py-3.5 sm:py-4"
                   >
-                    {/* Approver Info */}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13px] font-semibold text-[#12203B] sm:text-sm">
-                        {stat.approver.firstName} {stat.approver.lastName}
-                      </p>
+                    <div className="flex items-center gap-3 sm:gap-4">
+                      {/* Approver Info */}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] font-semibold text-[#12203B] sm:text-sm">
+                          {stat.approver.firstName} {stat.approver.lastName}
+                        </p>
 
-                      <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-[#6F7B8D] sm:text-xs">
-                        <span className="truncate">{stat.approver.email}</span>
-                        {stat.approver.role && (
-                          <>
-                            <span className="text-[#8993A3]">•</span>
+                        <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-[#6F7B8D] sm:text-xs">
+                          <span className="truncate">{stat.approver.email}</span>
+                          {stat.approver.role && (
+                            <>
+                              <span className="text-[#8993A3]">•</span>
+                              <span className="truncate">
+                                {stat.approver.role.displayName}
+                              </span>
+                            </>
+                          )}
+                        </div>
+
+                        {stat.approver.techCenter && (
+                          <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-[#8993A3] sm:text-[11px]">
+                            <Building2 className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" />
                             <span className="truncate">
-                              {stat.approver.role.displayName}
+                              {stat.approver.techCenter.name}
                             </span>
-                          </>
+                          </div>
                         )}
                       </div>
 
-                      {stat.approver.techCenter && (
-                        <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-[#8993A3] sm:text-[11px]">
-                          <Building2 className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" />
-                          <span className="truncate">
-                            {stat.approver.techCenter.name}
+                      {/* Approval Count */}
+                      <div className="flex shrink-0 items-center gap-2">
+                        <div className="flex items-center gap-1.5 rounded-lg bg-[#EDF7F2] px-2.5 py-1.5">
+                          <TrendingUp className="h-3.5 w-3.5 text-[#17734B]" />
+                          <span className="text-xs font-bold text-[#17734B]">
+                            {stat.approvalCount}
                           </span>
                         </div>
-                      )}
+                      </div>
                     </div>
 
-                    {/* Approval Count */}
-                    <div className="flex shrink-0 items-center gap-2">
-                      <div className="flex items-center gap-1.5 rounded-lg bg-[#EDF7F2] px-2.5 py-1.5">
-                        <TrendingUp className="h-3.5 w-3.5 text-[#17734B]" />
-                        <span className="text-xs font-bold text-[#17734B]">
-                          {stat.approvalCount}
-                        </span>
-                      </div>
+                    <div className="mt-3 border-l border-[#D9E4DD] pl-3 sm:ml-1">
+                      <p className="mb-1.5 font-mono text-[9px] font-bold uppercase tracking-wide text-[#6F7B8D]">
+                        Approved students
+                      </p>
+                      <ul className="space-y-1.5">
+                        {stat.approvedUsers.map((approvedUser) => (
+                          <li
+                            key={approvedUser.id}
+                            className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-xs"
+                          >
+                            <span className="font-medium text-[#12203B]">
+                              {approvedUser.firstName} {approvedUser.lastName}
+                            </span>
+                            <span className="text-[10px] text-[#6F7B8D]">
+                              {approvedUser.techCenter?.name || 'No tech center'}
+                              {' · '}
+                              {approvedUser.verifiedAt
+                                ? formatJoinedDate(approvedUser.verifiedAt)
+                                : 'Date unavailable'}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   </div>
                 ))}

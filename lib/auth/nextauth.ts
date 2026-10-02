@@ -43,12 +43,10 @@ export const authOptions: AuthOptions = {
         password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials) {
-        // 1. Validate email and password exist
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Email and password required');
+          throw new Error('INVALID_CREDENTIALS');
         }
 
-        // 2. Find user in database
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
           include: {
@@ -68,14 +66,8 @@ export const authOptions: AuthOptions = {
           }
         });
 
-        // 3. Check if user exists
-        if (!user) {
-          throw new Error('No user found with this email');
-        }
-
-        // 4. Verify password
-        if (!user.password) {
-          throw new Error('No password set for this user');
+        if (!user?.password) {
+          throw new Error('INVALID_CREDENTIALS');
         }
 
         const isPasswordValid = await bcrypt.compare(
@@ -84,15 +76,13 @@ export const authOptions: AuthOptions = {
         );
 
         if (!isPasswordValid) {
-          throw new Error('Invalid password');
+          throw new Error('INVALID_CREDENTIALS');
         }
 
-        // 5. Check if user account is verified
-        if (!user.isVerified) {
-          throw new Error('Your account is pending admin approval. Please wait for verification before accessing the dashboard.');
+        if (!user.isVerified || user.verificationStatus !== 'APPROVED') {
+          throw new Error('ACCOUNT_PENDING_APPROVAL');
         }
 
-        // 6. Update last login
         await prisma.user.update({
           where: { id: user.id },
           data: { lastLoginAt: new Date() }
@@ -124,6 +114,7 @@ export const authOptions: AuthOptions = {
           preferredTeamType: user.preferredTeamType,
           preferredTeamRole: user.preferredTeamRole,
           teacherId: user.teacherId || null,
+          roleUpdatedAt: user.roleUpdatedAt,
         };
       }
     })
@@ -199,18 +190,7 @@ export const authOptions: AuthOptions = {
         // Use type assertion for teacherId
         token.teacherId = user.teacherId || null;
 
-        // Store roleUpdatedAt from database during initial sign in
-        const dbUser = await prisma.user.findUnique({
-          where: { id: user.id },
-          select: {
-            roleUpdatedAt: true,
-            teacherId: true
-          }
-        });
-        token.roleUpdatedAt = dbUser?.roleUpdatedAt?.toISOString();
-        if (dbUser?.teacherId) {
-          token.teacherId = dbUser.teacherId;
-        }
+        token.roleUpdatedAt = user.roleUpdatedAt?.toISOString();
       }
 
       // Re-fetch user data from database on session update
@@ -264,7 +244,7 @@ export const authOptions: AuthOptions = {
       // Also serves as the deleted-user guard: if the user no longer exists
       // in the database we return null, which tells NextAuth to invalidate
       // the JWT and sign the client out on their very next request.
-      if (token.sub && !trigger) {
+      if (token.sub && !trigger && !user) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.sub as string },
           select: {
@@ -360,9 +340,23 @@ export const authOptions: AuthOptions = {
      * Controls where users are redirected after sign in
      */
     async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
-      // If url is the base URL, redirect to dashboard
-      if (url === baseUrl) return `${baseUrl}/dashboard`;
-      return url;
+      const dashboardUrl = new URL('/dashboard', baseUrl).toString();
+      if (url === baseUrl || url === `${baseUrl}/`) return dashboardUrl;
+
+      if (url.startsWith('/')) {
+        return new URL(url, baseUrl).toString();
+      }
+
+      try {
+        const redirectUrl = new URL(url);
+        if (redirectUrl.origin === new URL(baseUrl).origin) {
+          return redirectUrl.toString();
+        }
+      } catch {
+        return dashboardUrl;
+      }
+
+      return dashboardUrl;
     }
   },
 

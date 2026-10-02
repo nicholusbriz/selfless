@@ -70,18 +70,26 @@ export async function GET(_req: NextRequest) {
       );
     }
 
-    // -------- 3. Per-user distinct page counts --------
-    const userPageCombos = await prisma.pageVisitEvent.groupBy({
+    // -------- 3. Per-user page details --------
+    const userPageGroups = await prisma.pageVisitEvent.groupBy({
       by: ['userId', 'pagePath'],
       where,
+      _count: { _all: true },
+      _max: { visitedAt: true },
     });
 
-    const distinctPageMap = new Map<string, number>();
-    for (const combo of userPageCombos) {
-      distinctPageMap.set(
-        combo.userId,
-        (distinctPageMap.get(combo.userId) ?? 0) + 1,
-      );
+    const pagesByUser = new Map<
+      string,
+      Array<{ pagePath: string; visits: number; lastVisitAt: string }>
+    >();
+    for (const group of userPageGroups) {
+      const pages = pagesByUser.get(group.userId) ?? [];
+      pages.push({
+        pagePath: group.pagePath,
+        visits: group._count._all,
+        lastVisitAt: (group._max.visitedAt ?? new Date()).toISOString(),
+      });
+      pagesByUser.set(group.userId, pages);
     }
 
     // -------- 4. Enrich with user profiles --------
@@ -111,7 +119,10 @@ export async function GET(_req: NextRequest) {
           email: profile.email,
           techCenterName: profile.techCenter?.name ?? null,
           totalVisits: g._count._all,
-          pagesVisited: distinctPageMap.get(g.userId) ?? 0,
+          pages: (pagesByUser.get(g.userId) ?? []).sort((a, b) =>
+            b.visits - a.visits || a.pagePath.localeCompare(b.pagePath),
+          ),
+          pagesVisited: pagesByUser.get(g.userId)?.length ?? 0,
           lastVisitAt: (g._max.visitedAt ?? new Date()).toISOString(),
         };
       })

@@ -16,6 +16,7 @@ import {
   uploadProfileImage,
   deleteProfileImage,
 } from '@/lib/azure-storage';
+import { publishUserProfileInvalidation } from '@/lib/partykit-server';
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 const ALLOWED_TYPES  = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
@@ -83,6 +84,8 @@ export async function POST(req: NextRequest) {
         techCenterId: user.techCenterId ?? undefined,
       },
     });
+
+    await publishUserProfileInvalidation(user.id);
 
     return NextResponse.json({ imageUrl });
   } catch (error: any) {

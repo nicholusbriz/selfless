@@ -4,9 +4,6 @@ import { useSession } from 'next-auth/react';
 import type { Message } from '@/types/messaging';
 import { createPartySocket } from '@/lib/partykit';
 
-const activeConversationIds = new Set<string>();
-const processedUnreadMessageIds = new Set<string>();
-
 interface UseMessagesProps {
   conversationId: string;
   currentUserId: string;
@@ -14,7 +11,6 @@ interface UseMessagesProps {
 
 export function useMessages({ conversationId, currentUserId }: UseMessagesProps) {
   const queryClient = useQueryClient();
-  const socketRef = useRef<ReturnType<typeof createPartySocket>>(null);
   const markReadRequestRef = useRef<Promise<number> | null>(null);
 
   // Fetch messages with cache-first strategy
@@ -58,27 +54,16 @@ export function useMessages({ conversationId, currentUserId }: UseMessagesProps)
       }
       return response.json();
     },
-    onSuccess: (data) => {
-      // Add the new message to the cache without duplicates
-      queryClient.setQueryData(['messages', conversationId], (old: Message[] = []) => {
-        // Check if message already exists
-        const exists = old.some((msg: Message) => msg.id === data.message.id);
-        if (exists) return old;
-        return [...old, data.message];
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ['messages', conversationId],
       });
-      
-      // Invalidate conversations to update last message preview
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-
-      const socket = socketRef.current;
-      if (socket && socket.readyState === 1) {
-        socket.send(JSON.stringify({
-          type: 'message:new',
-          conversationId,
-          recipientIds: data.recipientIds || [],
-          message: data.message,
-        }));
-      }
+      void queryClient.invalidateQueries({
+        queryKey: ['conversations', currentUserId],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['messages', 'unread-count', currentUserId],
+      });
     },
     onError: (error) => {
       console.error('Failed to send message:', error);
@@ -90,13 +75,6 @@ export function useMessages({ conversationId, currentUserId }: UseMessagesProps)
     if (!content.trim() || !conversationId) return;
     await sendMessageMutation.mutateAsync({ content: content.trim(), attachments });
   }, [conversationId, sendMessageMutation]);
-
-  const sendRealtimeEvent = useCallback((event: Record<string, unknown>) => {
-    const socket = socketRef.current;
-    if (socket?.readyState === 1) {
-      socket.send(JSON.stringify(event));
-    }
-  }, []);
 
   const markMessagesAsRead = useCallback(async () => {
     if (!conversationId || !currentUserId) return 0;
@@ -111,10 +89,12 @@ export function useMessages({ conversationId, currentUserId }: UseMessagesProps)
         const markedCount = data.markedCount || 0;
 
         if (markedCount > 0) {
-          queryClient.setQueryData<number>(
-            ['messages', 'unread-count', currentUserId],
-            (count) => Math.max(0, (count ?? 0) - markedCount)
-          );
+          void queryClient.invalidateQueries({
+            queryKey: ['messages', 'unread-count', currentUserId],
+          });
+          void queryClient.invalidateQueries({
+            queryKey: ['conversations', currentUserId],
+          });
         }
 
         return markedCount;
@@ -127,73 +107,11 @@ export function useMessages({ conversationId, currentUserId }: UseMessagesProps)
     return request;
   }, [conversationId, currentUserId, queryClient]);
 
-  useEffect(() => {
-    if (!conversationId) return;
-
-    activeConversationIds.add(conversationId);
-    const socket = createPartySocket(`conversation:${conversationId}`);
-    socketRef.current = socket;
-    if (!socket) return;
-
-    const handleMessage = (event: MessageEvent<string>) => {
-      try {
-        const payload = JSON.parse(event.data);
-        if (payload.conversationId !== conversationId) return;
-
-        if (payload.type === 'message:deleted') {
-          queryClient.setQueryData<Message[]>(['messages', conversationId], (oldMessages = []) =>
-            oldMessages.filter((message) => message.id !== payload.messageId)
-          );
-          queryClient.setQueryData(['conversations', currentUserId], (oldConversations: Array<Record<string, unknown>> = []) =>
-            oldConversations.map((conversation) =>
-              conversation.id === conversationId
-                ? { ...conversation, lastMessage: payload.lastMessage || null }
-                : conversation
-            )
-          );
-          return;
-        }
-
-        if (payload.type !== 'message:new') return;
-
-        queryClient.setQueryData<Message[]>(['messages', conversationId], (oldMessages = []) => {
-          if (oldMessages.some((message) => message.id === payload.message?.id)) return oldMessages;
-          return [...oldMessages, payload.message];
-        });
-
-        queryClient.setQueryData(['conversations', currentUserId], (oldConversations: Array<Record<string, unknown>> = []) =>
-          oldConversations.map((conversation) =>
-            conversation.id === conversationId
-              ? { ...conversation, lastMessage: payload.message, unreadCount: 0 }
-              : conversation
-          )
-        );
-
-        if (payload.message?.senderId !== currentUserId) {
-          void markMessagesAsRead().catch((error) => {
-            console.error('Failed to mark incoming message as read:', error);
-          });
-        }
-      } catch (error) {
-        console.error('Failed to process message event:', error);
-      }
-    };
-
-    socket.addEventListener('message', handleMessage);
-
-    return () => {
-      socket.close();
-      socketRef.current = null;
-      activeConversationIds.delete(conversationId);
-    };
-  }, [conversationId, currentUserId, markMessagesAsRead, queryClient]);
-
   return {
     messages,
     isLoading,
     error,
     sendMessage,
-    sendRealtimeEvent,
     markMessagesAsRead,
     isSending: sendMessageMutation.isPending,
     refetch,
@@ -203,7 +121,7 @@ export function useMessages({ conversationId, currentUserId }: UseMessagesProps)
 // Hook to fetch total unread message count for the current user
 export function useUnreadMessageCount() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const currentUserId = session?.user?.id || '';
 
   const unreadCountQuery = useQuery({
@@ -236,74 +154,84 @@ export function useUnreadMessageCount() {
   useEffect(() => {
     if (!currentUserId) return;
 
-    const socket = createPartySocket(`user:${currentUserId}`);
-    if (!socket) return;
+    let socket: Awaited<ReturnType<typeof createPartySocket>> = null;
+    let disposed = false;
 
     const handleMessage = (event: MessageEvent<string>) => {
       try {
         const payload = JSON.parse(event.data);
-        if (payload.recipientId !== currentUserId) return;
+        if (payload.type !== 'invalidate') return;
 
-        if (payload.type === 'message:deleted') {
-          if (payload.wasUnread) {
-            queryClient.setQueryData<number>(
-              ['messages', 'unread-count', currentUserId],
-              (count = 0) => Math.max(0, count - 1)
-            );
+        if (payload.resource === 'messages') {
+          void queryClient.invalidateQueries({
+            queryKey: ['messages', 'unread-count', currentUserId],
+          });
+          void queryClient.invalidateQueries({
+            queryKey: ['conversations', currentUserId],
+          });
+          if (typeof payload.conversationId === 'string') {
+            void queryClient.invalidateQueries({
+              queryKey: ['messages', payload.conversationId],
+            });
           }
-          queryClient.setQueryData(['conversations', currentUserId], (oldConversations: Array<Record<string, unknown>> = []) =>
-            oldConversations.map((conversation) =>
-              conversation.id === payload.conversationId
-                ? {
-                    ...conversation,
-                    lastMessage: payload.lastMessage || null,
-                    unreadCount: payload.wasUnread
-                      ? Math.max(0, Number(conversation.unreadCount || 0) - 1)
-                      : conversation.unreadCount,
-                  }
-                : conversation
-            )
-          );
           return;
         }
 
-        if (payload.type !== 'message:unread') return;
-
-        if (payload.messageId && processedUnreadMessageIds.has(payload.messageId)) return;
-        if (payload.messageId) {
-          processedUnreadMessageIds.add(payload.messageId);
-          if (processedUnreadMessageIds.size > 1000) {
-            processedUnreadMessageIds.delete(processedUnreadMessageIds.values().next().value as string);
-          }
+        if (
+          payload.resource === 'social' &&
+          payload.userId === currentUserId
+        ) {
+          void queryClient.invalidateQueries({ queryKey: ['students'] });
+          void queryClient.invalidateQueries({ queryKey: ['social'] });
+          void queryClient.invalidateQueries({ queryKey: ['connections'] });
+          void queryClient.invalidateQueries({
+            queryKey: ['currentUserStats', currentUserId],
+          });
+          return;
         }
 
-        const isOpen = activeConversationIds.has(payload.conversationId);
-        if (!isOpen) {
-          queryClient.setQueryData<number>(
-            ['messages', 'unread-count', currentUserId],
-            (count = 0) => count + 1
-          );
+        if (
+          payload.resource === 'profile' &&
+          payload.userId === currentUserId
+        ) {
+          void update();
+          void queryClient.invalidateQueries({ queryKey: ['users'] });
+          void queryClient.invalidateQueries({ queryKey: ['students'] });
+          void queryClient.invalidateQueries({ queryKey: ['social'] });
         }
-
-        queryClient.setQueryData(['conversations', currentUserId], (oldConversations: Array<Record<string, unknown>> = []) =>
-          oldConversations.map((conversation) =>
-            conversation.id === payload.conversationId
-              ? {
-                  ...conversation,
-                  lastMessage: payload.message,
-                  unreadCount: isOpen ? 0 : Number(conversation.unreadCount || 0) + 1,
-                }
-              : conversation
-          )
-        );
       } catch (error) {
         console.error('Failed to process unread message event:', error);
       }
     };
 
-    socket.addEventListener('message', handleMessage);
-    return () => socket.close();
-  }, [currentUserId, queryClient]);
+    const handleOpen = () => {
+      void queryClient.invalidateQueries({
+        queryKey: ['messages', 'unread-count', currentUserId],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['conversations', currentUserId],
+      });
+      void queryClient.invalidateQueries({ queryKey: ['messages'] });
+    };
+
+    void createPartySocket(`user:${currentUserId}`).then((connectedSocket) => {
+      if (!connectedSocket || disposed) {
+        connectedSocket?.close();
+        return;
+      }
+
+      socket = connectedSocket;
+      socket.addEventListener('message', handleMessage);
+      socket.addEventListener('open', handleOpen);
+    });
+
+    return () => {
+      disposed = true;
+      socket?.removeEventListener('message', handleMessage);
+      socket?.removeEventListener('open', handleOpen);
+      socket?.close();
+    };
+  }, [currentUserId, queryClient, update]);
 
   return unreadCountQuery;
 }

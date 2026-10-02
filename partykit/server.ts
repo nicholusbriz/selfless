@@ -1,125 +1,114 @@
 import type { PartyKitServer } from "partykit/server";
+import { verifyPartyTicket } from "../lib/partykit-ticket";
 
-interface UserInfo {
+interface OnlineUser {
   userId: string;
-  firstName: string;
-  lastName: string;
-  fullName?: string;
-  email?: string;
-  image?: string | null;
-  techCenter?: {
-    id: string;
-    name: string;
-  };
-  connectedAt: string;
 }
-
-// In-memory storage for online users
-const onlineUsers = new Map<string, UserInfo>();
-const socketToUser = new Map<string, string>();
-const userSockets = new Map<string, Set<string>>();
 
 export default {
   async onConnect(ws, room) {
-    console.log(`User connected: ${ws.id}`);
-    
-    // Extract user info from URL query parameters
-    const url = new URL(ws.uri);
-    const userParam = url.searchParams.get('user');
-    
-    if (userParam) {
-      try {
-        const userInfo: UserInfo = JSON.parse(userParam);
-        userInfo.connectedAt = new Date().toISOString();
-        
-        console.log('User info from URL:', userInfo);
-        
-        const sockets = userSockets.get(userInfo.userId) || new Set<string>();
-        sockets.add(ws.id);
-        userSockets.set(userInfo.userId, sockets);
-        socketToUser.set(ws.id, userInfo.userId);
-
-        // Broadcast only when this is the user's first connection.
-        if (!onlineUsers.has(userInfo.userId)) {
-          onlineUsers.set(userInfo.userId, userInfo);
-
-          room.broadcast(JSON.stringify({
-            type: "user-joined",
-            user: userInfo,
-          }));
-        }
-      } catch (e) {
-        console.error('Failed to parse user info:', e);
-      }
+    const secret = room.env.PARTYKIT_SYNC_SECRET;
+    const ticket = new URL(ws.uri).searchParams.get("ticket");
+    const userId =
+      typeof secret === "string" && ticket
+        ? await verifyPartyTicket(ticket, secret)
+        : null;
+    if (
+      !userId ||
+      (room.id !== "online-users" && room.id !== `user:${userId}`)
+    ) {
+      ws.close(1008, "Unauthorized");
+      return;
     }
-    
-    // Send current online users
-    const usersArray = Array.from(onlineUsers.values());
+
+    ws.setState({ userId });
+    if (room.id !== "online-users") return;
+
+    const existingUserIds = new Set(
+      Array.from(room.getConnections())
+        .map((connection) =>
+          (connection.state as OnlineUser | null)?.userId,
+        )
+        .filter((connectedUserId): connectedUserId is string => Boolean(connectedUserId)),
+    );
+
+    ws.setState({ userId });
+
+    if (!existingUserIds.has(userId)) {
+      room.broadcast(JSON.stringify({ type: "user-joined", userId }));
+    }
+
     ws.send(JSON.stringify({
       type: "current-online-users",
-      users: usersArray,
+      userIds: Array.from(new Set([...existingUserIds, userId])),
     }));
   },
 
   async onClose(ws, room) {
-    console.log(`User disconnected: ${ws.id}`);
-    
-    const userId = socketToUser.get(ws.id);
-    if (userId) {
-      socketToUser.delete(ws.id);
+    if (room.id !== "online-users") return;
 
-      const sockets = userSockets.get(userId);
-      sockets?.delete(ws.id);
+    const userId = (ws.state as OnlineUser | null)?.userId;
+    if (!userId) return;
 
-      // A user remains online while at least one tab is connected.
-      if (sockets && sockets.size > 0) return;
-
-      userSockets.delete(userId);
-      onlineUsers.delete(userId);
-      room.broadcast(JSON.stringify({
-        type: "user-left",
-        userId,
-      }));
-    }
-  },
-
-  async onMessage(message, _sender, room) {
-    try {
-      const event = JSON.parse(typeof message === 'string' ? message : new TextDecoder().decode(message));
-
-      if (event.type !== 'message:new' && event.type !== 'message:deleted') return;
-
-      room.broadcast(JSON.stringify(event));
-
-      for (const recipientId of event.recipientIds || []) {
-        const recipientRoom = room.context.parties.main?.get(`user:${recipientId}`);
-        if (!recipientRoom) continue;
-
-        await recipientRoom.fetch('/', {
-          method: 'POST',
-          body: JSON.stringify({
-            type: event.type === 'message:new' ? 'message:unread' : 'message:deleted',
-            recipientId,
-            conversationId: event.conversationId,
-            messageId: event.type === 'message:new' ? event.message?.id : event.messageId,
-            senderId: event.message?.senderId,
-            message: event.message,
-            lastMessage: event.lastMessage,
-            wasUnread: event.wasUnread,
-          }),
-        });
-      }
-    } catch (error) {
-      console.error('Failed to relay message event:', error);
+    const stillConnected = Array.from(room.getConnections()).some(
+      (connection) =>
+        connection.id !== ws.id &&
+        (connection.state as OnlineUser | null)?.userId === userId,
+    );
+    if (!stillConnected) {
+      room.broadcast(JSON.stringify({ type: "user-left", userId }));
     }
   },
 
   async onRequest(request, room) {
     if (request.method === 'POST') {
-      room.broadcast(await request.text());
+      const secret = room.env.PARTYKIT_SYNC_SECRET;
+      if (
+        typeof secret !== 'string' ||
+        request.headers.get('authorization') !== `Bearer ${secret}`
+      ) {
+        return new Response('Unauthorized', { status: 401 });
+      }
+
+      const event = await request.json().catch(() => null);
+      if (!event || event.type !== 'invalidate') {
+        return new Response('Invalid event', { status: 400 });
+      }
+
+      let invalidation: Record<string, string>;
+      if (
+        event.resource === 'messages' &&
+        typeof event.conversationId === 'string'
+      ) {
+        invalidation = {
+          type: 'invalidate',
+          resource: 'messages',
+          conversationId: event.conversationId,
+        };
+      } else if (
+        (event.resource === 'profile' || event.resource === 'social') &&
+        typeof event.userId === 'string'
+      ) {
+        invalidation = {
+          type: 'invalidate',
+          resource: event.resource,
+          userId: event.userId,
+        };
+      } else if (event.resource === 'approvals') {
+        invalidation = {
+          type: 'invalidate',
+          resource: 'approvals',
+        };
+      } else {
+        return new Response('Invalid event', { status: 400 });
+      }
+
+      room.broadcast(JSON.stringify(invalidation));
       return new Response(null, { status: 204 });
     }
 
-    return new Response("PartyKit server running");
+    return new Response('PartyKit server running', {
+      headers: { 'Cache-Control': 'no-store' },
+    });
   },
 } satisfies PartyKitServer;

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import { publishUserProfileInvalidation } from '@/lib/partykit-server';
 
 // GET - Fetch single user details (only if in same tech center)
 export async function GET(
@@ -190,9 +191,42 @@ export async function PATCH(
     if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
     if (country !== undefined) updateData.country = country;
     if (city !== undefined) updateData.city = city;
-    // Allow reassignment to any active tech center (or removal when empty string)
+    const nextTechCenterId =
+      techCenterId === '' ? null : techCenterId;
+    const techCenterChanged =
+      techCenterId !== undefined &&
+      nextTechCenterId !== existingUser.techCenterId;
+
     if (techCenterId !== undefined) {
-      updateData.techCenterId = techCenterId === '' ? null : techCenterId;
+      updateData.techCenterId = nextTechCenterId;
+    }
+
+    const roleName = existingUser.role?.name;
+    const shouldDemoteToStudent =
+      techCenterChanged && roleName !== 'student' && roleName !== 'dev';
+
+    if (shouldDemoteToStudent) {
+      const studentRole = await prisma.role.findUnique({
+        where: { name: 'student' },
+        select: { id: true },
+      });
+      if (!studentRole) {
+        return NextResponse.json(
+          { error: 'Student role is not configured' },
+          { status: 500 },
+        );
+      }
+
+      updateData.roleId = studentRole.id;
+      updateData.roleUpdatedAt = new Date();
+      updateData.promotedById = null;
+
+      if (roleName === 'teacher') {
+        await prisma.user.updateMany({
+          where: { teacherId: userId },
+          data: { teacherId: null },
+        });
+      }
     }
 
     const updatedUser = await prisma.user.update({
@@ -223,6 +257,8 @@ export async function PATCH(
         techCenterId: updatedUser.techCenterId,
       }
     });
+
+    await publishUserProfileInvalidation(userId);
 
     return NextResponse.json({
       message: 'User updated successfully',

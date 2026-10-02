@@ -174,7 +174,7 @@ export function useSocialActions(opts: Options = {}) {
   const invalidateAll = useCallback(() => {
     queryClient.invalidateQueries({
       queryKey: socialKeys.students,
-      refetchType: 'none',
+      refetchType: 'active',
     });
     queryClient.invalidateQueries({
       queryKey: socialKeys.trending,
@@ -322,6 +322,9 @@ export function useSocialActions(opts: Options = {}) {
       followTarget: followMutation.variables,
       unfollowTarget: unfollowMutation.variables,
       likeTarget: likeMutation.variables?.targetId,
+      likeTargetIsLiked: likeMutation.variables
+        ? !likeMutation.variables.isLiked
+        : undefined,
     }),
     [
       readLiveState,

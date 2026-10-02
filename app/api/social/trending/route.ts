@@ -15,6 +15,10 @@
  *   - isFollowing (does the viewer follow them)
  *   - isLiked     (has the viewer liked them)
  *
+ * Uses the centralized getStatsForUsers function to compute LIVE stats
+ * from Follow/Like/ProfileView tables, ensuring consistency with the
+ * Students and Connections pages.
+ *
  * Same shape as /api/students so the client renders rows identically.
  *
  * GET /api/social/trending?limit=10
@@ -23,6 +27,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma/client';
 import { requireAuth } from '@/lib/auth/server';
+import { getStatsForUsers, EMPTY_STATS } from '@/lib/social/attachStats';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -53,44 +58,21 @@ export async function GET(request: Request) {
       100,
     );
 
-    // -------- 1. Live counts from Follow / Like / ProfileView --------
-    const [followerGroups, followingGroups, likeGroups, viewGroups] =
-      await Promise.all([
-        prisma.follow.groupBy({
-          by: ['followingId'],
-          _count: { _all: true },
-        }),
-        prisma.follow.groupBy({
-          by: ['followerId'],
-          _count: { _all: true },
-        }),
-        prisma.like.groupBy({
-          by: ['likedUserId'],
-          _count: { _all: true },
-        }),
-        prisma.profileView.groupBy({
-          by: ['profileUserId'],
-          _count: { _all: true },
-        }),
-      ]);
+    // -------- 1. Find users with activity (followers or likes) --------
+    const [followerGroups, likeGroups] = await Promise.all([
+      prisma.follow.groupBy({
+        by: ['followingId'],
+        _count: { _all: true },
+      }),
+      prisma.like.groupBy({
+        by: ['likedUserId'],
+        _count: { _all: true },
+      }),
+    ]);
 
-    const followerMap = new Map<string, number>(
-      followerGroups.map((g) => [g.followingId, g._count._all]),
-    );
-    const followingMap = new Map<string, number>(
-      followingGroups.map((g) => [g.followerId, g._count._all]),
-    );
-    const likeMap = new Map<string, number>(
-      likeGroups.map((g) => [g.likedUserId, g._count._all]),
-    );
-    const viewMap = new Map<string, number>(
-      viewGroups.map((g) => [g.profileUserId, g._count._all]),
-    );
-
-    // -------- 2. Candidate IDs = anyone with activity --------
     const activeIds = new Set<string>([
-      ...followerMap.keys(),
-      ...likeMap.keys(),
+      ...followerGroups.map((g) => g.followingId),
+      ...likeGroups.map((g) => g.likedUserId),
     ]);
 
     if (activeIds.size === 0) {
@@ -100,7 +82,7 @@ export async function GET(request: Request) {
       );
     }
 
-    // -------- 3. Fetch profile info for candidates --------
+    // -------- 2. Fetch profile info for candidates --------
     const users = await prisma.user.findMany({
       where: { id: { in: Array.from(activeIds) } },
       select: {
@@ -112,15 +94,19 @@ export async function GET(request: Request) {
       },
     });
 
-    // -------- 4. Rank --------
+    // -------- 3. Get live stats using centralized function --------
+    const userIds = users.map((u) => u.id);
+    const statsMap = await getStatsForUsers(viewerId, userIds);
+
+    // -------- 4. Rank and filter --------
     const ranked = users
-      .map((u) => ({
-        ...u,
-        followersCount: followerMap.get(u.id) ?? 0,
-        followingCount: followingMap.get(u.id) ?? 0,
-        likesReceivedCount: likeMap.get(u.id) ?? 0,
-        profileViewsCount: viewMap.get(u.id) ?? 0,
-      }))
+      .map((u) => {
+        const stats = statsMap.get(u.id) ?? EMPTY_STATS;
+        return {
+          ...u,
+          ...stats,
+        };
+      })
       .filter((u) => u.followersCount > 0 || u.likesReceivedCount > 0)
       .sort((a, b) => {
         if (b.followersCount !== a.followersCount)
@@ -133,28 +119,7 @@ export async function GET(request: Request) {
       })
       .slice(0, limit);
 
-    // -------- 5. Viewer state (does the viewer follow/like each) --------
-    const topIds = ranked.map((u) => u.id);
-
-    const [myFollows, myLikes] = await Promise.all([
-      topIds.length > 0
-        ? prisma.follow.findMany({
-            where: { followerId: viewerId, followingId: { in: topIds } },
-            select: { followingId: true },
-          })
-        : Promise.resolve([]),
-      topIds.length > 0
-        ? prisma.like.findMany({
-            where: { likerId: viewerId, likedUserId: { in: topIds } },
-            select: { likedUserId: true },
-          })
-        : Promise.resolve([]),
-    ]);
-
-    const followingSet = new Set(myFollows.map((f) => f.followingId));
-    const likingSet = new Set(myLikes.map((l) => l.likedUserId));
-
-    // -------- 6. Build response rows --------
+    // -------- 5. Build response rows --------
     const students: TrendingStudent[] = ranked.map((u) => ({
       id: u.id,
       firstName: u.firstName,
@@ -165,8 +130,8 @@ export async function GET(request: Request) {
       followingCount: u.followingCount,
       likesReceivedCount: u.likesReceivedCount,
       profileViewsCount: u.profileViewsCount,
-      isFollowing: followingSet.has(u.id),
-      isLiked: likingSet.has(u.id),
+      isFollowing: u.isFollowing,
+      isLiked: u.isLiked,
     }));
 
     return NextResponse.json(

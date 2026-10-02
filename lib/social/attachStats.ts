@@ -6,6 +6,7 @@
  * each user's live counts + the viewer's relationship to them.
  *
  * Used by:
+ *   - /api/students
  *   - /api/social/trending
  *   - /api/social/connections/[userId]
  *   - /api/social/likes/[userId]

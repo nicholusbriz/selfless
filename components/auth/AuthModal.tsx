@@ -313,12 +313,7 @@ function LoginForm({
 
     setError('');
     setIsLoading(true);
-    setLoginStep('Checking account verification...');
-
-    // Simulate checking account verification
-    await new Promise(resolve => setTimeout(resolve, 400));
-
-    setLoginStep('Authenticating...');
+    setLoginStep('Signing in...');
     setAuthMessageIndex(0);
 
     try {
@@ -335,12 +330,6 @@ function LoginForm({
       if (result && 'error' in result && result.error) {
         setError((result as any).error);
       } else {
-        setLoginStep('Signing in...');
-        await new Promise(resolve => setTimeout(resolve, 300));
-
-        setLoginStep('Redirecting to dashboard...');
-        await new Promise(resolve => setTimeout(resolve, 200));
-
         onClose();
         router.push('/dashboard');
         router.refresh();

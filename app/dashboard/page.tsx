@@ -86,6 +86,13 @@ interface Tutor {
   role?: { name: string };
 }
 
+interface CenterAdmin {
+  id: string;
+  firstName: string;
+  lastName: string;
+  profileImageUrl: string | null;
+}
+
 interface Student {
   id: string;
   firstName: string;
@@ -574,6 +581,64 @@ function StatBlock({
   );
 }
 
+function DashboardLoadingSkeleton() {
+  return (
+    <main
+      className="min-h-screen bg-[#F8F9FA] text-[#1A2B4C]"
+      aria-label="Loading dashboard"
+      aria-busy="true"
+    >
+      <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
+        <header className="bg-[#1A2B4C] px-5 py-6 text-white sm:px-8 sm:py-8">
+          <div className="flex items-start justify-between gap-6">
+            <div className="min-w-0 flex-1 space-y-3">
+              <div className="h-3 w-28 animate-pulse bg-white/15" />
+              <div className="h-10 w-56 max-w-full animate-pulse bg-white/15 sm:h-12" />
+              <div className="h-3 w-52 max-w-full animate-pulse bg-white/10" />
+            </div>
+            <div className="h-16 w-16 shrink-0 animate-pulse bg-white/10 sm:h-20 sm:w-20" />
+          </div>
+
+          <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-white/10 pt-6 sm:grid-cols-4">
+            {[0, 1, 2, 3].map((stat) => (
+              <div key={stat} className="space-y-2">
+                <div className="h-7 w-12 animate-pulse bg-white/15 sm:h-8" />
+                <div className="h-2.5 w-16 animate-pulse bg-white/10" />
+              </div>
+            ))}
+          </div>
+        </header>
+
+        <section className="mt-10" aria-hidden="true">
+          <div className="mb-3 h-4 w-48 animate-pulse bg-[#E5E7EB]" />
+          <div className="flex gap-3 overflow-hidden">
+            {[0, 1, 2, 3].map((card) => (
+              <div key={card} className="w-40 shrink-0">
+                <div className="aspect-square w-full animate-pulse bg-[#E5E7EB]" />
+                <div className="mt-3 h-3 w-3/4 animate-pulse bg-[#E5E7EB]" />
+                <div className="mt-2 h-2.5 w-1/2 animate-pulse bg-[#ECEEF0]" />
+                <div className="mt-3 space-y-2">
+                  <div className="h-2.5 w-full animate-pulse bg-[#ECEEF0]" />
+                  <div className="h-2.5 w-4/5 animate-pulse bg-[#ECEEF0]" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6" aria-hidden="true">
+          {[0, 1, 2, 3, 4, 5].map((item) => (
+            <div
+              key={item}
+              className="h-24 animate-pulse border border-[#E5E7EB] bg-white"
+            />
+          ))}
+        </section>
+      </div>
+    </main>
+  );
+}
+
 /* ============================================================
    SUGGESTED STUDENTS — mobile-first, no borders
    ------------------------------------------------------------
@@ -637,21 +702,21 @@ function SuggestedStudents() {
         return (
           <article
             key={user.id}
-            className="w-40 shrink-0 bg-white transition-transform active:scale-[0.98]"
+            className="w-48 shrink-0 overflow-hidden rounded-md border border-[#E5E7EB] bg-white shadow-sm transition-shadow hover:shadow-md sm:w-52"
           >
-            {/* Avatar — square, edge-to-edge, bold */}
+            {/* Profile image and ranking */}
             <button
               type="button"
               onClick={() => router.push(`/dashboard/students/${user.id}`)}
               className="block w-full"
             >
-              <div className="relative aspect-square w-full overflow-hidden bg-[#1A2B4C]">
+              <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#1A2B4C]">
                 {user.profileImageUrl ? (
                   <Image
                     src={user.profileImageUrl}
                     alt={`${user.firstName} ${user.lastName}`}
                     fill
-                    sizes="160px"
+                    sizes="(max-width: 640px) 192px, 208px"
                     className="object-cover"
                   />
                 ) : (
@@ -669,57 +734,55 @@ function SuggestedStudents() {
               </div>
             </button>
 
-            {/* Info — tight, editorial, words always visible */}
-            <div className="px-0 pt-2.5">
-              <p className="truncate text-[13px] font-black leading-tight text-[#1A2B4C]">
+            <div className="p-3">
+              <p className="truncate text-[14px] font-bold leading-tight text-[#1A2B4C]">
                 {user.firstName} {user.lastName}
               </p>
+              {user.techCenter && (
+                <p className="mt-1 break-words text-[11px] leading-snug text-[#6B7280]">
+                  {user.techCenter.name}
+                </p>
+              )}
 
-              <div className="mt-2 space-y-1">
-                <div className="flex items-baseline gap-1.5 text-[11px]">
-                  <Users
-                    className="h-3 w-3 shrink-0 translate-y-0.5 text-[#B98A3E]"
-                    strokeWidth={2.4}
-                  />
-                  <span className="font-mono font-black tabular-nums text-[#1A2B4C]">
+              <div className="mt-3 grid grid-cols-3 border-y border-[#E5E7EB] py-2.5">
+                <div className="min-w-0 text-center">
+                  <p className="font-mono text-[13px] font-bold tabular-nums text-[#1A2B4C]">
                     {user.followersCount}
-                  </span>
-                  <span className="font-medium text-[#6B7280]">
-                    follower{user.followersCount === 1 ? '' : 's'}
-                  </span>
+                  </p>
+                  <p className="mt-0.5 text-[9px] font-semibold uppercase text-[#6B7280]">
+                    Followers
+                  </p>
                 </div>
-
-                <div className="flex items-baseline gap-1.5 text-[11px]">
-                  <Heart
-                    className="h-3 w-3 shrink-0 translate-y-0.5 text-[#A4462F]"
-                    strokeWidth={2.4}
-                  />
-                  <span className="font-mono font-black tabular-nums text-[#1A2B4C]">
+                <div className="min-w-0 border-x border-[#E5E7EB] text-center">
+                  <p className="font-mono text-[13px] font-bold tabular-nums text-[#1A2B4C]">
                     {user.likesReceivedCount}
-                  </span>
-                  <span className="font-medium text-[#6B7280]">
-                    like{user.likesReceivedCount === 1 ? '' : 's'}
-                  </span>
+                  </p>
+                  <p className="mt-0.5 text-[9px] font-semibold uppercase text-[#6B7280]">
+                    Likes
+                  </p>
                 </div>
-
-                <div className="flex items-baseline gap-1.5 text-[11px]">
-                  <Eye
-                    className="h-3 w-3 shrink-0 translate-y-0.5 text-[#3E5C76]"
-                    strokeWidth={2.4}
-                  />
-                  <span className="font-mono font-black tabular-nums text-[#1A2B4C]">
+                <div className="min-w-0 text-center">
+                  <p className="font-mono text-[13px] font-bold tabular-nums text-[#1A2B4C]">
                     {user.profileViewsCount}
-                  </span>
-                  <span className="font-medium text-[#6B7280]">
-                    view{user.profileViewsCount === 1 ? '' : 's'}
-                  </span>
+                  </p>
+                  <p className="mt-0.5 text-[9px] font-semibold uppercase text-[#6B7280]">
+                    Views
+                  </p>
                 </div>
               </div>
 
-              {/* Action — full width */}
-              <div className="mt-3">
+              <div className="mt-3 space-y-2">
+                <button
+                  type="button"
+                  onClick={() => router.push(`/dashboard/students/${user.id}`)}
+                  className="inline-flex h-9 w-full items-center justify-between rounded border border-[#1A2B4C] px-3 text-[11px] font-bold text-[#1A2B4C] transition-colors hover:bg-[#1A2B4C] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] focus-visible:ring-offset-2"
+                >
+                  View profile
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+
                 {isSelf ? (
-                  <span className="block border border-[#E5E7EB] bg-[#F7F6F2] py-1.5 text-center font-mono text-[9px] font-black uppercase tracking-[0.14em] text-[#9CA3AF]">
+                  <span className="block py-1 text-center font-mono text-[9px] font-bold uppercase text-[#9CA3AF]">
                     You
                   </span>
                 ) : (
@@ -729,6 +792,7 @@ function SuggestedStudents() {
                     size="xs"
                     allowUnfollow={true}
                     allowUnlike={true}
+                    className="justify-center"
                   />
                 )}
               </div>
@@ -912,7 +976,7 @@ export default function DashboardPage() {
   const [messageIndex, setMessageIndex] = useState(0);
   const [currentTime] = useState(() => Date.now());
 
-  const { data: meStats } = useQuery<MeStats>({
+  const { data: meStats, isLoading: meStatsLoading } = useQuery<MeStats>({
     queryKey: ['social', 'me'],
     queryFn: async () => {
       const res = await fetch('/api/social/me');
@@ -1027,6 +1091,21 @@ export default function DashboardPage() {
   });
 
   const tutors = tutorsData || [];
+
+  const { data: adminsData, isLoading: adminsLoading } = useQuery({
+    queryKey: ['tech-center-admins', user?.techCenterId],
+    queryFn: async () => {
+      const response = await fetch('/api/tech-centers/admins');
+      if (!response.ok) throw new Error('Failed to fetch tech center admins');
+      const data = await response.json();
+      return data.admins as CenterAdmin[];
+    },
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    enabled: !!user?.techCenterId && user?.role !== 'super_admin',
+  });
+
+  const centerAdmins = adminsData || [];
 
   const { data: discoverStudents = [], isLoading: discoverStudentsLoading } =
     useQuery<DiscoverStudent[]>({
@@ -1161,16 +1240,7 @@ export default function DashboardPage() {
   }, [user?.role]);
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center bg-[#F8F9FA]">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#E5E7EB] border-t-[#1A2B4C]" />
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#6B7280]">
-            Loading
-          </p>
-        </div>
-      </div>
-    );
+    return <DashboardLoadingSkeleton />;
   }
 
   return (
@@ -1239,7 +1309,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Stats row — bold, flat, no pills */}
-            {meStats && (
+            {meStats ? (
               <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-white/10 pt-6 sm:grid-cols-4">
                 <StatBlock value={meStats.followersCount} label="Followers" />
                 <StatBlock value={meStats.followingCount} label="Following" />
@@ -1250,7 +1320,20 @@ export default function DashboardPage() {
                 />
                 <StatBlock value={meStats.profileViewsCount} label="Views" />
               </div>
-            )}
+            ) : meStatsLoading ? (
+              <div
+                className="mt-8 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-white/10 pt-6 sm:grid-cols-4"
+                aria-label="Loading your stats"
+                aria-busy="true"
+              >
+                {[0, 1, 2, 3].map((stat) => (
+                  <div key={stat} className="flex min-w-0 flex-col gap-2">
+                    <span className="h-7 w-12 animate-pulse bg-white/15 sm:h-8" />
+                    <span className="h-2.5 w-16 animate-pulse bg-white/10" />
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
         </header>
 
@@ -1366,6 +1449,53 @@ export default function DashboardPage() {
             </div>
           </section>
         )}
+
+        {(adminsLoading || centerAdmins.length > 0) &&
+          user?.role !== 'super_admin' && (
+            <section className="mt-10">
+              <SectionHeader
+                label={`${techCenter?.name || 'Your'} admins`}
+                count={centerAdmins.length}
+              />
+              {adminsLoading ? (
+                <div className="flex flex-wrap gap-2">
+                  {[1, 2].map((index) => (
+                    <div
+                      key={index}
+                      className="h-8 w-32 animate-pulse bg-[#E5E7EB]"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {centerAdmins.map((admin) => (
+                    <div
+                      key={admin.id}
+                      className="inline-flex items-center gap-2 border border-[#E5E7EB] bg-white px-3 py-1.5"
+                    >
+                      {admin.profileImageUrl ? (
+                        <Image
+                          src={admin.profileImageUrl}
+                          alt={`${admin.firstName} ${admin.lastName}`}
+                          width={22}
+                          height={22}
+                          className="h-[22px] w-[22px] object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-[22px] w-[22px] items-center justify-center bg-[#1A2B4C] font-mono text-[9px] font-bold text-white">
+                          {admin.firstName.charAt(0)}
+                          {admin.lastName.charAt(0)}
+                        </div>
+                      )}
+                      <span className="text-[12px] font-bold text-[#1A2B4C]">
+                        {admin.firstName} {admin.lastName}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
 
         {/* ============================================================
             TUTORS
