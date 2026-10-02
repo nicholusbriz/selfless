@@ -131,12 +131,14 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
         const parsed: unknown = JSON.parse(event.data);
         if (!parsed || typeof parsed !== 'object') return;
         const message = parsed as PresenceMessage;
-        console.info('[presence] PartyKit message received.', {
-          type: typeof message.type === 'string' ? message.type : 'unknown',
-          userCount: Array.isArray(message.userIds)
-            ? message.userIds.length
-            : undefined,
-        });
+        const messageType =
+          typeof message.type === 'string' ? message.type : 'unknown';
+        const userCount = Array.isArray(message.userIds)
+          ? message.userIds.length
+          : 'not-provided';
+        console.info(
+          `[presence] PartyKit message received: type=${messageType}; userCount=${userCount}`,
+        );
 
         if (message.type === 'current-online-users') {
           onlineUserIds.clear();
