@@ -1,22 +1,26 @@
 import { useEffect } from 'react';
 
-export function useActivityTracker() {
+export function useActivityTracker(enabled = true) {
   useEffect(() => {
-    // Heartbeat every 30 seconds
-    const interval = setInterval(async () => {
+    if (!enabled) return;
+
+    const sendHeartbeat = async () => {
       try {
         await fetch('/api/user/heartbeat', { method: 'POST' });
       } catch (error) {
         console.error('Heartbeat failed:', error);
       }
+    };
+
+    void sendHeartbeat();
+    const interval = setInterval(() => {
+      void sendHeartbeat();
     }, 30000);
 
     // Heartbeat on visibility change (user returns to tab)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        fetch('/api/user/heartbeat', { method: 'POST' }).catch((error) => {
-          console.error('Heartbeat failed:', error);
-        });
+        void sendHeartbeat();
       }
     };
 
@@ -26,5 +30,5 @@ export function useActivityTracker() {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [enabled]);
 }

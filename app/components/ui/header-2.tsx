@@ -42,13 +42,17 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useActivityTracker } from "@/lib/hooks/useActivityTracker";
 import AuthModal from "@/components/auth/AuthModal";
 import {
   useUnreadNotificationCount,
   useAnnouncementCount,
 } from "@/hooks/useNotifications";
 import { useUnreadMessageCount } from "@/hooks/useMessages";
-import { useOnlineUsers } from "@/lib/hooks/useOnlineUsers";
+import {
+  useOnlineUsers,
+  type OnlineUser,
+} from "@/lib/hooks/useOnlineUsers";
 
 /* -------------------------------------------------------------------------- */
 /* COLORS                                                                     */
@@ -837,7 +841,7 @@ function OnlineUsersInline({
   currentUserId,
   limit = 6,
 }: {
-  onlineUsers: any[];
+  onlineUsers: OnlineUser[];
   currentUserId?: string;
   limit?: number;
 }) {
@@ -945,22 +949,8 @@ export default function Header2() {
   const { data: unreadCount } = useUnreadNotificationCount(!!user);
   const { data: announcementCount } = useAnnouncementCount(!!user);
   const { data: unreadMessageCount } = useUnreadMessageCount();
+  useActivityTracker(Boolean(user?.id));
   const onlineUsers = useOnlineUsers(user);
-
-  const allOnlineUsers = user?.id
-    ? [
-        {
-          userId: user.id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          fullName: `${user.firstName} ${user.lastName}`,
-          image: user.profileImageUrl,
-          techCenter: user.techCenter,
-          connectedAt: new Date().toISOString(),
-        },
-        ...onlineUsers.filter((u) => u.userId !== user?.id),
-      ]
-    : onlineUsers;
 
   const handleScroll = useCallback(() => {
     setScrolled(window.scrollY > 18);
@@ -1316,7 +1306,7 @@ export default function Header2() {
         {/* ================================================================== */}
         {/* ROW 4 — ONLINE USERS STRIP (always visible, desktop + mobile)      */}
         {/* ================================================================== */}
-        {user && allOnlineUsers.length > 0 && (
+        {user && onlineUsers.length > 0 && (
           <div
             style={{
               backgroundColor: COLORS.navyDeep,
@@ -1325,7 +1315,7 @@ export default function Header2() {
           >
             <div className="mx-auto flex min-h-9 max-w-[1440px] items-center px-4 py-1.5 sm:px-6 lg:px-8 overflow-hidden">
               <OnlineUsersInline
-                onlineUsers={allOnlineUsers}
+                onlineUsers={onlineUsers}
                 currentUserId={user?.id}
                 limit={8}
               />

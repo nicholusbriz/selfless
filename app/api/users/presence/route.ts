@@ -3,7 +3,6 @@ import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
 
 export async function GET(request: NextRequest) {
-  console.info('[presence] Profile lookup request received.');
   try {
     await requireAuth();
 
