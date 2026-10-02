@@ -56,13 +56,16 @@ export function SocialActions({
   allowUnlike = true,
 }: SocialActionsProps) {
   const social = useSocialActions({ pageAdapters });
-  const { isFollowing, isLiked } = social.readLiveState(userId);
+  const { isFollowing, isLiked: cachedIsLiked } = social.readLiveState(userId);
   const isSelf = currentUserId === userId;
 
   const followPending = social.isFollowPending && social.followTarget === userId;
   const unfollowPending =
     social.isUnfollowPending && social.unfollowTarget === userId;
   const likePending = social.isLikePending && social.likeTarget === userId;
+  const isLiked = likePending
+    ? social.likeTargetIsLiked ?? cachedIsLiked
+    : cachedIsLiked;
   const followLoading = followPending || unfollowPending;
 
   const iconCls = iconSize[size];
@@ -122,11 +125,7 @@ export function SocialActions({
             aria-label="Unlike this profile"
             title="Unlike"
           >
-            {likePending ? (
-              <Loader2 className={`${iconCls} animate-spin`} strokeWidth={2} />
-            ) : (
               <Heart className={`${iconCls} fill-red-500 text-red-500`} strokeWidth={2} />
-            )}
             Liked
           </button>
         ) : (
@@ -150,11 +149,7 @@ export function SocialActions({
           aria-label="Like this profile"
           title="Like"
         >
-          {likePending ? (
-            <Loader2 className={`${iconCls} animate-spin`} strokeWidth={2} />
-          ) : (
-            <Heart className={`${iconCls} text-red-500`} strokeWidth={2} />
-          )}
+          <Heart className={`${iconCls} text-red-500`} strokeWidth={2} />
           Like
         </button>
       )}

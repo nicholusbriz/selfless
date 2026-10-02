@@ -18,5 +18,7 @@ export function compareFollowersThenLikes(a: Rankable, b: Rankable): number {
 }
 
 export function rankByTrending<T extends Rankable>(list: T[]): T[] {
-  return [...list].sort(compareFollowersThenLikes);
+  return [...list]
+    .filter((u) => (u.followersCount || 0) > 0 || (u.likesReceivedCount || 0) > 0)
+    .sort(compareFollowersThenLikes);
 }

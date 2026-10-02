@@ -6,12 +6,20 @@
  * (followersCount, followingCount, likesReceivedCount, profileViewsCount)
  * AND the viewer's relationship (isFollowing, isLiked).
  *
+ * Uses the centralized getStatsForUsers function to compute LIVE stats
+ * from Follow/Like/ProfileView tables, ensuring consistency with the
+ * Connections page.
+ *
  * One endpoint. One response. No client-side merging.
  */
 
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
+import { getStatsForUsers, EMPTY_STATS } from '@/lib/social/attachStats';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 const MAX_STUDENTS = 1000;
 
@@ -106,10 +114,6 @@ export async function GET(_request: Request) {
           status: true,
           isActive: true,
           createdAt: true,
-          // Social counters — read directly from User row
-          followersCount: true,
-          followingCount: true,
-          likesReceivedCount: true,
           submittedCourses: {
             select: {
               id: true,
@@ -121,8 +125,6 @@ export async function GET(_request: Request) {
           },
         },
         orderBy: [
-          { followersCount: 'desc' },
-          { likesReceivedCount: 'desc' },
           { lastName: 'asc' },
           { firstName: 'asc' },
         ],
@@ -144,34 +146,10 @@ export async function GET(_request: Request) {
 
     const studentIds = students.map((s) => s.id);
 
-    // -------- 3. Viewer state + profile views --------
-    const [myFollows, myLikes, viewGroups] = await Promise.all([
-      prisma.follow.findMany({
-        where: { followerId: currentUser.id },
-        select: { followingId: true },
-      }),
-      prisma.like.findMany({
-        where: { likerId: currentUser.id },
-        select: { likedUserId: true },
-      }),
-      studentIds.length > 0
-        ? prisma.profileView.groupBy({
-            by: ['profileUserId'],
-            where: { profileUserId: { in: studentIds } },
-            _count: { _all: true },
-          })
-        : Promise.resolve([]),
-    ]);
+    // -------- 3. Get live stats using centralized function --------
+    const statsMap = await getStatsForUsers(currentUser.id, studentIds);
 
-    const followingIds = new Set(myFollows.map((f) => f.followingId));
-    const likedUserIds = new Set(myLikes.map((l) => l.likedUserId));
-
-    const profileViewCounts = new Map<string, number>();
-    for (const row of viewGroups) {
-      profileViewCounts.set(row.profileUserId, row._count._all);
-    }
-
-    // -------- 4. Build flat list --------
+    // -------- 4. Build flat list with live stats --------
     const rankedStudents: GroupedStudent[] = students
       .map((student) => {
         const previousTechCenter =
@@ -182,6 +160,7 @@ export async function GET(_request: Request) {
             : null;
 
         const studentTechCenter = student.techCenter ?? previousTechCenter;
+        const stats = statsMap.get(student.id) ?? EMPTY_STATS;
 
         return {
           id: student.id,
@@ -196,12 +175,12 @@ export async function GET(_request: Request) {
           isActive: student.isActive,
           createdAt: student.createdAt,
           studentCourses: student.submittedCourses,
-          profileViewsCount: profileViewCounts.get(student.id) ?? 0,
-          followersCount: student.followersCount,
-          followingCount: student.followingCount,
-          likesReceivedCount: student.likesReceivedCount,
-          isFollowing: followingIds.has(student.id),
-          isLiked: likedUserIds.has(student.id),
+          profileViewsCount: stats.profileViewsCount,
+          followersCount: stats.followersCount,
+          followingCount: stats.followingCount,
+          likesReceivedCount: stats.likesReceivedCount,
+          isFollowing: stats.isFollowing,
+          isLiked: stats.isLiked,
         };
       })
       .sort(popularityComparator);
@@ -253,7 +232,7 @@ export async function GET(_request: Request) {
       },
       {
         headers: {
-          'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+          'Cache-Control': 'no-store, max-age=0',
         },
       },
     );

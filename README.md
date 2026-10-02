@@ -765,6 +765,10 @@ NEXTAUTH_URL=https://your-domain.com
 NEXTAUTH_SECRET=strong-nextauth-production-secret
 ```
 
+### PartyKit Realtime Sync
+
+Set `NEXT_PUBLIC_PARTYKIT_HOST` to the PartyKit host for browser connections and `PARTYKIT_HOST` to that host for server-side publishing. Set the same private `PARTYKIT_SYNC_SECRET` in the Next.js runtime and PartyKit environment; do not expose or commit this secret. Realtime messages carry invalidation identifiers only. Clients reload current message and profile data from authenticated API routes, and PartyKit does not store those records.
+
 ## Security Features
 
 - JWT Authentication with secure token handling

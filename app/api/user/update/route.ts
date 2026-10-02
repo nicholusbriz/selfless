@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerAuthUser, requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
+import { publishUserProfileInvalidation } from '@/lib/partykit-server';
 
 export async function POST(req: NextRequest) {
   try {
@@ -101,6 +102,8 @@ export async function POST(req: NextRequest) {
         techCenterId: user.techCenterId,
       },
     });
+
+    await publishUserProfileInvalidation(user.id);
 
     // Return updated user data
     return NextResponse.json({

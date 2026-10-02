@@ -1133,6 +1133,9 @@ export default function SuperAdminUsersPage() {
                                         )
                                       )}
                                     </select>
+                                    <p className="mt-1.5 text-xs text-[#6B7280]">
+                                      Changing this user’s tech center resets their role to Student. Dev and Super Admin roles are preserved.
+                                    </p>
                                   </div>
                                 </div>
 

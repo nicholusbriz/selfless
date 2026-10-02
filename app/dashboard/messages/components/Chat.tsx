@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { MoreVertical, Send, Trash2, AlertCircle } from 'lucide-react';
 import { useMessages } from '@/hooks/useMessages';
 import { useQueryClient } from '@tanstack/react-query';
-import type { Message, ConversationCacheItem } from '@/types/messaging';
+import type { ConversationCacheItem, Message } from '@/types/messaging';
 
 interface ChatProps {
   conversationId: string;
@@ -22,7 +22,7 @@ export function Chat({ conversationId, currentUserId }: ChatProps) {
   // Track if we've already marked as read for this conversation
   const markedReadConversationRef = useRef<string | null>(null);
 
-  const { messages, isLoading, error, sendMessage, sendRealtimeEvent, markMessagesAsRead, isSending } = useMessages({
+  const { messages, isLoading, error, sendMessage, markMessagesAsRead, isSending } = useMessages({
     conversationId,
     currentUserId,
   });
@@ -117,23 +117,14 @@ export function Chat({ conversationId, currentUserId }: ChatProps) {
         throw new Error(data.error || 'Failed to delete message');
       }
 
-      const data = await response.json();
-
-      queryClient.setQueryData(['conversations', currentUserId], (oldConversations: ConversationCacheItem[] = []) =>
-        oldConversations.map((conversation) =>
-          conversation.id === conversationId
-            ? { ...conversation, lastMessage: data.lastMessage || null }
-            : conversation
-        )
-      );
-
-      sendRealtimeEvent({
-        type: 'message:deleted',
-        conversationId,
-        messageId,
-        recipientIds: data.recipientIds || [],
-        wasUnread: data.wasUnread === true,
-        lastMessage: data.lastMessage || null,
+      void queryClient.invalidateQueries({
+        queryKey: ['messages', conversationId],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['conversations', currentUserId],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['messages', 'unread-count', currentUserId],
       });
     } catch (error) {
       console.error('Failed to delete message:', error);

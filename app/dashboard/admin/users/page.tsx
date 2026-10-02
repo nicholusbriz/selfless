@@ -1142,6 +1142,9 @@ export default function AdminUsersPage() {
                                                 </option>
                                               ))}
                                             </select>
+                                            <p className="mt-1.5 text-xs text-slate-500">
+                                              Changing this user’s tech center resets their role to Student. Dev and Super Admin roles are preserved.
+                                            </p>
                                           </div>
                                         </div>
 

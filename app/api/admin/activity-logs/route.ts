@@ -1,182 +1,122 @@
-// app/api/admin/activity-logs/route.ts
-/**
- * Activity Logs API
- *
- * GET  /api/admin/activity-logs?all=true|false&limit=&offset=&action=&userId=&techCenterId=
- * DELETE /api/admin/activity-logs?logId=... | ?action=...
- *
- * Optimizations:
- *  - `?all=true` is hard-capped at 500 rows (no unbounded responses)
- *  - actionStats computed via DB-side groupBy (no rows pulled into Node)
- *  - logs + count + actionStats run in parallel
- *  - 30s private cache so polling clients hit the cache, not MongoDB
- */
-
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma/client';
-import { requireAuth, hasRole } from '@/lib/auth/server';
 
-// Absolute cap regardless of what the caller asks for.
-const HARD_LOG_CAP = 500;
-const DEFAULT_LIMIT = 50;
+export const dynamic = 'force-dynamic';
 
-// Role sets — defined once, not re-created per request.
-const VIEW_ANY_ROLES = ['dev', 'super_admin'] as const;
+// ============================================================
+// GET /api/admin/activity-logs
+// ============================================================
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const adminUser = await requireAuth();
+    const { searchParams } = new URL(request.url);
 
-    if (!adminUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    const search = searchParams.get('search')?.trim() ?? '';
+    const action = searchParams.get('action') ?? '';
+    const limit = Number(searchParams.get('limit') ?? '50');
+    const offset = Number(searchParams.get('offset') ?? '0');
+    const all = searchParams.get('all') === 'true';
+
+    const where: any = {};
+
+    if (action) {
+      where.action = action;
     }
 
-    const { searchParams } = new URL(req.url);
-    const fetchAll = searchParams.get('all') === 'true';
-    const rawLimit = parseInt(searchParams.get('limit') ?? '', 10);
-    const limit = Number.isFinite(rawLimit)
-      ? Math.min(Math.max(rawLimit, 1), HARD_LOG_CAP)
-      : DEFAULT_LIMIT;
-    const rawOffset = parseInt(searchParams.get('offset') ?? '', 10);
-    const offset = Number.isFinite(rawOffset) ? Math.max(rawOffset, 0) : 0;
-
-    const action = searchParams.get('action');
-    const userId = searchParams.get('userId');
-    const techCenterId = searchParams.get('techCenterId');
-
-    // -------- Scope --------
-    const baseWhere: Record<string, unknown> = { userId: { not: null } };
-
-    const isAnyViewer = VIEW_ANY_ROLES.some((r) => hasRole(adminUser, r));
-
-    if (isAnyViewer) {
-      if (techCenterId) baseWhere.techCenterId = techCenterId;
-    } else if (hasRole(adminUser, 'admin')) {
-      baseWhere.techCenterId = adminUser.techCenterId;
-    } else {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
-
-    if (userId) baseWhere.userId = userId;
-    const where = action ? { ...baseWhere, action } : baseWhere;
-
-    // -------- Fetch in parallel --------
-    const [logs, total, actionGroups] = await Promise.all([
-      prisma.activityLog.findMany({
-        where,
-        select: {
-          id: true,
-          action: true,
-          entityType: true,
-          entityId: true,
-          ipAddress: true,
-          userAgent: true,
-          location: true,
-          sessionId: true,
-          page: true,
-          method: true,
-          createdAt: true,
+    if (search) {
+      where.OR = [
+        { action: { contains: search, mode: 'insensitive' } },
+        { page: { contains: search, mode: 'insensitive' } },
+        { entityType: { contains: search, mode: 'insensitive' } },
+        { ipAddress: { contains: search, mode: 'insensitive' } },
+        { method: { contains: search, mode: 'insensitive' } },
+        {
           user: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-              profileImageUrl: true,
-            },
-          },
-          techCenter: {
-            select: { id: true, name: true, code: true },
+            OR: [
+              { firstName: { contains: search, mode: 'insensitive' } },
+              { lastName: { contains: search, mode: 'insensitive' } },
+              { email: { contains: search, mode: 'insensitive' } },
+            ],
           },
         },
+        {
+          techCenter: {
+            OR: [
+              { name: { contains: search, mode: 'insensitive' } },
+              { code: { contains: search, mode: 'insensitive' } },
+            ],
+          },
+        },
+      ];
+    }
+
+    const [logs, total, actionStatsRaw] = await Promise.all([
+      prisma.activityLog.findMany({
+        where,
         orderBy: { createdAt: 'desc' },
-        take: fetchAll ? HARD_LOG_CAP : limit,
-        skip: fetchAll ? 0 : offset,
+        take: all ? undefined : limit,
+        skip: all ? undefined : offset,
+        include: {
+          user: true,
+          techCenter: true,
+        },
       }),
+
       prisma.activityLog.count({ where }),
-      // DB-side aggregation — returns ~20 rows instead of scanning every log
+
       prisma.activityLog.groupBy({
         by: ['action'],
-        where: baseWhere,
-        _count: { _all: true },
+        _count: { action: true },
+        orderBy: { _count: { action: 'desc' } },
       }),
     ]);
 
-    const actionStats = actionGroups
-      .map((row) => ({
-        action: row.action,
-        count: row._count._all,
-      }))
-      .sort((a, b) => b.count - a.count || a.action.localeCompare(b.action));
+    const actionStats = actionStatsRaw.map((s) => ({
+      action: s.action,
+      count: s._count.action,
+    }));
 
-    return NextResponse.json(
-      { logs, total, actionStats },
-      {
-        headers: {
-          // 30s shared cache. Combined with client staleTime,
-          // this prevents the UI from ever re-hitting the DB on a
-          // 10-second polling loop.
-          'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
-        },
-      },
-    );
+    return NextResponse.json({
+      logs,
+      total,
+      actionStats,
+    });
   } catch (error) {
-    console.error('Activity logs fetch error:', error);
+    console.error('Activity logs GET error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch logs' },
+      { error: 'Failed to fetch activity logs' },
       { status: 500 },
     );
   }
 }
 
-export async function DELETE(req: NextRequest) {
+// ============================================================
+// DELETE /api/admin/activity-logs
+// ============================================================
+
+export async function DELETE(request: NextRequest) {
   try {
-    const adminUser = await requireAuth();
+    const { searchParams } = new URL(request.url);
 
-    if (!adminUser || !hasRole(adminUser, 'dev')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
-
-    const { searchParams } = new URL(req.url);
-    const action = searchParams.get('action');
     const logId = searchParams.get('logId');
-    const techCenterId = searchParams.get('techCenterId');
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
+    const action = searchParams.get('action');
 
-    // Safety: refuse bulk deletes with no filter at all.
-    if (!logId && !action && !techCenterId && !startDate && !endDate) {
+    if (!logId && !action) {
       return NextResponse.json(
-        { error: 'At least one filter is required' },
+        { error: 'Provide logId or action' },
         { status: 400 },
       );
     }
 
-    const where: Record<string, unknown> = {};
+    const result = logId
+      ? await prisma.activityLog.deleteMany({ where: { id: logId } })
+      : await prisma.activityLog.deleteMany({ where: { action: action! } });
 
-    if (logId) {
-      where.id = logId;
-    } else {
-      if (action) where.action = action;
-      if (techCenterId) where.techCenterId = techCenterId;
-      if (startDate || endDate) {
-        const range: Record<string, Date> = {};
-        if (startDate) range.gte = new Date(startDate);
-        if (endDate) range.lte = new Date(endDate);
-        where.createdAt = range;
-      }
-    }
-
-    const result = await prisma.activityLog.deleteMany({ where });
-
-    return NextResponse.json({
-      success: true,
-      deletedCount: result.count,
-    });
+    return NextResponse.json({ deletedCount: result.count });
   } catch (error) {
-    console.error('Activity logs delete error:', error);
+    console.error('Activity logs DELETE error:', error);
     return NextResponse.json(
-      { error: 'Failed to delete logs' },
+      { error: 'Failed to delete activity logs' },
       { status: 500 },
     );
   }
