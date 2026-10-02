@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { MoreVertical, Send, Trash2, AlertCircle } from 'lucide-react';
 import { useMessages } from '@/hooks/useMessages';
 import { useQueryClient } from '@tanstack/react-query';
-import type { Message } from '@/types/messaging';
+import type { ConversationCacheItem, Message } from '@/types/messaging';
 
 interface ChatProps {
   conversationId: string;

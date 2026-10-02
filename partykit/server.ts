@@ -5,6 +5,10 @@ interface OnlineUser {
   userId: string;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 export default {
   async onConnect(ws, room) {
     const secret = room.env.PARTYKIT_SYNC_SECRET;
@@ -70,8 +74,8 @@ export default {
         return new Response('Unauthorized', { status: 401 });
       }
 
-      const event = await request.json().catch(() => null);
-      if (!event || event.type !== 'invalidate') {
+      const event: unknown = await request.json().catch(() => null);
+      if (!isRecord(event) || event.type !== 'invalidate') {
         return new Response('Invalid event', { status: 400 });
       }
 

@@ -29,6 +29,17 @@ interface PresenceUser {
   } | null;
 }
 
+interface PresenceProfile {
+  id: string;
+  firstName: string;
+  lastName: string;
+  profileImageUrl: string | null;
+  techCenter: {
+    id: string;
+    name: string;
+  } | null;
+}
+
 export function useOnlineUsers(user: PresenceUser | null | undefined) {
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const queryClient = useQueryClient();
@@ -63,7 +74,7 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
 
       const data = await response.json();
       return (Array.isArray(data.users) ? data.users : []).map(
-        (presenceUser: Omit<OnlineUser, 'userId' | 'image' | 'fullName' | 'connectedAt'> & { id: string }) => ({
+        (presenceUser: PresenceProfile) => ({
           userId: presenceUser.id,
           firstName: presenceUser.firstName,
           lastName: presenceUser.lastName,
