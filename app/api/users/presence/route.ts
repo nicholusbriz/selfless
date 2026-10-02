@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
         (request.nextUrl.searchParams.get('ids') || '')
           .split(',')
           .map((id) => id.trim())
-          .filter(Boolean),
+          .filter((id) => /^[a-f\d]{24}$/i.test(id)),
       ),
     ).slice(0, 250);
 
