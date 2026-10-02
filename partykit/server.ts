@@ -53,6 +53,7 @@ export default {
 
     const existingUserIds = new Set(
       Array.from(room.getConnections())
+        .filter((connection) => connection.id !== ws.id)
         .map((connection) =>
           (connection.state as OnlineUser | null)?.userId,
         )
