@@ -110,6 +110,7 @@ const compareStudentNames = (a: Student, b: Student): number =>
     .trim()
     .toLowerCase()
     .localeCompare(`${b.firstName} ${b.lastName}`.trim().toLowerCase());
+
 const getStudentInitial = (student: Student): string =>
   student.firstName.trim().charAt(0).toUpperCase();
 
@@ -150,6 +151,10 @@ const sortStudents = (students: Student[], sortBy: SortOption): Student[] => {
   }
   return copy.sort((a, b) => Number(b.isActive) - Number(a.isActive));
 };
+
+// ============================================================
+// MESSAGE COMPOSER
+// ============================================================
 
 function StudentMessageComposer({
   recipientId,
@@ -203,7 +208,7 @@ function StudentMessageComposer({
   };
 
   return (
-    <div className="px-3 pb-3">
+    <div className="border-t border-[#E5E7EB] bg-[#FAFAF8] px-3 py-2">
       <form onSubmit={handleSubmit} className="flex min-w-0 items-center gap-1.5">
         <input
           type="text"
@@ -242,7 +247,7 @@ function StudentMessageComposer({
 }
 
 // ============================================================
-// STUDENT CARD
+// STUDENT CARD (ENHANCED)
 // ============================================================
 
 const StudentCard = ({
@@ -258,170 +263,201 @@ const StudentCard = ({
   rank?: number;
   isTrendingSection?: boolean;
 }) => {
-  const initials = `${student.firstName.charAt(0)}${student.lastName.charAt(
-    0,
-  )}`.toUpperCase();
+  const initials = `${student.firstName.charAt(0)}${student.lastName.charAt(0)}`.toUpperCase();
   const fullName = `${student.firstName} ${student.lastName}`;
   const totalCredits =
-    student.studentCourses?.reduce(
-      (total, course) => total + (course.credits || 0),
-      0,
-    ) ?? 0;
+    student.studentCourses?.reduce((t, c) => t + (c.credits || 0), 0) ?? 0;
   const hue = getTechCenterHue(student.techCenter?.name);
   const isCurrentUser = currentUserId === student.id;
+  const roleLabel =
+    student.role?.name === 'teacher'
+      ? 'Tutor'
+      : student.role?.name || 'Student';
 
   return (
-    <article className="w-[270px] shrink-0 snap-start border border-[#D1D5DB] bg-white sm:w-[290px]">
-      <div className="bg-[#1A2B4C] px-3 py-2 text-white flex items-center justify-between">
-        <span className="font-mono text-[10px] font-bold tracking-wider text-[#B98A3E] uppercase">
-          {student.techCenter?.name || 'Student Record'}
-        </span>
-        {isTrendingSection && (
-          <span className="inline-flex items-center gap-1 bg-[#B98A3E] px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase text-white">
-            <Flame className="h-2.5 w-2.5" />
-            Trending
+    <article className="group flex w-[280px] shrink-0 snap-start flex-col border border-[#D1D5DB] bg-white transition-shadow hover:shadow-[0_2px_12px_rgba(26,43,76,0.08)] sm:w-[300px]">
+      {/* ── Header ─────────────────────────────────── */}
+      <div className="relative bg-[#1A2B4C] px-3 py-2">
+        <div className="flex items-center justify-between gap-2">
+          <span className="truncate font-mono text-[10px] font-bold uppercase tracking-wider text-[#B98A3E]">
+            {student.techCenter?.name || 'Student Record'}
           </span>
-        )}
+          {isTrendingSection ? (
+            <span className="inline-flex shrink-0 items-center gap-1 bg-[#B98A3E] px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase text-white">
+              <Flame className="h-2.5 w-2.5" />
+              Trending
+            </span>
+          ) : (
+            <span className="shrink-0 font-mono text-[9px] font-bold uppercase text-white/50">
+              {roleLabel}
+            </span>
+          )}
+        </div>
+        {/* Accent bar tied to tech center hue */}
+        <span
+          className="absolute bottom-0 left-0 h-[2px] w-full opacity-80"
+          style={{ backgroundColor: hue || '#B98A3E' }}
+        />
       </div>
 
-      <div className="p-3">
-        <div className="flex items-start gap-3">
+      {/* ── Identity Block ─────────────────────────── */}
+      <div className="flex items-start gap-3 px-3 pt-3">
+        <button
+          type="button"
+          onClick={() => router.push(`/dashboard/students/${student.id}`)}
+          className={`relative h-14 w-14 shrink-0 overflow-hidden border bg-[#F7F6F2] ${
+            isTrendingSection
+              ? 'border-[#B98A3E] ring-2 ring-[#B98A3E]/30'
+              : 'border-[#D1D5DB]'
+          }`}
+          aria-label={`Open ${fullName}'s profile`}
+        >
+          {student.profileImageUrl ? (
+            <Image
+              src={student.profileImageUrl}
+              alt={fullName}
+              fill
+              className="object-cover"
+              sizes="56px"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-[#1A2B4C]">
+              <span className="font-mono text-[15px] font-bold tracking-wider text-[#B98A3E]">
+                {initials}
+              </span>
+            </div>
+          )}
+          {typeof rank === 'number' && (
+            <span
+              className={`absolute left-0 top-0 inline-flex h-4 min-w-[16px] items-center justify-center px-1 font-mono text-[9px] font-bold tabular-nums ${
+                rank === 1
+                  ? 'bg-[#B98A3E] text-white'
+                  : rank === 2
+                    ? 'bg-[#55705B] text-white'
+                    : rank === 3
+                      ? 'bg-[#A4462F] text-white'
+                      : 'bg-[#1A2B4C] text-white'
+              }`}
+            >
+              #{rank}
+            </span>
+          )}
+        </button>
+
+        <div className="min-w-0 flex-1">
           <button
             type="button"
             onClick={() => router.push(`/dashboard/students/${student.id}`)}
-            className="relative h-12 w-12 shrink-0 border border-[#D1D5DB] bg-[#F7F6F2] text-left overflow-hidden"
-            aria-label={`Open ${fullName}'s profile`}
+            className="block w-full text-left"
           >
-            {student.profileImageUrl ? (
-              <Image
-                src={student.profileImageUrl}
-                alt={fullName}
-                fill
-                className="object-cover"
-                sizes="48px"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center bg-[#1A2B4C] text-white">
-                <span className="font-mono text-[13px] font-bold tracking-wider text-[#B98A3E]">
-                  {initials}
-                </span>
-              </div>
-            )}
-
-            {typeof rank === 'number' && (
-              <span
-                className={`absolute left-0 top-0 inline-flex h-4 min-w-[16px] items-center justify-center px-1 font-mono text-[9px] font-bold tabular-nums ${
-                  rank === 1
-                    ? 'bg-[#B98A3E] text-white'
-                    : rank === 2
-                      ? 'bg-[#55705B] text-white'
-                      : rank === 3
-                        ? 'bg-[#A4462F] text-white'
-                        : 'bg-[#1A2B4C] text-white'
-                }`}
-              >
-                #{rank}
-              </span>
-            )}
+            <h3 className="line-clamp-2 break-words text-[14px] font-bold leading-tight text-[#1A2B4C] hover:text-[#B98A3E] hover:underline">
+              {fullName}
+            </h3>
           </button>
 
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-1">
-              <button
-                type="button"
-                onClick={() => router.push(`/dashboard/students/${student.id}`)}
-                className="min-w-0 flex-1 text-left"
-              >
-                <h3 className="break-words text-[13px] font-bold text-[#1A2B4C] hover:underline">
-                  {fullName}
-                </h3>
-              </button>
-              <span className="shrink-0 border border-[#D1D5DB] bg-[#F8F9FA] px-1.5 py-0.5 font-mono text-[9px] font-semibold text-[#4B5646]">
-                {student.role?.name === 'teacher'
-                  ? 'Tutor'
-                  : student.role?.name || 'Student'}
-              </span>
-            </div>
+          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[#4B5646]">
+            <span
+              className="h-2 w-2 shrink-0 rounded-full border border-[#D1D5DB]"
+              style={{ backgroundColor: hue || '#B98A3E' }}
+            />
+            <span className="truncate" title={student.techCenter?.name ?? ''}>
+              {student.techCenter?.name ||
+                student.techCenter?.country?.name ||
+                'Campus Member'}
+            </span>
+          </div>
 
-            <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[#4B5646]">
-              <span
-                className="h-2 w-2 shrink-0 border border-[#D1D5DB]"
-                style={{ backgroundColor: hue || '#B98A3E' }}
-              />
-              <span className="truncate font-normal">
-                {student.techCenter?.name || student.techCenter?.country?.name || 'Campus Member'}
+          <div className="mt-1.5 flex flex-wrap items-center gap-1">
+            <span className="border border-[#D1D5DB] bg-[#F8F9FA] px-1.5 py-0.5 font-mono text-[9px] font-semibold text-[#4B5646]">
+              {roleLabel}
+            </span>
+            {student.isActive && (
+              <span className="inline-flex items-center gap-1 border border-[#55705B]/30 bg-[#55705B]/10 px-1.5 py-0.5 font-mono text-[9px] font-semibold text-[#55705B]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#55705B]" />
+                Active
               </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-3 grid grid-cols-3 gap-1 border-t border-[#E5E7EB] pt-2 text-center text-[10px] text-[#4B5646]">
-          <div>
-            <span className="font-mono font-bold text-[#1A2B4C]">
-              {student.followersCount}
-            </span>{' '}
-            followers
-          </div>
-          <div>
-            <span className="font-mono font-bold text-[#1A2B4C]">
-              {Math.max(0, student.likesReceivedCount)}
-            </span>{' '}
-            likes
-          </div>
-          <div>
-            <span className="font-mono font-bold text-[#1A2B4C]">
-              {student.profileViewsCount}
-            </span>{' '}
-            views
+            )}
           </div>
         </div>
       </div>
 
-      <div className="px-3 py-2">
-        <span className="font-mono text-[9px] font-bold uppercase text-[#B98A3E] block">
-          Degree Program
-        </span>
-        <span className="mt-0.5 block truncate text-[11px] font-medium text-[#1A2B4C]">
-          {student.generalCourse || 'General Curriculum'}
-        </span>
+      {/* ── Stats ──────────────────────────────────── */}
+      <div className="mt-3 grid grid-cols-3 divide-x divide-[#E5E7EB] border-y border-[#E5E7EB] bg-[#FAFAF8]">
+        <div className="flex flex-col items-center py-2">
+          <span className="font-mono text-[13px] font-bold tabular-nums text-[#1A2B4C]">
+            {student.followersCount}
+          </span>
+          <span className="mt-0.5 font-mono text-[9px] uppercase tracking-wide text-[#6B7280]">
+            Followers
+          </span>
+        </div>
+        <div className="flex flex-col items-center py-2">
+          <span className="font-mono text-[13px] font-bold tabular-nums text-[#1A2B4C]">
+            {Math.max(0, student.likesReceivedCount)}
+          </span>
+          <span className="mt-0.5 font-mono text-[9px] uppercase tracking-wide text-[#6B7280]">
+            Likes
+          </span>
+        </div>
+        <div className="flex flex-col items-center py-2">
+          <span className="font-mono text-[13px] font-bold tabular-nums text-[#1A2B4C]">
+            {student.profileViewsCount}
+          </span>
+          <span className="mt-0.5 font-mono text-[9px] uppercase tracking-wide text-[#6B7280]">
+            Views
+          </span>
+        </div>
       </div>
 
-      {student.studentCourses?.length > 0 && (
-        <div className="px-3 py-2">
-          <div className="mb-1.5 flex items-center justify-between text-[10px]">
-            <span className="font-mono font-bold uppercase text-[#1A2B4C] flex items-center gap-1">
-              <BookOpen className="h-3 w-3 text-[#B98A3E]" />
-              Enrolled Course Units
-            </span>
-            <span className="font-mono font-bold text-[#1A2B4C]">
-              {totalCredits} cr
-            </span>
-          </div>
+      {/* ── Body ───────────────────────────────────── */}
+      <div className="flex flex-1 flex-col gap-2.5 px-3 py-3">
+        <div>
+          <span className="block font-mono text-[9px] font-bold uppercase tracking-wide text-[#B98A3E]">
+            Degree Program
+          </span>
+          <span className="mt-0.5 block truncate text-[11.5px] font-medium text-[#1A2B4C]">
+            {student.generalCourse || 'General Curriculum'}
+          </span>
+        </div>
 
-          <div className="space-y-1">
-            {student.studentCourses.slice(0, 3).map((course) => (
-              <div
-                key={course.id}
-                className="flex items-center justify-between gap-1 py-1"
-              >
-                <span className="truncate text-[10px] font-normal text-[#1A2B4C]">
-                  {course.courseUnit}
-                </span>
-                <span className="shrink-0 font-mono text-[9px] font-bold text-[#55705B]">
-                  {course.credits}cr
-                </span>
-              </div>
-            ))}
+        {student.studentCourses?.length > 0 && (
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="flex items-center gap-1 font-mono text-[9px] font-bold uppercase tracking-wide text-[#1A2B4C]">
+                <BookOpen className="h-3 w-3 text-[#B98A3E]" />
+                Enrolled Units
+              </span>
+              <span className="font-mono text-[10px] font-bold text-[#1A2B4C]">
+                {totalCredits} cr
+              </span>
+            </div>
+
+            <ul className="space-y-1">
+              {student.studentCourses.slice(0, 3).map((course) => (
+                <li
+                  key={course.id}
+                  className="flex items-center justify-between gap-2 border-l-2 border-[#E5E7EB] pl-2 py-0.5"
+                >
+                  <span className="truncate text-[10.5px] text-[#1A2B4C]">
+                    {course.courseUnit}
+                  </span>
+                  <span className="shrink-0 font-mono text-[9px] font-bold text-[#55705B]">
+                    {course.credits}cr
+                  </span>
+                </li>
+              ))}
+            </ul>
             {student.studentCourses.length > 3 && (
-              <p className="font-mono text-[9px] text-[#6B7280] pt-0.5">
+              <p className="mt-1 pl-2 font-mono text-[9px] text-[#6B7280]">
                 +{student.studentCourses.length - 3} more units
               </p>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      <div className="flex items-center justify-between gap-2 px-3 py-2">
+      {/* ── Footer Actions ─────────────────────────── */}
+      <div className="mt-auto flex items-center justify-between gap-2 border-t border-[#E5E7EB] px-3 py-2">
         <button
           type="button"
           onClick={() => router.push(`/dashboard/students/${student.id}`)}
@@ -444,6 +480,7 @@ const StudentCard = ({
           </div>
         )}
       </div>
+
       {!isCurrentUser && currentUserId && (
         <StudentMessageComposer
           recipientId={student.id}
@@ -622,6 +659,10 @@ function HorizontalRail({
   );
 }
 
+// ============================================================
+// SKELETON
+// ============================================================
+
 function StudentDirectorySkeleton() {
   return (
     <div className="space-y-5" aria-label="Loading student directory" aria-busy="true">
@@ -636,22 +677,22 @@ function StudentDirectorySkeleton() {
               <div
                 key={card}
                 aria-hidden="true"
-                className="h-[250px] w-[270px] shrink-0 border border-[#D1D5DB] bg-white sm:w-[290px]"
+                className="h-[280px] w-[280px] shrink-0 border border-[#D1D5DB] bg-white sm:w-[300px]"
               >
                 <div className="h-8 animate-pulse bg-[#E5E7EB]" />
                 <div className="p-3">
                   <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 shrink-0 animate-pulse bg-[#E5E7EB]" />
+                    <div className="h-14 w-14 shrink-0 animate-pulse bg-[#E5E7EB]" />
                     <div className="min-w-0 flex-1 space-y-2">
                       <div className="h-3 w-3/4 animate-pulse bg-[#E5E7EB]" />
                       <div className="h-2.5 w-1/2 animate-pulse bg-[#F0F1F2]" />
                     </div>
                   </div>
-                  <div className="mt-4 grid grid-cols-3 gap-2">
+                  <div className="mt-4 grid grid-cols-3 divide-x divide-[#E5E7EB] border-y border-[#E5E7EB]">
                     {[0, 1, 2].map((stat) => (
                       <div
                         key={stat}
-                        className="h-7 animate-pulse bg-[#F0F1F2]"
+                        className="h-10 animate-pulse bg-[#F0F1F2]"
                       />
                     ))}
                   </div>
@@ -1145,7 +1186,7 @@ export default function StudentsPage() {
           </div>
         ) : (
           <div>
-            {!isSearching && (
+            {!isSearching && selectedLocation === 'all' && (
               <>
                 <HorizontalRail
                   label="Trending Student Profiles"
@@ -1171,6 +1212,10 @@ export default function StudentsPage() {
             )}
 
             {techCenters.map((loc) => {
+              if (selectedLocation !== 'all' && loc.id !== selectedLocation) {
+                return null;
+              }
+
               const centerStudents = filteredScoped.filter(
                 (s) => s.techCenter?.id === loc.id,
               );
