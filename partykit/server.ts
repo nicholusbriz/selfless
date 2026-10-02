@@ -12,11 +12,18 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export default {
   async onConnect(ws, room) {
     const secret = room.env.PARTYKIT_SYNC_SECRET;
-    const ticket = new URL(ws.uri).searchParams.get("ticket");
-    const userId =
-      typeof secret === "string" && ticket
-        ? await verifyPartyTicket(ticket, secret)
+    const connectionUrl = new URL(ws.uri);
+    const ticket = connectionUrl.searchParams.get("ticket");
+    const publicPresenceUserId =
+      room.id === "online-users"
+        ? connectionUrl.searchParams.get("userId")
         : null;
+    const userId =
+      publicPresenceUserId && /^[a-f\d]{24}$/i.test(publicPresenceUserId)
+        ? publicPresenceUserId
+        : typeof secret === "string" && ticket
+          ? await verifyPartyTicket(ticket, secret)
+          : null;
     if (
       !userId ||
       (room.id !== "online-users" && room.id !== `user:${userId}`)
@@ -24,9 +31,14 @@ export default {
       console.warn("[partykit] WebSocket connection rejected.", {
         room: room.id === "online-users" ? "online-users" : "user",
         reason:
-          typeof secret !== "string"
-            ? "missing-secret"
-            : !ticket
+          room.id === "online-users" && !publicPresenceUserId
+            ? "missing-user-id"
+            : room.id === "online-users" &&
+                !/^[a-f\d]{24}$/i.test(publicPresenceUserId || "")
+              ? "invalid-user-id"
+              : typeof secret !== "string"
+                ? "missing-secret"
+                : !ticket
               ? "missing-ticket"
               : !userId
                 ? "invalid-ticket"

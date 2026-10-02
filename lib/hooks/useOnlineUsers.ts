@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { createPartySocket } from '@/lib/partykit';
+import {
+  createPublicPresenceSocket,
+} from '@/lib/partykit';
 
 export interface OnlineUser {
   userId: string;
@@ -19,14 +21,7 @@ export interface OnlineUser {
 
 interface PresenceUser {
   id?: string | null;
-  firstName?: string | null;
-  lastName?: string | null;
   role?: string | null;
-  profileImageUrl?: string | null;
-  techCenter?: {
-    id: string;
-    name: string;
-  } | null;
 }
 
 interface PresenceProfile {
@@ -50,58 +45,49 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
   useEffect(() => {
     if (!user?.id) return;
     const currentUserId = user.id;
-
     const partyKitHost = process.env.NEXT_PUBLIC_PARTYKIT_HOST;
 
     if (!partyKitHost && process.env.NODE_ENV === 'production') {
       console.warn(
-        'PartyKit presence is disabled because NEXT_PUBLIC_PARTYKIT_HOST is not configured.'
+        'PartyKit presence is disabled because NEXT_PUBLIC_PARTYKIT_HOST is not configured.',
       );
       return;
     }
 
-    let socket: Awaited<ReturnType<typeof createPartySocket>> = null;
+    let socket: ReturnType<typeof createPublicPresenceSocket> = null;
     let disposed = false;
     const onlineUserIds = new Set<string>();
 
     const fetchPresenceUsers = async (userIds: string[]) => {
       if (userIds.length === 0) return [];
 
-      console.info('[presence-client] Fetching online profiles.', {
-        requestedCount: userIds.length,
-      });
       const response = await fetch(
         `/api/users/presence?ids=${encodeURIComponent(userIds.join(','))}`,
         { cache: 'no-store' },
       );
       if (!response.ok) {
-        console.error('[presence-client] Profile request failed.', {
-          status: response.status,
-        });
-        throw new Error('Failed to fetch online user profiles');
+        throw new Error(
+          `Presence request failed with status ${response.status}`,
+        );
       }
 
-      const data = await response.json();
-      const users = (Array.isArray(data.users) ? data.users : []).map(
-        (presenceUser: PresenceProfile) => ({
-          userId: presenceUser.id,
-          firstName: presenceUser.firstName,
-          lastName: presenceUser.lastName,
-          fullName: `${presenceUser.firstName} ${presenceUser.lastName}`.trim(),
-          image: presenceUser.profileImageUrl,
-          techCenter: presenceUser.techCenter || undefined,
-          connectedAt: new Date().toISOString(),
-        }),
-      ) as OnlineUser[];
-      console.info('[presence-client] Online profiles received.', {
-        returnedCount: users.length,
-      });
-      return users;
+      const data: { users?: PresenceProfile[] } = await response.json();
+      return (Array.isArray(data.users) ? data.users : []).map((profile) => ({
+        userId: profile.id,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        fullName: `${profile.firstName} ${profile.lastName}`.trim(),
+        image: profile.profileImageUrl,
+        techCenter: profile.techCenter || undefined,
+        connectedAt: new Date().toISOString(),
+      }));
     };
 
     const refreshPresenceUsers = async (userIds: string[]) => {
       try {
         const fetchedUsers = await fetchPresenceUsers(userIds);
+        if (disposed) return;
+
         setPresenceState((previousState) => {
           const previous =
             previousState?.userId === currentUserId ? previousState.users : [];
@@ -127,41 +113,50 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
 
     const handleMessage = (event: MessageEvent<string>) => {
       try {
-        const data = JSON.parse(event.data);
-        console.info('[presence-client] PartyKit message received.', {
-          type: typeof data?.type === 'string' ? data.type : 'unknown',
-          userCount: Array.isArray(data?.userIds) ? data.userIds.length : undefined,
-        });
+        const data: unknown = JSON.parse(event.data);
+        if (!data || typeof data !== 'object') return;
+        const message = data as {
+          type?: unknown;
+          userId?: unknown;
+          userIds?: unknown;
+          resource?: unknown;
+        };
 
-        if (data.type === 'current-online-users') {
+        if (message.type === 'current-online-users') {
           onlineUserIds.clear();
-          for (const userId of Array.isArray(data.userIds) ? data.userIds : []) {
-            if (typeof userId === 'string') onlineUserIds.add(userId);
+          for (const id of Array.isArray(message.userIds) ? message.userIds : []) {
+            if (typeof id === 'string') onlineUserIds.add(id);
           }
           void refreshPresenceUsers(Array.from(onlineUserIds));
-        } else if (data.type === 'user-joined' && typeof data.userId === 'string') {
-          onlineUserIds.add(data.userId);
-          void refreshPresenceUsers([data.userId]);
-        } else if (data.type === 'user-left') {
-          onlineUserIds.delete(data.userId);
+        } else if (
+          message.type === 'user-joined' &&
+          typeof message.userId === 'string'
+        ) {
+          onlineUserIds.add(message.userId);
+          void refreshPresenceUsers([message.userId]);
+        } else if (
+          message.type === 'user-left' &&
+          typeof message.userId === 'string'
+        ) {
+          onlineUserIds.delete(message.userId);
           setPresenceState((previousState) => ({
             userId: currentUserId,
             users: (
               previousState?.userId === currentUserId
                 ? previousState.users
                 : []
-            )
-              .filter((onlineUser) => onlineUser.userId !== data.userId),
+            ).filter((onlineUser) => onlineUser.userId !== message.userId),
           }));
         } else if (
-          data.type === 'invalidate' &&
-          data.resource === 'profile' &&
-          onlineUserIds.has(data.userId)
+          message.type === 'invalidate' &&
+          message.resource === 'profile' &&
+          typeof message.userId === 'string' &&
+          onlineUserIds.has(message.userId)
         ) {
-          void refreshPresenceUsers([data.userId]);
+          void refreshPresenceUsers([message.userId]);
         } else if (
-          data.type === 'invalidate' &&
-          data.resource === 'approvals' &&
+          message.type === 'invalidate' &&
+          message.resource === 'approvals' &&
           ['admin', 'super_admin', 'dev'].includes(user.role || '')
         ) {
           void queryClient.invalidateQueries({
@@ -176,48 +171,32 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
       }
     };
 
-    const handleError = (error: Event) => {
-      console.warn(
-        'PartyKit presence connection interrupted; the client will reconnect.',
-        {
-          eventType: error.type,
-          readyState: socket?.readyState,
-        }
-      );
-    };
-
-    const handleOpen = () => {
-      console.info('[presence-client] PartyKit WebSocket connected.');
+    const handleError = (event: Event) => {
+      console.warn('PartyKit public presence connection interrupted.', {
+        eventType: event.type,
+        readyState: socket?.readyState,
+      });
     };
 
     const handleClose = (event: CloseEvent) => {
-      console.warn('[presence-client] PartyKit WebSocket closed.', {
+      console.warn('PartyKit public presence connection closed.', {
         code: event.code,
         wasClean: event.wasClean,
       });
     };
 
-    void createPartySocket('online-users').then((connectedSocket) => {
-      if (!connectedSocket || disposed) {
-        if (!connectedSocket) {
-          console.error('[presence-client] PartyKit socket was not created.');
-        }
-        connectedSocket?.close();
-        return;
-      }
+    socket = createPublicPresenceSocket(currentUserId);
+    if (!socket) {
+      console.error('Failed to create PartyKit public presence socket.');
+      return;
+    }
 
-      socket = connectedSocket;
-      socket.addEventListener('open', handleOpen);
-      socket.addEventListener('message', handleMessage);
-      socket.addEventListener('error', handleError);
-      socket.addEventListener('close', handleClose);
-    }).catch((error: unknown) => {
-      console.error('[presence-client] Failed to create PartyKit socket.', error);
-    });
+    socket.addEventListener('message', handleMessage);
+    socket.addEventListener('error', handleError);
+    socket.addEventListener('close', handleClose);
 
     return () => {
       disposed = true;
-      socket?.removeEventListener('open', handleOpen);
       socket?.removeEventListener('message', handleMessage);
       socket?.removeEventListener('error', handleError);
       socket?.removeEventListener('close', handleClose);
