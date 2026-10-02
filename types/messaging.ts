@@ -9,6 +9,8 @@ export interface User {
   fullName?: string;
   email?: string;
   image?: string | null;
+  roleName?: string;
+  roleDisplayName?: string;
   techCenter?: {
     id: string;
     name: string;

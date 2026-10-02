@@ -110,40 +110,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { participantId } = await request.json();
+    const body = await request.json().catch(() => null);
+    const participantId =
+      body && typeof body.participantId === 'string'
+        ? body.participantId.trim()
+        : '';
     
     if (!participantId) {
       return NextResponse.json(
-        { error: 'Participant ID is required' },
+        { error: 'A valid participant ID is required.' },
         { status: 400 }
       );
     }
 
     const userId = session.user.id;
-    const participantKey = [userId, participantId].sort().join(':');
-
-    // Use upsert to either find existing conversation or create new one
-    // The participantKey unique constraint prevents duplicates for the same user pair
-    const conversation = await prisma.conversation.upsert({
-      where: { participantKey },
-      update: {}, // Don't update anything if it exists
-      create: {
-        participantIds: [userId, participantId],
-        participantKey,
-        lastMessageAt: new Date(),
-      },
-    });
-
-    // Validate that the conversation is one-to-one (exactly 2 participants)
-    if (conversation.participantIds.length !== 2) {
+    if (participantId === userId) {
       return NextResponse.json(
-        { error: 'Conversation must be one-to-one' },
+        { error: 'You cannot start a conversation with your own account.' },
         { status: 400 }
       );
     }
 
-    const otherUser = await prisma.user.findUnique({
-      where: { id: participantId },
+    const otherUser = await prisma.user.findFirst({
+      where: {
+        id: participantId,
+        OR: [
+          {
+            status: 'ACTIVE',
+            isActive: true,
+          },
+          {
+            role: { is: { name: 'dev' } },
+          },
+        ],
+      },
       select: {
         id: true,
         firstName: true,
@@ -158,19 +158,71 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    if (!otherUser) {
+      return NextResponse.json(
+        { error: 'The selected user was not found or is not active.' },
+        { status: 404 }
+      );
+    }
+
+    const participantKey = [userId, participantId].sort().join(':');
+
+    const conversation = await prisma.conversation.upsert({
+      where: { participantKey },
+      update: {},
+      create: {
+        participantIds: [userId, participantId],
+        participantKey,
+        lastMessageAt: new Date(),
+      },
+      include: {
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+    });
+
+    if (
+      conversation.participantIds.length !== 2 ||
+      !conversation.participantIds.includes(userId) ||
+      !conversation.participantIds.includes(participantId)
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            'An existing conversation for this user pair has invalid participants. Please contact support.',
+        },
+        { status: 409 }
+      );
+    }
+
+    const lastMessage = conversation.messages[0];
+
     return NextResponse.json({
       conversation: {
         id: conversation.id,
         participants: conversation.participantIds,
-        lastMessage: null,
-        otherUser: otherUser ? {
+        lastMessage: lastMessage ? {
+          content: lastMessage.content,
+          senderId: lastMessage.senderId,
+          createdAt: lastMessage.createdAt,
+        } : null,
+        otherUser: {
           id: otherUser.id,
           firstName: otherUser.firstName,
           lastName: otherUser.lastName,
           fullName: `${otherUser.firstName} ${otherUser.lastName}`,
           image: otherUser.profileImageUrl,
           techCenter: otherUser.techCenter,
-        } : null,
+        },
+        unreadCount: await prisma.message.count({
+          where: {
+            conversationId: conversation.id,
+            senderId: { not: userId },
+            isRead: false,
+          },
+        }),
         createdAt: conversation.createdAt,
         updatedAt: conversation.updatedAt,
       },
