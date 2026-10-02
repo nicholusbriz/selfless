@@ -21,6 +21,17 @@ export default {
       !userId ||
       (room.id !== "online-users" && room.id !== `user:${userId}`)
     ) {
+      console.warn("[partykit] WebSocket connection rejected.", {
+        room: room.id === "online-users" ? "online-users" : "user",
+        reason:
+          typeof secret !== "string"
+            ? "missing-secret"
+            : !ticket
+              ? "missing-ticket"
+              : !userId
+                ? "invalid-ticket"
+                : "room-mismatch",
+      });
       ws.close(1008, "Unauthorized");
       return;
     }
@@ -36,12 +47,13 @@ export default {
         .filter((connectedUserId): connectedUserId is string => Boolean(connectedUserId)),
     );
 
-    ws.setState({ userId });
-
     if (!existingUserIds.has(userId)) {
       room.broadcast(JSON.stringify({ type: "user-joined", userId }));
     }
 
+    console.info("[partykit] Online-users WebSocket connected.", {
+      onlineUserCount: new Set([...existingUserIds, userId]).size,
+    });
     ws.send(JSON.stringify({
       type: "current-online-users",
       userIds: Array.from(new Set([...existingUserIds, userId])),
@@ -62,6 +74,9 @@ export default {
     if (!stillConnected) {
       room.broadcast(JSON.stringify({ type: "user-left", userId }));
     }
+    console.info("[partykit] Online-users WebSocket closed.", {
+      userStillConnected: stillConnected,
+    });
   },
 
   async onRequest(request, room) {
@@ -76,6 +91,7 @@ export default {
 
       const event: unknown = await request.json().catch(() => null);
       if (!isRecord(event) || event.type !== 'invalidate') {
+        console.warn('[partykit] Invalidation request rejected: invalid event.');
         return new Response('Invalid event', { status: 400 });
       }
 
@@ -108,6 +124,10 @@ export default {
       }
 
       room.broadcast(JSON.stringify(invalidation));
+      console.info('[partykit] Invalidation broadcast.', {
+        room: room.id === 'online-users' ? 'online-users' : 'user',
+        resource: invalidation.resource,
+      });
       return new Response(null, { status: 204 });
     }
 
