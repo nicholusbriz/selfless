@@ -26,6 +26,8 @@ import {
 } from '@tanstack/react-query';
 import { useAuth } from '@/lib/hooks/useAuth';
 
+
+
 // ============================================================
 // TYPES
 // ============================================================
@@ -35,15 +37,14 @@ interface ActivityLog {
   action: string;
   entityType: string;
   entityId?: string;
-  ipAddress?: string;
   userAgent?: string;
   location?: string;
-  sessionId?: string;
   page?: string;
   method?: string;
 
   details?: {
     targetUser?: string;
+    action?: string;
   } | null;
 
   entityUser?: {
@@ -110,23 +111,30 @@ interface ActionStat {
 // CONSTANTS
 // ============================================================
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 10;
 
 const ACTION_BADGE_COLORS: Record<string, string> = {
   login:
     'bg-[#55705B]/10 text-[#55705B] border-[#55705B]/20',
+
   logout:
     'bg-[#B98A3E]/10 text-[#8A651F] border-[#B98A3E]/20',
+
   register:
     'bg-blue-50 text-blue-700 border-blue-200',
+
   create:
     'bg-violet-50 text-violet-700 border-violet-200',
+
   update:
     'bg-amber-50 text-amber-700 border-amber-200',
+
   delete:
     'bg-[#A4462F]/10 text-[#A4462F] border-[#A4462F]/20',
+
   ai_chat_opened:
     'bg-pink-50 text-pink-700 border-pink-200',
+
   page_visit:
     'bg-cyan-50 text-cyan-700 border-cyan-200',
 };
@@ -140,8 +148,22 @@ const DEFAULT_BADGE_COLOR =
 
 function getActionColor(action: string): string {
   return (
-    ACTION_BADGE_COLORS[action] ?? DEFAULT_BADGE_COLOR
+    ACTION_BADGE_COLORS[action] ??
+    DEFAULT_BADGE_COLOR
   );
+}
+
+function isRoleChangeLog(log: ActivityLog): boolean {
+  return (
+    log.action === 'change_user_role' ||
+    log.details?.action === 'change_role'
+  );
+}
+
+function getDisplayAction(log: ActivityLog): string {
+  return isRoleChangeLog(log)
+    ? 'change_user_role'
+    : log.action;
 }
 
 function formatDate(dateString: string): string {
@@ -193,7 +215,7 @@ function InlineStat({
 }
 
 // ============================================================
-// PAGINATION (single source of truth — no duplicates)
+// PAGINATION — single source of truth
 // ============================================================
 
 function Pagination({
@@ -540,11 +562,7 @@ export default function ActivityLogsPage() {
       setPage(newPage);
 
       if (typeof window !== 'undefined') {
-        const scrollArea = document.getElementById(
-          'logs-scroll-area',
-        );
-
-        scrollArea?.scrollTo({
+        window.scrollTo({
           top: 0,
           behavior: 'smooth',
         });
@@ -643,13 +661,13 @@ export default function ActivityLogsPage() {
   // ============================================================
 
   return (
-    <main className="flex h-screen flex-col overflow-hidden bg-[#F1F1EC] text-[#12203B]">
+    <main className="min-h-dvh bg-[#F1F1EC] text-[#12203B]">
 
       {/* HEADER */}
 
-      <header className="shrink-0 border-b border-[#DADCD3] bg-[#F1F1EC]">
+      <header className="border-b border-[#DADCD3] bg-[#F1F1EC]">
 
-        <div className="mx-auto w-full max-w-[1600px] px-4 pt-5 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-[1600px] px-4 pt-2 sm:px-6 lg:px-8">
 
           {/* PAGE TITLE */}
 
@@ -665,27 +683,6 @@ export default function ActivityLogsPage() {
               >
                 <ArrowLeft className="h-4 w-4" />
               </button>
-
-              <div className="min-w-0">
-
-                <div className="flex items-center gap-2">
-
-                  <h1 className="text-xl font-semibold tracking-tight text-[#12203B]">
-                    Activity Logs
-                  </h1>
-
-                  <span className="hidden rounded-full border border-[#DADCD3] bg-white px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#6B7268] sm:inline-flex">
-                    Developer
-                  </span>
-
-                </div>
-
-                <p className="mt-1 text-xs text-[#6B7268]">
-                  Monitor system activity, user events,
-                  page usage and audit records.
-                </p>
-
-              </div>
 
             </div>
 
@@ -707,7 +704,7 @@ export default function ActivityLogsPage() {
 
           {/* INLINE STATISTICS */}
 
-          <section className="mt-6 flex flex-wrap items-baseline gap-x-10 gap-y-4 border-b border-[#DADCD3] pb-5">
+          <section className="mt-2 flex flex-wrap items-baseline gap-x-10 gap-y-2 border-b border-[#DADCD3] pb-2">
 
             <InlineStat
               label="Total logs"
@@ -744,7 +741,7 @@ export default function ActivityLogsPage() {
 
           {/* SEARCH */}
 
-          <section className="py-4">
+          <section className="py-1">
 
             <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
 
@@ -878,38 +875,8 @@ export default function ActivityLogsPage() {
 
           {/* CONTEXT */}
 
-          <div className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-
-            <p className="text-xs text-[#6B7268]">
-
-              {activeFilterTab === 'all' && (
-                <>
-                  Showing all activity logs,
-                  most recent first.
-                </>
-              )}
-
-              {activeFilterTab === 'topPages' && (
-                <>
-                  Page usage across signed-in
-                  users during the last 24 hours.
-                </>
-              )}
-
-              {activeFilterTab !== 'all' &&
-                activeFilterTab !== 'topPages' && (
-                  <>
-                    Showing{' '}
-                    <span className="font-semibold capitalize text-[#12203B]">
-                      {formatAction(activeFilterTab)}
-                    </span>{' '}
-                    activity.
-                  </>
-                )}
-
-            </p>
-
-            {action && activeFilterTab === action && (
+          {action && activeFilterTab === action && (
+            <div className="flex justify-end py-1">
               <button
                 type="button"
                 onClick={() =>
@@ -920,9 +887,8 @@ export default function ActivityLogsPage() {
                 <Trash2 className="h-3.5 w-3.5" />
                 Delete {formatAction(action)}
               </button>
-            )}
-
-          </div>
+            </div>
+          )}
 
         </div>
 
@@ -930,10 +896,7 @@ export default function ActivityLogsPage() {
 
       {/* SCROLLABLE CONTENT */}
 
-      <div
-        id="logs-scroll-area"
-        className="flex-1 overflow-y-auto"
-      >
+      <div className="w-full">
 
         <div className="mx-auto w-full max-w-[1600px] px-4 py-5 sm:px-6 lg:px-8">
 
@@ -951,10 +914,6 @@ export default function ActivityLogsPage() {
                       Page Activity
                     </h2>
 
-                    <p className="mt-0.5 text-xs text-[#6B7268]">
-                      Pages visited by signed-in users
-                      during the last 24 hours.
-                    </p>
                   </div>
 
                   <p className="text-xs text-[#6B7268]">
@@ -1134,11 +1093,6 @@ export default function ActivityLogsPage() {
                     System Activity
                   </h2>
 
-                  <p className="mt-0.5 text-xs text-[#6B7268]">
-                    Detailed audit events generated
-                    across the portal.
-                  </p>
-
                 </div>
 
                 <div className="text-xs text-[#8A9088]">
@@ -1233,7 +1187,7 @@ export default function ActivityLogsPage() {
 
                   <div className="overflow-x-auto">
 
-                    <table className="w-full min-w-[1100px]">
+                    <table className="w-full min-w-[760px]">
 
                       <thead>
 
@@ -1242,10 +1196,7 @@ export default function ActivityLogsPage() {
                           {[
                             'User',
                             'Action',
-                            'Page / Entity',
                             'Tech Center',
-                            'IP Address',
-                            'Session',
                             'Date',
                             '',
                           ].map((label) => (
@@ -1311,6 +1262,13 @@ export default function ActivityLogsPage() {
                                       {log.user.email}
                                     </p>
 
+                                    {isRoleChangeLog(log) &&
+                                      log.details?.targetUser && (
+                                        <p className="max-w-[210px] truncate text-[11px] text-[#8A9088]">
+                                          Updated: {log.details.targetUser}
+                                        </p>
+                                      )}
+
                                   </div>
 
                                 </div>
@@ -1349,44 +1307,11 @@ export default function ActivityLogsPage() {
 
                               <span
                                 className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold capitalize ${getActionColor(
-                                  log.action,
+                                  getDisplayAction(log),
                                 )}`}
                               >
-                                {formatAction(log.action)}
+                                {formatAction(getDisplayAction(log))}
                               </span>
-
-                            </td>
-
-                            {/* PAGE */}
-
-                            <td className="px-5 py-4">
-
-                              <div className="max-w-[220px]">
-
-                                <p className="truncate text-sm font-medium text-[#12203B]">
-                                  {log.page ||
-                                    log.entityType ||
-                                    '-'}
-                                </p>
-
-                                {log.entityId && (
-                                  <p className="mt-0.5 truncate font-mono text-[10px] text-[#8A9088]">
-                                    {typeof log.details
-                                      ?.targetUser === 'string'
-                                      ? log.details.targetUser
-                                      : log.entityUser
-                                        ? `${log.entityUser.firstName} ${log.entityUser.lastName}`
-                                        : log.entityId}
-                                  </p>
-                                )}
-
-                                {log.method && (
-                                  <span className="mt-1 inline-flex rounded bg-[#F7F6F2] px-1.5 py-0.5 font-mono text-[10px] text-[#6B7268]">
-                                    {log.method}
-                                  </span>
-                                )}
-
-                              </div>
 
                             </td>
 
@@ -1406,40 +1331,23 @@ export default function ActivityLogsPage() {
                                     {log.techCenter.code}
                                   </p>
 
+                                  {isRoleChangeLog(log) && (
+                                    <p className="mt-0.5 text-[10px] text-[#8A9088]">
+                                      Updated user
+                                    </p>
+                                  )}
+
                                 </div>
 
                               ) : (
 
                                 <span className="text-sm text-[#8A9088]">
-                                  —
+                                  {isRoleChangeLog(log)
+                                    ? 'No tech center'
+                                    : '—'}
                                 </span>
 
                               )}
-
-                            </td>
-
-                            {/* IP */}
-
-                            <td className="px-5 py-4">
-
-                              <span className="font-mono text-xs text-[#6B7268]">
-                                {log.ipAddress || '—'}
-                              </span>
-
-                            </td>
-
-                            {/* SESSION */}
-
-                            <td className="px-5 py-4">
-
-                              <span className="rounded bg-[#F7F6F2] px-2 py-1 font-mono text-[10px] text-[#6B7268]">
-                                {log.sessionId
-                                  ? log.sessionId.substring(
-                                      0,
-                                      8,
-                                    )
-                                  : 'anonymous'}
-                              </span>
 
                             </td>
 
