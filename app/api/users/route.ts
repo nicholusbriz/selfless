@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import type { Prisma } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,17 +15,23 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get('search') || '';
 
-    // Build where clause
-    const where: any = {
+    const where: Prisma.UserWhereInput = {
       id: { not: session.user.id },
-      status: 'ACTIVE',
+      OR: [
+        { status: 'ACTIVE' },
+        { role: { is: { name: 'dev' } } },
+      ],
     };
 
     if (search) {
-      where.OR = [
-        { firstName: { contains: search, mode: 'insensitive' } },
-        { lastName: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
+      where.AND = [
+        {
+          OR: [
+            { firstName: { contains: search, mode: 'insensitive' } },
+            { lastName: { contains: search, mode: 'insensitive' } },
+            { email: { contains: search, mode: 'insensitive' } },
+          ],
+        },
       ];
     }
 
@@ -36,6 +43,12 @@ export async function GET(request: NextRequest) {
         lastName: true,
         email: true,
         profileImageUrl: true,
+        role: {
+          select: {
+            name: true,
+            displayName: true,
+          },
+        },
         techCenter: {
           select: {
             id: true,
@@ -49,10 +62,19 @@ export async function GET(request: NextRequest) {
     });
 
     // Map profileImageUrl to image for frontend compatibility
-    const usersWithImage = users.map(user => ({
-      ...user,
-      image: user.profileImageUrl,
-    }));
+    const usersWithImage = users
+      .map((user) => ({
+        ...user,
+        image: user.profileImageUrl,
+        roleName: user.role?.name ?? '',
+        roleDisplayName: user.role?.displayName ?? '',
+      }))
+      .sort((a, b) => {
+        const aIsSupport = a.roleName === 'dev';
+        const bIsSupport = b.roleName === 'dev';
+        if (aIsSupport !== bIsSupport) return aIsSupport ? -1 : 1;
+        return a.firstName.localeCompare(b.firstName);
+      });
 
     return NextResponse.json({ users: usersWithImage });
   } catch (error) {

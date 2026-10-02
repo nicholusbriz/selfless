@@ -3,13 +3,13 @@
 import { Users, MessageSquare } from 'lucide-react';
 import Image from 'next/image';
 import { MapPin } from 'lucide-react';
-import type { User } from '@/types/messaging';
+import type { Conversation, User } from '@/types/messaging';
 
 interface AllUsersListProps {
   users: User[];
   isLoading: boolean;
   onlineUserIds: Set<string>;
-  getConversationForUser: (userId: string) => any;
+  getConversationForUser: (userId: string) => Conversation | undefined;
   onUserClick: (user: User) => void;
   searchQuery: string;
 }
@@ -53,10 +53,16 @@ export function AllUsersList({
   return (
     <div className="divide-y divide-[#F7F9FC]">
       {users.map((user) => {
-        const fullName = `${user.firstName} ${user.lastName}`;
-        const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
+        const fullName = `${user.firstName} ${user.lastName}`.trim() || 'Unknown User';
+        const initials = fullName
+          .split(/\s+/)
+          .slice(0, 2)
+          .map((part) => part.charAt(0))
+          .join('')
+          .toUpperCase() || '?';
         const hasConversation = getConversationForUser(user.id);
         const isOnline = onlineUserIds.has(user.id);
+        const isSupport = user.roleName === 'dev';
 
         return (
           <div
@@ -98,6 +104,11 @@ export function AllUsersList({
                   <h3 className="truncate text-sm font-medium text-[#1A365D]">
                     {fullName}
                   </h3>
+                  {isSupport && (
+                    <span className="shrink-0 rounded-full bg-[#B98A3E] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+                      Support
+                    </span>
+                  )}
                   <span className={`flex shrink-0 items-center gap-1 text-[10px] font-medium ${isOnline ? 'text-[#3F8F5B]' : 'text-[#8A9088]'}`}>
                     <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-[#3F8F5B]' : 'bg-[#A0AEC0]'}`} />
                     {isOnline ? 'Online' : 'Offline'}
@@ -119,13 +130,16 @@ export function AllUsersList({
 
             {/* Message button */}
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 onUserClick(user);
               }}
-              className="p-2 bg-[#1A365D] text-white rounded-full hover:bg-[#153475] transition-colors opacity-0 group-hover:opacity-100"
+              aria-label={`Message ${fullName}`}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-[#1A365D] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#153475]"
             >
               <MessageSquare className="w-4 h-4" />
+              <span>Message</span>
             </button>
           </div>
         );

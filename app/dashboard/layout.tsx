@@ -22,6 +22,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { PageTracker } from './components/PageTracker';
+import { SupportContactCard } from './components/SupportContactCard';
 
 import {
   LayoutDashboard,
@@ -777,58 +778,6 @@ function getPageInfo(pathname: string) {
 }
 
 // ============================================================
-// SIDEBAR BILLBOARD DATA
-// ============================================================
-
-function getSidebarBillboard(userRole: string) {
-  if (userRole === 'student') {
-    return {
-      eyebrow: 'STUDENT LIFE',
-      title: 'Your next step matters.',
-      description:
-        'Stay connected, keep learning and make the most of your Selfless CE journey.',
-      href: '/dashboard/courses',
-      action: 'Explore courses',
-      icon: <BookMarked className="w-4 h-4" />,
-    };
-  }
-
-  if (userRole === 'teacher') {
-    return {
-      eyebrow: 'TEACHING',
-      title: 'Make every student count.',
-      description:
-        'Keep track of your learners, grades and daily responsibilities.',
-      href: '/dashboard/teacher/grades',
-      action: 'Open teaching space',
-      icon: <GraduationCap className="w-4 h-4" />,
-    };
-  }
-
-  if (userRole === 'admin') {
-    return {
-      eyebrow: 'ADMINISTRATION',
-      title: 'Lead with clarity.',
-      description:
-        'Manage people, centres, academics and the student experience.',
-      href: '/dashboard/admin',
-      action: 'Open administration',
-      icon: <Shield className="w-4 h-4" />,
-    };
-  }
-
-  return {
-    eyebrow: 'SYSTEM',
-    title: 'Everything connected.',
-    description:
-      'Monitor the Selfless CE platform and keep every part moving.',
-    href: '/dashboard/super-admin',
-    action: 'Open system',
-    icon: <Database className="w-4 h-4" />,
-  };
-}
-
-// ============================================================
 // TOP BAR
 // ============================================================
 
@@ -1358,144 +1307,6 @@ function NavigationItem({
 }
 
 // ============================================================
-// SIDEBAR BILLBOARD
-// ============================================================
-
-function SidebarBillboard({
-  userRole,
-  collapsed,
-}: {
-  userRole: string;
-  collapsed: boolean;
-}) {
-  const billboard =
-    getSidebarBillboard(userRole);
-
-  if (collapsed) {
-    return (
-      <div className="px-2 mb-2">
-        <Link
-          href={billboard.href}
-          aria-label={billboard.title}
-          className="group relative flex items-center justify-center h-11 overflow-hidden bg-[#1A2B4C] rounded-lg shadow-md"
-        >
-          <motion.div
-            className="absolute inset-y-0 left-0 w-[3px] bg-[#B98A3E]"
-            initial={{ scaleY: 0 }}
-            animate={{ scaleY: 1 }}
-            transition={{
-              duration: 0.45,
-              delay: 0.2,
-            }}
-            style={{
-              transformOrigin: 'top',
-            }}
-          />
-
-          <motion.div
-            animate={{
-              y: [0, -2, 0],
-            }}
-            transition={{
-              duration: 2.8,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-            className="text-[#F7F1E4]"
-          >
-            {billboard.icon}
-          </motion.div>
-
-          <span className="absolute left-full ml-3 whitespace-nowrap bg-[#1A2B4C] text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[300]">
-            {billboard.action}
-          </span>
-        </Link>
-      </div>
-    );
-  }
-
-  return (
-    <motion.div
-      initial={{
-        opacity: 0,
-        y: 8,
-      }}
-      animate={{
-        opacity: 1,
-        y: 0,
-      }}
-      transition={{
-        duration: 0.35,
-        delay: 0.1,
-      }}
-      className="px-2 pb-2"
-    >
-      <Link
-        href={billboard.href}
-        className="group relative block overflow-hidden bg-[#1A2B4C] text-white rounded-lg shadow-md"
-      >
-        <motion.div
-          className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#B98A3E]"
-          animate={{
-            opacity: [0.55, 1, 0.55],
-          }}
-          transition={{
-            duration: 2.4,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-        />
-
-        <div className="absolute right-0 top-0 w-16 h-16 border-l border-b border-white/10" />
-
-        <motion.div
-          animate={{
-            x: [0, 3, 0],
-          }}
-          transition={{
-            duration: 3.5,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-          className="relative p-3"
-        >
-          <div className="flex items-center justify-between mb-2.5">
-            <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#B98A3E] font-bold">
-              {billboard.eyebrow}
-            </span>
-
-            <motion.span
-              whileHover={{
-                rotate: 45,
-              }}
-              className="text-[#B98A3E]"
-            >
-              <ArrowUpRight className="w-4 h-4" />
-            </motion.span>
-          </div>
-
-          <h3 className="text-[15px] leading-[1.25] font-bold tracking-tight pr-5">
-            {billboard.title}
-          </h3>
-
-          <p className="mt-1.5 text-[11px] leading-[1.55] text-white/70">
-            {billboard.description}
-          </p>
-
-          <div className="mt-3 flex items-center gap-2 text-[10px] font-semibold text-[#F7F1E4]">
-            <span className="w-5 h-px bg-[#B98A3E]" />
-
-            <span>{billboard.action}</span>
-
-            <ChevronRight className="w-3 h-3 text-[#B98A3E]" />
-          </div>
-        </motion.div>
-      </Link>
-    </motion.div>
-  );
-}
-
-// ============================================================
 // SIDEBAR
 // ============================================================
 
@@ -1736,8 +1547,7 @@ function Sidebar({
       >
         {/* BILLBOARD */}
         <div className="pt-2">
-          <SidebarBillboard
-            userRole={userRole}
+          <SupportContactCard
             collapsed={!sidebarOpen}
           />
         </div>
@@ -2353,7 +2163,7 @@ export default function DashboardLayout({
   // ACTIVITY TRACKING
   // ----------------------------------------------------------
 
-  useActivityTracker();
+  useActivityTracker(Boolean(user?.id));
 
   // ----------------------------------------------------------
   // LOGOUT

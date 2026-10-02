@@ -1,9 +1,10 @@
 'use client';
 
-import { MessageSquare, Plus } from 'lucide-react';
+import { LifeBuoy, MessageSquare, Plus } from 'lucide-react';
 import Image from 'next/image';
 import { MapPin } from 'lucide-react';
-import type { Conversation } from '@/types/messaging';
+import type { Conversation, User } from '@/types/messaging';
+import { getDisplayName } from '@/lib/messaging/displayName';
 
 interface ChatsListProps {
   conversations: Conversation[];
@@ -12,6 +13,8 @@ interface ChatsListProps {
   onlineUserIds: Set<string>;
   onConversationClick: (conversation: Conversation) => void;
   onStartNewChat: () => void;
+  supportContact?: User;
+  onSupportClick?: () => void;
   prefetchConversation?: (conversationId: string) => void;
 }
 
@@ -22,6 +25,8 @@ export function ChatsList({
   onlineUserIds,
   onConversationClick,
   onStartNewChat,
+  supportContact,
+  onSupportClick,
   prefetchConversation,
 }: ChatsListProps) {
   const formatTime = (date: string) => {
@@ -39,9 +44,86 @@ export function ChatsList({
     }
   };
 
+  const supportName = getDisplayName(supportContact, 'Selfless Support');
+  const supportConversation = supportContact
+    ? conversations.find(
+        (conversation) =>
+          conversation.otherUser?.id === supportContact.id ||
+          conversation.participants.includes(supportContact.id),
+      )
+    : undefined;
+  const regularConversations = supportContact
+    ? conversations.filter(
+        (conversation) =>
+          conversation.otherUser?.id !== supportContact.id &&
+          !conversation.participants.includes(supportContact.id),
+      )
+    : conversations;
+  const supportRow = supportContact && (
+    <button
+      type="button"
+      onClick={() => {
+        if (supportConversation) {
+          onConversationClick(supportConversation);
+        } else {
+          onSupportClick?.();
+        }
+      }}
+      className="flex w-full items-center gap-3 border-b border-[#E2E8F0] bg-[#FFFCF5] px-4 py-3 text-left transition-colors hover:bg-[#FBF4E5] focus:outline-none focus:ring-2 focus:ring-[#B98A3E] focus:ring-inset"
+      aria-label={`Open chat with Selfless Support, ${supportName}${(supportConversation?.unreadCount ?? 0) > 0 ? `, ${supportConversation?.unreadCount} unread messages` : ''}`}
+    >
+      {supportContact.image ? (
+        <Image
+          src={supportContact.image}
+          alt=""
+          width={48}
+          height={48}
+          unoptimized
+          className="h-12 w-12 shrink-0 rounded-full border-2 border-[#B98A3E] object-cover"
+        />
+      ) : (
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#1A365D] text-white">
+          <LifeBuoy className="h-5 w-5 text-[#D6B56D]" />
+        </span>
+      )}
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-2">
+          <span className="truncate text-sm font-semibold text-[#1A365D]">
+            {supportName}
+          </span>
+          <span className="shrink-0 rounded-full bg-[#B98A3E] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+            Support
+          </span>
+        </span>
+        <span className="mt-0.5 block truncate text-xs text-[#718096]">
+          {supportConversation?.lastMessage
+            ? `${supportConversation.lastMessage.senderId === currentUserId ? 'You: ' : ''}${supportConversation.lastMessage.content}`
+            : 'Message Selfless Support'}
+        </span>
+      </span>
+      <span className="flex shrink-0 flex-col items-end gap-1">
+        {supportConversation?.lastMessage && (
+          <span className="text-[10px] text-[#718096]">
+            {formatTime(supportConversation.lastMessage.createdAt)}
+          </span>
+        )}
+        {(supportConversation?.unreadCount ?? 0) > 0 ? (
+          <span className="min-w-5 rounded-full bg-[#B98A3E] px-1.5 py-0.5 text-center text-[10px] font-semibold text-white">
+            {(supportConversation?.unreadCount ?? 0) > 99
+              ? '99+'
+              : supportConversation?.unreadCount}
+          </span>
+        ) : (
+          <MessageSquare className="h-4 w-4 text-[#B98A3E]" />
+        )}
+      </span>
+    </button>
+  );
+
   if (isLoading) {
     return (
       <div className="divide-y divide-[#F7F9FC]">
+        {supportRow}
         {[1, 2, 3, 4].map((i) => (
           <div key={i} className="flex items-center gap-3 px-4 py-3 animate-pulse">
             <div className="w-12 h-12 rounded-full bg-[#F7F9FC]" />
@@ -55,9 +137,11 @@ export function ChatsList({
     );
   }
 
-  if (conversations.length === 0) {
+  if (regularConversations.length === 0 && !supportConversation) {
     return (
-      <div className="py-16 text-center">
+      <div>
+        {supportRow}
+        <div className="py-16 text-center">
         <MessageSquare className="mx-auto w-12 h-12 text-[#A0AEC0]" strokeWidth={1.5} />
         <p className="mt-3 text-sm text-[#4A5568]">No conversations yet</p>
         <p className="text-xs text-[#718096] mt-1">Start a new chat to connect with someone</p>
@@ -68,12 +152,14 @@ export function ChatsList({
           <Plus className="w-4 h-4" />
           Start New Chat
         </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div>
+      {supportRow}
       <div className="flex items-center justify-between border-b border-[#F7F9FC] px-4 py-2">
         <span className="text-xs font-semibold uppercase tracking-wide text-[#718096]">
           Recent chats
@@ -90,12 +176,15 @@ export function ChatsList({
       </div>
 
       <div className="divide-y divide-[#F7F9FC]">
-        {conversations.map((conversation) => {
+        {regularConversations.map((conversation) => {
         const otherUser = conversation.otherUser;
-        const fullName = otherUser?.fullName || 'Unknown User';
-        const initials = otherUser 
-          ? `${otherUser.firstName.charAt(0)}${otherUser.lastName.charAt(0)}`.toUpperCase()
-          : '??';
+        const fullName = getDisplayName(otherUser);
+        const initials = fullName
+          .split(/\s+/)
+          .slice(0, 2)
+          .map((part) => part.charAt(0))
+          .join('')
+          .toUpperCase();
         const lastMessage = conversation.lastMessage;
         const isUnread = (conversation.unreadCount ?? 0) > 0;
         const isOnline = otherUser ? onlineUserIds.has(otherUser.id) : false;

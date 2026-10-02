@@ -212,42 +212,49 @@ function useResponsiveCardSize(
 ============================================================ */
 
 function useImagePreloader(urls: string[]) {
-  const [readyUrls, setReadyUrls] = useState<Set<string>>(
-    () => new Set(),
+  const urlsKey = urls.join("\0");
+  const urlsToPreload = useMemo(
+    () => (urlsKey ? urlsKey.split("\0") : []),
+    [urlsKey],
   );
-
-  const [hasError, setHasError] = useState(false);
+  const [preloadState, setPreloadState] = useState(() => ({
+    urlsKey,
+    readyUrls: new Set<string>(),
+  }));
+  const readyUrls =
+    preloadState.urlsKey === urlsKey
+      ? preloadState.readyUrls
+      : new Set<string>();
 
   useEffect(() => {
-    if (urls.length === 0) {
-      setReadyUrls(new Set());
-      setHasError(false);
-      return;
-    }
+    if (urlsToPreload.length === 0) return;
 
     let cancelled = false;
     const images: HTMLImageElement[] = [];
 
     const markReady = (url: string) => {
       if (cancelled) return;
-      setReadyUrls((prev) => {
-        if (prev.has(url)) return prev;
-        const next = new Set(prev);
+      setPreloadState((previousState) => {
+        const previous =
+          previousState.urlsKey === urlsKey
+            ? previousState
+            : { urlsKey, readyUrls: new Set<string>() };
+
+        if (previous.readyUrls.has(url)) return previous;
+
+        const next = new Set(previous.readyUrls);
         next.add(url);
-        return next;
+        return { urlsKey, readyUrls: next };
       });
     };
 
-    urls.forEach((url) => {
+    urlsToPreload.forEach((url) => {
       const img = new window.Image();
       img.decoding = "async";
       img.loading = "eager";
 
       const onLoad = () => markReady(url);
-      const onError = () => {
-        markReady(url);
-        setHasError(true);
-      };
+      const onError = () => markReady(url);
 
       img.addEventListener("load", onLoad);
       img.addEventListener("error", onError);
@@ -257,7 +264,7 @@ function useImagePreloader(urls: string[]) {
     });
 
     Promise.allSettled(
-      urls.map((url) =>
+      urlsToPreload.map((url) =>
         fetch(url, {
           cache: "force-cache",
           credentials: "same-origin",
@@ -273,9 +280,9 @@ function useImagePreloader(urls: string[]) {
       });
       images.length = 0;
     };
-  }, [urls.join("|")]);
+  }, [urlsKey, urlsToPreload]);
 
-  return { readyUrls, hasError };
+  return readyUrls;
 }
 
 /* ============================================================
@@ -326,17 +333,20 @@ export function DiscoverStudents({
     [visibleStudents],
   );
 
-  const { readyUrls, hasError } = useImagePreloader(imageUrls);
+  const readyUrls = useImagePreloader(imageUrls);
 
   const allImagesReady =
     imageUrls.length === 0 ||
     imageUrls.every((u) => readyUrls.has(u));
 
+  const normalizedCurrentIndex =
+    visibleStudents.length === 0
+      ? 0
+      : ((currentIndex % visibleStudents.length) + visibleStudents.length) %
+        visibleStudents.length;
   const currentStudent =
     visibleStudents.length > 0
-      ? visibleStudents[
-          currentIndex % visibleStudents.length
-        ]
+      ? visibleStudents[normalizedCurrentIndex]
       : null;
 
   const getDisplayValue = useCallback(
@@ -386,10 +396,10 @@ export function DiscoverStudents({
       setIsTransitioning(true);
 
       setCurrentIndex((previousIndex) => {
-        const nextIndex = previousIndex + step;
-        if (nextIndex < 0) return visibleStudents.length - 1;
-        if (nextIndex >= visibleStudents.length) return 0;
-        return nextIndex;
+        return (
+          ((previousIndex + step) % visibleStudents.length) +
+          visibleStudents.length
+        ) % visibleStudents.length;
       });
 
       transitionTimeoutRef.current = setTimeout(() => {
@@ -453,17 +463,6 @@ export function DiscoverStudents({
       clearAutoplayTimeout();
     };
   }, [clearTransitionTimeout, clearAutoplayTimeout]);
-
-  useEffect(() => {
-    if (visibleStudents.length === 0) {
-      setCurrentIndex(0);
-      return;
-    }
-    setCurrentIndex(
-      (previousIndex) =>
-        previousIndex % visibleStudents.length,
-    );
-  }, [visibleStudents.length]);
 
   const handlePrevious = useCallback(() => {
     move(-1);
@@ -951,7 +950,7 @@ export function DiscoverStudents({
               className="font-bold tabular-nums"
               style={{ color: GOLD_BRIGHT }}
             >
-              {(currentIndex % visibleStudents.length) + 1}
+              {normalizedCurrentIndex + 1}
             </span>
             <span style={{ color: WHITE_50 }}>/</span>
             <span

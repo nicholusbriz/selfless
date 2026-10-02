@@ -18,6 +18,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import type { User, Conversation, TabType } from '@/types/messaging';
 import { useOnlineUsers } from '@/lib/hooks/useOnlineUsers';
+import { getDisplayName } from '@/lib/messaging/displayName';
 
 // ============================================================
 // MAIN PAGE
@@ -38,11 +39,11 @@ export default function MessagesPage() {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
 
   // Fetch users
-  const { 
+  const {
     data: users = [], 
     isLoading: usersLoading,
     error: usersError
-  } = useQuery({
+  } = useQuery<User[]>({
     queryKey: ['users'],
     queryFn: async () => {
       const response = await fetch('/api/users');
@@ -50,7 +51,7 @@ export default function MessagesPage() {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'Failed to fetch users');
       }
-      const data = await response.json();
+      const data = await response.json() as { users?: User[] };
       return data.users || [];
     },
     enabled: !!currentUserId,
@@ -82,6 +83,7 @@ export default function MessagesPage() {
     retry: 1,
   });
 
+  const supportContact = users.find((user) => user.roleName === 'dev');
 
 
   // Create conversation mutation
@@ -92,8 +94,11 @@ export default function MessagesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ participantId }),
       });
-      if (!response.ok) throw new Error('Failed to create conversation');
-      return response.json();
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create conversation');
+      }
+      return result;
     },
     onSuccess: (data) => {
       setSelectedConversation(data.conversation);
@@ -134,15 +139,18 @@ export default function MessagesPage() {
   };
 
   const handleUserClick = useCallback((user: User) => {
+    const participantId = user.id?.trim();
+    if (!participantId || participantId === currentUserId) return;
+
     // Open chat immediately - instant UI update
-    setSelectedUser(user);
+    setSelectedUser({ ...user, id: participantId });
     
     // Check if conversation already exists with this specific user
     // For one-to-one conversations, we need both participants to match
     const existing = conversations.find(
       (conv: Conversation) => 
         conv.participants.includes(currentUserId) && 
-        conv.participants.includes(user.id) &&
+        conv.participants.includes(participantId) &&
         conv.participants.length === 2 // Ensure it's a one-to-one conversation
     );
     
@@ -150,7 +158,7 @@ export default function MessagesPage() {
       setSelectedConversation(existing);
     } else {
       // Create new conversation
-      createConversationMutation.mutate(user.id);
+      createConversationMutation.mutate(participantId);
     }
   }, [conversations, createConversationMutation, currentUserId]);
 
@@ -245,7 +253,7 @@ export default function MessagesPage() {
   };
 
   // Get conversation for selected user
-  const getConversationForUser = (userId: string) => {
+  const getConversationForUser = (userId: string): Conversation | undefined => {
     return conversations.find(
       (conv: Conversation) => 
         conv.participants.includes(currentUserId) && 
@@ -290,6 +298,7 @@ export default function MessagesPage() {
     const selectedUserIsOnline = onlineUsers.some(
       (onlineUser) => onlineUser.userId === selectedUser.id
     );
+    const selectedUserName = getDisplayName(selectedUser);
 
     return (
       <div className="h-screen bg-[#F7F9FC] overflow-hidden">
@@ -306,7 +315,7 @@ export default function MessagesPage() {
               {selectedUser.image ? (
                 <Image
                   src={selectedUser.image}
-                  alt={`${selectedUser.firstName} ${selectedUser.lastName}`}
+                  alt={selectedUserName}
                   width={40}
                   height={40}
                   unoptimized
@@ -315,7 +324,7 @@ export default function MessagesPage() {
               ) : null}
               <div>
                 <h2 className="text-white font-semibold">
-                  {selectedUser.firstName} {selectedUser.lastName}
+                  {selectedUserName}
                 </h2>
                 <div className="flex items-center gap-2 text-xs">
                   <span className={selectedUserIsOnline ? 'text-[#9AE6B4]' : 'text-white/60'}>
@@ -433,6 +442,15 @@ export default function MessagesPage() {
           </div>
         </div>
 
+        {createConversationMutation.error && (
+          <div
+            role="alert"
+            className="mx-4 mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+          >
+            {createConversationMutation.error.message}
+          </div>
+        )}
+
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
           {activeTab === 'chats' ? (
@@ -443,6 +461,12 @@ export default function MessagesPage() {
               onlineUserIds={new Set(onlineUsers.map((onlineUser) => onlineUser.userId))}
               onConversationClick={handleConversationClick}
               onStartNewChat={handleStartNewChat}
+              supportContact={supportContact?.id !== currentUserId ? supportContact : undefined}
+              onSupportClick={() => {
+                if (supportContact?.id && supportContact.id !== currentUserId) {
+                  handleUserClick(supportContact);
+                }
+              }}
             />
           ) : (
             <AllUsersList
