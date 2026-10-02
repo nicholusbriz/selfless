@@ -37,7 +37,15 @@ interface PresenceMessage {
   type?: unknown;
   userId?: unknown;
   userIds?: unknown;
+  user?: unknown;
+  users?: unknown;
   resource?: unknown;
+}
+
+function getUserId(value: unknown): string | null {
+  if (!value || typeof value !== 'object') return null;
+  const userId = (value as { userId?: unknown }).userId;
+  return typeof userId === 'string' ? userId : null;
 }
 
 export function useOnlineUsers(user: PresenceUser | null | undefined) {
@@ -133,25 +141,40 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
         const message = parsed as PresenceMessage;
         const messageType =
           typeof message.type === 'string' ? message.type : 'unknown';
-        const userCount = Array.isArray(message.userIds)
+        const rosterCount = Array.isArray(message.userIds)
           ? message.userIds.length
-          : 'not-provided';
+          : Array.isArray(message.users)
+            ? message.users.length
+            : 'not-provided';
         console.info(
-          `[presence] PartyKit message received: type=${messageType}; userCount=${userCount}`,
+          `[presence] PartyKit message received: type=${messageType}; rosterCount=${rosterCount}`,
         );
 
         if (message.type === 'current-online-users') {
           onlineUserIds.clear();
-          for (const id of Array.isArray(message.userIds) ? message.userIds : []) {
-            if (typeof id === 'string') onlineUserIds.add(id);
+          if (Array.isArray(message.userIds)) {
+            for (const id of message.userIds) {
+              if (typeof id === 'string') onlineUserIds.add(id);
+            }
+          } else if (Array.isArray(message.users)) {
+            for (const listedUser of message.users) {
+              const id = getUserId(listedUser);
+              if (id) onlineUserIds.add(id);
+            }
           }
           void refreshPresenceUsers(Array.from(onlineUserIds));
         } else if (
           message.type === 'user-joined' &&
-          typeof message.userId === 'string'
+          (typeof message.userId === 'string' || getUserId(message.user))
         ) {
-          onlineUserIds.add(message.userId);
-          void refreshPresenceUsers([message.userId]);
+          const joinedUserId =
+            typeof message.userId === 'string'
+              ? message.userId
+              : getUserId(message.user);
+          if (joinedUserId) {
+            onlineUserIds.add(joinedUserId);
+            void refreshPresenceUsers([joinedUserId]);
+          }
         } else if (
           message.type === 'user-left' &&
           typeof message.userId === 'string'
