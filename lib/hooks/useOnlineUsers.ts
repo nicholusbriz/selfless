@@ -41,14 +41,15 @@ interface PresenceProfile {
 }
 
 export function useOnlineUsers(user: PresenceUser | null | undefined) {
-  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
+  const [presenceState, setPresenceState] = useState<{
+    userId: string;
+    users: OnlineUser[];
+  } | null>(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!user?.id) {
-      setOnlineUsers([]);
-      return;
-    }
+    if (!user?.id) return;
+    const currentUserId = user.id;
 
     const partyKitHost = process.env.NEXT_PUBLIC_PARTYKIT_HOST;
 
@@ -66,14 +67,22 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
     const fetchPresenceUsers = async (userIds: string[]) => {
       if (userIds.length === 0) return [];
 
+      console.info('[presence-client] Fetching online profiles.', {
+        requestedCount: userIds.length,
+      });
       const response = await fetch(
         `/api/users/presence?ids=${encodeURIComponent(userIds.join(','))}`,
         { cache: 'no-store' },
       );
-      if (!response.ok) throw new Error('Failed to fetch online user profiles');
+      if (!response.ok) {
+        console.error('[presence-client] Profile request failed.', {
+          status: response.status,
+        });
+        throw new Error('Failed to fetch online user profiles');
+      }
 
       const data = await response.json();
-      return (Array.isArray(data.users) ? data.users : []).map(
+      const users = (Array.isArray(data.users) ? data.users : []).map(
         (presenceUser: PresenceProfile) => ({
           userId: presenceUser.id,
           firstName: presenceUser.firstName,
@@ -84,12 +93,18 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
           connectedAt: new Date().toISOString(),
         }),
       ) as OnlineUser[];
+      console.info('[presence-client] Online profiles received.', {
+        returnedCount: users.length,
+      });
+      return users;
     };
 
     const refreshPresenceUsers = async (userIds: string[]) => {
       try {
         const fetchedUsers = await fetchPresenceUsers(userIds);
-        setOnlineUsers((previous) => {
+        setPresenceState((previousState) => {
+          const previous =
+            previousState?.userId === currentUserId ? previousState.users : [];
           const currentUsers = new Map(
             previous.map((onlineUser) => [onlineUser.userId, onlineUser]),
           );
@@ -98,9 +113,12 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
               currentUsers.set(onlineUser.userId, onlineUser);
             }
           }
-          return Array.from(currentUsers.values()).filter((onlineUser) =>
-            onlineUserIds.has(onlineUser.userId),
-          );
+          return {
+            userId: currentUserId,
+            users: Array.from(currentUsers.values()).filter((onlineUser) =>
+              onlineUserIds.has(onlineUser.userId),
+            ),
+          };
         });
       } catch (error) {
         console.error('Failed to refresh online user profiles:', error);
@@ -110,6 +128,10 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
     const handleMessage = (event: MessageEvent<string>) => {
       try {
         const data = JSON.parse(event.data);
+        console.info('[presence-client] PartyKit message received.', {
+          type: typeof data?.type === 'string' ? data.type : 'unknown',
+          userCount: Array.isArray(data?.userIds) ? data.userIds.length : undefined,
+        });
 
         if (data.type === 'current-online-users') {
           onlineUserIds.clear();
@@ -122,9 +144,15 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
           void refreshPresenceUsers([data.userId]);
         } else if (data.type === 'user-left') {
           onlineUserIds.delete(data.userId);
-          setOnlineUsers((previous) => (
-            previous.filter((onlineUser) => onlineUser.userId !== data.userId)
-          ));
+          setPresenceState((previousState) => ({
+            userId: currentUserId,
+            users: (
+              previousState?.userId === currentUserId
+                ? previousState.users
+                : []
+            )
+              .filter((onlineUser) => onlineUser.userId !== data.userId),
+          }));
         } else if (
           data.type === 'invalidate' &&
           data.resource === 'profile' &&
@@ -158,24 +186,46 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
       );
     };
 
+    const handleOpen = () => {
+      console.info('[presence-client] PartyKit WebSocket connected.');
+    };
+
+    const handleClose = (event: CloseEvent) => {
+      console.warn('[presence-client] PartyKit WebSocket closed.', {
+        code: event.code,
+        wasClean: event.wasClean,
+      });
+    };
+
     void createPartySocket('online-users').then((connectedSocket) => {
       if (!connectedSocket || disposed) {
+        if (!connectedSocket) {
+          console.error('[presence-client] PartyKit socket was not created.');
+        }
         connectedSocket?.close();
         return;
       }
 
       socket = connectedSocket;
+      socket.addEventListener('open', handleOpen);
       socket.addEventListener('message', handleMessage);
       socket.addEventListener('error', handleError);
+      socket.addEventListener('close', handleClose);
+    }).catch((error: unknown) => {
+      console.error('[presence-client] Failed to create PartyKit socket.', error);
     });
 
     return () => {
       disposed = true;
+      socket?.removeEventListener('open', handleOpen);
       socket?.removeEventListener('message', handleMessage);
       socket?.removeEventListener('error', handleError);
+      socket?.removeEventListener('close', handleClose);
       socket?.close();
     };
   }, [user?.id, user?.role, queryClient]);
 
-  return user?.id ? onlineUsers : [];
+  return presenceState && presenceState.userId === user?.id
+    ? presenceState.users
+    : [];
 }
