@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
 
 export async function GET(request: NextRequest) {
+  console.info('[presence] Profile lookup request received.');
   try {
     await requireAuth();
 
@@ -28,6 +29,10 @@ export async function GET(request: NextRequest) {
         })
       : [];
 
+    console.info('[presence] Profile lookup completed.', {
+      requestedCount: ids.length,
+      returnedCount: users.length,
+    });
     return NextResponse.json(
       { users },
       { headers: { 'Cache-Control': 'no-store, max-age=0' } },
@@ -36,6 +41,7 @@ export async function GET(request: NextRequest) {
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error';
     if (errorMessage === 'Unauthorized') {
+      console.warn('[presence] Profile lookup rejected: unauthorized.');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
