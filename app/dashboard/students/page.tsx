@@ -472,6 +472,8 @@ const StudentCard = ({
             <SocialActions
               userId={student.id}
               currentUserId={currentUserId}
+              isFollowing={student.isFollowing}
+              isLiked={student.isLiked}
               pageAdapters={STUDENT_DIRECTORY_ADAPTERS}
               size="xs"
               allowUnfollow={false}
