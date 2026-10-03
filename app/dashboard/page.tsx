@@ -26,7 +26,6 @@ import {
   Loader2,
   Send,
   Heart,
-  Eye,
   UserPlus,
   TrendingUp,
 } from 'lucide-react';
@@ -47,24 +46,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DiscoverStudents, type DiscoverStudent } from './components/DiscoverStudents';
 import { VideoPlayer } from './components/VideoPlayer';
 import { SocialActions } from '@/components/social/SocialActions';
-
-/* ============================================================
-   TOKENS
-============================================================ */
-
-const INK = '#1A2B4C';
-const INK_LIGHT = '#2C3E5A';
-const PAPER = '#F8F9FA';
-const SURFACE = '#FFFFFF';
-const SURFACE_SOFT = '#F7F6F2';
-const LINE = '#E5E7EB';
-const LINE_STRONG = '#D1D5DB';
-const MUTED = '#6B7280';
-const MUTED_LIGHT = '#9CA3AF';
-const BRASS = '#B98A3E';
-const MOSS = '#55705B';
-const RUST = '#A4462F';
-const SLATE = '#3E5C76';
+import type { PageCacheAdapter } from '@/lib/social/cacheKeys';
+import {
+  findInStudentsShape,
+  patchStudentsShape,
+} from '@/lib/social/patchHelpers';
 
 /* ============================================================
    TYPES
@@ -189,6 +175,15 @@ interface SocialUser {
   isLiked: boolean;
 }
 
+const DASHBOARD_TRENDING_ADAPTERS: PageCacheAdapter[] = [
+  {
+    queryKey: ['social', 'trending', 6],
+    patch: (old, targetId, patch) =>
+      patchStudentsShape(old, targetId, patch),
+    find: (old, targetId) => findInStudentsShape(old, targetId),
+  },
+];
+
 interface LikesData {
   likers: Array<SocialUser & { likedAt?: string }>;
   likedUsers: Array<SocialUser & { likedAt?: string }>;
@@ -269,7 +264,6 @@ function MediaLibrary() {
   );
 
   const [rawIndex, setRawIndex] = useState(0);
-  const [currentVideoKey, setCurrentVideoKey] = useState<string>('');
   const [requestInput, setRequestInput] = useState('');
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
   const videoPlayerRef = useRef<{ play: () => void } | null>(null);
@@ -277,10 +271,6 @@ function MediaLibrary() {
   const currentIndex =
     videos.length === 0 ? 0 : Math.min(rawIndex, videos.length - 1);
   const current = videos[currentIndex] ?? null;
-
-  useEffect(() => {
-    if (current) setCurrentVideoKey(`video-${current.id}`);
-  }, [current?.id]);
 
   const goNext = useCallback(() => {
     if (videos.length <= 1) return;
@@ -300,11 +290,15 @@ function MediaLibrary() {
   }, []);
 
   const handleRequestSubmit = async (request: string) => {
+    const content = request.trim();
+    if (!content || isSubmittingRequest) return;
+
+    setIsSubmittingRequest(true);
     try {
       const response = await fetch('/api/video-requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ request }),
+        body: JSON.stringify({ request: content }),
       });
       const data = await response.json();
       if (!response.ok || !data.success) {
@@ -314,6 +308,8 @@ function MediaLibrary() {
       queryClient.invalidateQueries({ queryKey: ['video-requests'] });
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to submit request');
+    } finally {
+      setIsSubmittingRequest(false);
     }
   };
 
@@ -423,7 +419,7 @@ function MediaLibrary() {
       <div className="w-full bg-black">
         {current && (
           <VideoPlayer
-            key={currentVideoKey}
+            key={`video-${current.id}`}
             src={current.publicUrl}
             title={current.title}
             description={current.description || undefined}
@@ -789,6 +785,9 @@ function SuggestedStudents() {
                   <SocialActions
                     userId={user.id}
                     currentUserId={currentUserId}
+                    isFollowing={user.isFollowing}
+                    isLiked={user.isLiked}
+                    pageAdapters={DASHBOARD_TRENDING_ADAPTERS}
                     size="xs"
                     allowUnfollow={true}
                     allowUnlike={true}
@@ -863,7 +862,7 @@ function RecentSocialActivity() {
           lastName: liker.lastName,
           profileImageUrl: liker.profileImageUrl,
         },
-        at: (liker as any).likedAt ?? new Date().toISOString(),
+        at: liker.likedAt ?? new Date().toISOString(),
       });
     }
 
@@ -877,7 +876,7 @@ function RecentSocialActivity() {
           lastName: follower.lastName,
           profileImageUrl: follower.profileImageUrl,
         },
-        at: (follower as any).connectedAt ?? new Date().toISOString(),
+        at: follower.connectedAt ?? new Date().toISOString(),
       });
     }
 
@@ -1670,7 +1669,7 @@ export default function DashboardPage() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[#B98A3E]">
-                Today's focus
+                Today&apos;s focus
               </p>
               <div className="relative h-5 overflow-hidden">
                 <AnimatePresence mode="wait">

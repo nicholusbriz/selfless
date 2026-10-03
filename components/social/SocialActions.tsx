@@ -10,6 +10,8 @@ type Variant = 'full' | 'compact' | 'featured';
 interface SocialActionsProps {
   userId: string;
   currentUserId?: string;
+  isFollowing?: boolean;
+  isLiked?: boolean;
   size?: Size;
   variant?: Variant;
   onViewProfile?: () => void;
@@ -47,6 +49,8 @@ const followActive = 'border border-[#55705B] bg-[#55705B] text-white';
 export function SocialActions({
   userId,
   currentUserId,
+  isFollowing: providedIsFollowing,
+  isLiked: providedIsLiked,
   size = 'sm',
   variant = 'full',
   onViewProfile,
@@ -56,7 +60,9 @@ export function SocialActions({
   allowUnlike = true,
 }: SocialActionsProps) {
   const social = useSocialActions({ pageAdapters });
-  const { isFollowing, isLiked: cachedIsLiked } = social.readLiveState(userId);
+  const liveState = social.readLiveState(userId);
+  const isFollowing = providedIsFollowing ?? liveState.isFollowing;
+  const cachedIsLiked = providedIsLiked ?? liveState.isLiked;
   const isSelf = currentUserId === userId;
 
   const followPending = social.isFollowPending && social.followTarget === userId;
