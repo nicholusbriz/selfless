@@ -275,7 +275,7 @@ const StudentCard = ({
       : student.role?.name || 'Student';
 
   return (
-    <article className="group flex w-[280px] shrink-0 snap-start flex-col border border-[#D1D5DB] bg-white transition-shadow hover:shadow-[0_2px_12px_rgba(26,43,76,0.08)] sm:w-[300px]">
+    <article className="group flex w-[320px] shrink-0 snap-start flex-col border border-[#D1D5DB] bg-white transition-shadow hover:shadow-[0_2px_12px_rgba(26,43,76,0.08)]">
       {/* ── Header ─────────────────────────────────── */}
       <div className="relative bg-[#1A2B4C] px-3 py-2">
         <div className="flex items-center justify-between gap-2">
@@ -300,12 +300,13 @@ const StudentCard = ({
         />
       </div>
 
-      {/* ── Identity Block ─────────────────────────── */}
-      <div className="flex items-start gap-3 px-3 pt-3">
+      {/* ── Two Column Layout ─────────────────────── */}
+      <div className="flex gap-3 px-3 pt-3">
+        {/* ── Column 1: Profile Image (extended down) ── */}
         <button
           type="button"
           onClick={() => router.push(`/dashboard/students/${student.id}`)}
-          className={`relative h-14 w-14 shrink-0 overflow-hidden border bg-[#F7F6F2] ${
+          className={`relative h-auto w-20 shrink-0 overflow-hidden border bg-[#F7F6F2] ${
             isTrendingSection
               ? 'border-[#B98A3E] ring-2 ring-[#B98A3E]/30'
               : 'border-[#D1D5DB]'
@@ -318,32 +319,18 @@ const StudentCard = ({
               alt={fullName}
               fill
               className="object-cover"
-              sizes="56px"
+              sizes="80px"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-[#1A2B4C]">
-              <span className="font-mono text-[15px] font-bold tracking-wider text-[#B98A3E]">
+              <span className="font-mono text-[20px] font-bold tracking-wider text-[#B98A3E]">
                 {initials}
               </span>
             </div>
           )}
-          {typeof rank === 'number' && (
-            <span
-              className={`absolute left-0 top-0 inline-flex h-4 min-w-[16px] items-center justify-center px-1 font-mono text-[9px] font-bold tabular-nums ${
-                rank === 1
-                  ? 'bg-[#B98A3E] text-white'
-                  : rank === 2
-                    ? 'bg-[#55705B] text-white'
-                    : rank === 3
-                      ? 'bg-[#A4462F] text-white'
-                      : 'bg-[#1A2B4C] text-white'
-              }`}
-            >
-              #{rank}
-            </span>
-          )}
         </button>
 
+        {/* ── Column 2: Name, Tech Center, Role, Stats ── */}
         <div className="min-w-0 flex-1">
           <button
             type="button"
@@ -378,34 +365,24 @@ const StudentCard = ({
               </span>
             )}
           </div>
-        </div>
-      </div>
 
-      {/* ── Stats ──────────────────────────────────── */}
-      <div className="mt-3 grid grid-cols-3 divide-x divide-[#E5E7EB] border-y border-[#E5E7EB] bg-[#FAFAF8]">
-        <div className="flex flex-col items-center py-2">
-          <span className="font-mono text-[13px] font-bold tabular-nums text-[#1A2B4C]">
-            {student.followersCount}
-          </span>
-          <span className="mt-0.5 font-mono text-[9px] uppercase tracking-wide text-[#6B7280]">
-            Followers
-          </span>
-        </div>
-        <div className="flex flex-col items-center py-2">
-          <span className="font-mono text-[13px] font-bold tabular-nums text-[#1A2B4C]">
-            {Math.max(0, student.likesReceivedCount)}
-          </span>
-          <span className="mt-0.5 font-mono text-[9px] uppercase tracking-wide text-[#6B7280]">
-            Likes
-          </span>
-        </div>
-        <div className="flex flex-col items-center py-2">
-          <span className="font-mono text-[13px] font-bold tabular-nums text-[#1A2B4C]">
-            {student.profileViewsCount}
-          </span>
-          <span className="mt-0.5 font-mono text-[9px] uppercase tracking-wide text-[#6B7280]">
-            Views
-          </span>
+          {/* Stats below badges */}
+          <div className="mt-2 flex items-center gap-2 text-[10px]">
+            <span className="font-mono font-bold text-[#1A2B4C]">
+              {student.followersCount}
+            </span>
+            <span className="text-[#6B7280]">followers</span>
+            <span className="text-[#6B7280]">•</span>
+            <span className="font-mono font-bold text-[#1A2B4C]">
+              {Math.max(0, student.likesReceivedCount)}
+            </span>
+            <span className="text-[#6B7280]">likes</span>
+            <span className="text-[#6B7280]">•</span>
+            <span className="font-mono font-bold text-[#1A2B4C]">
+              {student.profileViewsCount}
+            </span>
+            <span className="text-[#6B7280]">views</span>
+          </div>
         </div>
       </div>
 
@@ -679,24 +656,18 @@ function StudentDirectorySkeleton() {
               <div
                 key={card}
                 aria-hidden="true"
-                className="h-[280px] w-[280px] shrink-0 border border-[#D1D5DB] bg-white sm:w-[300px]"
+                className="h-[280px] w-[320px] shrink-0 border border-[#D1D5DB] bg-white"
               >
                 <div className="h-8 animate-pulse bg-[#E5E7EB]" />
                 <div className="p-3">
-                  <div className="flex items-center gap-3">
-                    <div className="h-14 w-14 shrink-0 animate-pulse bg-[#E5E7EB]" />
+                  <div className="flex gap-3">
+                    <div className="h-24 w-20 shrink-0 animate-pulse bg-[#E5E7EB]" />
                     <div className="min-w-0 flex-1 space-y-2">
                       <div className="h-3 w-3/4 animate-pulse bg-[#E5E7EB]" />
                       <div className="h-2.5 w-1/2 animate-pulse bg-[#F0F1F2]" />
+                      <div className="h-2 w-16 animate-pulse bg-[#F0F1F2]" />
+                      <div className="h-2 w-24 animate-pulse bg-[#F0F1F2]" />
                     </div>
-                  </div>
-                  <div className="mt-4 grid grid-cols-3 divide-x divide-[#E5E7EB] border-y border-[#E5E7EB]">
-                    {[0, 1, 2].map((stat) => (
-                      <div
-                        key={stat}
-                        className="h-10 animate-pulse bg-[#F0F1F2]"
-                      />
-                    ))}
                   </div>
                   <div className="mt-4 h-2.5 w-1/3 animate-pulse bg-[#E5E7EB]" />
                   <div className="mt-2 h-3 w-2/3 animate-pulse bg-[#F0F1F2]" />
