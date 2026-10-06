@@ -28,6 +28,7 @@ import {
   Heart,
   UserPlus,
   TrendingUp,
+  Check,
 } from 'lucide-react';
 
 import { useRouter } from 'next/navigation';
@@ -45,12 +46,12 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DiscoverStudents, type DiscoverStudent } from './components/DiscoverStudents';
 import { VideoPlayer } from './components/VideoPlayer';
-import { SocialActions } from '@/components/social/SocialActions';
 import type { PageCacheAdapter } from '@/lib/social/cacheKeys';
 import {
   findInStudentsShape,
   patchStudentsShape,
 } from '@/lib/social/patchHelpers';
+import { SocialActions } from '@/components/social/SocialActions';
 
 /* ============================================================
    TYPES
@@ -666,7 +667,7 @@ function SuggestedStudents() {
         {[1, 2, 3, 4].map((i) => (
           <div
             key={i}
-            className="h-48 w-40 shrink-0 animate-pulse bg-[#E5E7EB]"
+            className="h-72 w-[320px] shrink-0 animate-pulse bg-[#E5E7EB]"
           />
         ))}
       </div>
@@ -689,7 +690,7 @@ function SuggestedStudents() {
 
   return (
     <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
-      {trending.map((user) => {
+      {trending.map((user, index) => {
         const initials = `${user.firstName[0] ?? ''}${
           user.lastName[0] ?? ''
         }`.toUpperCase();
@@ -698,90 +699,105 @@ function SuggestedStudents() {
         return (
           <article
             key={user.id}
-            className="w-48 shrink-0 overflow-hidden rounded-md border border-[#E5E7EB] bg-white shadow-sm transition-shadow hover:shadow-md sm:w-52"
+            className="w-[320px] shrink-0 overflow-hidden rounded-md border border-[#E5E7EB] bg-white shadow-sm transition-shadow hover:shadow-md"
           >
-            {/* Profile image and ranking */}
-            <button
-              type="button"
-              onClick={() => router.push(`/dashboard/students/${user.id}`)}
-              className="block w-full"
-            >
-              <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#1A2B4C]">
-                {user.profileImageUrl ? (
-                  <Image
-                    src={user.profileImageUrl}
-                    alt={`${user.firstName} ${user.lastName}`}
-                    fill
-                    sizes="(max-width: 640px) 192px, 208px"
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center">
-                    <span className="font-mono text-2xl font-black text-white/90">
-                      {initials}
-                    </span>
-                  </div>
-                )}
-
-                {/* Rank badge for top 3 */}
-                <span className="absolute left-2 top-2 inline-flex h-6 min-w-6 items-center justify-center bg-[#B98A3E] px-1.5 font-mono text-[10px] font-black tabular-nums text-white">
-                  #{trending.indexOf(user) + 1}
+            {/* Header */}
+            <div className="relative bg-[#1A2B4C] px-3 py-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate font-mono text-[10px] font-bold uppercase tracking-wider text-[#B98A3E]">
+                  {user.techCenter?.name || 'Student Record'}
+                </span>
+                <span className="inline-flex shrink-0 items-center gap-1 bg-[#B98A3E] px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase text-white">
+                  <TrendingUp className="h-2.5 w-2.5" />
+                  Trending
                 </span>
               </div>
-            </button>
+            </div>
 
-            <div className="p-3">
-              <p className="truncate text-[14px] font-bold leading-tight text-[#1A2B4C]">
-                {user.firstName} {user.lastName}
-              </p>
-              {user.techCenter && (
-                <p className="mt-1 break-words text-[11px] leading-snug text-[#6B7280]">
-                  {user.techCenter.name}
-                </p>
-              )}
-
-              <div className="mt-3 grid grid-cols-3 border-y border-[#E5E7EB] py-2.5">
-                <div className="min-w-0 text-center">
-                  <p className="font-mono text-[13px] font-bold tabular-nums text-[#1A2B4C]">
-                    {user.followersCount}
-                  </p>
-                  <p className="mt-0.5 text-[9px] font-semibold uppercase text-[#6B7280]">
-                    Followers
-                  </p>
-                </div>
-                <div className="min-w-0 border-x border-[#E5E7EB] text-center">
-                  <p className="font-mono text-[13px] font-bold tabular-nums text-[#1A2B4C]">
-                    {user.likesReceivedCount}
-                  </p>
-                  <p className="mt-0.5 text-[9px] font-semibold uppercase text-[#6B7280]">
-                    Likes
-                  </p>
-                </div>
-                <div className="min-w-0 text-center">
-                  <p className="font-mono text-[13px] font-bold tabular-nums text-[#1A2B4C]">
-                    {user.profileViewsCount}
-                  </p>
-                  <p className="mt-0.5 text-[9px] font-semibold uppercase text-[#6B7280]">
-                    Views
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-3 space-y-2">
+            {/* Two Column Layout */}
+            <div className="flex gap-3 px-3 pt-3">
+              {/* Column 1: Profile Image + Stats */}
+              <div className="flex flex-col gap-2">
                 <button
                   type="button"
                   onClick={() => router.push(`/dashboard/students/${user.id}`)}
-                  className="inline-flex h-9 w-full items-center justify-between rounded border border-[#1A2B4C] px-3 text-[11px] font-bold text-[#1A2B4C] transition-colors hover:bg-[#1A2B4C] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] focus-visible:ring-offset-2"
+                  className="relative h-20 w-20 shrink-0 overflow-hidden border border-[#B98A3E] ring-2 ring-[#B98A3E]/30 bg-[#F7F6F2]"
+                  aria-label={`Open ${user.firstName} ${user.lastName}'s profile`}
                 >
-                  View profile
-                  <ChevronRight className="h-3.5 w-3.5" />
+                  {user.profileImageUrl ? (
+                    <Image
+                      src={user.profileImageUrl}
+                      alt={`${user.firstName} ${user.lastName}`}
+                      fill
+                      sizes="80px"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-[#1A2B4C]">
+                      <span className="font-mono text-[20px] font-bold tracking-wider text-[#B98A3E]">
+                        {initials}
+                      </span>
+                    </div>
+                  )}
                 </button>
 
-                {isSelf ? (
-                  <span className="block py-1 text-center font-mono text-[9px] font-bold uppercase text-[#9CA3AF]">
-                    You
-                  </span>
-                ) : (
+                {/* Stats below image */}
+                <div className="flex flex-col gap-1 text-[10px]">
+                  <div className="flex items-center gap-1">
+                    <span className="font-mono font-bold text-[#1A2B4C]">
+                      {user.followersCount}
+                    </span>
+                    <span className="text-[#6B7280]">followers</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="font-mono font-bold text-[#1A2B4C]">
+                      {user.likesReceivedCount}
+                    </span>
+                    <span className="text-[#6B7280]">likes</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="font-mono font-bold text-[#1A2B4C]">
+                      {user.profileViewsCount}
+                    </span>
+                    <span className="text-[#6B7280]">views</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Column 2: Name, Tech Center */}
+              <div className="min-w-0 flex-1">
+                <button
+                  type="button"
+                  onClick={() => router.push(`/dashboard/students/${user.id}`)}
+                  className="block w-full text-left"
+                >
+                  <h3 className="line-clamp-2 break-words text-[14px] font-bold leading-tight text-[#1A2B4C] hover:text-[#B98A3E] hover:underline">
+                    {user.firstName} {user.lastName}
+                  </h3>
+                </button>
+
+                {user.techCenter && (
+                  <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[#4B5646]">
+                    <span className="h-2 w-2 shrink-0 rounded-full border border-[#D1D5DB] bg-[#B98A3E]" />
+                    <span className="truncate">{user.techCenter.name}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="mt-3 flex items-center justify-between gap-2 border-t border-[#E5E7EB] px-3 py-2">
+              <button
+                type="button"
+                onClick={() => router.push(`/dashboard/students/${user.id}`)}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#1A2B4C] hover:text-[#B98A3E]"
+              >
+                View profile
+                <ChevronRight className="h-3 w-3" />
+              </button>
+
+              {!isSelf && (
+                <div className="flex min-w-0 flex-wrap items-center justify-end gap-1">
                   <SocialActions
                     userId={user.id}
                     currentUserId={currentUserId}
@@ -789,12 +805,11 @@ function SuggestedStudents() {
                     isLiked={user.isLiked}
                     pageAdapters={DASHBOARD_TRENDING_ADAPTERS}
                     size="xs"
-                    allowUnfollow={true}
+                    allowUnfollow={false}
                     allowUnlike={true}
-                    className="justify-center"
                   />
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </article>
         );
