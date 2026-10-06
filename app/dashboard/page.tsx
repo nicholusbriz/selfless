@@ -699,117 +699,87 @@ function SuggestedStudents() {
         return (
           <article
             key={user.id}
-            className="w-[320px] shrink-0 overflow-hidden rounded-md border border-[#E5E7EB] bg-white shadow-sm transition-shadow hover:shadow-md"
+            className="w-72 shrink-0 overflow-hidden rounded-md border border-[#E5E7EB] bg-white shadow-sm transition-shadow hover:shadow-md"
           >
-            {/* Header */}
-            <div className="relative bg-[#1A2B4C] px-3 py-2">
-              <div className="flex items-center justify-between gap-2">
-                <span className="truncate font-mono text-[10px] font-bold uppercase tracking-wider text-[#B98A3E]">
-                  {user.techCenter?.name || 'Student Record'}
-                </span>
-                <span className="inline-flex shrink-0 items-center gap-1 bg-[#B98A3E] px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase text-white">
-                  <TrendingUp className="h-2.5 w-2.5" />
-                  Trending
-                </span>
-              </div>
-            </div>
-
-            {/* Two Column Layout */}
-            <div className="flex gap-3 px-3 pt-3">
-              {/* Column 1: Profile Image + Stats */}
-              <div className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={() => router.push(`/dashboard/students/${user.id}`)}
-                  className="relative h-20 w-20 shrink-0 overflow-hidden border border-[#B98A3E] ring-2 ring-[#B98A3E]/30 bg-[#F7F6F2]"
-                  aria-label={`Open ${user.firstName} ${user.lastName}'s profile`}
-                >
-                  {user.profileImageUrl ? (
-                    <Image
-                      src={user.profileImageUrl}
-                      alt={`${user.firstName} ${user.lastName}`}
-                      fill
-                      sizes="80px"
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-[#1A2B4C]">
-                      <span className="font-mono text-[20px] font-bold tracking-wider text-[#B98A3E]">
-                        {initials}
-                      </span>
-                    </div>
-                  )}
-                </button>
-
-                {/* Stats below image */}
-                <div className="flex flex-col gap-1 text-[10px]">
-                  <div className="flex items-center gap-1">
-                    <span className="font-mono font-bold text-[#1A2B4C]">
-                      {user.followersCount}
+            {/* Profile image */}
+            <button
+              type="button"
+              onClick={() => router.push(`/dashboard/students/${user.id}`)}
+              className="block w-full"
+            >
+              <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#1A2B4C]">
+                {user.profileImageUrl ? (
+                  <Image
+                    src={user.profileImageUrl}
+                    alt={`${user.firstName} ${user.lastName}`}
+                    fill
+                    sizes="288px"
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <span className="font-mono text-2xl font-black text-white/90">
+                      {initials}
                     </span>
-                    <span className="text-[#6B7280]">followers</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="font-mono font-bold text-[#1A2B4C]">
-                      {user.likesReceivedCount}
-                    </span>
-                    <span className="text-[#6B7280]">likes</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="font-mono font-bold text-[#1A2B4C]">
-                      {user.profileViewsCount}
-                    </span>
-                    <span className="text-[#6B7280]">views</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Column 2: Name, Tech Center */}
-              <div className="min-w-0 flex-1">
-                <button
-                  type="button"
-                  onClick={() => router.push(`/dashboard/students/${user.id}`)}
-                  className="block w-full text-left"
-                >
-                  <h3 className="line-clamp-2 break-words text-[14px] font-bold leading-tight text-[#1A2B4C] hover:text-[#B98A3E] hover:underline">
-                    {user.firstName} {user.lastName}
-                  </h3>
-                </button>
-
-                {user.techCenter && (
-                  <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[#4B5646]">
-                    <span className="h-2 w-2 shrink-0 rounded-full border border-[#D1D5DB] bg-[#B98A3E]" />
-                    <span className="truncate">{user.techCenter.name}</span>
                   </div>
                 )}
               </div>
-            </div>
+            </button>
 
-            {/* Footer Actions */}
-            <div className="mt-3 flex items-center justify-between gap-2 border-t border-[#E5E7EB] px-3 py-2">
-              <button
-                type="button"
-                onClick={() => router.push(`/dashboard/students/${user.id}`)}
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#1A2B4C] hover:text-[#B98A3E]"
-              >
-                View profile
-                <ChevronRight className="h-3 w-3" />
-              </button>
-
-              {!isSelf && (
-                <div className="flex min-w-0 flex-wrap items-center justify-end gap-1">
-                  <SocialActions
-                    userId={user.id}
-                    currentUserId={currentUserId}
-                    isFollowing={user.isFollowing}
-                    isLiked={user.isLiked}
-                    pageAdapters={DASHBOARD_TRENDING_ADAPTERS}
-                    size="xs"
-                    allowUnfollow={false}
-                    allowUnlike={true}
-                  />
-                </div>
+            <div className="px-3 py-2.5">
+              <p className="truncate text-[15px] font-bold leading-tight text-[#1A2B4C]">
+                {user.firstName} {user.lastName}
+              </p>
+              {user.techCenter && (
+                <p className="mt-0.5 truncate text-[11px] leading-snug text-[#6B7280]">
+                  {user.techCenter.name}
+                </p>
               )}
+
+              {/* Stats - simple text without borders */}
+              <div className="mt-2 flex items-center gap-2 text-[10px]">
+                <span className="font-mono font-bold text-[#1A2B4C]">
+                  {user.followersCount}
+                </span>
+                <span className="text-[#6B7280]">followers</span>
+                <span className="text-[#6B7280]">•</span>
+                <span className="font-mono font-bold text-[#1A2B4C]">
+                  {user.likesReceivedCount}
+                </span>
+                <span className="text-[#6B7280]">likes</span>
+                <span className="text-[#6B7280]">•</span>
+                <span className="font-mono font-bold text-[#1A2B4C]">
+                  {user.profileViewsCount}
+                </span>
+                <span className="text-[#6B7280]">views</span>
+              </div>
+
+              {/* Action buttons matching students page */}
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => router.push(`/dashboard/students/${user.id}`)}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#1A2B4C] hover:text-[#B98A3E]"
+                >
+                  View profile
+                  <ChevronRight className="h-3 w-3" />
+                </button>
+
+                {!isSelf && (
+                  <div className="flex min-w-0 flex-wrap items-center justify-end gap-1">
+                    <SocialActions
+                      userId={user.id}
+                      currentUserId={currentUserId}
+                      isFollowing={user.isFollowing}
+                      isLiked={user.isLiked}
+                      pageAdapters={DASHBOARD_TRENDING_ADAPTERS}
+                      size="xs"
+                      allowUnfollow={false}
+                      allowUnlike={true}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </article>
         );
