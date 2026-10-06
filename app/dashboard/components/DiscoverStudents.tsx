@@ -52,40 +52,25 @@ type DiscoverStudentsProps = {
    CONFIG
 ============================================================ */
 
-/*
- * AUTOPLAY DELAY
- * --------------
- * How long each student stays visible before sliding.
- * Set to 5000ms = 5 seconds.
- */
 const DEFAULT_INTERVAL = 5000;
 
-const CONTENT_DURATION_S = 0.42;
-const TOTAL_SLIDE_MS = CONTENT_DURATION_S * 1000;
+/* 3D swap tuning */
+const SWAP_DURATION_S = 0.55;
+const TOTAL_SLIDE_MS = SWAP_DURATION_S * 1000;
+const SWAP_PERSPECTIVE = 1600;
 
 const SWIPE_THRESHOLD = 40;
 
 const CARD_ASPECT = 0.76;
 const INFO_RATIO = 0.205;
 
-/*
- * CARD SIZING
- * -----------
- * On mobile, we now use a much larger share of the
- * available screen so the card feels alive and immersive.
- */
 const MAX_CARD_WIDTH = 400;
 const MIN_CARD_WIDTH = 270;
 
-/* Horizontal padding from the container edge */
-const MOBILE_HORIZONTAL_PADDING = 12;   // was 20 → tighter edges
+const MOBILE_HORIZONTAL_PADDING = 12;
 const DESKTOP_HORIZONTAL_PADDING = 80;
 
-/*
- * Vertical space reserved for header + footer + breathing room.
- * Reduced on mobile so the card can grow.
- */
-const MOBILE_RESERVED_VERTICAL = 120;   // was 165 → more card
+const MOBILE_RESERVED_VERTICAL = 120;
 const DESKTOP_RESERVED_VERTICAL = 165;
 
 const MOBILE_MAX = 639;
@@ -115,9 +100,7 @@ function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    const mq = window.matchMedia(
-      `(max-width: ${MOBILE_MAX}px)`,
-    );
+    const mq = window.matchMedia(`(max-width: ${MOBILE_MAX}px)`);
     const update = () => setIsMobile(mq.matches);
     update();
     mq.addEventListener("change", update);
@@ -178,8 +161,6 @@ function useResponsiveCardSize(
 
       const height = Math.round(width / CARD_ASPECT);
 
-      /* Info panel a touch taller on mobile so text
-         doesn't feel cramped inside a bigger card */
       const infoRatio = isMobile ? 0.22 : INFO_RATIO;
       const infoHeight = Math.max(
         82,
@@ -315,10 +296,7 @@ export function DiscoverStudents({
   const stageContainerRef =
     useRef<HTMLDivElement | null>(null);
 
-  const size = useResponsiveCardSize(
-    stageContainerRef,
-    isMobile,
-  );
+  const size = useResponsiveCardSize(stageContainerRef, isMobile);
 
   const visibleStudents = useMemo(
     () => students.filter(Boolean),
@@ -342,8 +320,10 @@ export function DiscoverStudents({
   const normalizedCurrentIndex =
     visibleStudents.length === 0
       ? 0
-      : ((currentIndex % visibleStudents.length) + visibleStudents.length) %
+      : ((currentIndex % visibleStudents.length) +
+          visibleStudents.length) %
         visibleStudents.length;
+
   const currentStudent =
     visibleStudents.length > 0
       ? visibleStudents[normalizedCurrentIndex]
@@ -416,11 +396,7 @@ export function DiscoverStudents({
   );
 
   /* ============================================================
-     AUTOPLAY — 5 seconds forward only
-     ------------------------------------------------------------
-     After each transition finishes, the timer starts fresh.
-     The result: every student is visible for exactly
-     `interval` ms (5000ms = 5 seconds) before sliding away.
+     AUTOPLAY
   ============================================================ */
 
   useEffect(() => {
@@ -507,10 +483,8 @@ export function DiscoverStudents({
   const handleTouchStart = useCallback(
     (event: React.TouchEvent<HTMLDivElement>) => {
       if (visibleStudents.length <= 1) return;
-      touchStartXRef.current =
-        event.touches[0]?.clientX ?? null;
-      touchStartYRef.current =
-        event.touches[0]?.clientY ?? null;
+      touchStartXRef.current = event.touches[0]?.clientX ?? null;
+      touchStartYRef.current = event.touches[0]?.clientY ?? null;
     },
     [visibleStudents.length],
   );
@@ -526,11 +500,9 @@ export function DiscoverStudents({
       }
 
       const endX =
-        event.changedTouches[0]?.clientX ??
-        touchStartXRef.current;
+        event.changedTouches[0]?.clientX ?? touchStartXRef.current;
       const endY =
-        event.changedTouches[0]?.clientY ??
-        touchStartYRef.current;
+        event.changedTouches[0]?.clientY ?? touchStartYRef.current;
 
       const deltaX = endX - touchStartXRef.current;
       const deltaY = endY - touchStartYRef.current;
@@ -617,8 +589,7 @@ export function DiscoverStudents({
     infoHeight,
   } = size;
 
-  const firstName =
-    currentStudent.firstName?.trim() || "Student";
+  const firstName = currentStudent.firstName?.trim() || "Student";
   const lastName = currentStudent.lastName?.trim() || "";
   const fullName = `${firstName} ${lastName}`.trim();
 
@@ -628,17 +599,22 @@ export function DiscoverStudents({
       ? currentStudent.profileImageUrl
       : null;
 
-  const courseName = getDisplayValue(
-    currentStudent.generalCourse,
-  );
-  const techCenterName = getDisplayValue(
-    currentStudent.techCenter,
-  );
+  const courseName = getDisplayValue(currentStudent.generalCourse);
+  const techCenterName = getDisplayValue(currentStudent.techCenter);
 
   const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 
   /* ============================================================
-     SLIDE VARIANTS — LEFT ↔ RIGHT
+     3D SWAP VARIANTS
+     ------------------------------------------------------------
+     Real 3D card-flip swap:
+       • Outgoing image rotates away on Y, scales down, and
+         recedes in Z while fading out.
+       • Incoming image starts rotated on the opposite Y axis,
+         slightly scaled down and pushed back in Z, then sweeps
+         into place.
+       • Info panel counter-rotates subtly so the whole card
+         reads as a single 3D object, not two stacked layers.
   ============================================================ */
 
   const imageVariants = {
@@ -646,18 +622,40 @@ export function DiscoverStudents({
       shouldReduceMotion
         ? { opacity: 0 }
         : {
-            x: customDirection === 1 ? "100%" : "-100%",
             opacity: 0,
+            rotateY: customDirection === 1 ? 95 : -95,
+            rotateX: 4,
+            scale: 0.9,
+            z: -60,
           },
+
     center: shouldReduceMotion
       ? { opacity: 1 }
-      : { x: 0, opacity: 1 },
+      : {
+          opacity: 1,
+          rotateY: 0,
+          rotateX: 0,
+          scale: 1,
+          z: 0,
+          transition: {
+            duration: SWAP_DURATION_S,
+            ease: CONTENT_EASE,
+          },
+        },
+
     exit: (customDirection: 1 | -1) =>
       shouldReduceMotion
         ? { opacity: 0 }
         : {
-            x: customDirection === 1 ? "-100%" : "100%",
             opacity: 0,
+            rotateY: customDirection === 1 ? -95 : 95,
+            rotateX: -4,
+            scale: 0.9,
+            z: -60,
+            transition: {
+              duration: SWAP_DURATION_S,
+              ease: CONTENT_EASE,
+            },
           },
   };
 
@@ -666,18 +664,37 @@ export function DiscoverStudents({
       shouldReduceMotion
         ? { opacity: 0 }
         : {
-            x: customDirection === 1 ? 40 : -40,
             opacity: 0,
+            rotateY: customDirection === 1 ? 14 : -14,
+            x: customDirection === 1 ? 14 : -14,
+            scale: 0.985,
           },
+
     center: shouldReduceMotion
       ? { opacity: 1 }
-      : { x: 0, opacity: 1 },
+      : {
+          opacity: 1,
+          rotateY: 0,
+          x: 0,
+          scale: 1,
+          transition: {
+            duration: SWAP_DURATION_S * 0.9,
+            ease: CONTENT_EASE,
+          },
+        },
+
     exit: (customDirection: 1 | -1) =>
       shouldReduceMotion
         ? { opacity: 0 }
         : {
-            x: customDirection === 1 ? -40 : 40,
             opacity: 0,
+            rotateY: customDirection === 1 ? -14 : 14,
+            x: customDirection === 1 ? -14 : 14,
+            scale: 0.985,
+            transition: {
+              duration: SWAP_DURATION_S * 0.9,
+              ease: CONTENT_EASE,
+            },
           },
   };
 
@@ -692,7 +709,7 @@ export function DiscoverStudents({
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {/* HEADER — tighter on mobile */}
+        {/* HEADER */}
         <div className="mx-auto flex w-full max-w-[820px] items-end justify-between gap-4 px-4 pb-1 pt-3 sm:px-7 sm:pt-5">
           <div className="min-w-0">
             <p
@@ -711,9 +728,8 @@ export function DiscoverStudents({
               className="mt-0.5 max-w-lg text-[12px] leading-5 sm:text-sm"
               style={{ color: WHITE_70 }}
             >
-              Meet students across SELFLESS CE and
-              connect with people on a similar
-              academic journey.
+              Meet students across SELFLESS CE and connect with people
+              on a similar academic journey.
             </p>
           </div>
 
@@ -727,29 +743,31 @@ export function DiscoverStudents({
               direction="up"
               onClick={handlePrevious}
               disabled={
-                isTransitioning ||
-                visibleStudents.length <= 1
+                isTransitioning || visibleStudents.length <= 1
               }
             />
             <NavButton
               direction="down"
               onClick={handleNext}
               disabled={
-                isTransitioning ||
-                visibleStudents.length <= 1
+                isTransitioning || visibleStudents.length <= 1
               }
             />
           </div>
         </div>
 
         {/* ==================================================
-            FIXED CARD SHELL — content crossfades inside
+            3D STAGE — fixed card shell, content swaps inside
         ================================================== */}
 
         <div
           ref={stageContainerRef}
           className="relative mx-auto mt-2 w-full px-3 sm:mt-3"
-          style={{ height: `${cardHeight + 36}px` }}
+          style={{
+            height: `${cardHeight + 36}px`,
+            perspective: `${SWAP_PERSPECTIVE}px`,
+            perspectiveOrigin: "50% 45%",
+          }}
         >
           <div
             className="absolute left-1/2 top-1/2 overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] shadow-[0_24px_65px_rgba(0,0,0,0.52)]"
@@ -758,13 +776,25 @@ export function DiscoverStudents({
               height: cardHeight,
               marginLeft: -cardWidth / 2,
               marginTop: -cardHeight / 2,
+              transformStyle: "preserve-3d",
             }}
           >
-            <div className="relative flex h-full w-full flex-col">
-              {/* IMAGE AREA */}
-              <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
+            <div
+              className="relative flex h-full w-full flex-col"
+              style={{
+                transformStyle: "preserve-3d",
+              }}
+            >
+              {/* IMAGE AREA — 3D swap happens here */}
+              <div
+                className="relative min-h-0 flex-1 overflow-hidden bg-black"
+                style={{
+                  transformStyle: "preserve-3d",
+                  transformOrigin: "center center",
+                }}
+              >
                 <AnimatePresence
-                  mode="popLayout"
+                  mode="sync"
                   initial={false}
                   custom={direction}
                 >
@@ -775,15 +805,14 @@ export function DiscoverStudents({
                     initial="enter"
                     animate="center"
                     exit="exit"
-                    transition={
-                      shouldReduceMotion
-                        ? { duration: 0 }
-                        : {
-                            duration: CONTENT_DURATION_S,
-                            ease: CONTENT_EASE,
-                          }
-                    }
                     className="absolute inset-0 h-full w-full"
+                    style={{
+                      transformStyle: "preserve-3d",
+                      backfaceVisibility: "hidden",
+                      WebkitBackfaceVisibility: "hidden",
+                      transformOrigin: "center center",
+                      willChange: "transform, opacity",
+                    }}
                   >
                     {imageSrc ? (
                       <Image
@@ -794,27 +823,42 @@ export function DiscoverStudents({
                         className="object-cover object-center"
                         quality={95}
                         priority
+                        style={{
+                          backfaceVisibility: "hidden",
+                          WebkitBackfaceVisibility: "hidden",
+                        }}
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center bg-[#18212F] text-4xl font-semibold text-white/70">
                         {initials}
                       </div>
                     )}
+
+                    {/* subtle vignette so the flip edge reads cleanly */}
+                    <div
+                      className="pointer-events-none absolute inset-0"
+                      style={{
+                        background:
+                          "linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,0.35) 100%)",
+                      }}
+                    />
                   </motion.div>
                 </AnimatePresence>
               </div>
 
-              {/* INFO AREA */}
+              {/* INFO AREA — counter-rotates for cohesion */}
               <div
                 className="relative flex shrink-0 flex-col justify-center overflow-hidden px-4 sm:px-5"
                 style={{
                   height: infoHeight,
                   backgroundColor: PANEL_BG,
                   borderTop: `1px solid ${PANEL_BORDER}`,
+                  transformStyle: "preserve-3d",
+                  perspective: `${SWAP_PERSPECTIVE}px`,
                 }}
               >
                 <AnimatePresence
-                  mode="popLayout"
+                  mode="sync"
                   initial={false}
                   custom={direction}
                 >
@@ -825,15 +869,14 @@ export function DiscoverStudents({
                     initial="enter"
                     animate="center"
                     exit="exit"
-                    transition={
-                      shouldReduceMotion
-                        ? { duration: 0 }
-                        : {
-                            duration: CONTENT_DURATION_S * 0.9,
-                            ease: CONTENT_EASE,
-                          }
-                    }
                     className="flex items-center gap-4"
+                    style={{
+                      transformStyle: "preserve-3d",
+                      backfaceVisibility: "hidden",
+                      WebkitBackfaceVisibility: "hidden",
+                      transformOrigin: "center center",
+                      willChange: "transform, opacity",
+                    }}
                   >
                     <div className="min-w-0 flex-1">
                       <h3
@@ -841,8 +884,7 @@ export function DiscoverStudents({
                         style={{
                           color: GOLD_BRIGHT,
                           WebkitFontSmoothing: "antialiased",
-                          textRendering:
-                            "geometricPrecision",
+                          textRendering: "geometricPrecision",
                         }}
                         title={fullName}
                       >
@@ -853,8 +895,7 @@ export function DiscoverStudents({
                         className="mt-[3px] truncate text-[12.5px] font-semibold leading-[1.3] tracking-[-0.005em] antialiased"
                         style={{
                           color: WHITE,
-                          WebkitFontSmoothing:
-                            "antialiased",
+                          WebkitFontSmoothing: "antialiased",
                         }}
                         title={courseName || "Student"}
                       >
@@ -873,8 +914,7 @@ export function DiscoverStudents({
                               className="truncate text-[11.5px] font-medium leading-[1.3] antialiased"
                               style={{
                                 color: WHITE_85,
-                                WebkitFontSmoothing:
-                                  "antialiased",
+                                WebkitFontSmoothing: "antialiased",
                               }}
                               title={techCenterName}
                             >
@@ -927,8 +967,7 @@ export function DiscoverStudents({
               direction="up"
               onClick={handlePrevious}
               disabled={
-                isTransitioning ||
-                visibleStudents.length <= 1
+                isTransitioning || visibleStudents.length <= 1
               }
             />
           </div>
@@ -953,10 +992,7 @@ export function DiscoverStudents({
               {normalizedCurrentIndex + 1}
             </span>
             <span style={{ color: WHITE_50 }}>/</span>
-            <span
-              className="tabular-nums"
-              style={{ color: WHITE }}
-            >
+            <span className="tabular-nums" style={{ color: WHITE }}>
               {visibleStudents.length}
             </span>
           </div>
@@ -966,8 +1002,7 @@ export function DiscoverStudents({
               direction="down"
               onClick={handleNext}
               disabled={
-                isTransitioning ||
-                visibleStudents.length <= 1
+                isTransitioning || visibleStudents.length <= 1
               }
             />
           </div>
