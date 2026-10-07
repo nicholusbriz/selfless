@@ -1448,7 +1448,42 @@ export default function DashboardPage() {
         ============================================================ */}
         <header className="bg-[#1A2B4C] text-white">
           <div className="px-5 py-4 sm:px-8 sm:py-5">
-            <div className="flex items-center gap-4 mb-6">
+            {/* Stats Row - Top */}
+            <div className="grid grid-cols-5 gap-3 mb-6">
+              <StatItem
+                label="Profile"
+                value={`${checkProfileCompleteness(user).completionPercentage}%`}
+                color={checkProfileCompleteness(user).completionPercentage >= 80 ? '#55705B' : '#B98A3E'}
+              />
+              <StatItem
+                label="Followers"
+                value={meStats?.followersCount ?? 0}
+                color="#B98A3E"
+              />
+              <StatItem
+                label="Following"
+                value={meStats?.followingCount ?? 0}
+                color="#B98A3E"
+              />
+              <StatItem
+                label="Views"
+                value={meStats?.profileViewsCount ?? 0}
+                color="#B98A3E"
+              />
+              <StatItem
+                label="Likes"
+                value={meStats?.likesReceivedCount ?? 0}
+                color="#B98A3E"
+              />
+            </div>
+
+            {/* AnnouncementCarousel - Middle */}
+            <div className="mb-6">
+              <AnnouncementCarousel inHeader={true} />
+            </div>
+
+            {/* User Profile - Bottom */}
+            <div className="flex items-center gap-4">
               <div className="relative h-12 w-12 shrink-0 overflow-hidden border border-white/20 sm:h-14 sm:w-14">
                 {user?.profileImageUrl ? (
                   <Image
@@ -1491,38 +1526,6 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-              <StatItem
-                label="Profile"
-                value={`${checkProfileCompleteness(user).completionPercentage}%`}
-                color={checkProfileCompleteness(user).completionPercentage >= 80 ? '#55705B' : '#B98A3E'}
-              />
-              <StatItem
-                label="Followers"
-                value={meStats?.followersCount ?? 0}
-                color="#B98A3E"
-              />
-              <StatItem
-                label="Following"
-                value={meStats?.followingCount ?? 0}
-                color="#B98A3E"
-              />
-              <StatItem
-                label="Views"
-                value={meStats?.profileViewsCount ?? 0}
-                color="#B98A3E"
-              />
-              <StatItem
-                label="Likes"
-                value={meStats?.likesReceivedCount ?? 0}
-                color="#B98A3E"
-              />
-            </div>
-
-            <div className="mt-6">
-              <AnnouncementCarousel inHeader={true} />
             </div>
           </div>
         </header>
