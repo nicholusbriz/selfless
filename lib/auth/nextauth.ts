@@ -2,6 +2,7 @@
 import NextAuth, { Account, AuthOptions, Session, User as NextAuthUser } from 'next-auth';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import GitHubProvider from 'next-auth/providers/github';
 import { JWT } from 'next-auth/jwt';
 import { prisma } from '@/lib/prisma/client';
 import bcrypt from 'bcryptjs';
@@ -33,6 +34,15 @@ export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma) as unknown as AuthOptions['adapter'],
 
   providers: [
+    // ============================================
+    // GITHUB PROVIDER
+    // ============================================
+    GitHubProvider({
+      clientId: process.env.GITHUB_CLIENT_ID || '',
+      clientSecret: process.env.GITHUB_CLIENT_SECRET || '',
+      allowDangerousEmailAccountLinking: true,
+    }),
+
     // ============================================
     // CREDENTIALS PROVIDER (Email/Password)
     // ============================================
@@ -190,7 +200,9 @@ export const authOptions: AuthOptions = {
         // Use type assertion for teacherId
         token.teacherId = user.teacherId || null;
 
-        token.roleUpdatedAt = user.roleUpdatedAt?.toISOString();
+        token.roleUpdatedAt = user.roleUpdatedAt instanceof Date
+          ? user.roleUpdatedAt.toISOString()
+          : user.roleUpdatedAt || undefined;
       }
 
       // Re-fetch user data from database on session update
@@ -236,7 +248,9 @@ export const authOptions: AuthOptions = {
           token.preferredTeamType = freshUser.preferredTeamType;
           token.preferredTeamRole = freshUser.preferredTeamRole;
           token.teacherId = freshUser.teacherId || null;
-          token.roleUpdatedAt = freshUser.roleUpdatedAt?.toISOString();
+          token.roleUpdatedAt = freshUser.roleUpdatedAt instanceof Date
+            ? freshUser.roleUpdatedAt.toISOString()
+            : freshUser.roleUpdatedAt || undefined;
         }
       }
 
@@ -269,7 +283,9 @@ export const authOptions: AuthOptions = {
         }
 
         const tokenRoleUpdatedAt = token.roleUpdatedAt;
-        const dbRoleUpdatedAt = dbUser.roleUpdatedAt?.toISOString();
+        const dbRoleUpdatedAt = dbUser.roleUpdatedAt instanceof Date
+          ? dbUser.roleUpdatedAt.toISOString()
+          : dbUser.roleUpdatedAt || undefined;
 
         // If database roleUpdatedAt is newer than token's, refresh all user data
         if (dbRoleUpdatedAt && (!tokenRoleUpdatedAt || new Date(dbRoleUpdatedAt) > new Date(tokenRoleUpdatedAt))) {
@@ -314,7 +330,9 @@ export const authOptions: AuthOptions = {
             token.preferredTeamType = freshUser.preferredTeamType;
             token.preferredTeamRole = freshUser.preferredTeamRole;
             token.teacherId = freshUser.teacherId || null;
-            token.roleUpdatedAt = freshUser.roleUpdatedAt?.toISOString();
+            token.roleUpdatedAt = freshUser.roleUpdatedAt instanceof Date
+              ? freshUser.roleUpdatedAt.toISOString()
+              : freshUser.roleUpdatedAt || undefined;
           }
         }
       }
@@ -326,7 +344,80 @@ export const authOptions: AuthOptions = {
      * Sign In Callback
      * Controls what happens when a user signs in
      */
-    async signIn({ account, user }: { account: Account | null; user: NextAuthUser }) {
+    async signIn({ account, user, profile }: { account: Account | null; user: NextAuthUser; profile?: any }) {
+      // Handle OAuth providers (GitHub)
+      if (account?.provider === 'github') {
+        // Check if user exists in database by email
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email as string },
+          include: {
+            role: true,
+            techCenter: {
+              select: { id: true, name: true }
+            },
+            teacher: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                profileImageUrl: true,
+              }
+            }
+          }
+        });
+
+        // If user doesn't exist, deny access
+        if (!existingUser) {
+          return false;
+        }
+
+        // Check if user is verified and approved
+        if (!existingUser.isVerified || existingUser.verificationStatus !== 'APPROVED') {
+          return false;
+        }
+
+        // Update user with OAuth account info and profile image
+        await prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            lastLoginAt: new Date(),
+            // Update profile image from OAuth provider if available
+            ...(profile?.avatar_url && { profileImageUrl: profile.avatar_url }),
+          }
+        });
+
+        // Log the login
+        await logLogin(existingUser.id, existingUser.techCenterId || undefined);
+
+        // Attach additional user data to the user object
+        user.id = existingUser.id;
+        user.firstName = existingUser.firstName;
+        user.lastName = existingUser.lastName;
+        user.role = existingUser.role?.name || 'student';
+        user.techCenterId = existingUser.techCenterId;
+        user.techCenter = existingUser.techCenter;
+        user.profileImageUrl = existingUser.profileImageUrl;
+        user.status = existingUser.status;
+        user.isActive = existingUser.isActive;
+        user.phoneNumber = existingUser.phoneNumber;
+        user.country = existingUser.country;
+        user.city = existingUser.city;
+        user.town = existingUser.town;
+        user.street = existingUser.street;
+        user.generalCourse = existingUser.generalCourse;
+        user.linkedinUrl = existingUser.linkedinUrl;
+        user.githubUrl = existingUser.githubUrl;
+        user.projectUrls = existingUser.projectUrls;
+        user.gender = existingUser.gender;
+        user.preferredTeamType = existingUser.preferredTeamType;
+        user.preferredTeamRole = existingUser.preferredTeamRole;
+        user.teacherId = existingUser.teacherId || null;
+        user.roleUpdatedAt = existingUser.roleUpdatedAt;
+
+        return true;
+      }
+
       // Allow credentials provider
       if (account?.provider === 'credentials' && user.id) {
         await logLogin(user.id, user.techCenterId || undefined);

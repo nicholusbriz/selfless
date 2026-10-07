@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "concurrently -k -n next,partykit -c blue,magenta \"npm run dev:next\" \"npm run dev:partykit\"",
-    "dev:next": "set NODE_OPTIONS=--max-old-space-size=8192&& next dev --turbo",
+    "dev:next": "set NODE_OPTIONS=--max-old-space-size=8192&& set NODE_NO_WARNINGS=1&& next dev --turbo",
     "dev:partykit": "partykit dev",
     "build": "prisma generate && next build",
     "start": "next start",

@@ -84,7 +84,7 @@ declare module 'next-auth' {
     preferredTeamType?: string | null;
     preferredTeamRole?: string | null;
     teacherId?: string | null;
-    roleUpdatedAt?: Date | null;
+    roleUpdatedAt?: Date | string | null;
   }
 }
 
