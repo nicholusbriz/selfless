@@ -14,7 +14,7 @@ const AUTO_SCROLL_MS = 10000;
 
 function PlayerGridSkeleton({
   dark = false,
-  count = 6,
+  count = 9,
 }: {
   dark?: boolean;
   count?: number;
@@ -60,8 +60,9 @@ function CarouselSkeleton({ inHeader = false }: { inHeader?: boolean }) {
           <div className={`h-2.5 w-2/3 animate-pulse rounded ${line}`} />
         </div>
 
-        <div className={`mb-4 rounded-md ${squadBg} p-3`}>
-          <PlayerGridSkeleton dark={inHeader} count={6} />
+        {/* Squad panel — same fixed height on all sizes */}
+        <div className={`mb-4 h-[220px] overflow-hidden rounded-md ${squadBg} p-3`}>
+          <PlayerGridSkeleton dark={inHeader} count={9} />
         </div>
 
         <div className="mt-4 flex items-center justify-between">
@@ -78,7 +79,7 @@ function CarouselSkeleton({ inHeader = false }: { inHeader?: boolean }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Player grid — avatar, name, then number as plain text              */
+/*  Player grid — fixed height + internal scroll on ALL sizes          */
 /* ------------------------------------------------------------------ */
 
 type Player = {
@@ -96,10 +97,11 @@ function PlayerGrid({
   dark?: boolean;
 }) {
   return (
-    <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-3">
+    // Fixed height + scroll everywhere. 1 col on mobile, 3 on sm+.
+    <div className="grid h-full grid-cols-1 gap-x-3 gap-y-2 overflow-y-auto pr-1 [scrollbar-width:none] sm:grid-cols-3 [&::-webkit-scrollbar]:hidden">
       {players.map((player) => (
         <div key={player.id} className="flex min-w-0 items-center gap-2">
-          {/* Avatar first */}
+          {/* Avatar */}
           <div
             className={`relative h-7 w-7 shrink-0 overflow-hidden rounded-full ${
               dark ? 'bg-white/10' : 'bg-[#F1F1EC]'
@@ -133,7 +135,7 @@ function PlayerGrid({
             {player.lastName}
           </p>
 
-          {/* Number as plain text at the end */}
+          {/* Number as plain text */}
           <span
             className={`shrink-0 text-[11px] font-medium tabular-nums ${
               dark ? 'text-[#AEB4AA]' : 'text-[#6B7268]'
@@ -301,29 +303,30 @@ export default function AnnouncementCarousel({
         </div>
 
         {/* Content */}
-        <div className="min-h-[240px]">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={current.id}
-              initial={{ opacity: 0, x: 12 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -12 }}
-              transition={{ duration: 0.25 }}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={current.id}
+            initial={{ opacity: 0, x: 12 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -12 }}
+            transition={{ duration: 0.25 }}
+          >
+            <h3
+              className={`mb-1 text-[16px] font-semibold leading-snug ${p.title}`}
             >
-              <h3
-                className={`mb-1 text-[16px] font-semibold leading-snug ${p.title}`}
-              >
-                {current.title}
-              </h3>
+              {current.title}
+            </h3>
 
-              <p className={`mb-4 text-[12.5px] ${p.body}`}>{current.body}</p>
+            <p className={`mb-4 text-[12.5px] ${p.body}`}>{current.body}</p>
 
-              <div className={`mb-4 rounded-md border p-3 ${p.squadBg}`}>
-                <PlayerGrid players={current.players} dark={inHeader} />
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
+            {/* Squad panel — SAME fixed height every size, scrolls internally */}
+            <div
+              className={`mb-4 h-[220px] overflow-hidden rounded-md border p-3 ${p.squadBg}`}
+            >
+              <PlayerGrid players={current.players} dark={inHeader} />
+            </div>
+          </motion.div>
+        </AnimatePresence>
 
         {/* Footer */}
         <div className="mt-4 flex items-center justify-between">
