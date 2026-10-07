@@ -32,7 +32,6 @@ import {
   AlertCircle,
   Sparkles,
 } from 'lucide-react';
-import { checkProfileCompleteness } from '@/lib/profile-completeness';
 
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -213,12 +212,12 @@ function StatItem({
   color: string;
 }) {
   return (
-    <div className="flex items-center gap-2">
-      <p className="font-mono text-[10px] font-semibold uppercase tracking-wider text-white/50">
+    <div className="flex min-w-0 flex-col items-start gap-1 sm:flex-row sm:items-baseline sm:gap-2">
+      <p className="truncate font-mono text-[9px] font-semibold uppercase tracking-wider text-white/50 sm:text-[10px]">
         {label}
       </p>
       <p
-        className="font-mono text-sm font-black tabular-nums leading-none"
+        className="font-mono text-sm font-black tabular-nums leading-none sm:text-base"
         style={{ color }}
       >
         {value}
@@ -241,7 +240,7 @@ function SectionHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="mb-4 flex items-end justify-between gap-4 border-t-2 border-[#1A2B4C] pt-3">
+    <div className="mb-5 flex items-end justify-between gap-4 border-t-2 border-[#1A2B4C] pt-3">
       <div className="flex items-baseline gap-3">
         <h2 className="text-[17px] font-black uppercase tracking-tight text-[#1A2B4C] sm:text-[19px]">
           {label}
@@ -618,7 +617,7 @@ function DashboardLoadingSkeleton() {
       aria-label="Loading dashboard"
       aria-busy="true"
     >
-      <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
+      <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-8 lg:px-10">
         <header className="bg-[#1A2B4C] px-5 py-6 text-white sm:px-8 sm:py-8">
           <div className="flex items-start justify-between gap-6">
             <div className="min-w-0 flex-1 space-y-3">
@@ -656,7 +655,10 @@ function DashboardLoadingSkeleton() {
           </div>
         </section>
 
-        <section className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6" aria-hidden="true">
+        <section
+          className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6"
+          aria-hidden="true"
+        >
           {[0, 1, 2, 3, 4, 5].map((item) => (
             <div
               key={item}
@@ -692,7 +694,7 @@ function SuggestedStudents() {
 
   if (isLoading) {
     return (
-      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
+      <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
         {[1, 2, 3, 4].map((i) => (
           <div
             key={i}
@@ -719,8 +721,8 @@ function SuggestedStudents() {
 
   return (
     <div className="relative">
-      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 scroll-smooth">
-        {trending.map((user, index) => {
+      <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 scroll-smooth">
+        {trending.map((user) => {
           const initials = `${user.firstName[0] ?? ''}${
             user.lastName[0] ?? ''
           }`.toUpperCase();
@@ -815,7 +817,9 @@ function SuggestedStudents() {
 
       {trending.length > 3 && (
         <div className="flex items-center justify-center gap-2 mt-3 text-[11px] text-[#6B7280]">
-          <span className="font-mono text-[10px] uppercase tracking-wider">Scroll to discover more</span>
+          <span className="font-mono text-[10px] uppercase tracking-wider">
+            Scroll to discover more
+          </span>
           <ChevronRight className="w-4 h-4" />
         </div>
       )}
@@ -960,9 +964,7 @@ function RecentSocialActivity() {
                   {event.user.firstName} {event.user.lastName}
                 </span>{' '}
                 <span className="text-[#6B7280]">
-                  {isLike
-                    ? 'liked your profile'
-                    : 'started following you'}
+                  {isLike ? 'liked your profile' : 'started following you'}
                 </span>
               </p>
             </div>
@@ -1019,8 +1021,8 @@ function TechCenterActivity({
           throw new Error('Failed to fetch all activities');
         }
         const json = await res.json();
-        const mapped = json.logs
-          ?.map((log: any) => ({
+        const mapped =
+          json.logs?.map((log: any) => ({
             id: log.id,
             action: log.action,
             user: log.user,
@@ -1029,7 +1031,9 @@ function TechCenterActivity({
           })) || [];
         return mapped;
       } else if (techCenterId) {
-        const res = await fetch(`/api/tech-centers/${techCenterId}/activity?limit=all`);
+        const res = await fetch(
+          `/api/tech-centers/${techCenterId}/activity?limit=all`,
+        );
         if (!res.ok) throw new Error('Failed to fetch tech center activity');
         return res.json();
       }
@@ -1073,7 +1077,7 @@ function TechCenterActivity({
         <div className="space-y-3">
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="flex items-center gap-3">
-              <div className="h-9 w-9 animate-pulse bg-[#E5E7EB] rounded-full" />
+              <div className="h-9 w-9 animate-pulse rounded-full bg-[#E5E7EB]" />
               <div className="flex-1 space-y-1">
                 <div className="h-3 w-32 animate-pulse bg-[#E5E7EB]" />
                 <div className="h-2 w-24 animate-pulse bg-[#ECEEF0]" />
@@ -1101,7 +1105,7 @@ function TechCenterActivity({
 
   return (
     <div className="border border-[#E5E7EB] bg-white">
-      <ul className="divide-y divide-[#E5E7EB] max-h-[400px] overflow-y-auto">
+      <ul className="max-h-[400px] divide-y divide-[#E5E7EB] overflow-y-auto">
         {activities.map((activity) => {
           const initials = `${activity.user.firstName[0] ?? ''}${
             activity.user.lastName[0] ?? ''
@@ -1173,7 +1177,7 @@ export default function DashboardPage() {
   const [messageIndex, setMessageIndex] = useState(0);
   const [currentTime] = useState(() => Date.now());
 
-  const { data: meStats, isLoading: meStatsLoading } = useQuery<MeStats>({
+  const { data: meStats } = useQuery<MeStats>({
     queryKey: ['social', 'me'],
     queryFn: async () => {
       const res = await fetch('/api/social/me');
@@ -1442,19 +1446,14 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-[#1A2B4C]">
-      <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
+      <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
         {/* ============================================================
             HERO — compact greeting + stats
         ============================================================ */}
         <header className="bg-[#1A2B4C] text-white">
-          <div className="px-5 py-4 sm:px-8 sm:py-5">
+          <div className="px-5 py-5 sm:px-8 sm:py-7">
             {/* Stats Row - Top */}
-            <div className="grid grid-cols-5 gap-3 mb-6">
-              <StatItem
-                label="Profile"
-                value={`${checkProfileCompleteness(user).completionPercentage}%`}
-                color={checkProfileCompleteness(user).completionPercentage >= 80 ? '#55705B' : '#B98A3E'}
-              />
+            <div className="mb-6 grid grid-cols-2 gap-x-6 gap-y-4 border-y border-white/10 py-4 sm:grid-cols-4 sm:gap-x-8">
               <StatItem
                 label="Followers"
                 value={meStats?.followersCount ?? 0}
@@ -1533,7 +1532,7 @@ export default function DashboardPage() {
         {/* ============================================================
             MAIN CONTENT - Unified layout
         ============================================================ */}
-        <div className="mt-8 space-y-8">
+        <div className="mt-10 space-y-12">
           {/* Discover Students */}
           {discoverStudents.length > 0 && (
             <section>
@@ -1564,7 +1563,7 @@ export default function DashboardPage() {
           </section>
 
           {/* Reels + Recent Activity - Two Column on Desktop */}
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-12">
             {/* Reels */}
             <section>
               <SectionHeader label="Reels" />
@@ -1579,7 +1578,9 @@ export default function DashboardPage() {
           </div>
 
           {/* Tech Center Activity - Full Width */}
-          {(techCenter?.id || user?.role === 'super_admin' || user?.role === 'dev') && (
+          {(techCenter?.id ||
+            user?.role === 'super_admin' ||
+            user?.role === 'dev') && (
             <section>
               <SectionHeader
                 label={
@@ -1601,9 +1602,9 @@ export default function DashboardPage() {
         ============================================================ */}
 
         {/* Quick Access — full width row */}
-        <section className="mt-8">
+        <section className="mt-12">
           <SectionHeader label="Quick access" />
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
             {quickLinks.slice(0, 6).map((link) => (
               <button
                 key={`${link.label}-${link.path}`}
@@ -1627,7 +1628,7 @@ export default function DashboardPage() {
 
         {/* Action Needed — full width banner (admins only) */}
         {user?.role === 'admin' && (
-          <section className="mt-8">
+          <section className="mt-12">
             <div className="flex flex-col gap-4 rounded-r-lg border-l-4 border-[#B98A3E] bg-[#FBF7EE] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
               <div>
                 <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6328]">
@@ -1643,7 +1644,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => router.push('/dashboard/admin/teachers')}
-                className="inline-flex shrink-0 items-center gap-2 bg-[#1A2B4C] px-4 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-[#B98A3E] rounded-lg"
+                className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#1A2B4C] px-4 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-[#B98A3E]"
               >
                 Open
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -1655,13 +1656,13 @@ export default function DashboardPage() {
         {/* Admins — full width row */}
         {(adminsLoading || centerAdmins.length > 0) &&
           user?.role !== 'super_admin' && (
-            <section className="mt-8">
+            <section className="mt-12">
               <SectionHeader
                 label={`${techCenter?.name || 'Your'} admins`}
                 count={centerAdmins.length}
               />
               {adminsLoading ? (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
                   {[1, 2, 3, 4, 5].map((i) => (
                     <div
                       key={i}
@@ -1670,7 +1671,7 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
                   {centerAdmins.map((admin) => (
                     <div
                       key={admin.id}
@@ -1703,13 +1704,13 @@ export default function DashboardPage() {
         {/* Tutors — full width row */}
         {(tutorsLoading || tutors.length > 0) &&
           user?.role !== 'super_admin' && (
-            <section className="mt-8">
+            <section className="mt-12">
               <SectionHeader
                 label={`${techCenter?.name || 'Your'} tutors`}
                 count={tutors.length}
               />
               {tutorsLoading ? (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
                   {[1, 2, 3, 4, 5].map((i) => (
                     <div
                       key={i}
@@ -1718,7 +1719,7 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
                   {tutors.map((tutor: Tutor) => (
                     <div
                       key={tutor.id}
@@ -1752,10 +1753,8 @@ export default function DashboardPage() {
             ASSIGNMENT (student / teacher)
         ============================================================ */}
         {(user?.role === 'student' || user?.role === 'teacher') && (
-          <section className="mt-8">
-            <SectionHeader
-              label={isTeacher ? 'Your students' : 'Your tutor'}
-            />
+          <section className="mt-12">
+            <SectionHeader label={isTeacher ? 'Your students' : 'Your tutor'} />
             {loadingAssignment ? (
               <div className="border border-[#E5E7EB] bg-white p-5">
                 <div className="h-4 w-48 animate-pulse bg-[#E5E7EB]" />
@@ -1819,7 +1818,7 @@ export default function DashboardPage() {
         )}
 
         {/* Profile Completion */}
-        <section className="mt-8">
+        <section className="mt-12">
           <ProfileCompletenessCard user={user} inHeader={false} />
         </section>
       </div>
