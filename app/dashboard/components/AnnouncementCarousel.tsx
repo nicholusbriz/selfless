@@ -21,12 +21,12 @@ function PlayerGridSkeleton({
 }) {
   const base = dark ? 'bg-white/10' : 'bg-black/10';
   return (
-    <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-3">
+    <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-3">
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="flex items-center gap-2 px-1 py-1">
-          <div className={`h-7 w-7 shrink-0 animate-pulse rounded-md ${base}`} />
           <div className={`h-7 w-7 shrink-0 animate-pulse rounded-full ${base}`} />
-          <div className={`h-2.5 w-14 animate-pulse rounded ${base}`} />
+          <div className={`h-2.5 w-20 flex-1 animate-pulse rounded sm:w-auto ${base}`} />
+          <div className={`h-2.5 w-5 shrink-0 animate-pulse rounded ${base}`} />
         </div>
       ))}
     </div>
@@ -45,7 +45,6 @@ function CarouselSkeleton({ inHeader = false }: { inHeader?: boolean }) {
     <div className={`overflow-hidden rounded-xl ${bg} shadow-sm`}>
       <div className={`h-0.5 w-full ${stripe}`} />
       <div className="p-5">
-        {/* Header row */}
         <div className="mb-3 flex items-center justify-between">
           <div className={`h-2.5 w-14 animate-pulse rounded ${label}`} />
           <div className="flex items-center gap-1">
@@ -55,19 +54,16 @@ function CarouselSkeleton({ inHeader = false }: { inHeader?: boolean }) {
           </div>
         </div>
 
-        {/* Title + body */}
         <div className={`mb-3 h-3.5 w-3/4 animate-pulse rounded ${label}`} />
         <div className="mb-4 space-y-2">
           <div className={`h-2.5 w-full animate-pulse rounded ${line}`} />
           <div className={`h-2.5 w-2/3 animate-pulse rounded ${line}`} />
         </div>
 
-        {/* Squad grid */}
         <div className={`mb-4 rounded-md ${squadBg} p-3`}>
           <PlayerGridSkeleton dark={inHeader} count={6} />
         </div>
 
-        {/* Footer */}
         <div className="mt-4 flex items-center justify-between">
           <div className={`h-2.5 w-10 animate-pulse rounded ${line}`} />
           <div className="flex items-center gap-1.5">
@@ -82,7 +78,7 @@ function CarouselSkeleton({ inHeader = false }: { inHeader?: boolean }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Player grid — last name only, billboard style                      */
+/*  Player grid — avatar, name, then number as plain text              */
 /* ------------------------------------------------------------------ */
 
 type Player = {
@@ -100,19 +96,10 @@ function PlayerGrid({
   dark?: boolean;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-3">
+    <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-3">
       {players.map((player) => (
         <div key={player.id} className="flex min-w-0 items-center gap-2">
-          {/* Jersey number badge */}
-          <div
-            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[11px] font-bold tabular-nums ${
-              dark ? 'bg-[#E8A33D] text-[#12203B]' : 'bg-[#12203B] text-[#E8A33D]'
-            }`}
-          >
-            {player.jerseyNumber ?? '—'}
-          </div>
-
-          {/* Avatar */}
+          {/* Avatar first */}
           <div
             className={`relative h-7 w-7 shrink-0 overflow-hidden rounded-full ${
               dark ? 'bg-white/10' : 'bg-[#F1F1EC]'
@@ -137,14 +124,23 @@ function PlayerGrid({
             )}
           </div>
 
-          {/* Last name */}
+          {/* Name */}
           <p
-            className={`min-w-0 flex-1 truncate text-[12px] font-semibold leading-none ${
+            className={`min-w-0 flex-1 text-[12px] font-semibold leading-tight sm:truncate ${
               dark ? 'text-[#F1F1EC]' : 'text-[#12203B]'
             }`}
           >
             {player.lastName}
           </p>
+
+          {/* Number as plain text at the end */}
+          <span
+            className={`shrink-0 text-[11px] font-medium tabular-nums ${
+              dark ? 'text-[#AEB4AA]' : 'text-[#6B7268]'
+            }`}
+          >
+            {player.jerseyNumber ?? '—'}
+          </span>
         </div>
       ))}
     </div>
@@ -168,7 +164,6 @@ export default function AnnouncementCarousel({
   const [progressKey, setProgressKey] = useState(0);
   const { data: teams, isLoading } = useAllFootballTeams();
 
-  // One card per tech center with players (hook already filters empty teams)
   const cards = (teams || []).map((team) => ({
     id: `football-${team.techCenterId}-squad`,
     title: `${team.techCenterName} Squad`,
