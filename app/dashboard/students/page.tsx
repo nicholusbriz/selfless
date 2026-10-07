@@ -616,23 +616,34 @@ function HorizontalRail({
         <div className="w-1 shrink-0" aria-hidden />
       </div>
 
-      <div className="mt-1 flex items-center justify-end gap-1">
-        <button
-          type="button"
-          onClick={scrollLeft}
-          aria-label="Scroll left"
-          className="inline-flex h-6 w-6 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C]"
-        >
-          <ChevronLeft className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={scrollRight}
-          aria-label="Scroll right"
-          className="inline-flex h-6 w-6 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C]"
-        >
-          <ChevronRight className="h-3.5 w-3.5" />
-        </button>
+      <div className="mt-1 flex items-center justify-between gap-1">
+        {/* Scroll indicator text */}
+        {visibleStudents.length > 2 && (
+          <div className="flex items-center gap-2 text-[11px] text-[#6B7280]">
+            <span className="font-mono text-[10px] uppercase tracking-wider">Scroll to discover more</span>
+            <ChevronRight className="w-4 h-4" />
+          </div>
+        )}
+
+        {/* Scroll buttons */}
+        <div className="flex items-center gap-1 ml-auto">
+          <button
+            type="button"
+            onClick={scrollLeft}
+            aria-label="Scroll left"
+            className="inline-flex h-6 w-6 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C]"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={scrollRight}
+            aria-label="Scroll right"
+            className="inline-flex h-6 w-6 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C]"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
     </section>
   );

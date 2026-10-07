@@ -13,9 +13,13 @@ export async function GET(request: NextRequest) {
 
     const search = searchParams.get('search')?.trim() ?? '';
     const action = searchParams.get('action') ?? '';
-    const limit = Number(searchParams.get('limit') ?? '50');
+    const limitParam = searchParams.get('limit') ?? '50';
     const offset = Number(searchParams.get('offset') ?? '0');
-    const all = searchParams.get('all') === 'true';
+    const all = limitParam === 'all';
+
+    const limit = all ? 10000 : Number(limitParam);
+
+    console.log('Activity logs API - params:', { search, action, limit, offset, all });
 
     const where: any = {};
 
@@ -54,8 +58,8 @@ export async function GET(request: NextRequest) {
       prisma.activityLog.findMany({
         where,
         orderBy: { createdAt: 'desc' },
-        take: all ? undefined : limit,
-        skip: all ? undefined : offset,
+        take: all ? 10000 : Number(limit),
+        skip: all ? 0 : Number(offset),
         include: {
           user: true,
           techCenter: true,
@@ -75,6 +79,8 @@ export async function GET(request: NextRequest) {
       action: s.action,
       count: s._count.action,
     }));
+
+    console.log('Activity logs API - Returning:', { logsCount: logs.length, total });
 
     return NextResponse.json({
       logs,

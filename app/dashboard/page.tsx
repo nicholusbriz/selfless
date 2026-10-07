@@ -16,7 +16,6 @@ import {
   User,
   MapPin,
   Video,
-  Camera,
   GraduationCap,
   ChevronRight,
   Library,
@@ -29,7 +28,11 @@ import {
   UserPlus,
   TrendingUp,
   Check,
+  CheckCircle2,
+  AlertCircle,
+  Sparkles,
 } from 'lucide-react';
+import { checkProfileCompleteness } from '@/lib/profile-completeness';
 
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -46,6 +49,8 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DiscoverStudents, type DiscoverStudent } from './components/DiscoverStudents';
 import { VideoPlayer } from './components/VideoPlayer';
+import ProfileCompletenessCard from './components/ProfileCompletenessCard';
+import AnnouncementCarousel from './components/AnnouncementCarousel';
 import type { PageCacheAdapter } from '@/lib/social/cacheKeys';
 import {
   findInStudentsShape,
@@ -192,6 +197,34 @@ interface LikesData {
 
 interface FollowersData {
   connections: Array<SocialUser & { connectedAt?: string }>;
+}
+
+/* ============================================================
+   STAT ITEM — compact metric display
+============================================================ */
+
+function StatItem({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: number | string;
+  color: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <p className="font-mono text-[10px] font-semibold uppercase tracking-wider text-white/50">
+        {label}
+      </p>
+      <p
+        className="font-mono text-sm font-black tabular-nums leading-none"
+        style={{ color }}
+      >
+        {value}
+      </p>
+    </div>
+  );
 }
 
 /* ============================================================
@@ -638,10 +671,6 @@ function DashboardLoadingSkeleton() {
 
 /* ============================================================
    SUGGESTED STUDENTS — mobile-first, no borders
-   ------------------------------------------------------------
-   Mobile: horizontal scroll, card-less rows.
-   Desktop: same, wider.
-   Words "followers", "likes", "views" always shown.
 ============================================================ */
 
 function SuggestedStudents() {
@@ -689,107 +718,113 @@ function SuggestedStudents() {
   }
 
   return (
-    <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
-      {trending.map((user, index) => {
-        const initials = `${user.firstName[0] ?? ''}${
-          user.lastName[0] ?? ''
-        }`.toUpperCase();
-        const isSelf = user.id === currentUserId;
+    <div className="relative">
+      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 scroll-smooth">
+        {trending.map((user, index) => {
+          const initials = `${user.firstName[0] ?? ''}${
+            user.lastName[0] ?? ''
+          }`.toUpperCase();
+          const isSelf = user.id === currentUserId;
 
-        return (
-          <article
-            key={user.id}
-            className="w-72 shrink-0 overflow-hidden rounded-md border border-[#E5E7EB] bg-white shadow-sm transition-shadow hover:shadow-md"
-          >
-            {/* Profile image */}
-            <button
-              type="button"
-              onClick={() => router.push(`/dashboard/students/${user.id}`)}
-              className="block w-full"
+          return (
+            <article
+              key={user.id}
+              className="w-72 shrink-0 overflow-hidden rounded-md border border-[#E5E7EB] bg-white shadow-sm transition-shadow hover:shadow-md"
             >
-              <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#1A2B4C]">
-                {user.profileImageUrl ? (
-                  <Image
-                    src={user.profileImageUrl}
-                    alt={`${user.firstName} ${user.lastName}`}
-                    fill
-                    sizes="288px"
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center">
-                    <span className="font-mono text-2xl font-black text-white/90">
-                      {initials}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </button>
-
-            <div className="px-3 py-2.5">
-              <p className="truncate text-[15px] font-bold leading-tight text-[#1A2B4C]">
-                {user.firstName} {user.lastName}
-              </p>
-              {user.techCenter && (
-                <p className="mt-0.5 truncate text-[11px] leading-snug text-[#6B7280]">
-                  {user.techCenter.name}
-                </p>
-              )}
-
-              {/* Stats - simple text without borders */}
-              <div className="mt-2 flex items-center gap-2 text-[10px]">
-                <span className="font-mono font-bold text-[#1A2B4C]">
-                  {user.followersCount}
-                </span>
-                <span className="text-[#6B7280]">followers</span>
-                <span className="text-[#6B7280]">•</span>
-                <span className="font-mono font-bold text-[#1A2B4C]">
-                  {user.likesReceivedCount}
-                </span>
-                <span className="text-[#6B7280]">likes</span>
-                <span className="text-[#6B7280]">•</span>
-                <span className="font-mono font-bold text-[#1A2B4C]">
-                  {user.profileViewsCount}
-                </span>
-                <span className="text-[#6B7280]">views</span>
-              </div>
-
-              {/* Action buttons matching students page */}
-              <div className="mt-2 flex items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={() => router.push(`/dashboard/students/${user.id}`)}
-                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#1A2B4C] hover:text-[#B98A3E]"
-                >
-                  View profile
-                  <ChevronRight className="h-3 w-3" />
-                </button>
-
-                {!isSelf && (
-                  <div className="flex min-w-0 flex-wrap items-center justify-end gap-1">
-                    <SocialActions
-                      userId={user.id}
-                      currentUserId={currentUserId}
-                      isFollowing={user.isFollowing}
-                      isLiked={user.isLiked}
-                      pageAdapters={DASHBOARD_TRENDING_ADAPTERS}
-                      size="xs"
-                      allowUnfollow={false}
-                      allowUnlike={true}
+              <button
+                type="button"
+                onClick={() => router.push(`/dashboard/students/${user.id}`)}
+                className="block w-full"
+              >
+                <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#1A2B4C]">
+                  {user.profileImageUrl ? (
+                    <Image
+                      src={user.profileImageUrl}
+                      alt={`${user.firstName} ${user.lastName}`}
+                      fill
+                      sizes="288px"
+                      className="object-cover"
                     />
-                  </div>
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <span className="font-mono text-2xl font-black text-white/90">
+                        {initials}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </button>
+
+              <div className="px-3 py-2.5">
+                <p className="truncate text-[15px] font-bold leading-tight text-[#1A2B4C]">
+                  {user.firstName} {user.lastName}
+                </p>
+                {user.techCenter && (
+                  <p className="mt-0.5 truncate text-[11px] leading-snug text-[#6B7280]">
+                    {user.techCenter.name}
+                  </p>
                 )}
+
+                <div className="mt-2 flex items-center gap-2 text-[10px]">
+                  <span className="font-mono font-bold text-[#1A2B4C]">
+                    {user.followersCount}
+                  </span>
+                  <span className="text-[#6B7280]">followers</span>
+                  <span className="text-[#6B7280]">•</span>
+                  <span className="font-mono font-bold text-[#1A2B4C]">
+                    {user.likesReceivedCount}
+                  </span>
+                  <span className="text-[#6B7280]">likes</span>
+                  <span className="text-[#6B7280]">•</span>
+                  <span className="font-mono font-bold text-[#1A2B4C]">
+                    {user.profileViewsCount}
+                  </span>
+                  <span className="text-[#6B7280]">views</span>
+                </div>
+
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/dashboard/students/${user.id}`)}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#1A2B4C] hover:text-[#B98A3E]"
+                  >
+                    View profile
+                    <ChevronRight className="h-3 w-3" />
+                  </button>
+
+                  {!isSelf && (
+                    <div className="flex min-w-0 flex-wrap items-center justify-end gap-1">
+                      <SocialActions
+                        userId={user.id}
+                        currentUserId={currentUserId}
+                        isFollowing={user.isFollowing}
+                        isLiked={user.isLiked}
+                        pageAdapters={DASHBOARD_TRENDING_ADAPTERS}
+                        size="xs"
+                        allowUnfollow={false}
+                        allowUnlike={true}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          </article>
-        );
-      })}
+            </article>
+          );
+        })}
+      </div>
+
+      {trending.length > 3 && (
+        <div className="flex items-center justify-center gap-2 mt-3 text-[11px] text-[#6B7280]">
+          <span className="font-mono text-[10px] uppercase tracking-wider">Scroll to discover more</span>
+          <ChevronRight className="w-4 h-4" />
+        </div>
+      )}
     </div>
   );
 }
 
 /* ============================================================
-   RECENT SOCIAL ACTIVITY — editorial rows, no card wrappers
+   RECENT SOCIAL ACTIVITY
 ============================================================ */
 
 function RecentSocialActivity() {
@@ -942,6 +977,184 @@ function RecentSocialActivity() {
         );
       })}
     </ul>
+  );
+}
+
+/* ============================================================
+   TECH CENTER ACTIVITY
+============================================================ */
+
+interface TechCenterActivityItem {
+  id: string;
+  action: string;
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    profileImageUrl: string | null;
+  };
+  techCenter?: {
+    id: string;
+    name: string;
+  };
+  createdAt: string;
+}
+
+function TechCenterActivity({
+  techCenterId,
+  userRole,
+}: {
+  techCenterId?: string;
+  userRole?: string;
+}) {
+  const isSuperAdminOrDev = userRole === 'super_admin' || userRole === 'dev';
+
+  const { data: activities, isLoading } = useQuery<TechCenterActivityItem[]>({
+    queryKey: ['tech-center', 'activity', techCenterId, isSuperAdminOrDev],
+    queryFn: async () => {
+      if (isSuperAdminOrDev) {
+        const res = await fetch('/api/admin/activity-logs?limit=all');
+        if (!res.ok) {
+          throw new Error('Failed to fetch all activities');
+        }
+        const json = await res.json();
+        const mapped = json.logs
+          ?.map((log: any) => ({
+            id: log.id,
+            action: log.action,
+            user: log.user,
+            techCenter: log.techCenter,
+            createdAt: log.createdAt,
+          })) || [];
+        return mapped;
+      } else if (techCenterId) {
+        const res = await fetch(`/api/tech-centers/${techCenterId}/activity?limit=all`);
+        if (!res.ok) throw new Error('Failed to fetch tech center activity');
+        return res.json();
+      }
+      return [];
+    },
+    enabled: isSuperAdminOrDev || !!techCenterId,
+    staleTime: 60 * 1000,
+  });
+
+  const getActionLabel = (action: string) => {
+    const labels: Record<string, string> = {
+      course_submission: 'submitted a course',
+      cleaning_registration: 'registered for cleaning',
+      cleaning_day_change: 'changed cleaning day',
+      cleaning_week_created: 'created a cleaning week',
+      cleaning_day_created: 'created a cleaning day',
+      football_team_joined: 'joined the football team',
+    };
+    return labels[action] || action.replace(/_/g, ' ');
+  };
+
+  const getActionIcon = (action: string) => {
+    switch (action) {
+      case 'course_submission':
+        return <BookOpen className="h-3 w-3" />;
+      case 'cleaning_registration':
+      case 'cleaning_day_change':
+      case 'cleaning_week_created':
+      case 'cleaning_day_created':
+        return <Briefcase className="h-3 w-3" />;
+      case 'football_team_joined':
+        return <Trophy className="h-3 w-3" />;
+      default:
+        return <Sparkles className="h-3 w-3" />;
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="border border-[#E5E7EB] bg-white p-5">
+        <div className="space-y-3">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center gap-3">
+              <div className="h-9 w-9 animate-pulse bg-[#E5E7EB] rounded-full" />
+              <div className="flex-1 space-y-1">
+                <div className="h-3 w-32 animate-pulse bg-[#E5E7EB]" />
+                <div className="h-2 w-24 animate-pulse bg-[#ECEEF0]" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!activities || activities.length === 0) {
+    return (
+      <div className="border border-[#D1D5DB] bg-white px-6 py-8 text-center">
+        <Sparkles className="mx-auto mb-3 h-5 w-5 text-[#9CA3AF]" />
+        <p className="text-[14px] font-bold text-[#1A2B4C]">No activity yet</p>
+        <p className="mt-1 text-[12px] text-[#6B7280]">
+          {isSuperAdminOrDev
+            ? 'Activities from all tech centers will appear here'
+            : 'Recent activities from your tech center will appear here'}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border border-[#E5E7EB] bg-white">
+      <ul className="divide-y divide-[#E5E7EB] max-h-[400px] overflow-y-auto">
+        {activities.map((activity) => {
+          const initials = `${activity.user.firstName[0] ?? ''}${
+            activity.user.lastName[0] ?? ''
+          }`.toUpperCase();
+
+          return (
+            <li key={activity.id} className="flex items-center gap-3 py-3">
+              <div className="relative h-9 w-9 shrink-0">
+                {activity.user.profileImageUrl ? (
+                  <Image
+                    src={activity.user.profileImageUrl}
+                    alt={`${activity.user.firstName} ${activity.user.lastName}`}
+                    fill
+                    sizes="36px"
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="flex h-9 w-9 items-center justify-center bg-[#1A2B4C] font-mono text-[11px] font-bold text-white">
+                    {initials}
+                  </div>
+                )}
+                <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center border border-white bg-[#B98A3E]">
+                  {getActionIcon(activity.action)}
+                </span>
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13px] leading-snug text-[#1A2B4C]">
+                  <span className="font-bold">
+                    {activity.user.firstName} {activity.user.lastName}
+                  </span>{' '}
+                  <span className="text-[#6B7280]">
+                    {getActionLabel(activity.action)}
+                  </span>
+                  {activity.techCenter && (
+                    <span className="ml-2 text-[11px] text-[#B98A3E]">
+                      ({activity.techCenter.name})
+                    </span>
+                  )}
+                </p>
+              </div>
+
+              <span className="shrink-0 font-mono text-[10px] tabular-nums text-[#9CA3AF]">
+                {new Date(activity.createdAt).toLocaleDateString(undefined, {
+                  month: 'short',
+                  day: 'numeric',
+                })}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 
@@ -1231,23 +1444,38 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-[#F8F9FA] text-[#1A2B4C]">
       <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
         {/* ============================================================
-            HERO — solid dark band, typography-led
+            HERO — compact greeting + stats
         ============================================================ */}
         <header className="bg-[#1A2B4C] text-white">
-          <div className="px-5 py-6 sm:px-8 sm:py-8">
-            <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-              {/* Left: greeting + name + tech center */}
+          <div className="px-5 py-4 sm:px-8 sm:py-5">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="relative h-12 w-12 shrink-0 overflow-hidden border border-white/20 sm:h-14 sm:w-14">
+                {user?.profileImageUrl ? (
+                  <Image
+                    src={user.profileImageUrl}
+                    alt={userName}
+                    fill
+                    sizes="56px"
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-white/10">
+                    <User className="h-5 w-5 text-white/50" />
+                  </div>
+                )}
+              </div>
+
               <div className="min-w-0 flex-1">
-                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#B98A3E]">
+                <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[#B98A3E]">
                   {greeting}
                 </p>
-                <h1 className="mt-2 text-3xl font-black leading-[0.95] tracking-tight sm:text-4xl md:text-5xl">
+                <h1 className="mt-0.5 text-xl font-black leading-tight tracking-tight sm:text-2xl">
                   {firstName}
                   <span className="text-white/40">.</span>
                 </h1>
-                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-white/60">
-                  <span className="inline-flex items-center gap-1.5">
-                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#55705B]" />
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[10px] text-white/60">
+                  <span className="inline-flex items-center gap-1">
+                    <span className="inline-block h-1 w-1 rounded-full bg-[#55705B]" />
                     Active
                   </span>
                   {user?.role && (
@@ -1256,140 +1484,137 @@ export default function DashboardPage() {
                     </span>
                   )}
                   {techCenter && (
-                    <span className="inline-flex items-center gap-1.5">
-                      <MapPin className="h-3 w-3" />
+                    <span className="inline-flex items-center gap-1">
+                      <MapPin className="h-2.5 w-2.5" />
                       {techCenter.name}
                     </span>
                   )}
                 </div>
               </div>
-
-              {/* Right: avatar + edit */}
-              <div className="flex items-center gap-3">
-                <div className="relative h-16 w-16 shrink-0 overflow-hidden border border-white/20 sm:h-20 sm:w-20">
-                  {user?.profileImageUrl ? (
-                    <Image
-                      src={user.profileImageUrl}
-                      alt={userName}
-                      fill
-                      sizes="80px"
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-white/10">
-                      <User className="h-7 w-7 text-white/50" />
-                    </div>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => router.push('/dashboard/profile')}
-                  className="inline-flex items-center gap-1.5 border border-white/20 bg-transparent px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-white/10"
-                >
-                  <Camera className="h-3 w-3" />
-                  Edit
-                </button>
-              </div>
             </div>
 
-            {/* Stats row — bold, flat, no pills */}
-            {meStats ? (
-              <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-white/10 pt-6 sm:grid-cols-4">
-                <StatBlock value={meStats.followersCount} label="Followers" />
-                <StatBlock value={meStats.followingCount} label="Following" />
-                <StatBlock
-                  value={meStats.likesReceivedCount}
-                  label="Likes"
-                  accent
-                />
-                <StatBlock value={meStats.profileViewsCount} label="Views" />
-              </div>
-            ) : meStatsLoading ? (
-              <div
-                className="mt-8 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-white/10 pt-6 sm:grid-cols-4"
-                aria-label="Loading your stats"
-                aria-busy="true"
-              >
-                {[0, 1, 2, 3].map((stat) => (
-                  <div key={stat} className="flex min-w-0 flex-col gap-2">
-                    <span className="h-7 w-12 animate-pulse bg-white/15 sm:h-8" />
-                    <span className="h-2.5 w-16 animate-pulse bg-white/10" />
-                  </div>
-                ))}
-              </div>
-            ) : null}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+              <StatItem
+                label="Profile"
+                value={`${checkProfileCompleteness(user).completionPercentage}%`}
+                color={checkProfileCompleteness(user).completionPercentage >= 80 ? '#55705B' : '#B98A3E'}
+              />
+              <StatItem
+                label="Followers"
+                value={meStats?.followersCount ?? 0}
+                color="#B98A3E"
+              />
+              <StatItem
+                label="Following"
+                value={meStats?.followingCount ?? 0}
+                color="#B98A3E"
+              />
+              <StatItem
+                label="Views"
+                value={meStats?.profileViewsCount ?? 0}
+                color="#B98A3E"
+              />
+              <StatItem
+                label="Likes"
+                value={meStats?.likesReceivedCount ?? 0}
+                color="#B98A3E"
+              />
+            </div>
+
+            <div className="mt-6">
+              <AnnouncementCarousel inHeader={true} />
+            </div>
           </div>
         </header>
 
         {/* ============================================================
-            Trending student profiles
+            MAIN CONTENT - Unified layout
         ============================================================ */}
-        <section className="mt-10">
-          <SectionHeader
-            label="Trending student profiles"
-            action={
-              <button
-                type="button"
-                onClick={() => router.push('/dashboard/students')}
-                className="inline-flex items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[#B98A3E] transition-colors hover:text-[#1A2B4C]"
-              >
-                See all
-                <ChevronRight className="h-3 w-3" />
-              </button>
-            }
-          />
-          <SuggestedStudents />
-        </section>
+        <div className="mt-8 space-y-8">
+          {/* Discover Students */}
+          {discoverStudents.length > 0 && (
+            <section>
+              <SectionHeader label="Discover students" />
+              <DiscoverStudents
+                students={discoverStudents}
+                isLoading={discoverStudentsLoading}
+              />
+            </section>
+          )}
 
-        {/* ============================================================
-            DISCOVER STUDENTS
-        ============================================================ */}
-        {discoverStudents.length > 0 && (
-          <section className="mt-10">
-            <SectionHeader label="Discover students" />
-            <DiscoverStudents
-              students={discoverStudents}
-              isLoading={discoverStudentsLoading}
+          {/* Trending Students */}
+          <section>
+            <SectionHeader
+              label="Trending"
+              action={
+                <button
+                  type="button"
+                  onClick={() => router.push('/dashboard/students')}
+                  className="inline-flex items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[#1A2B4C] transition-colors hover:text-[#6B7280]"
+                >
+                  See all
+                  <ChevronRight className="h-3 w-3" />
+                </button>
+              }
             />
+            <SuggestedStudents />
           </section>
-        )}
+
+          {/* Reels + Recent Activity - Two Column on Desktop */}
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+            {/* Reels */}
+            <section>
+              <SectionHeader label="Reels" />
+              <MediaLibrary />
+            </section>
+
+            {/* Recent Activity */}
+            <section>
+              <SectionHeader label="On your profile" />
+              <RecentSocialActivity />
+            </section>
+          </div>
+
+          {/* Tech Center Activity - Full Width */}
+          {(techCenter?.id || user?.role === 'super_admin' || user?.role === 'dev') && (
+            <section>
+              <SectionHeader
+                label={
+                  user?.role === 'super_admin' || user?.role === 'dev'
+                    ? 'All tech centers activity'
+                    : `${techCenter?.name || 'Your tech center'} activity`
+                }
+              />
+              <TechCenterActivity
+                techCenterId={techCenter?.id}
+                userRole={user?.role}
+              />
+            </section>
+          )}
+        </div>
 
         {/* ============================================================
-            REELS
+            FULL-WIDTH ROW SECTIONS (desktop rows, mobile stacked)
         ============================================================ */}
-        <section className="mt-10">
-          <SectionHeader label="Reels" />
-          <MediaLibrary />
-        </section>
 
-        {/* ============================================================
-            RECENT ACTIVITY ON YOUR PROFILE
-        ============================================================ */}
-        <section className="mt-10">
-          <SectionHeader label="On your profile" />
-          <RecentSocialActivity />
-        </section>
-
-        {/* ============================================================
-            QUICK ACCESS
-        ============================================================ */}
-        <section className="mt-10">
+        {/* Quick Access — full width row */}
+        <section className="mt-8">
           <SectionHeader label="Quick access" />
-          <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3 lg:grid-cols-6">
-            {quickLinks.map((link) => (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {quickLinks.slice(0, 6).map((link) => (
               <button
                 key={`${link.label}-${link.path}`}
                 type="button"
                 onClick={() => router.push(link.path)}
-                className="group flex flex-col items-start gap-2 text-left transition-transform active:scale-[0.98]"
+                className="group flex flex-col items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white p-4 text-center transition-all hover:border-[#B98A3E] hover:bg-[#FBF7EE] hover:shadow-md active:scale-[0.98]"
               >
-                <span className="flex h-10 w-10 items-center justify-center bg-[#1A2B4C] text-white transition-colors group-hover:bg-[#B98A3E]">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#1A2B4C] text-white transition-colors group-hover:bg-[#B98A3E]">
                   {link.icon}
                 </span>
-                <span className="text-[13px] font-black leading-tight text-[#1A2B4C]">
+                <span className="text-[13px] font-bold leading-tight text-[#1A2B4C]">
                   {link.label}
                 </span>
-                <span className="text-[11px] leading-tight text-[#6B7280]">
+                <span className="text-[11px] leading-snug text-[#6B7280]">
                   {link.description}
                 </span>
               </button>
@@ -1397,81 +1622,72 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* ============================================================
-            ADMIN BANNER
-        ============================================================ */}
+        {/* Action Needed — full width banner (admins only) */}
         {user?.role === 'admin' && (
-          <section className="mt-10">
-            <div className="border-l-4 border-[#B98A3E] bg-[#FBF7EE] p-5 sm:p-6">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center bg-[#B98A3E] text-white">
-                    <GraduationCap className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6328]">
-                      Action needed
-                    </p>
-                    <h3 className="mt-1 text-[15px] font-black text-[#1A2B4C]">
-                      Assign students to tutors
-                    </h3>
-                    <p className="mt-1 max-w-2xl text-[13px] leading-5 text-[#6B7280]">
-                      Help students get regular support by assigning them to
-                      tutors.
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => router.push('/dashboard/admin/teachers')}
-                  className="inline-flex shrink-0 items-center gap-2 bg-[#1A2B4C] px-4 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-[#B98A3E]"
-                >
-                  Open
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </button>
+          <section className="mt-8">
+            <div className="flex flex-col gap-4 rounded-r-lg border-l-4 border-[#B98A3E] bg-[#FBF7EE] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+              <div>
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6328]">
+                  Action needed
+                </p>
+                <h3 className="mt-1 text-[15px] font-black text-[#1A2B4C]">
+                  Assign students to tutors
+                </h3>
+                <p className="mt-1 max-w-2xl text-[13px] leading-5 text-[#6B7280]">
+                  Help students get regular support by assigning them to tutors.
+                </p>
               </div>
+              <button
+                type="button"
+                onClick={() => router.push('/dashboard/admin/teachers')}
+                className="inline-flex shrink-0 items-center gap-2 bg-[#1A2B4C] px-4 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-[#B98A3E] rounded-lg"
+              >
+                Open
+                <ArrowRight className="h-3.5 w-3.5" />
+              </button>
             </div>
           </section>
         )}
 
+        {/* Admins — full width row */}
         {(adminsLoading || centerAdmins.length > 0) &&
           user?.role !== 'super_admin' && (
-            <section className="mt-10">
+            <section className="mt-8">
               <SectionHeader
                 label={`${techCenter?.name || 'Your'} admins`}
                 count={centerAdmins.length}
               />
               {adminsLoading ? (
-                <div className="flex flex-wrap gap-2">
-                  {[1, 2].map((index) => (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                  {[1, 2, 3, 4, 5].map((i) => (
                     <div
-                      key={index}
-                      className="h-8 w-32 animate-pulse bg-[#E5E7EB]"
+                      key={i}
+                      className="h-14 animate-pulse rounded-lg bg-[#E5E7EB]"
                     />
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
                   {centerAdmins.map((admin) => (
                     <div
                       key={admin.id}
-                      className="inline-flex items-center gap-2 border border-[#E5E7EB] bg-white px-3 py-1.5"
+                      className="inline-flex items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2.5"
                     >
                       {admin.profileImageUrl ? (
                         <Image
                           src={admin.profileImageUrl}
                           alt={`${admin.firstName} ${admin.lastName}`}
-                          width={22}
-                          height={22}
-                          className="h-[22px] w-[22px] object-cover"
+                          width={28}
+                          height={28}
+                          className="h-7 w-7 rounded-full object-cover"
                         />
                       ) : (
-                        <div className="flex h-[22px] w-[22px] items-center justify-center bg-[#1A2B4C] font-mono text-[9px] font-bold text-white">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#1A2B4C] font-mono text-[10px] font-bold text-white">
                           {admin.firstName.charAt(0)}
                           {admin.lastName.charAt(0)}
                         </div>
                       )}
-                      <span className="text-[12px] font-bold text-[#1A2B4C]">
+                      <span className="truncate text-[12px] font-bold text-[#1A2B4C]">
                         {admin.firstName} {admin.lastName}
                       </span>
                     </div>
@@ -1481,47 +1697,45 @@ export default function DashboardPage() {
             </section>
           )}
 
-        {/* ============================================================
-            TUTORS
-        ============================================================ */}
+        {/* Tutors — full width row */}
         {(tutorsLoading || tutors.length > 0) &&
           user?.role !== 'super_admin' && (
-            <section className="mt-10">
+            <section className="mt-8">
               <SectionHeader
                 label={`${techCenter?.name || 'Your'} tutors`}
                 count={tutors.length}
               />
               {tutorsLoading ? (
-                <div className="flex flex-wrap gap-2">
-                  {[1, 2, 3].map((i) => (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                  {[1, 2, 3, 4, 5].map((i) => (
                     <div
                       key={i}
-                      className="h-8 w-32 animate-pulse bg-[#E5E7EB]"
+                      className="h-14 animate-pulse rounded-lg bg-[#E5E7EB]"
                     />
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
                   {tutors.map((tutor: Tutor) => (
                     <div
                       key={tutor.id}
-                      className="inline-flex items-center gap-2 border border-[#E5E7EB] bg-white px-3 py-1.5"
+                      className="inline-flex items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2.5"
                     >
                       {tutor.profileImageUrl ? (
                         <Image
                           src={tutor.profileImageUrl}
                           alt={`${tutor.firstName} ${tutor.lastName}`}
-                          width={22}
-                          height={22}
-                          className="h-[22px] w-[22px] object-cover"
+                          width={28}
+                          height={28}
+                          className="h-7 w-7 rounded-full object-cover"
                         />
                       ) : (
-                        <div className="flex h-[22px] w-[22px] items-center justify-center bg-[#1A2B4C] font-mono text-[9px] font-bold text-white">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#1A2B4C] font-mono text-[10px] font-bold text-white">
                           {tutor.firstName.charAt(0)}
                           {tutor.lastName.charAt(0)}
                         </div>
                       )}
-                      <span className="text-[12px] font-bold text-[#1A2B4C]">
+                      <span className="truncate text-[12px] font-bold text-[#1A2B4C]">
                         {tutor.firstName} {tutor.lastName}
                       </span>
                     </div>
@@ -1532,10 +1746,10 @@ export default function DashboardPage() {
           )}
 
         {/* ============================================================
-            ASSIGNMENT
+            ASSIGNMENT (student / teacher)
         ============================================================ */}
         {(user?.role === 'student' || user?.role === 'teacher') && (
-          <section className="mt-10">
+          <section className="mt-8">
             <SectionHeader
               label={isTeacher ? 'Your students' : 'Your tutor'}
             />
@@ -1601,113 +1815,10 @@ export default function DashboardPage() {
           </section>
         )}
 
-        {/* ============================================================
-            COMMUNITY ACTIVITY
-        ============================================================ */}
-        {recentActivity.length > 0 &&
-          (user?.role === 'super_admin' || techCenter) && (
-            <section className="mt-10">
-              <SectionHeader label="Community activity" />
-              <div className="border-y border-[#E5E7EB]">
-                {recentActivity.slice(0, 20).map((item, index) => {
-                  const meta = getActivityMeta(item.action);
-                  return (
-                    <div
-                      key={item.id}
-                      className={`flex items-center gap-4 py-3 ${
-                        index < Math.min(recentActivity.length, 20) - 1
-                          ? 'border-b border-[#E5E7EB]'
-                          : ''
-                      }`}
-                    >
-                      <span className="w-12 shrink-0 font-mono text-[10px] font-bold tabular-nums text-[#9CA3AF]">
-                        {formatTimeAgo(item.createdAt)}
-                      </span>
-                      <p className="min-w-0 flex-1 truncate text-[13px] text-[#1A2B4C]">
-                        <span className="font-bold">
-                          {item.user
-                            ? `${item.user.firstName} ${item.user.lastName}`
-                            : 'System'}
-                        </span>{' '}
-                        <span className="text-[#6B7280]">{meta.label}</span>
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-
-        {/* ============================================================
-            MOTIVATION STRIP
-        ============================================================ */}
-        <section className="mt-10">
-          <div className="flex items-center gap-4 border-y border-[#E5E7EB] py-4">
-            <div className="relative h-10 w-10 shrink-0 overflow-hidden">
-              <Image
-                src="/icon-192x192.png"
-                alt="Selfless CE"
-                fill
-                sizes="40px"
-                className="object-cover"
-              />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[#B98A3E]">
-                Today&apos;s focus
-              </p>
-              <div className="relative h-5 overflow-hidden">
-                <AnimatePresence mode="wait">
-                  <motion.p
-                    key={messageIndex}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.3 }}
-                    className="text-[13px] font-bold leading-tight text-[#1A2B4C]"
-                  >
-                    {motivationMessages[messageIndex]}
-                  </motion.p>
-                </AnimatePresence>
-              </div>
-            </div>
-          </div>
+        {/* Profile Completion */}
+        <section className="mt-8">
+          <ProfileCompletenessCard user={user} inHeader={false} />
         </section>
-
-        {/* ============================================================
-            AI ASSISTANT
-        ============================================================ */}
-        <section className="mt-10">
-          <div className="relative overflow-hidden bg-[#1A2B4C] p-6 sm:p-8">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <Star className="h-3.5 w-3.5 text-[#B98A3E]" fill="currentColor" />
-                  <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#B98A3E]">
-                    AI Assistant
-                  </p>
-                </div>
-                <h3 className="mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl">
-                  Atbriz AI
-                </h3>
-                <p className="mt-2 max-w-lg text-[13px] leading-5 text-white/60">
-                  Ask questions, get study guidance, accelerate your learning.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => router.push('/dashboard/ai')}
-                className="inline-flex shrink-0 items-center gap-2 bg-[#B98A3E] px-5 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-white transition-colors hover:bg-[#E8A33D] sm:px-6"
-              >
-                Open
-                <ChevronRight className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <div className="h-10" />
       </div>
     </div>
   );

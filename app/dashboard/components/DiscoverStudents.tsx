@@ -626,7 +626,7 @@ export function DiscoverStudents({
             rotateY: customDirection === 1 ? 95 : -95,
             rotateX: 4,
             scale: 0.9,
-            z: -60,
+            z: -80,
           },
 
     center: shouldReduceMotion
@@ -651,7 +651,7 @@ export function DiscoverStudents({
             rotateY: customDirection === 1 ? -95 : 95,
             rotateX: -4,
             scale: 0.9,
-            z: -60,
+            z: -80,
             transition: {
               duration: SWAP_DURATION_S,
               ease: CONTENT_EASE,
@@ -794,7 +794,7 @@ export function DiscoverStudents({
                 }}
               >
                 <AnimatePresence
-                  mode="sync"
+                  mode="popLayout"
                   initial={false}
                   custom={direction}
                 >
@@ -812,6 +812,7 @@ export function DiscoverStudents({
                       WebkitBackfaceVisibility: "hidden",
                       transformOrigin: "center center",
                       willChange: "transform, opacity",
+                      zIndex: 1,
                     }}
                   >
                     {imageSrc ? (
@@ -858,7 +859,7 @@ export function DiscoverStudents({
                 }}
               >
                 <AnimatePresence
-                  mode="sync"
+                  mode="popLayout"
                   initial={false}
                   custom={direction}
                 >

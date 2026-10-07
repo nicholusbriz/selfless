@@ -190,7 +190,9 @@ export const authOptions: AuthOptions = {
         // Use type assertion for teacherId
         token.teacherId = user.teacherId || null;
 
-        token.roleUpdatedAt = user.roleUpdatedAt?.toISOString();
+        token.roleUpdatedAt = user.roleUpdatedAt instanceof Date
+          ? user.roleUpdatedAt.toISOString()
+          : user.roleUpdatedAt || undefined;
       }
 
       // Re-fetch user data from database on session update
@@ -236,7 +238,9 @@ export const authOptions: AuthOptions = {
           token.preferredTeamType = freshUser.preferredTeamType;
           token.preferredTeamRole = freshUser.preferredTeamRole;
           token.teacherId = freshUser.teacherId || null;
-          token.roleUpdatedAt = freshUser.roleUpdatedAt?.toISOString();
+          token.roleUpdatedAt = freshUser.roleUpdatedAt instanceof Date
+            ? freshUser.roleUpdatedAt.toISOString()
+            : freshUser.roleUpdatedAt || undefined;
         }
       }
 
@@ -269,7 +273,9 @@ export const authOptions: AuthOptions = {
         }
 
         const tokenRoleUpdatedAt = token.roleUpdatedAt;
-        const dbRoleUpdatedAt = dbUser.roleUpdatedAt?.toISOString();
+        const dbRoleUpdatedAt = dbUser.roleUpdatedAt instanceof Date
+          ? dbUser.roleUpdatedAt.toISOString()
+          : dbUser.roleUpdatedAt || undefined;
 
         // If database roleUpdatedAt is newer than token's, refresh all user data
         if (dbRoleUpdatedAt && (!tokenRoleUpdatedAt || new Date(dbRoleUpdatedAt) > new Date(tokenRoleUpdatedAt))) {
@@ -314,7 +320,9 @@ export const authOptions: AuthOptions = {
             token.preferredTeamType = freshUser.preferredTeamType;
             token.preferredTeamRole = freshUser.preferredTeamRole;
             token.teacherId = freshUser.teacherId || null;
-            token.roleUpdatedAt = freshUser.roleUpdatedAt?.toISOString();
+            token.roleUpdatedAt = freshUser.roleUpdatedAt instanceof Date
+              ? freshUser.roleUpdatedAt.toISOString()
+              : freshUser.roleUpdatedAt || undefined;
           }
         }
       }

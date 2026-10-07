@@ -307,10 +307,11 @@ model Account {
   scope             String?
   id_token          String? @db.String
   session_state     String?
+  refresh_token_expires_in Int?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerAccountId])
+  @@unique([provider, providerAccountId], name: "provider_providerAccountId")
   @@map("accounts")
 }
 
