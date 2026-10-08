@@ -58,10 +58,9 @@ type DiscoverStudentsProps = {
 
 const DEFAULT_INTERVAL = 5000;
 
-/* 3D swap tuning */
-const SWAP_DURATION_S = 0.55;
+const SWAP_DURATION_S = 0.6;
 const TOTAL_SLIDE_MS = SWAP_DURATION_S * 1000;
-const SWAP_PERSPECTIVE = 1600;
+const SWAP_PERSPECTIVE = 1400;
 
 const SWIPE_THRESHOLD = 40;
 
@@ -85,9 +84,9 @@ const MOBILE_MAX = 639;
 
 function formatRole(roleName?: string | null) {
   if (!roleName) return null;
-  if (roleName === 'teacher') return 'Tutor';
-  if (roleName === 'admin') return 'Manager';
-  if (roleName === 'superadmin' || roleName === 'super_admin') return 'Director';
+  if (roleName === "teacher") return "Tutor";
+  if (roleName === "admin") return "Manager";
+  if (roleName === "superadmin" || roleName === "super_admin") return "Director";
   return roleName;
 }
 
@@ -101,12 +100,11 @@ const GOLD_BRIGHT = "#D9B563";
 const WHITE = "#FFFFFF";
 const WHITE_85 = "rgba(255, 255, 255, 0.85)";
 const WHITE_70 = "rgba(255, 255, 255, 0.70)";
-const WHITE_50 = "rgba(255, 255, 255, 0.50)";
 
 const PANEL_BG = "#0F1115";
 const PANEL_BORDER = "rgba(200, 162, 74, 0.22)";
 
-const CONTENT_EASE = [0.22, 1, 0.36, 1] as const;
+const CUBIC_EASE = [0.65, 0, 0.35, 1] as const;
 
 /* ============================================================
    HOOKS
@@ -204,10 +202,6 @@ function useResponsiveCardSize(
   return size;
 }
 
-/* ============================================================
-   AGGRESSIVE IMAGE PRELOADER
-============================================================ */
-
 function useImagePreloader(urls: string[]) {
   const urlsKey = urls.join("\0");
   const urlsToPreload = useMemo(
@@ -260,15 +254,6 @@ function useImagePreloader(urls: string[]) {
       images.push(img);
     });
 
-    Promise.allSettled(
-      urlsToPreload.map((url) =>
-        fetch(url, {
-          cache: "force-cache",
-          credentials: "same-origin",
-        }).catch(() => null),
-      ),
-    ).catch(() => {});
-
     return () => {
       cancelled = true;
       images.forEach((img) => {
@@ -280,6 +265,58 @@ function useImagePreloader(urls: string[]) {
   }, [urlsKey, urlsToPreload]);
 
   return readyUrls;
+}
+
+/* ============================================================
+   SUB-COMPONENTS
+============================================================ */
+
+function PauseButton({
+  isPaused,
+  onClick,
+  disabled,
+}: {
+  isPaused: boolean;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/80 transition-all hover:bg-white/[0.1] hover:text-white disabled:opacity-40"
+      aria-label={isPaused ? "Play autoplay" : "Pause autoplay"}
+    >
+      {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+    </button>
+  );
+}
+
+function NavButton({
+  direction,
+  onClick,
+  disabled,
+}: {
+  direction: "up" | "down";
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/80 transition-all hover:bg-white/[0.1] hover:text-white disabled:opacity-40"
+      aria-label={direction === "up" ? "Previous student" : "Next student"}
+    >
+      {direction === "up" ? (
+        <ArrowUp className="h-4 w-4" />
+      ) : (
+        <ArrowDown className="h-4 w-4" />
+      )}
+    </button>
+  );
 }
 
 /* ============================================================
@@ -302,15 +339,12 @@ export function DiscoverStudents({
 
   const transitionTimeoutRef =
     useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const autoplayTimeoutRef =
     useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const touchStartXRef = useRef<number | null>(null);
   const touchStartYRef = useRef<number | null>(null);
-
-  const stageContainerRef =
-    useRef<HTMLDivElement | null>(null);
+  const stageContainerRef = useRef<HTMLDivElement | null>(null);
 
   const size = useResponsiveCardSize(stageContainerRef, isMobile);
 
@@ -319,26 +353,33 @@ export function DiscoverStudents({
     [students],
   );
 
-  const imageUrls = useMemo(
-    () =>
-      visibleStudents
-        .map((s) => s.profileImageUrl)
-        .filter((u): u is string => Boolean(u && u.trim())),
-    [visibleStudents],
-  );
-
-  const readyUrls = useImagePreloader(imageUrls);
-
-  const allImagesReady =
-    imageUrls.length === 0 ||
-    imageUrls.every((u) => readyUrls.has(u));
-
   const normalizedCurrentIndex =
     visibleStudents.length === 0
       ? 0
       : ((currentIndex % visibleStudents.length) +
           visibleStudents.length) %
         visibleStudents.length;
+
+  /* -------- Smart preload: only current ± 1 -------- */
+
+  const preloadUrls = useMemo(() => {
+    if (visibleStudents.length === 0) return [];
+    const n = visibleStudents.length;
+    const i = normalizedCurrentIndex;
+    return [
+      visibleStudents[i]?.profileImageUrl,
+      visibleStudents[(i + 1) % n]?.profileImageUrl,
+      visibleStudents[(i - 1 + n) % n]?.profileImageUrl,
+    ].filter((u): u is string => Boolean(u && u.trim()));
+  }, [visibleStudents, normalizedCurrentIndex]);
+
+  const readyUrls = useImagePreloader(preloadUrls);
+
+  const currentImageReady = useMemo(() => {
+    const currentUrl = visibleStudents[normalizedCurrentIndex]?.profileImageUrl;
+    if (!currentUrl || !currentUrl.trim()) return true;
+    return readyUrls.has(currentUrl);
+  }, [visibleStudents, normalizedCurrentIndex, readyUrls]);
 
   const currentStudent =
     visibleStudents.length > 0
@@ -375,10 +416,6 @@ export function DiscoverStudents({
     }
   }, []);
 
-  /* ============================================================
-     MOVE
-  ============================================================ */
-
   const move = useCallback(
     (step: 1 | -1) => {
       if (visibleStudents.length <= 1 || isTransitioning) {
@@ -411,10 +448,6 @@ export function DiscoverStudents({
     ],
   );
 
-  /* ============================================================
-     AUTOPLAY
-  ============================================================ */
-
   useEffect(() => {
     clearAutoplayTimeout();
 
@@ -425,7 +458,7 @@ export function DiscoverStudents({
       visibleStudents.length <= 1 ||
       isLoading ||
       isTransitioning ||
-      !allImagesReady
+      !currentImageReady
     ) {
       return;
     }
@@ -446,7 +479,7 @@ export function DiscoverStudents({
     move,
     clearAutoplayTimeout,
     shouldReduceMotion,
-    allImagesReady,
+    currentImageReady,
   ]);
 
   useEffect(() => {
@@ -456,46 +489,10 @@ export function DiscoverStudents({
     };
   }, [clearTransitionTimeout, clearAutoplayTimeout]);
 
-  const handlePrevious = useCallback(() => {
-    move(-1);
-  }, [move]);
+  const handlePrevious = useCallback(() => move(-1), [move]);
+  const handleNext = useCallback(() => move(1), [move]);
+  const togglePause = useCallback(() => setIsPaused((p) => !p), []);
 
-  const handleNext = useCallback(() => {
-    move(1);
-  }, [move]);
-
-  const togglePause = useCallback(() => {
-    setIsPaused((p) => !p);
-  }, []);
-
-  /* Keyboard */
-  useEffect(() => {
-    if (visibleStudents.length <= 1) return;
-
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "ArrowLeft") move(-1);
-      if (event.key === "ArrowRight") move(1);
-      if (event.key === "ArrowUp") move(-1);
-      if (event.key === "ArrowDown") move(1);
-      if (event.key === " " || event.key === "Spacebar") {
-        const t = event.target as HTMLElement;
-        if (
-          t.tagName !== "INPUT" &&
-          t.tagName !== "TEXTAREA" &&
-          t.tagName !== "A" &&
-          t.tagName !== "BUTTON"
-        ) {
-          event.preventDefault();
-          togglePause();
-        }
-      }
-    };
-
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [visibleStudents.length, move, togglePause]);
-
-  /* Swipe */
   const handleTouchStart = useCallback(
     (event: React.TouchEvent<HTMLDivElement>) => {
       if (visibleStudents.length <= 1) return;
@@ -515,208 +512,76 @@ export function DiscoverStudents({
         return;
       }
 
-      const endX =
-        event.changedTouches[0]?.clientX ?? touchStartXRef.current;
-      const endY =
-        event.changedTouches[0]?.clientY ?? touchStartYRef.current;
-
+      const endX = event.changedTouches[0]?.clientX ?? touchStartXRef.current;
       const deltaX = endX - touchStartXRef.current;
-      const deltaY = endY - touchStartYRef.current;
-
       touchStartXRef.current = null;
       touchStartYRef.current = null;
 
-      const horizontalDominant =
-        Math.abs(deltaX) >= Math.abs(deltaY);
-
-      if (horizontalDominant) {
-        if (Math.abs(deltaX) < SWIPE_THRESHOLD) return;
-        if (deltaX < 0) move(1);
-        else move(-1);
-      } else {
-        if (Math.abs(deltaY) < SWIPE_THRESHOLD) return;
-        if (deltaY < 0) move(1);
-        else move(-1);
-      }
+      if (Math.abs(deltaX) < SWIPE_THRESHOLD) return;
+      if (deltaX < 0) move(1);
+      else move(-1);
     },
     [visibleStudents.length, move],
   );
-
-  /* ============================================================
-     LOADING
-  ============================================================ */
 
   if (isLoading || !currentStudent) {
     return (
       <section className="w-full">
         <div className="overflow-hidden rounded-2xl bg-black">
-          <div className="mx-auto flex w-full max-w-[820px] items-end justify-between gap-4 px-4 pb-1 pt-3 sm:px-7 sm:pt-5">
-            <div className="min-w-0">
-              <p
-                className="text-[11px] font-semibold uppercase tracking-[0.16em]"
-                style={{ color: GOLD }}
-              >
-                Student community
-              </p>
-              <h2
-                className="mt-1 text-lg font-semibold tracking-[-0.02em] sm:text-xl"
-                style={{ color: WHITE }}
-              >
-                Discover students
-              </h2>
-            </div>
-          </div>
-
           <div className="relative mx-auto mt-3 w-full px-3">
             <div
-              className="relative mx-auto flex w-full max-w-[400px] flex-col overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] shadow-[0_24px_65px_rgba(0,0,0,0.52)]"
+              className="relative mx-auto flex w-full max-w-[400px] flex-col overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115]"
               style={{ aspectRatio: CARD_ASPECT }}
             >
-              <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
-                <div className="absolute inset-0 animate-pulse bg-white/[0.04]" />
-              </div>
-              <div
-                className="flex shrink-0 flex-col justify-center px-4 sm:px-5"
-                style={{
-                  height: 92,
-                  backgroundColor: PANEL_BG,
-                  borderTop: `1px solid ${PANEL_BORDER}`,
-                }}
-              >
-                <div className="h-4 w-2/3 rounded bg-white/[0.06]" />
-                <div className="mt-2 h-3 w-1/2 rounded bg-white/[0.06]" />
-              </div>
+              <div className="relative min-h-0 flex-1 overflow-hidden bg-black animate-pulse" />
             </div>
           </div>
-
-          <div className="h-14" />
         </div>
       </section>
     );
   }
 
-  /* ============================================================
-     CARD DATA
-  ============================================================ */
-
-  const {
-    width: cardWidth,
-    height: cardHeight,
-    infoHeight,
-  } = size;
-
+  const { width: cardWidth, height: cardHeight, infoHeight } = size;
   const firstName = currentStudent.firstName?.trim() || "Student";
   const lastName = currentStudent.lastName?.trim() || "";
   const fullName = `${firstName} ${lastName}`.trim();
-
-  const imageSrc =
-    currentStudent.profileImageUrl &&
-    currentStudent.profileImageUrl.trim().length > 0
-      ? currentStudent.profileImageUrl
-      : null;
-
+  const imageSrc = currentStudent.profileImageUrl?.trim() || null;
   const courseName = getDisplayValue(currentStudent.generalCourse);
   const techCenterName = getDisplayValue(currentStudent.techCenter);
-
   const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  const isSuperAdmin =
+    currentStudent.role?.name === "superadmin" ||
+    currentStudent.role?.name === "super_admin";
 
   /* ============================================================
-     3D SWAP VARIANTS
-     ------------------------------------------------------------
-     Real 3D card-flip swap:
-       • Outgoing image rotates away on Y, scales down, and
-         recedes in Z while fading out.
-       • Incoming image starts rotated on the opposite Y axis,
-         slightly scaled down and pushed back in Z, then sweeps
-         into place.
-       • Info panel counter-rotates subtly so the whole card
-         reads as a single 3D object, not two stacked layers.
+     PURE 3D FLIP — no blur, no fade tricks, no gold sweep.
+     The exiting card rotates fully away on the Y axis, the
+     entering card rotates fully in from the opposite side.
+     Think "revolving door", not "crossfade".
   ============================================================ */
 
-  const imageVariants = {
-    enter: (customDirection: 1 | -1) =>
-      shouldReduceMotion
-        ? { opacity: 0 }
-        : {
-            opacity: 0,
-            rotateY: customDirection === 1 ? 95 : -95,
-            rotateX: 4,
-            scale: 0.9,
-            z: -80,
-          },
-
-    center: shouldReduceMotion
-      ? { opacity: 1 }
-      : {
-          opacity: 1,
-          rotateY: 0,
-          rotateX: 0,
-          scale: 1,
-          z: 0,
-          transition: {
-            duration: SWAP_DURATION_S,
-            ease: CONTENT_EASE,
-          },
-        },
-
-    exit: (customDirection: 1 | -1) =>
-      shouldReduceMotion
-        ? { opacity: 0 }
-        : {
-            opacity: 0,
-            rotateY: customDirection === 1 ? -95 : 95,
-            rotateX: -4,
-            scale: 0.9,
-            z: -80,
-            transition: {
-              duration: SWAP_DURATION_S,
-              ease: CONTENT_EASE,
-            },
-          },
+  const cardSwapVariants = {
+    enter: (dir: 1 | -1) => ({
+      rotateY: dir === 1 ? 90 : -90,
+      z: -200,
+    }),
+    center: {
+      rotateY: 0,
+      z: 0,
+      transition: {
+        duration: SWAP_DURATION_S,
+        ease: CUBIC_EASE,
+      },
+    },
+    exit: (dir: 1 | -1) => ({
+      rotateY: dir === 1 ? -90 : 90,
+      z: -200,
+      transition: {
+        duration: SWAP_DURATION_S,
+        ease: CUBIC_EASE,
+      },
+    }),
   };
-
-  const infoVariants = {
-    enter: (customDirection: 1 | -1) =>
-      shouldReduceMotion
-        ? { opacity: 0 }
-        : {
-            opacity: 0,
-            rotateY: customDirection === 1 ? 14 : -14,
-            x: customDirection === 1 ? 14 : -14,
-            scale: 0.985,
-          },
-
-    center: shouldReduceMotion
-      ? { opacity: 1 }
-      : {
-          opacity: 1,
-          rotateY: 0,
-          x: 0,
-          scale: 1,
-          transition: {
-            duration: SWAP_DURATION_S * 0.9,
-            ease: CONTENT_EASE,
-          },
-        },
-
-    exit: (customDirection: 1 | -1) =>
-      shouldReduceMotion
-        ? { opacity: 0 }
-        : {
-            opacity: 0,
-            rotateY: customDirection === 1 ? -14 : 14,
-            x: customDirection === 1 ? -14 : 14,
-            scale: 0.985,
-            transition: {
-              duration: SWAP_DURATION_S * 0.9,
-              ease: CONTENT_EASE,
-            },
-          },
-  };
-
-  /* ============================================================
-     MAIN
-  ============================================================ */
 
   return (
     <section className="w-full">
@@ -725,233 +590,114 @@ export function DiscoverStudents({
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {/* HEADER */}
-        <div className="mx-auto flex w-full max-w-[820px] items-end justify-between gap-4 px-4 pb-1 pt-3 sm:px-7 sm:pt-5">
-          <div className="min-w-0">
-            <p
-              className="text-[11px] font-semibold uppercase tracking-[0.16em]"
-              style={{ color: GOLD }}
-            >
-              Student community
-            </p>
-            <h2
-              className="mt-1 text-lg font-semibold tracking-[-0.02em] sm:text-xl"
-              style={{ color: WHITE }}
-            >
-              Discover students
-            </h2>
-            <p
-              className="mt-0.5 max-w-lg text-[12px] leading-5 sm:text-sm"
-              style={{ color: WHITE_70 }}
-            >
-              Meet students across SELFLESS CE and connect with people
-              on a similar academic journey.
-            </p>
-          </div>
-
-          <div className="hidden shrink-0 items-center gap-2 sm:flex">
-            <PauseButton
-              isPaused={isPaused}
-              onClick={togglePause}
-              disabled={visibleStudents.length <= 1}
-            />
-            <NavButton
-              direction="up"
-              onClick={handlePrevious}
-              disabled={
-                isTransitioning || visibleStudents.length <= 1
-              }
-            />
-            <NavButton
-              direction="down"
-              onClick={handleNext}
-              disabled={
-                isTransitioning || visibleStudents.length <= 1
-              }
-            />
-          </div>
-        </div>
-
-        {/* ==================================================
-            3D STAGE — fixed card shell, content swaps inside
-        ================================================== */}
-
+        {/* STAGE CONTAINER */}
         <div
           ref={stageContainerRef}
-          className="relative mx-auto mt-2 w-full px-3 sm:mt-3"
+          className="relative mx-auto w-full px-3 pt-2"
           style={{
-            height: `${cardHeight + 36}px`,
+            height: `${cardHeight + 16}px`,
             perspective: `${SWAP_PERSPECTIVE}px`,
-            perspectiveOrigin: "50% 45%",
           }}
         >
           <div
-            className="absolute left-1/2 top-1/2 overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] shadow-[0_24px_65px_rgba(0,0,0,0.52)]"
+            className="absolute left-1/2 top-1/2"
             style={{
               width: cardWidth,
               height: cardHeight,
               marginLeft: -cardWidth / 2,
               marginTop: -cardHeight / 2,
               transformStyle: "preserve-3d",
+              transformOrigin: "center center",
             }}
           >
-            <div
-              className="relative flex h-full w-full flex-col"
-              style={{
-                transformStyle: "preserve-3d",
-              }}
-            >
-              {/* IMAGE AREA — 3D swap happens here */}
-              <div
-                className="relative min-h-0 flex-1 overflow-hidden bg-black"
+            <AnimatePresence initial={false} custom={direction}>
+              <motion.div
+                key={currentStudent.id}
+                custom={direction}
+                variants={cardSwapVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                className="absolute inset-0 flex h-full w-full flex-col overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] shadow-[0_24px_65px_rgba(0,0,0,0.52)]"
                 style={{
                   transformStyle: "preserve-3d",
                   transformOrigin: "center center",
+                  backfaceVisibility: "hidden",
+                  willChange: "transform",
                 }}
               >
-                <AnimatePresence
-                  mode="popLayout"
-                  initial={false}
-                  custom={direction}
-                >
-                  <motion.div
-                    key={currentStudent.id}
-                    custom={direction}
-                    variants={imageVariants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                    className="absolute inset-0 h-full w-full"
-                    style={{
-                      transformStyle: "preserve-3d",
-                      backfaceVisibility: "hidden",
-                      WebkitBackfaceVisibility: "hidden",
-                      transformOrigin: "center center",
-                      willChange: "transform, opacity",
-                      zIndex: 1,
-                    }}
-                  >
-                    {imageSrc ? (
-                      <Image
-                        src={imageSrc}
-                        alt={fullName}
-                        fill
-                        sizes={`${cardWidth}px`}
-                        className="object-cover object-center"
-                        quality={95}
-                        priority
-                        style={{
-                          backfaceVisibility: "hidden",
-                          WebkitBackfaceVisibility: "hidden",
-                        }}
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-[#18212F] text-4xl font-semibold text-white/70">
-                        {initials}
-                      </div>
-                    )}
-
-                    {/* subtle vignette so the flip edge reads cleanly */}
-                    <div
-                      className="pointer-events-none absolute inset-0"
-                      style={{
-                        background:
-                          "linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,0.35) 100%)",
-                      }}
+                {/* IMAGE AREA */}
+                <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
+                  {imageSrc ? (
+                    <Image
+                      src={imageSrc}
+                      alt={fullName}
+                      fill
+                      sizes={`${cardWidth}px`}
+                      className="h-full w-full object-cover object-center"
+                      quality={95}
+                      priority
                     />
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-
-              {/* INFO AREA — counter-rotates for cohesion */}
-              <div
-                className="relative flex shrink-0 flex-col justify-center overflow-hidden px-4 sm:px-5"
-                style={{
-                  height: infoHeight,
-                  backgroundColor: PANEL_BG,
-                  borderTop: `1px solid ${PANEL_BORDER}`,
-                  transformStyle: "preserve-3d",
-                  perspective: `${SWAP_PERSPECTIVE}px`,
-                }}
-              >
-                <AnimatePresence
-                  mode="popLayout"
-                  initial={false}
-                  custom={direction}
-                >
-                  <motion.div
-                    key={currentStudent.id}
-                    custom={direction}
-                    variants={infoVariants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                    className="flex w-full flex-col gap-2"
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-[#18212F] text-4xl font-semibold text-white/70">
+                      {initials}
+                    </div>
+                  )}
+                  <div
+                    className="pointer-events-none absolute inset-0"
                     style={{
-                      transformStyle: "preserve-3d",
-                      backfaceVisibility: "hidden",
-                      WebkitBackfaceVisibility: "hidden",
-                      transformOrigin: "center center",
-                      willChange: "transform, opacity",
+                      background:
+                        "linear-gradient(180deg, rgba(0,0,0,0) 65%, rgba(0,0,0,0.4) 100%)",
                     }}
-                  >
-                    {/* Name row with role on the right */}
+                  />
+                </div>
+
+                {/* INFO AREA */}
+                <div
+                  className="relative flex shrink-0 flex-col justify-center overflow-hidden px-4 sm:px-5"
+                  style={{
+                    height: infoHeight,
+                    backgroundColor: PANEL_BG,
+                    borderTop: `1px solid ${PANEL_BORDER}`,
+                  }}
+                >
+                  <div className="flex w-full flex-col gap-1.5">
                     <div className="flex items-center justify-between gap-3">
                       <h3
-                        className="min-w-0 flex-1 truncate text-[17px] font-bold leading-[1.15] tracking-[-0.02em] antialiased"
-                        style={{
-                          color: GOLD_BRIGHT,
-                          WebkitFontSmoothing: "antialiased",
-                          textRendering: "geometricPrecision",
-                        }}
+                        className="min-w-0 flex-1 truncate text-[17px] font-bold tracking-[-0.02em]"
+                        style={{ color: GOLD_BRIGHT }}
                         title={fullName}
                       >
                         {fullName}
                       </h3>
-
                       {currentStudent.role?.name && (
                         <span
-                          className="shrink-0 truncate text-[11.5px] font-medium leading-[1.2] antialiased"
-                          style={{
-                            color: WHITE_70,
-                            WebkitFontSmoothing: "antialiased",
-                          }}
+                          className="shrink-0 truncate text-[11.5px] font-medium"
+                          style={{ color: WHITE_70 }}
                         >
                           {formatRole(currentStudent.role.name)}
                         </span>
                       )}
                     </div>
 
-                    {/* Course and tech center - only show for non-superadmins */}
-                    {currentStudent.role?.name !== 'superadmin' && currentStudent.role?.name !== 'super_admin' && (
+                    {!isSuperAdmin && (
                       <>
-                        {/* Course */}
                         <p
-                          className="truncate text-[13px] font-medium leading-[1.25] antialiased"
-                          style={{
-                            color: WHITE,
-                            WebkitFontSmoothing: "antialiased",
-                          }}
+                          className="truncate text-[13px] font-medium"
+                          style={{ color: WHITE }}
                           title={courseName || "Student"}
                         >
                           {courseName || "Student"}
                         </p>
-
-                        {/* Tech center - only show if exists */}
                         {techCenterName && (
                           <div className="flex items-center gap-1.5">
                             <MapPin
                               className="h-[11px] w-[11px] shrink-0"
-                              strokeWidth={2.5}
                               style={{ color: GOLD }}
                             />
                             <span
-                              className="truncate text-[11.5px] font-medium leading-[1.3] antialiased"
-                              style={{
-                                color: WHITE_85,
-                                WebkitFontSmoothing: "antialiased",
-                              }}
-                              title={techCenterName}
+                              className="truncate text-[11.5px] font-medium"
+                              style={{ color: WHITE_85 }}
                             >
                               {techCenterName}
                             </span>
@@ -960,101 +706,62 @@ export function DiscoverStudents({
                       </>
                     )}
 
-                    {/* Action buttons */}
                     <div className="flex items-center gap-2 pt-0.5">
                       <Link
                         href={`/dashboard/students/${currentStudent.id}`}
-                        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11.5px] font-semibold tracking-tight transition-all focus:outline-none focus:ring-2 focus:ring-[#C8A24A]/50"
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11.5px] font-semibold"
                         style={{
                           backgroundColor: `${GOLD}20`,
                           color: GOLD_BRIGHT,
                           border: `1px solid ${GOLD}40`,
                         }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = `${GOLD}30`;
-                          e.currentTarget.style.borderColor = `${GOLD}60`;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = `${GOLD}20`;
-                          e.currentTarget.style.borderColor = `${GOLD}40`;
-                        }}
                       >
-                        View Profile
-                        <ChevronRight className="h-3 w-3" />
+                        View Profile <ChevronRight className="h-3 w-3" />
                       </Link>
-
                       <Link
                         href={`/dashboard/messages?user=${currentStudent.id}`}
-                        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11.5px] font-semibold tracking-tight transition-all focus:outline-none focus:ring-2 focus:ring-[#C8A24A]/50"
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11.5px] font-semibold"
                         style={{
                           backgroundColor: "rgba(255, 255, 255, 0.08)",
                           color: WHITE,
                           border: "1px solid rgba(255, 255, 255, 0.15)",
                         }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.12)";
-                          e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.25)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.08)";
-                          e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.15)";
-                        }}
                       >
-                        Message
-                        <ChevronRight className="h-3 w-3" />
+                        Message <ChevronRight className="h-3 w-3" />
                       </Link>
                     </div>
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-            </div>
+                  </div>
+                </div>
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
 
-        {/* FOOTER */}
-        <div className="flex items-center justify-between border-t border-white/[0.07] px-4 py-3 sm:justify-center sm:gap-3">
-          <div className="sm:hidden">
+        {/* FOOTER CONTROLS & COUNTER */}
+        <div className="mx-auto flex w-full max-w-[820px] items-center justify-between border-t border-white/[0.07] px-4 py-3 sm:px-7 sm:py-4">
+          <span
+            className="text-xs font-medium tracking-wide"
+            style={{ color: WHITE_70 }}
+          >
+            {normalizedCurrentIndex + 1}{" "}
+            <span style={{ color: GOLD }}>/</span> {visibleStudents.length}
+          </span>
+
+          <div className="flex items-center gap-2">
             <NavButton
               direction="up"
               onClick={handlePrevious}
-              disabled={
-                isTransitioning || visibleStudents.length <= 1
-              }
+              disabled={isTransitioning || visibleStudents.length <= 1}
             />
-          </div>
-
-          <div className="sm:hidden">
             <PauseButton
               isPaused={isPaused}
               onClick={togglePause}
               disabled={visibleStudents.length <= 1}
             />
-          </div>
-
-          <div
-            className="flex items-center gap-1.5 text-[12.5px] font-medium tabular-nums"
-            style={{ color: WHITE_70 }}
-            aria-live="polite"
-          >
-            <span
-              className="font-bold tabular-nums"
-              style={{ color: GOLD_BRIGHT }}
-            >
-              {normalizedCurrentIndex + 1}
-            </span>
-            <span style={{ color: WHITE_50 }}>/</span>
-            <span className="tabular-nums" style={{ color: WHITE }}>
-              {visibleStudents.length}
-            </span>
-          </div>
-
-          <div className="sm:hidden">
             <NavButton
               direction="down"
               onClick={handleNext}
-              disabled={
-                isTransitioning || visibleStudents.length <= 1
-              }
+              disabled={isTransitioning || visibleStudents.length <= 1}
             />
           </div>
         </div>
@@ -1062,79 +769,3 @@ export function DiscoverStudents({
     </section>
   );
 }
-
-/* ============================================================
-   CONTROL PRIMITIVES
-============================================================ */
-
-interface NavButtonProps {
-  direction: "up" | "down";
-  onClick: () => void;
-  disabled?: boolean;
-}
-
-function NavButton({
-  direction,
-  onClick,
-  disabled,
-}: NavButtonProps) {
-  const isUp = direction === "up";
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={isUp ? "Previous student" : "Next student"}
-      className="group inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#C8A24A]/35 bg-white/[0.02] text-[#C8A24A] transition-all duration-200 hover:border-[#C8A24A]/70 hover:bg-[#C8A24A]/10 hover:text-[#D9B563] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C8A24A]/40 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-transparent disabled:text-white/25 disabled:opacity-60"
-    >
-      {isUp ? (
-        <ArrowUp
-          className="h-[15px] w-[15px] transition-transform duration-200 group-hover:-translate-y-[1px]"
-          strokeWidth={2}
-        />
-      ) : (
-        <ArrowDown
-          className="h-[15px] w-[15px] transition-transform duration-200 group-hover:translate-y-[1px]"
-          strokeWidth={2}
-        />
-      )}
-    </button>
-  );
-}
-
-interface PauseButtonProps {
-  isPaused: boolean;
-  onClick: () => void;
-  disabled?: boolean;
-}
-
-function PauseButton({
-  isPaused,
-  onClick,
-  disabled,
-}: PauseButtonProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={isPaused ? "Resume autoplay" : "Pause autoplay"}
-      className="group inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#C8A24A]/35 bg-white/[0.02] text-[#C8A24A] transition-all duration-200 hover:border-[#C8A24A]/70 hover:bg-[#C8A24A]/10 hover:text-[#D9B563] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C8A24A]/40 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-transparent disabled:text-white/25 disabled:opacity-60"
-    >
-      {isPaused ? (
-        <Play
-          className="h-[14px] w-[14px] transition-transform duration-200 group-hover:scale-110"
-          strokeWidth={2}
-        />
-      ) : (
-        <Pause
-          className="h-[14px] w-[14px] transition-transform duration-200 group-hover:scale-110"
-          strokeWidth={2}
-        />
-      )}
-    </button>
-  );
-}
-
-export default DiscoverStudents;
