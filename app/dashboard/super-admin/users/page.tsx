@@ -114,9 +114,17 @@ const StatusBadge = ({ status }: { status: string }) => {
 const RoleBadge = ({ role }: { role: string }) => {
   const styles: Record<string, string> = {
     super_admin: 'border-[#E8DABF] bg-[#F8F3E8] text-[#8A6E3A]',
+    superadmin: 'border-[#E8DABF] bg-[#F8F3E8] text-[#8A6E3A]',
     admin: 'border-[#D9DFEA] bg-[#EEF2F7] text-[#43516A]',
     teacher: 'border-[#D7E7D9] bg-[#EEF4EF] text-[#55705B]',
     student: 'border-[#E8DABF] bg-[#F8F3E8] text-[#8A6E3A]',
+  };
+
+  const getDisplayRole = (roleName: string) => {
+    if (roleName === 'teacher') return 'TUTOR';
+    if (roleName === 'admin') return 'TECH CENTER MANAGER';
+    if (roleName === 'superadmin' || roleName === 'super_admin') return 'DIRECTOR';
+    return roleName.replace('_', ' ').toUpperCase();
   };
 
   return (
@@ -124,9 +132,7 @@ const RoleBadge = ({ role }: { role: string }) => {
       className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium tracking-wide ${styles[role] || styles.student
         }`}
     >
-      {role.toLowerCase() === 'teacher'
-        ? 'TUTOR'
-        : role.replace('_', ' ').toUpperCase()}
+      {getDisplayRole(role.toLowerCase())}
     </span>
   );
 };
@@ -808,7 +814,7 @@ export default function SuperAdminUsersPage() {
 
                       {usersData.filters.roles.map((role) => (
                         <option key={role.id} value={role.name}>
-                          {role.name === 'teacher' ? 'Tutor' : role.displayName}
+                          {role.name === 'teacher' ? 'Tutor' : role.name === 'admin' ? 'Tech Center Manager' : role.name === 'superadmin' || role.name === 'super_admin' ? 'Director' : role.displayName || role.name}
                         </option>
                       ))}
                     </select>

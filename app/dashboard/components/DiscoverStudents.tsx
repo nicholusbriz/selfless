@@ -17,6 +17,7 @@ import {
 import {
   ArrowDown,
   ArrowUp,
+  ChevronRight,
   MapPin,
   Pause,
   Play,
@@ -39,6 +40,9 @@ export type DiscoverStudent = {
     | string
     | null
     | { id?: string; name?: string };
+  role?: {
+    name?: string;
+  };
 };
 
 type DiscoverStudentsProps = {
@@ -62,7 +66,7 @@ const SWAP_PERSPECTIVE = 1600;
 const SWIPE_THRESHOLD = 40;
 
 const CARD_ASPECT = 0.76;
-const INFO_RATIO = 0.205;
+const INFO_RATIO = 0.28;
 
 const MAX_CARD_WIDTH = 400;
 const MIN_CARD_WIDTH = 270;
@@ -74,6 +78,18 @@ const MOBILE_RESERVED_VERTICAL = 120;
 const DESKTOP_RESERVED_VERTICAL = 165;
 
 const MOBILE_MAX = 639;
+
+/* ============================================================
+   HELPERS
+============================================================ */
+
+function formatRole(roleName?: string | null) {
+  if (!roleName) return null;
+  if (roleName === 'teacher') return 'Tutor';
+  if (roleName === 'admin') return 'Manager';
+  if (roleName === 'superadmin' || roleName === 'super_admin') return 'Director';
+  return roleName;
+}
 
 /* ============================================================
    THEME
@@ -870,7 +886,7 @@ export function DiscoverStudents({
                     initial="enter"
                     animate="center"
                     exit="exit"
-                    className="flex items-center gap-4"
+                    className="flex w-full flex-col gap-2"
                     style={{
                       transformStyle: "preserve-3d",
                       backfaceVisibility: "hidden",
@@ -879,9 +895,10 @@ export function DiscoverStudents({
                       willChange: "transform, opacity",
                     }}
                   >
-                    <div className="min-w-0 flex-1">
+                    {/* Name row with role on the right */}
+                    <div className="flex items-center justify-between gap-3">
                       <h3
-                        className="truncate text-[16.5px] font-bold leading-[1.2] tracking-[-0.015em] antialiased"
+                        className="min-w-0 flex-1 truncate text-[17px] font-bold leading-[1.15] tracking-[-0.02em] antialiased"
                         style={{
                           color: GOLD_BRIGHT,
                           WebkitFontSmoothing: "antialiased",
@@ -892,23 +909,40 @@ export function DiscoverStudents({
                         {fullName}
                       </h3>
 
-                      <p
-                        className="mt-[3px] truncate text-[12.5px] font-semibold leading-[1.3] tracking-[-0.005em] antialiased"
-                        style={{
-                          color: WHITE,
-                          WebkitFontSmoothing: "antialiased",
-                        }}
-                        title={courseName || "Student"}
-                      >
-                        {courseName || "Student"}
-                      </p>
+                      {currentStudent.role?.name && (
+                        <span
+                          className="shrink-0 truncate text-[11.5px] font-medium leading-[1.2] antialiased"
+                          style={{
+                            color: WHITE_70,
+                            WebkitFontSmoothing: "antialiased",
+                          }}
+                        >
+                          {formatRole(currentStudent.role.name)}
+                        </span>
+                      )}
+                    </div>
 
-                      <div className="mt-[3px] flex min-w-0 items-center gap-1.5">
-                        {techCenterName ? (
-                          <>
+                    {/* Course and tech center - only show for non-superadmins */}
+                    {currentStudent.role?.name !== 'superadmin' && currentStudent.role?.name !== 'super_admin' && (
+                      <>
+                        {/* Course */}
+                        <p
+                          className="truncate text-[13px] font-medium leading-[1.25] antialiased"
+                          style={{
+                            color: WHITE,
+                            WebkitFontSmoothing: "antialiased",
+                          }}
+                          title={courseName || "Student"}
+                        >
+                          {courseName || "Student"}
+                        </p>
+
+                        {/* Tech center - only show if exists */}
+                        {techCenterName && (
+                          <div className="flex items-center gap-1.5">
                             <MapPin
                               className="h-[11px] w-[11px] shrink-0"
-                              strokeWidth={2}
+                              strokeWidth={2.5}
                               style={{ color: GOLD }}
                             />
                             <span
@@ -921,37 +955,53 @@ export function DiscoverStudents({
                             >
                               {techCenterName}
                             </span>
-                          </>
-                        ) : (
-                          <span
-                            className="text-[11.5px] font-medium leading-[1.3]"
-                            style={{ color: WHITE_50 }}
-                          >
-                            Tech center not specified
-                          </span>
+                          </div>
                         )}
-                      </div>
-                    </div>
+                      </>
+                    )}
 
-                    <div className="flex shrink-0 flex-col items-end gap-2">
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-2 pt-0.5">
                       <Link
                         href={`/dashboard/students/${currentStudent.id}`}
-                        className="group inline-flex items-center text-[12.5px] font-semibold tracking-[-0.005em] transition-colors focus:outline-none"
-                        style={{ color: GOLD_BRIGHT }}
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11.5px] font-semibold tracking-tight transition-all focus:outline-none focus:ring-2 focus:ring-[#C8A24A]/50"
+                        style={{
+                          backgroundColor: `${GOLD}20`,
+                          color: GOLD_BRIGHT,
+                          border: `1px solid ${GOLD}40`,
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = `${GOLD}30`;
+                          e.currentTarget.style.borderColor = `${GOLD}60`;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = `${GOLD}20`;
+                          e.currentTarget.style.borderColor = `${GOLD}40`;
+                        }}
                       >
-                        <span className="underline decoration-[#C8A24A]/50 decoration-[1.5px] underline-offset-[3px] transition-colors group-hover:decoration-[#D9B563]">
-                          View profile
-                        </span>
+                        View Profile
+                        <ChevronRight className="h-3 w-3" />
                       </Link>
 
                       <Link
                         href={`/dashboard/messages?user=${currentStudent.id}`}
-                        className="group inline-flex items-center text-[12.5px] font-semibold tracking-[-0.005em] transition-colors focus:outline-none"
-                        style={{ color: GOLD_BRIGHT }}
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11.5px] font-semibold tracking-tight transition-all focus:outline-none focus:ring-2 focus:ring-[#C8A24A]/50"
+                        style={{
+                          backgroundColor: "rgba(255, 255, 255, 0.08)",
+                          color: WHITE,
+                          border: "1px solid rgba(255, 255, 255, 0.15)",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.12)";
+                          e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.25)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.08)";
+                          e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.15)";
+                        }}
                       >
-                        <span className="underline decoration-[#C8A24A]/50 decoration-[1.5px] underline-offset-[3px] transition-colors group-hover:decoration-[#D9B563]">
-                          Message
-                        </span>
+                        Message
+                        <ChevronRight className="h-3 w-3" />
                       </Link>
                     </div>
                   </motion.div>

@@ -10,7 +10,11 @@ export async function GET() {
     const students = await prisma.user.findMany({
       where: {
         profileImageUrl: { not: null },
-        techCenterId: { not: null },
+        role: {
+          name: {
+            not: 'dev',
+          },
+        },
       },
       select: {
         id: true,
@@ -21,6 +25,11 @@ export async function GET() {
         techCenter: {
           select: {
             id: true,
+            name: true,
+          },
+        },
+        role: {
+          select: {
             name: true,
           },
         },

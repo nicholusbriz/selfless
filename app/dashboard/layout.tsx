@@ -636,11 +636,16 @@ function getInitials(user: UserInfo | null) {
 }
 
 function formatRole(role: string) {
-  return role
+  const formatted = role
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (letter) =>
       letter.toUpperCase()
     );
+
+  if (formatted === 'Admin') return 'Manager';
+  if (formatted === 'Super Admin' || formatted === 'Superadmin') return 'Director';
+
+  return formatted;
 }
 
 function getPageInfo(pathname: string) {
