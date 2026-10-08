@@ -189,6 +189,13 @@ function MarqueeStyles() {
         background-color: rgba(18,32,59,0.15);
         border-radius: 999px;
       }
+      .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
       @keyframes onlinePing {
         0% { transform: scale(1); opacity: 0.6; }
         75%, 100% { transform: scale(2.4); opacity: 0; }
@@ -546,11 +553,25 @@ function OnlineUsersInline({
   currentUserId?: string;
   limit?: number;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const scrollContainer = scrollRef.current;
+    if (!scrollContainer) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.deltaY !== 0) {
+        e.preventDefault();
+        scrollContainer.scrollLeft += e.deltaY;
+      }
+    };
+
+    scrollContainer.addEventListener('wheel', handleWheel, { passive: false });
+    return () => scrollContainer.removeEventListener('wheel', handleWheel);
+  }, []);
 
   if (!onlineUsers || onlineUsers.length === 0) return null;
 
-  const visible = expanded ? onlineUsers : onlineUsers.slice(0, limit);
   const remaining = onlineUsers.length - limit;
 
   return (
@@ -564,31 +585,23 @@ function OnlineUsersInline({
         {onlineUsers.length} online
       </span>
 
-      <span className="flex items-center gap-1.5 min-w-0 overflow-hidden">
-        {visible.map((u, i) => {
+      <div
+        ref={scrollRef}
+        className="flex items-center gap-1.5 min-w-0 overflow-x-auto scrollbar-hide scroll-smooth"
+        style={{ scrollbarWidth: 'none' }}
+      >
+        {onlineUsers.map((u, i) => {
           const isSelf = u.userId === currentUserId;
           const name = isSelf ? "You" : `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.fullName || "User";
 
           return (
-            <span key={u.userId || i} className="flex items-center gap-1.5 text-[12px] font-medium whitespace-nowrap" style={{ color: isSelf ? COLORS.brassBright : "rgba(255,255,255,0.82)" }}>
+            <span key={u.userId || i} className="flex items-center gap-1.5 text-[12px] font-medium whitespace-nowrap shrink-0" style={{ color: isSelf ? COLORS.brassBright : "rgba(255,255,255,0.82)" }}>
               {name}
-              {i < visible.length - 1 && <span style={{ color: "rgba(255,255,255,0.25)" }}>·</span>}
+              {i < onlineUsers.length - 1 && <span style={{ color: "rgba(255,255,255,0.25)" }}>·</span>}
             </span>
           );
         })}
-
-        {!expanded && remaining > 0 && (
-          <button type="button" onClick={() => setExpanded(true)} className="text-[11px] font-mono whitespace-nowrap transition-colors hover:underline" style={{ color: COLORS.brassLight }}>
-            +{remaining} more
-          </button>
-        )}
-
-        {expanded && onlineUsers.length > limit && (
-          <button type="button" onClick={() => setExpanded(false)} className="text-[11px] font-mono whitespace-nowrap transition-colors hover:underline" style={{ color: "rgba(255,255,255,0.55)" }}>
-            show less
-          </button>
-        )}
-      </span>
+      </div>
     </div>
   );
 }

@@ -31,6 +31,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Sparkles,
+  Eye,
 } from 'lucide-react';
 
 import { useRouter } from 'next/navigation';
@@ -1171,11 +1172,12 @@ export default function DashboardPage() {
   const { user, isLoading } = useAuth();
   const { data: session } = useSession();
   const currentUserId = session?.user?.id;
+  const queryClient = useQueryClient();
 
   const [techCenter, setTechCenter] = useState<TechCenter | null>(null);
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [messageIndex, setMessageIndex] = useState(0);
-  const [currentTime] = useState(() => Date.now());
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const { data: meStats } = useQuery<MeStats>({
     queryKey: ['social', 'me'],
@@ -1188,6 +1190,39 @@ export default function DashboardPage() {
     staleTime: 30 * 1000,
     refetchInterval: 60 * 1000,
   });
+
+  // Prefetch announcement carousel data on page load
+  useEffect(() => {
+    const prefetchCarouselData = async () => {
+      // Prefetch directors
+      queryClient.prefetchQuery({
+        queryKey: ['directors'],
+        queryFn: async () => {
+          const response = await fetch('/api/directors');
+          if (!response.ok) throw new Error('Failed to fetch directors');
+          const data = await response.json();
+          if (!data.success) throw new Error(data?.error ?? 'Failed');
+          return data.directors;
+        },
+        staleTime: 5 * 60 * 1000,
+      });
+
+      // Prefetch tech center admin teams
+      queryClient.prefetchQuery({
+        queryKey: ['tech-center-admin-teams'],
+        queryFn: async () => {
+          const response = await fetch('/api/tech-centers/admin-teams');
+          if (!response.ok) throw new Error('Failed to fetch tech center admin teams');
+          const data = await response.json();
+          if (!data.success) throw new Error(data?.error ?? 'Failed');
+          return data.techCenters;
+        },
+        staleTime: 5 * 60 * 1000,
+      });
+    };
+
+    prefetchCarouselData();
+  }, [queryClient]);
 
   const fetchTechCenter = useCallback(async (techCenterId: string) => {
     try {
@@ -1362,6 +1397,14 @@ export default function DashboardPage() {
     return () => window.clearInterval(interval);
   }, [motivationMessages.length]);
 
+  // Update current time every second
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, []);
+
   const ACTIVITY_META: Record<string, { label: string }> = {
     course_submission: { label: 'submitted a course' },
     cleaning_registration: { label: 'registered for cleaning day' },
@@ -1375,7 +1418,7 @@ export default function DashboardPage() {
     update_tech_center: { label: 'updated tech center' },
   };
 
-  const getActivityMeta = (action: string) =>
+  const getActivityMeta = (action: string): { label: string } =>
     ACTIVITY_META[action.toLowerCase()] ?? {
       label: action.replace(/_/g, ' '),
     };
@@ -1383,7 +1426,7 @@ export default function DashboardPage() {
   const formatTimeAgo = (date: Date | string) => {
     const timestamp = new Date(date).getTime();
     if (Number.isNaN(timestamp)) return '';
-    const diffInMs = currentTime - timestamp;
+    const diffInMs = currentTime.getTime() - timestamp;
     const mins = Math.floor(diffInMs / 60000);
     const hours = Math.floor(diffInMs / 3600000);
     const days = Math.floor(diffInMs / 86400000);
@@ -1446,44 +1489,57 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-[#1A2B4C]">
+      {/* ============================================================
+          FULL-WIDTH BILLBOARD - AnnouncementCarousel
+      ============================================================ */}
+      <div className="w-full bg-[#1A2B4C]">
+        <div className="mx-auto max-w-7xl px-6 py-3 sm:px-8 sm:py-3 lg:px-12 lg:py-3">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="h-1 w-12 shrink-0 bg-[#B98A3E]" />
+            <h2 className="text-[16px] font-black uppercase tracking-widest text-white sm:text-[18px]">
+              Selfless CE Student Portal App live updates
+            </h2>
+            <div className="flex-1 h-px bg-white/10" />
+            <span className="font-mono text-[10px] uppercase tracking-wider text-white/40">
+              Community Updates
+            </span>
+          </div>
+        </div>
+        <div className="mx-auto max-w-7xl px-6 pb-4 sm:px-8 sm:pb-4 lg:px-12 lg:pb-4">
+          <AnnouncementCarousel inHeader={true} />
+        </div>
+      </div>
+
       <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
         {/* ============================================================
             HERO — compact greeting + stats
         ============================================================ */}
         <header className="bg-[#1A2B4C] text-white">
-          <div className="px-5 py-5 sm:px-8 sm:py-7">
-            {/* Stats Row - Top */}
-            <div className="mb-6 grid grid-cols-2 gap-x-6 gap-y-4 border-y border-white/10 py-4 sm:grid-cols-4 sm:gap-x-8">
-              <StatItem
-                label="Followers"
-                value={meStats?.followersCount ?? 0}
-                color="#B98A3E"
-              />
-              <StatItem
-                label="Following"
-                value={meStats?.followingCount ?? 0}
-                color="#B98A3E"
-              />
-              <StatItem
-                label="Views"
-                value={meStats?.profileViewsCount ?? 0}
-                color="#B98A3E"
-              />
-              <StatItem
-                label="Likes"
-                value={meStats?.likesReceivedCount ?? 0}
-                color="#B98A3E"
-              />
+          {/* Status Bar */}
+          <div className="px-4 py-1.5 border-b border-white/10 sm:px-6">
+            <div className="flex items-center justify-between font-mono text-[9px] text-white/40">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block h-1 w-1 rounded-full bg-[#55705B] animate-pulse" />
+                  <span className="uppercase tracking-wider">Live</span>
+                </span>
+                <span className="text-white/20">•</span>
+                <span className="uppercase tracking-wider">
+                  {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="uppercase tracking-wider">
+                  {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
             </div>
+          </div>
 
-            {/* AnnouncementCarousel - Middle */}
-            <div className="mb-6">
-              <AnnouncementCarousel inHeader={true} />
-            </div>
-
-            {/* User Profile - Bottom */}
-            <div className="flex items-center gap-4">
-              <div className="relative h-12 w-12 shrink-0 overflow-hidden border border-white/20 sm:h-14 sm:w-14">
+          <div className="px-4 py-4 sm:px-6 sm:py-5">
+            {/* User Profile - Top */}
+            <div className="mb-4 flex items-center gap-3">
+              <div className="relative h-12 w-12 shrink-0 overflow-hidden border-2 border-white/20 sm:h-14 sm:w-14">
                 {user?.profileImageUrl ? (
                   <Image
                     src={user.profileImageUrl}
@@ -1507,23 +1563,66 @@ export default function DashboardPage() {
                   {firstName}
                   <span className="text-white/40">.</span>
                 </h1>
-                <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[10px] text-white/60">
-                  <span className="inline-flex items-center gap-1">
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10px] text-white/50">
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white/5 border border-white/10">
                     <span className="inline-block h-1 w-1 rounded-full bg-[#55705B]" />
-                    Active
+                    <span className="uppercase tracking-wider">Active</span>
                   </span>
                   {user?.role && (
-                    <span className="uppercase tracking-wider">
+                    <span className="uppercase tracking-wider text-white/40">
                       {user.role.replace(/_/g, ' ')}
                     </span>
                   )}
                   {techCenter && (
                     <span className="inline-flex items-center gap-1">
                       <MapPin className="h-2.5 w-2.5" />
-                      {techCenter.name}
+                      <span>{techCenter.name}</span>
                     </span>
                   )}
                 </div>
+              </div>
+            </div>
+
+            {/* Stats Grid - Bottom */}
+            <div className="grid grid-cols-4 gap-2 sm:gap-3">
+              <div className="relative overflow-hidden rounded bg-white/5 border border-white/10 p-2.5 sm:p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Users className="h-3 w-3 text-[#B98A3E]" />
+                  <span className="font-mono text-[8px] font-bold uppercase tracking-wider text-white/50">Followers</span>
+                </div>
+                <span className="font-mono text-lg font-black tabular-nums text-[#B98A3E] sm:text-xl">
+                  {meStats?.followersCount ?? 0}
+                </span>
+              </div>
+
+              <div className="relative overflow-hidden rounded bg-white/5 border border-white/10 p-2.5 sm:p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Users className="h-3 w-3 text-[#B98A3E]" />
+                  <span className="font-mono text-[8px] font-bold uppercase tracking-wider text-white/50">Following</span>
+                </div>
+                <span className="font-mono text-lg font-black tabular-nums text-[#B98A3E] sm:text-xl">
+                  {meStats?.followingCount ?? 0}
+                </span>
+              </div>
+
+              <div className="relative overflow-hidden rounded bg-white/5 border border-white/10 p-2.5 sm:p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Eye className="h-3 w-3 text-[#B98A3E]" />
+                  <span className="font-mono text-[8px] font-bold uppercase tracking-wider text-white/50">Views</span>
+                </div>
+                <span className="font-mono text-lg font-black tabular-nums text-[#B98A3E] sm:text-xl">
+                  {meStats?.profileViewsCount ?? 0}
+                </span>
+              </div>
+
+              <div className="relative overflow-hidden rounded bg-white/5 border border-white/10 p-2.5 sm:p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Heart className="h-3 w-3 text-[#B98A3E]" />
+                  <span className="font-mono text-[8px] font-bold uppercase tracking-wider text-white/50">Likes</span>
+                </div>
+                <span className="font-mono text-lg font-black tabular-nums text-[#B98A3E] sm:text-xl">
+                  {meStats?.likesReceivedCount ?? 0}
+                </span>
               </div>
             </div>
           </div>
