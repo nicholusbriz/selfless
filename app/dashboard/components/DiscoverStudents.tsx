@@ -58,9 +58,9 @@ type DiscoverStudentsProps = {
 
 const DEFAULT_INTERVAL = 5000;
 
-const SWAP_DURATION_S = 0.55;
+const SWAP_DURATION_S = 0.6;
 const TOTAL_SLIDE_MS = SWAP_DURATION_S * 1000;
-const SWAP_PERSPECTIVE = 1600;
+const SWAP_PERSPECTIVE = 1400;
 
 const SWIPE_THRESHOLD = 40;
 
@@ -84,9 +84,9 @@ const MOBILE_MAX = 639;
 
 function formatRole(roleName?: string | null) {
   if (!roleName) return null;
-  if (roleName === 'teacher') return 'Tutor';
-  if (roleName === 'admin') return 'Manager';
-  if (roleName === 'superadmin' || roleName === 'super_admin') return 'Director';
+  if (roleName === "teacher") return "Tutor";
+  if (roleName === "admin") return "Manager";
+  if (roleName === "superadmin" || roleName === "super_admin") return "Director";
   return roleName;
 }
 
@@ -104,7 +104,7 @@ const WHITE_70 = "rgba(255, 255, 255, 0.70)";
 const PANEL_BG = "#0F1115";
 const PANEL_BORDER = "rgba(200, 162, 74, 0.22)";
 
-const CONTENT_EASE = [0.22, 1, 0.36, 1] as const;
+const CUBIC_EASE = [0.65, 0, 0.35, 1] as const;
 
 /* ============================================================
    HOOKS
@@ -353,25 +353,33 @@ export function DiscoverStudents({
     [students],
   );
 
-  const imageUrls = useMemo(
-    () =>
-      visibleStudents
-        .map((s) => s.profileImageUrl)
-        .filter((u): u is string => Boolean(u && u.trim())),
-    [visibleStudents],
-  );
-
-  const readyUrls = useImagePreloader(imageUrls);
-  const allImagesReady =
-    imageUrls.length === 0 ||
-    imageUrls.every((u) => readyUrls.has(u));
-
   const normalizedCurrentIndex =
     visibleStudents.length === 0
       ? 0
       : ((currentIndex % visibleStudents.length) +
           visibleStudents.length) %
         visibleStudents.length;
+
+  /* -------- Smart preload: only current ± 1 -------- */
+
+  const preloadUrls = useMemo(() => {
+    if (visibleStudents.length === 0) return [];
+    const n = visibleStudents.length;
+    const i = normalizedCurrentIndex;
+    return [
+      visibleStudents[i]?.profileImageUrl,
+      visibleStudents[(i + 1) % n]?.profileImageUrl,
+      visibleStudents[(i - 1 + n) % n]?.profileImageUrl,
+    ].filter((u): u is string => Boolean(u && u.trim()));
+  }, [visibleStudents, normalizedCurrentIndex]);
+
+  const readyUrls = useImagePreloader(preloadUrls);
+
+  const currentImageReady = useMemo(() => {
+    const currentUrl = visibleStudents[normalizedCurrentIndex]?.profileImageUrl;
+    if (!currentUrl || !currentUrl.trim()) return true;
+    return readyUrls.has(currentUrl);
+  }, [visibleStudents, normalizedCurrentIndex, readyUrls]);
 
   const currentStudent =
     visibleStudents.length > 0
@@ -450,7 +458,7 @@ export function DiscoverStudents({
       visibleStudents.length <= 1 ||
       isLoading ||
       isTransitioning ||
-      !allImagesReady
+      !currentImageReady
     ) {
       return;
     }
@@ -471,7 +479,7 @@ export function DiscoverStudents({
     move,
     clearAutoplayTimeout,
     shouldReduceMotion,
-    allImagesReady,
+    currentImageReady,
   ]);
 
   useEffect(() => {
@@ -541,29 +549,36 @@ export function DiscoverStudents({
   const courseName = getDisplayValue(currentStudent.generalCourse);
   const techCenterName = getDisplayValue(currentStudent.techCenter);
   const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  const isSuperAdmin =
+    currentStudent.role?.name === "superadmin" ||
+    currentStudent.role?.name === "super_admin";
+
+  /* ============================================================
+     PURE 3D FLIP — no blur, no fade tricks, no gold sweep.
+     The exiting card rotates fully away on the Y axis, the
+     entering card rotates fully in from the opposite side.
+     Think "revolving door", not "crossfade".
+  ============================================================ */
 
   const cardSwapVariants = {
-    enter: (customDirection: 1 | -1) => ({
-      opacity: 0,
-      rotateY: customDirection === 1 ? 45 : -45,
-      scale: 0.95,
+    enter: (dir: 1 | -1) => ({
+      rotateY: dir === 1 ? 90 : -90,
+      z: -200,
     }),
     center: {
-      opacity: 1,
       rotateY: 0,
-      scale: 1,
+      z: 0,
       transition: {
         duration: SWAP_DURATION_S,
-        ease: CONTENT_EASE,
+        ease: CUBIC_EASE,
       },
     },
-    exit: (customDirection: 1 | -1) => ({
-      opacity: 0,
-      rotateY: customDirection === 1 ? -45 : 45,
-      scale: 0.95,
+    exit: (dir: 1 | -1) => ({
+      rotateY: dir === 1 ? -90 : 90,
+      z: -200,
       transition: {
         duration: SWAP_DURATION_S,
-        ease: CONTENT_EASE,
+        ease: CUBIC_EASE,
       },
     }),
   };
@@ -575,49 +590,24 @@ export function DiscoverStudents({
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {/* HEADER */}
-        <div className="mx-auto flex w-full max-w-[820px] items-end justify-between gap-4 px-4 pb-1 pt-3 sm:px-7 sm:pt-5">
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: GOLD }}>
-              Student community
-            </p>
-            <h2 className="mt-1 text-lg font-semibold tracking-[-0.02em] sm:text-xl" style={{ color: WHITE }}>
-              Discover students
-            </h2>
-          </div>
-          
-          {/* Controls unified across desktop & mobile layout */}
-          <div className="flex shrink-0 items-center gap-2">
-            <PauseButton isPaused={isPaused} onClick={togglePause} disabled={visibleStudents.length <= 1} />
-            <NavButton direction="up" onClick={handlePrevious} disabled={isTransitioning || visibleStudents.length <= 1} />
-            <NavButton direction="down" onClick={handleNext} disabled={isTransitioning || visibleStudents.length <= 1} />
-          </div>
-        </div>
-
-        {/* COUNTER (OUT OF) INDICATOR */}
-        <div className="mx-auto flex w-full max-w-[820px] px-4 pt-2 sm:px-7">
-          <span className="text-xs font-medium tracking-wide" style={{ color: WHITE_70 }}>
-            {normalizedCurrentIndex + 1} <span style={{ color: GOLD }}>/</span> {visibleStudents.length}
-          </span>
-        </div>
-
         {/* STAGE CONTAINER */}
         <div
           ref={stageContainerRef}
-          className="relative mx-auto mt-2 w-full px-3 sm:mt-3"
+          className="relative mx-auto w-full px-3 pt-2"
           style={{
-            height: `${cardHeight + 36}px`,
+            height: `${cardHeight + 16}px`,
             perspective: `${SWAP_PERSPECTIVE}px`,
           }}
         >
           <div
-            className="absolute left-1/2 top-1/2 overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] shadow-[0_24px_65px_rgba(0,0,0,0.52)]"
+            className="absolute left-1/2 top-1/2"
             style={{
               width: cardWidth,
               height: cardHeight,
               marginLeft: -cardWidth / 2,
               marginTop: -cardHeight / 2,
               transformStyle: "preserve-3d",
+              transformOrigin: "center center",
             }}
           >
             <AnimatePresence initial={false} custom={direction}>
@@ -628,10 +618,12 @@ export function DiscoverStudents({
                 initial="enter"
                 animate="center"
                 exit="exit"
-                className="absolute inset-0 flex h-full w-full flex-col"
+                className="absolute inset-0 flex h-full w-full flex-col overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] shadow-[0_24px_65px_rgba(0,0,0,0.52)]"
                 style={{
                   transformStyle: "preserve-3d",
+                  transformOrigin: "center center",
                   backfaceVisibility: "hidden",
+                  willChange: "transform",
                 }}
               >
                 {/* IMAGE AREA */}
@@ -642,7 +634,7 @@ export function DiscoverStudents({
                       alt={fullName}
                       fill
                       sizes={`${cardWidth}px`}
-                      className="object-cover object-center"
+                      className="h-full w-full object-cover object-center"
                       quality={95}
                       priority
                     />
@@ -654,7 +646,8 @@ export function DiscoverStudents({
                   <div
                     className="pointer-events-none absolute inset-0"
                     style={{
-                      background: "linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,0.35) 100%)",
+                      background:
+                        "linear-gradient(180deg, rgba(0,0,0,0) 65%, rgba(0,0,0,0.4) 100%)",
                     }}
                   />
                 </div>
@@ -678,21 +671,34 @@ export function DiscoverStudents({
                         {fullName}
                       </h3>
                       {currentStudent.role?.name && (
-                        <span className="shrink-0 truncate text-[11.5px] font-medium" style={{ color: WHITE_70 }}>
+                        <span
+                          className="shrink-0 truncate text-[11.5px] font-medium"
+                          style={{ color: WHITE_70 }}
+                        >
                           {formatRole(currentStudent.role.name)}
                         </span>
                       )}
                     </div>
 
-                    {currentStudent.role?.name !== 'superadmin' && currentStudent.role?.name !== 'super_admin' && (
+                    {!isSuperAdmin && (
                       <>
-                        <p className="truncate text-[13px] font-medium" style={{ color: WHITE }} title={courseName || "Student"}>
+                        <p
+                          className="truncate text-[13px] font-medium"
+                          style={{ color: WHITE }}
+                          title={courseName || "Student"}
+                        >
                           {courseName || "Student"}
                         </p>
                         {techCenterName && (
                           <div className="flex items-center gap-1.5">
-                            <MapPin className="h-[11px] w-[11px] shrink-0" style={{ color: GOLD }} />
-                            <span className="truncate text-[11.5px] font-medium" style={{ color: WHITE_85 }}>
+                            <MapPin
+                              className="h-[11px] w-[11px] shrink-0"
+                              style={{ color: GOLD }}
+                            />
+                            <span
+                              className="truncate text-[11.5px] font-medium"
+                              style={{ color: WHITE_85 }}
+                            >
                               {techCenterName}
                             </span>
                           </div>
@@ -704,14 +710,22 @@ export function DiscoverStudents({
                       <Link
                         href={`/dashboard/students/${currentStudent.id}`}
                         className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11.5px] font-semibold"
-                        style={{ backgroundColor: `${GOLD}20`, color: GOLD_BRIGHT, border: `1px solid ${GOLD}40` }}
+                        style={{
+                          backgroundColor: `${GOLD}20`,
+                          color: GOLD_BRIGHT,
+                          border: `1px solid ${GOLD}40`,
+                        }}
                       >
                         View Profile <ChevronRight className="h-3 w-3" />
                       </Link>
                       <Link
                         href={`/dashboard/messages?user=${currentStudent.id}`}
                         className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11.5px] font-semibold"
-                        style={{ backgroundColor: "rgba(255, 255, 255, 0.08)", color: WHITE, border: "1px solid rgba(255, 255, 255, 0.15)" }}
+                        style={{
+                          backgroundColor: "rgba(255, 255, 255, 0.08)",
+                          color: WHITE,
+                          border: "1px solid rgba(255, 255, 255, 0.15)",
+                        }}
                       >
                         Message <ChevronRight className="h-3 w-3" />
                       </Link>
@@ -720,6 +734,35 @@ export function DiscoverStudents({
                 </div>
               </motion.div>
             </AnimatePresence>
+          </div>
+        </div>
+
+        {/* FOOTER CONTROLS & COUNTER */}
+        <div className="mx-auto flex w-full max-w-[820px] items-center justify-between border-t border-white/[0.07] px-4 py-3 sm:px-7 sm:py-4">
+          <span
+            className="text-xs font-medium tracking-wide"
+            style={{ color: WHITE_70 }}
+          >
+            {normalizedCurrentIndex + 1}{" "}
+            <span style={{ color: GOLD }}>/</span> {visibleStudents.length}
+          </span>
+
+          <div className="flex items-center gap-2">
+            <NavButton
+              direction="up"
+              onClick={handlePrevious}
+              disabled={isTransitioning || visibleStudents.length <= 1}
+            />
+            <PauseButton
+              isPaused={isPaused}
+              onClick={togglePause}
+              disabled={visibleStudents.length <= 1}
+            />
+            <NavButton
+              direction="down"
+              onClick={handleNext}
+              disabled={isTransitioning || visibleStudents.length <= 1}
+            />
           </div>
         </div>
       </div>
