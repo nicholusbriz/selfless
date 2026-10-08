@@ -209,7 +209,7 @@ function StudentMessageComposer({
   };
 
   return (
-    <div className="border-t border-[#E5E7EB] bg-[#FAFAF8] px-3 py-2">
+    <div className="border-t border-[#E5E7EB] bg-[#FAFAF8] px-2.5 py-1.5">
       <form onSubmit={handleSubmit} className="flex min-w-0 items-center gap-1.5">
         <input
           type="text"
@@ -218,19 +218,19 @@ function StudentMessageComposer({
             setMessage(event.target.value);
             setSendStatus(null);
           }}
-          placeholder={`Message ${recipientName}...`}
+          placeholder={`Message ${recipientName.split(' ')[0]}...`}
           aria-label={`Message ${recipientName}`}
           disabled={isSending}
-          className="h-8 min-w-0 flex-1 border border-[#D1D5DB] bg-white px-2 text-[11px] text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:border-[#1A2B4C] focus:outline-none disabled:opacity-60"
+          className="h-7 min-w-0 flex-1 border border-[#D1D5DB] bg-white px-2 text-[11px] text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:border-[#1A2B4C] focus:outline-none disabled:opacity-60"
         />
         <button
           type="submit"
           disabled={!message.trim() || isSending}
           aria-label="Send message"
           title="Send message"
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center bg-[#1A2B4C] text-white transition-colors hover:bg-[#23385d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center bg-[#1A2B4C] text-white transition-colors hover:bg-[#23385d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <Send className="h-3.5 w-3.5" />
+          <Send className="h-3 w-3" />
         </button>
       </form>
       {sendStatus && (
@@ -248,14 +248,13 @@ function StudentMessageComposer({
 }
 
 // ============================================================
-// STUDENT CARD (ENHANCED)
+// STUDENT CARD (ENHANCED — COMPACT, ALL UNITS, WITH NUMBERS)
 // ============================================================
 
 const StudentCard = ({
   student,
   router,
   currentUserId,
-  rank,
   isTrendingSection,
 }: {
   student: Student;
@@ -266,8 +265,6 @@ const StudentCard = ({
 }) => {
   const initials = `${student.firstName.charAt(0)}${student.lastName.charAt(0)}`.toUpperCase();
   const fullName = `${student.firstName} ${student.lastName}`;
-  const totalCredits =
-    student.studentCourses?.reduce((t, c) => t + (c.credits || 0), 0) ?? 0;
   const hue = getTechCenterHue(student.techCenter?.name);
   const isCurrentUser = currentUserId === student.id;
   const roleLabel =
@@ -276,38 +273,14 @@ const StudentCard = ({
       : student.role?.name || 'Student';
 
   return (
-    <article className="group flex w-[380px] shrink-0 snap-start flex-col border border-[#D1D5DB] bg-white transition-shadow hover:shadow-[0_2px_12px_rgba(26,43,76,0.08)]">
-      {/* ── Header ─────────────────────────────────── */}
-      <div className="relative bg-[#1A2B4C] px-3 py-2">
-        <div className="flex items-center justify-between gap-2">
-          <span className="truncate font-mono text-[10px] font-bold uppercase tracking-wider text-[#B98A3E]">
-            {student.techCenter?.name || 'Student Record'}
-          </span>
-          {isTrendingSection ? (
-            <span className="inline-flex shrink-0 items-center gap-1 bg-[#B98A3E] px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase text-white">
-              <Flame className="h-2.5 w-2.5" />
-              Trending
-            </span>
-          ) : (
-            <span className="shrink-0 font-mono text-[9px] font-bold uppercase text-white/50">
-              {roleLabel}
-            </span>
-          )}
-        </div>
-        {/* Accent bar tied to tech center hue */}
-        <span
-          className="absolute bottom-0 left-0 h-[2px] w-full opacity-80"
-          style={{ backgroundColor: hue || '#B98A3E' }}
-        />
-      </div>
-
-      {/* ── Two Column Layout ─────────────────────── */}
-      <div className="flex gap-3 px-3 pt-3">
-        {/* ── Column 1: Profile Image (extended down) ── */}
+    <article className="group flex w-[275px] shrink-0 snap-start flex-col border border-[#D1D5DB] bg-white transition-shadow hover:shadow-[0_2px_12px_rgba(26,43,76,0.08)]">
+      {/* ── Top: image + name/center/stats ── */}
+      <div className="flex gap-2.5 p-2.5">
+        {/* Profile Image */}
         <button
           type="button"
           onClick={() => router.push(`/dashboard/students/${student.id}`)}
-          className={`relative h-auto w-28 shrink-0 overflow-hidden border bg-[#F7F6F2] ${
+          className={`relative h-[96px] w-[96px] shrink-0 overflow-hidden border bg-[#F7F6F2] ${
             isTrendingSection
               ? 'border-[#B98A3E] ring-2 ring-[#B98A3E]/30'
               : 'border-[#D1D5DB]'
@@ -320,32 +293,40 @@ const StudentCard = ({
               alt={fullName}
               fill
               className="object-cover"
-              sizes="112px"
+              sizes="96px"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-[#1A2B4C]">
-              <span className="font-mono text-[24px] font-bold tracking-wider text-[#B98A3E]">
+              <span className="font-mono text-[22px] font-bold tracking-wider text-[#B98A3E]">
                 {initials}
               </span>
             </div>
           )}
+
+          {/* Trending badge overlay (no rank number) */}
+          {isTrendingSection && (
+            <span className="absolute left-0 top-0 inline-flex items-center gap-0.5 bg-[#B98A3E] px-1 py-0.5 font-mono text-[8px] font-bold uppercase text-white">
+              <Flame className="h-2 w-2" />
+              Hot
+            </span>
+          )}
         </button>
 
-        {/* ── Column 2: Name, Tech Center, Role, Stats ── */}
-        <div className="min-w-0 flex-1">
+        {/* Right column: name, tech center, role/active, stats */}
+        <div className="flex min-w-0 flex-1 flex-col">
           <button
             type="button"
             onClick={() => router.push(`/dashboard/students/${student.id}`)}
             className="block w-full text-left"
           >
-            <h3 className="line-clamp-2 break-words text-[14px] font-bold leading-tight text-[#1A2B4C] hover:text-[#B98A3E] hover:underline">
+            <h3 className="line-clamp-2 break-words text-[13.5px] font-bold leading-tight text-[#1A2B4C] hover:text-[#B98A3E] hover:underline">
               {fullName}
             </h3>
           </button>
 
           <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[#4B5646]">
             <span
-              className="h-2 w-2 shrink-0 rounded-full border border-[#D1D5DB]"
+              className="h-1.5 w-1.5 shrink-0 rounded-full border border-[#D1D5DB]"
               style={{ backgroundColor: hue || '#B98A3E' }}
             />
             <span className="truncate" title={student.techCenter?.name ?? ''}>
@@ -355,20 +336,21 @@ const StudentCard = ({
             </span>
           </div>
 
-          <div className="mt-1.5 flex flex-wrap items-center gap-1">
-            <span className="border border-[#D1D5DB] bg-[#F8F9FA] px-1.5 py-0.5 font-mono text-[9px] font-semibold text-[#4B5646]">
+          {/* Role + Active badges */}
+          <div className="mt-1 flex flex-wrap items-center gap-1">
+            <span className="border border-[#D1D5DB] bg-[#F8F9FA] px-1.5 py-0.5 font-mono text-[8.5px] font-semibold text-[#4B5646]">
               {roleLabel}
             </span>
             {student.isActive && (
-              <span className="inline-flex items-center gap-1 border border-[#55705B]/30 bg-[#55705B]/10 px-1.5 py-0.5 font-mono text-[9px] font-semibold text-[#55705B]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#55705B]" />
+              <span className="inline-flex items-center gap-1 border border-[#55705B]/30 bg-[#55705B]/10 px-1.5 py-0.5 font-mono text-[8.5px] font-semibold text-[#55705B]">
+                <span className="h-1 w-1 rounded-full bg-[#55705B]" />
                 Active
               </span>
             )}
           </div>
 
-          {/* Stats below badges */}
-          <div className="mt-2 flex items-center gap-2 text-[10px]">
+          {/* Stats (with numbers) */}
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px]">
             <span className="font-mono font-bold text-[#1A2B4C]">
               {student.followersCount}
             </span>
@@ -384,64 +366,53 @@ const StudentCard = ({
             </span>
             <span className="text-[#6B7280]">views</span>
           </div>
-
-
         </div>
       </div>
 
-      {/* ── Body ───────────────────────────────────── */}
-      <div className="flex flex-1 flex-col gap-2.5 px-3 py-3">
-        <div>
-          <span className="block font-mono text-[9px] font-bold uppercase tracking-wide text-[#B98A3E]">
-            Degree Program
-          </span>
-          <span className="mt-0.5 block truncate text-[11.5px] font-medium text-[#1A2B4C]">
-            {student.generalCourse || 'General Curriculum'}
-          </span>
-        </div>
+      {/* ── Degree Program ── */}
+      <div className="px-2.5 pb-1.5">
+        <span className="block font-mono text-[8.5px] font-bold uppercase tracking-wide text-[#B98A3E]">
+          Degree Program
+        </span>
+        <span className="mt-0.5 block break-words text-[11px] font-medium text-[#1A2B4C]">
+          {student.generalCourse || 'General Curriculum'}
+        </span>
+      </div>
 
-        {student.studentCourses?.length > 0 && (
-          <div>
-            <div className="mb-1.5 flex items-center justify-between">
-              <span className="flex items-center gap-1 font-mono text-[9px] font-bold uppercase tracking-wide text-[#1A2B4C]">
-                <BookOpen className="h-3 w-3 text-[#B98A3E]" />
-                Enrolled Units
-              </span>
-              <span className="font-mono text-[10px] font-bold text-[#1A2B4C]">
-                {totalCredits} cr
-              </span>
-            </div>
-
-            <ul className="space-y-1">
-              {student.studentCourses.slice(0, 3).map((course) => (
-                <li
-                  key={course.id}
-                  className="flex items-center justify-between gap-2 border-l-2 border-[#E5E7EB] pl-2 py-0.5"
-                >
-                  <span className="truncate text-[10.5px] text-[#1A2B4C]">
-                    {course.courseUnit}
-                  </span>
-                  <span className="shrink-0 font-mono text-[9px] font-bold text-[#55705B]">
-                    {course.credits}cr
-                  </span>
-                </li>
-              ))}
-            </ul>
-            {student.studentCourses.length > 3 && (
-              <p className="mt-1 pl-2 font-mono text-[9px] text-[#6B7280]">
-                +{student.studentCourses.length - 3} more units
-              </p>
-            )}
+      {/* ── Enrolled Units (ALL, no breaking) ── */}
+      {student.studentCourses?.length > 0 && (
+        <div className="px-2.5 pb-2">
+          <div className="mb-1 flex items-center gap-1">
+            <BookOpen className="h-2.5 w-2.5 shrink-0 text-[#B98A3E]" />
+            <span className="font-mono text-[8.5px] font-bold uppercase tracking-wide text-[#1A2B4C]">
+              Enrolled Units
+            </span>
           </div>
-        )}
-      </div>
 
-      {/* ── Footer Actions ─────────────────────────── */}
-      <div className="mt-auto flex items-center justify-between gap-2 border-t border-[#E5E7EB] px-3 py-2">
+          <ul className="space-y-0.5">
+            {student.studentCourses.map((course) => (
+              <li
+                key={course.id}
+                className="flex items-start justify-between gap-2 border-l-2 border-[#E5E7EB] py-0.5 pl-1.5"
+              >
+                <span className="min-w-0 flex-1 break-words text-[10px] leading-snug text-[#1A2B4C]">
+                  {course.courseUnit}
+                </span>
+                <span className="shrink-0 font-mono text-[8.5px] font-bold text-[#55705B]">
+                  {course.credits}cr
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* ── Footer Actions ── */}
+      <div className="mt-auto flex items-center justify-between gap-1.5 border-t border-[#E5E7EB] px-2.5 py-1.5">
         <button
           type="button"
           onClick={() => router.push(`/dashboard/students/${student.id}`)}
-          className="inline-flex items-center gap-1 text-[11px] font-bold text-[#1A2B4C] hover:text-[#B98A3E]"
+          className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#1A2B4C] hover:text-[#B98A3E]"
         >
           View profile
           <ChevronRight className="h-3 w-3" />
@@ -463,6 +434,7 @@ const StudentCard = ({
         )}
       </div>
 
+      {/* ── Message Composer ── */}
       {!isCurrentUser && currentUserId && (
         <StudentMessageComposer
           recipientId={student.id}
@@ -507,10 +479,10 @@ function HorizontalRail({
     : students;
 
   const scrollLeft = () => {
-    railRef.current?.scrollBy({ left: -620, behavior: 'smooth' });
+    railRef.current?.scrollBy({ left: -574, behavior: 'smooth' });
   };
   const scrollRight = () => {
-    railRef.current?.scrollBy({ left: 620, behavior: 'smooth' });
+    railRef.current?.scrollBy({ left: 574, behavior: 'smooth' });
   };
 
   if (students.length === 0) {
@@ -598,13 +570,12 @@ function HorizontalRail({
         className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 scroll-smooth"
         style={{ scrollbarWidth: 'thin', scrollSnapType: 'x mandatory' }}
       >
-        {visibleStudents.map((student, idx) => (
+        {visibleStudents.map((student) => (
           <StudentCard
             key={student.id}
             student={student}
             router={router}
             currentUserId={currentUserId}
-            rank={showRank ? idx + 1 : undefined}
             isTrendingSection={isTrendingSection}
           />
         ))}
@@ -612,16 +583,16 @@ function HorizontalRail({
       </div>
 
       <div className="mt-1 flex items-center justify-between gap-1">
-        {/* Scroll indicator text */}
         {visibleStudents.length > 2 && (
           <div className="flex items-center gap-2 text-[11px] text-[#6B7280]">
-            <span className="font-mono text-[10px] uppercase tracking-wider">Scroll to discover more</span>
+            <span className="font-mono text-[10px] uppercase tracking-wider">
+              Scroll to discover more
+            </span>
             <ChevronRight className="w-4 h-4" />
           </div>
         )}
 
-        {/* Scroll buttons */}
-        <div className="flex items-center gap-1 ml-auto">
+        <div className="ml-auto flex items-center gap-1">
           <button
             type="button"
             onClick={scrollLeft}
@@ -658,29 +629,31 @@ function StudentDirectorySkeleton() {
             <span className="h-4 w-36 animate-pulse bg-[#E5E7EB]" />
           </div>
           <div className="flex gap-3 overflow-hidden pb-2">
-            {[0, 1, 2, 3].map((card) => (
+            {[0, 1, 2, 3, 4].map((card) => (
               <div
                 key={card}
                 aria-hidden="true"
-                className="h-[280px] w-[380px] shrink-0 border border-[#D1D5DB] bg-white"
+                className="h-[360px] w-[275px] shrink-0 border border-[#D1D5DB] bg-white"
               >
-                <div className="h-8 animate-pulse bg-[#E5E7EB]" />
-                <div className="p-3">
-                  <div className="flex gap-3">
-                    <div className="h-24 w-28 shrink-0 animate-pulse bg-[#E5E7EB]" />
+                <div className="p-2.5">
+                  <div className="flex gap-2.5">
+                    <div className="h-24 w-24 shrink-0 animate-pulse bg-[#E5E7EB]" />
                     <div className="min-w-0 flex-1 space-y-2">
                       <div className="h-3 w-3/4 animate-pulse bg-[#E5E7EB]" />
                       <div className="h-2.5 w-1/2 animate-pulse bg-[#F0F1F2]" />
                       <div className="h-2 w-16 animate-pulse bg-[#F0F1F2]" />
                       <div className="h-2 w-24 animate-pulse bg-[#F0F1F2]" />
-                      <div className="h-2 w-32 animate-pulse bg-[#F0F1F2]" />
-                      <div className="h-2 w-40 animate-pulse bg-[#F0F1F2]" />
                     </div>
                   </div>
-                  <div className="mt-4 h-2.5 w-1/3 animate-pulse bg-[#E5E7EB]" />
-                  <div className="mt-2 h-3 w-2/3 animate-pulse bg-[#F0F1F2]" />
-                  <div className="mt-4 h-8 animate-pulse bg-[#F0F1F2]" />
                 </div>
+                <div className="space-y-2 px-2.5 pb-2">
+                  <div className="h-2.5 w-1/3 animate-pulse bg-[#E5E7EB]" />
+                  <div className="h-3 w-2/3 animate-pulse bg-[#F0F1F2]" />
+                  <div className="h-2.5 w-1/3 animate-pulse bg-[#E5E7EB]" />
+                  <div className="h-3 w-full animate-pulse bg-[#F0F1F2]" />
+                  <div className="h-3 w-full animate-pulse bg-[#F0F1F2]" />
+                </div>
+                <div className="mt-2 h-7 animate-pulse bg-[#F0F1F2]" />
               </div>
             ))}
           </div>
@@ -867,7 +840,7 @@ function CommunityTicker({ students }: { students: Student[] }) {
               {tickerStudents.map((student, index) => (
                 <div
                   key={`${student.id}-${index}`}
-                  className="relative h-6 w-6 shrink-0 border border-white/30 overflow-hidden bg-white"
+                  className="relative h-6 w-6 shrink-0 overflow-hidden border border-white/30 bg-white"
                   title={`${student.firstName} ${student.lastName}`}
                 >
                   <Image
@@ -1014,7 +987,7 @@ export default function StudentsPage() {
         
         {/* Institutional Header Banner */}
         <div className="mb-5 border border-[#1A2B4C] bg-[#1A2B4C] p-4 text-white">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#B98A3E]">
                 Official Directory
@@ -1049,7 +1022,7 @@ export default function StudentsPage() {
                       : 'border-white/20 bg-[#1A2B4C] text-white hover:border-white'
                   }`}
                 >
-                    Following
+                  Following
                 </button>
               )}
             </div>
@@ -1144,7 +1117,8 @@ export default function StudentsPage() {
                       selectedLocation,
                       centerStudents.length,
                     )
-              ) return null;
+              )
+                return null;
               return (
                 <HorizontalRail
                   key={loc.id}
@@ -1176,6 +1150,9 @@ export default function StudentsPage() {
   );
 }
 
-function centerCentersCountIsZeroAndShouldHideIfUnfiltered(selectedLocation: string, len: number) {
+function centerCentersCountIsZeroAndShouldHideIfUnfiltered(
+  selectedLocation: string,
+  len: number,
+) {
   return selectedLocation === 'all' && len === 0;
 }
