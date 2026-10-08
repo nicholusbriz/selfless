@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import {
   useCallback,
   useEffect,
@@ -17,7 +16,6 @@ import {
 import {
   ArrowDown,
   ArrowUp,
-  ChevronRight,
   MapPin,
   Pause,
   Play,
@@ -65,7 +63,6 @@ const SWAP_PERSPECTIVE = 1400;
 const SWIPE_THRESHOLD = 40;
 
 const CARD_ASPECT = 0.76;
-const INFO_RATIO = 0.28;
 
 const MAX_CARD_WIDTH = 400;
 const MIN_CARD_WIDTH = 270;
@@ -131,7 +128,7 @@ function useResponsiveCardSize(
   const [size, setSize] = useState({
     width: 340,
     height: 447,
-    infoHeight: 92,
+    infoHeight: 96,
   });
 
   useEffect(() => {
@@ -175,11 +172,8 @@ function useResponsiveCardSize(
 
       const height = Math.round(width / CARD_ASPECT);
 
-      const infoRatio = isMobile ? 0.22 : INFO_RATIO;
-      const infoHeight = Math.max(
-        82,
-        Math.round(height * infoRatio),
-      );
+      // Footer now holds: name+role row, degree row, tech center row
+      const infoHeight = isMobile ? 92 : 100;
 
       setSize({ width, height, infoHeight });
     };
@@ -359,8 +353,6 @@ export function DiscoverStudents({
       : ((currentIndex % visibleStudents.length) +
           visibleStudents.length) %
         visibleStudents.length;
-
-  /* -------- Smart preload: only current ± 1 -------- */
 
   const preloadUrls = useMemo(() => {
     if (visibleStudents.length === 0) return [];
@@ -552,12 +544,10 @@ export function DiscoverStudents({
   const isSuperAdmin =
     currentStudent.role?.name === "superadmin" ||
     currentStudent.role?.name === "super_admin";
+  const roleLabel = formatRole(currentStudent.role?.name);
 
   /* ============================================================
-     PURE 3D FLIP — no blur, no fade tricks, no gold sweep.
-     The exiting card rotates fully away on the Y axis, the
-     entering card rotates fully in from the opposite side.
-     Think "revolving door", not "crossfade".
+     PURE 3D FLIP — no blur, no fade, no sweep, no gradients.
   ============================================================ */
 
   const cardSwapVariants = {
@@ -626,7 +616,7 @@ export function DiscoverStudents({
                   willChange: "transform",
                 }}
               >
-                {/* IMAGE AREA */}
+                {/* IMAGE AREA — clean, no gradient overlay */}
                 <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
                   {imageSrc ? (
                     <Image
@@ -643,16 +633,9 @@ export function DiscoverStudents({
                       {initials}
                     </div>
                   )}
-                  <div
-                    className="pointer-events-none absolute inset-0"
-                    style={{
-                      background:
-                        "linear-gradient(180deg, rgba(0,0,0,0) 65%, rgba(0,0,0,0.4) 100%)",
-                    }}
-                  />
                 </div>
 
-                {/* INFO AREA */}
+                {/* COMPACT INFO FOOTER — three clean rows */}
                 <div
                   className="relative flex shrink-0 flex-col justify-center overflow-hidden px-4 sm:px-5"
                   style={{
@@ -661,75 +644,53 @@ export function DiscoverStudents({
                     borderTop: `1px solid ${PANEL_BORDER}`,
                   }}
                 >
-                  <div className="flex w-full flex-col gap-1.5">
-                    <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col gap-1">
+                    {/* Row 1 — Name + Role (same row) */}
+                    <div className="flex items-center justify-between gap-2">
                       <h3
-                        className="min-w-0 flex-1 truncate text-[17px] font-bold tracking-[-0.02em]"
+                        className="min-w-0 flex-1 truncate text-[15px] font-bold leading-tight tracking-[-0.02em]"
                         style={{ color: GOLD_BRIGHT }}
                         title={fullName}
                       >
                         {fullName}
                       </h3>
-                      {currentStudent.role?.name && (
+                      {roleLabel && (
                         <span
-                          className="shrink-0 truncate text-[11.5px] font-medium"
+                          className="shrink-0 truncate text-[10.5px] font-medium leading-tight"
                           style={{ color: WHITE_70 }}
                         >
-                          {formatRole(currentStudent.role.name)}
+                          {roleLabel}
                         </span>
                       )}
                     </div>
 
+                    {/* Row 2 — Degree Program (its own row) */}
                     {!isSuperAdmin && (
-                      <>
-                        <p
-                          className="truncate text-[13px] font-medium"
-                          style={{ color: WHITE }}
-                          title={courseName || "Student"}
-                        >
-                          {courseName || "Student"}
-                        </p>
-                        {techCenterName && (
-                          <div className="flex items-center gap-1.5">
-                            <MapPin
-                              className="h-[11px] w-[11px] shrink-0"
-                              style={{ color: GOLD }}
-                            />
-                            <span
-                              className="truncate text-[11.5px] font-medium"
-                              style={{ color: WHITE_85 }}
-                            >
-                              {techCenterName}
-                            </span>
-                          </div>
-                        )}
-                      </>
+                      <p
+                        className="truncate text-[12px] font-medium leading-tight"
+                        style={{ color: WHITE }}
+                        title={courseName || "Student"}
+                      >
+                        {courseName || "Student"}
+                      </p>
                     )}
 
-                    <div className="flex items-center gap-2 pt-0.5">
-                      <Link
-                        href={`/dashboard/students/${currentStudent.id}`}
-                        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11.5px] font-semibold"
-                        style={{
-                          backgroundColor: `${GOLD}20`,
-                          color: GOLD_BRIGHT,
-                          border: `1px solid ${GOLD}40`,
-                        }}
-                      >
-                        View Profile <ChevronRight className="h-3 w-3" />
-                      </Link>
-                      <Link
-                        href={`/dashboard/messages?user=${currentStudent.id}`}
-                        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11.5px] font-semibold"
-                        style={{
-                          backgroundColor: "rgba(255, 255, 255, 0.08)",
-                          color: WHITE,
-                          border: "1px solid rgba(255, 255, 255, 0.15)",
-                        }}
-                      >
-                        Message <ChevronRight className="h-3 w-3" />
-                      </Link>
-                    </div>
+                    {/* Row 3 — Tech Center (its own row) */}
+                    {!isSuperAdmin && techCenterName && (
+                      <div className="flex items-center gap-1.5">
+                        <MapPin
+                          className="h-[10px] w-[10px] shrink-0"
+                          style={{ color: GOLD }}
+                        />
+                        <span
+                          className="min-w-0 truncate text-[11.5px] font-medium leading-tight"
+                          style={{ color: WHITE_85 }}
+                          title={techCenterName}
+                        >
+                          {techCenterName}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </motion.div>
