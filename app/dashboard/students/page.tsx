@@ -270,7 +270,11 @@ const StudentCard = ({
   const roleLabel =
     student.role?.name === 'teacher'
       ? 'Tutor'
-      : student.role?.name || 'Student';
+      : student.role?.name === 'admin'
+        ? 'Manager'
+        : student.role?.name === 'superadmin' || student.role?.name === 'super_admin'
+          ? 'Director'
+          : student.role?.name || 'Student';
 
   return (
     <article className="group flex w-[275px] shrink-0 snap-start flex-col border border-[#D1D5DB] bg-white transition-shadow hover:shadow-[0_2px_12px_rgba(26,43,76,0.08)]">

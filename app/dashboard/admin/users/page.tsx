@@ -91,6 +91,15 @@ const RoleBadge = ({ role }: { role: string }) => {
     admin: 'bg-violet-50 text-violet-700 border border-violet-200',
     teacher: 'bg-blue-50 text-blue-700 border border-blue-200',
     student: 'bg-sky-50 text-sky-700 border border-sky-200',
+    superadmin: 'bg-amber-50 text-amber-700 border border-amber-200',
+    super_admin: 'bg-amber-50 text-amber-700 border border-amber-200',
+  };
+
+  const getDisplayRole = (roleName: string) => {
+    if (roleName === 'teacher') return 'TUTOR';
+    if (roleName === 'admin') return 'TECH CENTER MANAGER';
+    if (roleName === 'superadmin' || roleName === 'super_admin') return 'DIRECTOR';
+    return roleName?.replace('_', ' ').toUpperCase() || 'STUDENT';
   };
 
   return (
@@ -99,9 +108,7 @@ const RoleBadge = ({ role }: { role: string }) => {
         'bg-slate-100 text-slate-600 border border-slate-200'
         }`}
     >
-      {normalizedRole === 'teacher'
-        ? 'TUTOR'
-        : role?.replace('_', ' ').toUpperCase() || 'STUDENT'}
+      {getDisplayRole(normalizedRole)}
     </span>
   );
 };
@@ -752,7 +759,7 @@ export default function AdminUsersPage() {
                             key={role.id}
                             value={role.name}
                           >
-                            {role.name === 'teacher' ? 'Tutor' : role.displayName}
+                            {role.name === 'teacher' ? 'Tutor' : role.name === 'admin' ? 'Tech Center Manager' : role.name === 'superadmin' || role.name === 'super_admin' ? 'Director' : role.displayName || role.name}
                           </option>
                         )
                       )}
@@ -1229,13 +1236,13 @@ export default function AdminUsersPage() {
                                                     <div>
                                                       <p className="font-semibold text-slate-900">
                                                         {
-                                                          role.name === 'teacher' ? 'Tutor' : role.displayName
+                                                          role.name === 'teacher' ? 'Tutor' : role.name === 'admin' ? 'Tech Center Manager' : role.name === 'superadmin' || role.name === 'super_admin' ? 'Director' : role.displayName
                                                         }
                                                       </p>
 
                                                       <p className="mt-1 text-xs text-slate-500">
                                                         {
-                                                          role.name === 'teacher' ? 'Tutor' : role.name
+                                                          role.name === 'teacher' ? 'Tutor' : role.name === 'admin' ? 'Tech Center Manager' : role.name === 'superadmin' || role.name === 'super_admin' ? 'Director' : role.name
                                                         }
                                                       </p>
                                                     </div>
@@ -1707,13 +1714,13 @@ export default function AdminUsersPage() {
                                               <div>
                                                 <p className="font-semibold text-slate-900">
                                                   {
-                                                    role.name === 'teacher' ? 'Tutor' : role.displayName
+                                                    role.name === 'teacher' ? 'Tutor' : role.name === 'admin' ? 'Tech Center Manager' : role.name === 'superadmin' || role.name === 'super_admin' ? 'Director' : role.displayName
                                                   }
                                                 </p>
 
                                                 <p className="mt-1 text-xs text-slate-500">
                                                   {
-                                                    role.name === 'teacher' ? 'Tutor' : role.name
+                                                    role.name === 'teacher' ? 'Tutor' : role.name === 'admin' ? 'Tech Center Manager' : role.name === 'superadmin' || role.name === 'super_admin' ? 'Director' : role.name
                                                   }
                                                 </p>
                                               </div>
