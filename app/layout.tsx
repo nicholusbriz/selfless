@@ -44,6 +44,22 @@ export const metadata: Metadata = {
         url: "/icon-512x512.png",
         media: "(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)",
       },
+      {
+        url: "/icon-512x512.png",
+        media: "(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)",
+      },
+      {
+        url: "/icon-512x512.png",
+        media: "(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)",
+      },
+      {
+        url: "/icon-512x512.png",
+        media: "(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)",
+      },
+      {
+        url: "/icon-512x512.png",
+        media: "(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)",
+      },
     ],
   },
   formatDetection: {
@@ -101,7 +117,17 @@ export default function RootLayout({
     >
       <head>
         <link rel="icon" href="/icon-512x512.png" />
-        <link rel="apple-touch-icon" href="/icon-512x512.png" />
+        <link rel="apple-touch-icon" href="/icon-72x72.png" sizes="72x72" />
+        <link rel="apple-touch-icon" href="/icon-96x96.png" sizes="96x96" />
+        <link rel="apple-touch-icon" href="/icon-128x128.png" sizes="128x128" />
+        <link rel="apple-touch-icon" href="/icon-144x144.png" sizes="144x144" />
+        <link rel="apple-touch-icon" href="/icon-152x152.png" sizes="152x152" />
+        <link rel="apple-touch-icon" href="/icon-192x192.png" sizes="192x192" />
+        <link rel="apple-touch-icon" href="/icon-384x384.png" sizes="384x384" />
+        <link rel="apple-touch-icon" href="/icon-512x512.png" sizes="512x512" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Selfless CE" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

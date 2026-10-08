@@ -44,6 +44,8 @@ interface GroupedStudent {
   takesReligion: boolean | null;
   status: string;
   isActive: boolean;
+  isVerified: boolean;
+  verificationStatus: string;
   createdAt: Date;
   studentCourses: Array<{
     id: string;
@@ -89,9 +91,17 @@ export async function GET(_request: Request) {
 
       prisma.user.findMany({
         where: {
-          OR: [
-            { techCenterId: { not: null } },
-            { previousTechCenterId: { not: null } },
+          AND: [
+            {
+              OR: [
+                { techCenterId: { not: null } },
+                { previousTechCenterId: { not: null } },
+              ],
+            },
+            {
+              isVerified: true,
+              verificationStatus: 'APPROVED',
+            },
           ],
         },
         select: {
@@ -113,6 +123,8 @@ export async function GET(_request: Request) {
           takesReligion: true,
           status: true,
           isActive: true,
+          isVerified: true,
+          verificationStatus: true,
           createdAt: true,
           submittedCourses: {
             select: {
@@ -173,6 +185,8 @@ export async function GET(_request: Request) {
           takesReligion: student.takesReligion,
           status: student.status,
           isActive: student.isActive,
+          isVerified: student.isVerified,
+          verificationStatus: student.verificationStatus,
           createdAt: student.createdAt,
           studentCourses: student.submittedCourses,
           profileViewsCount: stats.profileViewsCount,
