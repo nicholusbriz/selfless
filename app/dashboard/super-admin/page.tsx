@@ -14,6 +14,8 @@ import {
   UserCheck,
   TrendingUp,
   Trash2,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -109,6 +111,7 @@ export default function SuperAdminOverviewPage() {
   const canClearApprovalHistory = session?.user?.role === 'dev';
 
   const [selectedCenterId, setSelectedCenterId] = useState<string>('all');
+  const [expandedApprovers, setExpandedApprovers] = useState<Set<string>>(new Set());
 
   // ----------------------------------------------------------
   // FETCH PENDING APPROVALS (across all centers)
@@ -346,6 +349,18 @@ export default function SuperAdminOverviewPage() {
     }
 
     clearApprovalHistoryMutation.mutate();
+  };
+
+  const toggleApprover = (approverId: string) => {
+    setExpandedApprovers((prev) => {
+      const next = new Set(prev);
+      if (next.has(approverId)) {
+        next.delete(approverId);
+      } else {
+        next.add(approverId);
+      }
+      return next;
+    });
   };
 
   return (
@@ -733,77 +748,93 @@ export default function SuperAdminOverviewPage() {
             ) : (
               /* STATS LIST */
               <div className="divide-y divide-[#EEF1F5]">
-                {approvalStats.stats.map((stat) => (
-                  <div
-                    key={stat.approver.id}
-                    className="py-3.5 sm:py-4"
-                  >
-                    <div className="flex items-center gap-3 sm:gap-4">
-                      {/* Approver Info */}
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[13px] font-semibold text-[#12203B] sm:text-sm">
-                          {stat.approver.firstName} {stat.approver.lastName}
-                        </p>
+                {approvalStats.stats.map((stat) => {
+                  const isExpanded = expandedApprovers.has(stat.approver.id);
+                  return (
+                    <div
+                      key={stat.approver.id}
+                      className="py-3.5 sm:py-4"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleApprover(stat.approver.id)}
+                        className="w-full flex items-center gap-3 sm:gap-4 text-left"
+                      >
+                        {/* Approver Info */}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="truncate text-[13px] font-semibold text-[#12203B] sm:text-sm">
+                              {stat.approver.firstName} {stat.approver.lastName}
+                            </p>
+                            {isExpanded ? (
+                              <ChevronDown className="h-4 w-4 shrink-0 text-[#6F7B8D]" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 shrink-0 text-[#6F7B8D]" />
+                            )}
+                          </div>
 
-                        <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-[#6F7B8D] sm:text-xs">
-                          <span className="truncate">{stat.approver.email}</span>
-                          {stat.approver.role && (
-                            <>
-                              <span className="text-[#8993A3]">•</span>
+                          <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-[#6F7B8D] sm:text-xs">
+                            <span className="truncate">{stat.approver.email}</span>
+                            {stat.approver.role && (
+                              <>
+                                <span className="text-[#8993A3]">•</span>
+                                <span className="truncate">
+                                  {stat.approver.role.displayName}
+                                </span>
+                              </>
+                            )}
+                          </div>
+
+                          {stat.approver.techCenter && (
+                            <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-[#8993A3] sm:text-[11px]">
+                              <Building2 className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" />
                               <span className="truncate">
-                                {stat.approver.role.displayName}
+                                {stat.approver.techCenter.name}
                               </span>
-                            </>
+                            </div>
                           )}
                         </div>
 
-                        {stat.approver.techCenter && (
-                          <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-[#8993A3] sm:text-[11px]">
-                            <Building2 className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" />
-                            <span className="truncate">
-                              {stat.approver.techCenter.name}
+                        {/* Approval Count */}
+                        <div className="flex shrink-0 items-center gap-2">
+                          <div className="flex items-center gap-1.5 rounded-lg bg-[#EDF7F2] px-2.5 py-1.5">
+                            <TrendingUp className="h-3.5 w-3.5 text-[#17734B]" />
+                            <span className="text-xs font-bold text-[#17734B]">
+                              {stat.approvalCount}
                             </span>
                           </div>
-                        )}
-                      </div>
-
-                      {/* Approval Count */}
-                      <div className="flex shrink-0 items-center gap-2">
-                        <div className="flex items-center gap-1.5 rounded-lg bg-[#EDF7F2] px-2.5 py-1.5">
-                          <TrendingUp className="h-3.5 w-3.5 text-[#17734B]" />
-                          <span className="text-xs font-bold text-[#17734B]">
-                            {stat.approvalCount}
-                          </span>
                         </div>
-                      </div>
-                    </div>
+                      </button>
 
-                    <div className="mt-3 border-l border-[#D9E4DD] pl-3 sm:ml-1">
-                      <p className="mb-1.5 font-mono text-[9px] font-bold uppercase tracking-wide text-[#6F7B8D]">
-                        Approved students
-                      </p>
-                      <ul className="space-y-1.5">
-                        {stat.approvedUsers.map((approvedUser) => (
-                          <li
-                            key={approvedUser.id}
-                            className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-xs"
-                          >
-                            <span className="font-medium text-[#12203B]">
-                              {approvedUser.firstName} {approvedUser.lastName}
-                            </span>
-                            <span className="text-[10px] text-[#6F7B8D]">
-                              {approvedUser.techCenter?.name || 'No tech center'}
-                              {' · '}
-                              {approvedUser.verifiedAt
-                                ? formatJoinedDate(approvedUser.verifiedAt)
-                                : 'Date unavailable'}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
+                      {isExpanded && (
+                        <div className="mt-3 border-l border-[#D9E4DD] pl-3 sm:ml-1">
+                          <p className="mb-1.5 font-mono text-[9px] font-bold uppercase tracking-wide text-[#6F7B8D]">
+                            Approved students
+                          </p>
+                          <ul className="space-y-1.5">
+                            {stat.approvedUsers.map((approvedUser) => (
+                              <li
+                                key={approvedUser.id}
+                                className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-xs"
+                              >
+                                <span className="font-medium text-[#12203B]">
+                                  {approvedUser.firstName} {approvedUser.lastName}
+                                </span>
+                                <span className="text-[10px] text-[#6F7B8D]">
+                                  {approvedUser.techCenter?.name || 'No tech center'}
+                                  {' · '}
+                                  {approvedUser.verifiedAt
+                                    ? formatJoinedDate(approvedUser.verifiedAt)
+                                    : 'Date unavailable'}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
