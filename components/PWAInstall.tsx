@@ -158,12 +158,20 @@ export default function PWAInstall() {
               </>
             ) : (
               <>
-                <p className="text-xs leading-5 text-slate-600">
-                  Tap <span className="font-semibold text-slate-900">Share</span>, then choose <span className="font-semibold text-slate-900">Add to Home Screen</span>.
-                </p>
+                <div className="space-y-2">
+                  <p className="text-xs leading-5 text-slate-600">
+                    <span className="font-semibold text-slate-900">Step 1:</span> Tap the <span className="font-semibold text-slate-900">Share</span> button
+                  </p>
+                  <p className="text-xs leading-5 text-slate-600">
+                    <span className="font-semibold text-slate-900">Step 2:</span> Scroll down and tap <span className="font-semibold text-slate-900">Add to Home Screen</span>
+                  </p>
+                  <p className="text-xs leading-5 text-slate-600">
+                    <span className="font-semibold text-slate-900">Step 3:</span> Tap <span className="font-semibold text-slate-900">Add</span> in the top right
+                  </p>
+                </div>
                 <div className="mt-3 flex items-center gap-2 text-[11px] font-medium text-slate-400">
                   <Apple className="h-3.5 w-3.5" />
-                  <span>Available in Safari on iPhone and iPad</span>
+                  <span>Must use Safari on iPhone or iPad</span>
                 </div>
               </>
             )}

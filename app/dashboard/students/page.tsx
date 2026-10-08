@@ -50,6 +50,8 @@ interface Student {
   takesReligion: boolean | null;
   status: string;
   isActive: boolean;
+  isVerified: boolean;
+  verificationStatus: string;
   createdAt: string;
   studentCourses: Array<{
     id: string;
@@ -70,7 +72,6 @@ interface TechCenter {
   id: string;
   name: string;
   country: { name: string };
-  _count?: { students: number };
 }
 
 type Router = ReturnType<typeof useRouter>;
@@ -275,7 +276,7 @@ const StudentCard = ({
       : student.role?.name || 'Student';
 
   return (
-    <article className="group flex w-[320px] shrink-0 snap-start flex-col border border-[#D1D5DB] bg-white transition-shadow hover:shadow-[0_2px_12px_rgba(26,43,76,0.08)]">
+    <article className="group flex w-[380px] shrink-0 snap-start flex-col border border-[#D1D5DB] bg-white transition-shadow hover:shadow-[0_2px_12px_rgba(26,43,76,0.08)]">
       {/* ── Header ─────────────────────────────────── */}
       <div className="relative bg-[#1A2B4C] px-3 py-2">
         <div className="flex items-center justify-between gap-2">
@@ -306,7 +307,7 @@ const StudentCard = ({
         <button
           type="button"
           onClick={() => router.push(`/dashboard/students/${student.id}`)}
-          className={`relative h-auto w-20 shrink-0 overflow-hidden border bg-[#F7F6F2] ${
+          className={`relative h-auto w-28 shrink-0 overflow-hidden border bg-[#F7F6F2] ${
             isTrendingSection
               ? 'border-[#B98A3E] ring-2 ring-[#B98A3E]/30'
               : 'border-[#D1D5DB]'
@@ -319,11 +320,11 @@ const StudentCard = ({
               alt={fullName}
               fill
               className="object-cover"
-              sizes="80px"
+              sizes="112px"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-[#1A2B4C]">
-              <span className="font-mono text-[20px] font-bold tracking-wider text-[#B98A3E]">
+              <span className="font-mono text-[24px] font-bold tracking-wider text-[#B98A3E]">
                 {initials}
               </span>
             </div>
@@ -383,6 +384,8 @@ const StudentCard = ({
             </span>
             <span className="text-[#6B7280]">views</span>
           </div>
+
+
         </div>
       </div>
 
@@ -476,7 +479,6 @@ const StudentCard = ({
 
 function HorizontalRail({
   label,
-  count,
   hue,
   students,
   router,
@@ -486,7 +488,6 @@ function HorizontalRail({
   enableAlphabetNav,
 }: {
   label: string;
-  count?: number;
   hue?: string;
   students: Student[];
   router: Router;
@@ -506,10 +507,10 @@ function HorizontalRail({
     : students;
 
   const scrollLeft = () => {
-    railRef.current?.scrollBy({ left: -560, behavior: 'smooth' });
+    railRef.current?.scrollBy({ left: -620, behavior: 'smooth' });
   };
   const scrollRight = () => {
-    railRef.current?.scrollBy({ left: 560, behavior: 'smooth' });
+    railRef.current?.scrollBy({ left: 620, behavior: 'smooth' });
   };
 
   if (students.length === 0) {
@@ -525,7 +526,6 @@ function HorizontalRail({
           <h2 className="text-[15px] font-bold uppercase tracking-wide text-[#1A2B4C]">
             {label}
           </h2>
-          <span className="font-mono text-[11px] font-bold text-[#B98A3E]">0</span>
         </div>
         <div className="border border-[#D1D5DB] bg-white px-4 py-5 text-center">
           <p className="text-[12px] text-[#4B5646]">No student records available</p>
@@ -536,7 +536,7 @@ function HorizontalRail({
 
   return (
     <section className="mb-6">
-      <div className="mb-2.5 flex items-baseline justify-between border-t border-[#1A2B4C] pt-2">
+      <div className="mb-2.5 flex items-baseline border-t border-[#1A2B4C] pt-2">
         <div className="flex items-center gap-2">
           {hue && (
             <span
@@ -547,11 +547,6 @@ function HorizontalRail({
           <h2 className="text-[15px] font-bold uppercase tracking-wide text-[#1A2B4C]">
             {label}
           </h2>
-          {typeof count === 'number' && (
-            <span className="font-mono text-[11px] font-bold text-[#B98A3E]">
-              ({selectedLetter ? `${visibleStudents.length} / ${count}` : count})
-            </span>
-          )}
         </div>
       </div>
 
@@ -601,7 +596,7 @@ function HorizontalRail({
       <div
         ref={railRef}
         className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 scroll-smooth"
-        style={{ scrollbarWidth: 'thin' }}
+        style={{ scrollbarWidth: 'thin', scrollSnapType: 'x mandatory' }}
       >
         {visibleStudents.map((student, idx) => (
           <StudentCard
@@ -667,17 +662,19 @@ function StudentDirectorySkeleton() {
               <div
                 key={card}
                 aria-hidden="true"
-                className="h-[280px] w-[320px] shrink-0 border border-[#D1D5DB] bg-white"
+                className="h-[280px] w-[380px] shrink-0 border border-[#D1D5DB] bg-white"
               >
                 <div className="h-8 animate-pulse bg-[#E5E7EB]" />
                 <div className="p-3">
                   <div className="flex gap-3">
-                    <div className="h-24 w-20 shrink-0 animate-pulse bg-[#E5E7EB]" />
+                    <div className="h-24 w-28 shrink-0 animate-pulse bg-[#E5E7EB]" />
                     <div className="min-w-0 flex-1 space-y-2">
                       <div className="h-3 w-3/4 animate-pulse bg-[#E5E7EB]" />
                       <div className="h-2.5 w-1/2 animate-pulse bg-[#F0F1F2]" />
                       <div className="h-2 w-16 animate-pulse bg-[#F0F1F2]" />
                       <div className="h-2 w-24 animate-pulse bg-[#F0F1F2]" />
+                      <div className="h-2 w-32 animate-pulse bg-[#F0F1F2]" />
+                      <div className="h-2 w-40 animate-pulse bg-[#F0F1F2]" />
                     </div>
                   </div>
                   <div className="mt-4 h-2.5 w-1/3 animate-pulse bg-[#E5E7EB]" />
@@ -703,22 +700,18 @@ function SearchFilterBar({
   selectedLocation,
   setSelectedLocation,
   locations,
-  totalStudents,
   isLoading,
   sortBy,
   setSortBy,
-  studentsByTechCenter,
 }: {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   selectedLocation: string;
   setSelectedLocation: (id: string) => void;
   locations: TechCenter[];
-  totalStudents: number;
   isLoading: boolean;
   sortBy: SortOption;
   setSortBy: (s: SortOption) => void;
-  studentsByTechCenter: Record<string, Student[]>;
 }) {
   const useDropdown = locations.length > 8;
 
@@ -731,23 +724,7 @@ function SearchFilterBar({
     <section className="border border-[#1A2B4C] bg-white">
       <div className="bg-[#F7F6F2] px-3 py-2">
         <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                Total Records:
-              </span>
-              {isLoading ? (
-                <span
-                  aria-label="Loading total records"
-                  className="inline-block h-3 w-7 animate-pulse bg-[#D1D5DB]"
-                />
-              ) : (
-                <span className="font-mono text-[11px] font-bold text-[#1A2B4C]">
-                  {totalStudents}
-                </span>
-              )}
-            </div>
-
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <div className="flex items-center gap-1.5">
               <ArrowDownUp className="h-3 w-3 text-[#6B7280]" />
               <label htmlFor="sort-select" className="sr-only">
@@ -776,15 +753,12 @@ function SearchFilterBar({
               onChange={(e) => setSelectedLocation(e.target.value)}
               className="h-7 w-full border border-[#D1D5DB] bg-white px-2 text-[11px] font-normal text-[#1A2B4C] focus:border-[#1A2B4C] focus:outline-none"
             >
-              <option value="all">All Tech Centers ({totalStudents})</option>
-              {locations.map((loc) => {
-                const count = studentsByTechCenter[loc.name]?.length ?? loc._count?.students ?? 0;
-                return (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.name} ({count})
-                  </option>
-                );
-              })}
+              <option value="all">All Tech Centers</option>
+              {locations.map((loc) => (
+                <option key={loc.id} value={loc.id}>
+                  {loc.name}
+                </option>
+              ))}
             </select>
           ) : (
             <div className="flex flex-wrap items-center gap-1">
@@ -794,20 +768,9 @@ function SearchFilterBar({
                 className={`${chipBase} ${selectedLocation === 'all' ? chipOn : chipOff}`}
               >
                 All
-                {isLoading ? (
-                  <span
-                    aria-label="Loading total records"
-                    className="inline-block h-2.5 w-6 animate-pulse bg-white/30"
-                  />
-                ) : (
-                  <span className="font-mono text-[10px]">
-                    ({totalStudents})
-                  </span>
-                )}
               </button>
 
               {locations.map((location) => {
-                const count = studentsByTechCenter[location.name]?.length ?? location._count?.students ?? 0;
                 const isSelected = selectedLocation === location.id;
                 const hue = getTechCenterHue(location.name);
 
@@ -823,7 +786,6 @@ function SearchFilterBar({
                       style={{ backgroundColor: hue }}
                     />
                     <span>{location.name}</span>
-                    <span className="font-mono text-[10px]">({count})</span>
                   </button>
                 );
               })}
@@ -986,7 +948,6 @@ export default function StudentsPage() {
       return response.json() as Promise<{
         studentsByTechCenter: Record<string, Student[]>;
         techCenters: TechCenter[];
-        totalStudents: number;
       }>;
     },
     staleTime: 30 * 1000,
@@ -999,16 +960,10 @@ export default function StudentsPage() {
     [data?.studentsByTechCenter],
   );
   const techCenters = data?.techCenters ?? [];
-  const totalStudents = data?.totalStudents ?? 0;
 
   const allStudents = useMemo(
     () => Object.values(studentsByTechCenter).flat() as Student[],
     [studentsByTechCenter],
-  );
-
-  const followingCount = useMemo(
-    () => allStudents.filter((s) => s.isFollowing).length,
-    [allStudents],
   );
 
   const scopedStudents = useMemo(() => {
@@ -1049,7 +1004,6 @@ export default function StudentsPage() {
 
   const filteredScoped = useMemo(
     () => filterStudents(scopedStudents),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [scopedStudents, selectedLocation, searchQuery],
   );
   const isSearching = searchQuery.trim().length > 0;
@@ -1083,15 +1037,7 @@ export default function StudentsPage() {
                     : 'border-white/20 bg-[#1A2B4C] text-white hover:border-white'
                 }`}
               >
-                All Students (
-                {isLoading ? (
-                  <span
-                    aria-label="Loading student count"
-                    className="inline-block h-3 w-6 animate-pulse bg-white/30 align-middle"
-                  />
-                ) : (
-                  totalStudents
-                )}
+                All Students
               </button>
               {currentUserId && (
                 <button
@@ -1103,15 +1049,7 @@ export default function StudentsPage() {
                       : 'border-white/20 bg-[#1A2B4C] text-white hover:border-white'
                   }`}
                 >
-                    Following (
-                    {isLoading ? (
-                      <span
-                        aria-label="Loading following count"
-                        className="inline-block h-3 w-6 animate-pulse bg-white/30 align-middle"
-                      />
-                    ) : (
-                      followingCount
-                    )}
+                    Following
                 </button>
               )}
             </div>
@@ -1133,11 +1071,9 @@ export default function StudentsPage() {
             selectedLocation={selectedLocation}
             setSelectedLocation={setSelectedLocation}
             locations={techCenters}
-            totalStudents={totalStudents}
             isLoading={isLoading}
             sortBy={sortBy}
             setSortBy={setSortBy}
-            studentsByTechCenter={studentsByTechCenter}
           />
         </div>
 
@@ -1174,7 +1110,6 @@ export default function StudentsPage() {
               <>
                 <HorizontalRail
                   label="Trending Student Profiles"
-                  count={Math.min(10, rankByTrending(filteredScoped).length)}
                   hue="#B98A3E"
                   students={rankByTrending(filteredScoped).slice(0, 10)}
                   router={router}
@@ -1185,7 +1120,6 @@ export default function StudentsPage() {
 
                 <HorizontalRail
                   label="All Students"
-                  count={sortStudents(filteredScoped, 'name').length}
                   hue="#1A2B4C"
                   students={sortStudents(filteredScoped, 'name')}
                   router={router}
@@ -1215,7 +1149,6 @@ export default function StudentsPage() {
                 <HorizontalRail
                   key={loc.id}
                   label={loc.name}
-                  count={centerStudents.length}
                   hue={getTechCenterHue(loc.name)}
                   students={sortStudents(centerStudents, sortBy)}
                   router={router}
