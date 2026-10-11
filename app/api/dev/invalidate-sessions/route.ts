@@ -7,7 +7,7 @@ export async function POST(request: Request) {
   try {
     // Only allow super_admin, admin, or dev roles
     const user = await getServerAuthUser();
-    if (!user || !['super_admin', 'admin', 'dev'].includes(user.role?.name)) {
+    if (!user || !user.role?.name || !['super_admin', 'admin', 'dev'].includes(user.role.name)) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }
