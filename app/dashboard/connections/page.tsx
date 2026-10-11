@@ -31,6 +31,8 @@ interface ConnectionUser {
   lastName: string;
   profileImageUrl: string | null;
   techCenter: { id: string; name: string } | null;
+  role?: { name: string } | null;
+  generalCourse?: string | null;
   followersCount: number;
   followingCount: number;
   likesReceivedCount: number;
@@ -123,22 +125,22 @@ function formatDate(value?: string): string | null {
 
 const SkeletonRow = () => (
   <li className="px-4 py-3 flex items-center gap-3">
-    <div className="h-7 w-7 shrink-0 rounded-full shimmer" />
-    <div className="h-10 w-10 shrink-0 rounded-full shimmer" />
+    <div className="h-7 w-7 shrink-0 rounded-full bg-[#E5E7EB] animate-pulse" />
+    <div className="h-10 w-10 shrink-0 rounded-full bg-[#E5E7EB] animate-pulse" />
     <div className="flex-1 min-w-0 space-y-2">
-      <div className="h-3.5 w-32 max-w-[45%] rounded shimmer" />
-      <div className="h-2.5 w-40 max-w-[55%] rounded shimmer" />
+      <div className="h-3.5 w-32 max-w-[45%] rounded bg-[#E5E7EB] animate-pulse" />
+      <div className="h-2.5 w-40 max-w-[55%] rounded bg-[#E5E7EB] animate-pulse" />
     </div>
     <div className="flex items-center gap-2 shrink-0">
-      <div className="h-6 w-14 rounded-full shimmer" />
-      <div className="h-6 w-16 rounded-full shimmer" />
-      <div className="h-6 w-12 rounded-full shimmer" />
+      <div className="h-6 w-14 rounded-full bg-[#E5E7EB] animate-pulse" />
+      <div className="h-6 w-16 rounded-full bg-[#E5E7EB] animate-pulse" />
+      <div className="h-6 w-12 rounded-full bg-[#E5E7EB] animate-pulse" />
     </div>
   </li>
 );
 
 const SkeletonList = ({ rows = 8 }: { rows?: number }) => (
-  <ul className="divide-y divide-[#F3F4F6]">
+  <ul className="divide-y divide-[#E5E7EB]">
     {Array.from({ length: rows }).map((_, i) => (
       <SkeletonRow key={i} />
     ))}
@@ -147,10 +149,10 @@ const SkeletonList = ({ rows = 8 }: { rows?: number }) => (
 
 const StatsSkeleton = () => (
   <div className="mt-4 flex flex-wrap items-center gap-4 animate-pulse">
-    <div className="h-4 w-24 rounded shimmer" />
-    <div className="h-4 w-24 rounded shimmer" />
-    <div className="h-4 w-20 rounded shimmer" />
-    <div className="h-4 w-20 rounded shimmer" />
+    <div className="h-4 w-24 rounded bg-[#E5E7EB]" />
+    <div className="h-4 w-24 rounded bg-[#E5E7EB]" />
+    <div className="h-4 w-20 rounded bg-[#E5E7EB]" />
+    <div className="h-4 w-20 rounded bg-[#E5E7EB]" />
   </div>
 );
 
@@ -307,24 +309,6 @@ export default function ConnectionsPage() {
   return (
     <div className="min-h-screen bg-[#F7F6F2]">
       <style jsx global>{`
-        @keyframes shimmerMove {
-          0% {
-            background-position: -200% 0;
-          }
-          100% {
-            background-position: 200% 0;
-          }
-        }
-        .shimmer {
-          background: linear-gradient(
-            90deg,
-            #e5e7eb 0%,
-            #f3f4f6 50%,
-            #e5e7eb 100%
-          );
-          background-size: 200% 100%;
-          animation: shimmerMove 1.4s ease-in-out infinite;
-        }
         @keyframes rowEnter {
           from {
             opacity: 0;
@@ -339,7 +323,6 @@ export default function ConnectionsPage() {
           animation: rowEnter 240ms ease-out both;
         }
         @media (prefers-reduced-motion: reduce) {
-          .shimmer,
           .row-enter {
             animation: none;
           }
@@ -347,20 +330,20 @@ export default function ConnectionsPage() {
       `}</style>
 
       <div className="mx-auto max-w-[900px] px-4 sm:px-6 lg:px-8 py-6">
-        <header className="mb-6">
+        <header className="mb-6 border-t border-[#1A2B4C] pt-4">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-[30px] sm:text-[34px] font-bold tracking-tight text-[#1A2B4C] leading-tight">
                 My Connections
               </h1>
-              <p className="mt-1.5 text-[14px] leading-5 text-[#B98A3E] font-semibold">
+              <p className="mt-1.5 text-[14px] leading-5 text-[#6B7280] font-medium">
                 Trending, followers, following, and likes
               </p>
             </div>
             <button
               type="button"
               onClick={handleRefresh}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#E5E7EB] bg-white px-3.5 py-2 text-[12px] font-bold text-[#1A2B4C] transition-colors hover:border-[#B98A3E] hover:bg-[#F7F6F2] active:scale-95"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#D1D5DB] bg-white px-3.5 py-2 text-[12px] font-bold text-[#1A2B4C] transition-colors hover:border-[#B98A3E] hover:bg-[#F7F6F2] active:scale-95"
             >
               Refresh
             </button>
@@ -373,7 +356,7 @@ export default function ConnectionsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('trending')}
-                className={`flex items-center gap-2 transition-colors underline ${
+                className={`flex items-center gap-2 transition-colors ${
                   activeTab === 'trending'
                     ? 'text-[#B98A3E] font-bold'
                     : 'text-[#1A2B4C] hover:text-[#B98A3E]'
@@ -394,7 +377,7 @@ export default function ConnectionsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('followers')}
-                className={`flex items-center gap-2 transition-colors underline ${
+                className={`flex items-center gap-2 transition-colors ${
                   activeTab === 'followers'
                     ? 'text-[#B98A3E] font-bold'
                     : 'text-[#1A2B4C] hover:text-[#B98A3E]'
@@ -409,7 +392,7 @@ export default function ConnectionsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('following')}
-                className={`flex items-center gap-2 transition-colors underline ${
+                className={`flex items-center gap-2 transition-colors ${
                   activeTab === 'following'
                     ? 'text-[#55705B] font-bold'
                     : 'text-[#1A2B4C] hover:text-[#55705B]'
@@ -424,7 +407,7 @@ export default function ConnectionsPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('likes')}
-                className={`flex items-center gap-2 transition-colors underline ${
+                className={`flex items-center gap-2 transition-colors ${
                   activeTab === 'likes'
                     ? 'text-red-500 font-bold'
                     : 'text-[#1A2B4C] hover:text-red-500'
@@ -444,10 +427,10 @@ export default function ConnectionsPage() {
           )}
         </header>
 
-        <div className="bg-white border border-[#E5E7EB] rounded-lg shadow-md overflow-hidden">
+        <div className="bg-white border border-[#D1D5DB] rounded-lg shadow-sm overflow-hidden">
           {activeTab === 'likes' && (
             <div
-              className="flex items-center gap-4 border-b border-[#F3F4F6] px-4 py-3"
+              className="flex items-center gap-4 border-b border-[#D1D5DB] px-4 py-3"
               role="tablist"
               aria-label="Likes"
             >
@@ -456,7 +439,7 @@ export default function ConnectionsPage() {
                 role="tab"
                 aria-selected={likesView === 'received'}
                 onClick={() => setLikesView('received')}
-                className={`text-[13px] font-semibold underline underline-offset-4 ${
+                className={`text-[13px] font-semibold ${
                   likesView === 'received'
                     ? 'text-red-600'
                     : 'text-[#6B7280] hover:text-[#1A2B4C]'
@@ -469,7 +452,7 @@ export default function ConnectionsPage() {
                 role="tab"
                 aria-selected={likesView === 'sent'}
                 onClick={() => setLikesView('sent')}
-                className={`text-[13px] font-semibold underline underline-offset-4 ${
+                className={`text-[13px] font-semibold ${
                   likesView === 'sent'
                     ? 'text-red-600'
                     : 'text-[#6B7280] hover:text-[#1A2B4C]'
@@ -536,12 +519,10 @@ export default function ConnectionsPage() {
               </p>
             </div>
           ) : (
-            <ul className="divide-y divide-[#F3F4F6]">
+            <ul className="divide-y divide-[#E5E7EB]">
               {connections.map((user, index) => {
                 const rank = index + 1;
-                const isTopThree = rank <= 3;
                 const isTrending = activeTab === 'trending';
-                const isFeatured = isTrending && isTopThree;
                 const isSelf = currentUserId === user.id;
 
                 const initials = getInitials(user.firstName, user.lastName);
@@ -573,41 +554,25 @@ export default function ConnectionsPage() {
 
                 const rankBadgeStyles =
                   rank === 1
-                    ? 'bg-gradient-to-br from-[#F5C518] to-[#D4A017] text-white shadow-[0_0_0_1px_rgba(212,160,23,0.25)]'
+                    ? 'bg-[#F5C518] text-white shadow-[0_0_0_1px_rgba(212,160,23,0.25)]'
                     : rank === 2
-                      ? 'bg-gradient-to-br from-[#C0C0C0] to-[#9CA3AF] text-white shadow-[0_0_0_1px_rgba(156,163,175,0.25)]'
+                      ? 'bg-[#C0C0C0] text-white shadow-[0_0_0_1px_rgba(156,163,175,0.25)]'
                       : rank === 3
-                        ? 'bg-gradient-to-br from-[#CD7F32] to-[#A65E2E] text-white shadow-[0_0_0_1px_rgba(166,94,46,0.25)]'
+                        ? 'bg-[#CD7F32] text-white shadow-[0_0_0_1px_rgba(166,94,46,0.25)]'
                         : 'bg-[#F7F6F2] text-[#4B5646]';
 
                 return (
                   <li
                     key={user.id}
-                    className={`
-                      row-enter relative transition-colors
-                      ${
-                        isFeatured
-                          ? 'overflow-hidden min-h-[210px] sm:min-h-[220px]'
-                          : 'px-4 py-3 hover:bg-[#F7F6F2]/60'
-                      }
-                      ${
-                        isTrending && rank === 1
-                          ? 'bg-[#FBF7E9]'
-                          : isTrending && rank === 2
-                            ? 'bg-[#F5F6F7]'
-                            : isTrending && rank === 3
-                              ? 'bg-[#FBF4EF]'
-                              : ''
-                      }
-                    `}
+                    className="row-enter relative overflow-hidden min-h-[200px] sm:min-h-[210px] transition-colors"
                     style={{
                       animationDelay: `${Math.min(index * 30, 300)}ms`,
                     }}
                   >
-                    {isFeatured ? (
-                      <div className="relative flex min-h-[210px] items-stretch sm:min-h-[220px]">
-                        <div className="relative z-10 flex w-1/2 min-w-0 flex-col justify-between p-4 sm:p-5">
-                          <div className="flex items-start gap-2">
+                    <div className="relative flex min-h-[200px] items-stretch sm:min-h-[210px]">
+                      <div className="relative z-10 flex w-1/2 min-w-0 flex-col justify-between p-4 sm:p-5">
+                        <div className="flex items-start gap-2">
+                          {isTrending && (
                             <div
                               className={`
                                 mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center
@@ -618,57 +583,73 @@ export default function ConnectionsPage() {
                             >
                               {rank}
                             </div>
+                          )}
 
-                            <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <h3 className="text-[15px] font-bold tracking-[-0.01em] text-[#1A2B4C] leading-tight break-words sm:text-[15.5px]">
-                                  {fullName}
-                                </h3>
-                                {isSelf && (
-                                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#B98A3E]/40 bg-[#B98A3E]/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#8A6A2E]">
-                                    You
-                                  </span>
-                                )}
-                              </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <h3 className="text-[15px] font-bold tracking-[-0.01em] text-[#1A2B4C] leading-tight break-words sm:text-[15.5px]">
+                                {fullName}
+                              </h3>
+                              {isSelf && (
+                                <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#B98A3E]/40 bg-[#B98A3E]/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#8A6A2E]">
+                                  You
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="mt-1 space-y-0.5">
                               {user.techCenter && (
-                                <p className="mt-0.5 text-[11.5px] font-medium text-[#4B5646] break-words">
+                                <p className="text-[11.5px] font-medium text-[#4B5646] break-words">
                                   {user.techCenter.name}
+                                </p>
+                              )}
+                              {user.generalCourse && (
+                                <p className="text-[11px] text-[#6B7280] break-words font-medium">
+                                  {user.generalCourse}
+                                </p>
+                              )}
+                              {!isTrending && dateLabel && (
+                                <p className="text-[10.5px] text-[#9CA3AF] break-words">
+                                  {dateLabel}
                                 </p>
                               )}
                             </div>
                           </div>
+                        </div>
 
+                        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-[#B98A3E]/30 bg-[#B98A3E]/10 px-2 py-0.5 font-mono text-[10px] font-bold text-[#8A6A2E] tabular-nums">
+                            <Users className="h-3 w-3 shrink-0" strokeWidth={2.4} />
+                            {user.followersCount}
+                          </span>
+
+                          <span className="inline-flex items-center gap-1 rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-red-600 tabular-nums">
+                            <Heart
+                              className="h-3 w-3 shrink-0 fill-red-500 text-red-500"
+                              strokeWidth={2}
+                            />
+                            {user.likesReceivedCount}
+                          </span>
+
+                          <span className="inline-flex items-center gap-1 rounded-full border border-[#3E5C76]/30 bg-[#3E5C76]/10 px-2 py-0.5 font-mono text-[10px] font-bold text-[#3E5C76] tabular-nums">
+                            <Eye className="h-3 w-3 shrink-0" strokeWidth={2.2} />
+                            {user.profileViewsCount}
+                          </span>
+                        </div>
+
+                        {!isSelf && (
                           <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#B98A3E]/10 px-2 py-1 font-mono text-[10px] font-bold text-[#8A6A2E] tabular-nums">
-                              <Users className="h-3 w-3 shrink-0" strokeWidth={2.4} />
-                              <span>{user.followersCount}</span>
-                              <span className="font-sans font-semibold">
-                                Followers
-                              </span>
-                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                router.push(`/dashboard/students/${user.id}`)
+                              }
+                              className="inline-flex items-center gap-1 rounded-full border border-[#D1D5DB] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#1A2B4C] transition-all hover:border-[#B98A3E] hover:bg-[#F7F6F2] active:scale-95"
+                            >
+                              View Profile
+                            </button>
 
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 px-2 py-1 font-mono text-[10px] font-bold text-red-600 tabular-nums">
-                              <Heart
-                                className="h-3 w-3 shrink-0 fill-red-500 text-red-500"
-                                strokeWidth={2}
-                              />
-                              <span>{user.likesReceivedCount}</span>
-                              <span className="font-sans font-semibold">
-                                Likes
-                              </span>
-                            </span>
-
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#3E5C76]/10 px-2 py-1 font-mono text-[10px] font-bold text-[#3E5C76] tabular-nums">
-                              <Eye className="h-3 w-3 shrink-0" strokeWidth={2.2} />
-                              <span>{user.profileViewsCount}</span>
-                              <span className="font-sans font-semibold">
-                                Views
-                              </span>
-                            </span>
-                          </div>
-
-                          {!isSelf && (
-                            <div className="mt-3">
+                            {isTrending ? (
                               <SocialActions
                                 userId={user.id}
                                 currentUserId={currentUserId}
@@ -677,199 +658,78 @@ export default function ConnectionsPage() {
                                 allowUnfollow={true}
                                 allowUnlike={true}
                               />
-                            </div>
-                          )}
-                        </div>
+                            ) : (
+                              <>
+                                {activeTab === 'followers' &&
+                                  (user.isFollowing ? (
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-[#55705B] bg-[#55705B] px-2.5 py-1 text-[11px] font-semibold text-white">
+                                      <Check
+                                        className="h-3.5 w-3.5"
+                                        strokeWidth={2.5}
+                                      />
+                                      Following
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => social.follow(user.id)}
+                                      disabled={
+                                        social.isFollowPending &&
+                                        social.followTarget === user.id
+                                      }
+                                      className="inline-flex items-center gap-1 rounded-full bg-[#1A2B4C] px-2.5 py-1 text-[11px] font-semibold text-white transition-all hover:bg-[#2C3E5A] hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 active:scale-95"
+                                    >
+                                      {social.isFollowPending &&
+                                      social.followTarget === user.id ? (
+                                        <Loader2
+                                          className="h-3.5 w-3.5 animate-spin"
+                                          strokeWidth={2}
+                                        />
+                                      ) : (
+                                        <UserPlus
+                                          className="h-3.5 w-3.5"
+                                          strokeWidth={2}
+                                        />
+                                      )}
+                                      {social.isFollowPending &&
+                                      social.followTarget === user.id
+                                        ? 'Following…'
+                                        : 'Follow Back'}
+                                    </button>
+                                  ))}
 
-                        <div className="pointer-events-none absolute inset-y-0 right-0 w-1/2 overflow-hidden">
-                          {user.profileImageUrl ? (
-                            <Image
-                              src={user.profileImageUrl}
-                              alt={fullName}
-                              fill
-                              sizes="(max-width: 640px) 50vw, 450px"
-                              className="object-cover object-center"
-                              priority={rank === 1}
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center bg-[#DCE2E8]">
-                              <span className="text-5xl font-black tracking-tight text-[#1A2B4C]/35">
-                                {initials}
-                              </span>
-                            </div>
-                          )}
-                          <div
-                            className={`
-                              absolute inset-0
-                              ${
-                                rank === 1
-                                  ? 'bg-gradient-to-r from-[#FBF7E9] via-[#FBF7E9]/30 to-transparent'
-                                  : rank === 2
-                                    ? 'bg-gradient-to-r from-[#F5F6F7] via-[#F5F6F7]/30 to-transparent'
-                                    : 'bg-gradient-to-r from-[#FBF4EF] via-[#FBF4EF]/30 to-transparent'
-                              }
-                            `}
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-[#12203B]/30 via-transparent to-transparent" />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-wrap items-center gap-3 sm:flex-nowrap">
-                        {isTrending && (
-                          <div
-                            className={`
-                              flex h-7 w-7 shrink-0 items-center justify-center
-                              rounded-full font-mono text-[11px] font-bold tabular-nums
-                              ${rankBadgeStyles}
-                            `}
-                            aria-label={`Rank ${rank}`}
-                          >
-                            {rank}
+                                {activeTab === 'following' && (
+                                  <UnfollowButton userId={user.id} />
+                                )}
+
+                                {activeTab === 'likes' && likesView === 'sent' && (
+                                  <UnlikeButton userId={user.id} />
+                                )}
+                              </>
+                            )}
                           </div>
                         )}
-
-                        <div className="relative shrink-0">
-                          {user.profileImageUrl ? (
-                            <Image
-                              src={user.profileImageUrl}
-                              alt={fullName}
-                              width={40}
-                              height={40}
-                              className="h-10 w-10 rounded-full object-cover ring-1 ring-[#E5E7EB]"
-                            />
-                          ) : (
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1A2B4C]">
-                              <span className="text-[12px] font-mono font-bold text-white">
-                                {initials}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <h3 className="text-[14.5px] font-bold tracking-[-0.01em] text-[#1A2B4C] leading-tight break-words">
-                              {fullName}
-                            </h3>
-                            {isSelf && (
-                              <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#B98A3E]/40 bg-[#B98A3E]/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#8A6A2E]">
-                                You
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-[#4B5646] leading-snug">
-                            {user.techCenter && (
-                              <span className="font-medium break-words">
-                                {user.techCenter.name}
-                              </span>
-                            )}
-
-                            {isTrending ? (
-                              <>
-                                <span className="hidden text-[#D1D5DB] sm:inline">
-                                  ·
-                                </span>
-                                <span className="inline-flex items-center gap-1 rounded-full bg-[#B98A3E]/10 px-2 py-0.5 font-mono text-[10px] font-bold text-[#8A6A2E] tabular-nums">
-                                  <Users className="h-3 w-3" strokeWidth={2.4} />
-                                  {user.followersCount}
-                                </span>
-                                <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-red-600 tabular-nums">
-                                  <Heart
-                                    className="h-3 w-3 fill-red-500 text-red-500"
-                                    strokeWidth={2}
-                                  />
-                                  {user.likesReceivedCount}
-                                </span>
-                                <span className="inline-flex items-center gap-1 rounded-full bg-[#3E5C76]/10 px-2 py-0.5 font-mono text-[10px] font-bold text-[#3E5C76] tabular-nums">
-                                  <Eye className="h-3 w-3" strokeWidth={2.2} />
-                                  {user.profileViewsCount}
-                                </span>
-                              </>
-                            ) : (
-                              dateLabel && (
-                                <span className="text-[#6B7280] break-words">
-                                  {dateLabel}
-                                </span>
-                              )
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-1.5 sm:w-auto">
-                          {isSelf ? null : isTrending ? (
-                            <SocialActions
-                              userId={user.id}
-                              currentUserId={currentUserId}
-                              size="sm"
-                              allowUnfollow={true}
-                              allowUnlike={true}
-                              onViewProfile={() =>
-                                router.push(`/dashboard/students/${user.id}`)
-                              }
-                            />
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  router.push(`/dashboard/students/${user.id}`)
-                                }
-                                className="inline-flex items-center gap-1 rounded-full border border-transparent px-2.5 py-1 text-[11px] font-semibold text-[#1A2B4C] transition-all hover:border-[#E5E7EB] hover:bg-[#F7F6F2] active:scale-95"
-                              >
-                                View Profile
-                              </button>
-
-                              {activeTab === 'followers' &&
-                                (user.isFollowing ? (
-                                  <span className="inline-flex items-center gap-1 rounded-full border border-[#55705B] bg-[#55705B] px-2.5 py-1 text-[11px] font-semibold text-white">
-                                    <Check
-                                      className="h-3.5 w-3.5"
-                                      strokeWidth={2.5}
-                                    />
-                                    Following
-                                  </span>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => social.follow(user.id)}
-                                    disabled={
-                                      social.isFollowPending &&
-                                      social.followTarget === user.id
-                                    }
-                                    className="inline-flex items-center gap-1 rounded-full bg-[#1A2B4C] px-2.5 py-1 text-[11px] font-semibold text-white transition-all hover:bg-[#2C3E5A] hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 active:scale-95"
-                                  >
-                                    {social.isFollowPending &&
-                                    social.followTarget === user.id ? (
-                                      <Loader2
-                                        className="h-3.5 w-3.5 animate-spin"
-                                        strokeWidth={2}
-                                      />
-                                    ) : (
-                                      <UserPlus
-                                        className="h-3.5 w-3.5"
-                                        strokeWidth={2}
-                                      />
-                                    )}
-                                    {social.isFollowPending &&
-                                    social.followTarget === user.id
-                                      ? 'Following…'
-                                      : 'Follow Back'}
-                                  </button>
-                                ))}
-
-                              {activeTab === 'following' && (
-                                <UnfollowButton userId={user.id} />
-                              )}
-
-                              {activeTab === 'likes' && likesView === 'sent' && (
-                                <UnlikeButton userId={user.id} />
-                              )}
-                            </>
-                          )}
-                        </div>
                       </div>
-                    )}
+
+                      <div className="pointer-events-none absolute inset-y-0 right-0 w-1/2 overflow-hidden">
+                        {user.profileImageUrl ? (
+                          <Image
+                            src={user.profileImageUrl}
+                            alt={fullName}
+                            fill
+                            sizes="(max-width: 640px) 50vw, 450px"
+                            className="object-cover object-center"
+                            priority={rank === 1}
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-[#DCE2E8]">
+                            <span className="text-5xl font-black tracking-tight text-[#1A2B4C]/35">
+                              {initials}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </li>
                 );
               })}

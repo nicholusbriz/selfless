@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Play, Pause, User } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Pause, User, Users, Trophy, Crown, Briefcase, GraduationCap, ChevronDown } from 'lucide-react';
 import { useAllFootballTeams } from '@/hooks/useAllFootballTeams';
+import { useQuery } from '@tanstack/react-query';
 import Image from 'next/image';
 
 const AUTO_SCROLL_MS = 10000;
@@ -14,7 +15,7 @@ const AUTO_SCROLL_MS = 10000;
 
 function PlayerGridSkeleton({
   dark = false,
-  count = 9,
+  count = 12,
 }: {
   dark?: boolean;
   count?: number;
@@ -24,9 +25,12 @@ function PlayerGridSkeleton({
     <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-3">
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="flex items-center gap-2 px-1 py-1">
-          <div className={`h-7 w-7 shrink-0 animate-pulse rounded-full ${base}`} />
-          <div className={`h-2.5 w-20 flex-1 animate-pulse rounded sm:w-auto ${base}`} />
-          <div className={`h-2.5 w-5 shrink-0 animate-pulse rounded ${base}`} />
+          <div className={`h-8 w-8 shrink-0 animate-pulse rounded-full ${base}`} />
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className={`h-2.5 w-24 animate-pulse rounded sm:w-auto ${base}`} />
+            <div className={`h-2 w-8 animate-pulse rounded ${base}`} />
+          </div>
+          <div className={`h-2.5 w-6 shrink-0 animate-pulse rounded ${base}`} />
         </div>
       ))}
     </div>
@@ -44,33 +48,25 @@ function CarouselSkeleton({ inHeader = false }: { inHeader?: boolean }) {
   return (
     <div className={`overflow-hidden rounded-xl ${bg} shadow-sm`}>
       <div className={`h-0.5 w-full ${stripe}`} />
-      <div className="p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <div className={`h-2.5 w-14 animate-pulse rounded ${label}`} />
-          <div className="flex items-center gap-1">
-            <div className={`h-7 w-7 animate-pulse rounded-md ${btn}`} />
-            <div className={`h-7 w-7 animate-pulse rounded-md ${btn}`} />
-            <div className={`h-7 w-7 animate-pulse rounded-md ${btn}`} />
-          </div>
-        </div>
-
-        <div className={`mb-3 h-3.5 w-3/4 animate-pulse rounded ${label}`} />
-        <div className="mb-4 space-y-2">
+      <div className="p-3">
+        <div className={`mb-2 h-3.5 w-3/4 animate-pulse rounded ${label}`} />
+        <div className="mb-2 space-y-2">
           <div className={`h-2.5 w-full animate-pulse rounded ${line}`} />
           <div className={`h-2.5 w-2/3 animate-pulse rounded ${line}`} />
         </div>
 
-        {/* Squad panel — same fixed height on all sizes */}
-        <div className={`mb-4 h-[220px] overflow-hidden rounded-md ${squadBg} p-3`}>
-          <PlayerGridSkeleton dark={inHeader} count={9} />
+        {/* Squad panel — fixed height for consistent size across screen sizes */}
+        <div className={`mb-2 h-[260px] overflow-hidden rounded-md ${squadBg} p-3 sm:h-[100px]`}>
+          <PlayerGridSkeleton dark={inHeader} count={12} />
         </div>
 
-        <div className="mt-4 flex items-center justify-between">
+        {/* Bottom controls */}
+        <div className="mt-2 flex items-center justify-between">
           <div className={`h-2.5 w-10 animate-pulse rounded ${line}`} />
-          <div className="flex items-center gap-1.5">
-            <div className={`h-1.5 w-4 animate-pulse rounded-full ${label}`} />
-            <div className={`h-1.5 w-1.5 animate-pulse rounded-full ${line}`} />
-            <div className={`h-1.5 w-1.5 animate-pulse rounded-full ${line}`} />
+          <div className="flex items-center gap-1">
+            <div className={`h-6 w-6 animate-pulse rounded-md ${btn}`} />
+            <div className={`h-6 w-6 animate-pulse rounded-md ${btn}`} />
+            <div className={`h-6 w-6 animate-pulse rounded-md ${btn}`} />
           </div>
         </div>
       </div>
@@ -87,6 +83,27 @@ type Player = {
   lastName: string;
   jerseyNumber?: number | string | null;
   image?: string | null;
+  isDirector?: boolean;
+  isManager?: boolean;
+  isTutor?: boolean;
+  firstName?: string;
+  position?: string | null;
+};
+
+type Director = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  profileImageUrl?: string | null;
+};
+
+type TechCenterAdmin = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  profileImageUrl?: string | null;
+  isManager?: boolean;
+  isTutor?: boolean;
 };
 
 function PlayerGrid({
@@ -103,22 +120,22 @@ function PlayerGrid({
         <div key={player.id} className="flex min-w-0 items-center gap-2">
           {/* Avatar */}
           <div
-            className={`relative h-7 w-7 shrink-0 overflow-hidden rounded-full ${
+            className={`relative h-8 w-8 shrink-0 overflow-hidden rounded-full ${
               dark ? 'bg-white/10' : 'bg-[#F1F1EC]'
             }`}
           >
             {player.image ? (
               <Image
                 src={player.image}
-                alt={player.lastName}
+                alt={player.firstName ? `${player.firstName} ${player.lastName}` : player.lastName}
                 fill
-                sizes="28px"
+                sizes="32px"
                 className="object-cover"
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center">
                 <User
-                  className={`h-3.5 w-3.5 ${
+                  className={`h-4 w-4 ${
                     dark ? 'text-white/50' : 'text-[#6B7268]'
                   }`}
                 />
@@ -127,22 +144,66 @@ function PlayerGrid({
           </div>
 
           {/* Name */}
-          <p
-            className={`min-w-0 flex-1 text-[12px] font-semibold leading-tight sm:truncate ${
-              dark ? 'text-[#F1F1EC]' : 'text-[#12203B]'
-            }`}
-          >
-            {player.lastName}
-          </p>
+          <div className="min-w-0 flex-1">
+            <p
+              className={`text-[13px] font-semibold leading-tight truncate ${
+                dark ? 'text-[#F1F1EC]' : 'text-[#12203B]'
+              }`}
+            >
+              {player.isDirector || player.isManager || player.isTutor
+                ? `${player.firstName || ''} ${player.lastName}`.trim()
+                : player.lastName}
+            </p>
+            {/* Role label after name */}
+            <p
+              className={`text-[10px] font-medium leading-tight ${
+                player.isDirector
+                  ? dark
+                    ? 'text-[#E8A33D]'
+                    : 'text-[#B98A3E]'
+                  : dark
+                  ? 'text-[#AEB4AA]'
+                  : 'text-[#6B7268]'
+              }`}
+            >
+              {player.isDirector
+                ? 'Director'
+                : player.isManager
+                ? 'Manager'
+                : player.isTutor
+                ? 'Tutor'
+                : player.position || 'Player'}
+            </p>
+          </div>
 
-          {/* Number as plain text */}
-          <span
-            className={`shrink-0 text-[11px] font-medium tabular-nums ${
-              dark ? 'text-[#AEB4AA]' : 'text-[#6B7268]'
-            }`}
-          >
-            {player.jerseyNumber ?? '—'}
-          </span>
+          {/* Icon or jersey number */}
+          {player.isDirector ? (
+            <Crown
+              className={`h-3.5 w-3.5 shrink-0 ${
+                dark ? 'text-[#E8A33D]' : 'text-[#B98A3E]'
+              }`}
+            />
+          ) : player.isManager ? (
+            <Briefcase
+              className={`h-3.5 w-3.5 shrink-0 ${
+                dark ? 'text-[#55705B]' : 'text-[#55705B]'
+              }`}
+            />
+          ) : player.isTutor ? (
+            <GraduationCap
+              className={`h-3.5 w-3.5 shrink-0 ${
+                dark ? 'text-[#55705B]' : 'text-[#55705B]'
+              }`}
+            />
+          ) : (
+            <span
+              className={`shrink-0 text-[12px] font-medium tabular-nums ${
+                dark ? 'text-[#AEB4AA]' : 'text-[#6B7268]'
+              }`}
+            >
+              {player.jerseyNumber ?? '—'}
+            </span>
+          )}
         </div>
       ))}
     </div>
@@ -164,21 +225,96 @@ export default function AnnouncementCarousel({
   const [index, setIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [progressKey, setProgressKey] = useState(0);
-  const { data: teams, isLoading } = useAllFootballTeams();
+  const { data: teams, isLoading: teamsLoading } = useAllFootballTeams();
 
-  const cards = (teams || []).map((team) => ({
-    id: `football-${team.techCenterId}-squad`,
-    title: `${team.techCenterName} Squad`,
-    body: `${team.members.length} player${
-      team.members.length !== 1 ? 's' : ''
-    } on the roster`,
-    players: team.members.map<Player>((m) => ({
-      id: m.user.id,
-      lastName: m.user.lastName,
-      jerseyNumber: m.jerseyNumber,
-      image: m.user.profileImageUrl,
+  // Fetch directors
+  const { data: directors = [], isLoading: directorsLoading } = useQuery({
+    queryKey: ['directors'],
+    queryFn: async () => {
+      const response = await fetch('/api/directors');
+      if (!response.ok) throw new Error('Failed to fetch directors');
+      const data = await response.json();
+      if (!data.success) throw new Error(data?.error ?? 'Failed');
+      return data.directors;
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchInterval: 3 * 60 * 1000, // Refetch every 3 minutes to keep data fresh
+  });
+
+  // Fetch tech center admin teams
+  const { data: techCenterTeams = [], isLoading: techCenterTeamsLoading } = useQuery({
+    queryKey: ['tech-center-admin-teams'],
+    queryFn: async () => {
+      const response = await fetch('/api/tech-centers/admin-teams');
+      if (!response.ok) throw new Error('Failed to fetch tech center admin teams');
+      const data = await response.json();
+      if (!data.success) throw new Error(data?.error ?? 'Failed');
+      return data.techCenters;
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchInterval: 3 * 60 * 1000, // Refetch every 3 minutes to keep data fresh
+  });
+
+  const isLoading = teamsLoading || directorsLoading || techCenterTeamsLoading;
+
+  const cards = [
+    // Director card
+    ...(directors.length > 0 ? [{
+      id: 'selfless-directors',
+      title: 'Selfless Directors',
+      body: `${directors.length} director${directors.length !== 1 ? 's' : ''} leading the organization`,
+      players: directors.map((d: Director): Player => ({
+        id: d.id,
+        firstName: d.firstName,
+        lastName: d.lastName,
+        jerseyNumber: null,
+        image: d.profileImageUrl,
+        isDirector: true,
+      })),
+    }] : []),
+    // Tech center administration team cards
+    ...techCenterTeams.map((tc: any) => {
+      const allTeamMembers = [
+        ...tc.admins.map((a: any) => ({ ...a, isManager: true })),
+        ...tc.teachers.map((t: any) => ({ ...t, isTutor: true })),
+      ];
+
+      if (allTeamMembers.length === 0) return null;
+
+      return {
+        id: `admin-team-${tc.id}`,
+        title: `${tc.name} Administration Team`,
+        body: `${tc.admins.length} manager${tc.admins.length !== 1 ? 's' : ''}, ${tc.teachers.length} tutor${tc.teachers.length !== 1 ? 's' : ''}`,
+        players: allTeamMembers.map((m: TechCenterAdmin): Player => ({
+          id: m.id,
+          firstName: m.firstName,
+          lastName: m.lastName,
+          jerseyNumber: null,
+          image: m.profileImageUrl,
+          isManager: m.isManager,
+          isTutor: m.isTutor,
+        })),
+      };
+    }).filter(Boolean),
+    // Football team cards
+    ...(teams || []).map((team) => ({
+      id: `football-${team.techCenterId}-squad`,
+      title: `${team.techCenterName} Football Team Squad`,
+      body: `${team.members.length} player${
+        team.members.length !== 1 ? 's' : ''
+      } on the roster`,
+      players: team.members.map<Player>((m) => ({
+        id: m.user.id,
+        lastName: m.user.lastName,
+        jerseyNumber: m.jerseyNumber,
+        image: m.user.profileImageUrl,
+        isDirector: false,
+        position: m.position,
+      })),
     })),
-  }));
+  ];
 
   const total = cards.length;
   const current = cards[index];
@@ -262,46 +398,7 @@ export default function AnnouncementCarousel({
         )}
       </div>
 
-      <div className="p-5">
-        {/* Header */}
-        <div className="mb-3 flex items-center justify-between">
-          <p
-            className={`text-[11px] font-semibold uppercase tracking-[0.15em] ${p.label}`}
-          >
-            Sports
-          </p>
-
-          <div className="flex items-center gap-1">
-            <button
-              onClick={prev}
-              aria-label="Previous"
-              className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${p.navBtn}`}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-
-            <button
-              onClick={() => setIsPaused((x) => !x)}
-              aria-label={isPaused ? 'Play' : 'Pause'}
-              className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${p.navBtn}`}
-            >
-              {isPaused ? (
-                <Play className="h-3.5 w-3.5" />
-              ) : (
-                <Pause className="h-3.5 w-3.5" />
-              )}
-            </button>
-
-            <button
-              onClick={next}
-              aria-label="Next"
-              className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${p.navBtn}`}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
+      <div className="p-3">
         {/* Content */}
         <AnimatePresence mode="wait">
           <motion.div
@@ -312,38 +409,68 @@ export default function AnnouncementCarousel({
             transition={{ duration: 0.25 }}
           >
             <h3
-              className={`mb-1 text-[16px] font-semibold leading-snug ${p.title}`}
+              className={`mb-1 text-[15px] font-semibold leading-snug ${p.title}`}
             >
               {current.title}
             </h3>
 
-            <p className={`mb-4 text-[12.5px] ${p.body}`}>{current.body}</p>
+            <p className={`mb-2 text-[12px] ${p.body}`}>{current.body}</p>
 
-            {/* Squad panel — SAME fixed height every size, scrolls internally */}
+            {/* Squad panel — fixed height for consistent size across screen sizes */}
             <div
-              className={`mb-4 h-[220px] overflow-hidden rounded-md border p-3 ${p.squadBg}`}
+              className={`mb-2 h-[260px] overflow-hidden rounded-md border p-3 sm:h-[100px] ${p.squadBg}`}
             >
               <PlayerGrid players={current.players} dark={inHeader} />
             </div>
           </motion.div>
         </AnimatePresence>
 
-        {/* Footer */}
-        <div className="mt-4 flex items-center justify-between">
-          <span className={`text-[11px] tabular-nums ${p.counter}`}>
+        {/* Bottom controls */}
+        <div className="mt-2 flex items-center justify-between">
+          <span className={`text-[10px] tabular-nums ${p.counter}`}>
             {index + 1} / {total}
           </span>
-          <div className="flex items-center gap-1.5">
-            {cards.map((c, i) => (
-              <button
-                key={c.id}
-                onClick={() => goTo(i)}
-                aria-label={`Go to slide ${i + 1}`}
-                className={`h-1.5 rounded-full transition-all ${
-                  i === index ? `w-5 ${p.dotActive}` : `w-1.5 ${p.dot}`
-                }`}
-              />
-            ))}
+
+          {/* Scroll indicator in the middle */}
+          {current.players.length > 6 && (
+            <div
+              className={`flex items-center gap-1 text-[10px] font-medium ${
+                inHeader ? 'text-[#AEB4AA]' : 'text-[#6B7268]'
+              }`}
+            >
+              <span>scroll</span>
+              <ChevronDown className="h-3 w-3" />
+            </div>
+          )}
+
+          <div className="flex items-center gap-1">
+            <button
+              onClick={prev}
+              aria-label="Previous"
+              className={`flex h-6 w-6 items-center justify-center rounded-md transition-colors ${p.navBtn}`}
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </button>
+
+            <button
+              onClick={() => setIsPaused((x) => !x)}
+              aria-label={isPaused ? 'Play' : 'Pause'}
+              className={`flex h-6 w-6 items-center justify-center rounded-md transition-colors ${p.navBtn}`}
+            >
+              {isPaused ? (
+                <Play className="h-3 w-3" />
+              ) : (
+                <Pause className="h-3 w-3" />
+              )}
+            </button>
+
+            <button
+              onClick={next}
+              aria-label="Next"
+              className={`flex h-6 w-6 items-center justify-center rounded-md transition-colors ${p.navBtn}`}
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
           </div>
         </div>
       </div>

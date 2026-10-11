@@ -277,7 +277,7 @@ const StudentCard = ({
           : student.role?.name || 'Student';
 
   return (
-    <article className="group flex w-[275px] shrink-0 snap-start flex-col border border-[#D1D5DB] bg-white transition-shadow hover:shadow-[0_2px_12px_rgba(26,43,76,0.08)]">
+    <article className="group flex w-[275px] shrink-0 snap-start flex-col border border-[#D1D5DB] bg-white transition-shadow hover:shadow-[0_2px_12px_rgba(26,43,76,0.08)] sm:w-[285px]">
       {/* ── Top: image + name/center/stats ── */}
       <div className="flex gap-2.5 p-2.5">
         {/* Profile Image */}
@@ -333,7 +333,7 @@ const StudentCard = ({
               className="h-1.5 w-1.5 shrink-0 rounded-full border border-[#D1D5DB]"
               style={{ backgroundColor: hue || '#B98A3E' }}
             />
-            <span className="truncate" title={student.techCenter?.name ?? ''}>
+            <span className="truncate font-medium" title={student.techCenter?.name ?? ''}>
               {student.techCenter?.name ||
                 student.techCenter?.country?.name ||
                 'Campus Member'}
@@ -378,7 +378,7 @@ const StudentCard = ({
         <span className="block font-mono text-[8.5px] font-bold uppercase tracking-wide text-[#B98A3E]">
           Degree Program
         </span>
-        <span className="mt-0.5 block break-words text-[11px] font-medium text-[#1A2B4C]">
+        <span className="mt-0.5 block break-words text-[11px] font-medium text-[#1A2B4C]" title={student.generalCourse || 'General Curriculum'}>
           {student.generalCourse || 'General Curriculum'}
         </span>
       </div>
@@ -399,7 +399,7 @@ const StudentCard = ({
                 key={course.id}
                 className="flex items-start justify-between gap-2 border-l-2 border-[#E5E7EB] py-0.5 pl-1.5"
               >
-                <span className="min-w-0 flex-1 break-words text-[10px] leading-snug text-[#1A2B4C]">
+                <span className="min-w-0 flex-1 break-words text-[10px] leading-snug text-[#1A2B4C]" title={course.courseUnit}>
                   {course.courseUnit}
                 </span>
                 <span className="shrink-0 font-mono text-[8.5px] font-bold text-[#55705B]">
@@ -416,7 +416,7 @@ const StudentCard = ({
         <button
           type="button"
           onClick={() => router.push(`/dashboard/students/${student.id}`)}
-          className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#1A2B4C] hover:text-[#B98A3E]"
+          className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#1A2B4C] hover:text-[#B98A3E] whitespace-nowrap"
         >
           View profile
           <ChevronRight className="h-3 w-3" />
@@ -491,7 +491,7 @@ function HorizontalRail({
 
   if (students.length === 0) {
     return (
-      <section className="mb-6">
+      <section className="mb-5 sm:mb-6">
         <div className="mb-2.5 flex items-baseline gap-3 border-t border-[#1A2B4C] pt-2">
           {hue && (
             <span
@@ -499,7 +499,7 @@ function HorizontalRail({
               style={{ backgroundColor: hue }}
             />
           )}
-          <h2 className="text-[15px] font-bold uppercase tracking-wide text-[#1A2B4C]">
+          <h2 className="text-[14px] font-bold uppercase tracking-wide text-[#1A2B4C] sm:text-[15px]">
             {label}
           </h2>
         </div>
@@ -511,7 +511,7 @@ function HorizontalRail({
   }
 
   return (
-    <section className="mb-6">
+    <section className="mb-5 sm:mb-6">
       <div className="mb-2.5 flex items-baseline border-t border-[#1A2B4C] pt-2">
         <div className="flex items-center gap-2">
           {hue && (
@@ -520,7 +520,7 @@ function HorizontalRail({
               style={{ backgroundColor: hue }}
             />
           )}
-          <h2 className="text-[15px] font-bold uppercase tracking-wide text-[#1A2B4C]">
+          <h2 className="text-[14px] font-bold uppercase tracking-wide text-[#1A2B4C] sm:text-[15px]">
             {label}
           </h2>
         </div>
@@ -571,7 +571,7 @@ function HorizontalRail({
 
       <div
         ref={railRef}
-        className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 scroll-smooth"
+        className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 scroll-smooth px-1"
         style={{ scrollbarWidth: 'thin', scrollSnapType: 'x mandatory' }}
       >
         {visibleStudents.map((student) => (
@@ -588,7 +588,7 @@ function HorizontalRail({
 
       <div className="mt-1 flex items-center justify-between gap-1">
         {visibleStudents.length > 2 && (
-          <div className="flex items-center gap-2 text-[11px] text-[#6B7280]">
+          <div className="flex items-center gap-2 text-[11px] text-[#6B7280] hidden sm:flex">
             <span className="font-mono text-[10px] uppercase tracking-wider">
               Scroll to discover more
             </span>
@@ -601,7 +601,7 @@ function HorizontalRail({
             type="button"
             onClick={scrollLeft}
             aria-label="Scroll left"
-            className="inline-flex h-6 w-6 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C]"
+            className="inline-flex h-7 w-7 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C] active:bg-[#E5E7EB] sm:h-6 sm:w-6"
           >
             <ChevronLeft className="h-3.5 w-3.5" />
           </button>
@@ -609,7 +609,7 @@ function HorizontalRail({
             type="button"
             onClick={scrollRight}
             aria-label="Scroll right"
-            className="inline-flex h-6 w-6 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C]"
+            className="inline-flex h-7 w-7 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C] active:bg-[#E5E7EB] sm:h-6 sm:w-6"
           >
             <ChevronRight className="h-3.5 w-3.5" />
           </button>
@@ -637,7 +637,7 @@ function StudentDirectorySkeleton() {
               <div
                 key={card}
                 aria-hidden="true"
-                className="h-[360px] w-[275px] shrink-0 border border-[#D1D5DB] bg-white"
+                className="h-[360px] w-[275px] shrink-0 border border-[#D1D5DB] bg-white sm:w-[285px]"
               >
                 <div className="p-2.5">
                   <div className="flex gap-2.5">
@@ -699,7 +699,7 @@ function SearchFilterBar({
 
   return (
     <section className="border border-[#1A2B4C] bg-white">
-      <div className="bg-[#F7F6F2] px-3 py-2">
+      <div className="bg-[#F7F6F2] px-3 py-2 sm:px-4">
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center justify-end gap-2">
             <div className="flex items-center gap-1.5">
@@ -787,7 +787,7 @@ function SearchFilterBar({
         </div>
       </div>
 
-      <div className="border-t border-[#D1D5DB] px-3 py-2">
+      <div className="border-t border-[#D1D5DB] px-3 py-2 sm:px-4">
         <div className="relative w-full">
           <Search
             className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#6B7280]"
@@ -822,6 +822,8 @@ function SearchFilterBar({
 // ============================================================
 
 function CommunityTicker({ students }: { students: Student[] }) {
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const router = useRouter();
   const profileStudents = students.filter(
     (student) =>
       typeof student.profileImageUrl === 'string' &&
@@ -830,35 +832,101 @@ function CommunityTicker({ students }: { students: Student[] }) {
   const tickerStudents = [...profileStudents, ...profileStudents];
 
   return (
-    <div className="border border-[#1A2B4C] bg-[#1A2B4C]">
-      <div className="flex h-9 items-center overflow-hidden">
-        <div className="flex h-full shrink-0 items-center border-r border-white/20 bg-[#0F1923] px-3">
-          <span className="font-mono text-[9px] font-bold tracking-widest text-[#B98A3E] uppercase">
-            Directory Stream
-          </span>
+    <div className="border border-[#D1D5DB] bg-white">
+      {/* Selected Student Info Display */}
+      {selectedStudent && (
+        <div className="border-b border-[#D1D5DB] bg-[#F7F6F2] px-3 py-3 sm:px-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="relative h-12 w-12 shrink-0 overflow-hidden border border-[#D1D5DB] bg-white">
+                {selectedStudent.profileImageUrl ? (
+                  <Image
+                    src={selectedStudent.profileImageUrl}
+                    alt={`${selectedStudent.firstName} ${selectedStudent.lastName}`}
+                    fill
+                    sizes="48px"
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-[#1A2B4C]">
+                    <span className="font-mono text-[14px] font-bold tracking-wider text-[#B98A3E]">
+                      {`${selectedStudent.firstName.charAt(0)}${selectedStudent.lastName.charAt(0)}`.toUpperCase()}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-[13px] font-bold text-[#1A2B4C] line-clamp-1">
+                  {selectedStudent.firstName} {selectedStudent.lastName}
+                </h3>
+                <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-[#4B5646]">
+                  <span
+                    className="h-1.5 w-1.5 shrink-0 rounded-full border border-[#D1D5DB]"
+                    style={{ backgroundColor: getTechCenterHue(selectedStudent.techCenter?.name) || '#B98A3E' }}
+                  />
+                  <span className="truncate font-medium" title={selectedStudent.techCenter?.name || 'Campus Member'}>
+                    {selectedStudent.techCenter?.name || 'Campus Member'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 sm:shrink">
+              <button
+                type="button"
+                onClick={() => router.push(`/dashboard/students/${selectedStudent.id}`)}
+                aria-label={`View ${selectedStudent.firstName} ${selectedStudent.lastName}'s profile`}
+                className="inline-flex items-center gap-1.5 h-8 px-3 border border-[#1A2B4C] bg-[#1A2B4C] text-[11px] font-bold text-white hover:bg-[#23385d] active:bg-[#2a4473] transition-colors whitespace-nowrap"
+              >
+                View profile
+                <ChevronRight className="h-3 w-3" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedStudent(null)}
+                aria-label="Close student info"
+                className="inline-flex h-8 w-8 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C] active:bg-[#E5E7EB] shrink-0"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
         </div>
+      )}
 
+      {/* Interaction Note */}
+      {!selectedStudent && profileStudents.length > 0 && (
+        <div className="bg-[#F7F6F2] px-4 py-2 border-b border-[#D1D5DB]">
+          <p className="text-[10px] text-[#6B7280]">
+            💡 <span className="font-medium text-[#4B5646]">Tip:</span> Click on any student image to view their name and tech center
+          </p>
+        </div>
+      )}
+
+      <div className="flex h-24 items-center overflow-hidden px-2 sm:px-3">
         <div className="relative min-w-0 flex-1 overflow-hidden">
           {profileStudents.length > 0 ? (
-            <div className="student-avatar-ticker flex w-max items-center gap-2 px-3">
+            <div className="student-avatar-ticker flex w-max items-center gap-2 sm:gap-3">
               {tickerStudents.map((student, index) => (
-                <div
+                <button
                   key={`${student.id}-${index}`}
-                  className="relative h-6 w-6 shrink-0 overflow-hidden border border-white/30 bg-white"
+                  type="button"
+                  onClick={() => setSelectedStudent(student)}
+                  className="relative h-20 w-20 shrink-0 overflow-hidden bg-white border-2 border-transparent hover:border-[#B98A3E] active:border-[#B98A3E] active:scale-95 transition-all focus:border-[#B98A3E] focus:outline-none touch-manipulation sm:h-20 sm:w-20"
                   title={`${student.firstName} ${student.lastName}`}
+                  aria-label={`View ${student.firstName} ${student.lastName}'s info`}
                 >
                   <Image
                     src={student.profileImageUrl!}
                     alt={`${student.firstName} ${student.lastName}`}
                     fill
-                    sizes="24px"
+                    sizes="80px"
                     className="object-cover"
                   />
-                </div>
+                </button>
               ))}
             </div>
           ) : (
-            <p className="px-3 text-[11px] text-white/70">
+            <p className="text-[12px] text-[#6B7280]">
               Active student roster
             </p>
           )}
@@ -867,7 +935,7 @@ function CommunityTicker({ students }: { students: Student[] }) {
 
       <style jsx>{`
         .student-avatar-ticker {
-          animation: studentAvatarTicker 34s linear infinite;
+          animation: studentAvatarTicker 70s linear infinite;
           will-change: transform;
         }
         @keyframes studentAvatarTicker {
@@ -987,61 +1055,17 @@ export default function StudentsPage() {
 
   return (
     <div className="min-h-screen bg-[#F7F6F2] text-[#1A2B4C]">
-      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6">
-        
-        {/* Institutional Header Banner */}
-        <div className="mb-5 border border-[#1A2B4C] bg-[#1A2B4C] p-4 text-white">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#B98A3E]">
-                Official Directory
-              </p>
-              <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
-                Student Directory & Academic Roster
-              </h1>
-              <p className="mt-1 text-[11px] text-white/80">
-                Browse student profiles, course registrations, and institutional campus locations.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setFeedScope('all')}
-                className={`border px-3 py-1.5 text-[11px] font-bold transition-colors ${
-                  feedScope === 'all'
-                    ? 'border-[#B98A3E] bg-[#B98A3E] text-white'
-                    : 'border-white/20 bg-[#1A2B4C] text-white hover:border-white'
-                }`}
-              >
-                All Students
-              </button>
-              {currentUserId && (
-                <button
-                  type="button"
-                  onClick={() => setFeedScope('following')}
-                  className={`border px-3 py-1.5 text-[11px] font-bold transition-colors ${
-                    feedScope === 'following'
-                      ? 'border-[#B98A3E] bg-[#B98A3E] text-white'
-                      : 'border-white/20 bg-[#1A2B4C] text-white hover:border-white'
-                  }`}
-                >
-                  Following
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+      <div className="mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-5">
 
         {/* Community Ticker */}
         {!isSearching && !isLoading && (
-          <div className="mb-5">
+          <div className="mb-4 sm:mb-5">
             <CommunityTicker students={allStudents} />
           </div>
         )}
 
         {/* Search & Filter Section */}
-        <div className="mb-6">
+        <div className="mb-5 sm:mb-6">
           <SearchFilterBar
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}

@@ -321,7 +321,7 @@ const sharedNavigation: NavSection[] = [
         label: 'Notifications',
         path: '/dashboard/notifications',
         icon: <Bell className={iconClass} />,
-        roles: NON_SUPER_ADMIN_ROLES,
+        roles: ALL_ROLES,
       },
     ],
   },
@@ -969,29 +969,28 @@ function TopBar({
             </Link>
           </motion.div>
 
-          {/* NOTIFICATIONS - Hide for super_admin */}
-          {userRole !== 'super_admin' && (
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+          {/* NOTIFICATIONS */}
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Link
+              href="/dashboard/notifications"
+              aria-label="Notifications"
+              className={cn(
+                'relative flex items-center justify-center',
+                'w-9 h-9 rounded-lg',
+                'text-[#1A2B4C]',
+                'hover:text-[#B98A3E]',
+                'hover:bg-[#F7F6F2]',
+                'transition-all duration-200',
+                'focus:outline-none focus:ring-2 focus:ring-[#B98A3E]/30'
+              )}
             >
-              <Link
-                href="/dashboard/notifications"
-                aria-label="Notifications"
-                className={cn(
-                  'relative flex items-center justify-center',
-                  'w-9 h-9 rounded-lg',
-                  'text-[#1A2B4C]',
-                  'hover:text-[#B98A3E]',
-                  'hover:bg-[#F7F6F2]',
-                  'transition-all duration-200',
-                  'focus:outline-none focus:ring-2 focus:ring-[#B98A3E]/30'
-                )}
-              >
-                <Bell className="w-[18px] h-[18px]" />
+              <Bell className="w-[18px] h-[18px]" />
 
-                {unreadCount &&
-                  unreadCount > 0 ? (
+              {unreadCount &&
+                unreadCount > 0 ? (
                   <motion.span
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
@@ -1002,9 +1001,8 @@ function TopBar({
                       : unreadCount}
                   </motion.span>
                 ) : null}
-              </Link>
-            </motion.div>
-          )}
+            </Link>
+          </motion.div>
 
           {/* MESSAGES */}
           <motion.div
