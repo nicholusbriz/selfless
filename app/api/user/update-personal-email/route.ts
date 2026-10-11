@@ -49,10 +49,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Update user's personal email
+    // Check if current email is a .edu email
+    const isEduEmail = user.email.toLowerCase().endsWith('.edu');
+
+    // Update user: replace main email with Gmail, save old .edu email if applicable
+    const updateData: any = { email: personalEmail };
+    if (isEduEmail) {
+      updateData.eduEmail = user.email;
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
-      data: { personalEmail },
+      data: updateData,
       include: {
         role: {
           select: {
@@ -69,10 +77,14 @@ export async function POST(req: NextRequest) {
     await prisma.activityLog.create({
       data: {
         userId: user.id,
-        action: 'update_personal_email',
+        action: 'update_email',
         entityType: 'user',
         entityId: user.id,
-        details: { personalEmail },
+        details: { 
+          oldEmail: user.email, 
+          newEmail: personalEmail,
+          eduEmail: isEduEmail ? user.email : undefined
+        },
         techCenterId: user.techCenterId,
       },
     });
@@ -84,7 +96,7 @@ export async function POST(req: NextRequest) {
       user: {
         id: updatedUser.id,
         email: updatedUser.email,
-        personalEmail: updatedUser.personalEmail,
+        eduEmail: updatedUser.eduEmail,
         firstName: updatedUser.firstName,
         lastName: updatedUser.lastName,
         role: updatedUser.role?.name || 'student',
@@ -95,7 +107,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error('Personal email update API error:', error);
+    console.error('Email update API error:', error);
     
     if (error.message === 'Unauthorized') {
       return NextResponse.json(
@@ -105,7 +117,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Failed to update personal email' },
+      { error: 'Failed to update email' },
       { status: 500 }
     );
   }

@@ -109,7 +109,7 @@ export default function EduEmailRestriction({ eduEmail, onClose }: EduEmailRestr
           </h2>
 
           <p className="text-[#4B564C] text-sm mt-1.5 leading-5">
-            Your .edu email is restricted for BYU communications
+            Please update your login email to a personal Gmail address
           </p>
         </div>
 
@@ -119,11 +119,10 @@ export default function EduEmailRestriction({ eduEmail, onClose }: EduEmailRestr
             <AlertCircle className="w-5 h-5 text-[#E8A33D] flex-shrink-0 mt-0.5" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-[#12203B]">
-                BYU Email Policy
+                Email Update Required
               </p>
               <p className="text-xs text-[#4B564C] leading-5 mt-1.5">
-                Your BYU email ({eduEmail}) is restricted to receive only BYU-related communications. 
-                Please provide your personal Gmail address for general platform notifications.
+                Your .edu email ({eduEmail}) will be saved for reference, and your Gmail address will become your new login email for all platform access.
               </p>
             </div>
           </div>
@@ -134,7 +133,7 @@ export default function EduEmailRestriction({ eduEmail, onClose }: EduEmailRestr
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-[#12203B] flex items-center gap-2">
               <Mail className="w-4 h-4 text-[#8A9088]" />
-              Personal Gmail Address
+              New Login Email (Gmail)
             </label>
 
             <input
@@ -177,7 +176,7 @@ export default function EduEmailRestriction({ eduEmail, onClose }: EduEmailRestr
         </form>
 
         <p className="text-center text-xs text-[#6B7268] mt-6">
-          This personal email will be used for all platform notifications
+          Your Gmail will become your primary login email
         </p>
       </div>
     </motion.div>

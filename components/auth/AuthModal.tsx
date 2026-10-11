@@ -334,11 +334,11 @@ function LoginForm({
       if (result && 'error' in result && result.error) {
         setError((result as any).error);
       } else {
-        // Check if email ends with .edu and user doesn't have personalEmail
+        // Check if email ends with .edu and user doesn't have eduEmail set (meaning they haven't switched yet)
         const isEduEmail = email.toLowerCase().endsWith('.edu');
         const userData = (result as any).user;
-        
-        if (isEduEmail && userData && !userData.personalEmail) {
+
+        if (isEduEmail && userData && !userData.eduEmail) {
           setUserEmail(email);
           setShowEduRestriction(true);
           setIsLoading(false);

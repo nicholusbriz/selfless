@@ -10,7 +10,7 @@ export const AUTH_CONSTANTS = {
 export type AuthUser = {
   id: string;
   email: string;
-  personalEmail?: string | null;
+  eduEmail?: string | null;
   firstName: string;
   lastName: string;
   role: string;
@@ -39,7 +39,7 @@ declare module 'next-auth' {
     user: {
       id: string;
       email: string;
-      personalEmail?: string | null;
+      eduEmail?: string | null;
       firstName: string;
       lastName: string;
       role: string;
@@ -68,7 +68,7 @@ declare module 'next-auth' {
   interface User {
     id: string;
     email: string;
-    personalEmail?: string | null;
+    eduEmail?: string | null;
     firstName: string;
     lastName: string;
     role: string;
@@ -98,7 +98,7 @@ declare module 'next-auth' {
 declare module 'next-auth/jwt' {
   interface JWT {
     email: string;
-    personalEmail?: string | null;
+    eduEmail?: string | null;
     id: string;
     firstName: string;
     lastName: string;
