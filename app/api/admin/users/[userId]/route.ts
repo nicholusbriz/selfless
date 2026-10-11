@@ -111,6 +111,7 @@ export async function PATCH(
         id: true,
         firstName: true,
         lastName: true,
+        email: true,
         techCenterId: true,
         promotedById: true,
         role: true,
