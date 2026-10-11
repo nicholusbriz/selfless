@@ -66,6 +66,7 @@ model User {
   firstName   String
   lastName    String
   email       String   @unique
+  personalEmail String? // Personal email (e.g., @gmail.com) for users with .edu emails
   password    String?  // Optional for OAuth users
   phoneNumber String?
   pageVisitEvents    PageVisitEvent[] 

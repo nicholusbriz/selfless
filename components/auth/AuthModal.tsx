@@ -22,6 +22,7 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import PendingApprovalMessage from './PendingApprovalMessage';
+import EduEmailRestriction from './EduEmailRestriction';
 
 // ============================================
 // THEME TOKENS — matches Header2 exactly
@@ -282,6 +283,8 @@ function LoginForm({
   const [loginStep, setLoginStep] = useState<string>('');
   const [authMessageIndex, setAuthMessageIndex] = useState(0);
   const [pendingUser, setPendingUser] = useState<any>(null);
+  const [showEduRestriction, setShowEduRestriction] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
 
   const authMessages = [
     'Authenticating...',
@@ -331,6 +334,18 @@ function LoginForm({
       if (result && 'error' in result && result.error) {
         setError((result as any).error);
       } else {
+        // Check if email ends with .edu and user doesn't have personalEmail
+        const isEduEmail = email.toLowerCase().endsWith('.edu');
+        const userData = (result as any).user;
+        
+        if (isEduEmail && userData && !userData.personalEmail) {
+          setUserEmail(email);
+          setShowEduRestriction(true);
+          setIsLoading(false);
+          setLoginStep('');
+          return;
+        }
+
         onClose();
         router.push('/dashboard');
         router.refresh();
@@ -354,7 +369,9 @@ function LoginForm({
       transition={{ duration: 0.3 }}
       className="w-full max-w-md mx-auto"
     >
-      {pendingUser ? (
+      {showEduRestriction ? (
+        <EduEmailRestriction eduEmail={userEmail} onClose={onClose} />
+      ) : pendingUser ? (
         <PendingApprovalMessage user={pendingUser} />
       ) : (
       <div className={cardClassName}>
