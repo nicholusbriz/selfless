@@ -37,7 +37,7 @@ export function useAuth() {
       return { error: 'Invalid email or password' };
     }
 
-    // Fetch user data to check for personalEmail
+    // Fetch user data to check for eduEmail
     if (result?.ok) {
       try {
         const userResponse = await fetch('/api/auth/me');

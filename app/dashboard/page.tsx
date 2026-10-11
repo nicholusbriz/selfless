@@ -167,6 +167,19 @@ interface MeStats {
   profileViewsCount: number;
 }
 
+interface SocialSummary {
+  me: MeStats;
+  trending: {
+    students: SocialUser[];
+    generatedAt: string;
+  };
+  activity: {
+    likers: Array<SocialUser & { likedAt?: string }>;
+    likedUsers: Array<SocialUser & { likedAt?: string }>;
+    followers: Array<SocialUser & { connectedAt?: string }>;
+  };
+}
+
 interface SocialUser {
   id: string;
   firstName: string;
@@ -183,21 +196,12 @@ interface SocialUser {
 
 const DASHBOARD_TRENDING_ADAPTERS: PageCacheAdapter[] = [
   {
-    queryKey: ['social', 'trending', 6],
+    queryKey: ['dashboard', 'social-summary'],
     patch: (old, targetId, patch) =>
-      patchStudentsShape(old, targetId, patch),
-    find: (old, targetId) => findInStudentsShape(old, targetId),
+      patchStudentsShape((old as SocialSummary)?.trending?.students || [], targetId, patch),
+    find: (old, targetId) => findInStudentsShape((old as SocialSummary)?.trending?.students || [], targetId),
   },
 ];
-
-interface LikesData {
-  likers: Array<SocialUser & { likedAt?: string }>;
-  likedUsers: Array<SocialUser & { likedAt?: string }>;
-}
-
-interface FollowersData {
-  connections: Array<SocialUser & { connectedAt?: string }>;
-}
 
 /* ============================================================
    STAT ITEM — compact metric display
@@ -676,22 +680,10 @@ function DashboardLoadingSkeleton() {
    SUGGESTED STUDENTS — mobile-first, no borders
 ============================================================ */
 
-function SuggestedStudents() {
+function SuggestedStudents({ trending = [], isLoading }: { trending?: SocialUser[]; isLoading?: boolean }) {
   const router = useRouter();
   const { data: session } = useSession();
   const currentUserId = session?.user?.id;
-
-  const { data: trending = [], isLoading } = useQuery<SocialUser[]>({
-    queryKey: ['social', 'trending', 6],
-    queryFn: async () => {
-      const res = await fetch('/api/social/trending?limit=6');
-      if (!res.ok) throw new Error('Failed to fetch trending');
-      const json = await res.json();
-      return Array.isArray(json.students) ? json.students : [];
-    },
-    enabled: !!currentUserId,
-    staleTime: 30 * 1000,
-  });
 
   if (isLoading) {
     return (
@@ -832,38 +824,15 @@ function SuggestedStudents() {
    RECENT SOCIAL ACTIVITY
 ============================================================ */
 
-function RecentSocialActivity() {
-  const { data: session } = useSession();
-  const currentUserId = session?.user?.id;
-
-  const { data: likesData } = useQuery<LikesData>({
-    queryKey: ['social', 'likes-received', currentUserId],
-    queryFn: async () => {
-      const res = await fetch(`/api/social/likes/${currentUserId}`);
-      if (!res.ok) throw new Error('Failed to fetch likes');
-      const json = await res.json();
-      return {
-        likers: Array.isArray(json.likers) ? json.likers : [],
-        likedUsers: Array.isArray(json.likedUsers) ? json.likedUsers : [],
-      };
-    },
-    enabled: !!currentUserId,
-    staleTime: 30 * 1000,
-  });
-
-  const { data: followersData } = useQuery<FollowersData>({
-    queryKey: ['social', 'followers-recent', currentUserId],
-    queryFn: async () => {
-      const res = await fetch(
-        `/api/social/connections/${currentUserId}?type=followers`,
-      );
-      if (!res.ok) throw new Error('Failed to fetch followers');
-      return res.json();
-    },
-    enabled: !!currentUserId,
-    staleTime: 30 * 1000,
-  });
-
+function RecentSocialActivity({
+  likers = [],
+  likedUsers = [],
+  followers = [],
+}: {
+  likers?: Array<SocialUser & { likedAt?: string }>;
+  likedUsers?: Array<SocialUser & { likedAt?: string }>;
+  followers?: Array<SocialUser & { connectedAt?: string }>;
+}) {
   const events = useMemo(() => {
     const items: Array<{
       id: string;
@@ -877,7 +846,7 @@ function RecentSocialActivity() {
       at: string;
     }> = [];
 
-    for (const liker of likesData?.likers ?? []) {
+    for (const liker of likers) {
       items.push({
         id: `like-${liker.id}`,
         kind: 'like',
@@ -891,7 +860,7 @@ function RecentSocialActivity() {
       });
     }
 
-    for (const follower of followersData?.connections ?? []) {
+    for (const follower of followers) {
       items.push({
         id: `follow-${follower.id}`,
         kind: 'follow',
@@ -908,7 +877,7 @@ function RecentSocialActivity() {
     return items
       .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
       .slice(0, 6);
-  }, [likesData, followersData]);
+  }, [likers, followers]);
 
   if (events.length === 0) {
     return (
@@ -1179,17 +1148,19 @@ export default function DashboardPage() {
   const [messageIndex, setMessageIndex] = useState(0);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  const { data: meStats } = useQuery<MeStats>({
-    queryKey: ['social', 'me'],
+  const { data: socialSummary } = useQuery<SocialSummary>({
+    queryKey: ['dashboard', 'social-summary'],
     queryFn: async () => {
-      const res = await fetch('/api/social/me');
-      if (!res.ok) throw new Error('Failed to fetch personal stats');
+      const res = await fetch('/api/dashboard/social-summary?limit=6');
+      if (!res.ok) throw new Error('Failed to fetch social summary');
       return res.json();
     },
     enabled: !!currentUserId,
     staleTime: 30 * 1000,
     refetchInterval: 60 * 1000,
   });
+
+  const meStats = socialSummary?.me;
 
   // Prefetch announcement carousel data on page load
   useEffect(() => {
@@ -1658,7 +1629,10 @@ export default function DashboardPage() {
                 </button>
               }
             />
-            <SuggestedStudents />
+            <SuggestedStudents
+              trending={socialSummary?.trending.students}
+              isLoading={!socialSummary}
+            />
           </section>
 
           {/* Reels + Recent Activity - Two Column on Desktop */}
@@ -1672,7 +1646,10 @@ export default function DashboardPage() {
             {/* Recent Activity */}
             <section>
               <SectionHeader label="On your profile" />
-              <RecentSocialActivity />
+              <RecentSocialActivity
+                likers={socialSummary?.activity.likers}
+                followers={socialSummary?.activity.followers}
+              />
             </section>
           </div>
 
