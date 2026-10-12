@@ -111,6 +111,7 @@ export async function PATCH(
         id: true,
         firstName: true,
         lastName: true,
+        email: true,
         techCenterId: true,
         promotedById: true,
         role: true,
@@ -174,7 +175,24 @@ export async function PATCH(
     const updateData: any = {};
     if (firstName !== undefined) updateData.firstName = firstName;
     if (lastName !== undefined) updateData.lastName = lastName;
-    if (email !== undefined) updateData.email = email;
+
+    // Handle email update (requires validation)
+    if (email !== undefined && email !== existingUser.email) {
+      // Check if email is already taken by another user
+      const emailUser = await prisma.user.findUnique({
+        where: { email },
+      });
+
+      if (emailUser && emailUser.id !== userId) {
+        return NextResponse.json(
+          { error: 'Email already in use by another account' },
+          { status: 400 }
+        );
+      }
+
+      updateData.email = email;
+    }
+
     if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
     if (country !== undefined) updateData.country = country;
     if (city !== undefined) updateData.city = city;

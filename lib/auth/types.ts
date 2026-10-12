@@ -10,6 +10,7 @@ export const AUTH_CONSTANTS = {
 export type AuthUser = {
   id: string;
   email: string;
+  eduEmail?: string | null;
   firstName: string;
   lastName: string;
   role: string;
@@ -37,6 +38,8 @@ declare module 'next-auth' {
   interface Session {
     user: {
       id: string;
+      email: string;
+      eduEmail?: string | null;
       firstName: string;
       lastName: string;
       role: string;
@@ -58,11 +61,14 @@ declare module 'next-auth' {
       preferredTeamType?: string | null;
       preferredTeamRole?: string | null;
       teacherId?: string | null;
+      tokenVersion?: number;
     } & DefaultSession['user'];
   }
 
   interface User {
     id: string;
+    email: string;
+    eduEmail?: string | null;
     firstName: string;
     lastName: string;
     role: string;
@@ -85,11 +91,14 @@ declare module 'next-auth' {
     preferredTeamRole?: string | null;
     teacherId?: string | null;
     roleUpdatedAt?: Date | string | null;
+    tokenVersion?: number;
   }
 }
 
 declare module 'next-auth/jwt' {
   interface JWT {
+    email: string;
+    eduEmail?: string | null;
     id: string;
     firstName: string;
     lastName: string;
@@ -113,5 +122,6 @@ declare module 'next-auth/jwt' {
     preferredTeamRole?: string | null;
     teacherId?: string | null;
     roleUpdatedAt?: string;
+    tokenVersion?: number;
   }
 }

@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-import FAQ from "@/app/components/FAQ";
 import PublicPageHero from "@/app/components/PublicPageHero";
 import PublicPageShell from "@/app/components/PublicPageShell";
 
@@ -262,34 +261,6 @@ export default function HelpPage() {
               );
             })}
           </div>
-        </div>
-      </section>
-
-      {/* FAQ */}
-      <section className="bg-[#F1F1EC] px-5 py-12 sm:px-8 sm:py-16 lg:px-12 lg:py-18">
-        <div className="mx-auto max-w-7xl">
-          <motion.div {...reveal} className="mb-8">
-            <div className="flex items-center gap-3">
-              <span className="h-px w-8 bg-[#B98A3E]" />
-
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#B98A3E]">
-                Frequently asked questions
-              </p>
-            </div>
-
-            <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <h2 className="max-w-2xl text-3xl font-semibold leading-tight tracking-[-0.035em] text-[#12203B] sm:text-4xl">
-                Find an answer before you reach out.
-              </h2>
-
-              <p className="max-w-md text-sm leading-6 text-[#697169] lg:text-right">
-                Browse common questions about the portal, accounts, studies,
-                and student support.
-              </p>
-            </div>
-          </motion.div>
-
-          <FAQ />
         </div>
       </section>
 

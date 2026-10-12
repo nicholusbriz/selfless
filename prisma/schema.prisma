@@ -66,6 +66,7 @@ model User {
   firstName   String
   lastName    String
   email       String   @unique
+  eduEmail    String?  // Original .edu email for users who switched to Gmail
   password    String?  // Optional for OAuth users
   phoneNumber String?
   pageVisitEvents    PageVisitEvent[] 

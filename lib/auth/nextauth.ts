@@ -49,8 +49,19 @@ export const authOptions: AuthOptions = {
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
-          include: {
+          select: {
+            id: true,
+            email: true,
+            eduEmail: true,
+            firstName: true,
+            lastName: true,
+            password: true,
+            isVerified: true,
+            verificationStatus: true,
+            isActive: true,
+            status: true,
             role: true,
+            techCenterId: true,
             techCenter: {
               select: { id: true, name: true }
             },
@@ -62,7 +73,23 @@ export const authOptions: AuthOptions = {
                 email: true,
                 profileImageUrl: true,
               }
-            }
+            },
+            profileImageUrl: true,
+            phoneNumber: true,
+            country: true,
+            city: true,
+            town: true,
+            street: true,
+            generalCourse: true,
+            linkedinUrl: true,
+            githubUrl: true,
+            projectUrls: true,
+            gender: true,
+            preferredTeamType: true,
+            preferredTeamRole: true,
+            teacherId: true,
+            roleUpdatedAt: true,
+            tokenVersion: true,
           }
         });
 
@@ -92,6 +119,7 @@ export const authOptions: AuthOptions = {
         return {
           id: user.id,
           email: user.email,
+          eduEmail: user.eduEmail,
           name: `${user.firstName} ${user.lastName}`,
           firstName: user.firstName,
           lastName: user.lastName,
@@ -115,6 +143,7 @@ export const authOptions: AuthOptions = {
           preferredTeamRole: user.preferredTeamRole,
           teacherId: user.teacherId || null,
           roleUpdatedAt: user.roleUpdatedAt,
+          tokenVersion: user.tokenVersion,
         };
       }
     })
@@ -132,6 +161,8 @@ export const authOptions: AuthOptions = {
     async session({ session, token }: SessionCallbackParams) {
       if (token) {
         session.user.id = token.sub as string;
+        session.user.email = token.email as string;
+        session.user.eduEmail = token.eduEmail as string | null;
         session.user.role = token.role as string;
         session.user.firstName = token.firstName as string;
         session.user.lastName = token.lastName as string;
@@ -154,6 +185,8 @@ export const authOptions: AuthOptions = {
         session.user.preferredTeamRole = token.preferredTeamRole as string | null;
         // Add teacherId to session user
         session.user.teacherId = token.teacherId as string | null;
+        // Add tokenVersion for session invalidation tracking
+        session.user.tokenVersion = token.tokenVersion as number;
       }
       return session;
     },
@@ -167,6 +200,8 @@ export const authOptions: AuthOptions = {
     async jwt({ token, user, trigger }: JwtCallbackParams & { trigger?: string }) {
       // Initial sign in
       if (user) {
+        token.email = user.email;
+        token.eduEmail = user.eduEmail;
         token.role = user.role;
         token.firstName = user.firstName;
         token.lastName = user.lastName;
@@ -193,6 +228,9 @@ export const authOptions: AuthOptions = {
         token.roleUpdatedAt = user.roleUpdatedAt instanceof Date
           ? user.roleUpdatedAt.toISOString()
           : user.roleUpdatedAt || undefined;
+
+        // Store tokenVersion for session invalidation
+        token.tokenVersion = user.tokenVersion;
       }
 
       // Re-fetch user data from database on session update
@@ -241,6 +279,7 @@ export const authOptions: AuthOptions = {
           token.roleUpdatedAt = freshUser.roleUpdatedAt instanceof Date
             ? freshUser.roleUpdatedAt.toISOString()
             : freshUser.roleUpdatedAt || undefined;
+          token.tokenVersion = freshUser.tokenVersion;
         }
       }
 
@@ -253,6 +292,7 @@ export const authOptions: AuthOptions = {
           where: { id: token.sub as string },
           select: {
             roleUpdatedAt: true,
+            tokenVersion: true,
             role: { select: { name: true } },
             teacherId: true,
             techCenter: {
@@ -265,6 +305,11 @@ export const authOptions: AuthOptions = {
         // Returning null forces NextAuth to clear the session cookie and
         // redirect the client to the sign-in page immediately.
         if (!dbUser) {
+          return null as unknown as JWT;
+        }
+
+        // Check if tokenVersion matches - if not, session was invalidated
+        if (token.tokenVersion !== dbUser.tokenVersion) {
           return null as unknown as JWT;
         }
 

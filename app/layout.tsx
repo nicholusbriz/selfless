@@ -1,19 +1,20 @@
 // app/layout.tsx
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from './providers';
 import PWAInstall from '@/components/PWAInstall';
 import { ActivityTracker } from '@/components/ActivityTracker';
+import { SessionValidator } from '@/components/SessionValidator';
 
-const plexSans = IBM_Plex_Sans({
+const inter = Inter({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["300", "400", "500", "600", "700", "800"],
   variable: "--font-sans",
   display: "swap",
 });
 
-const plexMono = IBM_Plex_Mono({
+const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   variable: "--font-mono",
@@ -101,7 +102,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
-  themeColor: "#E8A33D",
+  themeColor: "#0F172A",
 };
 
 export default function RootLayout({
@@ -112,7 +113,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`h-full antialiased ${plexSans.variable} ${plexMono.variable}`}
+      className={`h-full antialiased ${inter.variable} ${jetbrainsMono.variable}`}
       data-scroll-behavior="smooth"
     >
       <head>
@@ -361,6 +362,7 @@ export default function RootLayout({
           <Providers>
             <ActivityTracker />
             <PWAInstall />
+            <SessionValidator />
               <main className="flex-1">
                 {children}
               </main>
