@@ -43,8 +43,18 @@ export async function verifyPassword(plainPassword: string, hashedPassword: stri
 export async function getUserById(userId: string) {
   return prisma.user.findUnique({
     where: { id: userId },
-    include: { 
-      role: true, 
+    select: {
+      id: true,
+      email: true,
+      eduEmail: true,
+      firstName: true,
+      lastName: true,
+      password: true,
+      isVerified: true,
+      verificationStatus: true,
+      isActive: true,
+      status: true,
+      techCenterId: true,
       techCenter: true,
       teacher: {
         select: {
@@ -54,7 +64,24 @@ export async function getUserById(userId: string) {
           email: true,
           profileImageUrl: true,
         }
-      }
+      },
+      profileImageUrl: true,
+      phoneNumber: true,
+      country: true,
+      city: true,
+      town: true,
+      street: true,
+      generalCourse: true,
+      linkedinUrl: true,
+      githubUrl: true,
+      projectUrls: true,
+      gender: true,
+      preferredTeamType: true,
+      preferredTeamRole: true,
+      teacherId: true,
+      roleUpdatedAt: true,
+      tokenVersion: true,
+      role: true,
     }
   });
 }
@@ -62,8 +89,18 @@ export async function getUserById(userId: string) {
 export async function getUserByEmail(email: string) {
   return prisma.user.findUnique({
     where: { email },
-    include: { 
-      role: true, 
+    select: {
+      id: true,
+      email: true,
+      eduEmail: true,
+      firstName: true,
+      lastName: true,
+      password: true,
+      isVerified: true,
+      verificationStatus: true,
+      isActive: true,
+      status: true,
+      techCenterId: true,
       techCenter: true,
       teacher: {
         select: {
@@ -73,7 +110,24 @@ export async function getUserByEmail(email: string) {
           email: true,
           profileImageUrl: true,
         }
-      }
+      },
+      profileImageUrl: true,
+      phoneNumber: true,
+      country: true,
+      city: true,
+      town: true,
+      street: true,
+      generalCourse: true,
+      linkedinUrl: true,
+      githubUrl: true,
+      projectUrls: true,
+      gender: true,
+      preferredTeamType: true,
+      preferredTeamRole: true,
+      teacherId: true,
+      roleUpdatedAt: true,
+      tokenVersion: true,
+      role: true,
     }
   });
 }
