@@ -683,7 +683,6 @@ export default function Header2() {
         style={{
           backgroundColor: COLORS.navy,
           boxShadow: scrolled ? "0 12px 36px rgba(13,24,44,0.28)" : "0 6px 22px rgba(13,24,44,0.16)",
-          borderBottom: scrolled ? `2px solid ${COLORS.brassLight}` : "none",
         }}
       >
         {/* ROW 1 — TICKER */}
@@ -806,6 +805,8 @@ export default function Header2() {
             </div>
           </div>
         </div>
+
+
 
         {/* ROW 4 — ONLINE USERS STRIP */}
         {user && onlineUsers.length > 0 && (

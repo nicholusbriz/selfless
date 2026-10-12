@@ -27,17 +27,18 @@ import AuthModal from "@/components/auth/AuthModal";
 import { useAuth } from "@/lib/hooks/useAuth";
 
 const COLORS = {
-  page: "#F1F1EC",
+  page: "#F8F7F4",
   surface: "#FFFFFF",
-  soft: "#F7F6F2",
-  border: "#DADCD3",
-  ink: "#12203B",
-  body: "#4B564C",
-  muted: "#6B7268",
-  subtle: "#8A9088",
-  brass: "#B98A3E",
-  brassLight: "#E8A33D",
-  moss: "#55705B",
+  soft: "#F5F4F0",
+  border: "#E8E6E0",
+  ink: "#0F172A",
+  body: "#374151",
+  muted: "#6B7280",
+  subtle: "#9CA3AF",
+  brass: "#D4A53E",
+  brassLight: "#E8B04D",
+  brassDark: "#B8932E",
+  moss: "#4A6741",
 };
 
 type HeroImage = {
@@ -45,6 +46,8 @@ type HeroImage = {
   eyebrow: string;
   title: string;
   description: string;
+  enhanced?: boolean;
+  stats?: { label: string; value: string }[];
 };
 
 const features = [
@@ -84,28 +87,34 @@ const features = [
 
 const heroImages: HeroImage[] = [
   {
-    src: "/cover page.jpg",
+    src: "/ce1.jpeg",
     eyebrow: "SELFLESS CE STUDENT PORTAL",
     title: "Your education, connected.",
     description:
       "A central place for students studying online through BYU-Idaho with SELFLESS CE.",
   },
   {
-    src: "/cover image.jpg",
+    src: "/ce2.jpeg",
     eyebrow: "ACADEMIC TOOLS",
     title: "Stay focused on your studies.",
     description:
       "Keep your academic activities, courses, grades, and learning journey organized.",
   },
   {
-    src: "/student-portal-image.png",
+    src: "/ce3.jpeg",
     eyebrow: "ACADEMIC PROGRESS",
     title: "Know where you are in your journey.",
     description:
       "Access the information you need to stay aware of your academic progress.",
+    enhanced: true,
+    stats: [
+      { label: "Courses", value: "Track" },
+      { label: "Grades", value: "View" },
+      { label: "Credits", value: "Manage" },
+    ],
   },
   {
-    src: "/student-portal.png",
+    src: "/ce4.jpeg",
     eyebrow: "STUDENT SERVICES",
     title: "Learn, connect, and move forward.",
     description:
@@ -376,7 +385,7 @@ export default function HomePage() {
         />
       )}
 
-      <div className="min-h-screen flex flex-col bg-[#F1F1EC]">
+      <div className="min-h-screen flex flex-col bg-[#F8F7F4]">
         <Header2 />
 
         <main className="flex-1 pt-[120px] sm:pt-[130px] lg:pt-[140px]">
@@ -388,7 +397,7 @@ export default function HomePage() {
           <section
             className="relative z-20 overflow-hidden"
             style={{
-              backgroundColor: COLORS.ink,
+              backgroundColor: "#0F172A",
             }}
           >
             <div className="mx-auto max-w-[1500px]">
@@ -399,7 +408,7 @@ export default function HomePage() {
                 <div
                   className="relative order-2 flex items-center px-5 py-10 sm:px-8 sm:py-14 lg:order-1 lg:px-12 lg:py-16 xl:px-16"
                   style={{
-                    backgroundColor: COLORS.ink,
+                    backgroundColor: "#0F172A",
                   }}
                 >
                   <motion.div
@@ -410,17 +419,10 @@ export default function HomePage() {
                   >
                     <motion.div
                       variants={slideInLeft}
-                      className="mb-4 flex items-center gap-3 sm:mb-6"
+                      className="mb-4 sm:mb-6"
                     >
                       <span
-                        className="h-px w-9"
-                        style={{
-                          backgroundColor: COLORS.brassLight,
-                        }}
-                      />
-
-                      <span
-                        className="text-[9px] font-semibold uppercase tracking-[0.22em] sm:text-[10px]"
+                        className="text-[10px] font-semibold uppercase tracking-[0.22em] sm:text-[11px]"
                         style={{
                           color: COLORS.brassLight,
                         }}
@@ -431,29 +433,57 @@ export default function HomePage() {
 
                     <motion.h1
                       variants={slideInLeft}
-                      className="max-w-[540px] text-[clamp(2.7rem,6vw,5.2rem)] font-semibold leading-[0.94] tracking-[-0.055em] text-white"
+                      className="max-w-[540px] text-[clamp(2.7rem,6vw,5.2rem)] font-semibold leading-[0.96] tracking-[-0.05em] text-white"
                     >
                       {activeHero.title}
                     </motion.h1>
 
                     <motion.p
                       variants={slideInLeft}
-                      className="mt-4 max-w-[480px] text-[14px] leading-7 sm:mt-5 sm:text-[15px]"
+                      className="mt-5 max-w-[480px] text-[15px] leading-[1.75] sm:mt-6 sm:text-[16px] font-normal"
                       style={{
-                        color: "rgba(255,255,255,0.72)",
+                        color: "rgba(255,255,255,0.85)",
                       }}
                     >
                       {activeHero.description}
                     </motion.p>
 
+                    {activeHero.enhanced && activeHero.stats && (
+                      <motion.div
+                        variants={slideInLeft}
+                        className="mt-7 grid grid-cols-3 gap-4 sm:gap-6"
+                      >
+                        {activeHero.stats.map((stat, index) => (
+                          <motion.div
+                            key={stat.label}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 + index * 0.1, duration: 0.5 }}
+                            className="rounded-xl p-4 text-center backdrop-blur-sm"
+                            style={{
+                              backgroundColor: "rgba(232, 176, 77, 0.15)",
+                              border: "1px solid rgba(232, 176, 77, 0.3)",
+                            }}
+                          >
+                            <p className="text-[20px] font-bold leading-none" style={{ color: COLORS.brassLight }}>
+                              {stat.value}
+                            </p>
+                            <p className="mt-2 text-[11px] font-medium uppercase tracking-[0.1em]" style={{ color: "rgba(255,255,255,0.85)" }}>
+                              {stat.label}
+                            </p>
+                          </motion.div>
+                        ))}
+                      </motion.div>
+                    )}
+
                     <motion.div
                       variants={slideInLeft}
-                      className="mt-6 flex flex-wrap items-center gap-4 sm:mt-7"
+                      className="mt-8 flex flex-wrap items-center gap-4 sm:mt-9"
                     >
                       {user ? (
                         <Link
                           href="/dashboard"
-                          className="group inline-flex items-center gap-2 rounded-lg px-5 py-3 text-[13px] font-semibold transition-all duration-300 hover:-translate-y-0.5"
+                          className="group inline-flex items-center gap-2.5 rounded-lg px-6 py-3.5 text-[14px] font-semibold transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
                           style={{
                             backgroundColor: COLORS.brassLight,
                             color: COLORS.ink,
@@ -470,7 +500,7 @@ export default function HomePage() {
                         <button
                           type="button"
                           onClick={() => openAuth("register")}
-                          className="group inline-flex items-center gap-2 rounded-lg px-5 py-3 text-[13px] font-semibold transition-all duration-300 hover:-translate-y-0.5 motion-reduce:transition-none"
+                          className="group inline-flex items-center gap-2.5 rounded-lg px-6 py-3.5 text-[14px] font-semibold transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg motion-reduce:transition-none"
                           style={{
                             backgroundColor: COLORS.brassLight,
                             color: COLORS.ink,
@@ -487,9 +517,9 @@ export default function HomePage() {
 
                       <Link
                         href="/about"
-                        className="group inline-flex items-center gap-2 text-[13px] font-medium sm:text-sm"
+                        className="group inline-flex items-center gap-2.5 text-[14px] font-medium sm:text-[15px] transition-colors duration-300"
                         style={{
-                          color: "rgba(255,255,255,0.80)",
+                          color: "rgba(255,255,255,0.90)",
                         }}
                       >
                         About the portal
@@ -503,38 +533,38 @@ export default function HomePage() {
 
                     <motion.div
                       variants={slideInLeft}
-                      className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 pt-4 sm:mt-9"
+                      className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4 pt-5 sm:mt-11"
                     >
                       <div>
-                        <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/35">
+                        <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/40">
                           Experience
                         </p>
 
-                        <p className="mt-1 text-[11px] font-medium text-white/65">
+                        <p className="mt-1.5 text-[12px] font-medium text-white/70">
                           Student-centered
                         </p>
                       </div>
 
-                      <div className="hidden h-7 w-px bg-white/10 sm:block" />
+                      <div className="hidden h-8 w-px bg-white/10 sm:block" />
 
                       <div>
-                        <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/35">
+                        <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/40">
                           Community
                         </p>
 
-                        <p className="mt-1 text-[11px] font-medium text-white/65">
+                        <p className="mt-1.5 text-[12px] font-medium text-white/70">
                           Connected
                         </p>
                       </div>
 
-                      <div className="hidden h-7 w-px bg-white/10 sm:block" />
+                      <div className="hidden h-8 w-px bg-white/10 sm:block" />
 
                       <div>
-                        <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/35">
+                        <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/40">
                           Focus
                         </p>
 
-                        <p className="mt-1 text-[11px] font-medium text-white/65">
+                        <p className="mt-1.5 text-[12px] font-medium text-white/70">
                           Your education
                         </p>
                       </div>
@@ -577,7 +607,7 @@ export default function HomePage() {
                       <div
                         className="absolute inset-0"
                         style={{
-                          backgroundColor: "rgba(18, 32, 59, 0.08)",
+                          backgroundColor: "rgba(15, 23, 42, 0.08)",
                         }}
                       />
                     </motion.div>
@@ -586,7 +616,7 @@ export default function HomePage() {
                   <div
                     className="absolute inset-y-0 left-0 z-10 hidden w-24 lg:block"
                     style={{
-                      backgroundColor: COLORS.ink,
+                      backgroundColor: "#0F172A",
                       clipPath: "polygon(0 0, 100% 0, 0 100%)",
                     }}
                   />
@@ -594,14 +624,14 @@ export default function HomePage() {
                   <div
                     className="absolute inset-x-0 bottom-0 z-20 h-12 lg:hidden"
                     style={{
-                      backgroundColor: COLORS.ink,
+                      backgroundColor: "#0F172A",
                       clipPath: "polygon(0 100%, 100% 35%, 100% 100%)",
                     }}
                   />
 
                   <div className="absolute right-5 top-5 z-30 sm:right-7 sm:top-7">
-                    <div className="bg-[#12203B]/50 px-3 py-2 backdrop-blur-sm">
-                      <p className="font-mono text-[8px] uppercase tracking-[0.18em] text-white/80">
+                    <div className="bg-[#0F172A]/60 px-4 py-2.5 backdrop-blur-sm rounded-lg">
+                      <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/90">
                         Student experience
                       </p>
                     </div>
@@ -624,7 +654,7 @@ export default function HomePage() {
                               onClick={() => selectHero(index)}
                               className="h-1.5 rounded-full transition-all duration-300"
                               style={{
-                                width: index === currentHero ? 30 : 8,
+                                width: index === currentHero ? 32 : 8,
                                 backgroundColor:
                                   index === currentHero
                                     ? COLORS.brassLight
@@ -640,10 +670,10 @@ export default function HomePage() {
                           type="button"
                           onClick={previousHero}
                           aria-label="Previous image"
-                          className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-white/10"
+                          className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-white/10"
                           style={{
                             color: "#FFFFFF",
-                            backgroundColor: "rgba(18,32,59,0.50)",
+                            backgroundColor: "rgba(15,23,42,0.60)",
                           }}
                         >
                           <ChevronLeft size={16} strokeWidth={1.8} />
@@ -653,10 +683,10 @@ export default function HomePage() {
                           type="button"
                           onClick={nextHero}
                           aria-label="Next image"
-                          className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-white/10"
+                          className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-white/10"
                           style={{
                             color: "#FFFFFF",
-                            backgroundColor: "rgba(18,32,59,0.50)",
+                            backgroundColor: "rgba(15,23,42,0.60)",
                           }}
                         >
                           <ChevronRight size={16} strokeWidth={1.8} />
@@ -673,7 +703,7 @@ export default function HomePage() {
               FIXED VIDEO EXPERIENCE
           ====================================================== */}
 
-          <section className="relative isolate overflow-hidden bg-[#071018]">
+          <section className="relative isolate overflow-hidden bg-[#0F172A]">
 
             {/* FIXED VIDEO LAYER — no gradients, flat overlay */}
 
@@ -688,12 +718,12 @@ export default function HomePage() {
                 loop
                 playsInline
                 preload="metadata"
-                poster="/student-portal-image.png"
+                poster="/ce1.jpeg"
               >
                 <source src="/graduate.mp4" type="video/mp4" />
               </video>
 
-              <div className="absolute inset-0 bg-[#071018]/60" />
+              <div className="absolute inset-0 bg-[#0F172A]/60" />
             </div>
 
             {/* =================================================
@@ -708,30 +738,26 @@ export default function HomePage() {
                   className="grid items-end gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-20"
                 >
                   <motion.div variants={slideInLeft}>
-                    <div className="flex items-center gap-3">
-                      <span className="h-px w-10 bg-[#E8A33D]" />
+                    <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#E8B04D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)]">
+                      About SELFLESS CE
+                    </p>
 
-                      <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)]">
-                        About SELFLESS CE
-                      </p>
-                    </div>
-
-                    <h2 className="mt-5 max-w-xl text-[clamp(2.6rem,5.5vw,4.8rem)] font-semibold leading-[0.95] tracking-[-0.05em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
+                    <h2 className="mt-6 max-w-xl text-[clamp(2.6rem,5.5vw,4.8rem)] font-semibold leading-[0.96] tracking-[-0.04em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
                       One place for
                       <br />
-                      <span className="text-[#E8A33D] drop-shadow-[0_2px_12px_rgba(0,0,0,0.7)]">
+                      <span className="text-[#E8B04D] drop-shadow-[0_2px_12px_rgba(0,0,0,0.7)]">
                         your journey.
                       </span>
                     </h2>
                   </motion.div>
 
                   <motion.div variants={slideInRight} className="max-w-2xl">
-                    <p className="text-lg leading-8 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.75)] sm:text-xl sm:leading-9">
+                    <p className="text-[17px] leading-[1.8] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.75)] sm:text-[18px] sm:leading-[1.75] font-normal">
                       SELFLESS CE brings students, tech centers, academic
                       support, and community into one connected experience.
                     </p>
 
-                    <p className="mt-4 max-w-xl text-sm leading-7 text-white/90 drop-shadow-[0_1px_6px_rgba(0,0,0,0.7)] sm:text-base sm:leading-8">
+                    <p className="mt-5 max-w-xl text-[15px] leading-[1.75] text-white/95 drop-shadow-[0_1px_6px_rgba(0,0,0,0.7)] sm:text-[16px] sm:leading-[1.8] font-normal">
                       Instead of moving between disconnected information and
                       services, students have one place to stay informed,
                       connected, and focused on their education.
@@ -739,7 +765,7 @@ export default function HomePage() {
 
                     <Link
                       href="/about"
-                      className="group mt-7 inline-flex items-center gap-2 text-sm font-bold text-[#E8A33D] drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)] transition-colors hover:text-white"
+                      className="group mt-8 inline-flex items-center gap-2.5 text-[15px] font-semibold text-[#E8B04D] drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)] transition-colors duration-300 hover:text-white"
                     >
                       Learn about SELFLESS CE
 
@@ -803,23 +829,19 @@ export default function HomePage() {
                   className="grid gap-12 lg:grid-cols-[1fr_280px] lg:items-start lg:gap-20"
                 >
                   <motion.div variants={slideInLeft} className="max-w-4xl">
-                    <div className="flex items-center gap-3">
-                      <span className="h-px w-9 bg-[#E8A33D]" />
+                    <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#E8B04D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
+                      The Student Portal
+                    </p>
 
-                      <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
-                        The Student Portal
-                      </p>
-                    </div>
-
-                    <h2 className="mt-5 text-[clamp(2.4rem,5.5vw,4.7rem)] font-semibold leading-[0.98] tracking-[-0.05em] text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.75)]">
+                    <h2 className="mt-6 text-[clamp(2.4rem,5.5vw,4.7rem)] font-semibold leading-[0.97] tracking-[-0.04em] text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.75)]">
                       Everything important,
                       <br />
-                      <span className="text-[#E8A33D] drop-shadow-[0_2px_14px_rgba(0,0,0,0.85)]">
+                      <span className="text-[#E8B04D] drop-shadow-[0_2px_14px_rgba(0,0,0,0.85)]">
                         easier to find.
                       </span>
                     </h2>
 
-                    <p className="mt-6 max-w-2xl text-[15px] leading-8 tracking-[0.005em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)] sm:text-base sm:leading-9">
+                    <p className="mt-7 max-w-2xl text-[16px] leading-[1.8] tracking-[0.005em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)] sm:text-[17px] sm:leading-[1.75] font-normal">
                       Your studies and student services are brought together
                       in one place, with the tools you need throughout your
                       time with SELFLESS CE.
@@ -827,11 +849,11 @@ export default function HomePage() {
                   </motion.div>
 
                   <motion.div variants={slideInRight} className="pt-1">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#E8B04D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
                       Designed For
                     </p>
 
-                    <div className="mt-5 space-y-3">
+                    <div className="mt-6 space-y-3.5">
                       {[
                         "Students",
                         "Tech centers",
@@ -840,7 +862,7 @@ export default function HomePage() {
                       ].map((item) => (
                         <p
                           key={item}
-                          className="text-[15px] font-semibold tracking-[-0.01em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)]"
+                          className="text-[16px] font-semibold tracking-[-0.01em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)]"
                         >
                           {item}
                         </p>
@@ -849,7 +871,7 @@ export default function HomePage() {
 
                     <Link
                       href="/features"
-                      className="group mt-7 inline-flex items-center gap-2 text-sm font-bold tracking-[0.005em] text-[#E8A33D] drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] transition-colors hover:text-white"
+                      className="group mt-8 inline-flex items-center gap-2.5 text-[15px] font-semibold tracking-[0.005em] text-[#E8B04D] drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] transition-colors duration-300 hover:text-white"
                     >
                       Explore features
 
@@ -875,17 +897,13 @@ export default function HomePage() {
                     className="mb-12 flex flex-col gap-5 sm:mb-14 sm:flex-row sm:items-end sm:justify-between"
                   >
                     <div>
-                      <div className="flex items-center gap-3">
-                        <span className="h-px w-9 bg-[#E8A33D]" />
+                      <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#E8B04D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
+                        What You Can Do
+                      </p>
 
-                        <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
-                          What You Can Do
-                        </p>
-                      </div>
-
-                      <h2 className="mt-4 text-3xl font-semibold leading-[1.02] tracking-[-0.045em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)] sm:text-4xl lg:text-5xl">
+                      <h2 className="mt-5 text-3xl font-semibold leading-[1.02] tracking-[-0.04em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)] sm:text-4xl lg:text-5xl">
                         Built around{" "}
-                        <span className="text-[#E8A33D] drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
+                        <span className="text-[#E8B04D] drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
                           student needs.
                         </span>
                       </h2>
@@ -893,7 +911,7 @@ export default function HomePage() {
 
                     <Link
                       href="/features"
-                      className="group inline-flex items-center gap-2 text-sm font-bold tracking-[0.005em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] transition-colors hover:text-[#E8A33D]"
+                      className="group inline-flex items-center gap-2.5 text-[15px] font-semibold tracking-[0.005em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] transition-colors duration-300 hover:text-[#E8B04D]"
                     >
                       Explore all features
 
@@ -921,24 +939,24 @@ export default function HomePage() {
                             className="group block"
                           >
                             <div className="flex items-center justify-between">
-                              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.08] text-[#E8A33D] backdrop-blur-sm transition-all duration-300 group-hover:bg-[#E8A33D]/20">
-                                <Icon size={18} strokeWidth={1.7} />
+                              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.08] text-[#E8B04D] backdrop-blur-sm transition-all duration-300 group-hover:bg-[#E8B04D]/20">
+                                <Icon size={19} strokeWidth={1.7} />
                               </div>
 
-                              <span className="font-mono text-[10px] font-bold tracking-[0.2em] text-[#E8A33D] drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)]">
+                              <span className="font-mono text-[10px] font-bold tracking-[0.2em] text-[#E8B04D] drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)]">
                                 {feature.number}
                               </span>
                             </div>
 
-                            <h3 className="mt-6 text-[17px] font-bold leading-snug tracking-[-0.015em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] transition-colors duration-300 group-hover:text-[#E8A33D]">
+                            <h3 className="mt-7 text-[18px] font-bold leading-snug tracking-[-0.015em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] transition-colors duration-300 group-hover:text-[#E8B04D]">
                               {feature.title}
                             </h3>
 
-                            <p className="mt-2.5 max-w-[280px] text-[13.5px] leading-[1.7] tracking-[0.005em] text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)]">
+                            <p className="mt-3 max-w-[280px] text-[14px] leading-[1.75] tracking-[0.005em] text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)] font-normal">
                               {feature.description}
                             </p>
 
-                            <span className="mt-5 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)] transition-colors duration-300 group-hover:text-white">
+                            <span className="mt-6 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[#E8B04D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)] transition-colors duration-300 group-hover:text-white">
                               Open
 
                               <ArrowRight
@@ -967,24 +985,20 @@ export default function HomePage() {
                   className="grid gap-10 lg:grid-cols-[1fr_auto] lg:items-end lg:gap-16"
                 >
                   <motion.div variants={slideInLeft} className="max-w-3xl">
-                    <div className="flex items-center gap-3">
-                      <span className="h-px w-9 bg-[#E8A33D]" />
+                    <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#E8B04D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
+                      SELFLESS CE
+                    </p>
 
-                      <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
-                        SELFLESS CE
-                      </p>
-                    </div>
-
-                    <h2 className="mt-5 text-[clamp(2.5rem,5.5vw,4.7rem)] font-semibold leading-[0.96] tracking-[-0.05em] text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.75)]">
+                    <h2 className="mt-6 text-[clamp(2.5rem,5.5vw,4.7rem)] font-semibold leading-[0.95] tracking-[-0.04em] text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.75)]">
                       Focus on your{" "}
-                      <span className="text-[#E8A33D] drop-shadow-[0_2px_14px_rgba(0,0,0,0.85)]">
+                      <span className="text-[#E8B04D] drop-shadow-[0_2px_14px_rgba(0,0,0,0.85)]">
                         education.
                       </span>
                       <br />
                       We help connect the rest.
                     </h2>
 
-                    <p className="mt-6 max-w-2xl text-sm leading-7 text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)] sm:text-base sm:leading-8">
+                    <p className="mt-7 max-w-2xl text-[15px] leading-[1.8] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)] sm:text-[16px] sm:leading-[1.75] font-normal">
                       Connect with tutors, students, tech-center teams, and the
                       wider SELFLESS CE community whenever you need support.
                     </p>
@@ -997,7 +1011,7 @@ export default function HomePage() {
                     {user ? (
                       <Link
                         href="/dashboard"
-                        className="group inline-flex items-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition-transform duration-300 hover:-translate-y-0.5"
+                        className="group inline-flex items-center gap-2.5 rounded-lg px-6 py-3.5 text-[14px] font-semibold transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
                         style={{
                           backgroundColor: COLORS.brassLight,
                           color: COLORS.ink,
@@ -1015,7 +1029,7 @@ export default function HomePage() {
                         <button
                           type="button"
                           onClick={() => openAuth("register")}
-                          className="group inline-flex items-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition-transform duration-300 hover:-translate-y-0.5 motion-reduce:transition-none"
+                          className="group inline-flex items-center gap-2.5 rounded-lg px-6 py-3.5 text-[14px] font-semibold transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg motion-reduce:transition-none"
                           style={{
                             backgroundColor: COLORS.brassLight,
                             color: COLORS.ink,
@@ -1033,7 +1047,7 @@ export default function HomePage() {
                           <button
                             type="button"
                             onClick={() => openAuth("login")}
-                            className="inline-flex items-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold text-white transition-colors duration-300 hover:bg-white/10"
+                            className="inline-flex items-center gap-2.5 rounded-lg px-6 py-3.5 text-[14px] font-semibold text-white transition-colors duration-300 hover:bg-white/10"
                           >
                             Sign in
                           </button>
@@ -1043,7 +1057,7 @@ export default function HomePage() {
 
                     <Link
                       href="/help"
-                      className="group inline-flex items-center gap-2 px-2 py-3 text-sm font-medium text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)] transition-colors hover:text-[#E8A33D]"
+                      className="group inline-flex items-center gap-2.5 px-2 py-3.5 text-[14px] font-medium text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)] transition-colors duration-300 hover:text-[#E8B04D]"
                     >
                       Visit support
 
@@ -1088,15 +1102,15 @@ function VideoJourneyItem({
 }) {
   return (
     <div>
-      <span className="font-mono text-[10px] font-bold tracking-[0.2em] text-[#E8A33D] drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]">
+      <span className="font-mono text-[10px] font-bold tracking-[0.2em] text-[#E8B04D] drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]">
         {number}
       </span>
 
-      <h3 className="mt-3 text-xl font-bold leading-tight tracking-[-0.02em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.9)] sm:text-2xl">
+      <h3 className="mt-4 text-[21px] font-bold leading-tight tracking-[-0.02em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.9)] sm:text-[22px]">
         {title}
       </h3>
 
-      <p className="mt-3 max-w-[300px] text-sm leading-7 text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
+      <p className="mt-4 max-w-[300px] text-[15px] leading-[1.75] text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)] font-normal">
         {text}
       </p>
     </div>
