@@ -55,6 +55,7 @@ export async function getUserById(userId: string) {
       isActive: true,
       status: true,
       techCenterId: true,
+      previousTechCenterId: true,
       techCenter: true,
       teacher: {
         select: {
@@ -81,6 +82,8 @@ export async function getUserById(userId: string) {
       teacherId: true,
       roleUpdatedAt: true,
       tokenVersion: true,
+      resetToken: true,
+      resetTokenExpiry: true,
       role: true,
     }
   });
@@ -101,6 +104,7 @@ export async function getUserByEmail(email: string) {
       isActive: true,
       status: true,
       techCenterId: true,
+      previousTechCenterId: true,
       techCenter: true,
       teacher: {
         select: {
@@ -127,6 +131,8 @@ export async function getUserByEmail(email: string) {
       teacherId: true,
       roleUpdatedAt: true,
       tokenVersion: true,
+      resetToken: true,
+      resetTokenExpiry: true,
       role: true,
     }
   });
