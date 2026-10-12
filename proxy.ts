@@ -19,8 +19,8 @@ export default withAuth(
       return NextResponse.next();
     }
 
-    // If authenticated and tries to access login/register, redirect to dashboard
-    if ((path === '/login' || path === '/register') && token) {
+    // If authenticated and tries to access register, redirect to dashboard
+    if (path === '/register' && token) {
       return NextResponse.redirect(new URL('/dashboard', req.url));
     }
 
@@ -34,7 +34,7 @@ export default withAuth(
 
         // If user doesn't exist or tokenVersion doesn't match, sign them out
         if (!user || (token.tokenVersion as number) !== user.tokenVersion) {
-          const response = NextResponse.redirect(new URL('/login', req.url));
+          const response = NextResponse.redirect(new URL('/', req.url));
           
           // Clear the session cookies
           response.cookies.delete('next-auth.session-token');

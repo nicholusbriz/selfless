@@ -24,7 +24,7 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json({ user });
+    return NextResponse.json({ user, tokenVersion: user.tokenVersion });
   } catch (error) {
     console.error('Me API error:', error);
     return NextResponse.json(

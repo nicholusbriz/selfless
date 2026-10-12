@@ -14,15 +14,15 @@ export function SessionValidator() {
         const response = await fetch('/api/auth/me');
         if (!response.ok) {
           // If auth fails, sign out
-          await signOut({ redirect: true, callbackUrl: '/login' });
+          await signOut({ redirect: true, callbackUrl: '/' });
           return;
         }
 
         const data = await response.json();
-        
+
         // If tokenVersion doesn't match, sign out
         if (data.tokenVersion !== session.user.tokenVersion) {
-          await signOut({ redirect: true, callbackUrl: '/login' });
+          await signOut({ redirect: true, callbackUrl: '/' });
         }
       } catch (error) {
         console.error('Error checking token version:', error);
