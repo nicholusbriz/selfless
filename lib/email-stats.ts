@@ -52,35 +52,23 @@ export async function getResendStats(): Promise<EmailStats | null> {
   }
 
   try {
-    // Get UTC date ranges with 4:00 AM reset time
     const now = new Date();
-    const utcHour = now.getUTCHours();
-    
-    // If it's before 4:00 AM UTC, the "day" started yesterday at 4:00 AM
-    // If it's 4:00 AM or later, the "day" started today at 4:00 AM
-    let startOfDay;
-    if (utcHour < 4) {
-      // Before 4:00 AM - use yesterday's date
-      const yesterday = new Date(now);
-      yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-      startOfDay = new Date(Date.UTC(yesterday.getUTCFullYear(), yesterday.getUTCMonth(), yesterday.getUTCDate(), 4, 0, 0));
-    } else {
-      // 4:00 AM or later - use today's date
-      startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 4, 0, 0));
-    }
-    
-    // Monthly reset on the 10th at 4:00 AM UTC
-    const utcDay = now.getUTCDate();
-    let startOfMonth;
-    if (utcDay < 10) {
-      // Before the 10th - use previous month's 10th
-      const previousMonth = new Date(now);
-      previousMonth.setUTCMonth(previousMonth.getUTCMonth() - 1);
-      startOfMonth = new Date(Date.UTC(previousMonth.getUTCFullYear(), previousMonth.getUTCMonth(), 10, 4, 0, 0));
-    } else {
-      // 10th or later - use current month's 10th
-      startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 10, 4, 0, 0));
-    }
+
+    // ── Daily window: midnight UTC → midnight UTC (Resend's actual reset) ──
+    const startOfDay = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      0, 0, 0
+    ));
+
+    // ── Monthly window: 1st of the month at midnight UTC ──────────────────
+    const startOfMonth = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      1,
+      0, 0, 0
+    ));
 
     // Query database for Resend email stats
     const [dailyCount, monthlyCount] = await Promise.all([
@@ -129,35 +117,23 @@ export async function getMailjetStats(): Promise<EmailStats | null> {
   }
 
   try {
-    // Get UTC date ranges with 4:00 AM reset time
     const now = new Date();
-    const utcHour = now.getUTCHours();
-    
-    // If it's before 4:00 AM UTC, the "day" started yesterday at 4:00 AM
-    // If it's 4:00 AM or later, the "day" started today at 4:00 AM
-    let startOfDay;
-    if (utcHour < 4) {
-      // Before 4:00 AM - use yesterday's date
-      const yesterday = new Date(now);
-      yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-      startOfDay = new Date(Date.UTC(yesterday.getUTCFullYear(), yesterday.getUTCMonth(), yesterday.getUTCDate(), 4, 0, 0));
-    } else {
-      // 4:00 AM or later - use today's date
-      startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 4, 0, 0));
-    }
-    
-    // Monthly reset on the 10th at 4:00 AM UTC
-    const utcDay = now.getUTCDate();
-    let startOfMonth;
-    if (utcDay < 10) {
-      // Before the 10th - use previous month's 10th
-      const previousMonth = new Date(now);
-      previousMonth.setUTCMonth(previousMonth.getUTCMonth() - 1);
-      startOfMonth = new Date(Date.UTC(previousMonth.getUTCFullYear(), previousMonth.getUTCMonth(), 10, 4, 0, 0));
-    } else {
-      // 10th or later - use current month's 10th
-      startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 10, 4, 0, 0));
-    }
+
+    // ── Daily window: midnight UTC → midnight UTC (Mailjet's actual reset) ──
+    const startOfDay = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      0, 0, 0
+    ));
+
+    // ── Monthly window: 1st of the month at midnight UTC ──────────────────
+    const startOfMonth = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      1,
+      0, 0, 0
+    ));
 
     // Query database for Mailjet email stats
     const [dailyCount, monthlyCount] = await Promise.all([
