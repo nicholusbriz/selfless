@@ -12,8 +12,8 @@
     "Kaboowa Tech Center"
   ],
   "description": "Academic management system for tech education centers in Uganda. Track students, courses, and academic progress.",
-  "url": "https://selfless-henna.vercel.app",
-  "logo": "https://selfless-henna.vercel.app/freedom.png",
+  "url": "https://www.selflessstudentportal.org",
+  "logo": "https://www.selflessstudentportal.org/freedom.png",
   "contactPoint": {
     "@type": "ContactPoint",
     "telephone": "+256 761 996 296",

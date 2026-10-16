@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const baseUrl = "https://selfless-henna.vercel.app";
+const baseUrl = "https://www.selflessstudentportal.org";
 
 const publicPages = [
   {
