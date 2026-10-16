@@ -56,9 +56,9 @@ type DiscoverStudentsProps = {
 
 const DEFAULT_INTERVAL = 5000;
 
-const SWAP_DURATION_S = 0.6;
+const SWAP_DURATION_S = 0.5;
 const TOTAL_SLIDE_MS = SWAP_DURATION_S * 1000;
-const SWAP_PERSPECTIVE = 1400;
+const SWAP_PERSPECTIVE = 2000;
 
 const SWIPE_THRESHOLD = 40;
 
@@ -547,17 +547,21 @@ export function DiscoverStudents({
   const roleLabel = formatRole(currentStudent.role?.name);
 
   /* ============================================================
-     PURE 3D FLIP — no blur, no fade, no sweep, no gradients.
+     IMPROVED 3D FLIP — Better z-index management to prevent collision
   ============================================================ */
 
   const cardSwapVariants = {
     enter: (dir: 1 | -1) => ({
       rotateY: dir === 1 ? 90 : -90,
-      z: -200,
+      opacity: 0,
+      z: -100,
+      scale: 0.9,
     }),
     center: {
       rotateY: 0,
+      opacity: 1,
       z: 0,
+      scale: 1,
       transition: {
         duration: SWAP_DURATION_S,
         ease: CUBIC_EASE,
@@ -565,7 +569,9 @@ export function DiscoverStudents({
     },
     exit: (dir: 1 | -1) => ({
       rotateY: dir === 1 ? -90 : 90,
+      opacity: 0,
       z: -200,
+      scale: 0.9,
       transition: {
         duration: SWAP_DURATION_S,
         ease: CUBIC_EASE,
