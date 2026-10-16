@@ -504,7 +504,7 @@ const devNavigation: NavSection = {
     },
     {
       id: 'email-settings',
-      label: 'Send Emails ',
+      label: 'Send Emails',
       path: '/dashboard/super-admin/email',
       icon: <Mail className={iconClass} />,
       roles: ['dev'],
@@ -1006,16 +1006,16 @@ function TopBar({
 
               {unreadCount &&
                 unreadCount > 0 ? (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute top-1 right-1 min-w-[15px] h-[15px] px-1 rounded-full bg-[#A4462F] text-white text-[9px] font-mono font-semibold flex items-center justify-center border-2 border-white"
-                  >
-                    {unreadCount > 99
-                      ? '99+'
-                      : unreadCount}
-                  </motion.span>
-                ) : null}
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute top-1 right-1 min-w-[15px] h-[15px] px-1 rounded-full bg-[#A4462F] text-white text-[9px] font-mono font-semibold flex items-center justify-center border-2 border-white"
+                >
+                  {unreadCount > 99
+                    ? '99+'
+                    : unreadCount}
+                </motion.span>
+              ) : null}
             </Link>
           </motion.div>
 
@@ -2307,7 +2307,7 @@ export default function DashboardLayout({
         </title>
       </Head>
 
-    {/* 🎯 Page visit tracker — fires POST /api/user/activity on route change */}
+      {/* 🎯 Page visit tracker — fires POST /api/user/activity on route change */}
       <PageTracker />
 
       <div className="min-h-screen bg-white">

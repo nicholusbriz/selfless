@@ -153,9 +153,7 @@ async function sendMailjetEmail({
     return { success: false, error: 'Failed to send email via Mailjet' };
   }
 
-  // Track successful email send
-  await trackEmailSent(to, 'notification', 'mailjet');
-
+  // Note: tracking is handled by the caller (send-email route) to avoid double-counting
   return { success: true, data: result.body };
 }
 
