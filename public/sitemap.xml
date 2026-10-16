@@ -5,7 +5,7 @@
 >
   <!-- Homepage -->
   <url>
-    <loc>https://selfless-henna.vercel.app/</loc>
+    <loc>https://www.selflessstudentportal.org/</loc>
     <lastmod>2026-09-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
@@ -13,7 +13,7 @@
 
   <!-- About -->
   <url>
-    <loc>https://selfless-henna.vercel.app/about</loc>
+    <loc>https://www.selflessstudentportal.org/about</loc>
     <lastmod>2026-09-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -21,7 +21,7 @@
 
   <!-- Tech Centers -->
   <url>
-    <loc>https://selfless-henna.vercel.app/tech-centers</loc>
+    <loc>https://www.selflessstudentportal.org/tech-centers</loc>
     <lastmod>2026-09-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
@@ -29,7 +29,7 @@
 
   <!-- Features -->
   <url>
-    <loc>https://selfless-henna.vercel.app/features</loc>
+    <loc>https://www.selflessstudentportal.org/features</loc>
     <lastmod>2026-09-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -37,7 +37,7 @@
 
   <!-- Help -->
   <url>
-    <loc>https://selfless-henna.vercel.app/help</loc>
+    <loc>https://www.selflessstudentportal.org/help</loc>
     <lastmod>2026-09-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -45,7 +45,7 @@
 
   <!-- Privacy -->
   <url>
-    <loc>https://selfless-henna.vercel.app/privacy</loc>
+    <loc>https://www.selflessstudentportal.org/privacy</loc>
     <lastmod>2026-09-18</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>

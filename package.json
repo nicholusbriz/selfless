@@ -10,7 +10,11 @@
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
-    "migrate:images": "tsx scripts/migrate-images-to-azure.ts"
+    "migrate:images": "tsx scripts/migrate-images-to-azure.ts",
+    "sync:email": "tsx scripts/sync-email-database.ts",
+    "check:email": "tsx scripts/check-email-logs.ts",
+    "reset:email": "tsx scripts/reset-email-logs.ts",
+    "cleanup:email": "tsx scripts/cleanup-old-email-logs.ts"
   },
   "prisma": {
     "seed": "node ./prisma/test-database.js"
@@ -31,6 +35,7 @@
     "lucide-react": "^1.17.0",
     "next": "^16.0.7",
     "next-auth": "^4.24.11",
+    "node-mailjet": "^6.0.11",
     "partykit": "^0.0.115",
     "partysocket": "^1.3.0",
     "prisma": "^5.22.0",
@@ -39,6 +44,7 @@
     "react-markdown": "^10.1.0",
     "react-player": "^3.4.0",
     "recharts": "^3.10.1",
+    "resend": "^6.33.0",
     "tailwind-merge": "^2.0.0",
     "typescript": "^5.9.3"
   },

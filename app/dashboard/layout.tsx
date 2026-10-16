@@ -65,6 +65,7 @@ import {
   X,
   Grid3x3,
   UserCheck,
+  Mail,
 } from 'lucide-react';
 
 import {
@@ -469,6 +470,13 @@ const superAdminNavigation: NavSection = {
       icon: <Users className={iconClass} />,
       roles: ['super_admin'],
     },
+    {
+      id: 'email-settings',
+      label: 'Send Emails',
+      path: '/dashboard/super-admin/email',
+      icon: <Mail className={iconClass} />,
+      roles: ['super_admin'],
+    },
   ],
 };
 
@@ -492,6 +500,13 @@ const devNavigation: NavSection = {
       label: 'System Overview',
       path: '/dashboard/super-admin',
       icon: <Shield className={iconClass} />,
+      roles: ['dev'],
+    },
+    {
+      id: 'email-settings',
+      label: 'Send Emails ',
+      path: '/dashboard/super-admin/email',
+      icon: <Mail className={iconClass} />,
       roles: ['dev'],
     },
     {

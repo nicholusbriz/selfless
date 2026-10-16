@@ -1205,3 +1205,30 @@ model PageVisitEvent {
   @@index([expiresAt])
   @@map("page_visit_events")
 }
+
+// ============================================
+// EMAIL LOG - Track email sending for statistics
+// ============================================
+
+model EmailLog {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+
+  // Email details
+  to          String   // Recipient email
+  subject     String
+  provider    String   // "resend" or "mailjet"
+  type        String   // "password_reset", "notification", "other"
+
+  // Status
+  status      String   @default("sent") // "sent", "failed"
+
+  // Timestamps
+  sentAt      DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([provider])
+  @@index([type])
+  @@index([sentAt])
+  @@index([provider, sentAt])
+  @@map("email_logs")
+}

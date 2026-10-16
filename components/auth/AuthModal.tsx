@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,7 +19,6 @@ import {
   Eye,
   EyeOff,
   Key,
-  MessageCircle,
 } from 'lucide-react';
 import PendingApprovalMessage from './PendingApprovalMessage';
 import EduEmailRestriction from './EduEmailRestriction';
@@ -210,48 +209,27 @@ function FeedbackMessage({ type, children }: FeedbackMessageProps) {
 }
 
 // ============================================
-// RESET CODE ADMINISTRATOR NOTE
+// RESET CODE NOTE
 // ============================================
 
-interface ResetCodeNoteProps {
-  email: string;
-}
-
-function ResetCodeNote({ email }: ResetCodeNoteProps) {
-  const whatsappMessage =
-    `Hello Admin, I have requested a new password reset token. ` +
-    `Please send me my reset code. My email is: ${email}`;
-
+function ResetCodeNote() {
   return (
-    <div className="rounded-lg border border-[#25D366]/25 bg-[#25D366]/6 p-4">
+    <div className="rounded-lg border border-[#E8A33D]/25 bg-[#E8A33D]/6 p-4">
       <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-lg bg-[#25D366]/12 flex items-center justify-center flex-shrink-0">
-          <MessageCircle className="w-4 h-4 text-[#25D366]" />
+        <div className="w-9 h-9 rounded-lg bg-[#E8A33D]/12 flex items-center justify-center flex-shrink-0">
+          <Mail className="w-4 h-4 text-[#E8A33D]" />
         </div>
 
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-[#12203B]">
-            Need your reset code?
+            Reset code sent to your email
           </p>
 
           <p className="text-xs text-[#4B564C] leading-5 mt-1.5">
             A new reset token has been generated for your account.
-            Please contact the administrator and let them know that
-            you have requested a new token so they can send you the
-            reset code immediately.
+            The 6-digit reset code has been sent to your email address.
+            Please check your inbox and use the code to reset your password.
           </p>
-
-          <a
-            href={`https://wa.me/256761996296?text=${encodeURIComponent(
-              whatsappMessage
-            )}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 mt-3 text-sm font-semibold text-[#1E9C55] hover:text-[#25D366] transition-colors"
-          >
-            <span>Contact administrator</span>
-            <ArrowRight className="w-4 h-4" />
-          </a>
         </div>
       </div>
     </div>
@@ -887,6 +865,51 @@ function ForgotPasswordForm({
   const [hasActiveToken, setHasActiveToken] = useState(false);
   const [isCheckingToken, setIsCheckingToken] = useState(false);
 
+  const tokenRefs = useRef<(HTMLInputElement | null)[]>(new Array(6).fill(null));
+
+  // ============================================
+  // OTP INPUT HANDLERS
+  // ============================================
+
+  const handleTokenChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    index: number
+  ) => {
+    const value = e.target.value.replace(/\D/g, '');
+    const newToken = token.split('');
+    newToken[index] = value;
+    const updatedToken = newToken.join('');
+
+    setToken(updatedToken);
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      tokenRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleTokenKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    index: number
+  ) => {
+    // Handle backspace
+    if (e.key === 'Backspace' && !token[index] && index > 0) {
+      tokenRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleTokenPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    setToken(pastedData);
+
+    // Focus the last filled input
+    if (pastedData.length > 0) {
+      const lastIndex = Math.min(pastedData.length - 1, 5);
+      tokenRefs.current[lastIndex]?.focus();
+    }
+  };
+
   // ============================================
   // CHECK ACTIVE TOKEN
   // ============================================
@@ -1302,13 +1325,12 @@ function ForgotPasswordForm({
                 <FeedbackMessage type="success">
                   <span>
                     <strong className="block mb-0.5">
-                      Reset code requested
+                      Reset code sent
                     </strong>
                     A new reset token has been generated
-                    for your account. Please contact the
-                    administrator and let them know that
-                    you have requested a new token so they
-                    can send you the reset code immediately.
+                    for your account. The 6-digit code has been
+                    sent to your email address. Please check your
+                    inbox and use the code to reset your password.
                   </span>
                 </FeedbackMessage>
               )}
@@ -1391,27 +1413,30 @@ function ForgotPasswordForm({
                 Reset Code
               </label>
 
-              <input
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                value={token}
-                onChange={(e) =>
-                  setToken(
-                    e.target.value
-                      .replace(/\D/g, '')
-                      .slice(0, 6)
-                  )
-                }
-                placeholder="000000"
-                className={`${inputClassName} text-center text-2xl tracking-[0.35em] font-mono`}
-                maxLength={6}
-                required
-              />
+              <div className="flex gap-2 justify-center">
+                {[0, 1, 2, 3, 4, 5].map((index) => (
+                  <input
+                    key={index}
+                    ref={(el) => {
+                      tokenRefs.current[index] = el;
+                    }}
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    value={token[index] || ''}
+                    onChange={(e) => handleTokenChange(e, index)}
+                    onKeyDown={(e) => handleTokenKeyDown(e, index)}
+                    onPaste={handleTokenPaste}
+                    placeholder="•"
+                    className={`${inputClassName} w-12 h-14 text-center text-2xl font-mono`}
+                    maxLength={1}
+                    required
+                  />
+                ))}
+              </div>
 
-              <p className="text-[11px] text-[#8A9088]">
-                Enter the 6-digit code provided by the
-                administrator.
+              <p className="text-[11px] text-[#8A9088] text-center">
+                Enter the 6-digit code sent to your email. You can paste the full code.
               </p>
             </div>
 
@@ -1431,7 +1456,7 @@ function ForgotPasswordForm({
               )}
             </AnimatePresence>
 
-            <ResetCodeNote email={email} />
+            <ResetCodeNote />
 
             <motion.button
               type="submit"
