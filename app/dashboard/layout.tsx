@@ -66,6 +66,7 @@ import {
   Grid3x3,
   UserCheck,
   Mail,
+  Settings,
 } from 'lucide-react';
 
 import {
@@ -401,7 +402,7 @@ const adminNavigation: NavSection = {
     },
     {
       id: 'manage-cleaning',
-      label: 'Cleaning',
+      label: 'Cleaning Management',
       path: '/dashboard/admin/cleaning',
       icon: <Calendar className={iconClass} />,
       roles: ['admin'],
@@ -457,6 +458,13 @@ const superAdminNavigation: NavSection = {
       roles: ['super_admin'],
     },
     {
+      id: 'cleaning-management',
+      label: 'Cleaning Management',
+      path: '/dashboard/dev/cleaning',
+      icon: <Settings className={iconClass} />,
+      roles: ['super_admin'],
+    },
+    {
       id: 'all-centers',
       label: 'Tech Centers',
       path: '/dashboard/super-admin/centers',
@@ -494,6 +502,13 @@ const devNavigation: NavSection = {
       path: '/dashboard/dev',
       icon: <Code className={iconClass} />,
       roles: ['dev'],
+    },
+    {
+      id: 'dev-cleaning',
+      label: 'Cleaning Management',
+      path: '/dashboard/dev/cleaning',
+      icon: <Settings className={iconClass} />,
+      roles: ['dev', 'super_admin'],
     },
     {
       id: 'super-admin-overview',

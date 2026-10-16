@@ -1,51 +1,72 @@
-import type { MetadataRoute } from "next";
+import type { MetadataRoute } from 'next';
 
-const baseUrl = "https://www.selflessstudentportal.org";
+const BASE_URL = 'https://www.selflessstudentportal.org';
 
-const publicPages = [
-  {
-    path: "",
-    changeFrequency: "weekly" as const,
-    priority: 1,
-  },
-  {
-    path: "/about",
-    changeFrequency: "monthly" as const,
-    priority: 0.8,
-  },
-  {
-    path: "/features",
-    changeFrequency: "monthly" as const,
-    priority: 0.9,
-  },
-  {
-    path: "/tech-centers",
-    changeFrequency: "monthly" as const,
-    priority: 0.8,
-  },
-  {
-    path: "/help",
-    changeFrequency: "monthly" as const,
-    priority: 0.7,
-  },
-  {
-    path: "/privacy",
-    changeFrequency: "yearly" as const,
-    priority: 0.3,
-  },
-  {
-    path: "/terms",
-    changeFrequency: "yearly" as const,
-    priority: 0.3,
-  },
-];
+// Bump this date whenever you make a meaningful content change
+// so Google knows something is actually new.
+const LAST_UPDATED = '2026-10-16';
+
+const publicPages: {
+  path: string;
+  changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'];
+  priority: number;
+  lastModified: string;
+}[] = [
+    {
+      // Homepage — most important, changes frequently
+      path: '',
+      changeFrequency: 'weekly',
+      priority: 1.0,
+      lastModified: LAST_UPDATED,
+    },
+    {
+      // Features page — high value for SEO
+      path: '/features',
+      changeFrequency: 'monthly',
+      priority: 0.9,
+      lastModified: LAST_UPDATED,
+    },
+    {
+      // Tech Centers listing — key discovery page
+      path: '/tech-centers',
+      changeFrequency: 'monthly',
+      priority: 0.9,
+      lastModified: LAST_UPDATED,
+    },
+    {
+      // About page
+      path: '/about',
+      changeFrequency: 'monthly',
+      priority: 0.8,
+      lastModified: LAST_UPDATED,
+    },
+    {
+      // Help / support page
+      path: '/help',
+      changeFrequency: 'monthly',
+      priority: 0.7,
+      lastModified: LAST_UPDATED,
+    },
+    {
+      // Terms of service — rarely changes
+      path: '/terms',
+      changeFrequency: 'yearly',
+      priority: 0.3,
+      lastModified: LAST_UPDATED,
+    },
+    {
+      // Privacy policy — rarely changes
+      path: '/privacy',
+      changeFrequency: 'yearly',
+      priority: 0.3,
+      lastModified: LAST_UPDATED,
+    },
+  ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const lastModified = new Date();
-
-  return publicPages.map(({ path, changeFrequency, priority }) => ({
-    url: `${baseUrl}${path}`,
-    lastModified,
+  return publicPages.map(({ path, changeFrequency, priority, lastModified }) => ({
+    url: `${BASE_URL}${path}`,
+    lastModified: new Date(lastModified),
     changeFrequency,
     priority,
   }));

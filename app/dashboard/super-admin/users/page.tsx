@@ -26,6 +26,7 @@ import {
   Calendar,
   RefreshCw,
   Save,
+  GraduationCap,
 } from 'lucide-react';
 
 import {
@@ -177,12 +178,10 @@ const UserAvatar = ({
 const StatsCard = ({
   title,
   value,
-  icon,
   subtitle,
 }: {
   title: string;
   value: number;
-  icon: React.ReactNode;
   subtitle?: string;
 }) => (
   <motion.div
@@ -190,24 +189,18 @@ const StatsCard = ({
     animate={{ opacity: 1, y: 0 }}
     className="rounded-xl border border-[#E2E6EB] bg-white p-4"
   >
-    <div className="flex items-center justify-between gap-3">
-      <div className="min-w-0">
-        <p className="truncate text-xs font-medium uppercase tracking-wide text-[#6F7B8D]">
-          {title}
-        </p>
+    <div>
+      <p className="text-xs font-medium uppercase tracking-wide text-[#6F7B8D]">
+        {title}
+      </p>
 
-        <p className="mt-1 text-2xl font-semibold tracking-tight text-[#12203B]">
-          {value}
-        </p>
+      <p className="mt-1 text-2xl font-semibold tracking-tight text-[#12203B]">
+        {value}
+      </p>
 
-        {subtitle && (
-          <p className="mt-0.5 text-xs text-[#8993A3]">{subtitle}</p>
-        )}
-      </div>
-
-      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[#F7F8FA] text-[#12203B]">
-        {icon}
-      </div>
+      {subtitle && (
+        <p className="mt-0.5 text-xs text-[#8993A3]">{subtitle}</p>
+      )}
     </div>
   </motion.div>
 );
@@ -230,22 +223,27 @@ const HeaderSkeleton = () => (
   </div>
 );
 
-const StatsSkeleton = () => (
-  <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-    {Array.from({ length: 4 }).map((_, index) => (
+const StatsSkeleton = ({ showDirectors = true }: { showDirectors?: boolean } = {}) => (
+  <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+    {Array.from({ length: 6 }).map((_, index) => (
       <div
         key={index}
         className="rounded-xl border border-[#E2E6EB] bg-white p-4"
       >
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <Skeleton className="h-3 w-20" />
-            <Skeleton className="h-7 w-12" />
-          </div>
-          <Skeleton className="h-10 w-10 rounded-lg" />
+        <div className="space-y-2">
+          <Skeleton className="h-3 w-20" />
+          <Skeleton className="h-7 w-12" />
         </div>
       </div>
     ))}
+    {showDirectors && (
+      <div className="rounded-xl border border-[#E2E6EB] bg-white p-4">
+        <div className="space-y-2">
+          <Skeleton className="h-3 w-20" />
+          <Skeleton className="h-7 w-12" />
+        </div>
+      </div>
+    )}
   </div>
 );
 
@@ -419,6 +417,9 @@ export default function SuperAdminUsersPage() {
       active: users.filter((u) => u.status === 'ACTIVE').length,
       inactive: users.filter((u) => u.status === 'INACTIVE').length,
       suspended: users.filter((u) => u.status === 'SUSPENDED').length,
+      managers: users.filter((u) => u.role?.name === 'admin').length,
+      tutors: users.filter((u) => u.role?.name === 'teacher').length,
+      directors: users.filter((u) => u.role?.name === 'super_admin' || u.role?.name === 'superadmin').length,
     };
   }, [usersData]);
 
@@ -565,7 +566,7 @@ export default function SuperAdminUsersPage() {
       <main className="min-h-screen bg-[#F7F8FA] px-3 py-4 sm:px-5 lg:px-6">
         <div className="mx-auto max-w-[1500px]">
           <HeaderSkeleton />
-          <StatsSkeleton />
+          <StatsSkeleton showDirectors={!filters.techCenterId} />
           <SearchFiltersSkeleton />
 
           <UserTableSkeleton />
@@ -648,35 +649,50 @@ export default function SuperAdminUsersPage() {
           </div>
         </header>
 
+
+
         {/* ---------------------------------------------------------------- */}
         {/* Stats                                                             */}
         {/* ---------------------------------------------------------------- */}
 
         {stats && (
-          <section className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
             <StatsCard
               title="Total Users"
               value={stats.total}
-              icon={<UsersIcon className="h-5 w-5" />}
             />
 
             <StatsCard
               title="Active"
               value={stats.active}
-              icon={<UserCheck className="h-5 w-5" />}
             />
 
             <StatsCard
               title="Inactive"
               value={stats.inactive}
-              icon={<UserX className="h-5 w-5" />}
             />
 
             <StatsCard
               title="Suspended"
               value={stats.suspended}
-              icon={<Shield className="h-5 w-5" />}
             />
+
+            <StatsCard
+              title="Managers"
+              value={stats.managers}
+            />
+
+            <StatsCard
+              title="Tutors"
+              value={stats.tutors}
+            />
+
+            {!filters.techCenterId && (
+              <StatsCard
+                title="Directors"
+                value={stats.directors}
+              />
+            )}
           </section>
         )}
 
@@ -1005,50 +1021,58 @@ export default function SuperAdminUsersPage() {
                       </div>
 
                       {/* Actions */}
-                      <div className="flex justify-end gap-1">
-                        <button
-                          onClick={() => toggleExpand(user.id, 'edit')}
-                          aria-label={`Edit ${user.firstName}`}
-                          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${isExpanded && expandedAction === 'edit'
-                            ? 'bg-[#F8F3E8] text-[#8A6E3A]'
-                            : 'text-[#6F7B8D] hover:bg-[#F7F8FA] hover:text-[#12203B]'
-                            }`}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
+                      <div className="flex flex-col items-end gap-1.5">
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={() => toggleExpand(user.id, 'edit')}
+                            aria-label={`Edit ${user.firstName}`}
+                            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${isExpanded && expandedAction === 'edit'
+                              ? 'bg-[#F8F3E8] text-[#8A6E3A]'
+                              : 'bg-[#F7F8FA] text-[#43516A] hover:bg-[#EEF2F7]'
+                              }`}
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                            Edit
+                          </button>
 
-                        <button
-                          onClick={() => toggleExpand(user.id, 'role')}
-                          aria-label={`Change role for ${user.firstName}`}
-                          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${isExpanded && expandedAction === 'role'
-                            ? 'bg-[#F8F3E8] text-[#8A6E3A]'
-                            : 'text-[#6F7B8D] hover:bg-[#F7F8FA] hover:text-[#12203B]'
-                            }`}
-                        >
-                          <Shield className="h-4 w-4" />
-                        </button>
+                          <button
+                            onClick={() => toggleExpand(user.id, 'role')}
+                            aria-label={`Change role for ${user.firstName}`}
+                            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${isExpanded && expandedAction === 'role'
+                              ? 'bg-[#F8F3E8] text-[#8A6E3A]'
+                              : 'bg-[#F7F8FA] text-[#43516A] hover:bg-[#EEF2F7]'
+                              }`}
+                          >
+                            <Shield className="h-3.5 w-3.5" />
+                            Role
+                          </button>
+                        </div>
 
-                        <button
-                          onClick={() => toggleExpand(user.id, 'status')}
-                          aria-label={`Change status for ${user.firstName}`}
-                          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${isExpanded && expandedAction === 'status'
-                            ? 'bg-[#F8F3E8] text-[#8A6E3A]'
-                            : 'text-[#6F7B8D] hover:bg-[#F7F8FA] hover:text-[#12203B]'
-                            }`}
-                        >
-                          <UserCog className="h-4 w-4" />
-                        </button>
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={() => toggleExpand(user.id, 'status')}
+                            aria-label={`Change status for ${user.firstName}`}
+                            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${isExpanded && expandedAction === 'status'
+                              ? 'bg-[#F8F3E8] text-[#8A6E3A]'
+                              : 'bg-[#F7F8FA] text-[#43516A] hover:bg-[#EEF2F7]'
+                              }`}
+                          >
+                            <UserCog className="h-3.5 w-3.5" />
+                            Status
+                          </button>
 
-                        <button
-                          onClick={() => toggleExpand(user.id, 'delete')}
-                          aria-label={`Delete ${user.firstName}`}
-                          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${isExpanded && expandedAction === 'delete'
-                            ? 'bg-[#FBF0EC] text-[#A4462F]'
-                            : 'text-[#6F7B8D] hover:bg-[#FBF0EC] hover:text-[#A4462F]'
-                            }`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                          <button
+                            onClick={() => toggleExpand(user.id, 'delete')}
+                            aria-label={`Delete ${user.firstName}`}
+                            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${isExpanded && expandedAction === 'delete'
+                              ? 'bg-[#FBF0EC] text-[#A4462F]'
+                              : 'bg-[#F7F8FA] text-[#43516A] hover:bg-[#FBF0EC] hover:text-[#A4462F]'
+                              }`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     </div>
 
