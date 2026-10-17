@@ -21,6 +21,8 @@ interface Course {
   code: string;
   credits: number;
   courseUnit: string;
+  tuition?: number;
+  takesReligion?: boolean;
 }
 
 interface Student {

@@ -40,7 +40,7 @@ export function useSubmitCourses() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { courses: any[]; tuitionAmount: string }) => {
+    mutationFn: async (data: { courses: any[]; tuitionAmount: string; takesReligion: boolean }) => {
       const response = await fetch('/api/student-courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -65,6 +65,8 @@ export function useSubmitCourses() {
           code: c.code,
           courseUnit: c.courseUnit,
           credits: c.credits,
+          tuition: variables.tuitionAmount ? parseFloat(variables.tuitionAmount) : null,
+          takesReligion: variables.takesReligion || false,
           status: 'submitted',
           submittedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),

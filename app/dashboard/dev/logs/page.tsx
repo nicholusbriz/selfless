@@ -137,6 +137,9 @@ const ACTION_BADGE_COLORS: Record<string, string> = {
 
   page_visit:
     'bg-cyan-50 text-cyan-700 border-cyan-200',
+
+  password_reset_requested:
+    'bg-[#E8A33D]/10 text-[#E8A33D] border-[#E8A33D]/20',
 };
 
 const DEFAULT_BADGE_COLOR =

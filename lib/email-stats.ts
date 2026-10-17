@@ -177,7 +177,7 @@ export async function getMailjetStats(): Promise<EmailStats | null> {
 }
 
 // Track emails sent in your database for accurate stats
-export async function trackEmailSent(email: string, type: 'password_reset' | 'notification' | 'other', provider: 'resend' | 'mailjet') {
+export async function trackEmailSent(email: string, type: 'password_reset' | 'notification' | 'other' | 'account_verified', provider: 'resend' | 'mailjet') {
   try {
     await prisma.emailLog.create({
       data: {

@@ -110,6 +110,8 @@ export async function GET(request: NextRequest) {
             code: true,
             credits: true,
             courseUnit: true,
+            tuition: true,
+            takesReligion: true,
           }
         },
         _count: {
@@ -127,18 +129,52 @@ export async function GET(request: NextRequest) {
       take: limit,
     });
 
-    // Calculate stats
+    // Add tuitionAmount to each user from their courses (use first course's tuition)
+    const usersWithTuition = users.map(user => {
+      const tuitionFromCourse = user.submittedCourses.length > 0
+        ? user.submittedCourses[0].tuition
+        : null;
+      return {
+        ...user,
+        tuitionAmount: tuitionFromCourse
+      };
+    });
+
+    // Calculate stats - now using student_courses for tuition
     const totalStudents = await prisma.user.count({ where: baseWhere });
-    const withTuition = await prisma.user.count({ 
-      where: { ...baseWhere, tuitionAmount: { gt: 0 } } 
-    });
-    
-    const totalTuitionSum = await prisma.user.aggregate({
-      where: baseWhere,
-      _sum: {
-        tuitionAmount: true,
+
+    // Get all active student courses to calculate tuition stats
+    const allStudentCourses = await prisma.studentCourse.findMany({
+      where: {
+        student: {
+          techCenterId: techCenterId,
+        },
+        status: 'ACTIVE'
       },
+      select: {
+        tuition: true,
+        studentId: true,
+      }
     });
+
+    // Count unique students with tuition (tuition > 0)
+    const studentsWithTuition = new Set();
+    const studentTuitionMap = new Map(); // Track tuition per student
+
+    allStudentCourses.forEach(course => {
+      if (course.tuition && course.tuition > 0) {
+        studentsWithTuition.add(course.studentId);
+        // Store tuition per student (use first course's tuition per student)
+        if (!studentTuitionMap.has(course.studentId)) {
+          studentTuitionMap.set(course.studentId, course.tuition);
+        }
+      }
+    });
+
+    const withTuition = studentsWithTuition.size;
+
+    // Sum tuition across all unique students
+    const totalTuitionSum = Array.from(studentTuitionMap.values()).reduce((sum, tuition) => sum + tuition, 0);
 
     // Calculate total credits across all users
     const allUsersWithCourses = await prisma.user.findMany({
@@ -182,7 +218,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({
-      users,
+      users: usersWithTuition,
       pagination: {
         total,
         page,
@@ -193,7 +229,7 @@ export async function GET(request: NextRequest) {
         total: totalStudents,
         withTuition: withTuition,
         withoutTuition: totalStudents - withTuition,
-        totalTuition: totalTuitionSum._sum.tuitionAmount || 0,
+        totalTuition: totalTuitionSum,
         totalCredits: totalCreditsAllUsers,
         active: activeCount,
         inactive: inactiveCount,

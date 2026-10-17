@@ -630,46 +630,34 @@ export default function ManageTeachersPage() {
                 {
                   label: 'Total Users',
                   value: allUsers.length,
-                  icon: Users,
                 },
                 {
                   label: 'Tutors',
                   value: teachers.length,
-                  icon: GraduationCap,
                 },
                 {
                   label: 'Admins',
                   value: admins.length,
-                  icon: Users,
                 },
                 {
                   label: 'Students',
                   value: students.length,
-                  icon: Users,
                 },
                 {
                   label: 'Assigned',
                   value: assignedStudents.length,
-                  icon: UserPlus,
                 },
                 {
                   label: 'Available',
                   value: unassignedStudents.length,
-                  icon: UserMinus,
                 },
               ].map((item) => {
-                const Icon = item.icon;
-
                 return (
                   <div
                     key={item.label}
                     className="rounded-xl border border-[#DADCD3] bg-white p-4 transition-colors duration-200 hover:border-[#B98A3E]/35 sm:p-5"
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#E7E8E1] bg-[#F7F6F2] text-[#55705B]">
-                        <Icon size={19} />
-                      </div>
-
                       <span className="text-[11px] font-semibold uppercase tracking-wide text-[#8A9088]">
                         {item.label}
                       </span>
@@ -940,15 +928,7 @@ export default function ManageTeachersPage() {
                                   </span>
                                 </div>
 
-                                {/* TEXT-BASED TUTOR PROFILE LINK */}
-                                <div className="mt-3">
-                                  <Link
-                                    href={`/dashboard/students/${teacher.id}`}
-                                    className="inline-flex text-xs font-semibold text-[#12203B] underline underline-offset-2 transition-colors hover:text-[#8A6328] sm:text-sm"
-                                  >
-                                    View Profile
-                                  </Link>
-                                </div>
+
                               </div>
                             </div>
                           </div>
@@ -1091,14 +1071,6 @@ export default function ManageTeachersPage() {
                                         </div>
 
                                         <div className="flex shrink-0 items-center gap-2">
-                                          {/* TEXT-BASED PROFILE LINK */}
-                                          <Link
-                                            href={`/dashboard/students/${user.id}`}
-                                            className="text-xs font-semibold text-[#12203B] underline underline-offset-2 transition-colors hover:text-[#8A6328] sm:text-sm"
-                                          >
-                                            View Profile
-                                          </Link>
-
                                           {showRemoveIcon && (
                                             <button
                                               onClick={() =>
@@ -1295,17 +1267,10 @@ export default function ManageTeachersPage() {
 
                           <p className="mt-0.5 flex items-center gap-1 text-xs font-medium text-amber-600">
                             <UserMinus size={11} />
-                            Student • Unassigned
+                            Student
                           </p>
                         </div>
 
-                        {/* TEXT-BASED PROFILE LINK */}
-                        <Link
-                          href={`/dashboard/students/${user.id}`}
-                          className="shrink-0 text-xs font-semibold text-[#12203B] underline underline-offset-2 transition-colors hover:text-[#8A6328] sm:text-sm"
-                        >
-                          View Profile
-                        </Link>
                       </div>
                     ))}
                   </div>
@@ -1552,14 +1517,6 @@ export default function ManageTeachersPage() {
                         </div>
 
                         <div className="flex shrink-0 items-center gap-2">
-                          {/* TEXT-BASED PROFILE LINK */}
-                          <Link
-                            href={`/dashboard/students/${user.id}`}
-                            className="text-xs font-semibold text-[#12203B] underline underline-offset-2 transition-colors hover:text-[#8A6328] sm:text-sm"
-                          >
-                            View Profile
-                          </Link>
-
                           {selectedStudents.size === 0 && (
                             <button
                               onClick={() =>

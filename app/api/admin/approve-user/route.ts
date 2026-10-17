@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma/client';
 import { requireAuth } from '@/lib/auth/server';
 import { publishApprovalInvalidation } from '@/lib/partykit-server';
+import { sendAccountVerifiedEmail } from '@/lib/email';
 
 export async function POST(req: NextRequest) {
   try {
@@ -120,6 +121,25 @@ export async function POST(req: NextRequest) {
       });
 
       await publishApprovalInvalidation();
+
+      // Send welcome email to the user
+      try {
+        const emailResult = await sendAccountVerifiedEmail({
+          to: targetUser.email,
+          firstName: targetUser.firstName,
+          lastName: targetUser.lastName,
+        });
+
+        if (emailResult.skipped) {
+          console.log(`[approve-user] Welcome email skipped due to daily limit for user: ${targetUser.email}`);
+        } else if (!emailResult.success) {
+          console.error('Failed to send account verified email:', emailResult.error);
+          // Continue anyway - the user is still approved
+        }
+      } catch (emailError) {
+        console.error('Error sending account verified email:', emailError);
+        // Continue anyway - the user is still approved
+      }
 
       return NextResponse.json({
         success: true,
