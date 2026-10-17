@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { courses, tuitionAmount } = body;
+    const { courses, tuitionAmount, takesReligion } = body;
 
     if (!courses || !Array.isArray(courses) || courses.length === 0) {
       return NextResponse.json({ error: 'At least one course is required' }, { status: 400 });
@@ -72,15 +72,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User must be assigned to a tech center to submit courses' }, { status: 400 });
     }
 
-    // Update user's tuition amount if provided
-    if (tuitionAmount !== undefined && tuitionAmount !== null) {
-      await prisma.user.update({
-        where: { id: session.user.id },
-        data: { tuitionAmount: parseFloat(tuitionAmount) }
-      });
-    }
+    // Parse tuition amount
+    const parsedTuition = tuitionAmount !== undefined && tuitionAmount !== null && tuitionAmount !== ''
+      ? parseFloat(tuitionAmount)
+      : null;
 
-    // Create courses
+    // Create courses with tuition and religion data stored in each record
     const createdCourses = await Promise.all(
       courses.map((course: any) =>
         prisma.studentCourse.create({
@@ -91,7 +88,8 @@ export async function POST(request: NextRequest) {
             code: course.code,
             courseUnit: course.courseUnit,
             credits: parseInt(course.credits),
-            takesReligion: false // Religion is now a user-level setting, not per course
+            takesReligion: takesReligion || false,
+            tuition: parsedTuition
           }
         })
       )
@@ -116,6 +114,48 @@ export async function POST(request: NextRequest) {
     console.error('Error submitting courses:', error);
     return NextResponse.json(
       { error: 'Failed to submit courses' },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT - Update student's academic settings (tuition and religion) across all active courses
+export async function PUT(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { tuitionAmount, takesReligion } = body;
+
+    // Parse tuition amount
+    const parsedTuition = tuitionAmount !== undefined && tuitionAmount !== null && tuitionAmount !== ''
+      ? parseFloat(tuitionAmount)
+      : null;
+
+    // Update all active courses for this student with the new tuition and religion settings
+    const updatedCourses = await prisma.studentCourse.updateMany({
+      where: {
+        studentId: session.user.id,
+        status: 'ACTIVE'
+      },
+      data: {
+        tuition: parsedTuition,
+        takesReligion: takesReligion !== undefined ? takesReligion : undefined
+      }
+    });
+
+    return NextResponse.json({
+      success: true,
+      updatedCount: updatedCourses.count
+    });
+  } catch (error) {
+    console.error('Error updating academic settings:', error);
+    return NextResponse.json(
+      { error: 'Failed to update academic settings' },
       { status: 500 }
     );
   }

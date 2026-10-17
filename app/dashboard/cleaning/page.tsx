@@ -485,21 +485,21 @@ function YourRegistrationBanner({
 // WEEK FILTER CHIPS
 // =========================================================
 
-type WeekFilter = { kind: 'all' } | { kind: 'week'; index: 0 | 1 | 2 };
+type WeekFilter = { kind: 'all' } | { kind: 'week'; weekId: string };
 
 function WeekFilterChips({
   filter,
   setFilter,
-  availableWeeks,
+  weeks,
 }: {
   filter: WeekFilter;
   setFilter: (f: WeekFilter) => void;
-  availableWeeks: number;
+  weeks: Array<{ id: string; weekLabel: string }>;
 }) {
   const isSelected = (target: WeekFilter) => {
     if (target.kind !== filter.kind) return false;
     if (target.kind === 'week' && filter.kind === 'week')
-      return target.index === filter.index;
+      return target.weekId === filter.weekId;
     return true;
   };
 
@@ -511,21 +511,11 @@ function WeekFilterChips({
 
   const options: { label: string; value: WeekFilter; enabled: boolean }[] = [
     { label: 'All', value: { kind: 'all' }, enabled: true },
-    {
-      label: 'First week',
-      value: { kind: 'week', index: 0 },
-      enabled: availableWeeks > 0,
-    },
-    {
-      label: 'Second week',
-      value: { kind: 'week', index: 1 },
-      enabled: availableWeeks > 1,
-    },
-    {
-      label: 'Third week',
-      value: { kind: 'week', index: 2 },
-      enabled: availableWeeks > 2,
-    },
+    ...weeks.map((week) => ({
+      label: week.weekLabel,
+      value: { kind: 'week' as const, weekId: week.id },
+      enabled: true,
+    })),
   ];
 
   return (
@@ -1158,16 +1148,25 @@ function ParticipantSearch({
 
 function UnregisteredStudentsList({
   students,
+  totalWeeks,
+  totalDays,
 }: {
   students: UnregisteredStudent[];
+  totalWeeks: number;
+  totalDays: number;
 }) {
   if (students.length === 0) {
     return (
-      <div className="mb-4 flex items-center gap-2 text-[12.5px] text-[var(--ink-3)]">
-        <CheckCircle className="h-4 w-4 text-[var(--ok)]" />
-        <span className="font-medium">
-          Every student is registered for a cleaning day.
-        </span>
+      <div className="mb-4">
+        <div className="flex items-center gap-2 text-[12.5px] text-[var(--ink-3)]">
+          <CheckCircle className="h-4 w-4 text-[var(--ok)]" />
+          <span className="font-medium">
+            Every student is registered for a cleaning day.
+          </span>
+        </div>
+        <p className="mt-2 text-[12px] text-[var(--ink-3)]">
+          Total weeks: {totalWeeks} · Total days: {totalDays}
+        </p>
       </div>
     );
   }
@@ -1179,6 +1178,9 @@ function UnregisteredStudentsList({
       </p>
       <p className="text-[13px] leading-6 text-[var(--ink)]">
         {students.map((s) => `${s.firstName} ${s.lastName}`.trim()).join(' · ')}
+      </p>
+      <p className="mt-2 text-[12px] text-[var(--ink-3)]">
+        Total weeks: {totalWeeks} · Total days: {totalDays}
       </p>
     </div>
   );
@@ -1284,7 +1286,7 @@ export default function CleaningPage() {
     if (weekFilter.kind === 'all') {
       return weeks.flatMap((week) => week.days.map((day) => ({ day, week })));
     }
-    const week = weeks[weekFilter.index];
+    const week = weeks.find((w) => w.id === weekFilter.weekId);
     if (!week) return [];
     return week.days.map((day) => ({ day, week }));
   }, [weeks, weekFilter]);
@@ -1593,8 +1595,8 @@ export default function CleaningPage() {
 
       <PageHeader
         onBack={() => router.back()}
-        registeredLabel={registeredLabel}
-        deadlineText={deadlineText}
+        registeredLabel={null}
+        deadlineText={null}
       />
 
       <main className="mx-auto max-w-5xl px-4 pt-6 pb-10 sm:px-6 sm:pt-8 sm:pb-12">
@@ -1630,24 +1632,11 @@ export default function CleaningPage() {
           )}
         </AnimatePresence>
 
-        {registeredDay && registeredWeek && statusData?.registration && (
-          <YourRegistrationBanner
-            day={registeredDay}
-            weekLabel={registeredWeek.weekLabel}
-            status={statusData.registration.status ?? 'PENDING'}
-            deadlineText={deadlineText}
-            onSwitchRequest={() => {
-              setWeekFilter({ kind: 'all' });
-              window.setTimeout(() => {
-                document
-                  .getElementById('cleaning-grid')
-                  ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }, 50);
-            }}
-          />
-        )}
-
-        <UnregisteredStudentsList students={data?.unregisteredStudents ?? []} />
+        <UnregisteredStudentsList
+          students={data?.unregisteredStudents ?? []}
+          totalWeeks={weeks.length}
+          totalDays={allDays.length}
+        />
 
         {weeks.length > 0 && (
           <ParticipantSearch
@@ -1675,7 +1664,7 @@ export default function CleaningPage() {
             <WeekFilterChips
               filter={weekFilter}
               setFilter={setWeekFilter}
-              availableWeeks={weeks.length}
+              weeks={weeks}
             />
 
             {filteredDays.length === 0 ? (

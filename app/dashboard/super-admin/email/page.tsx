@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/lib/hooks/useAuth';
 import {
   Mail,
   RefreshCw,
@@ -17,6 +18,7 @@ import {
   ChevronDown,
   AlertTriangle,
   Info,
+  Power,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -104,7 +106,15 @@ function roleLabel(user: EmailUser): string {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function EmailPage() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('compose');
+  const [emailSendingEnabled, setEmailSendingEnabled] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('emailSendingEnabled');
+      return saved !== 'false'; // Default to true
+    }
+    return true;
+  });
 
   // Stats
   const [stats, setStats] = useState<AllStats>({ resend: null, mailjet: null });
@@ -226,15 +236,17 @@ export default function EmailPage() {
   const mailjetStats = stats.mailjet;
   const recipientCount = displayedSelected.length;
 
-  type UsageState = 'LIMIT_REACHED' | 'INSUFFICIENT' | 'OK';
+  type UsageState = 'LIMIT_REACHED' | 'INSUFFICIENT' | 'DISABLED' | 'OK';
   const usageState: UsageState = (() => {
+    // Dev users are not affected by the toggle
+    if (user?.role !== 'dev' && !emailSendingEnabled) return 'DISABLED';
     if (!mailjetStats) return 'OK';
     if (mailjetStats.dailyRemaining === 0) return 'LIMIT_REACHED';
     if (recipientCount > 0 && recipientCount > mailjetStats.dailyRemaining) return 'INSUFFICIENT';
     return 'OK';
   })();
 
-  const canSend = usageState === 'OK' && recipientCount > 0 && !sending;
+  const canSend = usageState === 'OK' && recipientCount > 0 && !sending && (user?.role === 'dev' || emailSendingEnabled);
 
   // ── Send ──────────────────────────────────────────────────────────────────────
 
@@ -424,6 +436,13 @@ export default function EmailPage() {
               </div>
 
               {/* Usage warning banners */}
+              {usageState === 'DISABLED' && user?.role !== 'dev' && (
+                <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-5 py-4">
+                  <Power className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                  <p className="text-sm font-medium text-red-800">Email sending disabled by the Development team for now</p>
+                </div>
+              )}
+
               {usageState === 'LIMIT_REACHED' && mailjetStats && (
                 <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-5 py-4">
                   <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
@@ -715,6 +734,38 @@ export default function EmailPage() {
                     </div>
                   )}
 
+                  {/* Dev-only email sending toggle */}
+                  {user?.role === 'dev' && (
+                    <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <Power className={`w-4 h-4 ${emailSendingEnabled ? 'text-green-600' : 'text-red-500'}`} />
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">Super Admin Email Sending</p>
+                          <p className="text-xs text-gray-500">
+                            {emailSendingEnabled ? 'Enabled - Super admins can send emails' : 'Disabled - Super admins cannot send emails (Dev unaffected)'}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newState = !emailSendingEnabled;
+                          setEmailSendingEnabled(newState);
+                          localStorage.setItem('emailSendingEnabled', String(newState));
+                        }}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                          emailSendingEnabled ? 'bg-green-600' : 'bg-gray-300'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            emailSendingEnabled ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  )}
+
                   {/* Submit */}
                   <button
                     type="submit"
@@ -723,9 +774,10 @@ export default function EmailPage() {
                   >
                     {sending ? (
                       <><RefreshCw className="w-4 h-4 animate-spin" /> Sending…</>
-                    ) : usageState !== 'OK' ? (
+                    ) : usageState !== 'OK' && user?.role !== 'dev' ? (
                       <><AlertCircle className="w-4 h-4" />
-                        {usageState === 'LIMIT_REACHED' ? 'Daily limit reached' : 'Insufficient quota'}</>
+                        {usageState === 'DISABLED' ? 'Sending disabled' :
+                          usageState === 'LIMIT_REACHED' ? 'Daily limit reached' : 'Insufficient quota'}</>
                     ) : (
                       <><Send className="w-4 h-4" />
                         {displayedSelected.length > 1

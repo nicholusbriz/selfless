@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createPasswordResetRequest } from '@/lib/auth/server';
 import { sendPasswordResetEmail } from '@/lib/email';
+import { logPasswordResetRequest, extractIpAddress, extractUserAgent } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -40,6 +41,24 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Log the password reset request using the existing logger
+    const ipAddress = extractIpAddress(req);
+    const userAgent = extractUserAgent(req);
+    const location = req.headers.get('cf-ipcountry') || undefined;
+
+    if (result.user) {
+      await logPasswordResetRequest(
+        result.user.id,
+        result.user.email,
+        result.token,
+        result.expiry,
+        result.user.techCenter?.id,
+        ipAddress,
+        userAgent,
+        location
+      );
+    }
+
     // Send email with reset code
     if (result.token && result.user && result.expiry) {
       const emailResult = await sendPasswordResetEmail({
@@ -49,7 +68,9 @@ export async function POST(req: NextRequest) {
         expiryDate: result.expiry,
       });
 
-      if (!emailResult.success && !emailResult.skipped) {
+      if (emailResult.skipped) {
+        console.log(`[forgot-password] Password reset email skipped due to daily limit for user: ${result.user.email}`);
+      } else if (!emailResult.success) {
         console.error('Failed to send password reset email:', emailResult.error);
         // Continue anyway - the code is still generated and stored
       }

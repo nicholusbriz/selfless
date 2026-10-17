@@ -259,6 +259,64 @@ export async function logCleaningDayCreation(
 }
 
 /**
+ * Log password reset request
+ */
+export async function logPasswordResetRequest(
+  userId: string,
+  email: string,
+  resetToken: string,
+  expiresAt: Date,
+  techCenterId?: string,
+  ipAddress?: string,
+  userAgent?: string,
+  location?: string
+) {
+  await createActivityLog({
+    userId,
+    action: 'password_reset_requested',
+    entityType: 'user',
+    entityId: userId,
+    details: {
+      email,
+      resetToken,
+      expiresAt: expiresAt.toISOString(),
+      timestamp: new Date().toISOString(),
+    },
+    ipAddress,
+    userAgent,
+    location,
+    techCenterId,
+  });
+}
+
+/**
+ * Log welcome/account verified email sent
+ */
+export async function logWelcomeEmailSent(
+  userId: string,
+  email: string,
+  techCenterId?: string,
+  ipAddress?: string,
+  userAgent?: string,
+  location?: string
+) {
+  await createActivityLog({
+    userId,
+    action: 'welcome_email_sent',
+    entityType: 'user',
+    entityId: userId,
+    details: {
+      email,
+      timestamp: new Date().toISOString(),
+    },
+    ipAddress,
+    userAgent,
+    location,
+    techCenterId,
+  });
+}
+
+/**
  * Extract IP address from request
  */
 export function extractIpAddress(req: Request): string {

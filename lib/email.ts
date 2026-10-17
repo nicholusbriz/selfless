@@ -1,7 +1,8 @@
 // lib/email.ts
 import { Resend } from 'resend';
 import { PasswordResetEmail } from '@/components/email/PasswordResetEmail';
-import { trackEmailSent } from '@/lib/email-stats';
+import { AccountVerifiedEmail } from '@/components/email/AccountVerifiedEmail';
+import { trackEmailSent, getResendStats } from '@/lib/email-stats';
 // @ts-ignore
 const { Client: MailjetClient } = require('node-mailjet');
 
@@ -164,6 +165,18 @@ export async function sendPasswordResetEmail({
   expiryDate,
 }: SendPasswordResetEmailParams) {
   try {
+    // Check Resend daily quota before sending
+    const stats = await getResendStats();
+
+    if (stats && stats.dailyRemaining <= 0) {
+      console.warn('Resend daily limit reached. Skipping password reset email to:', to);
+      return {
+        success: false,
+        error: 'Daily email limit reached. Email not sent.',
+        skipped: true,
+      };
+    }
+
     // Generate HTML email using the component
     const html = PasswordResetEmail({
       firstName,
@@ -186,6 +199,55 @@ export async function sendPasswordResetEmail({
     return result;
   } catch (error) {
     console.error('Send password reset email error:', error);
+    return { success: false, error: 'Failed to send email' };
+  }
+}
+
+export interface SendAccountVerifiedEmailParams {
+  to: string;
+  firstName: string;
+  lastName?: string;
+}
+
+export async function sendAccountVerifiedEmail({
+  to,
+  firstName,
+  lastName,
+}: SendAccountVerifiedEmailParams) {
+  try {
+    // Check Resend daily quota before sending
+    const stats = await getResendStats();
+
+    if (stats && stats.dailyRemaining <= 0) {
+      console.warn('Resend daily limit reached. Skipping account verified email to:', to);
+      return {
+        success: false,
+        error: 'Daily email limit reached. Email not sent.',
+        skipped: true,
+      };
+    }
+
+    // Generate HTML email using the component
+    const html = AccountVerifiedEmail({
+      firstName,
+      lastName,
+    });
+
+    // Account verified emails always use Resend
+    const result = await sendResendEmail({
+      to,
+      subject: 'Your Official Selfless CE Student Portal is Live — Enjoy It!',
+      html,
+    });
+
+    if (result.success) {
+      // Track successful email send
+      await trackEmailSent(to, 'account_verified', 'resend');
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Send account verified email error:', error);
     return { success: false, error: 'Failed to send email' };
   }
 }

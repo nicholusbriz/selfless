@@ -126,21 +126,22 @@ export default function MyCoursesPage() {
   useEffect(() => {
     const fetchAcademicSettings = async () => {
       try {
-        const response = await fetch('/api/user/academic-settings');
+        const response = await fetch('/api/student-courses');
 
         if (response.ok) {
           const settingsData = await response.json();
 
-          setUserTakesReligion(
-            settingsData.user?.takesReligion ?? false
-          );
-
-          setUserTuitionAmount(
-            settingsData.user?.tuitionAmount !== null &&
-              settingsData.user?.tuitionAmount !== undefined
-              ? settingsData.user.tuitionAmount.toString()
-              : ''
-          );
+          // Get tuition and religion from the first active course (all courses should have the same values)
+          if (settingsData.courses && settingsData.courses.length > 0) {
+            const firstCourse = settingsData.courses[0];
+            setUserTakesReligion(firstCourse.takesReligion ?? false);
+            setUserTuitionAmount(
+              firstCourse.tuition !== null &&
+                firstCourse.tuition !== undefined
+                ? firstCourse.tuition.toString()
+                : ''
+            );
+          }
         } else {
           console.error(
             'Failed to fetch academic settings:',
@@ -169,7 +170,7 @@ export default function MyCoursesPage() {
     setShowTuitionEdit(false);
 
     try {
-      const response = await fetch('/api/user/academic-settings', {
+      const response = await fetch('/api/student-courses', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -183,20 +184,9 @@ export default function MyCoursesPage() {
       if (response.ok) {
         const settingsData = await response.json();
 
-        // Sync religion from server (authoritative)
-        setUserTakesReligion(
-          settingsData.user?.takesReligion ?? optimisticReligion
-        );
-
-        // Trust what the user typed; only fall back to server value
-        // if the input was empty (i.e. the user cleared tuition).
-        setUserTuitionAmount(
-          optimisticTuition !== ''
-            ? optimisticTuition
-            : settingsData.user?.tuitionAmount != null
-              ? settingsData.user.tuitionAmount.toString()
-              : ''
-        );
+        // Keep the optimistic values since the update was successful
+        setUserTakesReligion(optimisticReligion);
+        setUserTuitionAmount(optimisticTuition);
       } else {
         // On failure roll back to what was on screen before save
         setUserTakesReligion(optimisticReligion);
@@ -333,7 +323,8 @@ export default function MyCoursesPage() {
     try {
       await submitMutation.mutateAsync({
         courses: coursesList,
-        tuitionAmount: '',
+        tuitionAmount: userTuitionAmount,
+        takesReligion: userTakesReligion,
       });
     } catch (error) {
       // onError in the hook rolls back the cache; re-open the form
