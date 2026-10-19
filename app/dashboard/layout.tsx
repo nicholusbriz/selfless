@@ -31,8 +31,8 @@ import { useActivityTracker } from '@/lib/hooks/useActivityTracker';
 // LAYOUT CONSTANTS
 // ============================================================
 
-const SIDEBAR_WIDTH_EXPANDED = 280;
-const SIDEBAR_WIDTH_COLLAPSED = 80;
+const SIDEBAR_WIDTH_EXPANDED = 240;
+const SIDEBAR_WIDTH_COLLAPSED = 64;
 
 // ============================================================
 // TYPES
@@ -213,14 +213,28 @@ export default function DashboardLayout({
     logout,
   } = useAuth();
 
-  const [mobileMenuOpen, setMobileMenuOpen] =
-    useState(false);
-
   const [sidebarOpen, setSidebarOpen] =
     useState(true);
 
+  const [isMobile, setIsMobile] =
+    useState(false);
+
   const pathname = usePathname();
   const router = useRouter();
+
+  // Initialize sidebar state based on screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      // Close sidebar on mobile, open on desktop
+      setSidebarOpen(!mobile);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const userRole =
     user?.role || 'student';
@@ -232,62 +246,6 @@ export default function DashboardLayout({
     );
 
   const onlineUsers = useOnlineUsers(user);
-
-  // Track page visits (lightweight analytics, not stored as activity logs)
-  // ----------------------------------------------------------
-  // CLOSE MOBILE NAV AFTER ROUTE CHANGE
-  // ----------------------------------------------------------
-
-  useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      setMobileMenuOpen(false);
-    });
-
-    return () => window.cancelAnimationFrame(frame);
-  }, [pathname]);
-
-  // ----------------------------------------------------------
-  // PREVENT BACKGROUND SCROLL
-  // ----------------------------------------------------------
-
-  useEffect(() => {
-    document.body.style.overflow =
-      mobileMenuOpen
-        ? 'hidden'
-        : 'unset';
-
-    return () => {
-      document.body.style.overflow =
-        'unset';
-    };
-  }, [mobileMenuOpen]);
-
-  // ----------------------------------------------------------
-  // RESPONSIVE SIDEBAR
-  // ----------------------------------------------------------
-
-  useEffect(() => {
-    const checkMobile = () => {
-      if (window.innerWidth < 1024) {
-        setSidebarOpen(false);
-      } else {
-        setSidebarOpen(true);
-      }
-    };
-
-    checkMobile();
-
-    window.addEventListener(
-      'resize',
-      checkMobile
-    );
-
-    return () =>
-      window.removeEventListener(
-        'resize',
-        checkMobile
-      );
-  }, []);
 
   // ----------------------------------------------------------
   // AUTHENTICATION
@@ -318,52 +276,6 @@ export default function DashboardLayout({
 
   const handleLogout = async () => {
     await logout();
-  };
-
-  // ----------------------------------------------------------
-  // MOBILE MENU
-  // ----------------------------------------------------------
-
-  const toggleMobileMenu = () => {
-    setMobileMenuOpen(
-      (previous) => !previous
-    );
-  };
-
-  // ----------------------------------------------------------
-  // MOBILE ANIMATION
-  // ----------------------------------------------------------
-
-  const mobileMenuVariants: Variants = {
-    hidden: {
-      x: '-100%',
-    },
-
-    visible: {
-      x: 0,
-      transition: {
-        duration: 0.38,
-        ease: [
-          0.22,
-          1,
-          0.36,
-          1,
-        ] as const,
-      },
-    },
-
-    exit: {
-      x: '-100%',
-      transition: {
-        duration: 0.28,
-        ease: [
-          0.4,
-          0,
-          1,
-          1,
-        ] as const,
-      },
-    },
   };
 
   // ----------------------------------------------------------
@@ -444,52 +356,65 @@ export default function DashboardLayout({
 
       <div className="min-h-screen bg-white">
         {/* ================================================== */}
-        {/* DESKTOP SIDEBAR */}
+        {/* MOBILE OVERLAY */}
         {/* ================================================== */}
 
-        <div className="hidden lg:flex fixed inset-y-0 left-0 z-[100]">
-          <Sidebar
-            key={userRole}
-            sidebarOpen={sidebarOpen}
-            pathname={pathname}
-            user={user}
-            userRole={userRole}
-            handleLogout={handleLogout}
+        {isMobile && sidebarOpen && (
+          <div
+            onClick={() => setSidebarOpen(false)}
+            className="fixed inset-0 bg-black/50 z-[90] lg:hidden"
           />
-        </div>
+        )}
+
+        {/* ================================================== */}
+        {/* SIDEBAR - Mobile slide-in, Desktop fixed */}
+        {/* ================================================== */}
+
+        <Sidebar
+          key={userRole}
+          sidebarOpen={sidebarOpen}
+          pathname={pathname}
+          user={user}
+          userRole={userRole}
+          handleLogout={handleLogout}
+          isMobile={isMobile}
+          setSidebarOpen={setSidebarOpen}
+        />
+
+        {/* ================================================== */}
+        {/* TOP NAV */}
+        {/* ================================================== */}
+
+        <TopNav
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          isMobile={isMobile}
+          onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
+          user={user}
+          userRole={userRole}
+        />
 
         {/* ================================================== */}
         {/* MAIN CONTENT */}
         {/* ================================================== */}
 
         <div
-          style={{
-            marginLeft: undefined,
-          }}
           className={cn(
             'min-h-screen',
             'transition-[margin] duration-350',
             'ease-[cubic-bezier(0.22,1,0.36,1)]',
-            sidebarOpen
-              ? 'lg:ml-[280px]'
-              : 'lg:ml-[80px]'
+            isMobile
+              ? 'ml-0'
+              : sidebarOpen
+                ? 'ml-[240px]'
+                : 'ml-[64px]'
           )}
         >
           {/* ================================================= */}
-          {/* DESKTOP */}
+          {/* MAIN CONTENT */}
           {/* ================================================= */}
 
-          <div className="hidden lg:block">
-            <TopNav
-              sidebarOpen={sidebarOpen}
-              setSidebarOpen={
-                setSidebarOpen
-              }
-              isMobile={false}
-              user={user}
-              userRole={userRole}
-            />
-
+          <div>
             {/* ✅ FULL-WIDTH CONTENT — no max-width cap */}
             <main className="min-h-screen px-3 xl:px-4 pt-[72px] pb-6">
               <div className="w-full">
@@ -576,169 +501,7 @@ export default function DashboardLayout({
                 </div>
               </div>
             </footer>
-          </div>
-
-          {/* ================================================= */}
-          {/* MOBILE */}
-          {/* ================================================= */}
-
-          <div className="lg:hidden min-h-screen flex flex-col">
-            <TopNav
-              sidebarOpen={sidebarOpen}
-              setSidebarOpen={
-                setSidebarOpen
-              }
-              isMobile
-              onMenuToggle={
-                toggleMobileMenu
-              }
-              user={user}
-              userRole={userRole}
-            />
-
-            <main
-              className={cn(
-                'flex-1 w-full px-3 sm:px-4',
-                'pb-5 [overflow-x:clip]',
-                isAiPage
-                  ? 'pt-16'
-                  : 'pt-[72px]'
-              )}
-            >
-              <div className="w-full">
-                {pathname !==
-                  '/dashboard' &&
-                  !isAiPage && (
-                    <motion.div
-                      key={pathname}
-                      initial={{
-                        opacity: 0,
-                        y: 7,
-                      }}
-                      animate={{
-                        opacity: 1,
-                        y: 0,
-                      }}
-                      transition={{
-                        duration: 0.25,
-                      }}
-                      className="mb-4"
-                    >
-                      <div className="flex items-center gap-1.5 font-mono text-[11px] text-[#B98A3E] mb-1 uppercase tracking-wide font-bold">
-                        <span>
-                          Dashboard
-                        </span>
-
-                        <ChevronRight className="w-3 h-3 text-[#B98A3E]" />
-
-                        <span className="text-[#1A2B4C] font-bold">
-                          {
-                            pageInfo.section
-                          }
-                        </span>
-                      </div>
-
-                      <h1 className="text-xl font-bold tracking-tight text-[#1A2B4C]">
-                        {pageInfo.title}
-                      </h1>
-
-                      <motion.div
-                        initial={{
-                          width: 0,
-                        }}
-                        animate={{
-                          width: 28,
-                        }}
-                        transition={{
-                          duration: 0.3,
-                        }}
-                        className="mt-2 h-[2px] bg-[#B98A3E]"
-                      />
-                    </motion.div>
-                  )}
-
-                {children}
-              </div>
-            </main>
-
-            <footer className="bg-transparent">
-              <div className="px-3 py-3">
-                <div className="flex flex-col items-center gap-2 font-mono text-[10px] text-[#8A9088]">
-                  <p>Selfless CE Portal - Learn, connect, grow.</p>
-
-                  <div className="flex flex-wrap justify-center gap-4">
-                    {DASHBOARD_FOOTER_LINKS.map((link) => (
-                      <Link
-                        key={link.href}
-                        href={link.href}
-                        className="hover:text-[#1A2B4C] transition-colors duration-200"
-                      >
-                        {link.label}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </footer>
-          </div>
         </div>
-
-        {/* ================================================== */}
-        {/* MOBILE NAVIGATION */}
-        {/* ================================================== */}
-
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <>
-              {/* OVERLAY */}
-              <motion.div
-                initial={{
-                  opacity: 0,
-                }}
-                animate={{
-                  opacity: 1,
-                }}
-                exit={{
-                  opacity: 0,
-                }}
-                transition={{
-                  duration: 0.2,
-                }}
-                className="fixed inset-0 z-[9998] lg:hidden bg-[#1A2B4C]/45 backdrop-blur-[2px]"
-                onClick={() =>
-                  setMobileMenuOpen(
-                    false
-                  )
-                }
-                aria-hidden="true"
-              />
-
-              {/* DRAWER */}
-              <motion.div
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                variants={
-                  mobileMenuVariants
-                }
-                className="fixed inset-y-0 left-0 w-full max-w-[360px] z-[9999] lg:hidden shadow-[12px_0_40px_rgba(18,32,59,0.18)]"
-              >
-                <Sidebar
-                  key={userRole}
-                  sidebarOpen
-                  pathname={pathname}
-                  user={user}
-                  userRole={userRole}
-                  handleLogout={
-                    handleLogout
-                  }
-                  isMobile
-                  onClose={() => setMobileMenuOpen(false)}
-                />
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
 
         {/* ================================================== */}
         {/* ATBRIZ AI QUICK ACCESS */}
@@ -820,6 +583,7 @@ export default function DashboardLayout({
             </Link>
           </motion.div>
         )}
+      </div>
       </div>
     </>
   );

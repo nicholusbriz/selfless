@@ -68,11 +68,11 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       announcements,
       currentUser: {
         id: session.user.id,
-        isAdmin: user.role?.name === 'admin' || user.role?.name === 'super_admin',
+        isAdmin: user.role?.name === 'admin' || user.role?.name === 'super_admin' || user.role?.name === 'dev',
         techCenterId: user.techCenterId
       }
     });
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const isAdmin = user.role?.name === 'admin' || user.role?.name === 'super_admin';
+    const isAdmin = user.role?.name === 'admin' || user.role?.name === 'super_admin' || user.role?.name === 'dev';
     const canCreateGlobal = isAdmin && isGlobal === true;
     const finalTechCenterId = canCreateGlobal
       ? null

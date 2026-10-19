@@ -61,8 +61,8 @@ import {
 // CONSTANTS
 // ============================================================
 
-const SIDEBAR_WIDTH_EXPANDED = 280;
-const SIDEBAR_WIDTH_COLLAPSED = 80;
+const SIDEBAR_WIDTH_EXPANDED = 240;
+const SIDEBAR_WIDTH_COLLAPSED = 64;
 const TOPBAR_HEIGHT = 56;
 
 const iconClass = 'w-[18px] h-[18px] flex-shrink-0';
@@ -70,6 +70,7 @@ const iconClass = 'w-[18px] h-[18px] flex-shrink-0';
 const ALL_ROLES = ['student', 'teacher', 'admin', 'dev', 'super_admin'];
 const NON_SUPER_ADMIN_ROLES = ['student', 'teacher', 'admin', 'dev'];
 const FOOTBALL_TEAM_ROLES = [...NON_SUPER_ADMIN_ROLES, 'super_admin'];
+const NON_DEV_ADMIN_ROLES = ['student', 'teacher', 'admin'];
 
 // ============================================================
 // TYPES
@@ -109,7 +110,7 @@ interface SidebarProps {
   userRole: string;
   handleLogout: () => void | Promise<void>;
   isMobile?: boolean;
-  onClose?: () => void;
+  setSidebarOpen?: (open: boolean) => void;
 }
 
 // ============================================================
@@ -267,7 +268,7 @@ const sharedNavigation: NavSection[] = [
         label: 'Cleaning Rota',
         path: '/dashboard/cleaning',
         icon: <Calendar className={iconClass} />,
-        roles: NON_SUPER_ADMIN_ROLES,
+        roles: NON_DEV_ADMIN_ROLES,
       },
     ],
   },
@@ -637,7 +638,6 @@ interface NavigationItemProps {
   unreadCount?: number;
   announcementCount?: number;
   index?: number;
-  onClose?: () => void;
 }
 
 function NavigationItem({
@@ -647,7 +647,6 @@ function NavigationItem({
   unreadCount,
   announcementCount,
   index = 0,
-  onClose,
 }: NavigationItemProps) {
   const active = isPathActive(
     pathname,
@@ -686,10 +685,9 @@ function NavigationItem({
         <Link
           href={item.path}
           aria-label={item.label}
-          onClick={onClose}
           className={cn(
             'relative group flex items-center justify-center',
-            'w-full h-11 rounded-xl',
+            'w-full h-12 rounded-xl',
             'transition-all duration-200',
             active
               ? 'bg-[#FFF8E7] text-[#B98A3E]'
@@ -759,11 +757,10 @@ function NavigationItem({
     >
       <Link
         href={item.path}
-        onClick={onClose}
         className={cn(
           'relative group flex items-center gap-3',
-          'w-full min-h-11 px-2.5 rounded-xl',
-          'text-[13px]',
+          'w-full min-h-12 px-3 rounded-xl',
+          'text-[14px]',
           'transition-all duration-200',
           active
             ? 'bg-[#FFF8E7] text-[#1A2B4C] font-semibold'
@@ -798,7 +795,7 @@ function NavigationItem({
           {item.icon}
         </motion.span>
 
-        <span className="truncate font-semibold">
+        <span className="flex-1 min-w-0 font-semibold">
           {item.label}
         </span>
 
@@ -861,7 +858,7 @@ export default function Sidebar({
   userRole,
   handleLogout,
   isMobile = false,
-  onClose,
+  setSidebarOpen,
 }: SidebarProps) {
   const navigation = useMemo(
     () => getNavigation(userRole),
@@ -947,162 +944,121 @@ export default function Sidebar({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const toggleSidebar = () => {
+    // Sidebar is controlled by parent component
+  };
+
   return (
+    <>
     <motion.aside
       initial={{ x: -20, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
+      animate={{
+        x: isMobile ? (sidebarOpen ? 0 : '-100%') : 0,
+        opacity: 1,
+      }}
       transition={{ duration: 0.3 }}
       style={{
-        width: sidebarOpen
+        width: isMobile
           ? SIDEBAR_WIDTH_EXPANDED
-          : SIDEBAR_WIDTH_COLLAPSED,
+          : sidebarOpen
+            ? SIDEBAR_WIDTH_EXPANDED
+            : SIDEBAR_WIDTH_COLLAPSED,
       }}
       className={cn(
         'h-screen bg-white',
         'flex flex-col overflow-hidden',
         'shadow-[0_8px_32px_rgba(18,32,59,0.12),0_2px_8px_rgba(18,32,59,0.06)]',
-        'transition-[width] duration-350 ease-[cubic-bezier(0.22,1,0.36,1)]',
-        isMobile && 'w-full !max-w-none'
+        'transition-all duration-350 ease-[cubic-bezier(0.22,1,0.36,1)]',
+        'fixed left-0 top-0 z-[100]'
       )}
     >
       {/* ================================================== */}
       {/* BRAND */}
       {/* ================================================== */}
 
-      {isMobile ? (
-        <div className="flex-shrink-0 p-4 bg-gradient-to-br from-[#1A2B4C] to-[#12203B]">
-          <div className="flex items-center gap-3">
-            <div className="relative w-10 h-10 bg-[#B98A3E] flex items-center justify-center overflow-hidden rounded-lg shadow-lg">
-              <Image
-                src="/freedom.png"
-                alt="Selfless CE Logo"
-                width={40}
-                height={40}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-white font-bold text-lg leading-tight">
-                Selfless CE
-              </p>
-              <p className="text-[#B98A3E] text-[10px] font-mono font-bold uppercase tracking-wide leading-tight mt-0.5">
-                Student Portal 2026
-              </p>
-            </div>
-          </div>
-          <div className="mt-3 pt-3 border-t border-white/10">
-            <p className="text-white/80 text-[11px] font-mono leading-relaxed">
-              Nurturing Resilient Minds
-            </p>
-          </div>
-        </div>
-      ) : (
-        <div
-          style={{ height: TOPBAR_HEIGHT }}
-          className={cn(
-            'flex-shrink-0',
-            'flex items-center',
-            'relative overflow-hidden',
-            'bg-transparent',
-            sidebarOpen
-              ? 'px-4'
-              : 'justify-center'
-          )}
+      <div
+        style={{ height: TOPBAR_HEIGHT }}
+        className={cn(
+          'flex-shrink-0',
+          'flex items-center',
+          'relative overflow-hidden',
+          'bg-transparent',
+          sidebarOpen
+            ? 'px-4'
+            : 'justify-center'
+        )}
+      >
+        <Link
+          href="/dashboard"
+          onClick={() => isMobile && sidebarOpen && setSidebarOpen?.(false)}
+          className="relative flex items-center gap-3 min-w-0 group"
+          aria-label="Selfless CE Dashboard"
         >
-          <Link
-            href="/dashboard"
-            className="relative flex items-center gap-3 min-w-0 group"
-            aria-label="Selfless CE Dashboard"
+          <motion.div
+            whileHover={{
+              scale: 1.06,
+              rotate: 2,
+            }}
+            whileTap={{
+              scale: 0.94,
+            }}
+            className="relative w-9 h-9 bg-[#B98A3E] flex items-center justify-center overflow-hidden flex-shrink-0 rounded-lg shadow-lg"
           >
-            <motion.div
-              whileHover={{
-                scale: 1.06,
-                rotate: 2,
+            <Image
+              src="/freedom.png"
+              alt="Selfless CE Logo"
+              width={36}
+              height={36}
+              className="w-full h-full object-cover"
+            />
+
+            <motion.span
+              className="absolute inset-y-0 left-0 w-1/3 bg-white/20"
+              animate={{
+                x: ['-120%', '320%'],
               }}
-              whileTap={{
-                scale: 0.94,
+              transition={{
+                duration: 2.8,
+                repeat: Infinity,
+                repeatDelay: 5,
+                ease: 'easeInOut',
               }}
-              className="relative w-9 h-9 bg-[#B98A3E] flex items-center justify-center overflow-hidden flex-shrink-0 rounded-lg shadow-lg"
-            >
-              <Image
-                src="/freedom.png"
-                alt="Selfless CE Logo"
-                width={36}
-                height={36}
-                className="w-full h-full object-cover"
-              />
-
-              <motion.span
-                className="absolute inset-y-0 left-0 w-1/3 bg-white/20"
-                animate={{
-                  x: ['-120%', '320%'],
-                }}
-                transition={{
-                  duration: 2.8,
-                  repeat: Infinity,
-                  repeatDelay: 5,
-                  ease: 'easeInOut',
-                }}
-              />
-            </motion.div>
-
-            {sidebarOpen && (
-              <motion.div
-                initial={{
-                  opacity: 0,
-                  x: -6,
-                }}
-                animate={{
-                  opacity: 1,
-                  x: 0,
-                }}
-                transition={{
-                  duration: 0.22,
-                }}
-                className="min-w-0"
-              >
-                <p className="text-[#1A2B4C] font-bold text-base leading-tight truncate">
-                  Selfless CE
-                </p>
-
-                <p className="text-[#B98A3E] text-[10px] font-mono font-bold uppercase tracking-wide leading-tight mt-0.5">
-                  Student Portal
-                </p>
-              </motion.div>
-            )}
-          </Link>
+            />
+          </motion.div>
 
           {sidebarOpen && (
             <motion.div
-              className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5"
-              initial={{
-                opacity: 0,
-              }}
-              animate={{
-                opacity: 1,
-              }}
-              transition={{
-                delay: 0.25,
-              }}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex-1 min-w-0"
             >
-              <motion.span
-                animate={{
-                  opacity: [0.55, 1, 0.55],
-                }}
-                transition={{
-                  duration: 2.4,
-                  repeat: Infinity,
-                }}
-                className="w-1.5 h-1.5 rounded-full bg-[#55705B]"
-              />
-
-              <span className="font-mono text-[8px] uppercase tracking-wider text-[#B9BEB2]">
-                Live
-              </span>
+              <p className="text-[13px] font-semibold text-[#1A2B4C] leading-tight">
+                Selfless CE
+              </p>
+              <p className="text-[10.5px] text-[#8A9088] leading-tight">
+                Nurturing Resilient Minds
+              </p>
             </motion.div>
           )}
-        </div>
-      )}
+        </Link>
+
+        {!isMobile && sidebarOpen && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            onClick={toggleSidebar}
+            className="ml-auto text-[#8A9088] hover:text-[#1A2B4C] transition-colors"
+            aria-label="Toggle sidebar"
+          >
+            <ChevronDown
+              className={cn(
+                'w-4 h-4 transition-transform duration-200',
+                sidebarOpen ? 'rotate-180' : 'rotate-0'
+              )}
+            />
+          </motion.button>
+        )}
+      </div>
 
       {/* ================================================== */}
       {/* SCROLLABLE CONTENT */}
@@ -1111,12 +1067,11 @@ export default function Sidebar({
       <div
         className={cn(
           'flex-1 overflow-y-auto overflow-x-hidden',
-          'sidebar-scroll',
-          isMobile && 'mt-0'
+          'sidebar-scroll'
         )}
       >
         {/* SEARCH */}
-        {sidebarOpen && !isMobile && (
+        {sidebarOpen && (
           <motion.div
             initial={{
               opacity: 0,
@@ -1184,13 +1139,12 @@ export default function Sidebar({
             'py-2',
             sidebarOpen
               ? 'px-2'
-              : 'px-1.5',
-            isMobile && 'px-3'
+              : 'px-1.5'
           )}
           aria-label="Dashboard navigation"
         >
           {/* COLLAPSED */}
-          {!sidebarOpen && !isMobile && (
+          {!sidebarOpen && (
             <div className="space-y-0.5">
               {searchResults.flatMap(
                 (section) =>
@@ -1326,7 +1280,6 @@ export default function Sidebar({
                                     announcementCount ||
                                     undefined
                                   }
-                                  onClose={onClose}
                                 />
                               )
                             )}
@@ -1367,11 +1320,10 @@ export default function Sidebar({
             <Link
               href="/"
               aria-label="Back to Home"
-              onClick={onClose}
               className={cn(
                 'relative group w-full flex items-center gap-3',
-                'h-10 px-2 rounded-lg',
-                'text-[13px] text-[#6B7268] font-medium',
+                'h-12 px-3 rounded-lg',
+                'text-[14px] text-[#6B7268] font-medium',
                 'hover:text-[#1A2B4C] hover:bg-[#F3F4F6]',
                 'transition-all duration-200',
                 !sidebarOpen && 'justify-center px-0'
@@ -1402,8 +1354,8 @@ export default function Sidebar({
               onClick={handleLogout}
               className={cn(
                 'relative group w-full flex items-center gap-3',
-                'h-10 px-2 rounded-lg',
-                'text-[13px]',
+                'h-12 px-3 rounded-lg',
+                'text-[14px]',
                 'text-[#6B7268]',
                 'font-medium',
                 'hover:text-[#A4462F]',
@@ -1435,7 +1387,7 @@ export default function Sidebar({
       {/* SIDEBAR USER */}
       {/* ================================================== */}
 
-      {!isMobile && sidebarOpen && (
+      {sidebarOpen && (
         <motion.div
           initial={{
             opacity: 0,
@@ -1506,6 +1458,7 @@ export default function Sidebar({
           </Link>
         </motion.div>
       )}
+      </motion.aside>
 
       <style jsx>{`
         .sidebar-scroll {
@@ -1541,6 +1494,6 @@ export default function Sidebar({
           background-clip: padding-box;
         }
       `}</style>
-    </motion.aside>
+    </>
   );
 }

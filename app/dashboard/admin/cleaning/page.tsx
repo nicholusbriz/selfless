@@ -14,8 +14,10 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
-  Sparkles,
+  Brush,
   Plus,
+  Building2,
+  UserMinus,
   Trash2,
   Edit,
   UserPlus,
@@ -939,6 +941,8 @@ export default function AdminCleaningManagement() {
   }, [weeks, weekFilter]);
 
   const stats = data?.stats || {
+    totalWeeks: 0,
+    totalDays: 0,
     totalRegistrations: 0,
     totalAttended: 0,
     totalNoShow: 0,
@@ -1045,62 +1049,39 @@ export default function AdminCleaningManagement() {
         className="space-y-6 pb-8"
       >
       {/* ========================================================
-          PAGE HEADER
+          CREATE WEEK BUTTON
       ======================================================== */}
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-blue-100 bg-blue-50">
-              <Sparkles className="h-5 w-5 text-[#1a365d]" />
-            </div>
-
-            <div className="min-w-0">
-              <h2 className="text-xl font-bold tracking-tight text-slate-900">
-                Cleaning Management
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Manage cleaning schedules,
-                registrations and attendance.
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setShowCreateWeek(true)}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#153475] focus:outline-none focus:ring-2 focus:ring-[#3182ce] focus:ring-offset-2"
-          >
-            <Plus className="h-4 w-4" />
-            Create Week
-          </button>
-        </div>
+      <div className="flex justify-end">
+        <button
+          onClick={() => setShowCreateWeek(true)}
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#153475] focus:outline-none focus:ring-2 focus:ring-[#3182ce] focus:ring-offset-2"
+        >
+          <Plus className="h-4 w-4" />
+          Create Week
+        </button>
       </div>
 
       {/* ========================================================
           STATS
       ======================================================== */}
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-7">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+          className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
         >
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                Registered
-              </p>
-
-              <p className="mt-1 text-2xl font-bold text-slate-900">
-                {stats.totalRegistrations}
-              </p>
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-purple-50">
+              <Calendar className="h-4 w-4 text-purple-600" />
             </div>
-
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50">
-              <Users className="h-5 w-5 text-blue-600" />
-            </div>
+            <p className="text-xl font-bold text-slate-900">
+              {stats.totalWeeks || 0}
+            </p>
+            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+              Weeks
+            </p>
           </div>
         </motion.div>
 
@@ -1108,22 +1089,18 @@ export default function AdminCleaningManagement() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
-          className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+          className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
         >
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                Attended
-              </p>
-
-              <p className="mt-1 text-2xl font-bold text-slate-900">
-                {stats.totalAttended}
-              </p>
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-indigo-50">
+              <Clock className="h-4 w-4 text-indigo-600" />
             </div>
-
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50">
-              <CheckCircle className="h-5 w-5 text-emerald-600" />
-            </div>
+            <p className="text-xl font-bold text-slate-900">
+              {stats.totalDays || 0}
+            </p>
+            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+              Days
+            </p>
           </div>
         </motion.div>
 
@@ -1131,22 +1108,18 @@ export default function AdminCleaningManagement() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+          className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
         >
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                Pending
-              </p>
-
-              <p className="mt-1 text-2xl font-bold text-slate-900">
-                {stats.totalPending}
-              </p>
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-50">
+              <Users className="h-4 w-4 text-blue-600" />
             </div>
-
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-50">
-              <Clock className="h-5 w-5 text-amber-600" />
-            </div>
+            <p className="text-xl font-bold text-slate-900">
+              {stats.totalRegistrations}
+            </p>
+            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+              Registered
+            </p>
           </div>
         </motion.div>
 
@@ -1154,22 +1127,75 @@ export default function AdminCleaningManagement() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+          className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
         >
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                No Show
-              </p>
-
-              <p className="mt-1 text-2xl font-bold text-slate-900">
-                {stats.totalNoShow}
-              </p>
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-orange-50">
+              <UserMinus className="h-4 w-4 text-orange-600" />
             </div>
+            <p className="text-xl font-bold text-slate-900">
+              {availableStudents.length}
+            </p>
+            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+              Unregistered
+            </p>
+          </div>
+        </motion.div>
 
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-50">
-              <XCircle className="h-5 w-5 text-red-600" />
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
+        >
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-emerald-50">
+              <CheckCircle className="h-4 w-4 text-emerald-600" />
             </div>
+            <p className="text-xl font-bold text-slate-900">
+              {stats.totalAttended}
+            </p>
+            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+              Attended
+            </p>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
+        >
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-amber-50">
+              <Clock className="h-4 w-4 text-amber-600" />
+            </div>
+            <p className="text-xl font-bold text-slate-900">
+              {stats.totalPending}
+            </p>
+            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+              Pending
+            </p>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
+        >
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-red-50">
+              <XCircle className="h-4 w-4 text-red-600" />
+            </div>
+            <p className="text-xl font-bold text-slate-900">
+              {stats.totalNoShow}
+            </p>
+            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+              No Show
+            </p>
           </div>
         </motion.div>
       </div>

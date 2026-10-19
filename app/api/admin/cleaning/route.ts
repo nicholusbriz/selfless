@@ -69,7 +69,7 @@ export async function GET() {
           orderBy: { cleaningDate: 'asc' }
         }
       },
-      orderBy: { startDate: 'desc' }
+      orderBy: { createdAt: 'asc' }
     });
 
     const students = await prisma.user.findMany({
@@ -108,6 +108,8 @@ export async function GET() {
     });
 
     const stats = {
+      totalWeeks: weeks.length,
+      totalDays: weeks.reduce((acc, week) => acc + week.days.length, 0),
       totalRegistrations,
       totalAttended,
       totalNoShow,
