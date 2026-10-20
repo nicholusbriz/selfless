@@ -638,6 +638,9 @@ interface NavigationItemProps {
   unreadCount?: number;
   announcementCount?: number;
   index?: number;
+  isMobile?: boolean;
+  sidebarOpen?: boolean;
+  onNavigate?: () => void;
 }
 
 function NavigationItem({
@@ -647,6 +650,9 @@ function NavigationItem({
   unreadCount,
   announcementCount,
   index = 0,
+  isMobile = false,
+  sidebarOpen = false,
+  onNavigate,
 }: NavigationItemProps) {
   const active = isPathActive(
     pathname,
@@ -675,6 +681,12 @@ function NavigationItem({
     },
   };
 
+  const handleClick = () => {
+    if (isMobile && sidebarOpen) {
+      onNavigate?.();
+    }
+  };
+
   if (collapsed) {
     return (
       <motion.div
@@ -685,6 +697,7 @@ function NavigationItem({
         <Link
           href={item.path}
           aria-label={item.label}
+          onClick={handleClick}
           className={cn(
             'relative group flex items-center justify-center',
             'w-full h-12 rounded-xl',
@@ -757,6 +770,7 @@ function NavigationItem({
     >
       <Link
         href={item.path}
+        onClick={handleClick}
         className={cn(
           'relative group flex items-center gap-3',
           'w-full min-h-12 px-3 rounded-xl',
@@ -882,6 +896,12 @@ export default function Sidebar({
     useAnnouncementCount();
 
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const closeSidebarOnMobile = () => {
+    if (isMobile && sidebarOpen) {
+      setSidebarOpen?.(false);
+    }
+  };
 
   const toggleSection = (
     sectionId: string
@@ -1164,6 +1184,9 @@ export default function Sidebar({
                           announcementCount ||
                           undefined
                         }
+                        isMobile={isMobile}
+                        sidebarOpen={sidebarOpen}
+                        onNavigate={closeSidebarOnMobile}
                       />
                     )
                   )
@@ -1259,27 +1282,21 @@ export default function Sidebar({
                             className="overflow-hidden space-y-0.5"
                           >
                             {section.items.map(
-                              (
-                                item,
-                                index
-                              ) => (
+                              (item, index) => (
                                 <NavigationItem
                                   key={item.id}
                                   item={item}
-                                  pathname={
-                                    pathname
-                                  }
-                                  index={
-                                    index
-                                  }
+                                  pathname={pathname}
+                                  index={index}
                                   unreadCount={
-                                    unreadCount ||
-                                    undefined
+                                    unreadCount || undefined
                                   }
                                   announcementCount={
-                                    announcementCount ||
-                                    undefined
+                                    announcementCount || undefined
                                   }
+                                  isMobile={isMobile}
+                                  sidebarOpen={sidebarOpen}
+                                  onNavigate={closeSidebarOnMobile}
                                 />
                               )
                             )}
@@ -1320,6 +1337,7 @@ export default function Sidebar({
             <Link
               href="/"
               aria-label="Back to Home"
+              onClick={closeSidebarOnMobile}
               className={cn(
                 'relative group w-full flex items-center gap-3',
                 'h-12 px-3 rounded-lg',
@@ -1404,6 +1422,7 @@ export default function Sidebar({
         >
           <Link
             href="/dashboard/profile"
+            onClick={closeSidebarOnMobile}
             className="group flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-[#F3F4F6] transition-all duration-200"
           >
             {user?.profileImageUrl ? (
