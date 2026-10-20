@@ -3,7 +3,7 @@
 
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -25,6 +25,8 @@ import {
   UserCheck,
   UserX,
   Hourglass,
+  ArrowLeft,
+  Filter,
 } from 'lucide-react';
 
 import {
@@ -42,6 +44,166 @@ import {
   type CleaningRegistration,
   type AttendanceRecord,
 } from '@/hooks/useCleaning';
+
+// =========================================================
+// DESIGN TOKENS (from cleaning rota page)
+// =========================================================
+
+const TOKENS = `
+  [data-cleaning-scope] {
+    --ink: #12203B;
+    --ink-2: #3D4A61;
+    --ink-3: #4B5646;
+    --ink-4: #6B7280;
+
+    --surface: #FFFFFF;
+    --surface-2: #F7F6F2;
+    --surface-3: #EDECE6;
+
+    --line: #DADCD3;
+    --line-strong: #C8CABF;
+
+    --brand: #12203B;
+    --brand-hover: #1C2E4E;
+    --brand-soft: #F0F0EB;
+
+    --brass: #B98A3E;
+    --brass-hover: #A67A34;
+    --brass-soft: #F8F3E8;
+
+    --ok: #2F6B45;
+    --ok-soft: #E6F1EA;
+
+    --warn: #6E5520;
+    --warn-soft: #F8F1E0;
+
+    --bad: #8B3A24;
+    --bad-soft: #FBE9E3;
+
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1, 'cv05' 1;
+  }
+`;
+
+const focusRing =
+  'outline-none focus-visible:ring-2 focus-visible:ring-[var(--brass)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]';
+
+// =========================================================
+// AVATAR COMPONENT (from cleaning rota page)
+// =========================================================
+
+function Avatar({
+  firstName,
+  lastName,
+  src,
+  isSelf,
+  size = 40,
+}: {
+  firstName: string;
+  lastName: string;
+  src?: string | null;
+  isSelf?: boolean;
+  size?: number;
+}) {
+  const getInitials = (firstName: string, lastName: string) =>
+    `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+
+  return (
+    <div className="relative shrink-0">
+      <div
+        className={`relative shrink-0 overflow-hidden border rounded-full ${
+          isSelf ? 'border-[var(--brass)]' : 'border-[var(--line)]'
+        } bg-[var(--brand)]`}
+        style={{ width: size, height: size }}
+      >
+        {src ? (
+          <Image
+            src={src}
+            alt=""
+            width={size}
+            height={size}
+            className="h-full w-full object-cover"
+            loading="lazy"
+            unoptimized
+          />
+        ) : (
+          <span
+            className="flex h-full w-full items-center justify-center font-mono font-semibold tracking-wide text-white"
+            style={{ fontSize: size * 0.32 }}
+          >
+            {getInitials(firstName, lastName)}
+          </span>
+        )}
+        {isSelf && (
+          <span className="absolute inset-0 border-2 border-[var(--brass)] rounded-full" />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// =========================================================
+// WEEK FILTER CHIPS
+// =========================================================
+
+type WeekFilter = { kind: 'all' } | { kind: 'week'; weekId: string };
+
+function WeekFilterChips({
+  filter,
+  setFilter,
+  weeks,
+}: {
+  filter: WeekFilter;
+  setFilter: (f: WeekFilter) => void;
+  weeks: Array<{ id: string; weekLabel: string }>;
+}) {
+  const isSelected = (target: WeekFilter) => {
+    if (target.kind !== filter.kind) return false;
+    if (target.kind === 'week' && filter.kind === 'week')
+      return target.weekId === filter.weekId;
+    return true;
+  };
+
+  const chipBase =
+    'inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-md border transition-colors';
+  const chipOn = 'bg-[var(--ink)] border-[var(--ink)] text-white';
+  const chipOff =
+    'bg-[var(--surface)] border-[var(--line)] text-[var(--ink-2)] hover:border-[var(--brass)] hover:text-[var(--ink)]';
+
+  const options: { label: string; value: WeekFilter; enabled: boolean }[] = [
+    { label: 'All', value: { kind: 'all' }, enabled: true },
+    ...weeks.map((week) => ({
+      label: week.weekLabel,
+      value: { kind: 'week' as const, weekId: week.id },
+      enabled: true,
+    })),
+  ];
+
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-2">
+      <div className="mr-1 flex items-center gap-1.5 text-[var(--ink-3)]">
+        <Filter className="h-3.5 w-3.5" />
+        <span className="font-mono text-[10px] font-bold uppercase tracking-[0.1em]">
+          Filter
+        </span>
+      </div>
+      {options.map((opt, idx) => (
+        <button
+          key={idx}
+          type="button"
+          onClick={() => opt.enabled && setFilter(opt.value)}
+          disabled={!opt.enabled}
+          className={`${chipBase} ${
+            isSelected(opt.value) ? chipOn : chipOff
+          } ${!opt.enabled ? 'cursor-not-allowed opacity-40' : ''} ${focusRing}`}
+          aria-disabled={!opt.enabled}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 /* ============================================================
    TYPES
@@ -151,7 +313,7 @@ function ActionMenu({
             transition={{
               duration: 0.12,
             }}
-            className={`absolute top-[calc(100%+8px)] z-[100] w-56 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl ${
+            className={`absolute top-[calc(100%+8px)] z-[9999] w-56 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl ${
               align === 'right'
                 ? 'right-0'
                 : 'left-0'
@@ -259,6 +421,8 @@ export default function AdminCleaningManagement() {
   const [expandedWeeks, setExpandedWeeks] = useState<
     Set<string>
   >(new Set());
+
+  const [weekFilter, setWeekFilter] = useState<WeekFilter>({ kind: 'all' });
 
   const [activeMenu, setActiveMenu] =
     useState<MenuType>(null);
@@ -762,6 +926,18 @@ export default function AdminCleaningManagement() {
     (student) => !registeredStudentIds.has(student.id),
   );
 
+  // Filter days based on week filter
+  const filteredDays = useMemo(() => {
+    if (weekFilter.kind === 'all') {
+      return weeks.flatMap((week) =>
+        week.days.map((day) => ({ day, week }))
+      );
+    }
+    const week = weeks.find((w) => w.id === weekFilter.weekId);
+    if (!week) return [];
+    return week.days.map((day) => ({ day, week }));
+  }, [weeks, weekFilter]);
+
   const stats = data?.stats || {
     totalRegistrations: 0,
     totalAttended: 0,
@@ -859,12 +1035,15 @@ export default function AdminCleaningManagement() {
   ============================================================ */
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.35 }}
-      className="space-y-6 pb-8"
-    >
+    <>
+      <style>{TOKENS}</style>
+      <motion.div
+        data-cleaning-scope
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.35 }}
+        className="space-y-6 pb-8"
+      >
       {/* ========================================================
           PAGE HEADER
       ======================================================== */}
@@ -996,10 +1175,22 @@ export default function AdminCleaningManagement() {
       </div>
 
       {/* ========================================================
-          WEEKS
+          WEEK FILTER
       ======================================================== */}
 
-      {weeks.length === 0 ? (
+      {weeks.length > 0 && (
+        <WeekFilterChips
+          filter={weekFilter}
+          setFilter={setWeekFilter}
+          weeks={weeks}
+        />
+      )}
+
+      {/* ========================================================
+          DAYS GRID
+      ======================================================== */}
+
+      {filteredDays.length === 0 ? (
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1010,198 +1201,35 @@ export default function AdminCleaningManagement() {
           </div>
 
           <h3 className="mt-4 text-lg font-semibold text-slate-900">
-            No cleaning weeks available
+            No cleaning days available
           </h3>
 
           <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-            Create a new cleaning week from Monday
-            to Friday to get started.
+            {weeks.length === 0
+              ? 'Create a new cleaning week from Monday to Friday to get started.'
+              : 'No days match the selected filter.'}
           </p>
 
-          <button
-            onClick={() => setShowCreateWeek(true)}
-            className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#153475]"
-          >
-            <Plus className="h-4 w-4" />
-            Create First Week
-          </button>
+          {weeks.length === 0 && (
+            <button
+              onClick={() => setShowCreateWeek(true)}
+              className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#153475]"
+            >
+              <Plus className="h-4 w-4" />
+              Create First Week
+            </button>
+          )}
         </motion.div>
       ) : (
-        <div className="space-y-4">
-          {weeks.map((week: CleaningWeek) => {
-            const isExpanded =
-              expandedWeeks.has(week.id);
-
-            return (
-              <motion.div
-                key={week.id}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="relative rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md"
-              >
-                {/* ==================================================
-                    WEEK HEADER
-                ================================================== */}
-
-                <div className="relative z-20 p-4">
-                  <div className="flex items-center gap-3">
-                    {/* Expand toggle */}
-                    <button
-                      onClick={() =>
-                        toggleWeek(week.id)
-                      }
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#1a365d] text-white transition hover:bg-[#153475]"
-                      aria-label={
-                        isExpanded
-                          ? 'Collapse week'
-                          : 'Expand week'
-                      }
-                    >
-                      {isExpanded ? (
-                        <ChevronUp className="h-5 w-5" />
-                      ) : (
-                        <ChevronDown className="h-5 w-5" />
-                      )}
-                    </button>
-
-                    {/* Week info - takes remaining space */}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="truncate text-base font-bold text-slate-900">
-                          {week.weekLabel ||
-                            `Week of ${formatDate(
-                              week.startDate
-                            )}`}
-                        </h3>
-
-                        <span
-                          className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                            week.isActive
-                              ? 'bg-emerald-50 text-emerald-700'
-                              : 'bg-slate-100 text-slate-600'
-                          }`}
-                        >
-                          {week.isActive
-                            ? 'OPEN'
-                            : 'LOCKED'}
-                        </span>
-                      </div>
-
-                      <p className="mt-0.5 truncate text-xs text-slate-500">
-                        {formatDate(
-                          week.startDate
-                        )}{' '}
-                        –{' '}
-                        {formatDate(
-                          week.endDate
-                        )}
-                      </p>
-
-                      <p className="mt-1 text-xs font-medium text-slate-500">
-                        Deadline: {formatDeadline(week.registrationDeadline)}
-                      </p>
-                    </div>
-
-                    {/* Desktop-only registration text */}
-                    <div className="hidden text-right lg:block">
-                      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
-                        Registration
-                      </p>
-
-                      <p
-                        className={`mt-0.5 text-xs font-semibold ${
-                          week.isActive
-                            ? 'text-emerald-700'
-                            : 'text-slate-500'
-                        }`}
-                      >
-                        {week.isActive
-                          ? 'Open for registration'
-                          : 'Registration locked'}
-                      </p>
-                    </div>
-
-                    {/* Three-dot action menu - pinned right */}
-                    <ActionMenu
-                      menuId={`week-${week.id}`}
-                      activeMenu={activeMenu}
-                      setActiveMenu={setActiveMenu}
-                    >
-                      <div className="px-3 py-2">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                          Week actions
-                        </p>
-                      </div>
-
-                      <MenuItem
-                        onClick={() =>
-                          handleToggleWeekRegistration(
-                            week.id,
-                            !week.isActive
-                          )
-                        }
-                        icon={
-                          week.isActive ? (
-                            <Lock className="h-4 w-4 text-slate-600" />
-                          ) : (
-                            <Unlock className="h-4 w-4 text-emerald-600" />
-                          )
-                        }
-                      >
-                        {week.isActive ? 'Lock week' : 'Open week'}
-                      </MenuItem>
-
-                      <MenuItem
-                        onClick={() => openDeadlinePicker(week)}
-                        icon={<Clock className="h-4 w-4 text-blue-600" />}
-                      >
-                        Extend deadline
-                      </MenuItem>
-
-                      <MenuDivider />
-
-                      <MenuItem
-                        danger
-                        onClick={() => handleDeleteWeek(week.id)}
-                        icon={<Trash2 className="h-4 w-4 text-red-600" />}
-                      >
-                        Delete week
-                      </MenuItem>
-                    </ActionMenu>
-                  </div>
-                </div>
-
-                {/* ==================================================
-                    DAYS
-                ================================================== */}
-
-                <AnimatePresence>
-                  {isExpanded && (
-                    <motion.div
-                      initial={{
-                        height: 0,
-                        opacity: 0,
-                      }}
-                      animate={{
-                        height: 'auto',
-                        opacity: 1,
-                      }}
-                      exit={{
-                        height: 0,
-                        opacity: 0,
-                      }}
-                      transition={{
-                        duration: 0.25,
-                      }}
-                      className="relative z-10 border-t border-slate-200 bg-slate-50"
-                    >
-                      <div className="space-y-4 p-4 sm:p-5">
-                        {week.days.map(
-                          (day: CleaningDay) => (
-                            <div
-                              key={day.id}
-                              className="relative rounded-xl border border-slate-200 bg-white shadow-sm"
-                            >
+        <div
+          id="cleaning-grid"
+          className="grid gap-3.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 overflow-visible"
+        >
+          {filteredDays.map(({ day, week }) => (
+            <div
+              key={day.id}
+              className="relative rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col overflow-visible"
+            >
                               {/* DAY HEADER */}
 
                               <div className="relative z-20 border-b border-slate-100 p-4">
@@ -1209,9 +1237,7 @@ export default function AdminCleaningManagement() {
                                   <div className="min-w-0">
                                     <div className="flex flex-wrap items-center gap-2">
                                       <h4 className="font-bold text-slate-900">
-                                        {
-                                          day.dayOfWeek
-                                        }
+                                        {day.dayOfWeek}
                                       </h4>
 
                                       <span
@@ -1230,10 +1256,17 @@ export default function AdminCleaningManagement() {
                                     </div>
 
                                     <p className="mt-1 text-xs text-slate-500">
-                                      {formatDate(
-                                        day.cleaningDate
-                                      )}
+                                      {formatDate(day.cleaningDate)}
                                     </p>
+
+                                    {/* WEEK LABEL BADGE */}
+                                    <span
+                                      className="mt-1.5 inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-[9.5px] font-bold uppercase tracking-[0.08em] text-slate-600"
+                                      title={`Part of ${week.weekLabel}`}
+                                    >
+                                      <Calendar className="h-2.5 w-2.5 text-slate-500" />
+                                      {week.weekLabel}
+                                    </span>
                                   </div>
 
                                   {/* DAY ACTION AREA */}
@@ -1345,33 +1378,29 @@ export default function AdminCleaningManagement() {
                                   REGISTERED STUDENTS
                               ================================================== */}
 
-                              <div className="p-4">
+                              <div className="p-4 flex-1 flex flex-col overflow-visible">
                                 {day.registrations &&
                                 day.registrations
                                   .length > 0 ? (
-                                  <div className="space-y-2">
-                                    <div className="mb-3 flex items-center justify-between">
-                                      <div>
-                                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                          Registered
-                                          Students
-                                        </p>
-
-                                        <p className="mt-0.5 text-xs text-slate-400">
-                                          {
-                                            day.currentRegistrations
-                                          }{' '}
-                                          student
-                                          {day.currentRegistrations !==
-                                          1
-                                            ? 's'
-                                            : ''}{' '}
-                                          registered
-                                        </p>
-                                      </div>
+                                  <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-2)] overflow-visible flex-1 flex flex-col">
+                                    <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] px-3 py-2">
+                                      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--ink-3)]">
+                                        Participants
+                                        {day.registrations.length > 0 && (
+                                          <span className="ml-1.5 text-[var(--ink-4)]">
+                                            ({day.registrations.length})
+                                          </span>
+                                        )}
+                                      </span>
                                     </div>
 
-                                    {day.registrations.map(
+                                    {day.registrations.length === 0 ? (
+                                      <div className="px-3 py-3 text-[12px] text-[var(--ink-4)]">
+                                        No participants yet
+                                      </div>
+                                    ) : (
+                                      <ul className="divide-y divide-[var(--line)] flex-1">
+                                        {day.registrations.map(
                                       (
                                         reg: CleaningRegistration
                                       ) => {
@@ -1384,131 +1413,33 @@ export default function AdminCleaningManagement() {
                                               reg.userId
                                           );
 
-                                        const initials =
-                                          getUserInitials(
-                                            reg
-                                              .user
-                                              .firstName,
-                                            reg
-                                              .user
-                                              .lastName
-                                          );
-
                                         return (
-                                          <div
-                                            key={
-                                              reg.id
-                                            }
-                                            className="relative flex min-w-0 items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 p-3 transition hover:border-slate-200 hover:bg-slate-100/70"
+                                          <li
+                                            key={reg.id}
+                                            className="flex items-center gap-2.5 px-3 py-2 overflow-visible"
                                           >
-                                            {/* STUDENT */}
-
-                                            <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-white">
-                                              {reg.user
-                                                .profileImageUrl ? (
-                                                <Image
-                                                  src={
-                                                    reg
-                                                      .user
-                                                      .profileImageUrl
-                                                  }
-                                                  alt={`${reg.user.firstName} ${reg.user.lastName}`}
-                                                  width={36}
-                                                  height={36}
-                                                  unoptimized
-                                                  className="h-full w-full object-cover"
-                                                />
-                                              ) : (
-                                                <div
-                                                  className={`flex h-full w-full items-center justify-center ${getAvatarColor(
-                                                    reg
-                                                      .user
-                                                      .firstName,
-                                                    reg
-                                                      .user
-                                                      .lastName
-                                                  )}`}
-                                                >
-                                                  <span className="text-xs font-bold text-white">
-                                                    {initials ||
-                                                      'U'}
-                                                  </span>
-                                                </div>
-                                              )}
-                                            </div>
-
-                                            <div className="min-w-0 flex-1">
-                                              <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                                                <p className="text-sm font-semibold text-slate-900">
-                                                  {
-                                                    reg
-                                                      .user
-                                                      .firstName
-                                                  }{' '}
-                                                  {
-                                                    reg
-                                                      .user
-                                                      .lastName
-                                                  }
-                                                </p>
-
-                                                {attendance && (
-                                                  <span
-                                                    className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                                                      attendance.status ===
-                                                      'ATTENDED'
-                                                        ? 'bg-emerald-50 text-emerald-700'
-                                                        : attendance.status ===
-                                                            'NO_SHOW'
-                                                          ? 'bg-red-50 text-red-700'
-                                                          : 'bg-amber-50 text-amber-700'
-                                                    }`}
-                                                  >
-                                                    {attendance.status.replace(
-                                                      '_',
-                                                      ' '
-                                                    )}
-                                                  </span>
-                                                )}
-                                              </div>
-
-                                              <p className="mt-0.5 text-xs text-slate-400">
-                                                Cleaning
-                                                participant
-                                              </p>
-                                            </div>
-
-                                            {/* STUDENT ACTION MENU */}
-
+                                            <Avatar
+                                              firstName={reg.user.firstName}
+                                              lastName={reg.user.lastName}
+                                              src={reg.user.profileImageUrl}
+                                              size={28}
+                                            />
+                                            <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-[var(--ink)]">
+                                              {reg.user.firstName} {reg.user.lastName}
+                                            </span>
                                             <ActionMenu
                                               menuId={`student-${reg.id}`}
-                                              activeMenu={
-                                                activeMenu
-                                              }
-                                              setActiveMenu={
-                                                setActiveMenu
-                                              }
+                                              activeMenu={activeMenu}
+                                              setActiveMenu={setActiveMenu}
                                             >
                                               <div className="px-3 py-2">
                                                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                                  Student
-                                                  actions
+                                                  Student actions
                                                 </p>
-
                                                 <p className="mt-0.5 truncate text-xs font-medium text-slate-600">
-                                                  {
-                                                    reg
-                                                      .user
-                                                      .firstName
-                                                  }{' '}
-                                                  {
-                                                    reg
-                                                      .user
-                                                      .lastName
-                                                  }
+                                                  {reg.user.firstName} {reg.user.lastName}
                                                 </p>
                                               </div>
-
                                               <MenuItem
                                                 onClick={() =>
                                                   handleMarkAttendance(
@@ -1517,13 +1448,10 @@ export default function AdminCleaningManagement() {
                                                     'ATTENDED'
                                                   )
                                                 }
-                                                icon={
-                                                  <UserCheck className="h-4 w-4 text-emerald-600" />
-                                                }
+                                                icon={<UserCheck className="h-4 w-4 text-emerald-600" />}
                                               >
                                                 Mark attended
                                               </MenuItem>
-
                                               <MenuItem
                                                 onClick={() =>
                                                   handleMarkAttendance(
@@ -1532,13 +1460,10 @@ export default function AdminCleaningManagement() {
                                                     'NO_SHOW'
                                                   )
                                                 }
-                                                icon={
-                                                  <UserX className="h-4 w-4 text-red-600" />
-                                                }
+                                                icon={<UserX className="h-4 w-4 text-red-600" />}
                                               >
                                                 Mark no show
                                               </MenuItem>
-
                                               <MenuItem
                                                 onClick={() =>
                                                   handleMarkAttendance(
@@ -1547,15 +1472,11 @@ export default function AdminCleaningManagement() {
                                                     'PENDING'
                                                   )
                                                 }
-                                                icon={
-                                                  <Hourglass className="h-4 w-4 text-amber-600" />
-                                                }
+                                                icon={<Hourglass className="h-4 w-4 text-amber-600" />}
                                               >
                                                 Mark pending
                                               </MenuItem>
-
                                               <MenuDivider />
-
                                               <MenuItem
                                                 danger
                                                 onClick={() =>
@@ -1564,46 +1485,33 @@ export default function AdminCleaningManagement() {
                                                     `${reg.user.firstName} ${reg.user.lastName}`
                                                   )
                                                 }
-                                                icon={
-                                                  <Trash2 className="h-4 w-4 text-red-600" />
-                                                }
+                                                icon={<Trash2 className="h-4 w-4 text-red-600" />}
                                               >
                                                 Remove student
                                               </MenuItem>
                                             </ActionMenu>
-                                          </div>
+                                          </li>
                                         );
-                                      }
+                                      })}
+                                    </ul>
                                     )}
                                   </div>
                                 ) : (
-                                  <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center">
-                                    <Users className="mx-auto h-8 w-8 text-slate-300" />
+                                  <div className="rounded-lg border border-dashed border-[var(--line)] bg-[var(--surface-2)] px-4 py-8 text-center flex-1">
+                                    <Users className="mx-auto h-8 w-8 text-[var(--ink-4)]" />
 
-                                    <p className="mt-2 text-sm font-medium text-slate-600">
-                                      No students
-                                      registered
+                                    <p className="mt-2 text-sm font-medium text-[var(--ink-3)]">
+                                      No students registered
                                     </p>
 
-                                    <p className="mt-1 text-xs text-slate-400">
-                                      Students assigned
-                                      to this cleaning
-                                      day will appear
-                                      here.
+                                    <p className="mt-1 text-xs text-[var(--ink-4)]">
+                                      Students assigned to this cleaning day will appear here.
                                     </p>
                                   </div>
                                 )}
                               </div>
                             </div>
-                          )
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            );
-          })}
+          ))}
         </div>
       )}
 
@@ -2180,5 +2088,6 @@ export default function AdminCleaningManagement() {
           )}
       </AnimatePresence>
     </motion.div>
+    </>
   );
 }
