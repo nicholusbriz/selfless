@@ -55,6 +55,8 @@ export interface AttendanceRecord {
 }
 
 export interface CleaningStats {
+  totalWeeks: number;
+  totalDays: number;
   totalRegistrations: number;
   totalAttended: number;
   totalNoShow: number;

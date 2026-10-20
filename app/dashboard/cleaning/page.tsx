@@ -32,6 +32,11 @@ import {
   X,
   MapPin,
   Filter,
+  MoreVertical,
+  UserCheck,
+  UserX,
+  Hourglass,
+  Trash2,
 } from 'lucide-react';
 
 import {
@@ -143,6 +148,112 @@ function Tag({
       {children}
     </span>
   );
+}
+
+// =========================================================
+// ACTION MENU
+// =========================================================
+
+type MenuType =
+  | `student-${string}`
+  | null;
+
+function ActionMenu({
+  menuId,
+  activeMenu,
+  setActiveMenu,
+  children,
+}: {
+  menuId: string;
+  activeMenu: MenuType;
+  setActiveMenu: (menu: MenuType) => void;
+  children: React.ReactNode;
+}) {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const isOpen = activeMenu === menuId;
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setActiveMenu(null);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setActiveMenu(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isOpen, setActiveMenu]);
+
+  return (
+    <div ref={menuRef} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setActiveMenu(isOpen ? null : (menuId as MenuType))}
+        aria-label="Open actions"
+        aria-expanded={isOpen}
+        className={`flex h-8 w-8 items-center justify-center rounded-lg border transition ${
+          isOpen
+            ? 'border-slate-300 bg-slate-100 text-slate-900'
+            : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800'
+        }`}
+      >
+        <MoreVertical className="h-4 w-4" />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.12 }}
+            className="absolute right-0 top-[calc(100%+8px)] z-[9999] w-56 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl"
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function MenuItem({
+  children,
+  onClick,
+  icon,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+    >
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-100">
+        {icon}
+      </span>
+      <span className="flex-1">{children}</span>
+    </button>
+  );
+}
+
+function MenuDivider() {
+  return <div className="my-1.5 h-px bg-slate-100" />;
 }
 
 // =========================================================
@@ -585,7 +696,10 @@ function DayCard({
   canMarkAttendance,
   onRegister,
   onSwitch,
-  onOpenParticipants,
+  currentUserId,
+  activeMenu,
+  setActiveMenu,
+  onMarkAttendance,
 }: {
   day: CleaningDay;
   week: {
@@ -602,7 +716,14 @@ function DayCard({
   canMarkAttendance: boolean;
   onRegister: () => void;
   onSwitch: () => void;
-  onOpenParticipants: () => void;
+  currentUserId?: string;
+  activeMenu: MenuType;
+  setActiveMenu: (menu: MenuType) => void;
+  onMarkAttendance: (
+    userId: string,
+    dayId: string,
+    status: 'ATTENDED' | 'NO_SHOW' | 'PENDING',
+  ) => void;
 }) {
   const isFull = day.currentRegistrations >= day.capacityLimit;
 
@@ -629,7 +750,7 @@ function DayCard({
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className={`group relative flex flex-col overflow-hidden rounded-xl border bg-[var(--surface)] transition-all ${
+      className={`group relative flex flex-col overflow-visible rounded-xl border bg-[var(--surface)] transition-all ${
         isSelf
           ? 'border-[var(--brass)] shadow-[0_4px_16px_rgba(185,138,62,0.15)]'
           : 'border-[var(--line)] shadow-[0_1px_2px_rgba(18,32,59,0.03)] hover:border-[var(--brass)]/50 hover:shadow-[0_4px_16px_rgba(18,32,59,0.06)]'
@@ -689,7 +810,7 @@ function DayCard({
           </div>
         </div>
 
-        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-2)] overflow-hidden">
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-2)] overflow-visible">
           <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] px-3 py-2">
             <span className="font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--ink-3)]">
               Participants
@@ -699,18 +820,6 @@ function DayCard({
                 </span>
               )}
             </span>
-
-            {canMarkAttendance && day.registrations.length > 0 && (
-              <button
-                type="button"
-                onClick={onOpenParticipants}
-                className={`inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--brass)] hover:text-[var(--brand)] underline decoration-1 underline-offset-2 rounded ${focusRing}`}
-                aria-label={`Mark attendance for ${day.dayOfWeek}`}
-              >
-                <ClipboardCheck className="h-3 w-3" />
-                Mark attendance
-              </button>
-            )}
           </div>
 
           {day.registrations.length === 0 ? (
@@ -718,23 +827,84 @@ function DayCard({
               No participants yet
             </div>
           ) : (
-            <ul className="divide-y divide-[var(--line)]">
-              {allParticipants.map((reg) => (
-                <li
-                  key={reg.id}
-                  className="flex items-center gap-2.5 px-3 py-2"
-                >
-                  <Avatar
-                    firstName={reg.user.firstName}
-                    lastName={reg.user.lastName}
-                    src={reg.user.profileImageUrl}
-                    size={28}
-                  />
-                  <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-[var(--ink)]">
-                    {reg.user.firstName} {reg.user.lastName}
-                  </span>
-                </li>
-              ))}
+            <ul className="divide-y divide-[var(--line)] overflow-visible">
+              {allParticipants.map((reg) => {
+                const attendance = (
+                  day.attendanceRecords as AttendanceRecord[] | undefined
+                )?.find((r) => r.userId === reg.userId);
+                const isSelf = reg.userId === currentUserId;
+
+                return (
+                  <li
+                    key={reg.id}
+                    className="flex items-center gap-2.5 px-3 py-2 overflow-visible"
+                  >
+                    <Avatar
+                      firstName={reg.user.firstName}
+                      lastName={reg.user.lastName}
+                      src={reg.user.profileImageUrl}
+                      isSelf={isSelf}
+                      size={28}
+                    />
+                    <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-[var(--ink)]">
+                      {reg.user.firstName} {reg.user.lastName}
+                      {isSelf && (
+                        <span className="ml-1.5 text-[10px] font-medium text-[var(--brass)]">
+                          (You)
+                        </span>
+                      )}
+                      {attendance?.status && (
+                        <span className="ml-1.5 text-[10px] font-medium text-[var(--ink-3)]">
+                          - {attendance.status.replace('_', ' ')}
+                        </span>
+                      )}
+                    </span>
+                    {canMarkAttendance && (
+                      <ActionMenu
+                        menuId={`student-${reg.id}`}
+                        activeMenu={activeMenu}
+                        setActiveMenu={setActiveMenu}
+                      >
+                        <div className="px-3 py-2">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            Mark attendance
+                          </p>
+                          <p className="mt-0.5 truncate text-xs font-medium text-slate-600">
+                            {reg.user.firstName} {reg.user.lastName}
+                          </p>
+                        </div>
+                        <MenuItem
+                          onClick={() => {
+                            onMarkAttendance(reg.userId, day.id, 'ATTENDED');
+                            setActiveMenu(null);
+                          }}
+                          icon={<UserCheck className="h-4 w-4 text-emerald-600" />}
+                        >
+                          Mark attended
+                        </MenuItem>
+                        <MenuItem
+                          onClick={() => {
+                            onMarkAttendance(reg.userId, day.id, 'NO_SHOW');
+                            setActiveMenu(null);
+                          }}
+                          icon={<UserX className="h-4 w-4 text-red-600" />}
+                        >
+                          Mark no show
+                        </MenuItem>
+                        <MenuItem
+                          onClick={() => {
+                            onMarkAttendance(reg.userId, day.id, 'PENDING');
+                            setActiveMenu(null);
+                          }}
+                          icon={<Hourglass className="h-4 w-4 text-amber-600" />}
+                        >
+                          Mark pending
+                        </MenuItem>
+                      </ActionMenu>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
@@ -787,213 +957,6 @@ type AttendanceRecord = {
   userId: string;
   status: string;
 };
-
-function ParticipantsDrawer({
-  day,
-  weekLabel,
-  currentUserId,
-  onClose,
-  onMarkAttendance,
-}: {
-  day: CleaningDay | null;
-  weekLabel: string;
-  currentUserId?: string;
-  onClose: () => void;
-  onMarkAttendance: (
-    userId: string,
-    dayId: string,
-    status: 'ATTENDED' | 'NO_SHOW' | 'PENDING',
-  ) => void;
-}) {
-  useEffect(() => {
-    if (!day) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKeyDown);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [day, onClose]);
-
-  return (
-    <AnimatePresence>
-      {day && (
-        <div className="fixed inset-0 z-[55] flex justify-end">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            className="absolute inset-0 bg-[var(--ink)]/45"
-            onClick={onClose}
-          />
-          <motion.aside
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="participants-title"
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="relative flex h-full w-full max-w-md flex-col border-l border-[var(--line)] bg-[var(--surface)] shadow-2xl"
-          >
-            <div className="flex items-start justify-between gap-3 border-b border-[var(--line)] bg-[var(--surface-2)] px-5 py-4">
-              <div className="min-w-0">
-                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--brass)]">
-                  Mark attendance
-                </p>
-                <h2
-                  id="participants-title"
-                  className="mt-0.5 text-[17px] font-semibold text-[var(--ink)]"
-                >
-                  {day.dayOfWeek}, {formatDate(day.cleaningDate)}
-                </h2>
-                <p className="mt-0.5 text-[12px] text-[var(--ink-3)]">
-                  {weekLabel}
-                  <span className="mx-1.5 text-[var(--ink-4)]">·</span>
-                  {day.currentRegistrations}/{day.capacityLimit} registered
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Close participants"
-                className={`inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-2)] transition-colors hover:border-[var(--brass)] hover:text-[var(--ink)] ${focusRing}`}
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto">
-              {day.registrations.length === 0 ? (
-                <div className="flex flex-col items-center gap-2 px-6 py-16 text-center">
-                  <Users className="h-8 w-8 text-[var(--ink-4)]" />
-                  <p className="text-[14px] font-semibold text-[var(--ink)]">
-                    No participants yet
-                  </p>
-                  <p className="text-[12.5px] text-[var(--ink-3)]">
-                    There is no one to mark attendance for on this day.
-                  </p>
-                </div>
-              ) : (
-                <ul className="divide-y divide-[var(--line)]">
-                  {day.registrations.map((reg) => {
-                    const attendance = (
-                      day.attendanceRecords as AttendanceRecord[] | undefined
-                    )?.find((r) => r.userId === reg.userId);
-                    const isSelf = reg.userId === currentUserId;
-
-                    return (
-                      <li key={reg.id} className="px-5 py-4">
-                        <div className="flex items-start gap-3">
-                          <Avatar
-                            firstName={reg.user.firstName}
-                            lastName={reg.user.lastName}
-                            src={reg.user.profileImageUrl}
-                            isSelf={isSelf}
-                            size={40}
-                          />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                              <p className="text-[14px] font-semibold text-[var(--ink)]">
-                                {reg.user.firstName} {reg.user.lastName}
-                                {isSelf && (
-                                  <span className="ml-1.5 text-[11px] font-medium text-[var(--brass)]">
-                                    You
-                                  </span>
-                                )}
-                              </p>
-                              {attendance?.status && (
-                                <span
-                                  className={`inline-flex px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded ${
-                                    attendance.status === 'ATTENDED'
-                                      ? 'bg-[var(--ok-soft)] text-[var(--ok)]'
-                                      : attendance.status === 'NO_SHOW'
-                                        ? 'bg-[var(--bad-soft)] text-[var(--bad)]'
-                                        : 'bg-[var(--warn-soft)] text-[var(--warn)]'
-                                  }`}
-                                >
-                                  {attendance.status.replace('_', ' ')}
-                                </span>
-                              )}
-                            </div>
-
-                            <div className="mt-2 flex flex-wrap items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  onMarkAttendance(
-                                    reg.userId,
-                                    day.id,
-                                    'ATTENDED',
-                                  )
-                                }
-                                aria-pressed={attendance?.status === 'ATTENDED'}
-                                className={`border border-[var(--ok)]/30 px-3 py-1.5 text-[11.5px] font-semibold rounded-md ${focusRing} ${
-                                  attendance?.status === 'ATTENDED'
-                                    ? 'bg-[var(--ok)] text-white'
-                                    : 'bg-[var(--ok-soft)] text-[var(--ok)] hover:bg-[var(--ok-soft)]/70'
-                                }`}
-                              >
-                                Attended
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  onMarkAttendance(reg.userId, day.id, 'NO_SHOW')
-                                }
-                                aria-pressed={attendance?.status === 'NO_SHOW'}
-                                className={`border border-[var(--bad)]/30 px-3 py-1.5 text-[11.5px] font-semibold rounded-md ${focusRing} ${
-                                  attendance?.status === 'NO_SHOW'
-                                    ? 'bg-[var(--bad)] text-white'
-                                    : 'bg-[var(--bad-soft)] text-[var(--bad)] hover:bg-[var(--bad-soft)]/70'
-                                }`}
-                              >
-                                No Show
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  onMarkAttendance(reg.userId, day.id, 'PENDING')
-                                }
-                                aria-pressed={attendance?.status === 'PENDING'}
-                                className={`border border-[var(--warn)]/30 px-3 py-1.5 text-[11.5px] font-semibold rounded-md ${focusRing} ${
-                                  attendance?.status === 'PENDING'
-                                    ? 'bg-[var(--warn)] text-white'
-                                    : 'bg-[var(--warn-soft)] text-[var(--warn)] hover:bg-[var(--warn-soft)]/70'
-                                }`}
-                              >
-                                Pending
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-
-            <div className="border-t border-[var(--line)] bg-[var(--surface-2)] px-5 py-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className={`${btnQuiet} w-full`}
-              >
-                Done
-              </button>
-            </div>
-          </motion.aside>
-        </div>
-      )}
-    </AnimatePresence>
-  );
-}
 
 // =========================================================
 // SEARCH RESULT TYPE
@@ -1242,7 +1205,7 @@ export default function CleaningPage() {
   } | null>(null);
   const [participantSearch, setParticipantSearch] = useState('');
   const [weekFilter, setWeekFilter] = useState<WeekFilter>({ kind: 'all' });
-  const [openDrawerDayId, setOpenDrawerDayId] = useState<string | null>(null);
+  const [activeMenu, setActiveMenu] = useState<MenuType>(null);
 
   const { data, isLoading, error, refetch } = useStudentCleaningData();
   const { data: statusData, refetch: refetchStatus } =
@@ -1268,19 +1231,6 @@ export default function CleaningPage() {
       ) ?? null,
     [weeks, data?.registration?.cleaningDayId],
   );
-
-  const openDrawerDay = useMemo(
-    () => allDays.find((d) => d.id === openDrawerDayId) ?? null,
-    [allDays, openDrawerDayId],
-  );
-
-  const openDrawerWeekLabel = useMemo(() => {
-    if (!openDrawerDay) return '';
-    const week = weeks.find((w) =>
-      w.days.some((d) => d.id === openDrawerDay.id),
-    );
-    return week?.weekLabel ?? '';
-  }, [openDrawerDay, weeks]);
 
   const filteredDays = useMemo(() => {
     if (weekFilter.kind === 'all') {
@@ -1599,7 +1549,7 @@ export default function CleaningPage() {
         deadlineText={null}
       />
 
-      <main className="mx-auto max-w-5xl px-4 pt-6 pb-10 sm:px-6 sm:pt-8 sm:pb-12">
+      <main className="mx-auto max-w-5xl px-4 pt-6 pb-10 sm:px-6 sm:pt-8 sm:pb-12 overflow-visible">
         <ScrollingNotice />
 
         <AnimatePresence initial={false}>
@@ -1684,7 +1634,7 @@ export default function CleaningPage() {
             ) : (
               <div
                 id="cleaning-grid"
-                className="grid gap-3.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                className="grid gap-3.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 overflow-visible"
               >
                 {filteredDays.map(({ day, week }) => {
                   const isSelf =
@@ -1697,7 +1647,7 @@ export default function CleaningPage() {
                     <div
                       key={day.id}
                       id={`cleaning-day-${day.id}`}
-                      className="scroll-mt-24"
+                      className="scroll-mt-24 overflow-visible"
                     >
                       <DayCard
                         day={day}
@@ -1715,9 +1665,10 @@ export default function CleaningPage() {
                         canMarkAttendance={canMarkAttendance}
                         onRegister={() => askRegister(day)}
                         onSwitch={() => askChange(day, week.weekLabel)}
-                        onOpenParticipants={() =>
-                          setOpenDrawerDayId(day.id)
-                        }
+                        currentUserId={data?.user?.id}
+                        activeMenu={activeMenu}
+                        setActiveMenu={setActiveMenu}
+                        onMarkAttendance={handleMarkAttendance}
                       />
                     </div>
                   );
@@ -1736,7 +1687,7 @@ export default function CleaningPage() {
           </div>
         )}
 
-        <section className={`${panel} mt-5 overflow-hidden`}>
+        <section className={`${panel} mt-5 overflow-visible`}>
           <div className="border-b border-[var(--line)] px-4 py-3.5 sm:px-5">
             <h2 className="text-[15px] font-semibold text-[var(--ink)]">
               Community cleaning, recorded
@@ -1757,14 +1708,6 @@ export default function CleaningPage() {
           </video>
         </section>
       </main>
-
-      <ParticipantsDrawer
-        day={openDrawerDay}
-        weekLabel={openDrawerWeekLabel}
-        currentUserId={data?.user?.id}
-        onClose={() => setOpenDrawerDayId(null)}
-        onMarkAttendance={handleMarkAttendance}
-      />
 
       <ConfirmDialog
         state={confirm}

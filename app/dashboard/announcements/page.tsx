@@ -96,7 +96,7 @@ export default function AnnouncementsPage() {
 
       return response.json();
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0, // Always fetch fresh data to get latest isAdmin status
     gcTime: 10 * 60 * 1000,
   });
 

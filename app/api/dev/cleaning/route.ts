@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
           orderBy: { cleaningDate: 'asc' },
         },
       },
-      orderBy: { startDate: 'desc' },
+      orderBy: { createdAt: 'asc' },
     });
 
     // Get students from the specified tech center
