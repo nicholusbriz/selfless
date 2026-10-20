@@ -67,6 +67,11 @@ export interface CleaningStats {
 export interface CleaningData {
   weeks: CleaningWeek[];
   students: { id: string; firstName: string; lastName: string; email: string; profileImageUrl: string | null }[];
+  studentsByRegistrationCount: {
+    zero: { id: string; firstName: string; lastName: string }[];
+    one: { id: string; firstName: string; lastName: string }[];
+    two: { id: string; firstName: string; lastName: string }[];
+  };
   stats: CleaningStats;
 }
 

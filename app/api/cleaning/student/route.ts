@@ -127,15 +127,45 @@ export async function GET() {
       select: { userId: true }
     });
 
-    const registeredStudentIds = new Set(registrations.map(r => r.userId));
+    // Count registrations per student
+    const registrationCountMap = new Map<string, number>();
+    registrations.forEach(r => {
+      const count = registrationCountMap.get(r.userId) || 0;
+      registrationCountMap.set(r.userId, count + 1);
+    });
 
-    const unregisteredStudents = studentsInCenter
-      .filter((student) => !registeredStudentIds.has(student.id))
-      .map(({ id, firstName, lastName }) => ({
-        id,
-        firstName,
-        lastName,
-      }));
+    // Group students by registration count (0, 1, 2)
+    const studentsByRegistrationCount = {
+      zero: [] as Array<{ id: string; firstName: string; lastName: string }>,
+      one: [] as Array<{ id: string; firstName: string; lastName: string }>,
+      two: [] as Array<{ id: string; firstName: string; lastName: string }>,
+    };
+
+    studentsInCenter.forEach(student => {
+      const count = registrationCountMap.get(student.id) || 0;
+      if (count === 0) {
+        studentsByRegistrationCount.zero.push({
+          id: student.id,
+          firstName: student.firstName,
+          lastName: student.lastName,
+        });
+      } else if (count === 1) {
+        studentsByRegistrationCount.one.push({
+          id: student.id,
+          firstName: student.firstName,
+          lastName: student.lastName,
+        });
+      } else if (count >= 2) {
+        studentsByRegistrationCount.two.push({
+          id: student.id,
+          firstName: student.firstName,
+          lastName: student.lastName,
+        });
+      }
+    });
+
+    // Legacy: unregisteredStudents for backward compatibility
+    const unregisteredStudents = studentsByRegistrationCount.zero;
 
     return NextResponse.json({
       user: {
@@ -151,6 +181,7 @@ export async function GET() {
       userAttendance,
       weeks,
       unregisteredStudents,
+      studentsByRegistrationCount,
     });
   } catch (error) {
     console.error('Error fetching student cleaning data:', error);

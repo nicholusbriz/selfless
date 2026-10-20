@@ -111,14 +111,24 @@ export async function GET(request: NextRequest) {
         lastName,
       }));
 
-    // Filter users with 0 registrations (for stats)
-    const unregisteredUsers = students
-      .filter((user) => (userRegistrationCounts.get(user.id) || 0) === 0)
-      .map(({ id, firstName, lastName }) => ({
-        id,
-        firstName,
-        lastName,
-      }));
+    // Group students by registration count (0, 1, 2+)
+    const studentsByRegistrationCount = {
+      zero: students
+        .filter((user) => (userRegistrationCounts.get(user.id) || 0) === 0)
+        .map(({ id, firstName, lastName }) => ({ id, firstName, lastName }))
+        .sort((a, b) => a.firstName.localeCompare(b.firstName)),
+      one: students
+        .filter((user) => (userRegistrationCounts.get(user.id) || 0) === 1)
+        .map(({ id, firstName, lastName }) => ({ id, firstName, lastName }))
+        .sort((a, b) => a.firstName.localeCompare(b.firstName)),
+      two: students
+        .filter((user) => (userRegistrationCounts.get(user.id) || 0) >= 2)
+        .map(({ id, firstName, lastName }) => ({ id, firstName, lastName }))
+        .sort((a, b) => a.firstName.localeCompare(b.firstName)),
+    };
+
+    // Filter users with 0 registrations (for stats - legacy)
+    const unregisteredUsers = studentsByRegistrationCount.zero;
 
     // Calculate stats
     let totalRegistrations = 0;
@@ -149,7 +159,14 @@ export async function GET(request: NextRequest) {
       totalPending,
     };
 
-    return NextResponse.json({ weeks, students: assignableUsers, allStudents: students, unregisteredStudents: unregisteredUsers, stats });
+    return NextResponse.json({
+      weeks,
+      students: assignableUsers,
+      allStudents: students,
+      unregisteredStudents: unregisteredUsers,
+      studentsByRegistrationCount,
+      stats,
+    });
   } catch (error) {
     console.error('Error fetching dev cleaning data:', error);
     return NextResponse.json(

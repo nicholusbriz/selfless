@@ -87,6 +87,12 @@ export interface DevCleaningData {
   allStudents: StudentSummary[];
   /** Students with 0 registrations */
   unregisteredStudents: { id: string; firstName: string; lastName: string }[];
+  /** Students grouped by registration count */
+  studentsByRegistrationCount: {
+    zero: { id: string; firstName: string; lastName: string }[];
+    one: { id: string; firstName: string; lastName: string }[];
+    two: { id: string; firstName: string; lastName: string }[];
+  };
   stats: CleaningStats;
 }
 

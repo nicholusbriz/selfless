@@ -851,6 +851,8 @@ function DayCard({
   hasMultipleRegistrations,
   registeredDays,
   weeks,
+  studentRegistrationCounts,
+  onStudentClick,
 }: {
   day: CleaningDay;
   week: {
@@ -878,6 +880,8 @@ function DayCard({
   hasMultipleRegistrations: boolean;
   registeredDays: CleaningDay[];
   weeks: WeekType[];
+  studentRegistrationCounts: Map<string, number>;
+  onStudentClick: (userId: string, studentName: string) => void;
 }) {
   const isFull = day.currentRegistrations >= day.capacityLimit;
 
@@ -986,6 +990,7 @@ function DayCard({
                   day.attendanceRecords as AttendanceRecord[] | undefined
                 )?.find((r) => r.userId === reg.userId);
                 const isSelf = reg.userId === currentUserId;
+                const totalRegistrations = studentRegistrationCounts.get(reg.userId) || 0;
 
                 return (
                   <li
@@ -999,19 +1004,24 @@ function DayCard({
                       isSelf={isSelf}
                       size={28}
                     />
-                    <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-[var(--ink)]">
-                      {reg.user.firstName} {reg.user.lastName}
+                    <div className="min-w-0 flex-1 flex items-center gap-1.5">
+                      <span className="truncate text-[12.5px] font-medium text-[var(--ink)]">
+                        {reg.user.firstName} {reg.user.lastName}
+                      </span>
+                      <span className="shrink-0 text-[10px] font-medium text-[var(--brass)]">
+                        ({totalRegistrations}/2)
+                      </span>
                       {isSelf && (
-                        <span className="ml-1.5 text-[10px] font-medium text-[var(--brass)]">
+                        <span className="shrink-0 text-[10px] font-medium text-[var(--brass)]">
                           (You)
                         </span>
                       )}
                       {attendance?.status && (
-                        <span className="ml-1.5 text-[10px] font-medium text-[var(--ink-3)]">
+                        <span className="shrink-0 text-[10px] font-medium text-[var(--ink-3)]">
                           - {attendance.status.replace('_', ' ')}
                         </span>
                       )}
-                    </span>
+                    </div>
                     {canMarkAttendance && (
                       <ActionMenu
                         menuId={`student-${reg.id}`}
@@ -1124,6 +1134,122 @@ function DayCard({
 }
 
 // =========================================================
+// STUDENT DAYS MODAL
+// =========================================================
+
+function StudentDaysModal({
+  isOpen,
+  onClose,
+  studentName,
+  days,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  studentName: string;
+  days: Array<{ dayId: string; dayOfWeek: string; cleaningDate: string; weekLabel: string }>;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const restoreRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    restoreRef.current = document.activeElement as HTMLElement | null;
+    const node = panelRef.current;
+    node?.querySelector<HTMLElement>('[data-autofocus]')?.focus();
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+        return;
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      restoreRef.current?.focus?.();
+    };
+  }, [isOpen, onClose]);
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="absolute inset-0 bg-[var(--ink)]/45"
+            onClick={onClose}
+          />
+          <motion.div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+            className="relative w-full max-w-sm border border-[var(--line)] bg-[var(--surface)] rounded-lg shadow-lg"
+          >
+            <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3">
+              <h2 className="text-[15px] font-semibold text-[var(--ink)]">
+                {studentName}
+              </h2>
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1 text-[var(--ink-3)] hover:text-[var(--ink)] rounded transition-colors"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="px-4 py-3">
+              {days.length === 0 ? (
+                <div className="text-center py-4">
+                  <Calendar className="mx-auto h-6 w-6 text-[var(--ink-4)]" />
+                  <p className="mt-2 text-[13px] font-medium text-[var(--ink)]">
+                    No registered days
+                  </p>
+                </div>
+              ) : (
+                <ul className="space-y-1.5">
+                  {days.map((day) => (
+                    <li
+                      key={day.dayId}
+                      className="flex items-center justify-between gap-2 rounded border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[13px] font-medium text-[var(--ink)]">
+                          {day.dayOfWeek}
+                        </p>
+                        <p className="text-[11px] text-[var(--ink-3)]">
+                          {formatDate(day.cleaningDate)}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-[10px] font-medium text-[var(--ink-3)] bg-[var(--surface)] px-2 py-0.5 rounded border border-[var(--line)]">
+                        {day.weekLabel}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// =========================================================
 // PARTICIPANTS DRAWER
 // =========================================================
 
@@ -1147,6 +1273,7 @@ type ParticipantSearchResult = {
   cleaningDate: string;
   weekId: string;
   weekLabel: string;
+  totalRegistrations: number;
 };
 
 // =========================================================
@@ -1248,8 +1375,11 @@ function ParticipantSearch({
                       size={36}
                     />
                     <span className="min-w-0 flex-1">
-                      <span className="block break-words text-[13.5px] font-semibold text-[var(--ink)]">
+                      <span className="block break-words text-[13.5px] font-semibold text-[var(--brand)]">
                         {result.firstName} {result.lastName}
+                        <span className="ml-1.5 text-[10px] font-medium text-[var(--brass)]">
+                          ({result.totalRegistrations}/2)
+                        </span>
                       </span>
                       <span className="mt-0.5 block text-[11.5px] text-[var(--ink-3)]">
                         {result.dayOfWeek}, {formatDate(result.cleaningDate)}
@@ -1280,19 +1410,49 @@ function ParticipantSearch({
 }
 
 // =========================================================
-// UNREGISTERED STUDENTS — PLAIN TEXT
+// UNREGISTERED STUDENTS — WITH FILTER
 // =========================================================
 
+type StudentFilter = 'all' | 'zero' | 'one' | 'two';
+
+type StudentWithCount = UnregisteredStudent & { registrationCount: number };
+
 function UnregisteredStudentsList({
-  students,
+  studentsByRegistrationCount,
   totalWeeks,
   totalDays,
+  onStudentClick,
 }: {
-  students: UnregisteredStudent[];
+  studentsByRegistrationCount: {
+    zero: UnregisteredStudent[];
+    one: UnregisteredStudent[];
+    two: UnregisteredStudent[];
+  };
   totalWeeks: number;
   totalDays: number;
+  onStudentClick?: (userId: string, studentName: string) => void;
 }) {
-  if (students.length === 0) {
+  const [filter, setFilter] = useState<StudentFilter>('all');
+
+  const allStudents: StudentWithCount[] = [
+    ...studentsByRegistrationCount.zero.map((s) => ({ ...s, registrationCount: 0 })),
+    ...studentsByRegistrationCount.one.map((s) => ({ ...s, registrationCount: 1 })),
+    ...studentsByRegistrationCount.two.map((s) => ({ ...s, registrationCount: 2 })),
+  ];
+
+  const filteredStudents = useMemo(() => {
+    if (filter === 'all') return allStudents;
+    return allStudents.filter((s) => {
+      if (filter === 'zero') return s.registrationCount === 0;
+      if (filter === 'one') return s.registrationCount === 1;
+      if (filter === 'two') return s.registrationCount === 2;
+      return false;
+    });
+  }, [filter, allStudents]);
+
+  const totalStudents = allStudents.length;
+
+  if (totalStudents === 0) {
     return (
       <div className="mb-4">
         <div className="flex items-center gap-2 text-[12.5px] text-[var(--ink-3)]">
@@ -1308,14 +1468,75 @@ function UnregisteredStudentsList({
     );
   }
 
+  const filterOptions = [
+    { key: 'all' as const, label: 'All', count: totalStudents, description: 'All students' },
+    { key: 'zero' as const, label: 'Not registered', count: studentsByRegistrationCount.zero.length, description: 'Students who haven\'t registered for a cleaning day' },
+    { key: 'one' as const, label: 'One day', count: studentsByRegistrationCount.one.length, description: 'Students registered for one day' },
+    { key: 'two' as const, label: 'Two days', count: studentsByRegistrationCount.two.length, description: 'Students registered for two days' },
+  ];
+
   return (
     <div className="mb-4">
-      <p className="mb-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--ink-3)]">
-        Students not yet registered ({students.length})
-      </p>
-      <p className="text-[13px] leading-6 text-[var(--ink)]">
-        {students.map((s) => `${s.firstName} ${s.lastName}`.trim()).join(' · ')}
-      </p>
+      <div className="flex items-center justify-between mb-3">
+        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--ink-3)]">
+          Students by registration
+        </p>
+        <p className="text-[11.5px] text-[var(--ink-4)]">
+          Total: {totalStudents}
+        </p>
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-3">
+        {filterOptions.map((option) => (
+          <button
+            key={option.key}
+            type="button"
+            onClick={() => setFilter(option.key)}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[11.5px] font-semibold rounded-md border transition-colors ${filter === option.key
+              ? 'bg-[var(--brand)] border-[var(--brand)] text-white'
+              : 'bg-[var(--surface)] border-[var(--line)] text-[var(--ink-2)] hover:border-[var(--brass)] hover:text-[var(--ink)]'
+              } ${focusRing}`}
+            title={option.description}
+          >
+            {option.label}
+            <span className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${filter === option.key
+              ? 'bg-white/20 text-white'
+              : 'bg-[var(--surface-2)] text-[var(--ink-3)]'
+              }`}>
+              {option.count}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {filteredStudents.length === 0 ? (
+        <div className="text-[12.5px] text-[var(--ink-4)] py-2">
+          No students in this category
+        </div>
+      ) : (
+        <p className="text-[13px] leading-6 text-[var(--ink)]">
+          {filteredStudents
+            .sort((a, b) => a.firstName.localeCompare(b.firstName))
+            .map((s, index) => (
+              <span key={s.id}>
+                {index > 0 && ' · '}
+                <button
+                  type="button"
+                  onClick={() => onStudentClick?.(s.id, `${s.firstName} ${s.lastName}`)}
+                  className={`${s.registrationCount > 0 ? 'text-blue-600 font-semibold' : 'text-[var(--ink)]'} hover:underline decoration-1 underline-offset-2`}
+                >
+                  {s.firstName} {s.lastName}
+                </button>
+              </span>
+            ))}
+        </p>
+      )}
+
+      <div className="mt-2 flex items-start gap-1.5 text-[11px] text-[var(--ink-3)] bg-[var(--surface-2)] px-2.5 py-2 rounded border border-[var(--line)]">
+        <span className="font-semibold text-[var(--brass)]">Pro tip:</span>
+        <span>Click on a student name to see their registration status</span>
+      </div>
+
       <p className="mt-2 text-[12px] text-[var(--ink-3)]">
         Total weeks: {totalWeeks} · Total days: {totalDays}
       </p>
@@ -1381,6 +1602,35 @@ export default function CleaningPage() {
   const [weekFilter, setWeekFilter] = useState<WeekFilter>({ kind: 'all' });
   const [activeMenu, setActiveMenu] = useState<MenuType>(null);
 
+  const [studentDaysModal, setStudentDaysModal] = useState<{
+    studentId: string;
+    studentName: string;
+    days: Array<{ dayId: string; dayOfWeek: string; cleaningDate: string; weekLabel: string }>;
+  } | null>(null);
+
+  /* ============================================================
+     STUDENT DAYS MODAL
+  ============================================================ */
+
+  const handleStudentClick = (studentId: string, studentName: string) => {
+    const days: Array<{ dayId: string; dayOfWeek: string; cleaningDate: string; weekLabel: string }> = [];
+    weeks.forEach((week) => {
+      week.days.forEach((day) => {
+        day.registrations.forEach((reg) => {
+          if (reg.userId === studentId) {
+            days.push({
+              dayId: day.id,
+              dayOfWeek: day.dayOfWeek,
+              cleaningDate: day.cleaningDate,
+              weekLabel: week.weekLabel,
+            });
+          }
+        });
+      });
+    });
+    setStudentDaysModal({ studentId, studentName, days });
+  };
+
   const { data, isLoading, error, refetch } = useStudentCleaningData();
   const { data: statusData, refetch: refetchStatus } =
     useStudentCleaningStatus();
@@ -1391,6 +1641,20 @@ export default function CleaningPage() {
 
   const weeks = useMemo(() => data?.weeks ?? [], [data]);
   const allDays = useMemo(() => weeks.flatMap((week) => week.days), [weeks]);
+
+  // Count registrations per student (max 2 allowed)
+  const studentRegistrationCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    weeks.forEach((week) =>
+      week.days.forEach((day) =>
+        day.registrations.forEach((registration) => {
+          const currentCount = counts.get(registration.userId) || 0;
+          counts.set(registration.userId, currentCount + 1);
+        }),
+      ),
+    );
+    return counts;
+  }, [weeks]);
 
   const registeredDays = useMemo(
     () =>
@@ -1460,6 +1724,7 @@ export default function CleaningPage() {
               cleaningDate: day.cleaningDate,
               weekId: week.id,
               weekLabel: week.weekLabel,
+              totalRegistrations: studentRegistrationCounts.get(registration.userId) || 0,
             });
           }
         }
@@ -1817,9 +2082,10 @@ export default function CleaningPage() {
         )}
 
         <UnregisteredStudentsList
-          students={data?.unregisteredStudents ?? []}
+          studentsByRegistrationCount={data?.studentsByRegistrationCount ?? { zero: [], one: [], two: [] }}
           totalWeeks={weeks.length}
           totalDays={allDays.length}
+          onStudentClick={handleStudentClick}
         />
 
         {weeks.length > 0 && (
@@ -1905,6 +2171,8 @@ export default function CleaningPage() {
                         hasMultipleRegistrations={registeredDays.length > 0}
                         registeredDays={registeredDays}
                         weeks={weeks}
+                        studentRegistrationCounts={studentRegistrationCounts}
+                        onStudentClick={handleStudentClick}
                       />
                     </div>
                   );
@@ -1953,6 +2221,13 @@ export default function CleaningPage() {
           changeRegistrationMutation.isPending ||
           unregisterMutation.isPending
         }
+      />
+
+      <StudentDaysModal
+        isOpen={studentDaysModal !== null}
+        onClose={() => setStudentDaysModal(null)}
+        studentName={studentDaysModal?.studentName ?? ''}
+        days={studentDaysModal?.days ?? []}
       />
     </Shell>
   );
