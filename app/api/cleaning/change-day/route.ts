@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { newDayId } = body;
+    const { newDayId, oldDayId } = body;
 
     if (!newDayId) {
       return NextResponse.json(
@@ -36,8 +36,8 @@ export async function POST(request: NextRequest) {
     // Use transaction with increased timeout
     const result = await prisma.$transaction(
       async (tx) => {
-        // Get existing registration
-        const existingRegistration = await tx.cleaningRegistration.findUnique({
+        // Get existing registrations
+        const existingRegistrations = await tx.cleaningRegistration.findMany({
           where: { userId: user.id },
           include: {
             cleaningDay: {
@@ -46,11 +46,19 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        if (!existingRegistration) {
+        if (!existingRegistrations || existingRegistrations.length === 0) {
           throw new Error('You are not registered for any cleaning day');
         }
 
-        const oldDayId = existingRegistration.cleaningDayId;
+        // If oldDayId is provided, use it; otherwise use the first registration
+        const targetOldDayId = oldDayId || existingRegistrations[0].cleaningDayId;
+        const existingRegistration = existingRegistrations.find(
+          (reg) => reg.cleaningDayId === targetOldDayId
+        );
+
+        if (!existingRegistration) {
+          throw new Error('Registration not found for the specified day');
+        }
 
         // Get new day
         const newDay = await tx.cleaningDay.findUnique({
@@ -63,7 +71,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Validate: Cannot change to the same day
-        if (newDayId === oldDayId) {
+        if (newDayId === targetOldDayId) {
           throw new Error('You are already registered for this day');
         }
 
@@ -88,7 +96,7 @@ export async function POST(request: NextRequest) {
 
         // Check if old day has exactly 4 students (minimum threshold)
         const oldDayRegistrations = await tx.cleaningRegistration.count({
-          where: { cleaningDayId: oldDayId },
+          where: { cleaningDayId: targetOldDayId },
         });
 
         if (oldDayRegistrations === 4) {
@@ -99,22 +107,22 @@ export async function POST(request: NextRequest) {
 
         // Delete old registration
         await tx.cleaningRegistration.delete({
-          where: { userId: user.id },
+          where: { id: existingRegistration.id },
         });
 
         // Update old day's count and status (decrease count)
         const oldDayNewCount = await tx.cleaningRegistration.count({
-          where: { cleaningDayId: oldDayId },
+          where: { cleaningDayId: targetOldDayId },
         });
 
         const oldDay = await tx.cleaningDay.findUnique({
-          where: { id: oldDayId },
+          where: { id: targetOldDayId },
         });
 
         if (oldDay) {
           const isOldDayFull = oldDayNewCount >= oldDay.capacityLimit;
           await tx.cleaningDay.update({
-            where: { id: oldDayId },
+            where: { id: targetOldDayId },
             data: {
               currentRegistrations: oldDayNewCount,
               status:
@@ -153,7 +161,7 @@ export async function POST(request: NextRequest) {
         });
 
         return {
-          oldDayId,
+          oldDayId: targetOldDayId,
           newDayId,
           registration: newRegistration,
           oldDayName: existingRegistration.cleaningDay.dayOfWeek,

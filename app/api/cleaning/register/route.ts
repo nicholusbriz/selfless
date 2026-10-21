@@ -24,14 +24,26 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { cleaningDayId } = body;
 
-    // Check if student already has a registration (ONE STUDENT = ONE DAY)
-    const existingRegistration = await prisma.cleaningRegistration.findUnique({
+    // Check if student already has a registration (allow up to 2 registrations)
+    const existingRegistrations = await prisma.cleaningRegistration.findMany({
       where: { userId: user.id },
     });
 
-    if (existingRegistration) {
+    if (existingRegistrations.length >= 2) {
       return NextResponse.json(
-        { error: 'You are already registered for a cleaning day. Please unregister first to switch days.' },
+        { error: 'You can register for a maximum of 2 cleaning days. Please unregister from one of your current days to register for a new one.' },
+        { status: 400 }
+      );
+    }
+
+    // Check if already registered for this specific day
+    const existingDayRegistration = existingRegistrations.find(
+      (reg) => reg.cleaningDayId === cleaningDayId
+    );
+
+    if (existingDayRegistration) {
+      return NextResponse.json(
+        { error: 'You are already registered for this cleaning day.' },
         { status: 400 }
       );
     }
@@ -129,7 +141,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE - Unregister student from day
+// DELETE - Unregister student from a specific day
 export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -147,23 +159,34 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Get existing registration
-    const existingRegistration = await prisma.cleaningRegistration.findUnique({
-      where: { userId: user.id },
+    const body = await request.json();
+    const { cleaningDayId } = body;
+
+    if (!cleaningDayId) {
+      return NextResponse.json(
+        { error: 'cleaningDayId is required' },
+        { status: 400 }
+      );
+    }
+
+    // Get existing registration for this specific day
+    const existingRegistration = await prisma.cleaningRegistration.findFirst({
+      where: {
+        userId: user.id,
+        cleaningDayId,
+      },
     });
 
     if (!existingRegistration) {
       return NextResponse.json(
-        { error: 'No registration found' },
+        { error: 'No registration found for this day' },
         { status: 404 }
       );
     }
 
-    const cleaningDayId = existingRegistration.cleaningDayId;
-
     // Delete registration
     await prisma.cleaningRegistration.delete({
-      where: { userId: user.id },
+      where: { id: existingRegistration.id },
     });
 
     // Update day's current registration count

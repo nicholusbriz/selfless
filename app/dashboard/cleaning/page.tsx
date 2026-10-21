@@ -21,6 +21,7 @@ import {
   AlertCircle,
   ArrowLeft,
   ArrowUp,
+  ArrowRightLeft,
   Calendar,
   Check,
   CheckCircle,
@@ -37,6 +38,7 @@ import {
   UserX,
   Hourglass,
   Trash2,
+  ChevronDown,
 } from 'lucide-react';
 
 import {
@@ -44,11 +46,13 @@ import {
   useStudentCleaningStatus,
   useRegisterForCleaning,
   useChangeRegistration,
+  useUnregisterFromCleaning,
   useMarkAttendance,
   formatDate,
   isDayPast,
   type CleaningDay,
   type UnregisteredStudent,
+  type Week as WeekType,
 } from '@/hooks/useCleaningStudent';
 
 // =========================================================
@@ -156,6 +160,7 @@ function Tag({
 
 type MenuType =
   | `student-${string}`
+  | `switch-${string}`
   | null;
 
 function ActionMenu({
@@ -203,11 +208,10 @@ function ActionMenu({
         onClick={() => setActiveMenu(isOpen ? null : (menuId as MenuType))}
         aria-label="Open actions"
         aria-expanded={isOpen}
-        className={`flex h-8 w-8 items-center justify-center rounded-lg border transition ${
-          isOpen
-            ? 'border-slate-300 bg-slate-100 text-slate-900'
-            : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800'
-        }`}
+        className={`flex h-8 w-8 items-center justify-center rounded-lg border transition ${isOpen
+          ? 'border-slate-300 bg-slate-100 text-slate-900'
+          : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800'
+          }`}
       >
         <MoreVertical className="h-4 w-4" />
       </button>
@@ -257,6 +261,116 @@ function MenuDivider() {
 }
 
 // =========================================================
+// SWITCH DROPDOWN
+// =========================================================
+
+function SwitchDropdown({
+  menuId,
+  activeMenu,
+  setActiveMenu,
+  registeredDays,
+  weeks,
+  onSelect,
+}: {
+  menuId: string;
+  activeMenu: MenuType;
+  setActiveMenu: (menu: MenuType) => void;
+  registeredDays: CleaningDay[];
+  weeks: WeekType[];
+  onSelect: (oldDayId: string, newDayId: string) => void;
+}) {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const isOpen = activeMenu === menuId;
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setActiveMenu(null);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setActiveMenu(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isOpen, setActiveMenu]);
+
+  return (
+    <div ref={menuRef} className="relative shrink-0 w-full">
+      <button
+        type="button"
+        onClick={() => setActiveMenu(isOpen ? null : (menuId as MenuType))}
+        aria-label="Switch from registered day"
+        aria-expanded={isOpen}
+        className={`w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] rounded-md border transition-colors ${isOpen
+          ? 'border-[var(--brass)] bg-[var(--brass-soft)] text-[var(--brass)]'
+          : 'border-[var(--line)] bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)]'
+          }`}
+      >
+        <ArrowRightLeft className="h-3.5 w-3.5" />
+        Switch
+        <ChevronDown className={`h-3 w-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.12 }}
+            className="absolute right-0 top-[calc(100%+8px)] z-[9999] w-64 overflow-hidden rounded-xl border border-[var(--line)] bg-white p-1.5 shadow-xl"
+          >
+            <div className="px-3 py-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-3)]">
+                Switch from
+              </p>
+            </div>
+            {registeredDays.map((day) => {
+              const week = weeks.find((w) => w.days.some((d) => d.id === day.id));
+              return (
+                <button
+                  key={day.id}
+                  type="button"
+                  onClick={() => {
+                    onSelect(day.id, menuId.replace('switch-', ''));
+                    setActiveMenu(null);
+                  }}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--surface-2)]"
+                >
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[var(--brand-soft)] text-[var(--brand)]">
+                    <Calendar className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-semibold text-[var(--ink)]">
+                      {day.dayOfWeek}
+                    </p>
+                    <p className="truncate text-[11px] text-[var(--ink-3)]">
+                      {formatDate(day.cleaningDate)}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// =========================================================
 // AVATAR
 // =========================================================
 
@@ -276,9 +390,8 @@ function Avatar({
   return (
     <div className="relative shrink-0">
       <div
-        className={`relative shrink-0 overflow-hidden border rounded-full ${
-          isSelf ? 'border-[var(--brass)]' : 'border-[var(--line)]'
-        } bg-[var(--brand)]`}
+        className={`relative shrink-0 overflow-hidden border rounded-full ${isSelf ? 'border-[var(--brass)]' : 'border-[var(--line)]'
+          } bg-[var(--brand)]`}
         style={{ width: size, height: size }}
       >
         {src ? (
@@ -316,6 +429,7 @@ type ConfirmState = {
   body: string;
   confirmLabel: string;
   onConfirm: () => void | Promise<void>;
+  immediateClose?: boolean;
 } | null;
 
 function ConfirmDialog({
@@ -419,7 +533,12 @@ function ConfirmDialog({
                 type="button"
                 data-autofocus
                 className={btnPrimary}
-                onClick={() => state.onConfirm()}
+                onClick={async () => {
+                  if (state.immediateClose) {
+                    onClose();
+                  }
+                  await state.onConfirm();
+                }}
                 disabled={pending}
               >
                 {pending && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -537,20 +656,22 @@ function ScrollingNotice() {
 // =========================================================
 
 function YourRegistrationBanner({
-  day,
-  weekLabel,
-  status,
-  deadlineText,
-  onSwitchRequest,
+  days,
+  weeks,
+  userAttendance,
+  onUnregisterRequest,
 }: {
-  day: CleaningDay;
-  weekLabel: string;
-  status: string;
-  deadlineText: string | null;
-  onSwitchRequest: () => void;
+  days: CleaningDay[];
+  weeks: WeekType[];
+  userAttendance: any[];
+  onUnregisterRequest: (dayId: string) => void;
 }) {
-  const tone: StatusTone =
-    status === 'ATTENDED' ? 'ok' : status === 'NO_SHOW' ? 'bad' : 'warn';
+  const getAttendanceStatus = (dayId: string) => {
+    const attendance = userAttendance.find((a) => a.cleaningDay.id === dayId);
+    return attendance?.status || 'PENDING';
+  };
+
+  const tone: StatusTone = 'ok';
 
   return (
     <motion.section
@@ -558,35 +679,61 @@ function YourRegistrationBanner({
       animate={{ opacity: 1, y: 0 }}
       className="mb-4 overflow-hidden rounded-xl border border-[var(--brass)]/40 bg-gradient-to-r from-[var(--brass-soft)] to-[var(--surface)] shadow-[0_2px_8px_rgba(185,138,62,0.08)]"
     >
-      <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-        <div className="flex items-center gap-3.5">
+      <div className="p-4 sm:p-5">
+        <div className="flex items-center gap-3.5 mb-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[var(--brass)]/15 text-[var(--brass)]">
             <CheckCircle className="h-6 w-6" />
           </div>
           <div className="min-w-0">
             <p className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--brass)]">
-              You&apos;re registered
-            </p>
-            <p className="mt-0.5 text-[16px] font-semibold text-[var(--ink)]">
-              {day.dayOfWeek}, {formatDate(day.cleaningDate)}
-            </p>
-            <p className="mt-0.5 text-[12.5px] text-[var(--ink-3)]">
-              {weekLabel}
-              {deadlineText && (
-                <>
-                  <span className="mx-1.5 text-[var(--ink-4)]">·</span>
-                  {deadlineText}
-                </>
-              )}
+              {days.length === 1 ? "You're registered" : `You have ${days.length} registrations`}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2.5">
-          <Tag tone={tone}>{status.toLowerCase().replace('_', ' ')}</Tag>
-          <button type="button" onClick={onSwitchRequest} className={btnQuiet}>
-            Switch day
-          </button>
+
+        <div className="space-y-2">
+          {days.map((day, index) => {
+            const week = weeks.find((w) => w.days.some((d) => d.id === day.id));
+            const status = getAttendanceStatus(day.id);
+
+            return (
+              <div
+                key={day.id}
+                className="flex items-center justify-between gap-3 rounded-lg bg-white/50 p-3 border border-[var(--brass)]/20"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] font-semibold text-[var(--ink)]">
+                    {day.dayOfWeek}, {formatDate(day.cleaningDate)}
+                  </p>
+                  <p className="mt-0.5 text-[11.5px] text-[var(--ink-3)]">
+                    {week?.weekLabel}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Tag tone={status === 'ATTENDED' ? 'ok' : status === 'NO_SHOW' ? 'bad' : 'warn'}>
+                    {status.toLowerCase().replace('_', ' ')}
+                  </Tag>
+                  <button
+                    type="button"
+                    onClick={() => onUnregisterRequest(day.id)}
+                    className={`${btnQuiet} text-red-600 hover:text-red-700 hover:border-red-300`}
+                    title="Unregister from this day"
+                  >
+                    Unregister
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
+
+        {days.length < 2 && (
+          <div className="mt-3 text-center">
+            <p className="text-[11.5px] text-[var(--ink-3)]">
+              You can register for up to 2 cleaning days
+            </p>
+          </div>
+        )}
       </div>
     </motion.section>
   );
@@ -643,9 +790,8 @@ function WeekFilterChips({
           type="button"
           onClick={() => opt.enabled && setFilter(opt.value)}
           disabled={!opt.enabled}
-          className={`${chipBase} ${
-            isSelected(opt.value) ? chipOn : chipOff
-          } ${!opt.enabled ? 'cursor-not-allowed opacity-40' : ''} ${focusRing}`}
+          className={`${chipBase} ${isSelected(opt.value) ? chipOn : chipOff
+            } ${!opt.enabled ? 'cursor-not-allowed opacity-40' : ''} ${focusRing}`}
           aria-disabled={!opt.enabled}
         >
           {opt.label}
@@ -695,11 +841,14 @@ function DayCard({
   busy,
   canMarkAttendance,
   onRegister,
-  onSwitch,
+  onSwitchSelect,
   currentUserId,
   activeMenu,
   setActiveMenu,
   onMarkAttendance,
+  hasMultipleRegistrations,
+  registeredDays,
+  weeks,
 }: {
   day: CleaningDay;
   week: {
@@ -715,7 +864,7 @@ function DayCard({
   busy: boolean;
   canMarkAttendance: boolean;
   onRegister: () => void;
-  onSwitch: () => void;
+  onSwitchSelect: (oldDayId: string, newDayId: string) => void;
   currentUserId?: string;
   activeMenu: MenuType;
   setActiveMenu: (menu: MenuType) => void;
@@ -724,6 +873,9 @@ function DayCard({
     dayId: string,
     status: 'ATTENDED' | 'NO_SHOW' | 'PENDING',
   ) => void;
+  hasMultipleRegistrations: boolean;
+  registeredDays: CleaningDay[];
+  weeks: WeekType[];
 }) {
   const isFull = day.currentRegistrations >= day.capacityLimit;
 
@@ -750,17 +902,15 @@ function DayCard({
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className={`group relative flex flex-col overflow-visible rounded-xl border bg-[var(--surface)] transition-all ${
-        isSelf
-          ? 'border-[var(--brass)] shadow-[0_4px_16px_rgba(185,138,62,0.15)]'
-          : 'border-[var(--line)] shadow-[0_1px_2px_rgba(18,32,59,0.03)] hover:border-[var(--brass)]/50 hover:shadow-[0_4px_16px_rgba(18,32,59,0.06)]'
-      }`}
+      className={`group relative flex flex-col overflow-visible rounded-xl border bg-[var(--surface)] transition-all ${isSelf
+        ? 'border-[var(--brass)] shadow-[0_4px_16px_rgba(185,138,62,0.15)]'
+        : 'border-[var(--line)] shadow-[0_1px_2px_rgba(18,32,59,0.03)] hover:border-[var(--brass)]/50 hover:shadow-[0_4px_16px_rgba(18,32,59,0.06)]'
+        }`}
     >
       {/* HEADER */}
       <div
-        className={`flex items-start justify-between gap-2 border-b border-[var(--line)] px-4 py-3 ${
-          isSelf ? 'bg-[var(--brass-soft)]' : 'bg-[var(--surface-2)]'
-        }`}
+        className={`flex items-start justify-between gap-2 border-b border-[var(--line)] px-4 py-3 ${isSelf ? 'bg-[var(--brass-soft)]' : 'bg-[var(--surface-2)]'
+          }`}
       >
         <div className="min-w-0 flex-1">
           <p className="text-[15px] font-bold tracking-tight text-[var(--ink)]">
@@ -770,24 +920,25 @@ function DayCard({
             {formatDate(day.cleaningDate)}
           </p>
 
-          {/* WEEK LABEL BADGE — tells the user which week this day belongs to */}
-          <span
-            className="mt-1.5 inline-flex items-center gap-1 rounded-md border border-[var(--line)] bg-[var(--surface)] px-2 py-0.5 font-mono text-[9.5px] font-bold uppercase tracking-[0.08em] text-[var(--ink-3)]"
-            title={`Part of ${week.weekLabel}`}
-          >
-            <Calendar className="h-2.5 w-2.5 text-[var(--brass)]" />
-            {week.weekLabel}
-          </span>
-          <p className="mt-1.5 text-[11px] font-medium text-[var(--ink-3)]">
-            {deadlineLabel(week.registrationDeadline)}
-          </p>
+          {/* WEEK LABEL + DEADLINE — same row */}
+          <div className="mt-1 flex items-center justify-between gap-2">
+            <p className="text-[11.5px] font-semibold text-[var(--ink-2)]">
+              {week.weekLabel}
+            </p>
+            <p className="shrink-0 text-right text-[10.5px] font-medium text-[var(--ink-3)]">
+              {deadlineLabel(week.registrationDeadline)}
+            </p>
+          </div>
         </div>
-        <span
-          className={`inline-flex shrink-0 items-center gap-1.5 border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.06em] rounded-md ${toneClasses[statusTone]}`}
-        >
-          {isSelf && <CheckCircle className="h-3 w-3" />}
-          {statusLabel}
-        </span>
+
+        <div className="flex shrink-0 items-start">
+          <span
+            className={`inline-flex items-center gap-1.5 border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.06em] rounded-md ${toneClasses[statusTone]}`}
+          >
+            {isSelf && <CheckCircle className="h-3 w-3" />}
+            {statusLabel}
+          </span>
+        </div>
       </div>
 
       {/* BODY */}
@@ -920,6 +1071,25 @@ function DayCard({
               <CheckCircle className="h-3.5 w-3.5" />
               You&apos;re registered
             </div>
+          ) : registerable && switchable ? (
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={onRegister}
+                disabled={busy}
+                className="rounded-md bg-[var(--brass)] px-3 py-2.5 text-[12px] font-bold uppercase tracking-[0.06em] text-white transition-colors hover:bg-[var(--brass-hover)] disabled:opacity-50"
+              >
+                {busy ? 'Registering…' : 'Register'}
+              </button>
+              <SwitchDropdown
+                menuId={`switch-${day.id}`}
+                activeMenu={activeMenu}
+                setActiveMenu={setActiveMenu}
+                registeredDays={registeredDays}
+                weeks={weeks}
+                onSelect={onSwitchSelect}
+              />
+            </div>
           ) : registerable ? (
             <button
               type="button"
@@ -927,17 +1097,19 @@ function DayCard({
               disabled={busy}
               className="w-full rounded-md bg-[var(--brass)] px-3 py-2.5 text-[12px] font-bold uppercase tracking-[0.06em] text-white transition-colors hover:bg-[var(--brass-hover)] disabled:opacity-50"
             >
-              {busy ? 'Registering…' : 'Register'}
+              {busy ? 'Registering…' : hasMultipleRegistrations ? 'Register for another day' : 'Register'}
             </button>
           ) : switchable ? (
-            <button
-              type="button"
-              onClick={onSwitch}
-              disabled={busy}
-              className="w-full rounded-md bg-[var(--brand)] px-3 py-2.5 text-[12px] font-bold uppercase tracking-[0.06em] text-white transition-colors hover:bg-[var(--brand-hover)] disabled:opacity-50"
-            >
-              {busy ? 'Switching…' : 'Switch here'}
-            </button>
+            <div className="flex items-center justify-center">
+              <SwitchDropdown
+                menuId={`switch-${day.id}`}
+                activeMenu={activeMenu}
+                setActiveMenu={setActiveMenu}
+                registeredDays={registeredDays}
+                weeks={weeks}
+                onSelect={onSwitchSelect}
+              />
+            </div>
           ) : (
             <div className="text-center text-[11.5px] font-medium text-[var(--ink-4)]">
               {unavailableText}
@@ -1212,24 +1384,26 @@ export default function CleaningPage() {
     useStudentCleaningStatus();
   const registerMutation = useRegisterForCleaning();
   const changeRegistrationMutation = useChangeRegistration();
+  const unregisterMutation = useUnregisterFromCleaning();
   const markAttendanceMutation = useMarkAttendance();
 
   const weeks = useMemo(() => data?.weeks ?? [], [data]);
   const allDays = useMemo(() => weeks.flatMap((week) => week.days), [weeks]);
 
-  const registeredDay = useMemo(
+  const registeredDays = useMemo(
     () =>
-      allDays.find((day) => day.id === data?.registration?.cleaningDayId) ??
-      null,
-    [allDays, data?.registration?.cleaningDayId],
+      (data?.registrations || [])
+        .map((reg) => allDays.find((day) => day.id === reg.cleaningDayId))
+        .filter((day): day is CleaningDay => day !== undefined),
+    [allDays, data?.registrations],
   );
 
-  const registeredWeek = useMemo(
+  const registeredWeeks = useMemo(
     () =>
-      weeks.find((week) =>
-        week.days.some((day) => day.id === data?.registration?.cleaningDayId),
-      ) ?? null,
-    [weeks, data?.registration?.cleaningDayId],
+      (data?.registrations || [])
+        .map((reg) => weeks.find((week) => week.days.some((day) => day.id === reg.cleaningDayId)))
+        .filter((week): week is WeekType => week !== undefined),
+    [weeks, data?.registrations],
   );
 
   const filteredDays = useMemo(() => {
@@ -1315,7 +1489,6 @@ export default function CleaningPage() {
     setPendingDayId(dayId);
     try {
       const result = await registerMutation.mutateAsync(dayId);
-      setConfirm(null);
       flash(
         'ok',
         result.message ?? 'You are registered for this cleaning day.',
@@ -1324,11 +1497,15 @@ export default function CleaningPage() {
     } catch (err: unknown) {
       const raw = err instanceof Error ? err.message : 'Registration failed';
       const lower = raw.toLowerCase();
-      setConfirm(null);
       if (lower.includes('already registered')) {
         flash(
           'bad',
           'You already have a registration. Use "Switch here" on another open day instead.',
+        );
+      } else if (lower.includes('maximum of 2')) {
+        flash(
+          'bad',
+          'You can register for a maximum of 2 cleaning days. Unregister from one of your current days first.',
         );
       } else if (lower.includes('full')) {
         flash('bad', 'This day is full. Choose another open day.');
@@ -1342,30 +1519,46 @@ export default function CleaningPage() {
     }
   };
 
-  const runChange = async (newDayId: string) => {
+  const runChange = async (newDayId: string, oldDayId?: string) => {
     setPendingDayId(newDayId);
-    setConfirm(null);
     try {
       const result = await changeRegistrationMutation.mutateAsync({
         newDayId,
+        oldDayId,
       });
       const newDay = allDays.find((day) => day.id === newDayId);
       flash(
         'ok',
         result.message ??
-          `Your registration moved to ${
-            newDay?.dayOfWeek ?? 'the selected day'
-          }.`,
+        `Your registration moved to ${newDay?.dayOfWeek ?? 'the selected day'
+        }.`,
       );
       await Promise.all([refetch(), refetchStatus()]);
     } catch (err: unknown) {
-      setConfirm(null);
       flash(
         'bad',
         err instanceof Error
           ? err.message
           : 'Could not change your cleaning day.',
       );
+    } finally {
+      setPendingDayId(null);
+    }
+  };
+
+  const runUnregister = async (dayId: string) => {
+    setPendingDayId(dayId);
+    try {
+      await unregisterMutation.mutateAsync({ cleaningDayId: dayId });
+      const day = allDays.find((d) => d.id === dayId);
+      flash(
+        'ok',
+        `You have unregistered from ${day?.dayOfWeek ?? 'this day'}.`,
+      );
+      await Promise.all([refetch(), refetchStatus()]);
+    } catch (err: unknown) {
+      const raw = err instanceof Error ? err.message : 'Unregister failed';
+      flash('bad', raw);
     } finally {
       setPendingDayId(null);
     }
@@ -1403,16 +1596,36 @@ export default function CleaningPage() {
       )}. You are expected to attend the day you select. You can switch days while registration stays open.`,
       confirmLabel: 'Register',
       onConfirm: () => runRegister(day.id),
+      immediateClose: true,
     });
 
-  const askChange = (day: CleaningDay, weekLabel: string) =>
+  const askChange = (day: CleaningDay, weekLabel: string, oldDayId?: string) =>
     setConfirm({
       title: `Switch to ${day.dayOfWeek}?`,
-      body: `Your registration moves from ${
-        registeredDay?.dayOfWeek ?? 'your current day'
-      } to ${day.dayOfWeek}, ${formatDate(day.cleaningDate)} (${weekLabel}).`,
+      body: `Your registration moves from ${oldDayId
+        ? registeredDays.find(d => d.id === oldDayId)?.dayOfWeek ?? 'your current day'
+        : registeredDays[0]?.dayOfWeek ?? 'your current day'
+        } to ${day.dayOfWeek}, ${formatDate(day.cleaningDate)} (${weekLabel}).`,
       confirmLabel: 'Switch day',
-      onConfirm: () => runChange(day.id),
+      onConfirm: () => runChange(day.id, oldDayId),
+      immediateClose: true,
+    });
+
+  const handleSwitchSelect = (oldDayId: string, newDayId: string) => {
+    const newDay = allDays.find((d) => d.id === newDayId);
+    const week = weeks.find((w) => w.days.some((d) => d.id === newDayId));
+    if (newDay && week) {
+      askChange(newDay, week.weekLabel, oldDayId);
+    }
+  };
+
+  const askUnregister = (day: CleaningDay) =>
+    setConfirm({
+      title: `Unregister from ${day.dayOfWeek}?`,
+      body: `You will be removed from ${day.dayOfWeek}, ${formatDate(day.cleaningDate)}. This action cannot be undone.`,
+      confirmLabel: 'Unregister',
+      onConfirm: () => runUnregister(day.id),
+      immediateClose: true,
     });
 
   const isAtMinimumThreshold = (day: CleaningDay) =>
@@ -1422,23 +1635,29 @@ export default function CleaningPage() {
     day: CleaningDay,
     week: { registrationDeadline: string; isActive: boolean },
   ) =>
-    !data?.registration &&
+    (!data?.registrations || data.registrations.length < 2) &&
+    !registeredDays.some((d) => d.id === day.id) &&
     week.isActive &&
     day.status === 'OPEN';
 
   const canSwitch = (
     day: CleaningDay,
     week: { registrationDeadline: string; isActive: boolean },
+    oldDayId?: string,
   ) => {
+    const targetOldDay = oldDayId
+      ? registeredDays.find((d) => d.id === oldDayId)
+      : registeredDays[0];
+
     const currentDayAtMinimum =
-      registeredDay && isAtMinimumThreshold(registeredDay);
+      targetOldDay && isAtMinimumThreshold(targetOldDay);
 
     return Boolean(
-      data?.registration &&
-        day.id !== data?.registration?.cleaningDayId &&
-        week.isActive &&
-        day.status === 'OPEN' &&
-        !currentDayAtMinimum,
+      registeredDays.length > 0 &&
+      day.id !== targetOldDay?.id &&
+      week.isActive &&
+      day.status === 'OPEN' &&
+      !currentDayAtMinimum,
     );
   };
 
@@ -1446,10 +1665,8 @@ export default function CleaningPage() {
     day: CleaningDay,
     week: { registrationDeadline: string; isActive: boolean },
   ) => {
-    const currentDayAtMinimum =
-      registeredDay && isAtMinimumThreshold(registeredDay);
-    if (currentDayAtMinimum && day.id !== data?.registration?.cleaningDayId)
-      return 'Current day at minimum';
+    if (registeredDays.some((d) => d.id === day.id)) return 'Already registered';
+    if (data?.registrations && data.registrations.length >= 2) return 'Max registrations reached';
     if (day.currentRegistrations >= day.capacityLimit) return 'Full';
     if (day.status === 'FULL') return 'Full';
     if (day.status === 'CLOSED') return 'Closed';
@@ -1464,16 +1681,16 @@ export default function CleaningPage() {
     data?.user?.role === 'teacher' ||
     data?.user?.role === 'super_admin';
 
-  const registeredLabel = registeredDay
-    ? `Registered for ${registeredDay.dayOfWeek}, ${formatDate(
-        registeredDay.cleaningDate,
-      )}`
+  const registeredLabel = registeredDays.length > 0
+    ? registeredDays.length === 1
+      ? `Registered for ${registeredDays[0].dayOfWeek}, ${formatDate(registeredDays[0].cleaningDate)}`
+      : `Registered for ${registeredDays.length} days`
     : null;
 
   const activeWeek = weeks.find((week) => week.isActive);
 
-  const deadlineText = registeredWeek
-    ? deadlineLabel(registeredWeek.registrationDeadline)
+  const deadlineText = registeredWeeks.length > 0
+    ? deadlineLabel(registeredWeeks[0].registrationDeadline)
     : activeWeek?.registrationDeadline
       ? deadlineLabel(activeWeek.registrationDeadline)
       : null;
@@ -1560,9 +1777,8 @@ export default function CleaningPage() {
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -5 }}
-              className={`mb-4 flex items-start gap-2.5 border px-3.5 py-3 text-[13px] rounded-md ${
-                notice.tone === 'ok' ? toneClasses.ok : toneClasses.bad
-              }`}
+              className={`mb-4 flex items-start gap-2.5 border px-3.5 py-3 text-[13px] rounded-md ${notice.tone === 'ok' ? toneClasses.ok : toneClasses.bad
+                }`}
             >
               {notice.tone === 'ok' ? (
                 <Check className="mt-0.5 h-4 w-4 shrink-0" />
@@ -1581,6 +1797,20 @@ export default function CleaningPage() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {registeredDays.length > 0 && (
+          <YourRegistrationBanner
+            days={registeredDays}
+            weeks={registeredWeeks}
+            userAttendance={data?.userAttendance || []}
+            onUnregisterRequest={(dayId) => {
+              const day = allDays.find((d) => d.id === dayId);
+              if (day) {
+                askUnregister(day);
+              }
+            }}
+          />
+        )}
 
         <UnregisteredStudentsList
           students={data?.unregisteredStudents ?? []}
@@ -1637,8 +1867,7 @@ export default function CleaningPage() {
                 className="grid gap-3.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 overflow-visible"
               >
                 {filteredDays.map(({ day, week }) => {
-                  const isSelf =
-                    day.id === data?.registration?.cleaningDayId;
+                  const isSelf = registeredDays.some((d) => d.id === day.id);
                   const registerable = canRegister(day, week);
                   const switchable = canSwitch(day, week);
                   const busy = pendingDayId === day.id;
@@ -1664,11 +1893,14 @@ export default function CleaningPage() {
                         busy={busy}
                         canMarkAttendance={canMarkAttendance}
                         onRegister={() => askRegister(day)}
-                        onSwitch={() => askChange(day, week.weekLabel)}
+                        onSwitchSelect={handleSwitchSelect}
                         currentUserId={data?.user?.id}
                         activeMenu={activeMenu}
                         setActiveMenu={setActiveMenu}
                         onMarkAttendance={handleMarkAttendance}
+                        hasMultipleRegistrations={registeredDays.length > 0}
+                        registeredDays={registeredDays}
+                        weeks={weeks}
                       />
                     </div>
                   );
@@ -1713,7 +1945,9 @@ export default function CleaningPage() {
         state={confirm}
         onClose={() => setConfirm(null)}
         pending={
-          registerMutation.isPending || changeRegistrationMutation.isPending
+          registerMutation.isPending ||
+          changeRegistrationMutation.isPending ||
+          unregisterMutation.isPending
         }
       />
     </Shell>

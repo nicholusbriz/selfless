@@ -113,9 +113,8 @@ function Avatar({
   return (
     <div className="relative shrink-0">
       <div
-        className={`relative shrink-0 overflow-hidden border rounded-full ${
-          isSelf ? 'border-[var(--brass)]' : 'border-[var(--line)]'
-        } bg-[var(--brand)]`}
+        className={`relative shrink-0 overflow-hidden border rounded-full ${isSelf ? 'border-[var(--brass)]' : 'border-[var(--line)]'
+          } bg-[var(--brand)]`}
         style={{ width: size, height: size }}
       >
         {src ? (
@@ -154,10 +153,20 @@ function WeekFilterChips({
   filter,
   setFilter,
   weeks,
+  activeMenu,
+  setActiveMenu,
+  onToggleWeek,
+  onExtendDeadline,
+  onDeleteWeek,
 }: {
   filter: WeekFilter;
   setFilter: (f: WeekFilter) => void;
-  weeks: Array<{ id: string; weekLabel: string }>;
+  weeks: Array<{ id: string; weekLabel: string; isActive: boolean; registrationDeadline: string }>;
+  activeMenu: MenuType;
+  setActiveMenu: (menu: MenuType) => void;
+  onToggleWeek: (weekId: string, isActive: boolean) => void;
+  onExtendDeadline: (week: any) => void;
+  onDeleteWeek: (weekId: string) => void;
 }) {
   const isSelected = (target: WeekFilter) => {
     if (target.kind !== filter.kind) return false;
@@ -189,20 +198,54 @@ function WeekFilterChips({
           Filter
         </span>
       </div>
-      {options.map((opt, idx) => (
-        <button
-          key={idx}
-          type="button"
-          onClick={() => opt.enabled && setFilter(opt.value)}
-          disabled={!opt.enabled}
-          className={`${chipBase} ${
-            isSelected(opt.value) ? chipOn : chipOff
-          } ${!opt.enabled ? 'cursor-not-allowed opacity-40' : ''} ${focusRing}`}
-          aria-disabled={!opt.enabled}
-        >
-          {opt.label}
-        </button>
-      ))}
+      {options.map((opt, idx) => {
+        const isWeekChip = opt.value.kind === 'week';
+        const week = isWeekChip ? weeks.find(w => w.id === (opt.value as { kind: 'week'; weekId: string }).weekId) : null;
+
+        return (
+          <div key={idx} className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => opt.enabled && setFilter(opt.value)}
+              disabled={!opt.enabled}
+              className={`${chipBase} ${isSelected(opt.value) ? chipOn : chipOff
+                } ${!opt.enabled ? 'cursor-not-allowed opacity-40' : ''} ${focusRing}`}
+              aria-disabled={!opt.enabled}
+            >
+              {opt.label}
+            </button>
+            {isWeekChip && week && (
+              <ActionMenu
+                menuId={`week-${week.id}`}
+                activeMenu={activeMenu}
+                setActiveMenu={setActiveMenu}
+                align="left"
+              >
+                <MenuItem
+                  onClick={() => onToggleWeek(week.id, !week.isActive)}
+                  icon={week.isActive ? <Lock className="h-4 w-4 text-amber-600" /> : <Unlock className="h-4 w-4 text-emerald-600" />}
+                >
+                  {week.isActive ? 'Close registrations' : 'Open registrations'}
+                </MenuItem>
+                <MenuItem
+                  onClick={() => onExtendDeadline(week)}
+                  icon={<Clock className="h-4 w-4 text-blue-600" />}
+                >
+                  Extend deadline
+                </MenuItem>
+                <MenuDivider />
+                <MenuItem
+                  danger
+                  onClick={() => onDeleteWeek(week.id)}
+                  icon={<Trash2 className="h-4 w-4 text-red-600" />}
+                >
+                  Delete week
+                </MenuItem>
+              </ActionMenu>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -285,11 +328,10 @@ function ActionMenu({
         }
         aria-label="Open actions"
         aria-expanded={isOpen}
-        className={`flex h-9 w-9 items-center justify-center rounded-lg border transition ${
-          isOpen
+        className={`flex h-9 w-9 items-center justify-center rounded-lg border transition ${isOpen
             ? 'border-slate-300 bg-slate-100 text-slate-900'
             : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800'
-        }`}
+          }`}
       >
         <MoreVertical className="h-4 w-4" />
       </button>
@@ -315,11 +357,10 @@ function ActionMenu({
             transition={{
               duration: 0.12,
             }}
-            className={`absolute top-[calc(100%+8px)] z-[9999] w-56 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl ${
-              align === 'right'
+            className={`absolute top-[calc(100%+8px)] z-[9999] w-56 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl ${align === 'right'
                 ? 'right-0'
                 : 'left-0'
-            }`}
+              }`}
           >
             {children}
           </motion.div>
@@ -353,20 +394,18 @@ function MenuItem({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition ${
-        disabled
+      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition ${disabled
           ? 'cursor-not-allowed opacity-50'
           : danger
             ? 'text-red-700 hover:bg-red-50'
             : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
-      }`}
+        }`}
     >
       <span
-        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${
-          danger
+        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${danger
             ? 'bg-red-50'
             : 'bg-slate-100'
-        }`}
+          }`}
       >
         {icon}
       </span>
@@ -631,7 +670,8 @@ export default function AdminCleaningManagement() {
 
   const handleRemoveStudent = async (
     studentUserId: string,
-    studentName: string
+    studentName: string,
+    cleaningDayId: string
   ) => {
     setActiveMenu(null);
 
@@ -641,9 +681,10 @@ export default function AdminCleaningManagement() {
       )
     ) {
       try {
-        await removeStudentMutation.mutateAsync(
-          studentUserId
-        );
+        await removeStudentMutation.mutateAsync({
+          studentUserId,
+          cleaningDayId,
+        });
 
         await refetch();
 
@@ -886,9 +927,8 @@ export default function AdminCleaningManagement() {
     firstName: string,
     lastName: string
   ) => {
-    return `${firstName?.charAt(0) || ''}${
-      lastName?.charAt(0) || ''
-    }`.toUpperCase();
+    return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''
+      }`.toUpperCase();
   };
 
   /* ============================================================
@@ -916,17 +956,41 @@ export default function AdminCleaningManagement() {
   };
 
   const weeks = data?.weeks || [];
-  const students = data?.students || [];
-  const registeredStudentIds = new Set(
+  const weeksWithExtraData = weeks.map(week => ({
+    id: week.id,
+    weekLabel: week.weekLabel,
+    isActive: week.isActive,
+    registrationDeadline: week.registrationDeadline,
+  }));
+
+  // Students with 0 or 1 registrations (from API - already filtered)
+  const assignableStudents = data?.students || [];
+
+  // Count registrations per student (max 2 allowed)
+  const studentRegistrationCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    weeks.forEach((week) =>
+      week.days.forEach((day) =>
+        day.registrations.forEach((registration) => {
+          const currentCount = counts.get(registration.userId) || 0;
+          counts.set(registration.userId, currentCount + 1);
+        }),
+      ),
+    );
+    return counts;
+  }, [weeks]);
+
+  // Students with 0 registrations (for stats display)
+  const registeredStudentIds = useMemo(() => new Set(
     weeks.flatMap((week) =>
       week.days.flatMap((day) =>
         day.registrations.map((registration) => registration.userId),
       ),
     ),
-  );
-  const availableStudents = students.filter(
+  ), [weeks]);
+  const availableStudents = useMemo(() => assignableStudents.filter(
     (student) => !registeredStudentIds.has(student.id),
-  );
+  ), [assignableStudents, registeredStudentIds]);
 
   // Filter days based on week filter
   const filteredDays = useMemo(() => {
@@ -944,6 +1008,7 @@ export default function AdminCleaningManagement() {
     totalWeeks: 0,
     totalDays: 0,
     totalRegistrations: 0,
+    totalUnregistered: 0,
     totalAttended: 0,
     totalNoShow: 0,
     totalPending: 0,
@@ -1048,750 +1113,761 @@ export default function AdminCleaningManagement() {
         transition={{ duration: 0.35 }}
         className="space-y-6 pb-8"
       >
-      {/* ========================================================
+        {/* ========================================================
           CREATE WEEK BUTTON
       ======================================================== */}
 
-      <div className="flex justify-end">
-        <button
-          onClick={() => setShowCreateWeek(true)}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#153475] focus:outline-none focus:ring-2 focus:ring-[#3182ce] focus:ring-offset-2"
-        >
-          <Plus className="h-4 w-4" />
-          Create Week
-        </button>
-      </div>
+        <div className="flex justify-end">
+          <button
+            onClick={() => setShowCreateWeek(true)}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#153475] focus:outline-none focus:ring-2 focus:ring-[#3182ce] focus:ring-offset-2"
+          >
+            <Plus className="h-4 w-4" />
+            Create Week
+          </button>
+        </div>
 
-      {/* ========================================================
+        {/* ========================================================
           STATS
       ======================================================== */}
 
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-7">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
-        >
-          <div className="flex flex-col items-center gap-1">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-purple-50">
-              <Calendar className="h-4 w-4 text-purple-600" />
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
+          >
+            <div className="flex flex-col items-center gap-1">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-purple-50">
+                <Calendar className="h-4 w-4 text-purple-600" />
+              </div>
+              <p className="text-xl font-bold text-slate-900">
+                {stats.totalWeeks || 0}
+              </p>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                Weeks
+              </p>
             </div>
-            <p className="text-xl font-bold text-slate-900">
-              {stats.totalWeeks || 0}
-            </p>
-            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-              Weeks
-            </p>
-          </div>
-        </motion.div>
+          </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
-        >
-          <div className="flex flex-col items-center gap-1">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-indigo-50">
-              <Clock className="h-4 w-4 text-indigo-600" />
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
+          >
+            <div className="flex flex-col items-center gap-1">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-indigo-50">
+                <Clock className="h-4 w-4 text-indigo-600" />
+              </div>
+              <p className="text-xl font-bold text-slate-900">
+                {stats.totalDays || 0}
+              </p>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                Days
+              </p>
             </div>
-            <p className="text-xl font-bold text-slate-900">
-              {stats.totalDays || 0}
-            </p>
-            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-              Days
-            </p>
-          </div>
-        </motion.div>
+          </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
-        >
-          <div className="flex flex-col items-center gap-1">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-50">
-              <Users className="h-4 w-4 text-blue-600" />
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
+          >
+            <div className="flex flex-col items-center gap-1">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-50">
+                <Users className="h-4 w-4 text-blue-600" />
+              </div>
+              <p className="text-xl font-bold text-slate-900">
+                {stats.totalRegistrations}
+              </p>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                Registered
+              </p>
             </div>
-            <p className="text-xl font-bold text-slate-900">
-              {stats.totalRegistrations}
-            </p>
-            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-              Registered
-            </p>
-          </div>
-        </motion.div>
+          </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
-        >
-          <div className="flex flex-col items-center gap-1">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-orange-50">
-              <UserMinus className="h-4 w-4 text-orange-600" />
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
+          >
+            <div className="flex flex-col items-center gap-1">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-orange-50">
+                <UserMinus className="h-4 w-4 text-orange-600" />
+              </div>
+              <p className="text-xl font-bold text-slate-900">
+                {stats.totalUnregistered || availableStudents.length}
+              </p>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                Unregistered
+              </p>
             </div>
-            <p className="text-xl font-bold text-slate-900">
-              {availableStudents.length}
-            </p>
-            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-              Unregistered
-            </p>
-          </div>
-        </motion.div>
+          </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
-        >
-          <div className="flex flex-col items-center gap-1">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-emerald-50">
-              <CheckCircle className="h-4 w-4 text-emerald-600" />
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
+          >
+            <div className="flex flex-col items-center gap-1">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-emerald-50">
+                <CheckCircle className="h-4 w-4 text-emerald-600" />
+              </div>
+              <p className="text-xl font-bold text-slate-900">
+                {stats.totalAttended}
+              </p>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                Attended
+              </p>
             </div>
-            <p className="text-xl font-bold text-slate-900">
-              {stats.totalAttended}
-            </p>
-            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-              Attended
-            </p>
-          </div>
-        </motion.div>
+          </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-          className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
-        >
-          <div className="flex flex-col items-center gap-1">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-amber-50">
-              <Clock className="h-4 w-4 text-amber-600" />
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
+          >
+            <div className="flex flex-col items-center gap-1">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-amber-50">
+                <Clock className="h-4 w-4 text-amber-600" />
+              </div>
+              <p className="text-xl font-bold text-slate-900">
+                {stats.totalPending}
+              </p>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                Pending
+              </p>
             </div>
-            <p className="text-xl font-bold text-slate-900">
-              {stats.totalPending}
-            </p>
-            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-              Pending
-            </p>
-          </div>
-        </motion.div>
+          </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
-        >
-          <div className="flex flex-col items-center gap-1">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-red-50">
-              <XCircle className="h-4 w-4 text-red-600" />
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
+          >
+            <div className="flex flex-col items-center gap-1">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-red-50">
+                <XCircle className="h-4 w-4 text-red-600" />
+              </div>
+              <p className="text-xl font-bold text-slate-900">
+                {stats.totalNoShow}
+              </p>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                No Show
+              </p>
             </div>
-            <p className="text-xl font-bold text-slate-900">
-              {stats.totalNoShow}
-            </p>
-            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-              No Show
-            </p>
-          </div>
-        </motion.div>
-      </div>
+          </motion.div>
+        </div>
 
-      {/* ========================================================
+        {/* ========================================================
           WEEK FILTER
       ======================================================== */}
 
-      {weeks.length > 0 && (
-        <WeekFilterChips
-          filter={weekFilter}
-          setFilter={setWeekFilter}
-          weeks={weeks}
-        />
-      )}
+        {weeks.length > 0 && (
+          <WeekFilterChips
+            filter={weekFilter}
+            setFilter={setWeekFilter}
+            weeks={weeksWithExtraData}
+            activeMenu={activeMenu}
+            setActiveMenu={setActiveMenu}
+            onToggleWeek={handleToggleWeekRegistration}
+            onExtendDeadline={openDeadlinePicker}
+            onDeleteWeek={handleDeleteWeek}
+          />
+        )}
 
-      {/* ========================================================
+        {/* ========================================================
           DAYS GRID
       ======================================================== */}
 
-      {filteredDays.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center shadow-sm"
-        >
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">
-            <Calendar className="h-7 w-7 text-slate-500" />
-          </div>
+        {filteredDays.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center shadow-sm"
+          >
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">
+              <Calendar className="h-7 w-7 text-slate-500" />
+            </div>
 
-          <h3 className="mt-4 text-lg font-semibold text-slate-900">
-            No cleaning days available
-          </h3>
+            <h3 className="mt-4 text-lg font-semibold text-slate-900">
+              No cleaning days available
+            </h3>
 
-          <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-            {weeks.length === 0
-              ? 'Create a new cleaning week from Monday to Friday to get started.'
-              : 'No days match the selected filter.'}
-          </p>
+            <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
+              {weeks.length === 0
+                ? 'Create a new cleaning week from Monday to Friday to get started.'
+                : 'No days match the selected filter.'}
+            </p>
 
-          {weeks.length === 0 && (
-            <button
-              onClick={() => setShowCreateWeek(true)}
-              className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#153475]"
-            >
-              <Plus className="h-4 w-4" />
-              Create First Week
-            </button>
-          )}
-        </motion.div>
-      ) : (
-        <div
-          id="cleaning-grid"
-          className="grid gap-3.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 overflow-visible"
-        >
-          {filteredDays.map(({ day, week }) => (
-            <div
-              key={day.id}
-              className="relative rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col overflow-visible"
-            >
-                              {/* DAY HEADER */}
+            {weeks.length === 0 && (
+              <button
+                onClick={() => setShowCreateWeek(true)}
+                className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#153475]"
+              >
+                <Plus className="h-4 w-4" />
+                Create First Week
+              </button>
+            )}
+          </motion.div>
+        ) : (
+          <div
+            id="cleaning-grid"
+            className="grid gap-3.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 overflow-visible"
+          >
+            {filteredDays.map(({ day, week }) => (
+              <div
+                key={day.id}
+                className="relative rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col overflow-visible"
+              >
+                {/* DAY HEADER */}
 
-                              <div className="relative z-20 border-b border-slate-100 p-4">
-                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                  <div className="min-w-0">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <h4 className="font-bold text-slate-900">
-                                        {day.dayOfWeek}
-                                      </h4>
+                <div className="relative z-20 border-b border-slate-100 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h4 className="font-bold text-slate-900">
+                          {day.dayOfWeek}
+                        </h4>
 
-                                      <span
-                                        className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                                          day.status ===
-                                          'OPEN'
-                                            ? 'bg-emerald-50 text-emerald-700'
-                                            : day.status ===
-                                                'FULL'
-                                              ? 'bg-amber-50 text-amber-700'
-                                              : 'bg-red-50 text-red-700'
-                                        }`}
-                                      >
-                                        {day.status}
-                                      </span>
-                                    </div>
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${day.status ===
+                              'OPEN'
+                              ? 'bg-emerald-50 text-emerald-700'
+                              : day.status ===
+                                'FULL'
+                                ? 'bg-amber-50 text-amber-700'
+                                : 'bg-red-50 text-red-700'
+                            }`}
+                        >
+                          {day.status}
+                        </span>
+                      </div>
 
-                                    <p className="mt-1 text-xs text-slate-500">
-                                      {formatDate(day.cleaningDate)}
-                                    </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {formatDate(day.cleaningDate)}
+                      </p>
 
-                                    {/* WEEK LABEL BADGE */}
-                                    <span
-                                      className="mt-1.5 inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-[9.5px] font-bold uppercase tracking-[0.08em] text-slate-600"
-                                      title={`Part of ${week.weekLabel}`}
-                                    >
-                                      <Calendar className="h-2.5 w-2.5 text-slate-500" />
-                                      {week.weekLabel}
-                                    </span>
-                                  </div>
+                      {/* WEEK LABEL BADGE */}
+                      <span
+                        className="mt-1.5 inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-[9.5px] font-bold uppercase tracking-[0.08em] text-slate-600"
+                        title={`Part of ${week.weekLabel}`}
+                      >
+                        <Calendar className="h-2.5 w-2.5 text-slate-500" />
+                        {week.weekLabel}
+                      </span>
+                    </div>
 
-                                  {/* DAY ACTION AREA */}
+                    {/* DAY ACTION AREA */}
 
-                                  <div className="flex items-center justify-between gap-3 sm:justify-end">
-                                    <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
-                                      <Users className="h-3.5 w-3.5" />
+                    <div className="flex items-center justify-between gap-3 sm:justify-end">
+                      <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
+                        <Users className="h-3.5 w-3.5" />
 
-                                      <span>
-                                        {
-                                          day.currentRegistrations
-                                        }{' '}
-                                        /{' '}
-                                        {
-                                          day.capacityLimit
-                                        }
-                                      </span>
-                                    </div>
+                        <span>
+                          {
+                            day.currentRegistrations
+                          }{' '}
+                          /{' '}
+                          {
+                            day.capacityLimit
+                          }
+                        </span>
+                      </div>
 
-                                    <ActionMenu
-                                      menuId={`day-${day.id}`}
-                                      activeMenu={
-                                        activeMenu
-                                      }
-                                      setActiveMenu={
-                                        setActiveMenu
-                                      }
-                                    >
-                                      <div className="px-3 py-2">
-                                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                          Day actions
-                                        </p>
-                                      </div>
+                      <ActionMenu
+                        menuId={`day-${day.id}`}
+                        activeMenu={
+                          activeMenu
+                        }
+                        setActiveMenu={
+                          setActiveMenu
+                        }
+                      >
+                        <div className="px-3 py-2">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            Day actions
+                          </p>
+                        </div>
 
-                                      <MenuItem
-                                        onClick={() =>
-                                          handleToggleDayStatus(
-                                            day.id,
-                                            day.status
-                                          )
-                                        }
-                                        icon={
-                                          day.status ===
-                                            'OPEN' ||
-                                          day.status ===
-                                            'FULL' ? (
-                                            <Lock className="h-4 w-4 text-red-600" />
-                                          ) : (
-                                            <Unlock className="h-4 w-4 text-emerald-600" />
-                                          )
-                                        }
-                                      >
-                                        {day.status ===
-                                          'OPEN' ||
-                                        day.status ===
-                                          'FULL'
-                                          ? 'Close day'
-                                          : 'Open day'}
-                                      </MenuItem>
+                        <MenuItem
+                          onClick={() =>
+                            handleToggleDayStatus(
+                              day.id,
+                              day.status
+                            )
+                          }
+                          icon={
+                            day.status ===
+                              'OPEN' ||
+                              day.status ===
+                              'FULL' ? (
+                              <Lock className="h-4 w-4 text-red-600" />
+                            ) : (
+                              <Unlock className="h-4 w-4 text-emerald-600" />
+                            )
+                          }
+                        >
+                          {day.status ===
+                            'OPEN' ||
+                            day.status ===
+                            'FULL'
+                            ? 'Close day'
+                            : 'Open day'}
+                        </MenuItem>
 
-                                      <MenuItem
-                                        onClick={() =>
-                                          openCapacityModal(
-                                            day
-                                          )
-                                        }
-                                        icon={
-                                          <Edit className="h-4 w-4 text-blue-600" />
-                                        }
-                                      >
-                                        Edit capacity
-                                      </MenuItem>
+                        <MenuItem
+                          onClick={() =>
+                            openCapacityModal(
+                              day
+                            )
+                          }
+                          icon={
+                            <Edit className="h-4 w-4 text-blue-600" />
+                          }
+                        >
+                          Edit capacity
+                        </MenuItem>
 
-                                      <MenuItem
-                                        onClick={() =>
-                                          openAssignModal(
-                                            day
-                                          )
-                                        }
-                                        icon={
-                                          <UserPlus className="h-4 w-4 text-[#1a365d]" />
-                                        }
-                                      >
-                                        Assign student
-                                      </MenuItem>
+                        <MenuItem
+                          onClick={() =>
+                            openAssignModal(
+                              day
+                            )
+                          }
+                          icon={
+                            <UserPlus className="h-4 w-4 text-[#1a365d]" />
+                          }
+                        >
+                          Assign student
+                        </MenuItem>
 
-                                      <MenuDivider />
+                        <MenuDivider />
 
-                                      <MenuItem
-                                        danger
-                                        onClick={() =>
-                                          handleDeleteDay(
-                                            day.id,
-                                            day.dayOfWeek
-                                          )
-                                        }
-                                        icon={
-                                          <Trash2 className="h-4 w-4 text-red-600" />
-                                        }
-                                      >
-                                        Delete day
-                                      </MenuItem>
-                                    </ActionMenu>
-                                  </div>
-                                </div>
-                              </div>
+                        <MenuItem
+                          danger
+                          onClick={() =>
+                            handleDeleteDay(
+                              day.id,
+                              day.dayOfWeek
+                            )
+                          }
+                          icon={
+                            <Trash2 className="h-4 w-4 text-red-600" />
+                          }
+                        >
+                          Delete day
+                        </MenuItem>
+                      </ActionMenu>
+                    </div>
+                  </div>
+                </div>
 
-                              {/* ==================================================
+                {/* ==================================================
                                   REGISTERED STUDENTS
                               ================================================== */}
 
-                              <div className="p-4 flex-1 flex flex-col overflow-visible">
-                                {day.registrations &&
-                                day.registrations
-                                  .length > 0 ? (
-                                  <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-2)] overflow-visible flex-1 flex flex-col">
-                                    <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] px-3 py-2">
-                                      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--ink-3)]">
-                                        Participants
-                                        {day.registrations.length > 0 && (
-                                          <span className="ml-1.5 text-[var(--ink-4)]">
-                                            ({day.registrations.length})
-                                          </span>
-                                        )}
+                <div className="p-4 flex-1 flex flex-col overflow-visible">
+                  {day.registrations &&
+                    day.registrations
+                      .length > 0 ? (
+                    <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-2)] overflow-visible flex-1 flex flex-col">
+                      <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] px-3 py-2">
+                        <span className="font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--ink-3)]">
+                          Participants
+                          {day.registrations.length > 0 && (
+                            <span className="ml-1.5 text-[var(--ink-4)]">
+                              ({day.registrations.length})
+                            </span>
+                          )}
+                        </span>
+                      </div>
+
+                      {day.registrations.length === 0 ? (
+                        <div className="px-3 py-3 text-[12px] text-[var(--ink-4)]">
+                          No participants yet
+                        </div>
+                      ) : (
+                        <ul className="divide-y divide-[var(--line)] flex-1">
+                          {day.registrations.map(
+                            (
+                              reg: CleaningRegistration
+                            ) => {
+                              const attendance =
+                                day.attendanceRecords?.find(
+                                  (
+                                    a: AttendanceRecord
+                                  ) =>
+                                    a.userId ===
+                                    reg.userId
+                                );
+                              const totalRegistrations = studentRegistrationCounts.get(reg.userId) || 0;
+
+                              return (
+                                <li
+                                  key={reg.id}
+                                  className="flex items-center gap-2.5 px-3 py-2 overflow-visible"
+                                >
+                                  <Avatar
+                                    firstName={reg.user.firstName}
+                                    lastName={reg.user.lastName}
+                                    src={reg.user.profileImageUrl}
+                                    size={28}
+                                  />
+                                  <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-[var(--ink)]">
+                                    {reg.user.firstName} {reg.user.lastName}
+                                    {totalRegistrations > 1 && (
+                                      <span className="ml-1.5 text-[10px] font-medium text-[var(--brass)]">
+                                        ({totalRegistrations}/2)
                                       </span>
-                                    </div>
-
-                                    {day.registrations.length === 0 ? (
-                                      <div className="px-3 py-3 text-[12px] text-[var(--ink-4)]">
-                                        No participants yet
-                                      </div>
-                                    ) : (
-                                      <ul className="divide-y divide-[var(--line)] flex-1">
-                                        {day.registrations.map(
-                                      (
-                                        reg: CleaningRegistration
-                                      ) => {
-                                        const attendance =
-                                          day.attendanceRecords?.find(
-                                            (
-                                              a: AttendanceRecord
-                                            ) =>
-                                              a.userId ===
-                                              reg.userId
-                                          );
-
-                                        return (
-                                          <li
-                                            key={reg.id}
-                                            className="flex items-center gap-2.5 px-3 py-2 overflow-visible"
-                                          >
-                                            <Avatar
-                                              firstName={reg.user.firstName}
-                                              lastName={reg.user.lastName}
-                                              src={reg.user.profileImageUrl}
-                                              size={28}
-                                            />
-                                            <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-[var(--ink)]">
-                                              {reg.user.firstName} {reg.user.lastName}
-                                            </span>
-                                            <ActionMenu
-                                              menuId={`student-${reg.id}`}
-                                              activeMenu={activeMenu}
-                                              setActiveMenu={setActiveMenu}
-                                            >
-                                              <div className="px-3 py-2">
-                                                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                                  Student actions
-                                                </p>
-                                                <p className="mt-0.5 truncate text-xs font-medium text-slate-600">
-                                                  {reg.user.firstName} {reg.user.lastName}
-                                                </p>
-                                              </div>
-                                              <MenuItem
-                                                onClick={() =>
-                                                  handleMarkAttendance(
-                                                    reg.userId,
-                                                    day.id,
-                                                    'ATTENDED'
-                                                  )
-                                                }
-                                                icon={<UserCheck className="h-4 w-4 text-emerald-600" />}
-                                              >
-                                                Mark attended
-                                              </MenuItem>
-                                              <MenuItem
-                                                onClick={() =>
-                                                  handleMarkAttendance(
-                                                    reg.userId,
-                                                    day.id,
-                                                    'NO_SHOW'
-                                                  )
-                                                }
-                                                icon={<UserX className="h-4 w-4 text-red-600" />}
-                                              >
-                                                Mark no show
-                                              </MenuItem>
-                                              <MenuItem
-                                                onClick={() =>
-                                                  handleMarkAttendance(
-                                                    reg.userId,
-                                                    day.id,
-                                                    'PENDING'
-                                                  )
-                                                }
-                                                icon={<Hourglass className="h-4 w-4 text-amber-600" />}
-                                              >
-                                                Mark pending
-                                              </MenuItem>
-                                              <MenuDivider />
-                                              <MenuItem
-                                                danger
-                                                onClick={() =>
-                                                  handleRemoveStudent(
-                                                    reg.userId,
-                                                    `${reg.user.firstName} ${reg.user.lastName}`
-                                                  )
-                                                }
-                                                icon={<Trash2 className="h-4 w-4 text-red-600" />}
-                                              >
-                                                Remove student
-                                              </MenuItem>
-                                            </ActionMenu>
-                                          </li>
-                                        );
-                                      })}
-                                    </ul>
                                     )}
-                                  </div>
-                                ) : (
-                                  <div className="rounded-lg border border-dashed border-[var(--line)] bg-[var(--surface-2)] px-4 py-8 text-center flex-1">
-                                    <Users className="mx-auto h-8 w-8 text-[var(--ink-4)]" />
+                                  </span>
+                                  <ActionMenu
+                                    menuId={`student-${reg.id}`}
+                                    activeMenu={activeMenu}
+                                    setActiveMenu={setActiveMenu}
+                                  >
+                                    <div className="px-3 py-2">
+                                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                        Student actions
+                                      </p>
+                                      <p className="mt-0.5 truncate text-xs font-medium text-slate-600">
+                                        {reg.user.firstName} {reg.user.lastName}
+                                      </p>
+                                    </div>
+                                    <MenuItem
+                                      onClick={() =>
+                                        handleMarkAttendance(
+                                          reg.userId,
+                                          day.id,
+                                          'ATTENDED'
+                                        )
+                                      }
+                                      icon={<UserCheck className="h-4 w-4 text-emerald-600" />}
+                                    >
+                                      Mark attended
+                                    </MenuItem>
+                                    <MenuItem
+                                      onClick={() =>
+                                        handleMarkAttendance(
+                                          reg.userId,
+                                          day.id,
+                                          'NO_SHOW'
+                                        )
+                                      }
+                                      icon={<UserX className="h-4 w-4 text-red-600" />}
+                                    >
+                                      Mark no show
+                                    </MenuItem>
+                                    <MenuItem
+                                      onClick={() =>
+                                        handleMarkAttendance(
+                                          reg.userId,
+                                          day.id,
+                                          'PENDING'
+                                        )
+                                      }
+                                      icon={<Hourglass className="h-4 w-4 text-amber-600" />}
+                                    >
+                                      Mark pending
+                                    </MenuItem>
+                                    <MenuDivider />
+                                    <MenuItem
+                                      danger
+                                      onClick={() =>
+                                        handleRemoveStudent(
+                                          reg.userId,
+                                          `${reg.user.firstName} ${reg.user.lastName}`,
+                                          day.id
+                                        )
+                                      }
+                                      icon={<Trash2 className="h-4 w-4 text-red-600" />}
+                                    >
+                                      Remove student
+                                    </MenuItem>
+                                  </ActionMenu>
+                                </li>
+                              );
+                            })}
+                        </ul>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-[var(--line)] bg-[var(--surface-2)] px-4 py-8 text-center flex-1">
+                      <Users className="mx-auto h-8 w-8 text-[var(--ink-4)]" />
 
-                                    <p className="mt-2 text-sm font-medium text-[var(--ink-3)]">
-                                      No students registered
-                                    </p>
+                      <p className="mt-2 text-sm font-medium text-[var(--ink-3)]">
+                        No students registered
+                      </p>
 
-                                    <p className="mt-1 text-xs text-[var(--ink-4)]">
-                                      Students assigned to this cleaning day will appear here.
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-          ))}
-        </div>
-      )}
+                      <p className="mt-1 text-xs text-[var(--ink-4)]">
+                        Students assigned to this cleaning day will appear here.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
-      {/* ========================================================
+        {/* ========================================================
           CREATE WEEK MODAL
       ======================================================== */}
 
-      <AnimatePresence>
-        {showCreateWeek && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
-            onClick={() =>
-              setShowCreateWeek(false)
-            }
-          >
+        <AnimatePresence>
+          {showCreateWeek && (
             <motion.div
-              initial={{
-                scale: 0.96,
-                opacity: 0,
-                y: 10,
-              }}
-              animate={{
-                scale: 1,
-                opacity: 1,
-                y: 0,
-              }}
-              exit={{
-                scale: 0.96,
-                opacity: 0,
-                y: 10,
-              }}
-              className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
-              onClick={(e) =>
-                e.stopPropagation()
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
+              onClick={() =>
+                setShowCreateWeek(false)
               }
             >
-              <div className="mb-5">
-                <h3 className="text-xl font-bold text-slate-900">
-                  Create New Week
-                </h3>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  This will create five cleaning
-                  days from Monday to Friday.
-                </p>
-              </div>
-
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-
-                  const form =
-                    e.currentTarget;
-
-                  const formData =
-                    new FormData(form);
-
-                  const startDate =
-                    formData.get(
-                      'startDate'
-                    ) as string;
-
-                  const weekLabel =
-                    formData.get(
-                      'weekLabel'
-                    ) as string;
-
-                  const capacityLimit =
-                    parseInt(
-                      formData.get(
-                        'capacityLimit'
-                      ) as string
-                    ) || 5;
-
-                  const registrationDeadline =
-                    formData.get(
-                      'registrationDeadline'
-                    ) as string;
-
-                  if (!startDate) {
-                    alert(
-                      'Please select a start date'
-                    );
-                    return;
-                  }
-
-                  if (
-                    !registrationDeadline
-                  ) {
-                    alert(
-                      'Please select a registration deadline'
-                    );
-                    return;
-                  }
-
-                  const selectedDate =
-                    new Date(startDate);
-
-                  if (
-                    selectedDate.getDay() !==
-                    1
-                  ) {
-                    const dayNames = [
-                      'Sunday',
-                      'Monday',
-                      'Tuesday',
-                      'Wednesday',
-                      'Thursday',
-                      'Friday',
-                      'Saturday',
-                    ];
-
-                    alert(
-                      `Start date must be a Monday. Selected date is ${dayNames[selectedDate.getDay()]}. Please select a Monday.`
-                    );
-
-                    return;
-                  }
-
-                  const payload = {
-                    startDate,
-                    weekLabel:
-                      weekLabel || undefined,
-                    capacityLimit,
-                    registrationDeadline,
-                  };
-
-                  try {
-                    await createWeekMutation.mutateAsync(
-                      payload
-                    );
-
-                    setShowCreateWeek(
-                      false
-                    );
-
-                    await refetch();
-
-                    alert(
-                      'Week created successfully with 5 days (Monday to Friday)!'
-                    );
-                  } catch (error: unknown) {
-                    console.error(
-                      'Error creating week:',
-                      error
-                    );
-
-                    alert(
-                      getErrorMessage(
-                        error,
-                        'Failed to create week. Please try again.'
-                      )
-                    );
-                  }
+              <motion.div
+                initial={{
+                  scale: 0.96,
+                  opacity: 0,
+                  y: 10,
                 }}
-                className="space-y-4"
+                animate={{
+                  scale: 1,
+                  opacity: 1,
+                  y: 0,
+                }}
+                exit={{
+                  scale: 0.96,
+                  opacity: 0,
+                  y: 10,
+                }}
+                className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
+                onClick={(e) =>
+                  e.stopPropagation()
+                }
               >
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                    Start Date
-                  </label>
+                <div className="mb-5">
+                  <h3 className="text-xl font-bold text-slate-900">
+                    Create New Week
+                  </h3>
 
-                  <input
-                    type="date"
-                    name="startDate"
-                    required
-                    defaultValue={getNextMonday()}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3182ce] focus:ring-2 focus:ring-blue-100"
-                  />
-
-                  <p className="mt-1 text-xs text-slate-400">
-                    Must be a Monday.
+                  <p className="mt-1 text-sm text-slate-500">
+                    This will create five cleaning
+                    days from Monday to Friday.
                   </p>
                 </div>
 
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                    Week Label
-                  </label>
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
 
-                  <input
-                    type="text"
-                    name="weekLabel"
-                    placeholder="e.g. Week 1"
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#3182ce] focus:ring-2 focus:ring-blue-100"
-                  />
-                </div>
+                    const form =
+                      e.currentTarget;
 
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                    Capacity Per Day
-                  </label>
+                    const formData =
+                      new FormData(form);
 
-                  <input
-                    type="number"
-                    name="capacityLimit"
-                    defaultValue={5}
-                    min={1}
-                    required
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3182ce] focus:ring-2 focus:ring-blue-100"
-                  />
+                    const startDate =
+                      formData.get(
+                        'startDate'
+                      ) as string;
 
-                  <p className="mt-1 text-xs text-slate-400">
-                    Maximum students allowed
-                    per day.
-                  </p>
-                </div>
+                    const weekLabel =
+                      formData.get(
+                        'weekLabel'
+                      ) as string;
 
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                    Registration Deadline
-                  </label>
+                    const capacityLimit =
+                      parseInt(
+                        formData.get(
+                          'capacityLimit'
+                        ) as string
+                      ) || 5;
 
-                  <input
-                    type="datetime-local"
-                    name="registrationDeadline"
-                    required
-                    defaultValue={defaultRegistrationDeadline}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3182ce] focus:ring-2 focus:ring-blue-100"
-                  />
-                </div>
+                    const registrationDeadline =
+                      formData.get(
+                        'registrationDeadline'
+                      ) as string;
 
-                <div className="flex gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() =>
+                    if (!startDate) {
+                      alert(
+                        'Please select a start date'
+                      );
+                      return;
+                    }
+
+                    if (
+                      !registrationDeadline
+                    ) {
+                      alert(
+                        'Please select a registration deadline'
+                      );
+                      return;
+                    }
+
+                    const selectedDate =
+                      new Date(startDate);
+
+                    if (
+                      selectedDate.getDay() !==
+                      1
+                    ) {
+                      const dayNames = [
+                        'Sunday',
+                        'Monday',
+                        'Tuesday',
+                        'Wednesday',
+                        'Thursday',
+                        'Friday',
+                        'Saturday',
+                      ];
+
+                      alert(
+                        `Start date must be a Monday. Selected date is ${dayNames[selectedDate.getDay()]}. Please select a Monday.`
+                      );
+
+                      return;
+                    }
+
+                    const payload = {
+                      startDate,
+                      weekLabel:
+                        weekLabel || undefined,
+                      capacityLimit,
+                      registrationDeadline,
+                    };
+
+                    try {
+                      await createWeekMutation.mutateAsync(
+                        payload
+                      );
+
                       setShowCreateWeek(
                         false
-                      )
-                    }
-                    className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                  >
-                    Cancel
-                  </button>
+                      );
 
-                  <button
-                    type="submit"
-                    disabled={
-                      createWeekMutation.isPending
+                      await refetch();
+
+                      alert(
+                        'Week created successfully with 5 days (Monday to Friday)!'
+                      );
+                    } catch (error: unknown) {
+                      console.error(
+                        'Error creating week:',
+                        error
+                      );
+
+                      alert(
+                        getErrorMessage(
+                          error,
+                          'Failed to create week. Please try again.'
+                        )
+                      );
                     }
-                    className="flex-1 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#153475] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {createWeekMutation.isPending
-                      ? 'Creating...'
-                      : 'Create Week'}
-                  </button>
-                </div>
-              </form>
+                  }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                      Start Date
+                    </label>
+
+                    <input
+                      type="date"
+                      name="startDate"
+                      required
+                      defaultValue={getNextMonday()}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3182ce] focus:ring-2 focus:ring-blue-100"
+                    />
+
+                    <p className="mt-1 text-xs text-slate-400">
+                      Must be a Monday.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                      Week Label
+                    </label>
+
+                    <input
+                      type="text"
+                      name="weekLabel"
+                      placeholder="e.g. Week 1"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#3182ce] focus:ring-2 focus:ring-blue-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                      Capacity Per Day
+                    </label>
+
+                    <input
+                      type="number"
+                      name="capacityLimit"
+                      defaultValue={5}
+                      min={1}
+                      required
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3182ce] focus:ring-2 focus:ring-blue-100"
+                    />
+
+                    <p className="mt-1 text-xs text-slate-400">
+                      Maximum students allowed
+                      per day.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                      Registration Deadline
+                    </label>
+
+                    <input
+                      type="datetime-local"
+                      name="registrationDeadline"
+                      required
+                      defaultValue={defaultRegistrationDeadline}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3182ce] focus:ring-2 focus:ring-blue-100"
+                    />
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowCreateWeek(
+                          false
+                        )
+                      }
+                      className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={
+                        createWeekMutation.isPending
+                      }
+                      className="flex-1 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#153475] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {createWeekMutation.isPending
+                        ? 'Creating...'
+                        : 'Create Week'}
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
+          )}
           {deadlineWeekId && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -1844,276 +1920,273 @@ export default function AdminCleaningManagement() {
               </motion.div>
             </motion.div>
           )}
-      </AnimatePresence>
+        </AnimatePresence>
 
-      {/* ========================================================
+        {/* ========================================================
           ASSIGN STUDENT MODAL
       ======================================================== */}
 
-      <AnimatePresence>
-        {showAssignModal &&
-          selectedDayForAssignment && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
-              onClick={() =>
-                setShowAssignModal(false)
-              }
-            >
+        <AnimatePresence>
+          {showAssignModal &&
+            selectedDayForAssignment && (
               <motion.div
-                initial={{
-                  scale: 0.96,
-                  opacity: 0,
-                  y: 10,
-                }}
-                animate={{
-                  scale: 1,
-                  opacity: 1,
-                  y: 0,
-                }}
-                exit={{
-                  scale: 0.96,
-                  opacity: 0,
-                  y: 10,
-                }}
-                className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
-                onClick={(e) =>
-                  e.stopPropagation()
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
+                onClick={() =>
+                  setShowAssignModal(false)
                 }
               >
-                <h3 className="text-xl font-bold text-slate-900">
-                  Assign Student
-                </h3>
+                <motion.div
+                  initial={{
+                    scale: 0.96,
+                    opacity: 0,
+                    y: 10,
+                  }}
+                  animate={{
+                    scale: 1,
+                    opacity: 1,
+                    y: 0,
+                  }}
+                  exit={{
+                    scale: 0.96,
+                    opacity: 0,
+                    y: 10,
+                  }}
+                  className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
+                  onClick={(e) =>
+                    e.stopPropagation()
+                  }
+                >
+                  <h3 className="text-xl font-bold text-slate-900">
+                    Assign Student
+                  </h3>
 
-                <p className="mt-1 text-sm text-slate-500">
-                  Assign a student to{' '}
-                  <strong>
-                    {
-                      selectedDayForAssignment.dayOfWeek
-                    }
-                  </strong>{' '}
-                  (
-                  {formatDate(
-                    selectedDayForAssignment.cleaningDate
-                  )}
-                  ).
-                </p>
-
-                <div className="mt-5 space-y-4">
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                      Select Student
-                    </label>
-
-                    <select
-                      value={
-                        selectedStudentForAssignment
+                  <p className="mt-1 text-sm text-slate-500">
+                    Assign a student to{' '}
+                    <strong>
+                      {
+                        selectedDayForAssignment.dayOfWeek
                       }
-                      onChange={(e) =>
-                        setSelectedStudentForAssignment(
-                          e.target.value
-                        )
-                      }
-                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-[#3182ce] focus:ring-2 focus:ring-blue-100"
-                    >
-                      <option value="">
-                        Choose a student...
-                      </option>
+                    </strong>{' '}
+                    (
+                    {formatDate(
+                      selectedDayForAssignment.cleaningDate
+                    )}
+                    ).
+                  </p>
 
-                      {availableStudents.length === 0 ? (
-                        <option value="" disabled>
-                          No unregistered students available
-                        </option>
-                      ) : (
-                        availableStudents.map(
-                          (student) => (
-                          <option
-                            key={student.id}
-                            value={
-                              student.id
-                            }
-                          >
-                            {
-                              student.firstName
-                            }{' '}
-                            {
-                              student.lastName
-                            }
-                          </option>
+                  <div className="mt-5 space-y-4">
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                        Select Student
+                      </label>
+
+                      <select
+                        value={
+                          selectedStudentForAssignment
+                        }
+                        onChange={(e) =>
+                          setSelectedStudentForAssignment(
+                            e.target.value
                           )
-                        )
-                      )}
-                    </select>
-                  </div>
+                        }
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-[#3182ce] focus:ring-2 focus:ring-blue-100"
+                      >
+                        <option value="">
+                          Choose a student...
+                        </option>
 
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() =>
-                        setShowAssignModal(
-                          false
-                        )
-                      }
-                      className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                    >
-                      Cancel
-                    </button>
+                        {assignableStudents.length === 0 ? (
+                          <option value="" disabled>
+                            No students available (all have 2 registrations)
+                          </option>
+                        ) : (
+                          assignableStudents.map(
+                            (student) => {
+                              const regCount = studentRegistrationCounts.get(student.id) || 0;
+                              return (
+                                <option
+                                  key={student.id}
+                                  value={student.id}
+                                >
+                                  {student.firstName} {student.lastName}
+                                  {regCount > 0 && ` (${regCount}/2)`}
+                                </option>
+                              );
+                            }
+                          )
+                        )}
+                      </select>
+                    </div>
 
-                    <button
-                      onClick={
-                        handleManualAssign
-                      }
-                      disabled={
-                        !selectedStudentForAssignment ||
-                        manualAssignMutation.isPending
-                      }
-                      className="flex-1 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#153475] disabled:opacity-50"
-                    >
-                      {manualAssignMutation.isPending
-                        ? 'Assigning...'
-                        : 'Assign Student'}
-                    </button>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() =>
+                          setShowAssignModal(
+                            false
+                          )
+                        }
+                        className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                      >
+                        Cancel
+                      </button>
+
+                      <button
+                        onClick={
+                          handleManualAssign
+                        }
+                        disabled={
+                          !selectedStudentForAssignment ||
+                          manualAssignMutation.isPending
+                        }
+                        className="flex-1 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#153475] disabled:opacity-50"
+                      >
+                        {manualAssignMutation.isPending
+                          ? 'Assigning...'
+                          : 'Assign Student'}
+                      </button>
+                    </div>
                   </div>
-                </div>
+                </motion.div>
               </motion.div>
-            </motion.div>
-          )}
-      </AnimatePresence>
+            )}
+        </AnimatePresence>
 
-      {/* ========================================================
+        {/* ========================================================
           CAPACITY MODAL
       ======================================================== */}
 
-      <AnimatePresence>
-        {showCapacityModal &&
-          selectedDayForCapacity && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
-              onClick={() =>
-                setShowCapacityModal(
-                  false
-                )
-              }
-            >
+        <AnimatePresence>
+          {showCapacityModal &&
+            selectedDayForCapacity && (
               <motion.div
-                initial={{
-                  scale: 0.96,
-                  opacity: 0,
-                  y: 10,
-                }}
-                animate={{
-                  scale: 1,
-                  opacity: 1,
-                  y: 0,
-                }}
-                exit={{
-                  scale: 0.96,
-                  opacity: 0,
-                  y: 10,
-                }}
-                className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
-                onClick={(e) =>
-                  e.stopPropagation()
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
+                onClick={() =>
+                  setShowCapacityModal(
+                    false
+                  )
                 }
               >
-                <h3 className="text-xl font-bold text-slate-900">
-                  Update Capacity
-                </h3>
+                <motion.div
+                  initial={{
+                    scale: 0.96,
+                    opacity: 0,
+                    y: 10,
+                  }}
+                  animate={{
+                    scale: 1,
+                    opacity: 1,
+                    y: 0,
+                  }}
+                  exit={{
+                    scale: 0.96,
+                    opacity: 0,
+                    y: 10,
+                  }}
+                  className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
+                  onClick={(e) =>
+                    e.stopPropagation()
+                  }
+                >
+                  <h3 className="text-xl font-bold text-slate-900">
+                    Update Capacity
+                  </h3>
 
-                <p className="mt-1 text-sm text-slate-500">
-                  Update the capacity for{' '}
-                  <strong>
-                    {
-                      selectedDayForCapacity.dayOfWeek
-                    }
-                  </strong>{' '}
-                  (
-                  {formatDate(
-                    selectedDayForCapacity.cleaningDate
-                  )}
-                  ).
-                </p>
-
-                <div className="mt-5 space-y-4">
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                      New Capacity Limit
-                    </label>
-
-                    <input
-                      type="number"
-                      value={
-                        newCapacityLimit
+                  <p className="mt-1 text-sm text-slate-500">
+                    Update the capacity for{' '}
+                    <strong>
+                      {
+                        selectedDayForCapacity.dayOfWeek
                       }
-                      onChange={(e) =>
-                        setNewCapacityLimit(
-                          parseInt(
-                            e.target.value
-                          ) || 0
-                        )
-                      }
-                      min={1}
-                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-[#3182ce] focus:ring-2 focus:ring-blue-100"
-                    />
+                    </strong>{' '}
+                    (
+                    {formatDate(
+                      selectedDayForCapacity.cleaningDate
+                    )}
+                    ).
+                  </p>
 
-                    <div className="mt-2 space-y-1">
-                      <p className="text-xs text-slate-500">
-                        Current registrations:{' '}
-                        <strong>
-                          {
-                            selectedDayForCapacity.currentRegistrations
-                          }
-                        </strong>
-                      </p>
+                  <div className="mt-5 space-y-4">
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                        New Capacity Limit
+                      </label>
 
-                      <p className="text-xs text-slate-400">
-                        Capacity cannot be lower
-                        than current
-                        registrations.
-                      </p>
+                      <input
+                        type="number"
+                        value={
+                          newCapacityLimit
+                        }
+                        onChange={(e) =>
+                          setNewCapacityLimit(
+                            parseInt(
+                              e.target.value
+                            ) || 0
+                          )
+                        }
+                        min={1}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-[#3182ce] focus:ring-2 focus:ring-blue-100"
+                      />
+
+                      <div className="mt-2 space-y-1">
+                        <p className="text-xs text-slate-500">
+                          Current registrations:{' '}
+                          <strong>
+                            {
+                              selectedDayForCapacity.currentRegistrations
+                            }
+                          </strong>
+                        </p>
+
+                        <p className="text-xs text-slate-400">
+                          Capacity cannot be lower
+                          than current
+                          registrations.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() =>
+                          setShowCapacityModal(
+                            false
+                          )
+                        }
+                        className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                      >
+                        Cancel
+                      </button>
+
+                      <button
+                        onClick={
+                          handleUpdateCapacity
+                        }
+                        disabled={
+                          newCapacityLimit <
+                          1 ||
+                          newCapacityLimit <
+                          selectedDayForCapacity.currentRegistrations ||
+                          updateDayMutation.isPending
+                        }
+                        className="flex-1 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#153475] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {updateDayMutation.isPending
+                          ? 'Updating...'
+                          : 'Update Capacity'}
+                      </button>
                     </div>
                   </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() =>
-                        setShowCapacityModal(
-                          false
-                        )
-                      }
-                      className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                    >
-                      Cancel
-                    </button>
-
-                    <button
-                      onClick={
-                        handleUpdateCapacity
-                      }
-                      disabled={
-                        newCapacityLimit <
-                          1 ||
-                        newCapacityLimit <
-                          selectedDayForCapacity.currentRegistrations ||
-                        updateDayMutation.isPending
-                      }
-                      className="flex-1 rounded-lg bg-[#1a365d] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#153475] disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {updateDayMutation.isPending
-                        ? 'Updating...'
-                        : 'Update Capacity'}
-                    </button>
-                  </div>
-                </div>
+                </motion.div>
               </motion.div>
-            </motion.div>
-          )}
-      </AnimatePresence>
-    </motion.div>
+            )}
+        </AnimatePresence>
+      </motion.div>
     </>
   );
 }

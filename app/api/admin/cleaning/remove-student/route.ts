@@ -17,11 +17,11 @@ export async function DELETE(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { studentUserId } = body;
+    const { studentUserId, cleaningDayId } = body;
 
-    if (!studentUserId) {
+    if (!studentUserId || !cleaningDayId) {
       return NextResponse.json(
-        { error: 'Missing required field: studentUserId' },
+        { error: 'Missing required fields: studentUserId and cleaningDayId' },
         { status: 400 }
       );
     }
@@ -37,20 +37,21 @@ export async function DELETE(request: NextRequest) {
         throw new Error('Student not found');
       }
 
-      // Get existing registration
-      const existingRegistration = await tx.cleaningRegistration.findUnique({
-        where: { userId: studentUserId },
+      // Get existing registration for this specific day
+      const existingRegistration = await tx.cleaningRegistration.findFirst({
+        where: {
+          userId: studentUserId,
+          cleaningDayId,
+        },
       });
 
       if (!existingRegistration) {
-        throw new Error('No registration found for this student');
+        throw new Error('No registration found for this student on this day');
       }
-
-      const cleaningDayId = existingRegistration.cleaningDayId;
 
       // Delete registration
       await tx.cleaningRegistration.delete({
-        where: { userId: studentUserId },
+        where: { id: existingRegistration.id },
       });
 
       // Update day's current registration count

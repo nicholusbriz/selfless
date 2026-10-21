@@ -64,14 +64,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if already registered
-    const existingRegistration = await prisma.cleaningRegistration.findUnique({
+    // Check if already registered for this specific day
+    const existingDayRegistration = await prisma.cleaningRegistration.findFirst({
+      where: {
+        userId: studentUserId,
+        cleaningDayId,
+      },
+    });
+
+    if (existingDayRegistration) {
+      return NextResponse.json(
+        { error: 'Student is already registered for this cleaning day' },
+        { status: 400 }
+      );
+    }
+
+    // Check if student already has 2 registrations (maximum allowed)
+    const existingRegistrations = await prisma.cleaningRegistration.findMany({
       where: { userId: studentUserId },
     });
 
-    if (existingRegistration) {
+    if (existingRegistrations.length >= 2) {
       return NextResponse.json(
-        { error: 'Student is already registered for a cleaning day in this week' },
+        { error: 'Student is already registered for 2 cleaning days (maximum allowed)' },
         { status: 400 }
       );
     }

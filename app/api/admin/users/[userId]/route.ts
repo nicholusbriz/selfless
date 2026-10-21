@@ -43,8 +43,7 @@ export async function GET(
             gradesGiven: true,
             notifications: true,
             activityLogs: true,
-            // cleaningRegistration is a one-to-one relation, cannot count
-            // Remove this line
+            cleaningRegistrations: true,
             attendanceRecords: true,
           }
         },
@@ -375,7 +374,7 @@ export async function DELETE(
 
     // Use a transaction to delete all related records
     await prisma.$transaction(async (tx) => {
-      // 1. Delete cleaning registration (one-to-one relation)
+      // 1. Delete cleaning registrations (one-to-many relation)
       await tx.cleaningRegistration.deleteMany({
         where: { userId }
       });

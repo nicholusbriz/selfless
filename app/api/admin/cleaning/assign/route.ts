@@ -7,7 +7,7 @@ import { prisma } from '@/lib/prisma/client';
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -65,30 +65,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify student exists and belongs to same tech center
-    const student = await prisma.user.findFirst({
+    // Verify user exists and belongs to same tech center
+    const user = await prisma.user.findFirst({
       where: {
         id: studentUserId,
         techCenterId: adminUser.techCenterId,
-        role: { name: 'student' }
       }
     });
 
-    if (!student) {
+    if (!user) {
       return NextResponse.json(
-        { error: 'Student not found or not in your tech center' },
+        { error: 'User not found or not in your tech center' },
         { status: 404 }
       );
     }
 
-    // Check if already registered
-    const existingRegistration = await prisma.cleaningRegistration.findUnique({
-      where: { userId: studentUserId }
+    // Check if already registered for this specific day
+    const existingDayRegistration = await prisma.cleaningRegistration.findFirst({
+      where: {
+        userId: studentUserId,
+        cleaningDayId,
+      },
     });
 
-    if (existingRegistration) {
+    if (existingDayRegistration) {
       return NextResponse.json(
-        { error: 'Student is already registered for a cleaning day in this week' },
+        { error: 'Student is already registered for this cleaning day' },
+        { status: 400 }
+      );
+    }
+
+    // Check if student already has 2 registrations (maximum allowed)
+    const existingRegistrations = await prisma.cleaningRegistration.findMany({
+      where: { userId: studentUserId },
+    });
+
+    if (existingRegistrations.length >= 2) {
+      return NextResponse.json(
+        { error: 'Student is already registered for 2 cleaning days (maximum allowed)' },
         { status: 400 }
       );
     }
@@ -139,7 +153,7 @@ export async function POST(request: NextRequest) {
         entityId: registration.id,
         details: {
           studentId: studentUserId,
-          studentName: `${student.firstName} ${student.lastName}`,
+          studentName: `${user.firstName} ${user.lastName}`,
           dayId: cleaningDayId,
           dayOfWeek: day.dayOfWeek
         },

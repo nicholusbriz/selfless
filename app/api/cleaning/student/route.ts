@@ -29,8 +29,8 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Get user's registration
-    const userRegistration = await prisma.cleaningRegistration.findUnique({
+    // Get user's registrations (can be up to 2)
+    const userRegistrations = await prisma.cleaningRegistration.findMany({
       where: { userId: user.id },
       include: {
         cleaningDay: {
@@ -113,16 +113,24 @@ export async function GET() {
             id: true,
             firstName: true,
             lastName: true,
-            cleaningRegistration: {
-              select: { id: true },
-            },
           },
           orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
         })
       : [];
 
+    // Get all registrations for these students
+    const studentIds = studentsInCenter.map(s => s.id);
+    const registrations = await prisma.cleaningRegistration.findMany({
+      where: {
+        userId: { in: studentIds }
+      },
+      select: { userId: true }
+    });
+
+    const registeredStudentIds = new Set(registrations.map(r => r.userId));
+
     const unregisteredStudents = studentsInCenter
-      .filter((student) => !student.cleaningRegistration)
+      .filter((student) => !registeredStudentIds.has(student.id))
       .map(({ id, firstName, lastName }) => ({
         id,
         firstName,
@@ -139,7 +147,7 @@ export async function GET() {
         role: user.role?.name || 'student',
         techCenterId: user.techCenter?.id
       },
-      registration: userRegistration,
+      registrations: userRegistrations,
       userAttendance,
       weeks,
       unregisteredStudents,

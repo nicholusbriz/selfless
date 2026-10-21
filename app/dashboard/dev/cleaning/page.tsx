@@ -155,10 +155,20 @@ function WeekFilterChips({
   filter,
   setFilter,
   weeks,
+  activeMenu,
+  setActiveMenu,
+  onToggleWeek,
+  onExtendDeadline,
+  onDeleteWeek,
 }: {
   filter: WeekFilter;
   setFilter: (f: WeekFilter) => void;
-  weeks: Array<{ id: string; weekLabel: string }>;
+  weeks: Array<{ id: string; weekLabel: string; isActive: boolean; registrationDeadline: string }>;
+  activeMenu: MenuType;
+  setActiveMenu: (menu: MenuType) => void;
+  onToggleWeek: (weekId: string, isActive: boolean) => void;
+  onExtendDeadline: (week: any) => void;
+  onDeleteWeek: (weekId: string) => void;
 }) {
   const isSelected = (target: WeekFilter) => {
     if (target.kind !== filter.kind) return false;
@@ -190,20 +200,55 @@ function WeekFilterChips({
           Filter
         </span>
       </div>
-      {options.map((opt, idx) => (
-        <button
-          key={idx}
-          type="button"
-          onClick={() => opt.enabled && setFilter(opt.value)}
-          disabled={!opt.enabled}
-          className={`${chipBase} ${
-            isSelected(opt.value) ? chipOn : chipOff
-          } ${!opt.enabled ? 'cursor-not-allowed opacity-40' : ''} ${focusRing}`}
-          aria-disabled={!opt.enabled}
-        >
-          {opt.label}
-        </button>
-      ))}
+      {options.map((opt, idx) => {
+        const isWeekChip = opt.value.kind === 'week';
+        const week = isWeekChip ? weeks.find(w => w.id === (opt.value as { kind: 'week'; weekId: string }).weekId) : null;
+        
+        return (
+          <div key={idx} className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => opt.enabled && setFilter(opt.value)}
+              disabled={!opt.enabled}
+              className={`${chipBase} ${
+                isSelected(opt.value) ? chipOn : chipOff
+              } ${!opt.enabled ? 'cursor-not-allowed opacity-40' : ''} ${focusRing}`}
+              aria-disabled={!opt.enabled}
+            >
+              {opt.label}
+            </button>
+            {isWeekChip && week && (
+              <ActionMenu
+                menuId={`week-${week.id}`}
+                activeMenu={activeMenu}
+                setActiveMenu={setActiveMenu}
+                align="left"
+              >
+                <MenuItem
+                  onClick={() => onToggleWeek(week.id, !week.isActive)}
+                  icon={week.isActive ? <Lock className="h-4 w-4 text-amber-600" /> : <Unlock className="h-4 w-4 text-emerald-600" />}
+                >
+                  {week.isActive ? 'Close registrations' : 'Open registrations'}
+                </MenuItem>
+                <MenuItem
+                  onClick={() => onExtendDeadline(week)}
+                  icon={<Clock className="h-4 w-4 text-blue-600" />}
+                >
+                  Extend deadline
+                </MenuItem>
+                <MenuDivider />
+                <MenuItem
+                  danger
+                  onClick={() => onDeleteWeek(week.id)}
+                  icon={<Trash2 className="h-4 w-4 text-red-600" />}
+                >
+                  Delete week
+                </MenuItem>
+              </ActionMenu>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -659,7 +704,8 @@ export default function DevCleaningManagement() {
 
   const handleRemoveStudent = async (
     studentUserId: string,
-    studentName: string
+    studentName: string,
+    cleaningDayId: string
   ) => {
     setActiveMenu(null);
 
@@ -669,9 +715,10 @@ export default function DevCleaningManagement() {
       )
     ) {
       try {
-        await removeStudentMutation.mutateAsync(
-          studentUserId
-        );
+        await removeStudentMutation.mutateAsync({
+          studentUserId,
+          cleaningDayId,
+        });
 
         await refetch();
 
@@ -945,8 +992,34 @@ export default function DevCleaningManagement() {
 
   const techCenters = allTechCenters || [];
   const weeks = data?.weeks || [];
-  const students = data?.students || [];
-  const unregisteredStudents = data?.unregisteredStudents || [];
+  const weeksWithExtraData = weeks.map(week => ({
+    id: week.id,
+    weekLabel: week.weekLabel,
+    isActive: week.isActive,
+    registrationDeadline: week.registrationDeadline,
+  }));
+
+  // Students with 0 or 1 registrations (from API - already filtered)
+  const assignableStudents = data?.students || [];
+
+  // Count registrations per student (max 2 allowed)
+  const studentRegistrationCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    weeks.forEach((week) =>
+      week.days.forEach((day) =>
+        day.registrations.forEach((registration) => {
+          const currentCount = counts.get(registration.userId) || 0;
+          counts.set(registration.userId, currentCount + 1);
+        }),
+      ),
+    );
+    return counts;
+  }, [weeks]);
+
+  // Students with 0 registrations (for display section)
+  const availableStudents = useMemo(() => assignableStudents.filter(
+    (student) => (studentRegistrationCounts.get(student.id) || 0) === 0,
+  ), [assignableStudents, studentRegistrationCounts]);
 
   // Filter days based on week filter
   const filteredDays = useMemo(() => {
@@ -1222,7 +1295,7 @@ export default function DevCleaningManagement() {
               <UserMinus className="h-4 w-4 text-orange-600" />
             </div>
             <p className="text-xl font-bold text-slate-900">
-              {stats.totalUnregistered}
+              {stats.totalUnregistered || availableStudents.length}
             </p>
             <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
               Unregistered
@@ -1292,7 +1365,7 @@ export default function DevCleaningManagement() {
           UNREGISTERED STUDENTS
       ======================================================== */}
 
-      {unregisteredStudents.length === 0 ? (
+      {availableStudents.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center gap-2 text-sm text-slate-600">
             <CheckCircle className="h-4 w-4 text-emerald-600" />
@@ -1310,11 +1383,11 @@ export default function DevCleaningManagement() {
 
             <div className="min-w-0 flex-1">
               <h3 className="text-lg font-bold tracking-tight text-slate-900">
-                Students Not Yet Registered ({unregisteredStudents.length})
+                Students Not Yet Registered ({availableStudents.length})
               </h3>
 
               <p className="mt-2 text-sm text-slate-600">
-                {unregisteredStudents.map((s) => `${s.firstName} ${s.lastName}`).join(' · ')}
+                {availableStudents.map((s) => `${s.firstName} ${s.lastName}`).join(' · ')}
               </p>
             </div>
           </div>
@@ -1329,7 +1402,12 @@ export default function DevCleaningManagement() {
         <WeekFilterChips
           filter={weekFilter}
           setFilter={setWeekFilter}
-          weeks={weeks}
+          weeks={weeksWithExtraData}
+          activeMenu={activeMenu}
+          setActiveMenu={setActiveMenu}
+          onToggleWeek={handleToggleWeekRegistration}
+          onExtendDeadline={openDeadlinePicker}
+          onDeleteWeek={handleDeleteWeek}
         />
       )}
 
@@ -1559,6 +1637,7 @@ export default function DevCleaningManagement() {
                                               a.userId ===
                                               reg.userId
                                           );
+                                        const totalRegistrations = studentRegistrationCounts.get(reg.userId) || 0;
 
                                         return (
                                           <li
@@ -1573,6 +1652,11 @@ export default function DevCleaningManagement() {
                                             />
                                             <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-[var(--ink)]">
                                               {reg.user.firstName} {reg.user.lastName}
+                                              {totalRegistrations > 1 && (
+                                                <span className="ml-1.5 text-[10px] font-medium text-[var(--brass)]">
+                                                  ({totalRegistrations}/2)
+                                                </span>
+                                              )}
                                             </span>
                                             <ActionMenu
                                               menuId={`student-${reg.id}`}
@@ -1629,7 +1713,8 @@ export default function DevCleaningManagement() {
                                                 onClick={() =>
                                                   handleRemoveStudent(
                                                     reg.userId,
-                                                    `${reg.user.firstName} ${reg.user.lastName}`
+                                                    `${reg.user.firstName} ${reg.user.lastName}`,
+                                                    day.id
                                                   )
                                                 }
                                                 icon={<Trash2 className="h-4 w-4 text-red-600" />}
@@ -2075,27 +2160,24 @@ export default function DevCleaningManagement() {
                         Choose a student...
                       </option>
 
-                      {unregisteredStudents.length === 0 ? (
+                      {assignableStudents.length === 0 ? (
                         <option value="" disabled>
-                          No unregistered students available
+                          No students available (all have 2 registrations)
                         </option>
                       ) : (
-                        unregisteredStudents.map(
-                          (student) => (
-                          <option
-                            key={student.id}
-                            value={
-                              student.id
-                            }
-                          >
-                            {
-                              student.firstName
-                            }{' '}
-                            {
-                              student.lastName
-                            }
-                          </option>
-                          )
+                        assignableStudents.map(
+                          (student) => {
+                            const regCount = studentRegistrationCounts.get(student.id) || 0;
+                            return (
+                              <option
+                                key={student.id}
+                                value={student.id}
+                              >
+                                {student.firstName} {student.lastName}
+                                {regCount > 0 && ` (${regCount}/2)`}
+                              </option>
+                            );
+                          }
                         )
                       )}
                     </select>

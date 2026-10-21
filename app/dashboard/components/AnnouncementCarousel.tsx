@@ -120,9 +120,8 @@ function PlayerGrid({
         <div key={player.id} className="flex min-w-0 items-center gap-2">
           {/* Avatar */}
           <div
-            className={`relative h-8 w-8 shrink-0 overflow-hidden rounded-full ${
-              dark ? 'bg-white/10' : 'bg-[#F1F1EC]'
-            }`}
+            className={`relative h-8 w-8 shrink-0 overflow-hidden rounded-full ${dark ? 'bg-white/10' : 'bg-[#F1F1EC]'
+              }`}
           >
             {player.image ? (
               <Image
@@ -135,9 +134,8 @@ function PlayerGrid({
             ) : (
               <div className="flex h-full w-full items-center justify-center">
                 <User
-                  className={`h-4 w-4 ${
-                    dark ? 'text-white/50' : 'text-[#6B7268]'
-                  }`}
+                  className={`h-4 w-4 ${dark ? 'text-white/50' : 'text-[#6B7268]'
+                    }`}
                 />
               </div>
             )}
@@ -146,9 +144,8 @@ function PlayerGrid({
           {/* Name */}
           <div className="min-w-0 flex-1">
             <p
-              className={`text-[13px] font-semibold leading-tight truncate ${
-                dark ? 'text-[#F1F1EC]' : 'text-[#12203B]'
-              }`}
+              className={`text-[13px] font-semibold leading-tight truncate ${dark ? 'text-[#F1F1EC]' : 'text-[#12203B]'
+                }`}
             >
               {player.isDirector || player.isManager || player.isTutor
                 ? `${player.firstName || ''} ${player.lastName}`.trim()
@@ -156,52 +153,47 @@ function PlayerGrid({
             </p>
             {/* Role label after name */}
             <p
-              className={`text-[10px] font-medium leading-tight ${
-                player.isDirector
-                  ? dark
-                    ? 'text-[#E8A33D]'
-                    : 'text-[#B98A3E]'
-                  : dark
+              className={`text-[10px] font-medium leading-tight ${player.isDirector
+                ? dark
+                  ? 'text-[#E8A33D]'
+                  : 'text-[#B98A3E]'
+                : dark
                   ? 'text-[#AEB4AA]'
                   : 'text-[#6B7268]'
-              }`}
+                }`}
             >
               {player.isDirector
                 ? 'Director'
                 : player.isManager
-                ? 'Manager'
-                : player.isTutor
-                ? 'Tutor'
-                : player.position || 'Player'}
+                  ? 'Manager'
+                  : player.isTutor
+                    ? 'Tutor'
+                    : player.position || 'Player'}
             </p>
           </div>
 
           {/* Icon or jersey number */}
           {player.isDirector ? (
             <Crown
-              className={`h-3.5 w-3.5 shrink-0 ${
-                dark ? 'text-[#E8A33D]' : 'text-[#B98A3E]'
-              }`}
+              className={`h-3.5 w-3.5 shrink-0 ${dark ? 'text-[#E8A33D]' : 'text-[#B98A3E]'
+                }`}
             />
           ) : player.isManager ? (
             <Briefcase
-              className={`h-3.5 w-3.5 shrink-0 ${
-                dark ? 'text-[#55705B]' : 'text-[#55705B]'
-              }`}
+              className={`h-3.5 w-3.5 shrink-0 ${dark ? 'text-[#55705B]' : 'text-[#55705B]'
+                }`}
             />
           ) : player.isTutor ? (
             <GraduationCap
-              className={`h-3.5 w-3.5 shrink-0 ${
-                dark ? 'text-[#55705B]' : 'text-[#55705B]'
-              }`}
+              className={`h-3.5 w-3.5 shrink-0 ${dark ? 'text-[#55705B]' : 'text-[#55705B]'
+                }`}
             />
           ) : (
             <span
-              className={`shrink-0 text-[12px] font-medium tabular-nums ${
-                dark ? 'text-[#AEB4AA]' : 'text-[#6B7268]'
-              }`}
+              className={`shrink-0 text-[12px] font-medium tabular-nums ${dark ? 'text-[#AEB4AA]' : 'text-[#6B7268]'
+                }`}
             >
-              {player.jerseyNumber ?? '—'}
+              {player.jerseyNumber ?? ''}
             </span>
           )}
         </div>
@@ -225,10 +217,10 @@ export default function AnnouncementCarousel({
   const [index, setIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [progressKey, setProgressKey] = useState(0);
-  const { data: teams, isLoading: teamsLoading } = useAllFootballTeams();
+  const { data: teams } = useAllFootballTeams();
 
   // Fetch directors
-  const { data: directors = [], isLoading: directorsLoading } = useQuery({
+  const { data: directors = [] } = useQuery({
     queryKey: ['directors'],
     queryFn: async () => {
       const response = await fetch('/api/directors');
@@ -243,7 +235,7 @@ export default function AnnouncementCarousel({
   });
 
   // Fetch tech center admin teams
-  const { data: techCenterTeams = [], isLoading: techCenterTeamsLoading } = useQuery({
+  const { data: techCenterTeams = [] } = useQuery({
     queryKey: ['tech-center-admin-teams'],
     queryFn: async () => {
       const response = await fetch('/api/tech-centers/admin-teams');
@@ -256,8 +248,6 @@ export default function AnnouncementCarousel({
     gcTime: 10 * 60 * 1000,
     refetchInterval: 3 * 60 * 1000, // Refetch every 3 minutes to keep data fresh
   });
-
-  const isLoading = teamsLoading || directorsLoading || techCenterTeamsLoading;
 
   const cards = [
     // Director card
@@ -302,9 +292,8 @@ export default function AnnouncementCarousel({
     ...(teams || []).map((team) => ({
       id: `football-${team.techCenterId}-squad`,
       title: `${team.techCenterName} Football Team Squad`,
-      body: `${team.members.length} player${
-        team.members.length !== 1 ? 's' : ''
-      } on the roster`,
+      body: `${team.members.length} player${team.members.length !== 1 ? 's' : ''
+        } on the roster`,
       players: team.members.map<Player>((m) => ({
         id: m.user.id,
         lastName: m.user.lastName,
@@ -332,7 +321,7 @@ export default function AnnouncementCarousel({
   const prev = useCallback(() => goTo(index - 1), [goTo, index]);
 
   useEffect(() => {
-    if (isPaused || total === 0) return;
+    if (isPaused || total <= 1) return;
     const t = setTimeout(() => next(), AUTO_SCROLL_MS);
     return () => clearTimeout(t);
   }, [index, isPaused, next, total]);
@@ -342,7 +331,7 @@ export default function AnnouncementCarousel({
   }, [total, index]);
 
   // ---- EARLY RETURN (after all hooks) ----
-  if (isLoading || total === 0) {
+  if (total === 0 || !current) {
     return (
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <CarouselSkeleton inHeader={inHeader} />
@@ -353,31 +342,31 @@ export default function AnnouncementCarousel({
   /* ---- Palette by variant ---- */
   const p = inHeader
     ? {
-        card: 'bg-[#12203B]',
-        stripe: 'bg-[#263653]',
-        progress: 'bg-[#E8A33D]',
-        label: 'text-[#E8A33D]',
-        title: 'text-white',
-        body: 'text-[#AEB4AA]',
-        navBtn: 'text-[#DADCD3] hover:bg-[#263653] hover:text-[#E8A33D]',
-        squadBg: 'bg-[#0E1A30] border-[#263653]',
-        counter: 'text-[#687761]',
-        dot: 'bg-[#687761] hover:bg-[#8A9088]',
-        dotActive: 'bg-[#E8A33D]',
-      }
+      card: 'bg-[#12203B]',
+      stripe: 'bg-[#263653]',
+      progress: 'bg-[#E8A33D]',
+      label: 'text-[#E8A33D]',
+      title: 'text-white',
+      body: 'text-[#AEB4AA]',
+      navBtn: 'text-[#DADCD3] hover:bg-[#263653] hover:text-[#E8A33D]',
+      squadBg: 'bg-[#0E1A30] border-[#263653]',
+      counter: 'text-[#687761]',
+      dot: 'bg-[#687761] hover:bg-[#8A9088]',
+      dotActive: 'bg-[#E8A33D]',
+    }
     : {
-        card: 'bg-white',
-        stripe: 'bg-[#F1F1EC]',
-        progress: 'bg-[#B98A3E]',
-        label: 'text-[#B98A3E]',
-        title: 'text-[#12203B]',
-        body: 'text-[#6B7268]',
-        navBtn: 'text-[#6B7268] hover:bg-[#F7F6F2] hover:text-[#12203B]',
-        squadBg: 'bg-[#F7F6F2] border-[#DADCD3]',
-        counter: 'text-[#6B7268]',
-        dot: 'bg-[#DADCD3] hover:bg-[#8A9088]',
-        dotActive: 'bg-[#B98A3E]',
-      };
+      card: 'bg-white',
+      stripe: 'bg-[#F1F1EC]',
+      progress: 'bg-[#B98A3E]',
+      label: 'text-[#B98A3E]',
+      title: 'text-[#12203B]',
+      body: 'text-[#6B7268]',
+      navBtn: 'text-[#6B7268] hover:bg-[#F7F6F2] hover:text-[#12203B]',
+      squadBg: 'bg-[#F7F6F2] border-[#DADCD3]',
+      counter: 'text-[#6B7268]',
+      dot: 'bg-[#DADCD3] hover:bg-[#8A9088]',
+      dotActive: 'bg-[#B98A3E]',
+    };
 
   return (
     <motion.div
@@ -403,10 +392,10 @@ export default function AnnouncementCarousel({
         <AnimatePresence mode="wait">
           <motion.div
             key={current.id}
-            initial={{ opacity: 0, x: 12 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -12 }}
-            transition={{ duration: 0.25 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
           >
             <h3
               className={`mb-1 text-[15px] font-semibold leading-snug ${p.title}`}
@@ -434,9 +423,8 @@ export default function AnnouncementCarousel({
           {/* Scroll indicator in the middle */}
           {current.players.length > 6 && (
             <div
-              className={`flex items-center gap-1 text-[10px] font-medium ${
-                inHeader ? 'text-[#AEB4AA]' : 'text-[#6B7268]'
-              }`}
+              className={`flex items-center gap-1 text-[10px] font-medium ${inHeader ? 'text-[#AEB4AA]' : 'text-[#6B7268]'
+                }`}
             >
               <span>scroll</span>
               <ChevronDown className="h-3 w-3" />

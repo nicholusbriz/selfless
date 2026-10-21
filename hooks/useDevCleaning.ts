@@ -70,9 +70,22 @@ export interface CleaningStats {
   totalPending: number;
 }
 
+export interface StudentSummary {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  profileImageUrl: string | null;
+  techCenterId?: string;
+}
+
 export interface DevCleaningData {
   weeks: CleaningWeek[];
-  students: { id: string; firstName: string; lastName: string; email: string; profileImageUrl: string | null; techCenterId: string }[];
+  /** Assignable students: active users with fewer than 2 registrations */
+  students: StudentSummary[];
+  /** All active students in the tech center (for internal lookups) */
+  allStudents: StudentSummary[];
+  /** Students with 0 registrations */
   unregisteredStudents: { id: string; firstName: string; lastName: string }[];
   stats: CleaningStats;
 }
@@ -178,11 +191,11 @@ const api = {
     return response.json();
   },
 
-  removeStudent: async (studentUserId: string) => {
+  removeStudent: async ({ studentUserId, cleaningDayId }: { studentUserId: string; cleaningDayId: string }) => {
     const response = await fetch('/api/dev/cleaning/remove-student', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ studentUserId }),
+      body: JSON.stringify({ studentUserId, cleaningDayId }),
     });
     if (!response.ok) {
       const error = await response.json();
@@ -424,8 +437,20 @@ export const useDevManualAssign = (techCenterId: string) => {
       queryClient.setQueryData(['devCleaning', techCenterId], (old: DevCleaningData | undefined) => {
         if (!old) return old;
 
-        const student = old.students.find(s => s.id === studentUserId);
+        // Look up from allStudents so we always have the full profile for the optimistic row
+        const student = (old.allStudents ?? old.students).find(s => s.id === studentUserId);
         if (!student) return old;
+
+        // Count existing registrations for this student across all days
+        let existingRegCount = 0;
+        old.weeks.forEach(week =>
+          week.days.forEach(day =>
+            day.registrations.forEach(r => {
+              if (r.userId === studentUserId) existingRegCount++;
+            })
+          )
+        );
+        const newRegCount = existingRegCount + 1;
 
         return {
           ...old,
@@ -449,14 +474,13 @@ export const useDevManualAssign = (techCenterId: string) => {
                   ]
                 };
               }
-              // Remove from other days
-              return {
-                ...day,
-                registrations: day.registrations.filter(r => r.userId !== studentUserId),
-                currentRegistrations: day.registrations.filter(r => r.userId !== studentUserId).length,
-              };
+              return day;
             }),
           })),
+          // Remove student from assignable list if they now have 2 registrations
+          students: newRegCount >= 2
+            ? old.students.filter(s => s.id !== studentUserId)
+            : old.students,
           unregisteredStudents: old.unregisteredStudents.filter(s => s.id !== studentUserId),
           stats: {
             ...old.stats,
@@ -514,21 +538,21 @@ export const useDevMarkAttendance = (techCenterId: string) => {
 
                 const updatedAttendanceRecords = existingAttendance
                   ? day.attendanceRecords?.map(a =>
-                      a.userId === userId
-                        ? { ...a, status, markedAt: new Date().toISOString() }
-                        : a
-                    )
+                    a.userId === userId
+                      ? { ...a, status, markedAt: new Date().toISOString() }
+                      : a
+                  )
                   : [
-                      ...(day.attendanceRecords || []),
-                      {
-                        id: 'temp-' + Date.now(),
-                        userId,
-                        cleaningDayId,
-                        status,
-                        markedAt: new Date().toISOString(),
-                        user: day.registrations.find(r => r.userId === userId)?.user || { id: userId, firstName: '', lastName: '', email: '', profileImageUrl: null },
-                      }
-                    ];
+                    ...(day.attendanceRecords || []),
+                    {
+                      id: 'temp-' + Date.now(),
+                      userId,
+                      cleaningDayId,
+                      status,
+                      markedAt: new Date().toISOString(),
+                      user: day.registrations.find(r => r.userId === userId)?.user || { id: userId, firstName: '', lastName: '', email: '', profileImageUrl: null },
+                    }
+                  ];
 
                 return {
                   ...day,
@@ -564,39 +588,59 @@ export const useDevRemoveStudent = (techCenterId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: api.removeStudent,
-    onMutate: async (studentUserId: string) => {
+    onMutate: async (params: { studentUserId: string; cleaningDayId: string }) => {
       await queryClient.cancelQueries({ queryKey: ['devCleaning', techCenterId] });
       const previousData = queryClient.getQueryData(['devCleaning', techCenterId]) as DevCleaningData;
 
       queryClient.setQueryData(['devCleaning', techCenterId], (old: DevCleaningData | undefined) => {
         if (!old) return old;
 
-        const student = old.students.find(s => s.id === studentUserId);
+        const student = (old.allStudents ?? old.students).find(s => s.id === params.studentUserId);
         let registrationCountChange = 0;
+
+        // Count remaining registrations after removal
+        let remainingRegs = 0;
+        old.weeks.forEach(week =>
+          week.days.forEach(day => {
+            if (day.id !== params.cleaningDayId) {
+              day.registrations.forEach(r => {
+                if (r.userId === params.studentUserId) remainingRegs++;
+              });
+            }
+          })
+        );
 
         return {
           ...old,
           weeks: old.weeks.map(week => ({
             ...week,
             days: week.days.map(day => {
-              const hadRegistration = day.registrations.some(r => r.userId === studentUserId);
-              if (hadRegistration) {
-                registrationCountChange++;
-                return {
-                  ...day,
-                  currentRegistrations: Math.max(0, day.currentRegistrations - 1),
-                  status: 'OPEN',
-                  registrations: day.registrations.filter(r => r.userId !== studentUserId),
-                };
+              if (day.id === params.cleaningDayId) {
+                const hadRegistration = day.registrations.some(r => r.userId === params.studentUserId);
+                if (hadRegistration) {
+                  registrationCountChange++;
+                  return {
+                    ...day,
+                    currentRegistrations: Math.max(0, day.currentRegistrations - 1),
+                    status: 'OPEN',
+                    registrations: day.registrations.filter(r => r.userId !== params.studentUserId),
+                  };
+                }
               }
               return day;
             }),
           })),
-          unregisteredStudents: student ? [...old.unregisteredStudents, { id: student.id, firstName: student.firstName, lastName: student.lastName }] : old.unregisteredStudents,
+          // Re-add student to assignable list if they now have < 2 registrations
+          students: student && !old.students.some(s => s.id === student.id)
+            ? [...old.students, student]
+            : old.students,
+          unregisteredStudents: student && remainingRegs === 0
+            ? [...old.unregisteredStudents, { id: student.id, firstName: student.firstName, lastName: student.lastName }]
+            : old.unregisteredStudents,
           stats: {
             ...old.stats,
             totalRegistrations: Math.max(0, old.stats.totalRegistrations - registrationCountChange),
-            totalUnregistered: student ? old.stats.totalUnregistered + 1 : old.stats.totalUnregistered,
+            totalUnregistered: student && remainingRegs === 0 ? old.stats.totalUnregistered + 1 : old.stats.totalUnregistered,
           },
         };
       });
