@@ -713,14 +713,16 @@ function YourRegistrationBanner({
                   <Tag tone={status === 'ATTENDED' ? 'ok' : status === 'NO_SHOW' ? 'bad' : 'warn'}>
                     {status.toLowerCase().replace('_', ' ')}
                   </Tag>
-                  <button
-                    type="button"
-                    onClick={() => onUnregisterRequest(day.id)}
-                    className={`${btnQuiet} text-red-600 hover:text-red-700 hover:border-red-300`}
-                    title="Unregister from this day"
-                  >
-                    Unregister
-                  </button>
+                  {week && daysUntil(week.registrationDeadline) >= 0 && (
+                    <button
+                      type="button"
+                      onClick={() => onUnregisterRequest(day.id)}
+                      className={`${btnQuiet} text-red-600 hover:text-red-700 hover:border-red-300`}
+                      title="Unregister from this day"
+                    >
+                      Unregister
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -1638,7 +1640,8 @@ export default function CleaningPage() {
     (!data?.registrations || data.registrations.length < 2) &&
     !registeredDays.some((d) => d.id === day.id) &&
     week.isActive &&
-    day.status === 'OPEN';
+    day.status === 'OPEN' &&
+    daysUntil(week.registrationDeadline) >= 0;
 
   const canSwitch = (
     day: CleaningDay,
@@ -1657,7 +1660,8 @@ export default function CleaningPage() {
       day.id !== targetOldDay?.id &&
       week.isActive &&
       day.status === 'OPEN' &&
-      !currentDayAtMinimum,
+      !currentDayAtMinimum &&
+      daysUntil(week.registrationDeadline) >= 0,
     );
   };
 

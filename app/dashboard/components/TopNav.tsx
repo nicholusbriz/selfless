@@ -283,62 +283,62 @@ export default function TopNav({
       <div className="h-full flex items-center justify-between gap-1 px-2 sm:px-3 lg:px-4">
         {/* LEFT */}
         <div className="flex min-w-0 flex-1 items-center overflow-hidden">
-          {isMobile ? (
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.92 }}
-              whileHover={{ scale: 1.04 }}
-              onClick={onMenuToggle}
-              className={cn(
-                'flex items-center justify-center',
-                'w-11 h-11 rounded-xl',
-                'bg-[#F7F6F2] border-2 border-[#E5E7EB]',
-                'hover:border-[#B98A3E]',
-                'hover:bg-white',
-                'transition-all duration-200',
-                'focus:outline-none focus:ring-2 focus:ring-[#B98A3E]/30',
-                'shadow-sm'
-              )}
-              aria-label="Open sidebar"
-            >
-              <div className="relative w-8 h-8 bg-[#B98A3E] flex items-center justify-center overflow-hidden rounded-lg shadow-md">
-                <Image
-                  src="/freedom.png"
-                  alt="Selfless CE Logo"
-                  width={32}
-                  height={32}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </motion.button>
-          ) : (
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.92 }}
-              whileHover={{ scale: 1.04 }}
-              onClick={() =>
-                setSidebarOpen(
-                  (previous) => !previous
-                )
-              }
-              className={cn(
-                'flex items-center justify-center',
-                'w-9 h-9 shrink-0 rounded-lg',
-                'text-[#1A2B4C]',
-                'hover:text-[#B98A3E]',
-                'hover:bg-[#F7F6F2]',
-                'transition-all duration-200',
-                'focus:outline-none focus:ring-2 focus:ring-[#B98A3E]/30'
-              )}
-              aria-label="Toggle sidebar"
-            >
-              {sidebarOpen ? (
-                <PanelLeftClose className="w-5 h-5" />
-              ) : (
-                <PanelLeftOpen className="w-5 h-5" />
-              )}
-            </motion.button>
-          )}
+          {/* Mobile menu button — shown below lg via CSS so first paint is correct */}
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.92 }}
+            whileHover={{ scale: 1.04 }}
+            onClick={onMenuToggle}
+            className={cn(
+              'flex lg:hidden items-center justify-center',
+              'w-11 h-11 rounded-xl',
+              'bg-[#F7F6F2] border-2 border-[#E5E7EB]',
+              'hover:border-[#B98A3E]',
+              'hover:bg-white',
+              'transition-all duration-200',
+              'focus:outline-none focus:ring-2 focus:ring-[#B98A3E]/30',
+              'shadow-sm'
+            )}
+            aria-label="Open sidebar"
+          >
+            <div className="relative w-8 h-8 bg-[#B98A3E] flex items-center justify-center overflow-hidden rounded-lg shadow-md">
+              <Image
+                src="/freedom.png"
+                alt="Selfless CE Logo"
+                width={32}
+                height={32}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </motion.button>
+
+          {/* Desktop sidebar toggle — shown at lg+ via CSS so first paint is correct */}
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.92 }}
+            whileHover={{ scale: 1.04 }}
+            onClick={() =>
+              setSidebarOpen(
+                (previous) => !previous
+              )
+            }
+            className={cn(
+              'hidden lg:flex items-center justify-center',
+              'w-9 h-9 shrink-0 rounded-lg',
+              'text-[#1A2B4C]',
+              'hover:text-[#B98A3E]',
+              'hover:bg-[#F7F6F2]',
+              'transition-all duration-200',
+              'focus:outline-none focus:ring-2 focus:ring-[#B98A3E]/30'
+            )}
+            aria-label="Toggle sidebar"
+          >
+            {sidebarOpen ? (
+              <PanelLeftClose className="w-5 h-5" />
+            ) : (
+              <PanelLeftOpen className="w-5 h-5" />
+            )}
+          </motion.button>
 
           {/* Breadcrumb — no border */}
           <div className="hidden md:block ml-2.5 pl-2.5 min-w-0">
