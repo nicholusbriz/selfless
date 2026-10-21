@@ -69,11 +69,10 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'asc' },
     });
 
-    // Get students from the specified tech center
+    // Get all users from the specified tech center
     const students = await prisma.user.findMany({
       where: {
         techCenterId,
-        role: { name: 'student' },
         status: 'ACTIVE' as const,
       },
       select: {
@@ -83,24 +82,43 @@ export async function GET(request: NextRequest) {
         email: true,
         profileImageUrl: true,
         techCenterId: true,
-        cleaningRegistration: {
-          select: { id: true },
-        },
       },
       orderBy: { firstName: 'asc' },
     });
 
-    // Filter unregistered students (for assignment modal)
-    const unregisteredStudents = students
-      .filter((student) => !student.cleaningRegistration)
+    // Get all registrations for these users
+    const userIds = students.map(s => s.id);
+    const registrations = await prisma.cleaningRegistration.findMany({
+      where: {
+        userId: { in: userIds }
+      },
+      select: { userId: true }
+    });
+
+    // Count registrations per user
+    const userRegistrationCounts = new Map<string, number>();
+    registrations.forEach(r => {
+      const currentCount = userRegistrationCounts.get(r.userId) || 0;
+      userRegistrationCounts.set(r.userId, currentCount + 1);
+    });
+
+    // Filter users with less than 2 registrations (for assignment modal)
+    const assignableUsers = students
+      .filter((user) => (userRegistrationCounts.get(user.id) || 0) < 2)
       .map(({ id, firstName, lastName }) => ({
         id,
         firstName,
         lastName,
       }));
 
-    // Remove cleaningRegistration from students response (not needed in UI)
-    const studentsClean = students.map(({ cleaningRegistration, ...rest }) => rest);
+    // Filter users with 0 registrations (for stats)
+    const unregisteredUsers = students
+      .filter((user) => (userRegistrationCounts.get(user.id) || 0) === 0)
+      .map(({ id, firstName, lastName }) => ({
+        id,
+        firstName,
+        lastName,
+      }));
 
     // Calculate stats
     let totalRegistrations = 0;
@@ -125,13 +143,13 @@ export async function GET(request: NextRequest) {
       totalWeeks: weeks.length,
       totalDays,
       totalRegistrations,
-      totalUnregistered: unregisteredStudents.length,
+      totalUnregistered: unregisteredUsers.length,
       totalAttended,
       totalNoShow,
       totalPending,
     };
 
-    return NextResponse.json({ weeks, students: studentsClean, unregisteredStudents, stats });
+    return NextResponse.json({ weeks, students: assignableUsers, allStudents: students, unregisteredStudents: unregisteredUsers, stats });
   } catch (error) {
     console.error('Error fetching dev cleaning data:', error);
     return NextResponse.json(

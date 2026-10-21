@@ -58,6 +58,7 @@ export interface CleaningStats {
   totalWeeks: number;
   totalDays: number;
   totalRegistrations: number;
+  totalUnregistered: number;
   totalAttended: number;
   totalNoShow: number;
   totalPending: number;
@@ -169,11 +170,11 @@ const api = {
     return response.json();
   },
 
-  removeStudent: async (studentUserId: string) => {
+  removeStudent: async ({ studentUserId, cleaningDayId }: { studentUserId: string; cleaningDayId: string }) => {
     const response = await fetch('/api/admin/cleaning/remove-student', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ studentUserId }),
+      body: JSON.stringify({ studentUserId, cleaningDayId }),
     });
     if (!response.ok) {
       const error = await response.json();
@@ -198,10 +199,10 @@ export const useCreateWeek = () => {
     onMutate: async (data: any) => {
       await queryClient.cancelQueries({ queryKey: ['adminCleaning'] });
       const previousData = queryClient.getQueryData(['adminCleaning']) as CleaningData;
-      
+
       queryClient.setQueryData(['adminCleaning'], (old: CleaningData | undefined) => {
         if (!old) return old;
-        
+
         const newWeek = {
           id: 'temp-' + Date.now(),
           weekLabel: data.weekLabel || `Week of ${new Date(data.startDate).toLocaleDateString()}`,
@@ -211,13 +212,13 @@ export const useCreateWeek = () => {
           isActive: true,
           days: [],
         };
-        
+
         return {
           ...old,
           weeks: [...old.weeks, newWeek],
         };
       });
-      
+
       return { previousData };
     },
     onError: (err, variables, context) => {
@@ -238,20 +239,20 @@ export const useUpdateWeek = () => {
     onMutate: async ({ weekId, data }: { weekId: string; data: any }) => {
       await queryClient.cancelQueries({ queryKey: ['adminCleaning'] });
       const previousData = queryClient.getQueryData(['adminCleaning']) as CleaningData;
-      
+
       queryClient.setQueryData(['adminCleaning'], (old: CleaningData | undefined) => {
         if (!old) return old;
-        
+
         return {
           ...old,
-          weeks: old.weeks.map(week => 
-            week.id === weekId 
+          weeks: old.weeks.map(week =>
+            week.id === weekId
               ? { ...week, ...data }
               : week
           ),
         };
       });
-      
+
       return { previousData };
     },
     onError: (err, variables, context) => {
@@ -272,16 +273,16 @@ export const useDeleteWeek = () => {
     onMutate: async (weekId: string) => {
       await queryClient.cancelQueries({ queryKey: ['adminCleaning'] });
       const previousData = queryClient.getQueryData(['adminCleaning']) as CleaningData;
-      
+
       queryClient.setQueryData(['adminCleaning'], (old: CleaningData | undefined) => {
         if (!old) return old;
-        
+
         return {
           ...old,
           weeks: old.weeks.filter(week => week.id !== weekId),
         };
       });
-      
+
       return { previousData };
     },
     onError: (err, variables, context) => {
@@ -302,23 +303,23 @@ export const useUpdateDay = () => {
     onMutate: async ({ dayId, data }: { dayId: string; data: any }) => {
       await queryClient.cancelQueries({ queryKey: ['adminCleaning'] });
       const previousData = queryClient.getQueryData(['adminCleaning']) as CleaningData;
-      
+
       queryClient.setQueryData(['adminCleaning'], (old: CleaningData | undefined) => {
         if (!old) return old;
-        
+
         return {
           ...old,
           weeks: old.weeks.map(week => ({
             ...week,
-            days: week.days.map(day => 
-              day.id === dayId 
+            days: week.days.map(day =>
+              day.id === dayId
                 ? { ...day, ...data }
                 : day
             ),
           })),
         };
       });
-      
+
       return { previousData };
     },
     onError: (err, variables, context) => {
@@ -339,10 +340,10 @@ export const useDeleteDay = () => {
     onMutate: async (dayId: string) => {
       await queryClient.cancelQueries({ queryKey: ['adminCleaning'] });
       const previousData = queryClient.getQueryData(['adminCleaning']) as CleaningData;
-      
+
       queryClient.setQueryData(['adminCleaning'], (old: CleaningData | undefined) => {
         if (!old) return old;
-        
+
         return {
           ...old,
           weeks: old.weeks.map(week => ({
@@ -351,7 +352,7 @@ export const useDeleteDay = () => {
           })),
         };
       });
-      
+
       return { previousData };
     },
     onError: (err, variables, context) => {
@@ -372,13 +373,22 @@ export const useManualAssign = () => {
     onMutate: async ({ studentUserId, cleaningDayId }: { studentUserId: string; cleaningDayId: string }) => {
       await queryClient.cancelQueries({ queryKey: ['adminCleaning'] });
       const previousData = queryClient.getQueryData(['adminCleaning']) as CleaningData;
-      
+
       queryClient.setQueryData(['adminCleaning'], (old: CleaningData | undefined) => {
         if (!old) return old;
-        
+
         const student = old.students.find(s => s.id === studentUserId);
         if (!student) return old;
-        
+
+        // Check if already registered for this specific day
+        const alreadyRegistered = old.weeks.some(week =>
+          week.days.some(day =>
+            day.id === cleaningDayId && day.registrations.some(r => r.userId === studentUserId)
+          )
+        );
+
+        if (alreadyRegistered) return old;
+
         return {
           ...old,
           weeks: old.weeks.map(week => ({
@@ -390,7 +400,7 @@ export const useManualAssign = () => {
                   currentRegistrations: day.currentRegistrations + 1,
                   status: day.currentRegistrations + 1 >= day.capacityLimit ? 'FULL' : 'OPEN',
                   registrations: [
-                    ...day.registrations.filter(r => r.userId !== studentUserId),
+                    ...day.registrations,
                     {
                       id: 'temp-' + Date.now(),
                       userId: studentUserId,
@@ -401,17 +411,13 @@ export const useManualAssign = () => {
                   ]
                 };
               }
-              // Remove from other days
-              return {
-                ...day,
-                registrations: day.registrations.filter(r => r.userId !== studentUserId),
-                currentRegistrations: day.registrations.filter(r => r.userId !== studentUserId).length,
-              };
+              // Don't remove from other days - users can have multiple registrations
+              return day;
             }),
           })),
         };
       });
-      
+
       return { previousData };
     },
     onError: (err, variables, context) => {
@@ -432,10 +438,10 @@ export const useMarkAttendance = () => {
     onMutate: async ({ userId, cleaningDayId, status }: { userId: string; cleaningDayId: string; status: 'ATTENDED' | 'NO_SHOW' | 'PENDING' }) => {
       await queryClient.cancelQueries({ queryKey: ['adminCleaning'] });
       const previousData = queryClient.getQueryData(['adminCleaning']) as CleaningData;
-      
+
       queryClient.setQueryData(['adminCleaning'], (old: CleaningData | undefined) => {
         if (!old) return old;
-        
+
         return {
           ...old,
           weeks: old.weeks.map(week => ({
@@ -444,23 +450,23 @@ export const useMarkAttendance = () => {
               if (day.id === cleaningDayId) {
                 const existingAttendance = day.attendanceRecords?.find(a => a.userId === userId);
                 const updatedAttendanceRecords = existingAttendance
-                  ? day.attendanceRecords?.map(a => 
-                      a.userId === userId 
-                        ? { ...a, status, markedAt: new Date().toISOString() }
-                        : a
-                    )
+                  ? day.attendanceRecords?.map(a =>
+                    a.userId === userId
+                      ? { ...a, status, markedAt: new Date().toISOString() }
+                      : a
+                  )
                   : [
-                      ...(day.attendanceRecords || []),
-                      {
-                        id: 'temp-' + Date.now(),
-                        userId,
-                        cleaningDayId,
-                        status,
-                        markedAt: new Date().toISOString(),
-                        user: day.registrations.find(r => r.userId === userId)?.user || { id: userId, firstName: '', lastName: '', email: '', profileImageUrl: null },
-                      }
-                    ];
-                
+                    ...(day.attendanceRecords || []),
+                    {
+                      id: 'temp-' + Date.now(),
+                      userId,
+                      cleaningDayId,
+                      status,
+                      markedAt: new Date().toISOString(),
+                      user: day.registrations.find(r => r.userId === userId)?.user || { id: userId, firstName: '', lastName: '', email: '', profileImageUrl: null },
+                    }
+                  ];
+
                 return {
                   ...day,
                   attendanceRecords: updatedAttendanceRecords,
@@ -471,7 +477,7 @@ export const useMarkAttendance = () => {
           })),
         };
       });
-      
+
       return { previousData };
     },
     onError: (err, variables, context) => {
@@ -489,33 +495,35 @@ export const useRemoveStudent = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: api.removeStudent,
-    onMutate: async (studentUserId: string) => {
+    onMutate: async ({ studentUserId, cleaningDayId }: { studentUserId: string; cleaningDayId: string }) => {
       await queryClient.cancelQueries({ queryKey: ['adminCleaning'] });
       const previousData = queryClient.getQueryData(['adminCleaning']) as CleaningData;
-      
+
       queryClient.setQueryData(['adminCleaning'], (old: CleaningData | undefined) => {
         if (!old) return old;
-        
+
         return {
           ...old,
           weeks: old.weeks.map(week => ({
             ...week,
             days: week.days.map(day => {
-              const hadRegistration = day.registrations.some(r => r.userId === studentUserId);
-              if (hadRegistration) {
-                return {
-                  ...day,
-                  currentRegistrations: Math.max(0, day.currentRegistrations - 1),
-                  status: 'OPEN',
-                  registrations: day.registrations.filter(r => r.userId !== studentUserId),
-                };
+              if (day.id === cleaningDayId) {
+                const hadRegistration = day.registrations.some(r => r.userId === studentUserId);
+                if (hadRegistration) {
+                  return {
+                    ...day,
+                    currentRegistrations: Math.max(0, day.currentRegistrations - 1),
+                    status: 'OPEN',
+                    registrations: day.registrations.filter(r => r.userId !== studentUserId),
+                  };
+                }
               }
               return day;
             }),
           })),
         };
       });
-      
+
       return { previousData };
     },
     onError: (err, variables, context) => {

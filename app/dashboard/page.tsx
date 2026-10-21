@@ -235,6 +235,106 @@ function StatItem({
    SECTION HEADER — bold, editorial
 ============================================================ */
 
+/* ============================================================
+   RECENT ANNOUNCEMENTS STRIP — lives inside the hero card
+============================================================ */
+
+function RecentAnnouncementsStrip() {
+  const router = useRouter();
+
+  const { data, isLoading } = useQuery<{ announcements: Array<{ id: string; title: string; createdAt: string; isGlobal: boolean }> }>({
+    queryKey: ['announcements', 'recent-strip'],
+    queryFn: async () => {
+      const res = await fetch('/api/announcements');
+      if (!res.ok) throw new Error('Failed');
+      return res.json();
+    },
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    select: (data) => ({
+      announcements: data.announcements.slice(0, 3),
+    }),
+  });
+
+  const announcements = data?.announcements ?? [];
+
+  return (
+    <div className="border-t border-white/10">
+      {/* Section header */}
+      <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
+        <div className="flex items-center gap-2">
+          <div className="flex h-5 w-5 items-center justify-center rounded bg-[#B98A3E]/15">
+            <AlertCircle className="h-3 w-3 text-[#B98A3E]" />
+          </div>
+          <span className="font-mono text-[9.5px] font-bold uppercase tracking-[0.18em] text-white/50">
+            Announcements
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => router.push('/dashboard/announcements')}
+          className="inline-flex items-center gap-1.5 rounded border border-[#B98A3E]/30 bg-[#B98A3E]/10 px-2.5 py-1 font-mono text-[8.5px] font-bold uppercase tracking-[0.14em] text-[#B98A3E] transition-colors hover:border-[#B98A3E]/60 hover:bg-[#B98A3E]/20"
+        >
+          View all
+          <ArrowRight className="h-2.5 w-2.5" />
+        </button>
+      </div>
+
+      {/* List */}
+      <div className="px-4 pb-4 sm:px-6">
+        {isLoading ? (
+          <div className="space-y-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-8 animate-pulse rounded-md bg-white/5" />
+            ))}
+          </div>
+        ) : announcements.length === 0 ? (
+          <p className="py-3 text-center font-mono text-[10px] text-white/25">
+            No announcements yet
+          </p>
+        ) : (
+          <ol className="space-y-px">
+            {announcements.map((a, idx) => (
+              <li key={a.id}>
+                <button
+                  type="button"
+                  onClick={() => router.push('/dashboard/announcements')}
+                  className="group flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white/5"
+                >
+                  {/* Number */}
+                  <span className="mt-0.5 shrink-0 font-mono text-[10px] font-black tabular-nums text-[#B98A3E]/50">
+                    {String(idx + 1).padStart(2, '0')}
+                  </span>
+
+                  {/* Title — full wrap, no truncation */}
+                  <span className="flex-1 text-[12.5px] font-semibold leading-snug text-white/75 group-hover:text-white">
+                    {a.title}
+                  </span>
+
+                  {/* Badges + arrow */}
+                  <div className="ml-2 flex shrink-0 items-center gap-1.5 pt-0.5">
+                    {a.isGlobal && (
+                      <span className="rounded border border-[#B98A3E]/25 bg-[#B98A3E]/10 px-1.5 py-0.5 font-mono text-[7.5px] font-bold uppercase tracking-wider text-[#B98A3E]">
+                        Global
+                      </span>
+                    )}
+                    <ChevronRight className="h-3 w-3 text-white/20 transition-colors group-hover:text-[#B98A3E]" />
+                  </div>
+                </button>
+
+                {/* Divider between items */}
+                {idx < announcements.length - 1 && (
+                  <div className="mx-3 h-px bg-white/5" />
+                )}
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function SectionHeader({
   label,
   count,
@@ -495,27 +595,24 @@ function MediaLibrary() {
                     key={item.id}
                     type="button"
                     onClick={() => selectVideo(idx)}
-                    className={`group flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                      isActive
-                        ? 'border-l-2 border-l-[#B98A3E] bg-[#B98A3E]/[0.12]'
-                        : 'border-l-2 border-l-transparent hover:bg-white/[0.04]'
-                    }`}
+                    className={`group flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${isActive
+                      ? 'border-l-2 border-l-[#B98A3E] bg-[#B98A3E]/[0.12]'
+                      : 'border-l-2 border-l-transparent hover:bg-white/[0.04]'
+                      }`}
                   >
                     <span
-                      className={`w-5 shrink-0 text-center font-mono text-[10px] font-bold tabular-nums ${
-                        isActive
-                          ? 'text-[#B98A3E]'
-                          : 'text-white/25 group-hover:text-white/50'
-                      }`}
+                      className={`w-5 shrink-0 text-center font-mono text-[10px] font-bold tabular-nums ${isActive
+                        ? 'text-[#B98A3E]'
+                        : 'text-white/25 group-hover:text-white/50'
+                        }`}
                     >
                       {String(idx + 1).padStart(2, '0')}
                     </span>
                     <span
-                      className={`flex-1 truncate text-[11px] font-bold ${
-                        isActive
-                          ? 'text-[#B98A3E]'
-                          : 'text-white/70 group-hover:text-white/90'
-                      }`}
+                      className={`flex-1 truncate text-[11px] font-bold ${isActive
+                        ? 'text-[#B98A3E]'
+                        : 'text-white/70 group-hover:text-white/90'
+                        }`}
                     >
                       {item.title}
                     </span>
@@ -602,9 +699,8 @@ function StatBlock({
   return (
     <div className="flex min-w-0 flex-col">
       <span
-        className={`font-mono text-2xl font-black leading-none tabular-nums sm:text-3xl ${
-          accent ? 'text-[#B98A3E]' : 'text-white'
-        }`}
+        className={`font-mono text-2xl font-black leading-none tabular-nums sm:text-3xl ${accent ? 'text-[#B98A3E]' : 'text-white'
+          }`}
       >
         {value}
       </span>
@@ -716,9 +812,8 @@ function SuggestedStudents({ trending = [], isLoading }: { trending?: SocialUser
     <div className="relative">
       <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 scroll-smooth">
         {trending.map((user) => {
-          const initials = `${user.firstName[0] ?? ''}${
-            user.lastName[0] ?? ''
-          }`.toUpperCase();
+          const initials = `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''
+            }`.toUpperCase();
           const isSelf = user.id === currentUserId;
 
           return (
@@ -894,9 +989,8 @@ function RecentSocialActivity({
   return (
     <ul className="divide-y divide-[#E5E7EB] border-y border-[#E5E7EB]">
       {events.map((event) => {
-        const initials = `${event.user.firstName[0] ?? ''}${
-          event.user.lastName[0] ?? ''
-        }`.toUpperCase();
+        const initials = `${event.user.firstName[0] ?? ''}${event.user.lastName[0] ?? ''
+          }`.toUpperCase();
         const isLike = event.kind === 'like';
 
         return (
@@ -916,9 +1010,8 @@ function RecentSocialActivity({
                 </div>
               )}
               <span
-                className={`absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center border border-white ${
-                  isLike ? 'bg-[#A4462F]' : 'bg-[#55705B]'
-                }`}
+                className={`absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center border border-white ${isLike ? 'bg-[#A4462F]' : 'bg-[#55705B]'
+                  }`}
               >
                 {isLike ? (
                   <Heart className="h-2 w-2 text-white" fill="currentColor" />
@@ -1077,9 +1170,8 @@ function TechCenterActivity({
     <div className="border border-[#E5E7EB] bg-white">
       <ul className="max-h-[400px] divide-y divide-[#E5E7EB] overflow-y-auto">
         {activities.map((activity) => {
-          const initials = `${activity.user.firstName[0] ?? ''}${
-            activity.user.lastName[0] ?? ''
-          }`.toUpperCase();
+          const initials = `${activity.user.firstName[0] ?? ''}${activity.user.lastName[0] ?? ''
+            }`.toUpperCase();
 
           return (
             <li key={activity.id} className="flex items-center gap-3 py-3">
@@ -1460,93 +1552,84 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-[#1A2B4C]">
-      {/* ============================================================
-          FULL-WIDTH BILLBOARD - AnnouncementCarousel
-      ============================================================ */}
-      <div className="w-full bg-[#1A2B4C]">
-        <div className="mx-auto max-w-7xl px-6 py-3 sm:px-8 sm:py-3 lg:px-12 lg:py-3">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="h-1 w-12 shrink-0 bg-[#B98A3E]" />
-            <h2 className="text-[16px] font-black uppercase tracking-widest text-white sm:text-[18px]">
-              Selfless CE Student Portal App live updates
-            </h2>
-            <div className="flex-1 h-px bg-white/10" />
-            <span className="font-mono text-[10px] uppercase tracking-wider text-white/40">
-              Community Updates
-            </span>
-          </div>
-        </div>
-        <div className="mx-auto max-w-7xl px-6 pb-4 sm:px-8 sm:pb-4 lg:px-12 lg:pb-4">
-          <AnnouncementCarousel inHeader={true} />
-        </div>
-      </div>
-
       <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
         {/* ============================================================
-            HERO — compact greeting + stats
+            HERO — greeting + stats + recent announcements  (1st)
         ============================================================ */}
-        <header className="bg-[#1A2B4C] text-white">
+        <header className="overflow-hidden bg-[#1A2B4C] text-white">
           {/* Status Bar */}
-          <div className="px-4 py-1.5 border-b border-white/10 sm:px-6">
-            <div className="flex items-center justify-between font-mono text-[9px] text-white/40">
+          <div className="border-b border-white/10 px-4 py-1.5 sm:px-6">
+            <div className="flex items-center justify-between font-mono text-[9px] text-white/70">
               <div className="flex items-center gap-2">
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block h-1 w-1 rounded-full bg-[#55705B] animate-pulse" />
-                  <span className="uppercase tracking-wider">Live</span>
+                  <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#B98A3E]" />
+                  <span className="uppercase tracking-wider text-[#B98A3E]">Live</span>
                 </span>
                 <span className="text-white/20">•</span>
                 <span className="uppercase tracking-wider">
                   {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                 </span>
-              </div>
-              <div className="flex items-center gap-1">
+                <span className="text-white/20">•</span>
                 <span className="uppercase tracking-wider">
                   {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+              <div className="hidden items-center gap-1 sm:flex">
+                <span className="inline-flex items-center gap-1.5 font-mono text-[8px] font-bold uppercase tracking-wider text-[#B98A3E]">
+                  <span className="inline-block h-1 w-1 animate-pulse rounded-full bg-[#B98A3E]" />
+                  Online
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="px-4 py-4 sm:px-6 sm:py-5">
-            {/* User Profile - Top */}
-            <div className="mb-4 flex items-center gap-3">
-              <div className="relative h-12 w-12 shrink-0 overflow-hidden border-2 border-white/20 sm:h-14 sm:w-14">
-                {user?.profileImageUrl ? (
-                  <Image
-                    src={user.profileImageUrl}
-                    alt={userName}
-                    fill
-                    sizes="56px"
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-white/10">
-                    <User className="h-5 w-5 text-white/50" />
-                  </div>
-                )}
+          {/* Profile + Stats */}
+          <div className="px-4 py-5 sm:px-6 sm:py-6">
+            <div className="flex items-start gap-4">
+              {/* Avatar */}
+              <div className="relative shrink-0">
+                <div className="relative h-14 w-14 overflow-hidden rounded-xl border-2 border-[#B98A3E]/40 sm:h-16 sm:w-16">
+                  {user?.profileImageUrl ? (
+                    <Image
+                      src={user.profileImageUrl}
+                      alt={userName}
+                      fill
+                      sizes="64px"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-[#B98A3E]/10">
+                      <span className="font-mono text-xl font-black text-[#B98A3E]">
+                        {firstName?.charAt(0) ?? <User className="h-5 w-5" />}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {/* Online dot on avatar */}
+                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#1A2B4C] bg-[#55705B]" />
               </div>
 
+              {/* Name + badges */}
               <div className="min-w-0 flex-1">
-                <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[#B98A3E]">
+                <p className="font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-[#B98A3E]">
                   {greeting}
                 </p>
-                <h1 className="mt-0.5 text-xl font-black leading-tight tracking-tight sm:text-2xl">
-                  {firstName}
-                  <span className="text-white/40">.</span>
+                <h1 className="mt-0.5 text-2xl font-black leading-tight tracking-tight sm:text-3xl">
+                  {firstName}<span className="text-[#B98A3E]">.</span>
                 </h1>
-                <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10px] text-white/50">
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white/5 border border-white/10">
-                    <span className="inline-block h-1 w-1 rounded-full bg-[#55705B]" />
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[9.5px]">
+                  <span className="inline-flex items-center gap-1 text-[#B98A3E]">
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#B98A3E]" />
                     <span className="uppercase tracking-wider">Active</span>
                   </span>
                   {user?.role && (
-                    <span className="uppercase tracking-wider text-white/40">
+                    <span className="uppercase tracking-wider text-white/75">
                       {user.role.replace(/_/g, ' ')}
                     </span>
                   )}
                   {techCenter && (
-                    <span className="inline-flex items-center gap-1">
-                      <MapPin className="h-2.5 w-2.5" />
+                    <span className="inline-flex items-center gap-1 text-white/75">
+                      <MapPin className="h-2.5 w-2.5 text-[#B98A3E]" />
                       <span>{techCenter.name}</span>
                     </span>
                   )}
@@ -1554,50 +1637,46 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Stats Grid - Bottom */}
-            <div className="grid grid-cols-4 gap-2 sm:gap-3">
-              <div className="relative overflow-hidden rounded bg-white/5 border border-white/10 p-2.5 sm:p-3">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Users className="h-3 w-3 text-[#B98A3E]" />
-                  <span className="font-mono text-[8px] font-bold uppercase tracking-wider text-white/50">Followers</span>
+            {/* Stats Grid */}
+            <div className="mt-5 grid grid-cols-4 gap-2 sm:gap-3">
+              {[
+                { icon: <Users className="h-3 w-3" />, label: 'Followers', value: meStats?.followersCount ?? 0 },
+                { icon: <UserPlus className="h-3 w-3" />, label: 'Following', value: meStats?.followingCount ?? 0 },
+                { icon: <Eye className="h-3 w-3" />, label: 'Views', value: meStats?.profileViewsCount ?? 0 },
+                { icon: <Heart className="h-3 w-3" />, label: 'Likes', value: meStats?.likesReceivedCount ?? 0 },
+              ].map(({ icon, label, value }) => (
+                <div key={label} className="flex flex-col gap-0.5">
+                  <div className="flex items-center gap-1.5 text-[#B98A3E]">
+                    {icon}
+                    <span className="font-mono text-[8px] font-bold uppercase tracking-wider text-white/75">
+                      {label}
+                    </span>
+                  </div>
+                  <span className="font-mono text-lg font-black tabular-nums text-[#B98A3E] sm:text-xl">
+                    {value}
+                  </span>
                 </div>
-                <span className="font-mono text-lg font-black tabular-nums text-[#B98A3E] sm:text-xl">
-                  {meStats?.followersCount ?? 0}
-                </span>
-              </div>
-
-              <div className="relative overflow-hidden rounded bg-white/5 border border-white/10 p-2.5 sm:p-3">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Users className="h-3 w-3 text-[#B98A3E]" />
-                  <span className="font-mono text-[8px] font-bold uppercase tracking-wider text-white/50">Following</span>
-                </div>
-                <span className="font-mono text-lg font-black tabular-nums text-[#B98A3E] sm:text-xl">
-                  {meStats?.followingCount ?? 0}
-                </span>
-              </div>
-
-              <div className="relative overflow-hidden rounded bg-white/5 border border-white/10 p-2.5 sm:p-3">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Eye className="h-3 w-3 text-[#B98A3E]" />
-                  <span className="font-mono text-[8px] font-bold uppercase tracking-wider text-white/50">Views</span>
-                </div>
-                <span className="font-mono text-lg font-black tabular-nums text-[#B98A3E] sm:text-xl">
-                  {meStats?.profileViewsCount ?? 0}
-                </span>
-              </div>
-
-              <div className="relative overflow-hidden rounded bg-white/5 border border-white/10 p-2.5 sm:p-3">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Heart className="h-3 w-3 text-[#B98A3E]" />
-                  <span className="font-mono text-[8px] font-bold uppercase tracking-wider text-white/50">Likes</span>
-                </div>
-                <span className="font-mono text-lg font-black tabular-nums text-[#B98A3E] sm:text-xl">
-                  {meStats?.likesReceivedCount ?? 0}
-                </span>
-              </div>
+              ))}
             </div>
           </div>
+
+          {/* Recent Announcements strip */}
+          <RecentAnnouncementsStrip />
         </header>
+
+        {/* ============================================================
+            ANNOUNCEMENT CAROUSEL — community updates  (2nd)
+        ============================================================ */}
+        <div className="mt-3 bg-[#1A2B4C]">
+          <div className="px-4 pt-4 sm:px-6">
+            <h2 className="text-sm font-semibold text-white sm:text-base">
+              Selfless CE Live Updates
+            </h2>
+          </div>
+          <div className="px-4 pb-4 pt-3 sm:px-6">
+            <AnnouncementCarousel inHeader={true} />
+          </div>
+        </div>
 
         {/* ============================================================
             MAIN CONTENT - Unified layout
@@ -1617,7 +1696,7 @@ export default function DashboardPage() {
           {/* Trending Students */}
           <section>
             <SectionHeader
-              label="Trending"
+              label="Trending profiles"
               action={
                 <button
                   type="button"
@@ -1657,20 +1736,20 @@ export default function DashboardPage() {
           {(techCenter?.id ||
             user?.role === 'super_admin' ||
             user?.role === 'dev') && (
-            <section>
-              <SectionHeader
-                label={
-                  user?.role === 'super_admin' || user?.role === 'dev'
-                    ? 'All tech centers activity'
-                    : `${techCenter?.name || 'Your tech center'} activity`
-                }
-              />
-              <TechCenterActivity
-                techCenterId={techCenter?.id}
-                userRole={user?.role}
-              />
-            </section>
-          )}
+              <section>
+                <SectionHeader
+                  label={
+                    user?.role === 'super_admin' || user?.role === 'dev'
+                      ? 'All tech centers activity'
+                      : `${techCenter?.name || 'Your tech center'} activity`
+                  }
+                />
+                <TechCenterActivity
+                  techCenterId={techCenter?.id}
+                  userRole={user?.role}
+                />
+              </section>
+            )}
         </div>
 
         {/* ============================================================

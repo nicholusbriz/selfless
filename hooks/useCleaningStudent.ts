@@ -90,7 +90,7 @@ export interface CleaningData {
     techCenterId?: string;
   };
   weeks: Week[];
-  registration: UserRegistration | null;
+  registrations: UserRegistration[];
   userAttendance: UserAttendance[];
   unregisteredStudents: UnregisteredStudent[];
   isAdmin: boolean;
@@ -111,6 +111,7 @@ export interface CleaningStatus {
   message?: string;
   weekId?: string;
   weekLabel?: string;
+  registrationCount?: number;
 }
 
 // ----------------------------------------------------------------
@@ -165,15 +166,28 @@ const api = {
     return response.json();
   },
 
-  changeRegistration: async ({ newDayId }: { newDayId: string }) => {
+  changeRegistration: async ({ newDayId, oldDayId }: { newDayId: string; oldDayId?: string }) => {
     const response = await fetch('/api/cleaning/change-day', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ newDayId }),
+      body: JSON.stringify({ newDayId, oldDayId }),
     });
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || 'Failed to change registration');
+    }
+    return response.json();
+  },
+
+  unregisterFromCleaning: async ({ cleaningDayId }: { cleaningDayId: string }) => {
+    const response = await fetch('/api/cleaning/register', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cleaningDayId }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to unregister from cleaning day');
     }
     return response.json();
   },
@@ -223,20 +237,21 @@ export const useStudentCleaningStatus = () => {
   const query = useStudentCleaningData();
 
   const data: CleaningStatus | undefined = query.data
-    ? query.data.registration
+    ? query.data.registrations && query.data.registrations.length > 0
       ? {
           hasRegistration: true,
           registration: {
-            id: query.data.registration.id,
-            dayId: query.data.registration.cleaningDayId,
-            dayOfWeek: query.data.registration.cleaningDay.dayOfWeek,
-            cleaningDate: query.data.registration.cleaningDay.cleaningDate,
-            weekId: query.data.registration.cleaningDay.week.id,
-            weekLabel: query.data.registration.cleaningDay.week.weekLabel,
-            status: query.data.registration.cleaningDay.status,
+            id: query.data.registrations[0].id,
+            dayId: query.data.registrations[0].cleaningDayId,
+            dayOfWeek: query.data.registrations[0].cleaningDay.dayOfWeek,
+            cleaningDate: query.data.registrations[0].cleaningDay.cleaningDate,
+            weekId: query.data.registrations[0].cleaningDay.week.id,
+            weekLabel: query.data.registrations[0].cleaningDay.week.weekLabel,
+            status: query.data.registrations[0].cleaningDay.status,
           },
-          weekId: query.data.registration.cleaningDay.week.id,
-          weekLabel: query.data.registration.cleaningDay.week.weekLabel,
+          weekId: query.data.registrations[0].cleaningDay.week.id,
+          weekLabel: query.data.registrations[0].cleaningDay.week.weekLabel,
+          registrationCount: query.data.registrations.length,
         }
       : {
           hasRegistration: false,
@@ -304,15 +319,19 @@ export const useRegisterForCleaning = () => {
 
           const withWeeks: CleaningData = { ...old, weeks: updatedWeeks };
 
+          const newRegistration = buildRegistrationFromDay(
+            withWeeks,
+            cleaningDayId,
+          );
+
           return {
             ...withWeeks,
             unregisteredStudents: (old.unregisteredStudents || []).filter(
               (s) => s.id !== old.user.id,
             ),
-            registration: buildRegistrationFromDay(
-              withWeeks,
-              cleaningDayId,
-            ),
+            registrations: newRegistration
+              ? [...(old.registrations || []), newRegistration]
+              : old.registrations || [],
           };
         },
       );
@@ -350,7 +369,7 @@ export const useChangeRegistration = () => {
   return useMutation({
     mutationFn: api.changeRegistration,
 
-    onMutate: async ({ newDayId }: { newDayId: string }) => {
+    onMutate: async ({ newDayId, oldDayId }: { newDayId: string; oldDayId?: string }) => {
       await queryClient.cancelQueries({ queryKey: ['studentCleaningData'] });
 
       const previousData = queryClient.getQueryData<CleaningData>([
@@ -360,15 +379,16 @@ export const useChangeRegistration = () => {
       queryClient.setQueryData<CleaningData>(
         ['studentCleaningData'],
         (old) => {
-          if (!old || !old.registration) return old;
+          if (!old || !old.registrations || old.registrations.length === 0) return old;
 
-          const oldDayId = old.registration.cleaningDayId;
+          // If oldDayId is provided, use it; otherwise use the first registration
+          const targetOldDayId = oldDayId || old.registrations[0].cleaningDayId;
 
           const updatedWeeks = old.weeks.map((week) => ({
             ...week,
             days: week.days.map((day) => {
               // Remove current user from the old day
-              if (day.id === oldDayId) {
+              if (day.id === targetOldDayId) {
                 const next = Math.max(0, day.currentRegistrations - 1);
                 return {
                   ...day,
@@ -412,9 +432,91 @@ export const useChangeRegistration = () => {
 
           const withWeeks: CleaningData = { ...old, weeks: updatedWeeks };
 
+          const newRegistration = buildRegistrationFromDay(withWeeks, newDayId);
+
+          // Replace the old registration with the new one
+          const updatedRegistrations = (old.registrations || []).map(reg =>
+            reg.cleaningDayId === targetOldDayId && newRegistration
+              ? newRegistration
+              : reg
+          );
+
           return {
             ...withWeeks,
-            registration: buildRegistrationFromDay(withWeeks, newDayId),
+            registrations: updatedRegistrations,
+          };
+        },
+      );
+
+      return { previousData };
+    },
+
+    onError: (_err, _vars, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(
+          ['studentCleaningData'],
+          context.previousData,
+        );
+      }
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['studentCleaningData'],
+        refetchType: 'none',
+      });
+    },
+  });
+};
+
+// ----------------------------------------------------------------
+// Unregister from a specific day — optimistic, non-blocking
+// ----------------------------------------------------------------
+
+export const useUnregisterFromCleaning = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: api.unregisterFromCleaning,
+
+    onMutate: async ({ cleaningDayId }: { cleaningDayId: string }) => {
+      await queryClient.cancelQueries({ queryKey: ['studentCleaningData'] });
+
+      const previousData = queryClient.getQueryData<CleaningData>([
+        'studentCleaningData',
+      ]);
+
+      queryClient.setQueryData<CleaningData>(
+        ['studentCleaningData'],
+        (old) => {
+          if (!old) return old;
+
+          const updatedWeeks = old.weeks.map((week) => ({
+            ...week,
+            days: week.days.map((day) => {
+              if (day.id !== cleaningDayId) return day;
+
+              const next = Math.max(0, day.currentRegistrations - 1);
+
+              return {
+                ...day,
+                currentRegistrations: next,
+                status: 'OPEN' as const,
+                registrations: day.registrations.filter(
+                  (r) => r.userId !== old.user.id,
+                ),
+              };
+            }),
+          }));
+
+          const withWeeks: CleaningData = { ...old, weeks: updatedWeeks };
+
+          return {
+            ...withWeeks,
+            registrations: (old.registrations || []).filter(
+              (reg) => reg.cleaningDayId !== cleaningDayId
+            ),
+            unregisteredStudents: old.unregisteredStudents || [],
           };
         },
       );
