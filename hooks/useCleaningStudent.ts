@@ -93,6 +93,11 @@ export interface CleaningData {
   registrations: UserRegistration[];
   userAttendance: UserAttendance[];
   unregisteredStudents: UnregisteredStudent[];
+  studentsByRegistrationCount: {
+    zero: UnregisteredStudent[];
+    one: UnregisteredStudent[];
+    two: UnregisteredStudent[];
+  };
   isAdmin: boolean;
   userId: string;
 }

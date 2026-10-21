@@ -1507,6 +1507,15 @@ export default function DashboardPage() {
     return 'Good evening';
   };
 
+  // Friendly UI labels for staff roles. Admins are shown as "Manager" and
+  // super admins as "Director"; other roles fall back to a cleaned-up string.
+  const getRoleLabel = (role?: string | null) => {
+    if (!role) return '';
+    if (role === 'admin') return 'Manager';
+    if (role === 'super_admin') return 'Director';
+    return role.replace(/_/g, ' ');
+  };
+
   const greeting = getGreeting();
   const userName = user ? `${user.firstName} ${user.lastName}` : 'Guest';
   const firstName = user?.firstName || 'Guest';
@@ -1624,7 +1633,7 @@ export default function DashboardPage() {
                   </span>
                   {user?.role && (
                     <span className="uppercase tracking-wider text-white/75">
-                      {user.role.replace(/_/g, ' ')}
+                      {getRoleLabel(user.role)}
                     </span>
                   )}
                   {techCenter && (

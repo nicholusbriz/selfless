@@ -28,7 +28,8 @@ const commentInclude = {
       firstName: true,
       lastName: true,
       profileImageUrl: true,
-      role: { select: { displayName: true } },
+      role: { select: { name: true, displayName: true } },
+      techCenter: { select: { name: true } },
     },
   },
 } as const;

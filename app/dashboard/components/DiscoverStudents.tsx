@@ -9,11 +9,6 @@ import {
   useState,
 } from "react";
 import {
-  AnimatePresence,
-  motion,
-  useReducedMotion,
-} from "framer-motion";
-import {
   ArrowDown,
   ArrowUp,
   MapPin,
@@ -31,13 +26,13 @@ export type DiscoverStudent = {
   lastName: string;
   profileImageUrl?: string | null;
   generalCourse?:
-    | string
-    | null
-    | { id?: string; name?: string };
+  | string
+  | null
+  | { id?: string; name?: string };
   techCenter?:
-    | string
-    | null
-    | { id?: string; name?: string };
+  | string
+  | null
+  | { id?: string; name?: string };
   role?: {
     name?: string;
   };
@@ -55,24 +50,14 @@ type DiscoverStudentsProps = {
 ============================================================ */
 
 const DEFAULT_INTERVAL = 5000;
-
-const SWAP_DURATION_S = 0.5;
-const TOTAL_SLIDE_MS = SWAP_DURATION_S * 1000;
-const SWAP_PERSPECTIVE = 2000;
-
 const SWIPE_THRESHOLD = 40;
-
 const CARD_ASPECT = 0.76;
-
 const MAX_CARD_WIDTH = 400;
 const MIN_CARD_WIDTH = 270;
-
 const MOBILE_HORIZONTAL_PADDING = 12;
 const DESKTOP_HORIZONTAL_PADDING = 80;
-
 const MOBILE_RESERVED_VERTICAL = 120;
 const DESKTOP_RESERVED_VERTICAL = 165;
-
 const MOBILE_MAX = 639;
 
 /* ============================================================
@@ -93,15 +78,11 @@ function formatRole(roleName?: string | null) {
 
 const GOLD = "#C8A24A";
 const GOLD_BRIGHT = "#D9B563";
-
 const WHITE = "#FFFFFF";
 const WHITE_85 = "rgba(255, 255, 255, 0.85)";
 const WHITE_70 = "rgba(255, 255, 255, 0.70)";
-
 const PANEL_BG = "#0F1115";
 const PANEL_BORDER = "rgba(200, 162, 74, 0.22)";
-
-const CUBIC_EASE = [0.65, 0, 0.35, 1] as const;
 
 /* ============================================================
    HOOKS
@@ -152,11 +133,7 @@ function useResponsiveCardSize(
         ? MOBILE_RESERVED_VERTICAL
         : DESKTOP_RESERVED_VERTICAL;
 
-      const availableHeight = Math.max(
-        360,
-        window.innerHeight - reserved,
-      );
-
+      const availableHeight = Math.max(360, window.innerHeight - reserved);
       const widthFromHeight = availableHeight * CARD_ASPECT;
 
       const calculatedWidth = Math.min(
@@ -165,14 +142,8 @@ function useResponsiveCardSize(
         widthFromHeight,
       );
 
-      const width = Math.max(
-        MIN_CARD_WIDTH,
-        Math.round(calculatedWidth),
-      );
-
+      const width = Math.max(MIN_CARD_WIDTH, Math.round(calculatedWidth));
       const height = Math.round(width / CARD_ASPECT);
-
-      // Footer now holds: name+role row, degree row, tech center row
       const infoHeight = isMobile ? 92 : 100;
 
       setSize({ width, height, infoHeight });
@@ -182,7 +153,6 @@ function useResponsiveCardSize(
 
     const observer = new ResizeObserver(update);
     observer.observe(el);
-
     window.addEventListener("resize", update);
     window.addEventListener("orientationchange", update);
 
@@ -219,15 +189,13 @@ function useImagePreloader(urls: string[]) {
 
     const markReady = (url: string) => {
       if (cancelled) return;
-      setPreloadState((previousState) => {
-        const previous =
-          previousState.urlsKey === urlsKey
-            ? previousState
+      setPreloadState((prev) => {
+        const base =
+          prev.urlsKey === urlsKey
+            ? prev
             : { urlsKey, readyUrls: new Set<string>() };
-
-        if (previous.readyUrls.has(url)) return previous;
-
-        const next = new Set(previous.readyUrls);
+        if (base.readyUrls.has(url)) return base;
+        const next = new Set(base.readyUrls);
         next.add(url);
         return { urlsKey, readyUrls: next };
       });
@@ -237,13 +205,8 @@ function useImagePreloader(urls: string[]) {
       const img = new window.Image();
       img.decoding = "async";
       img.loading = "eager";
-
-      const onLoad = () => markReady(url);
-      const onError = () => markReady(url);
-
-      img.addEventListener("load", onLoad);
-      img.addEventListener("error", onError);
-
+      img.addEventListener("load", () => markReady(url));
+      img.addEventListener("error", () => markReady(url));
       img.src = url;
       images.push(img);
     });
@@ -323,19 +286,12 @@ export function DiscoverStudents({
   autoplay = true,
   interval = DEFAULT_INTERVAL,
 }: DiscoverStudentsProps) {
-  const shouldReduceMotion = useReducedMotion();
   const isMobile = useIsMobile();
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [direction, setDirection] = useState<1 | -1>(1);
-  const [isTransitioning, setIsTransitioning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
-  const transitionTimeoutRef =
-    useRef<ReturnType<typeof setTimeout> | null>(null);
-  const autoplayTimeoutRef =
-    useRef<ReturnType<typeof setTimeout> | null>(null);
-
+  const autoplayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchStartXRef = useRef<number | null>(null);
   const touchStartYRef = useRef<number | null>(null);
   const stageContainerRef = useRef<HTMLDivElement | null>(null);
@@ -350,9 +306,8 @@ export function DiscoverStudents({
   const normalizedCurrentIndex =
     visibleStudents.length === 0
       ? 0
-      : ((currentIndex % visibleStudents.length) +
-          visibleStudents.length) %
-        visibleStudents.length;
+      : ((currentIndex % visibleStudents.length) + visibleStudents.length) %
+      visibleStudents.length;
 
   const preloadUrls = useMemo(() => {
     if (visibleStudents.length === 0) return [];
@@ -368,24 +323,16 @@ export function DiscoverStudents({
   const readyUrls = useImagePreloader(preloadUrls);
 
   const currentImageReady = useMemo(() => {
-    const currentUrl = visibleStudents[normalizedCurrentIndex]?.profileImageUrl;
-    if (!currentUrl || !currentUrl.trim()) return true;
-    return readyUrls.has(currentUrl);
+    const url = visibleStudents[normalizedCurrentIndex]?.profileImageUrl;
+    if (!url || !url.trim()) return true;
+    return readyUrls.has(url);
   }, [visibleStudents, normalizedCurrentIndex, readyUrls]);
 
   const currentStudent =
-    visibleStudents.length > 0
-      ? visibleStudents[normalizedCurrentIndex]
-      : null;
+    visibleStudents.length > 0 ? visibleStudents[normalizedCurrentIndex] : null;
 
   const getDisplayValue = useCallback(
-    (
-      value:
-        | string
-        | null
-        | undefined
-        | { id?: string; name?: string },
-    ) => {
+    (value: string | null | undefined | { id?: string; name?: string }) => {
       if (!value) return "";
       if (typeof value === "string") return value;
       if (typeof value === "object") return value.name ?? "";
@@ -394,14 +341,7 @@ export function DiscoverStudents({
     [],
   );
 
-  const clearTransitionTimeout = useCallback(() => {
-    if (transitionTimeoutRef.current) {
-      clearTimeout(transitionTimeoutRef.current);
-      transitionTimeoutRef.current = null;
-    }
-  }, []);
-
-  const clearAutoplayTimeout = useCallback(() => {
+  const clearAutoplay = useCallback(() => {
     if (autoplayTimeoutRef.current) {
       clearTimeout(autoplayTimeoutRef.current);
       autoplayTimeoutRef.current = null;
@@ -410,105 +350,69 @@ export function DiscoverStudents({
 
   const move = useCallback(
     (step: 1 | -1) => {
-      if (visibleStudents.length <= 1 || isTransitioning) {
-        return;
-      }
-
-      clearAutoplayTimeout();
-      clearTransitionTimeout();
-
-      setDirection(step);
-      setIsTransitioning(true);
-
-      setCurrentIndex((previousIndex) => {
-        return (
-          ((previousIndex + step) % visibleStudents.length) +
-          visibleStudents.length
-        ) % visibleStudents.length;
-      });
-
-      transitionTimeoutRef.current = setTimeout(() => {
-        setIsTransitioning(false);
-        transitionTimeoutRef.current = null;
-      }, TOTAL_SLIDE_MS);
+      if (visibleStudents.length <= 1) return;
+      clearAutoplay();
+      setCurrentIndex((prev) =>
+        ((prev + step) % visibleStudents.length + visibleStudents.length) %
+        visibleStudents.length,
+      );
     },
-    [
-      visibleStudents.length,
-      isTransitioning,
-      clearAutoplayTimeout,
-      clearTransitionTimeout,
-    ],
+    [visibleStudents.length, clearAutoplay],
   );
 
+  // Autoplay
   useEffect(() => {
-    clearAutoplayTimeout();
-
+    clearAutoplay();
     if (
       !autoplay ||
       isPaused ||
-      shouldReduceMotion ||
       visibleStudents.length <= 1 ||
       isLoading ||
-      isTransitioning ||
       !currentImageReady
     ) {
       return;
     }
-
-    autoplayTimeoutRef.current = setTimeout(() => {
-      move(1);
-    }, Math.max(0, interval));
-
-    return clearAutoplayTimeout;
+    autoplayTimeoutRef.current = setTimeout(() => move(1), Math.max(0, interval));
+    return clearAutoplay;
   }, [
     autoplay,
     isPaused,
     interval,
     visibleStudents.length,
     isLoading,
-    isTransitioning,
     currentIndex,
     move,
-    clearAutoplayTimeout,
-    shouldReduceMotion,
+    clearAutoplay,
     currentImageReady,
   ]);
 
-  useEffect(() => {
-    return () => {
-      clearTransitionTimeout();
-      clearAutoplayTimeout();
-    };
-  }, [clearTransitionTimeout, clearAutoplayTimeout]);
+  useEffect(() => () => clearAutoplay(), [clearAutoplay]);
 
   const handlePrevious = useCallback(() => move(-1), [move]);
   const handleNext = useCallback(() => move(1), [move]);
   const togglePause = useCallback(() => setIsPaused((p) => !p), []);
 
   const handleTouchStart = useCallback(
-    (event: React.TouchEvent<HTMLDivElement>) => {
+    (e: React.TouchEvent<HTMLDivElement>) => {
       if (visibleStudents.length <= 1) return;
-      touchStartXRef.current = event.touches[0]?.clientX ?? null;
-      touchStartYRef.current = event.touches[0]?.clientY ?? null;
+      touchStartXRef.current = e.touches[0]?.clientX ?? null;
+      touchStartYRef.current = e.touches[0]?.clientY ?? null;
     },
     [visibleStudents.length],
   );
 
   const handleTouchEnd = useCallback(
-    (event: React.TouchEvent<HTMLDivElement>) => {
+    (e: React.TouchEvent<HTMLDivElement>) => {
       if (
         visibleStudents.length <= 1 ||
         touchStartXRef.current === null ||
         touchStartYRef.current === null
-      ) {
+      )
         return;
-      }
-
-      const endX = event.changedTouches[0]?.clientX ?? touchStartXRef.current;
+      const endX = e.changedTouches[0]?.clientX ?? touchStartXRef.current;
       const deltaX = endX - touchStartXRef.current;
       touchStartXRef.current = null;
       touchStartYRef.current = null;
-
       if (Math.abs(deltaX) < SWIPE_THRESHOLD) return;
       if (deltaX < 0) move(1);
       else move(-1);
@@ -516,6 +420,7 @@ export function DiscoverStudents({
     [visibleStudents.length, move],
   );
 
+  // ---- SKELETON ----
   if (isLoading || !currentStudent) {
     return (
       <section className="w-full">
@@ -525,7 +430,7 @@ export function DiscoverStudents({
               className="relative mx-auto flex w-full max-w-[400px] flex-col overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115]"
               style={{ aspectRatio: CARD_ASPECT }}
             >
-              <div className="relative min-h-0 flex-1 overflow-hidden bg-black animate-pulse" />
+              <div className="relative min-h-0 flex-1 animate-pulse overflow-hidden bg-black" />
             </div>
           </div>
         </div>
@@ -533,6 +438,7 @@ export function DiscoverStudents({
     );
   }
 
+  // ---- DERIVED VALUES ----
   const { width: cardWidth, height: cardHeight, infoHeight } = size;
   const firstName = currentStudent.firstName?.trim() || "Student";
   const lastName = currentStudent.lastName?.trim() || "";
@@ -546,39 +452,6 @@ export function DiscoverStudents({
     currentStudent.role?.name === "super_admin";
   const roleLabel = formatRole(currentStudent.role?.name);
 
-  /* ============================================================
-     IMPROVED 3D FLIP — Better z-index management to prevent collision
-  ============================================================ */
-
-  const cardSwapVariants = {
-    enter: (dir: 1 | -1) => ({
-      rotateY: dir === 1 ? 90 : -90,
-      opacity: 0,
-      z: -100,
-      scale: 0.9,
-    }),
-    center: {
-      rotateY: 0,
-      opacity: 1,
-      z: 0,
-      scale: 1,
-      transition: {
-        duration: SWAP_DURATION_S,
-        ease: CUBIC_EASE,
-      },
-    },
-    exit: (dir: 1 | -1) => ({
-      rotateY: dir === 1 ? -90 : 90,
-      opacity: 0,
-      z: -200,
-      scale: 0.9,
-      transition: {
-        duration: SWAP_DURATION_S,
-        ease: CUBIC_EASE,
-      },
-    }),
-  };
-
   return (
     <section className="w-full">
       <div
@@ -586,14 +459,11 @@ export function DiscoverStudents({
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {/* STAGE CONTAINER */}
+        {/* STAGE */}
         <div
           ref={stageContainerRef}
           className="relative mx-auto w-full px-3 pt-2"
-          style={{
-            height: `${cardHeight + 16}px`,
-            perspective: `${SWAP_PERSPECTIVE}px`,
-          }}
+          style={{ height: `${cardHeight + 16}px` }}
         >
           <div
             className="absolute left-1/2 top-1/2"
@@ -602,109 +472,99 @@ export function DiscoverStudents({
               height: cardHeight,
               marginLeft: -cardWidth / 2,
               marginTop: -cardHeight / 2,
-              transformStyle: "preserve-3d",
-              transformOrigin: "center center",
             }}
           >
-            <AnimatePresence initial={false} custom={direction}>
-              <motion.div
-                key={currentStudent.id}
-                custom={direction}
-                variants={cardSwapVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                className="absolute inset-0 flex h-full w-full flex-col overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] shadow-[0_24px_65px_rgba(0,0,0,0.52)]"
+            {/*
+              Single static card — data swaps in place via `key`.
+              No AnimatePresence, no motion, no fade gap.
+            */}
+            <div
+              key={currentStudent.id}
+              className="absolute inset-0 flex h-full w-full flex-col overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] shadow-[0_24px_65px_rgba(0,0,0,0.52)]"
+            >
+              {/* IMAGE */}
+              <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
+                {imageSrc ? (
+                  <Image
+                    key={imageSrc}
+                    src={imageSrc}
+                    alt={fullName}
+                    fill
+                    sizes={`${cardWidth}px`}
+                    className="h-full w-full object-cover object-center"
+                    quality={95}
+                    priority
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-[#18212F] text-4xl font-semibold text-white/70">
+                    {initials}
+                  </div>
+                )}
+              </div>
+
+              {/* INFO FOOTER */}
+              <div
+                className="relative flex shrink-0 flex-col justify-center overflow-hidden px-4 sm:px-5"
                 style={{
-                  transformStyle: "preserve-3d",
-                  transformOrigin: "center center",
-                  backfaceVisibility: "hidden",
-                  willChange: "transform",
+                  height: infoHeight,
+                  backgroundColor: PANEL_BG,
+                  borderTop: `1px solid ${PANEL_BORDER}`,
                 }}
               >
-                {/* IMAGE AREA — clean, no gradient overlay */}
-                <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
-                  {imageSrc ? (
-                    <Image
-                      src={imageSrc}
-                      alt={fullName}
-                      fill
-                      sizes={`${cardWidth}px`}
-                      className="h-full w-full object-cover object-center"
-                      quality={95}
-                      priority
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-[#18212F] text-4xl font-semibold text-white/70">
-                      {initials}
+                <div className="flex flex-col gap-1">
+                  {/* Row 1 — Name + Role */}
+                  <div className="flex items-center justify-between gap-2">
+                    <h3
+                      className="min-w-0 flex-1 truncate text-[15px] font-bold leading-tight tracking-[-0.02em]"
+                      style={{ color: GOLD_BRIGHT }}
+                      title={fullName}
+                    >
+                      {fullName}
+                    </h3>
+                    {roleLabel && (
+                      <span
+                        className="shrink-0 truncate text-[10.5px] font-medium leading-tight"
+                        style={{ color: WHITE_70 }}
+                      >
+                        {roleLabel}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Row 2 — Course */}
+                  {!isSuperAdmin && (
+                    <p
+                      className="truncate text-[12px] font-medium leading-tight"
+                      style={{ color: WHITE }}
+                      title={courseName || "Student"}
+                    >
+                      {courseName || "Student"}
+                    </p>
+                  )}
+
+                  {/* Row 3 — Tech Center */}
+                  {!isSuperAdmin && techCenterName && (
+                    <div className="flex items-center gap-1.5">
+                      <MapPin
+                        className="h-[10px] w-[10px] shrink-0"
+                        style={{ color: GOLD }}
+                      />
+                      <span
+                        className="min-w-0 truncate text-[11.5px] font-medium leading-tight"
+                        style={{ color: WHITE_85 }}
+                        title={techCenterName}
+                      >
+                        {techCenterName}
+                      </span>
                     </div>
                   )}
                 </div>
-
-                {/* COMPACT INFO FOOTER — three clean rows */}
-                <div
-                  className="relative flex shrink-0 flex-col justify-center overflow-hidden px-4 sm:px-5"
-                  style={{
-                    height: infoHeight,
-                    backgroundColor: PANEL_BG,
-                    borderTop: `1px solid ${PANEL_BORDER}`,
-                  }}
-                >
-                  <div className="flex flex-col gap-1">
-                    {/* Row 1 — Name + Role (same row) */}
-                    <div className="flex items-center justify-between gap-2">
-                      <h3
-                        className="min-w-0 flex-1 truncate text-[15px] font-bold leading-tight tracking-[-0.02em]"
-                        style={{ color: GOLD_BRIGHT }}
-                        title={fullName}
-                      >
-                        {fullName}
-                      </h3>
-                      {roleLabel && (
-                        <span
-                          className="shrink-0 truncate text-[10.5px] font-medium leading-tight"
-                          style={{ color: WHITE_70 }}
-                        >
-                          {roleLabel}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Row 2 — Degree Program (its own row) */}
-                    {!isSuperAdmin && (
-                      <p
-                        className="truncate text-[12px] font-medium leading-tight"
-                        style={{ color: WHITE }}
-                        title={courseName || "Student"}
-                      >
-                        {courseName || "Student"}
-                      </p>
-                    )}
-
-                    {/* Row 3 — Tech Center (its own row) */}
-                    {!isSuperAdmin && techCenterName && (
-                      <div className="flex items-center gap-1.5">
-                        <MapPin
-                          className="h-[10px] w-[10px] shrink-0"
-                          style={{ color: GOLD }}
-                        />
-                        <span
-                          className="min-w-0 truncate text-[11.5px] font-medium leading-tight"
-                          style={{ color: WHITE_85 }}
-                          title={techCenterName}
-                        >
-                          {techCenterName}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            </AnimatePresence>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* FOOTER CONTROLS & COUNTER */}
+        {/* FOOTER CONTROLS */}
         <div className="mx-auto flex w-full max-w-[820px] items-center justify-between border-t border-white/[0.07] px-4 py-3 sm:px-7 sm:py-4">
           <span
             className="text-xs font-medium tracking-wide"
@@ -718,7 +578,7 @@ export function DiscoverStudents({
             <NavButton
               direction="up"
               onClick={handlePrevious}
-              disabled={isTransitioning || visibleStudents.length <= 1}
+              disabled={visibleStudents.length <= 1}
             />
             <PauseButton
               isPaused={isPaused}
@@ -728,7 +588,7 @@ export function DiscoverStudents({
             <NavButton
               direction="down"
               onClick={handleNext}
-              disabled={isTransitioning || visibleStudents.length <= 1}
+              disabled={visibleStudents.length <= 1}
             />
           </div>
         </div>

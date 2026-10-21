@@ -3,7 +3,7 @@
 
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -29,6 +29,9 @@ import {
   UserMinus,
   ArrowLeft,
   Filter,
+  Search,
+  X,
+  User,
 } from 'lucide-react';
 
 import {
@@ -91,6 +94,27 @@ const TOKENS = `
 const focusRing =
   'outline-none focus-visible:ring-2 focus-visible:ring-[var(--brass)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]';
 
+const panel =
+  'border border-[var(--line)] bg-[var(--surface)] rounded-lg shadow-[0_1px_2px_rgba(18,32,59,0.03)]';
+
+// =========================================================
+// FORMAT DATE HELPER
+// =========================================================
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+
+  return date.toLocaleDateString(
+    'en-US',
+    {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }
+  );
+};
+
 // =========================================================
 // AVATAR COMPONENT (from cleaning rota page)
 // =========================================================
@@ -142,6 +166,290 @@ function Avatar({
         )}
       </div>
     </div>
+  );
+}
+
+// =========================================================
+// STUDENTS BY REGISTRATION LIST
+// =========================================================
+
+type StudentFilter = 'all' | 'zero' | 'one' | 'two';
+
+type StudentWithCount = { id: string; firstName: string; lastName: string; registrationCount: number };
+
+function StudentsByRegistrationList({
+  studentsByRegistrationCount,
+  totalWeeks,
+  totalDays,
+  weeks,
+  onStudentClick,
+}: {
+  studentsByRegistrationCount: {
+    zero: { id: string; firstName: string; lastName: string }[];
+    one: { id: string; firstName: string; lastName: string }[];
+    two: { id: string; firstName: string; lastName: string }[];
+  };
+  totalWeeks: number;
+  totalDays: number;
+  weeks: CleaningWeek[];
+  onStudentClick: (studentId: string, studentName: string) => void;
+}) {
+  const [filter, setFilter] = useState<StudentFilter>('all');
+
+  const allStudents: StudentWithCount[] = [
+    ...studentsByRegistrationCount.zero.map((s) => ({ ...s, registrationCount: 0 })),
+    ...studentsByRegistrationCount.one.map((s) => ({ ...s, registrationCount: 1 })),
+    ...studentsByRegistrationCount.two.map((s) => ({ ...s, registrationCount: 2 })),
+  ];
+
+  const filteredStudents = useMemo(() => {
+    if (filter === 'all') return allStudents;
+    return allStudents.filter((s) => {
+      if (filter === 'zero') return s.registrationCount === 0;
+      if (filter === 'one') return s.registrationCount === 1;
+      if (filter === 'two') return s.registrationCount === 2;
+      return false;
+    });
+  }, [filter, allStudents]);
+
+  const totalStudents = allStudents.length;
+
+  if (totalStudents === 0) {
+    return (
+      <div className="mb-4">
+        <div className="flex items-center gap-2 text-[12.5px] text-[var(--ink-3)]">
+          <CheckCircle className="h-4 w-4 text-[var(--ok)]" />
+          <span className="font-medium">
+            Every student is registered for a cleaning day.
+          </span>
+        </div>
+        <p className="mt-2 text-[12px] text-[var(--ink-3)]">
+          Total weeks: {totalWeeks} · Total days: {totalDays}
+        </p>
+      </div>
+    );
+  }
+
+  const filterOptions = [
+    { key: 'all' as const, label: 'All', count: totalStudents, description: 'All students' },
+    { key: 'zero' as const, label: 'Not registered', count: studentsByRegistrationCount.zero.length, description: 'Students who haven\'t registered for a cleaning day' },
+    { key: 'one' as const, label: 'One day', count: studentsByRegistrationCount.one.length, description: 'Students registered for one day' },
+    { key: 'two' as const, label: 'Two days', count: studentsByRegistrationCount.two.length, description: 'Students registered for two days' },
+  ];
+
+  return (
+    <div className="mb-4">
+      <div className="flex items-center justify-between mb-3">
+        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--ink-3)]">
+          Students by registration
+        </p>
+        <p className="text-[11.5px] text-[var(--ink-4)]">
+          Total: {totalStudents}
+        </p>
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-3">
+        {filterOptions.map((option) => (
+          <button
+            key={option.key}
+            type="button"
+            onClick={() => setFilter(option.key)}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[11.5px] font-semibold rounded-md border transition-colors ${filter === option.key
+              ? 'bg-[var(--brand)] border-[var(--brand)] text-white'
+              : 'bg-[var(--surface)] border-[var(--line)] text-[var(--ink-2)] hover:border-[var(--brass)] hover:text-[var(--ink)]'
+              } ${focusRing}`}
+            title={option.description}
+          >
+            {option.label}
+            <span className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${filter === option.key
+              ? 'bg-white/20 text-white'
+              : 'bg-[var(--surface-2)] text-[var(--ink-3)]'
+              }`}>
+              {option.count}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {filteredStudents.length === 0 ? (
+        <div className="text-[12.5px] text-[var(--ink-4)] py-2">
+          No students in this category
+        </div>
+      ) : (
+        <p className="text-[13px] leading-6 text-[var(--ink)]">
+          {filteredStudents
+            .sort((a, b) => a.firstName.localeCompare(b.firstName))
+            .map((s, index) => (
+              <span key={s.id}>
+                {index > 0 && ' · '}
+                <button
+                  type="button"
+                  onClick={() => onStudentClick(s.id, `${s.firstName} ${s.lastName}`)}
+                  className={`${s.registrationCount > 0 ? 'text-blue-600 font-semibold' : 'text-[var(--ink)]'} hover:underline decoration-1 underline-offset-2`}
+                >
+                  {s.firstName} {s.lastName}
+                </button>
+              </span>
+            ))}
+        </p>
+      )}
+
+      <div className="mt-2 flex items-start gap-1.5 text-[11px] text-[var(--ink-3)] bg-[var(--surface-2)] px-2.5 py-2 rounded border border-[var(--line)]">
+        <span className="font-semibold text-[var(--brass)]">Pro tip:</span>
+        <span>Click on a student name to see their registration status</span>
+      </div>
+
+      <p className="mt-2 text-[12px] text-[var(--ink-3)]">
+        Total weeks: {totalWeeks} · Total days: {totalDays}
+      </p>
+    </div>
+  );
+}
+
+// =========================================================
+// PARTICIPANT SEARCH RESULT TYPE
+// =========================================================
+
+type ParticipantSearchResult = {
+  registrationId: string;
+  userId: string;
+  firstName: string;
+  lastName: string;
+  profileImageUrl?: string | null;
+  dayId: string;
+  dayOfWeek: string;
+  cleaningDate: string;
+  weekId: string;
+  weekLabel: string;
+};
+
+// =========================================================
+// PARTICIPANT SEARCH
+// =========================================================
+
+function ParticipantSearch({
+  results,
+  search,
+  onSearchChange,
+  onClear,
+  onSelect,
+}: {
+  results: ParticipantSearchResult[];
+  search: string;
+  onSearchChange: (value: string) => void;
+  onClear: () => void;
+  onSelect: (result: ParticipantSearchResult) => void;
+}) {
+  const [focused, setFocused] = useState(false);
+  const showResults = focused && search.trim().length > 0;
+
+  return (
+    <section className={`${panel} mb-4`}>
+      <div className="px-4 py-4 sm:px-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-[var(--brand)] text-white rounded-md">
+            <Search className="h-4 w-4" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-[15px] font-semibold text-[var(--ink)]">
+              Find a registered participant
+            </h2>
+            <p className="mt-0.5 text-[12.5px] text-[var(--ink-3)]">
+              Search by student name, cleaning day or date.
+            </p>
+          </div>
+        </div>
+
+        <div className="relative mt-3.5">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-4)]"
+            aria-hidden
+          />
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => onSearchChange(event.target.value)}
+            onFocus={() => setFocused(true)}
+            placeholder="Search student, day or date..."
+            aria-label="Search registered participants"
+            className={`h-11 w-full border border-[var(--line)] bg-[var(--surface)] pl-10 pr-10 text-[13.5px] text-[var(--ink)] placeholder:text-[var(--ink-4)] rounded-md ${focusRing}`}
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={onClear}
+              aria-label="Clear participant search"
+              className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-[var(--ink-4)] hover:text-[var(--ink)] rounded ${focusRing}`}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        {search.trim() && (
+          <div className="mt-2.5 flex items-center justify-between gap-3">
+            <p className="text-[12px] font-medium text-[var(--ink-3)]">
+              {results.length}{' '}
+              {results.length === 1 ? 'participant' : 'participants'} found
+            </p>
+            <span className="hidden font-mono text-[10px] uppercase tracking-wide text-[var(--ink-4)] sm:block">
+              Client-side search
+            </span>
+          </div>
+        )}
+      </div>
+
+      <AnimatePresence>
+        {showResults && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+          >
+            {results.length > 0 ? (
+              <div className="max-h-[380px] overflow-y-auto border-t border-[var(--line)]">
+                {results.map((result) => (
+                  <button
+                    type="button"
+                    key={`${result.registrationId}-${result.dayId}`}
+                    onClick={() => onSelect(result)}
+                    className={`flex w-full items-center gap-3 border-b border-[var(--line)] px-4 py-3 text-left last:border-b-0 hover:bg-[var(--surface-2)] ${focusRing}`}
+                  >
+                    <Avatar
+                      firstName={result.firstName}
+                      lastName={result.lastName}
+                      src={result.profileImageUrl}
+                      size={36}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block break-words text-[13.5px] font-semibold text-blue-600">
+                        {result.firstName} {result.lastName}
+                      </span>
+                      <span className="mt-0.5 block text-[11.5px] text-[var(--ink-3)]">
+                        {result.dayOfWeek}, {formatDate(result.cleaningDate)}
+                      </span>
+                    </span>
+                    <span className="hidden shrink-0 text-[10.5px] uppercase tracking-wide text-[var(--ink-4)] sm:block">
+                      {result.weekLabel}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="border-t border-[var(--line)] px-5 py-8 text-center">
+                <User className="mx-auto h-5 w-5 text-[var(--ink-4)]" />
+                <p className="mt-2 text-[13.5px] font-semibold text-[var(--ink)]">
+                  No registered participant found
+                </p>
+                <p className="mt-1 text-[12px] text-[var(--ink-3)]">
+                  Try a first name, last name, day or date.
+                </p>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
   );
 }
 
@@ -540,6 +848,37 @@ export default function DevCleaningManagement() {
     return deadline.toISOString().slice(0, 16);
   });
 
+  const [participantSearch, setParticipantSearch] = useState('');
+
+  const [studentDaysModal, setStudentDaysModal] = useState<{
+    studentId: string;
+    studentName: string;
+    days: Array<{ dayId: string; dayOfWeek: string; cleaningDate: string; weekLabel: string }>;
+  } | null>(null);
+
+  /* ============================================================
+     STUDENT DAYS MODAL
+  ============================================================ */
+
+  const handleStudentClick = (studentId: string, studentName: string) => {
+    const days: Array<{ dayId: string; dayOfWeek: string; cleaningDate: string; weekLabel: string }> = [];
+    weeks.forEach((week) => {
+      week.days.forEach((day) => {
+        day.registrations.forEach((reg) => {
+          if (reg.userId === studentId) {
+            days.push({
+              dayId: day.id,
+              dayOfWeek: day.dayOfWeek,
+              cleaningDate: day.cleaningDate,
+              weekLabel: week.weekLabel,
+            });
+          }
+        });
+      });
+    });
+    setStudentDaysModal({ studentId, studentName, days });
+  };
+
   /* ============================================================
      WEEK TOGGLE
   ============================================================ */
@@ -929,24 +1268,6 @@ export default function DevCleaningManagement() {
     setShowAssignModal(true);
   };
 
-  /* ============================================================
-     FORMAT DATE
-  ============================================================ */
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-
-    return date.toLocaleDateString(
-      'en-US',
-      {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      }
-    );
-  };
-
   const formatDeadline = (dateString: string) =>
     new Date(dateString).toLocaleString('en-US', {
       dateStyle: 'medium',
@@ -1042,6 +1363,75 @@ export default function DevCleaningManagement() {
     totalNoShow: 0,
     totalPending: 0,
   };
+
+  /* ============================================================
+     PARTICIPANT SEARCH
+  ============================================================ */
+
+  const participantSearchResults = useMemo(() => {
+    const query = participantSearch.trim().toLowerCase();
+    if (!query) return [];
+    const normalizedQuery = query.replace(/\s+/g, ' ');
+    const results: ParticipantSearchResult[] = [];
+
+    for (const week of weeks) {
+      for (const day of week.days) {
+        for (const registration of day.registrations) {
+          const firstName = registration.user.firstName ?? '';
+          const lastName = registration.user.lastName ?? '';
+          const fullName = `${firstName} ${lastName}`.trim();
+          const reverseName = `${lastName} ${firstName}`.trim();
+          const dayName = day.dayOfWeek ?? '';
+          const dateText = formatDate(day.cleaningDate);
+          const rawDate = day.cleaningDate ?? '';
+
+          const searchableText = [
+            firstName,
+            lastName,
+            fullName,
+            reverseName,
+            dayName,
+            dateText,
+            rawDate,
+            week.weekLabel,
+          ]
+            .join(' ')
+            .toLowerCase()
+            .replace(/\s+/g, ' ');
+
+          if (searchableText.includes(normalizedQuery)) {
+            results.push({
+              registrationId: registration.id,
+              userId: registration.userId,
+              firstName,
+              lastName,
+              profileImageUrl: registration.user.profileImageUrl,
+              dayId: day.id,
+              dayOfWeek: day.dayOfWeek,
+              cleaningDate: day.cleaningDate,
+              weekId: week.id,
+              weekLabel: week.weekLabel,
+            });
+          }
+        }
+      }
+    }
+    return results;
+  }, [participantSearch, weeks]);
+
+  const handleParticipantSearchSelect = useCallback(
+    (result: ParticipantSearchResult) => {
+      setParticipantSearch('');
+      setWeekFilter({ kind: 'all' });
+      window.setTimeout(() => {
+        const element = document.getElementById(
+          `cleaning-day-${result.dayId}`,
+        );
+        element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 250);
+    },
+    [],
+  );
 
   /* ============================================================
      LOADING - Show loading only if data is being fetched
@@ -1362,36 +1752,31 @@ export default function DevCleaningManagement() {
       </div>
 
       {/* ========================================================
-          UNREGISTERED STUDENTS
+          STUDENTS BY REGISTRATION FILTER
       ======================================================== */}
 
-      {availableStudents.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <CheckCircle className="h-4 w-4 text-emerald-600" />
-            <span className="font-medium">
-              Every student is registered for a cleaning day.
-            </span>
-          </div>
-        </div>
-      ) : (
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-orange-100 bg-orange-50">
-              <Users className="h-5 w-5 text-orange-600" />
-            </div>
+      {data?.studentsByRegistrationCount && (
+        <StudentsByRegistrationList
+          studentsByRegistrationCount={data.studentsByRegistrationCount}
+          totalWeeks={stats.totalWeeks}
+          totalDays={stats.totalDays}
+          weeks={weeks}
+          onStudentClick={handleStudentClick}
+        />
+      )}
 
-            <div className="min-w-0 flex-1">
-              <h3 className="text-lg font-bold tracking-tight text-slate-900">
-                Students Not Yet Registered ({availableStudents.length})
-              </h3>
+      {/* ========================================================
+          PARTICIPANT SEARCH
+      ======================================================== */}
 
-              <p className="mt-2 text-sm text-slate-600">
-                {availableStudents.map((s) => `${s.firstName} ${s.lastName}`).join(' · ')}
-              </p>
-            </div>
-          </div>
-        </div>
+      {weeks.length > 0 && (
+        <ParticipantSearch
+          search={participantSearch}
+          results={participantSearchResults}
+          onSearchChange={setParticipantSearch}
+          onClear={() => setParticipantSearch('')}
+          onSelect={handleParticipantSearchSelect}
+        />
       )}
 
       {/* ========================================================
@@ -2347,7 +2732,76 @@ export default function DevCleaningManagement() {
               </motion.div>
             </motion.div>
           )}
-      </AnimatePresence>
+        </AnimatePresence>
+
+        {/* STUDENT DAYS MODAL */}
+        <AnimatePresence>
+          {studentDaysModal && (
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+                onClick={() => setStudentDaysModal(null)}
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+                  className="relative w-full max-w-sm border border-[var(--line)] bg-[var(--surface)] rounded-lg shadow-lg"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3">
+                  <h2 className="text-[15px] font-semibold text-[var(--ink)]">
+                    {studentDaysModal.studentName}
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => setStudentDaysModal(null)}
+                    className="p-1 text-[var(--ink-3)] hover:text-[var(--ink)] rounded transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="px-4 py-3">
+
+                {studentDaysModal.days.length === 0 ? (
+                  <div className="text-center py-4">
+                    <Calendar className="mx-auto h-6 w-6 text-[var(--ink-4)]" />
+                    <p className="mt-2 text-[13px] font-medium text-[var(--ink)]">
+                      No registered days
+                    </p>
+                  </div>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {studentDaysModal.days.map((day) => (
+                      <li
+                        key={day.dayId}
+                        className="flex items-center justify-between gap-2 rounded border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[13px] font-medium text-[var(--ink)]">
+                            {day.dayOfWeek}
+                          </p>
+                          <p className="text-[11px] text-[var(--ink-3)]">
+                            {formatDate(day.cleaningDate)}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-[10px] font-medium text-[var(--ink-3)] bg-[var(--surface)] px-2 py-0.5 rounded border border-[var(--line)]">
+                          {day.weekLabel}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
     </motion.div>
     </>
   );

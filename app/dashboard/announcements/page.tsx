@@ -63,6 +63,17 @@ const INITIAL_FORM = {
   isGlobal: false,
 };
 
+function getRoleLabel(role?: { name: string; displayName: string } | null): string {
+  if (!role) return '';
+  switch (role.name) {
+    case 'admin': return 'Manager';
+    case 'super_admin': return 'Director';
+    case 'teacher': return 'Tutor';
+    case 'dev': return 'Selfless Support';
+    default: return role.displayName || '';
+  }
+}
+
 export default function AnnouncementsPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -231,23 +242,23 @@ export default function AnnouncementsPage() {
               (announcement: Announcement) =>
                 announcement.id === variables.announcementId
                   ? {
-                      ...announcement,
-                      title:
-                        variables.data.title ||
-                        announcement.title,
-                      content:
-                        variables.data.content ||
-                        announcement.content,
-                      deadline: variables.data.deadline
-                        ? new Date(
-                            variables.data.deadline
-                          ).toISOString()
-                        : announcement.deadline,
-                      isGlobal:
-                        variables.data.isGlobal !== undefined
-                          ? variables.data.isGlobal
-                          : announcement.isGlobal,
-                    }
+                    ...announcement,
+                    title:
+                      variables.data.title ||
+                      announcement.title,
+                    content:
+                      variables.data.content ||
+                      announcement.content,
+                    deadline: variables.data.deadline
+                      ? new Date(
+                        variables.data.deadline
+                      ).toISOString()
+                      : announcement.deadline,
+                    isGlobal:
+                      variables.data.isGlobal !== undefined
+                        ? variables.data.isGlobal
+                        : announcement.isGlobal,
+                  }
                   : announcement
             ),
           };
@@ -381,8 +392,8 @@ export default function AnnouncementsPage() {
       content: announcement.content,
       deadline: announcement.deadline
         ? new Date(announcement.deadline)
-            .toISOString()
-            .slice(0, 16)
+          .toISOString()
+          .slice(0, 16)
         : '',
       isGlobal: announcement.isGlobal,
     });
@@ -856,8 +867,7 @@ export default function AnnouncementsPage() {
                           </span>
 
                           <span>
-                            {announcement.author.role
-                              .displayName}
+                            {getRoleLabel(announcement.author.role)}
                           </span>
 
                           {announcement.deadline && (
@@ -952,55 +962,55 @@ export default function AnnouncementsPage() {
                     {!collapsedAnnouncements.has(
                       announcement.id
                     ) && (
-                      <motion.div
-                        initial={{
-                          height: 0,
-                          opacity: 0,
-                        }}
-                        animate={{
-                          height: 'auto',
-                          opacity: 1,
-                        }}
-                        exit={{
-                          height: 0,
-                          opacity: 0,
-                        }}
-                        transition={{
-                          duration: 0.22,
-                        }}
-                        className="overflow-hidden"
-                      >
-                        <div className="border-t border-[#E2E8F0] bg-[#F8FAFC] px-4 py-5 sm:px-5">
-                          <div className="sm:pl-[3.75rem]">
-                            <p className="whitespace-pre-wrap text-sm leading-6 text-[#475569] sm:text-[15px]">
-                              {announcement.content}
-                            </p>
+                        <motion.div
+                          initial={{
+                            height: 0,
+                            opacity: 0,
+                          }}
+                          animate={{
+                            height: 'auto',
+                            opacity: 1,
+                          }}
+                          exit={{
+                            height: 0,
+                            opacity: 0,
+                          }}
+                          transition={{
+                            duration: 0.22,
+                          }}
+                          className="overflow-hidden"
+                        >
+                          <div className="border-t border-[#E2E8F0] bg-[#F8FAFC] px-4 py-5 sm:px-5">
+                            <div className="sm:pl-[3.75rem]">
+                              <p className="whitespace-pre-wrap text-sm leading-6 text-[#475569] sm:text-[15px]">
+                                {announcement.content}
+                              </p>
 
-                            <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-[#94A3B8]">
-                              <span>
-                                Published{' '}
-                                {formatDate(
-                                  announcement.createdAt
+                              <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-[#94A3B8]">
+                                <span>
+                                  Published{' '}
+                                  {formatDate(
+                                    announcement.createdAt
+                                  )}
+                                </span>
+
+                                {announcement.deadline && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="font-medium text-[#64748B]">
+                                      Deadline{' '}
+                                      {formatDate(
+                                        announcement.deadline
+                                      )}
+                                    </span>
+                                  </>
                                 )}
-                              </span>
-
-                              {announcement.deadline && (
-                                <>
-                                  <span>•</span>
-                                  <span className="font-medium text-[#64748B]">
-                                    Deadline{' '}
-                                    {formatDate(
-                                      announcement.deadline
-                                    )}
-                                  </span>
-                                </>
-                              )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <AnnouncementComments announcementId={announcement.id} />
-                      </motion.div>
-                    )}
+                          <AnnouncementComments announcementId={announcement.id} currentUserId={currentUser?.id} />
+                        </motion.div>
+                      )}
                   </AnimatePresence>
                 </motion.article>
               )

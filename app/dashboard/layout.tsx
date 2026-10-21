@@ -219,6 +219,11 @@ export default function DashboardLayout({
   const [isMobile, setIsMobile] =
     useState(false);
 
+  // Prevents the sidebar from flashing in its "desktop-open" state on mobile
+  // before the viewport has been measured. Until `mounted` is true we render
+  // breakpoint-correct CSS defaults (off-canvas on mobile, visible on desktop).
+  const [mounted, setMounted] = useState(false);
+
   const pathname = usePathname();
   const router = useRouter();
 
@@ -232,6 +237,7 @@ export default function DashboardLayout({
     };
 
     checkMobile();
+    setMounted(true);
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
@@ -379,6 +385,7 @@ export default function DashboardLayout({
           handleLogout={handleLogout}
           isMobile={isMobile}
           setSidebarOpen={setSidebarOpen}
+          mounted={mounted}
         />
 
         {/* ================================================== */}
@@ -403,11 +410,15 @@ export default function DashboardLayout({
             'min-h-screen',
             'transition-[margin] duration-350',
             'ease-[cubic-bezier(0.22,1,0.36,1)]',
-            isMobile
-              ? 'ml-0'
-              : sidebarOpen
-                ? 'ml-[240px]'
-                : 'ml-[64px]'
+            // Before mount: CSS-responsive defaults (no shift on mobile, 240px on desktop).
+            // After mount: drive by measured state.
+            mounted
+              ? isMobile
+                ? 'ml-0'
+                : sidebarOpen
+                  ? 'ml-[240px]'
+                  : 'ml-[64px]'
+              : 'ml-0 lg:ml-[240px]'
           )}
         >
           {/* ================================================= */}
@@ -501,89 +512,89 @@ export default function DashboardLayout({
                 </div>
               </div>
             </footer>
-        </div>
+          </div>
 
-        {/* ================================================== */}
-        {/* ATBRIZ AI QUICK ACCESS */}
-        {/* ================================================== */}
+          {/* ================================================== */}
+          {/* ATBRIZ AI QUICK ACCESS */}
+          {/* ================================================== */}
 
-        {!isAiPage && (
-          <motion.div
-            initial={{
-              opacity: 0,
-              scale: 0.9,
-              y: 8,
-            }}
-            animate={{
-              opacity: 1,
-              scale: 1,
-              y: 0,
-            }}
-            transition={{
-              duration: 0.35,
-              delay: 0.25,
-            }}
-            className="fixed bottom-4 right-4 z-40"
-          >
-            <Link
-              href="/dashboard/ai"
-              aria-label="Open Atbriz AI"
-              className={cn(
-                'group flex items-center gap-2',
-                'bg-white',
-                'px-3 py-2 rounded-lg',
-                'shadow-[0_4px_12px_rgba(18,32,59,0.10)]',
-                'hover:shadow-[0_7px_20px_rgba(18,32,59,0.14)]',
-                'transition-all duration-200'
-              )}
+          {!isAiPage && (
+            <motion.div
+              initial={{
+                opacity: 0,
+                scale: 0.9,
+                y: 8,
+              }}
+              animate={{
+                opacity: 1,
+                scale: 1,
+                y: 0,
+              }}
+              transition={{
+                duration: 0.35,
+                delay: 0.25,
+              }}
+              className="fixed bottom-4 right-4 z-40"
             >
-              <div className="relative flex-shrink-0">
-                <motion.div
-                  whileHover={{
-                    scale: 1.05,
-                  }}
-                  whileTap={{
-                    scale: 0.95,
-                  }}
-                >
-                  <Image
-                    src="/atbriz.png"
-                    alt="Atbriz AI"
-                    width={30}
-                    height={30}
-                    className="w-[30px] h-[30px] object-cover border border-[#E5E7EB] rounded"
+              <Link
+                href="/dashboard/ai"
+                aria-label="Open Atbriz AI"
+                className={cn(
+                  'group flex items-center gap-2',
+                  'bg-white',
+                  'px-3 py-2 rounded-lg',
+                  'shadow-[0_4px_12px_rgba(18,32,59,0.10)]',
+                  'hover:shadow-[0_7px_20px_rgba(18,32,59,0.14)]',
+                  'transition-all duration-200'
+                )}
+              >
+                <div className="relative flex-shrink-0">
+                  <motion.div
+                    whileHover={{
+                      scale: 1.05,
+                    }}
+                    whileTap={{
+                      scale: 0.95,
+                    }}
+                  >
+                    <Image
+                      src="/atbriz.png"
+                      alt="Atbriz AI"
+                      width={30}
+                      height={30}
+                      className="w-[30px] h-[30px] object-cover border border-[#E5E7EB] rounded"
+                    />
+                  </motion.div>
+
+                  <motion.span
+                    animate={{
+                      opacity: [
+                        0.55,
+                        1,
+                        0.55,
+                      ],
+                    }}
+                    transition={{
+                      duration: 2.2,
+                      repeat: Infinity,
+                    }}
+                    className="absolute -right-0.5 -top-0.5 w-2 h-2 rounded-full bg-[#55705B] border-2 border-white"
                   />
-                </motion.div>
+                </div>
 
-                <motion.span
-                  animate={{
-                    opacity: [
-                      0.55,
-                      1,
-                      0.55,
-                    ],
-                  }}
-                  transition={{
-                    duration: 2.2,
-                    repeat: Infinity,
-                  }}
-                  className="absolute -right-0.5 -top-0.5 w-2 h-2 rounded-full bg-[#55705B] border-2 border-white"
-                />
-              </div>
+                <div className="hidden sm:block leading-tight">
+                  <p className="text-[11px] font-semibold text-[#1A2B4C]">
+                    Atbriz AI
+                  </p>
 
-              <div className="hidden sm:block leading-tight">
-                <p className="text-[11px] font-semibold text-[#1A2B4C]">
-                  Atbriz AI
-                </p>
-
-                <p className="text-[9px] font-mono text-[#8A9088] uppercase tracking-wide">
-                  Assistant
-                </p>
-              </div>
-            </Link>
-          </motion.div>
-        )}
-      </div>
+                  <p className="text-[9px] font-mono text-[#8A9088] uppercase tracking-wide">
+                    Assistant
+                  </p>
+                </div>
+              </Link>
+            </motion.div>
+          )}
+        </div>
       </div>
     </>
   );

@@ -254,7 +254,7 @@ export default function AnnouncementCarousel({
     ...(directors.length > 0 ? [{
       id: 'selfless-directors',
       title: 'Selfless Directors',
-      body: `${directors.length} director${directors.length !== 1 ? 's' : ''} leading the organization`,
+      body: `${directors.length} ${directors.length !== 1 ? 'Directors' : 'Director'}`,
       players: directors.map((d: Director): Player => ({
         id: d.id,
         firstName: d.firstName,
@@ -275,8 +275,8 @@ export default function AnnouncementCarousel({
 
       return {
         id: `admin-team-${tc.id}`,
-        title: `${tc.name} Administration Team`,
-        body: `${tc.admins.length} manager${tc.admins.length !== 1 ? 's' : ''}, ${tc.teachers.length} tutor${tc.teachers.length !== 1 ? 's' : ''}`,
+        title: `${tc.name} Team`,
+        body: `${tc.admins.length} ${tc.admins.length !== 1 ? 'Managers' : 'Manager'}, ${tc.teachers.length} ${tc.teachers.length !== 1 ? 'Tutors' : 'Tutor'}`,
         players: allTeamMembers.map((m: TechCenterAdmin): Player => ({
           id: m.id,
           firstName: m.firstName,
