@@ -11,8 +11,6 @@ import {
   UserCog,
   ArrowLeft,
   Shield,
-  ChevronDown,
-  ChevronUp,
   Edit,
   Trash2,
   X,
@@ -20,7 +18,6 @@ import {
   AlertTriangle,
   Building2,
   Globe,
-  Filter,
   ChevronLeft,
   ChevronRight,
   Calendar,
@@ -346,8 +343,6 @@ export default function SuperAdminUsersPage() {
   const [expandedAction, setExpandedAction] = useState<
     'edit' | 'role' | 'status' | 'delete' | null
   >(null);
-
-  const [showFilters, setShowFilters] = useState(false);
 
   const [filters, setFilters] = useState({
     techCenterId: '',
@@ -701,11 +696,18 @@ export default function SuperAdminUsersPage() {
         {/* ---------------------------------------------------------------- */}
 
         <section className="mb-5 rounded-xl border border-[#E2E6EB] bg-white p-3">
-          <div className="flex flex-col gap-2.5 lg:flex-row">
-            <div className="relative min-w-0 flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8993A3]" />
+          <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="relative min-w-0">
+              <label
+                htmlFor="users-search"
+                className="mb-1.5 block text-xs font-medium text-[#43516A]"
+              >
+                Search users
+              </label>
+              <Search className="absolute left-3 top-[2.65rem] h-4 w-4 -translate-y-1/2 text-[#8993A3]" />
 
               <input
+                id="users-search"
                 type="text"
                 placeholder="Search by name, email or phone..."
                 value={searchTerm}
@@ -715,173 +717,163 @@ export default function SuperAdminUsersPage() {
 
               {searchTerm && (
                 <button
+                  type="button"
                   onClick={() => setSearchTerm('')}
                   aria-label="Clear search"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8993A3] transition hover:text-[#12203B]"
+                  className="absolute right-3 top-[2.65rem] -translate-y-1/2 text-[#8993A3] transition hover:text-[#12203B]"
                 >
                   <X className="h-4 w-4" />
                 </button>
               )}
             </div>
-
-            <button
-              onClick={() => setShowFilters((value) => !value)}
-              className={`${quietButton} h-10 px-3.5 text-sm`}
-            >
-              <Filter className="h-4 w-4" />
-              Filters
-
-              {hasFilters && (
-                <span className="h-1.5 w-1.5 rounded-full bg-[#B98A3E]" />
-              )}
-
-              {showFilters ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </button>
-
-            <button
-              onClick={() => refetch()}
-              className={`${quietButton} h-10 px-3.5 text-sm`}
-            >
-              <RefreshCw className="h-4 w-4" />
-              Refresh
-            </button>
+            {usersData && (
+              <div>
+                <label
+                  htmlFor="users-tech-center"
+                  className="mb-1.5 block text-xs font-medium text-[#43516A]"
+                >
+                  Tech center
+                </label>
+                <select
+                  id="users-tech-center"
+                  value={filters.techCenterId}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      techCenterId: e.target.value,
+                    }))
+                  }
+                  className={selectClass}
+                >
+                  <option value="">All tech centers</option>
+                  {usersData.filters.techCenters.map((tc) => (
+                    <option key={tc.id} value={tc.id}>
+                      {tc.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
-          <AnimatePresence initial={false}>
-            {showFilters && usersData && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.18 }}
-                className="overflow-hidden"
-              >
-                <div className="mt-3 grid grid-cols-1 gap-3 border-t border-[#E2E6EB] pt-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-[#43516A]">
-                      Tech Center
-                    </label>
+          {usersData && (
+            <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 border-t border-[#E2E6EB] pt-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <label
+                  htmlFor="users-country"
+                  className="mb-1.5 block text-xs font-medium text-[#43516A]"
+                >
+                  Country
+                </label>
+                <select
+                  id="users-country"
+                  value={filters.country}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      country: e.target.value,
+                    }))
+                  }
+                  className={selectClass}
+                >
+                  <option value="">All countries</option>
+                  {usersData.filters.countries.map((country) => (
+                    <option key={country.id} value={country.name}>
+                      {country.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                    <select
-                      value={filters.techCenterId}
-                      onChange={(e) =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          techCenterId: e.target.value,
-                        }))
-                      }
-                      className={selectClass}
-                    >
-                      <option value="">All Centers</option>
+              <div>
+                <label
+                  htmlFor="users-role"
+                  className="mb-1.5 block text-xs font-medium text-[#43516A]"
+                >
+                  Role
+                </label>
+                <select
+                  id="users-role"
+                  value={filters.role}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      role: e.target.value,
+                    }))
+                  }
+                  className={selectClass}
+                >
+                  <option value="">All roles</option>
+                  {usersData.filters.roles.map((role) => (
+                    <option key={role.id} value={role.name}>
+                      {role.name === 'teacher'
+                        ? 'Tutor'
+                        : role.name === 'admin'
+                          ? 'Tech Center Manager'
+                          : role.name === 'superadmin' ||
+                              role.name === 'super_admin'
+                            ? 'Director'
+                            : role.displayName || role.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                      {usersData.filters.techCenters.map((tc) => (
-                        <option key={tc.id} value={tc.id}>
-                          {tc.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+              <div>
+                <label
+                  htmlFor="users-status"
+                  className="mb-1.5 block text-xs font-medium text-[#43516A]"
+                >
+                  Status
+                </label>
+                <select
+                  id="users-status"
+                  value={filters.status}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      status: e.target.value,
+                    }))
+                  }
+                  className={selectClass}
+                >
+                  <option value="">All statuses</option>
+                  {usersData.filters.statuses.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-[#43516A]">
-                      Country
-                    </label>
-
-                    <select
-                      value={filters.country}
-                      onChange={(e) =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          country: e.target.value,
-                        }))
-                      }
-                      className={selectClass}
-                    >
-                      <option value="">All Countries</option>
-
-                      {usersData.filters.countries.map((country) => (
-                        <option key={country.id} value={country.name}>
-                          {country.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-[#43516A]">
-                      Role
-                    </label>
-
-                    <select
-                      value={filters.role}
-                      onChange={(e) =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          role: e.target.value,
-                        }))
-                      }
-                      className={selectClass}
-                    >
-                      <option value="">All Roles</option>
-
-                      {usersData.filters.roles.map((role) => (
-                        <option key={role.id} value={role.name}>
-                          {role.name === 'teacher' ? 'Tutor' : role.name === 'admin' ? 'Tech Center Manager' : role.name === 'superadmin' || role.name === 'super_admin' ? 'Director' : role.displayName || role.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-[#43516A]">
-                      Status
-                    </label>
-
-                    <select
-                      value={filters.status}
-                      onChange={(e) =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          status: e.target.value,
-                        }))
-                      }
-                      className={selectClass}
-                    >
-                      <option value="">All Statuses</option>
-
-                      {usersData.filters.statuses.map((status) => (
-                        <option key={status} value={status}>
-                          {status}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => refetch()}
+                  className={`${quietButton} h-10 px-3.5 text-sm`}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Refresh
+                </button>
                 {hasFilters && (
-                  <div className="mt-3 flex justify-end">
-                    <button
-                      onClick={() =>
-                        setFilters({
-                          techCenterId: '',
-                          country: '',
-                          role: '',
-                          status: '',
-                        })
-                      }
-                      className="text-xs font-medium text-[#8A6E3A] hover:text-[#A67A34]"
-                    >
-                      Clear all filters
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFilters({
+                        techCenterId: '',
+                        country: '',
+                        role: '',
+                        status: '',
+                      })
+                    }
+                    className="h-10 text-xs font-medium text-[#8A6E3A] hover:text-[#A67A34]"
+                  >
+                    Clear filters
+                  </button>
                 )}
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* ---------------------------------------------------------------- */}
@@ -1793,4 +1785,3 @@ export default function SuperAdminUsersPage() {
     </main>
   );
 }
-

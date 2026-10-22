@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma/client';
 import { getServerAuthUser } from '@/lib/auth/server';
-import { updateUserLastActiveAt } from '@/lib/user-activity';
 
 const DEDUPE_WINDOW_MS = 24 * 60 * 60 * 1000;
 const TTL_MS = 24 * 60 * 60 * 1000;
@@ -28,7 +27,6 @@ export async function POST(req: NextRequest) {
     const pagePath = rawPath?.trim() || null;
 
     if (!pagePath) {
-      updateUserLastActiveAt(user.id);
       return NextResponse.json({ success: true, counted: false });
     }
 
