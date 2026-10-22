@@ -7,15 +7,10 @@ import {
 } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Head from 'next/head';
-import {
-  motion,
-  AnimatePresence,
-  type Variants,
-} from 'framer-motion';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { PageTracker } from './components/PageTracker';
-import { SupportContactCard } from './components/SupportContactCard';
 import Sidebar from './components/Sidebar';
 import TopNav from './components/TopNav';
 
@@ -25,30 +20,6 @@ import Link from 'next/link';
 
 import { GlobalOnlineUsersPopup } from '@/components/GlobalOnlineUsersPopup';
 import { useOnlineUsers } from '@/lib/hooks/useOnlineUsers';
-
-// ============================================================
-// LAYOUT CONSTANTS
-// ============================================================
-
-const SIDEBAR_WIDTH_EXPANDED = 240;
-const SIDEBAR_WIDTH_COLLAPSED = 64;
-
-// ============================================================
-// TYPES
-// ============================================================
-
-interface UserInfo {
-  id?: string;
-  profileImageUrl?: string | null;
-  firstName?: string | null;
-  lastName?: string | null;
-  email?: string | null;
-  role?: string | null;
-  techCenter?: {
-    id: string;
-    name: string;
-  } | null;
-}
 
 const DASHBOARD_FOOTER_LINKS = [
   { label: 'Dashboard', href: '/dashboard' },
@@ -89,6 +60,10 @@ function getPageInfo(pathname: string) {
     },
     '/dashboard/course-units': {
       title: 'Course Units',
+      section: 'System',
+    },
+    '/dashboard/manage-grades': {
+      title: 'Manage Grades',
       section: 'System',
     },
     '/dashboard/grades': {
@@ -232,17 +207,20 @@ export default function DashboardLayout({
 
   // Initialize sidebar state based on screen size
   useEffect(() => {
-    const checkMobile = () => {
+    const syncResponsiveState = () => {
       const mobile = window.innerWidth < 1024;
       setIsMobile(mobile);
       // Close sidebar on mobile, open on desktop
       setSidebarOpen(!mobile);
+      setMounted(true);
     };
 
-    checkMobile();
-    setMounted(true);
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    const frameId = window.requestAnimationFrame(syncResponsiveState);
+    window.addEventListener('resize', syncResponsiveState);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', syncResponsiveState);
+    };
   }, []);
 
   const userRole =

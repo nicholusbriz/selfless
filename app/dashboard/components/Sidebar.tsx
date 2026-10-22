@@ -7,7 +7,6 @@ import {
   useRef,
   useEffect,
 } from 'react';
-import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -417,6 +416,13 @@ const superAdminNavigation: NavSection = {
       label: 'Course Units',
       path: '/dashboard/course-units',
       icon: <BookMarked className={iconClass} />,
+      roles: ['dev', 'super_admin'],
+    },
+    {
+      id: 'manage-grades',
+      label: 'Manage Grades',
+      path: '/dashboard/manage-grades',
+      icon: <Award className={iconClass} />,
       roles: ['dev', 'super_admin'],
     },
     {

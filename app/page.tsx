@@ -11,7 +11,6 @@ import {
 } from "framer-motion";
 import {
   ArrowRight,
-  ArrowUpRight,
   BookOpen,
   ChevronLeft,
   ChevronRight,
@@ -360,8 +359,6 @@ export default function HomePage() {
     setAuthModalType(type);
     setShowAuthModal(true);
   }, []);
-
-  const openLogin = useCallback(() => openAuth("login"), [openAuth]);
 
   const closeAuth = useCallback(() => {
     setShowAuthModal(false);
