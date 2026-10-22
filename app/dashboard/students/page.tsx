@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -459,7 +459,6 @@ function HorizontalRail({
   students,
   router,
   currentUserId,
-  showRank,
   isTrendingSection,
   enableAlphabetNav,
 }: {
@@ -588,7 +587,7 @@ function HorizontalRail({
 
       <div className="mt-1 flex items-center justify-between gap-1">
         {visibleStudents.length > 2 && (
-          <div className="flex items-center gap-2 text-[11px] text-[#6B7280] hidden sm:flex">
+          <div className="hidden items-center gap-2 text-[11px] text-[#6B7280] sm:flex">
             <span className="font-mono text-[10px] uppercase tracking-wider">
               Scroll to discover more
             </span>
@@ -677,7 +676,6 @@ function SearchFilterBar({
   selectedLocation,
   setSelectedLocation,
   locations,
-  isLoading,
   sortBy,
   setSortBy,
 }: {
@@ -686,7 +684,6 @@ function SearchFilterBar({
   selectedLocation: string;
   setSelectedLocation: (id: string) => void;
   locations: TechCenter[];
-  isLoading: boolean;
   sortBy: SortOption;
   setSortBy: (s: SortOption) => void;
 }) {
@@ -969,7 +966,7 @@ export default function StudentsPage() {
   const [selectedLocation, setSelectedLocation] = useState('all');
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('trending');
-  const [feedScope, setFeedScope] = useState<FeedScope>('all');
+  const [feedScope] = useState<FeedScope>('all');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -1018,7 +1015,7 @@ export default function StudentsPage() {
     return allStudents;
   }, [allStudents, feedScope]);
 
-  const filterStudents = (students: Student[]) => {
+  const filterStudents = useCallback((students: Student[]) => {
     let filtered = students;
     if (selectedLocation !== 'all') {
       filtered = filtered.filter(
@@ -1045,11 +1042,11 @@ export default function StudentsPage() {
       });
     }
     return filtered;
-  };
+  }, [selectedLocation, searchQuery]);
 
   const filteredScoped = useMemo(
     () => filterStudents(scopedStudents),
-    [scopedStudents, selectedLocation, searchQuery],
+    [filterStudents, scopedStudents],
   );
   const isSearching = searchQuery.trim().length > 0;
 
@@ -1072,7 +1069,6 @@ export default function StudentsPage() {
             selectedLocation={selectedLocation}
             setSelectedLocation={setSelectedLocation}
             locations={techCenters}
-            isLoading={isLoading}
             sortBy={sortBy}
             setSortBy={setSortBy}
           />
