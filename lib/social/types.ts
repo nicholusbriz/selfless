@@ -24,6 +24,8 @@ export interface Rankable {
   likesReceivedCount: number;
   firstName?: string;
   lastName?: string;
+  profileImageUrl?: string | null;
+  profileViewsCount?: number;
 }
 
 export interface UserSocialStats {

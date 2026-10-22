@@ -583,7 +583,7 @@ export default function MyCoursesPage() {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <p className="font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
-                    General Degree Course
+                    General Degree Programme 
                   </p>
 
                   {!showGeneralCourseEdit && (
@@ -596,7 +596,7 @@ export default function MyCoursesPage() {
                           </p>
 
                           <p className="mt-1 font-mono text-[12px] text-[var(--ink-3)]">
-                            Your main academic programme
+                            Your main academic Degree programme
                           </p>
                         </div>
                       ) : (

@@ -14,14 +14,17 @@ import {
   ChevronRight,
   ArrowDownUp,
   Send,
-  Flame,
+  MessageSquare,
+  Pause,
+  Play,
+  MapPin,
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 import { SocialActions } from '@/components/social/SocialActions';
 import {
-  compareFollowersThenLikes,
+  compareProfileImageFirst,
   rankByTrending,
 } from '@/lib/social/ranking';
 import {
@@ -117,13 +120,18 @@ const getStudentInitial = (student: Student): string =>
 
 const sortStudents = (students: Student[], sortBy: SortOption): Student[] => {
   if (sortBy === 'trending') {
-    return [...students].sort(compareFollowersThenLikes);
+    return [...students].sort(compareProfileImageFirst);
   }
 
   const copy = [...students];
 
   if (sortBy === 'popularity') {
     return copy.sort((a, b) => {
+      const aHasImage = !!(a.profileImageUrl && a.profileImageUrl.trim() !== '');
+      const bHasImage = !!(b.profileImageUrl && b.profileImageUrl.trim() !== '');
+      if (aHasImage !== bHasImage) {
+        return bHasImage ? 1 : -1;
+      }
       const diff = popularityScore(b) - popularityScore(a);
       if (diff !== 0) return diff;
       return (
@@ -136,7 +144,14 @@ const sortStudents = (students: Student[], sortBy: SortOption): Student[] => {
     });
   }
   if (sortBy === 'name') {
-    return copy.sort(compareStudentNames);
+    return copy.sort((a, b) => {
+      const aHasImage = !!(a.profileImageUrl && a.profileImageUrl.trim() !== '');
+      const bHasImage = !!(b.profileImageUrl && b.profileImageUrl.trim() !== '');
+      if (aHasImage !== bHasImage) {
+        return bHasImage ? 1 : -1;
+      }
+      return compareStudentNames(a, b);
+    });
   }
   if (sortBy === 'newest') {
     return copy.sort(
@@ -145,10 +160,24 @@ const sortStudents = (students: Student[], sortBy: SortOption): Student[] => {
     );
   }
   if (sortBy === 'mostFollowed') {
-    return copy.sort((a, b) => b.followersCount - a.followersCount);
+    return copy.sort((a, b) => {
+      const aHasImage = !!(a.profileImageUrl && a.profileImageUrl.trim() !== '');
+      const bHasImage = !!(b.profileImageUrl && b.profileImageUrl.trim() !== '');
+      if (aHasImage !== bHasImage) {
+        return bHasImage ? 1 : -1;
+      }
+      return b.followersCount - a.followersCount;
+    });
   }
   if (sortBy === 'mostLiked') {
-    return copy.sort((a, b) => b.likesReceivedCount - a.likesReceivedCount);
+    return copy.sort((a, b) => {
+      const aHasImage = !!(a.profileImageUrl && a.profileImageUrl.trim() !== '');
+      const bHasImage = !!(b.profileImageUrl && b.profileImageUrl.trim() !== '');
+      if (aHasImage !== bHasImage) {
+        return bHasImage ? 1 : -1;
+      }
+      return b.likesReceivedCount - a.likesReceivedCount;
+    });
   }
   return copy.sort((a, b) => Number(b.isActive) - Number(a.isActive));
 };
@@ -228,7 +257,7 @@ function StudentMessageComposer({
           disabled={!message.trim() || isSending}
           aria-label="Send message"
           title="Send message"
-          className="inline-flex h-7 w-7 shrink-0 items-center justify-center bg-[#1A2B4C] text-white transition-colors hover:bg-[#23385d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center bg-[#1A2B4C] text-white transition-colors hover:bg-[#23385d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Send className="h-3 w-3" />
         </button>
@@ -248,24 +277,21 @@ function StudentMessageComposer({
 }
 
 // ============================================================
-// STUDENT CARD (ENHANCED — COMPACT, ALL UNITS, WITH NUMBERS)
+// STUDENT CARD (ENHANCED — MATCHES DISCOVERY COMPONENT STYLE)
 // ============================================================
 
 const StudentCard = ({
   student,
   router,
   currentUserId,
-  isTrendingSection,
 }: {
   student: Student;
   router: Router;
   currentUserId?: string;
   rank?: number;
-  isTrendingSection?: boolean;
 }) => {
   const initials = `${student.firstName.charAt(0)}${student.lastName.charAt(0)}`.toUpperCase();
   const fullName = `${student.firstName} ${student.lastName}`;
-  const hue = getTechCenterHue(student.techCenter?.name);
   const isCurrentUser = currentUserId === student.id;
   const roleLabel =
     student.role?.name === 'teacher'
@@ -276,175 +302,139 @@ const StudentCard = ({
           ? 'Director'
           : student.role?.name || 'Student';
 
+  const totalCredits = student.studentCourses?.reduce((sum, course) => sum + (course.credits || 0), 0) || 0;
+
+  // Keep card size consistent
+  const cardWidth = 'w-[275px]';
+  const cardWidthSm = 'sm:w-[285px]';
+
   return (
-    <article className="group flex w-[275px] shrink-0 snap-start flex-col border border-[#D1D5DB] bg-white transition-shadow hover:shadow-[0_2px_12px_rgba(26,43,76,0.08)] sm:w-[285px]">
-      {/* ── Top: image + name/center/stats ── */}
-      <div className="flex gap-2.5 p-2.5">
-        {/* Profile Image */}
-        <button
-          type="button"
-          onClick={() => router.push(`/dashboard/students/${student.id}`)}
-          className={`relative h-[96px] w-[96px] shrink-0 overflow-hidden border bg-[#F7F6F2] ${
-            isTrendingSection
-              ? 'border-[#B98A3E] ring-2 ring-[#B98A3E]/30'
-              : 'border-[#D1D5DB]'
-          }`}
-          aria-label={`Open ${fullName}'s profile`}
-        >
-          {student.profileImageUrl ? (
-            <Image
-              src={student.profileImageUrl}
-              alt={fullName}
-              fill
-              className="object-cover"
-              sizes="96px"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-[#1A2B4C]">
-              <span className="font-mono text-[22px] font-bold tracking-wider text-[#B98A3E]">
-                {initials}
-              </span>
-            </div>
-          )}
-
-          {/* Trending badge overlay (no rank number) */}
-          {isTrendingSection && (
-            <span className="absolute left-0 top-0 inline-flex items-center gap-0.5 bg-[#B98A3E] px-1 py-0.5 font-mono text-[8px] font-bold uppercase text-white">
-              <Flame className="h-2 w-2" />
-              Hot
-            </span>
-          )}
-        </button>
-
-        {/* Right column: name, tech center, role/active, stats */}
-        <div className="flex min-w-0 flex-1 flex-col">
-          <button
-            type="button"
-            onClick={() => router.push(`/dashboard/students/${student.id}`)}
-            className="block w-full text-left"
-          >
-            <h3 className="line-clamp-2 break-words text-[13.5px] font-bold leading-tight text-[#1A2B4C] hover:text-[#B98A3E] hover:underline">
-              {fullName}
-            </h3>
-          </button>
-
-          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[#4B5646]">
-            <span
-              className="h-1.5 w-1.5 shrink-0 rounded-full border border-[#D1D5DB]"
-              style={{ backgroundColor: hue || '#B98A3E' }}
-            />
-            <span className="truncate font-medium" title={student.techCenter?.name ?? ''}>
-              {student.techCenter?.name ||
-                student.techCenter?.country?.name ||
-                'Campus Member'}
-            </span>
-          </div>
-
-          {/* Role + Active badges */}
-          <div className="mt-1 flex flex-wrap items-center gap-1">
-            <span className="border border-[#D1D5DB] bg-[#F8F9FA] px-1.5 py-0.5 font-mono text-[8.5px] font-semibold text-[#4B5646]">
-              {roleLabel}
-            </span>
-            {student.isActive && (
-              <span className="inline-flex items-center gap-1 border border-[#55705B]/30 bg-[#55705B]/10 px-1.5 py-0.5 font-mono text-[8.5px] font-semibold text-[#55705B]">
-                <span className="h-1 w-1 rounded-full bg-[#55705B]" />
-                Active
-              </span>
-            )}
-          </div>
-
-          {/* Stats (with numbers) */}
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px]">
-            <span className="font-mono font-bold text-[#1A2B4C]">
-              {student.followersCount}
-            </span>
-            <span className="text-[#6B7280]">followers</span>
-            <span className="text-[#6B7280]">•</span>
-            <span className="font-mono font-bold text-[#1A2B4C]">
-              {Math.max(0, student.likesReceivedCount)}
-            </span>
-            <span className="text-[#6B7280]">likes</span>
-            <span className="text-[#6B7280]">•</span>
-            <span className="font-mono font-bold text-[#1A2B4C]">
-              {student.profileViewsCount}
-            </span>
-            <span className="text-[#6B7280]">views</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Degree Program ── */}
-      <div className="px-2.5 pb-1.5">
-        <span className="block font-mono text-[8.5px] font-bold uppercase tracking-wide text-[#B98A3E]">
-          Degree Program
-        </span>
-        <span className="mt-0.5 block break-words text-[11px] font-medium text-[#1A2B4C]" title={student.generalCourse || 'General Curriculum'}>
-          {student.generalCourse || 'General Curriculum'}
-        </span>
-      </div>
-
-      {/* ── Enrolled Units (ALL, no breaking) ── */}
-      {student.studentCourses?.length > 0 && (
-        <div className="px-2.5 pb-2">
-          <div className="mb-1 flex items-center gap-1">
-            <BookOpen className="h-2.5 w-2.5 shrink-0 text-[#B98A3E]" />
-            <span className="font-mono text-[8.5px] font-bold uppercase tracking-wide text-[#1A2B4C]">
-              Enrolled Units
-            </span>
-          </div>
-
-          <ul className="space-y-0.5">
-            {student.studentCourses.map((course) => (
-              <li
-                key={course.id}
-                className="flex items-start justify-between gap-2 border-l-2 border-[#E5E7EB] py-0.5 pl-1.5"
-              >
-                <span className="min-w-0 flex-1 break-words text-[10px] leading-snug text-[#1A2B4C]" title={course.courseUnit}>
-                  {course.courseUnit}
-                </span>
-                <span className="shrink-0 font-mono text-[8.5px] font-bold text-[#55705B]">
-                  {course.credits}cr
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* ── Footer Actions ── */}
-      <div className="mt-auto flex items-center justify-between gap-1.5 border-t border-[#E5E7EB] px-2.5 py-1.5">
-        <button
-          type="button"
-          onClick={() => router.push(`/dashboard/students/${student.id}`)}
-          className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#1A2B4C] hover:text-[#B98A3E] whitespace-nowrap"
-        >
-          View profile
-          <ChevronRight className="h-3 w-3" />
-        </button>
-
-        {!isCurrentUser && (
-          <div className="flex min-w-0 flex-wrap items-center justify-end gap-1">
-            <SocialActions
-              userId={student.id}
-              currentUserId={currentUserId}
-              isFollowing={student.isFollowing}
-              isLiked={student.isLiked}
-              pageAdapters={STUDENT_DIRECTORY_ADAPTERS}
-              size="xs"
-              allowUnfollow={false}
-              allowUnlike={true}
-            />
+    <article className={`group ${cardWidth} shrink-0 snap-start overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] shadow-[0_24px_65px_rgba(0,0,0,0.52)] transition-all hover:border-[#C8A24A]/70 hover:shadow-[0_28px_75px_rgba(0,0,0,0.6)] ${cardWidthSm}`}>
+      {/* Image fills the entire card — same as discovery component */}
+      <div className="relative aspect-[3/4] w-full overflow-hidden bg-black">
+        {student.profileImageUrl ? (
+          <Image
+            src={student.profileImageUrl}
+            alt={fullName}
+            fill
+            className="h-full w-full object-cover object-center"
+            sizes="285px"
+            quality={95}
+            priority
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-[#18212F] text-4xl font-semibold text-white/70">
+            {initials}
           </div>
         )}
-      </div>
 
-      {/* ── Message Composer ── */}
-      {!isCurrentUser && currentUserId && (
-        <StudentMessageComposer
-          recipientId={student.id}
-          recipientName={fullName}
-        />
-      )}
+        {/* Info overlay — plain text on top of image, matching discovery component */}
+        <div className="absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-black/70 via-black/30 to-transparent">
+          <div className="flex flex-col gap-2">
+            {/* Row 1 — Name + Role */}
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-[16px] font-bold leading-tight text-white">
+                {fullName}
+              </h3>
+              {roleLabel && (
+                <span className="text-[11px] font-medium text-white/90 shrink-0">
+                  {roleLabel}
+                </span>
+              )}
+            </div>
+
+            {/* Row 2 — Course */}
+            <p className="text-[13px] font-medium text-white">
+              {student.generalCourse || 'Student'}
+            </p>
+
+            {/* Row 3 — Tech Center with MapPin icon */}
+            {student.techCenter?.name && (
+              <div className="flex items-center gap-1.5">
+                <MapPin className="h-[12px] w-[12px] shrink-0 text-[#D4A84B]" />
+                <span className="text-[12px] font-medium text-white/90">
+                  {student.techCenter.name}
+                </span>
+              </div>
+            )}
+
+            {/* Row 4 — Stats & Credits (compact) */}
+            <div className="mt-1 flex items-center gap-2 text-[11px] text-white/90">
+              <span className="font-semibold text-white">{student.followersCount}</span>
+              <span>followers</span>
+              <span className="text-white/70">•</span>
+              <span className="font-semibold text-white">{Math.max(0, student.likesReceivedCount)}</span>
+              <span>likes</span>
+              <span className="text-white/70">•</span>
+              <span className="font-semibold text-white">{student.profileViewsCount}</span>
+              <span>views</span>
+            </div>
+
+            {/* Row 5 — Enrolled Units summary */}
+            {student.studentCourses?.length > 0 && (
+              <div className="mt-1">
+                <div className="flex items-center justify-between gap-1 mb-0.5">
+                  <div className="flex items-center gap-1">
+                    <BookOpen className="shrink-0 text-[#D4A84B] h-3 w-3" />
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-white/90">
+                      Enrolled Courses
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-[#D4A84B]">
+                    {totalCredits} credits
+                  </span>
+                </div>
+                <div className="space-y-0.5">
+                  {student.studentCourses.slice(0, 2).map((course) => (
+                    <div key={course.id} className="flex items-start justify-between gap-2">
+                      <span className="text-white text-[11px] font-medium">
+                        {course.courseUnit}
+                      </span>
+                      <span className="shrink-0 text-[10px] font-semibold text-white">
+                        {course.credits}cr
+                      </span>
+                    </div>
+                  ))}
+                  {student.studentCourses.length > 2 && (
+                    <span className="text-white/70 text-[10px]">
+                      +{student.studentCourses.length - 2} more
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Row 6 — Actions */}
+            <div className="mt-2 flex items-center justify-end gap-1.5 overflow-hidden">
+              {!isCurrentUser && (
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/dashboard/messages?userId=${student.id}`)}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-white/30 bg-black/25 px-2.5 py-1 text-[10px] font-semibold text-white transition-all hover:bg-black/35 hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B]"
+                    aria-label={`Message ${fullName}`}
+                    title={`Message ${fullName}`}
+                  >
+                    <MessageSquare className="h-3 w-3" />
+                    Message
+                  </button>
+                  <SocialActions
+                    userId={student.id}
+                    currentUserId={currentUserId}
+                    isFollowing={student.isFollowing}
+                    isLiked={student.isLiked}
+                    pageAdapters={STUDENT_DIRECTORY_ADAPTERS}
+                    size="sm"
+                    allowUnfollow={true}
+                    allowUnlike={true}
+                    className="flex items-center gap-1.5"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </article>
   );
 };
@@ -459,7 +449,6 @@ function HorizontalRail({
   students,
   router,
   currentUserId,
-  isTrendingSection,
   enableAlphabetNav,
 }: {
   label: string;
@@ -468,11 +457,11 @@ function HorizontalRail({
   router: Router;
   currentUserId?: string;
   showRank?: boolean;
-  isTrendingSection?: boolean;
   enableAlphabetNav?: boolean;
 }) {
   const railRef = useRef<HTMLDivElement>(null);
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
+  const [isPaused, setIsPaused] = useState(false);
   const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
   const availableLetters = new Set(students.map(getStudentInitial));
   const visibleStudents = selectedLetter
@@ -482,10 +471,32 @@ function HorizontalRail({
     : students;
 
   const scrollLeft = () => {
-    railRef.current?.scrollBy({ left: -574, behavior: 'smooth' });
+    railRef.current?.scrollBy({ left: -300, behavior: 'smooth' });
   };
   const scrollRight = () => {
-    railRef.current?.scrollBy({ left: 574, behavior: 'smooth' });
+    railRef.current?.scrollBy({ left: 300, behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    if (isPaused || visibleStudents.length <= 1) return;
+
+    const interval = setInterval(() => {
+      const rail = railRef.current;
+      if (!rail) return;
+
+      const maxScroll = rail.scrollWidth - rail.clientWidth;
+      if (rail.scrollLeft >= maxScroll) {
+        rail.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        rail.scrollBy({ left: 300, behavior: 'smooth' });
+      }
+    }, 7000);
+
+    return () => clearInterval(interval);
+  }, [isPaused, visibleStudents.length]);
+
+  const togglePause = () => {
+    setIsPaused(!isPaused);
   };
 
   if (students.length === 0) {
@@ -525,49 +536,6 @@ function HorizontalRail({
         </div>
       </div>
 
-      {enableAlphabetNav && (
-        <nav
-          aria-label={`Browse ${label} by first name`}
-          className="mb-2 flex min-w-0 flex-nowrap items-center gap-2.5 overflow-x-auto whitespace-nowrap"
-          style={{ scrollbarWidth: 'none' }}
-        >
-          <button
-            type="button"
-            onClick={() => setSelectedLetter(null)}
-            aria-pressed={selectedLetter === null}
-            className={`shrink-0 font-mono text-[10px] font-bold transition-colors focus-visible:outline-none focus-visible:underline ${
-              selectedLetter === null
-                ? 'text-[#B98A3E] underline underline-offset-4'
-                : 'text-[#6B7280] hover:text-[#1A2B4C]'
-            }`}
-          >
-            All
-          </button>
-          {letters.map((letter) => {
-            const isAvailable = availableLetters.has(letter);
-            return (
-              <button
-                key={letter}
-                type="button"
-                disabled={!isAvailable}
-                onClick={() => setSelectedLetter(letter)}
-                aria-label={`Show ${label} names beginning with ${letter}`}
-                aria-pressed={selectedLetter === letter}
-                className={`shrink-0 font-mono text-[10px] font-semibold transition-colors focus-visible:outline-none focus-visible:underline ${
-                  selectedLetter === letter
-                    ? 'text-[#B98A3E] underline underline-offset-4'
-                    : isAvailable
-                      ? 'text-[#1A2B4C] hover:text-[#B98A3E]'
-                      : 'cursor-not-allowed text-[#C4C8CE]'
-                }`}
-              >
-                {letter}
-              </button>
-            );
-          })}
-        </nav>
-      )}
-
       <div
         ref={railRef}
         className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 scroll-smooth px-1"
@@ -579,23 +547,55 @@ function HorizontalRail({
             student={student}
             router={router}
             currentUserId={currentUserId}
-            isTrendingSection={isTrendingSection}
           />
         ))}
         <div className="w-1 shrink-0" aria-hidden />
       </div>
 
-      <div className="mt-1 flex items-center justify-between gap-1">
-        {visibleStudents.length > 2 && (
-          <div className="hidden items-center gap-2 text-[11px] text-[#6B7280] sm:flex">
-            <span className="font-mono text-[10px] uppercase tracking-wider">
-              Scroll to discover more
-            </span>
-            <ChevronRight className="w-4 h-4" />
-          </div>
+      <div className="mt-1 flex items-center justify-between gap-2">
+        {enableAlphabetNav && (
+          <nav
+            aria-label={`Browse ${label} by first name`}
+            className="flex items-center gap-1 flex-wrap"
+          >
+            <button
+              type="button"
+              onClick={() => setSelectedLetter(null)}
+              aria-pressed={selectedLetter === null}
+              className={`rounded border px-2 py-0.5 font-mono text-[10px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B] ${
+                selectedLetter === null
+                  ? 'border-[#D4A84B] bg-[#D4A84B] text-white'
+                  : 'border-[#D1D5DB] bg-white text-[#1A2B4C] hover:border-[#D4A84B] hover:text-[#D4A84B]'
+              }`}
+            >
+              All
+            </button>
+            {letters.map((letter) => {
+              const isAvailable = availableLetters.has(letter);
+              return (
+                <button
+                  key={letter}
+                  type="button"
+                  disabled={!isAvailable}
+                  onClick={() => setSelectedLetter(letter)}
+                  aria-label={`Show ${label} names beginning with ${letter}`}
+                  aria-pressed={selectedLetter === letter}
+                  className={`rounded border px-2 py-0.5 font-mono text-[10px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B] ${
+                    selectedLetter === letter
+                      ? 'border-[#D4A84B] bg-[#D4A84B] text-white'
+                      : isAvailable
+                        ? 'border-[#D1D5DB] bg-white text-[#1A2B4C] hover:border-[#D4A84B] hover:text-[#D4A84B]'
+                        : 'cursor-not-allowed border-[#E5E7EB] bg-gray-50 text-[#C4C8CE]'
+                  }`}
+                >
+                  {letter}
+                </button>
+              );
+            })}
+          </nav>
         )}
 
-        <div className="ml-auto flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
             onClick={scrollLeft}
@@ -603,6 +603,14 @@ function HorizontalRail({
             className="inline-flex h-7 w-7 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C] active:bg-[#E5E7EB] sm:h-6 sm:w-6"
           >
             <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={togglePause}
+            aria-label={isPaused ? "Resume auto-scroll" : "Pause auto-scroll"}
+            className="inline-flex h-7 w-7 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C] active:bg-[#E5E7EB] sm:h-6 sm:w-6"
+          >
+            {isPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
           </button>
           <button
             type="button"
@@ -636,33 +644,41 @@ function StudentDirectorySkeleton() {
               <div
                 key={card}
                 aria-hidden="true"
-                className="h-[360px] w-[275px] shrink-0 border border-[#D1D5DB] bg-white sm:w-[285px]"
+                className="h-[360px] w-[275px] shrink-0 rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] sm:w-[285px]"
               >
-                <div className="p-2.5">
-                  <div className="flex gap-2.5">
-                    <div className="h-24 w-24 shrink-0 animate-pulse bg-[#E5E7EB]" />
-                    <div className="min-w-0 flex-1 space-y-2">
-                      <div className="h-3 w-3/4 animate-pulse bg-[#E5E7EB]" />
-                      <div className="h-2.5 w-1/2 animate-pulse bg-[#F0F1F2]" />
-                      <div className="h-2 w-16 animate-pulse bg-[#F0F1F2]" />
-                      <div className="h-2 w-24 animate-pulse bg-[#F0F1F2]" />
-                    </div>
-                  </div>
+                <div className="flex h-full w-full items-center justify-center">
+                  <div className="h-full w-full animate-pulse rounded-[22px] bg-[#18212F]" />
                 </div>
-                <div className="space-y-2 px-2.5 pb-2">
-                  <div className="h-2.5 w-1/3 animate-pulse bg-[#E5E7EB]" />
-                  <div className="h-3 w-2/3 animate-pulse bg-[#F0F1F2]" />
-                  <div className="h-2.5 w-1/3 animate-pulse bg-[#E5E7EB]" />
-                  <div className="h-3 w-full animate-pulse bg-[#F0F1F2]" />
-                  <div className="h-3 w-full animate-pulse bg-[#F0F1F2]" />
-                </div>
-                <div className="mt-2 h-7 animate-pulse bg-[#F0F1F2]" />
               </div>
             ))}
           </div>
         </section>
       ))}
     </div>
+  );
+}
+
+function TrendingSkeleton() {
+  return (
+    <section className="mb-6">
+      <div className="mb-2.5 flex items-center gap-2 border-t border-[#1A2B4C] pt-2">
+        <span className="h-3 w-1 shrink-0 bg-[#D4A84B]" />
+        <span className="h-4 w-48 animate-pulse bg-[#E5E7EB]" />
+      </div>
+      <div className="flex gap-3 overflow-hidden pb-2">
+        {[0, 1, 2, 3, 4].map((card) => (
+          <div
+            key={card}
+            aria-hidden="true"
+            className="h-[380px] w-[340px] shrink-0 rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] sm:w-[360px]"
+          >
+            <div className="flex h-full w-full items-center justify-center">
+              <div className="h-full w-full animate-pulse rounded-[22px] bg-[#18212F]" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -830,7 +846,6 @@ function CommunityTicker({ students }: { students: Student[] }) {
 
   return (
     <div className="border border-[#D1D5DB] bg-white">
-      {/* Selected Student Info Display */}
       {selectedStudent && (
         <div className="border-b border-[#D1D5DB] bg-[#F7F6F2] px-3 py-3 sm:px-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
@@ -842,11 +857,11 @@ function CommunityTicker({ students }: { students: Student[] }) {
                     alt={`${selectedStudent.firstName} ${selectedStudent.lastName}`}
                     fill
                     sizes="48px"
-                    className="object-cover"
+                    className="object-cover object-top"
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-[#1A2B4C]">
-                    <span className="font-mono text-[14px] font-bold tracking-wider text-[#B98A3E]">
+                    <span className="font-mono text-[14px] font-bold tracking-wider text-[#D4A84B]">
                       {`${selectedStudent.firstName.charAt(0)}${selectedStudent.lastName.charAt(0)}`.toUpperCase()}
                     </span>
                   </div>
@@ -859,7 +874,7 @@ function CommunityTicker({ students }: { students: Student[] }) {
                 <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-[#4B5646]">
                   <span
                     className="h-1.5 w-1.5 shrink-0 rounded-full border border-[#D1D5DB]"
-                    style={{ backgroundColor: getTechCenterHue(selectedStudent.techCenter?.name) || '#B98A3E' }}
+                    style={{ backgroundColor: getTechCenterHue(selectedStudent.techCenter?.name) || '#D4A84B' }}
                   />
                   <span className="truncate font-medium" title={selectedStudent.techCenter?.name || 'Campus Member'}>
                     {selectedStudent.techCenter?.name || 'Campus Member'}
@@ -890,7 +905,6 @@ function CommunityTicker({ students }: { students: Student[] }) {
         </div>
       )}
 
-      {/* Interaction Note */}
       {!selectedStudent && profileStudents.length > 0 && (
         <div className="bg-[#F7F6F2] px-4 py-2 border-b border-[#D1D5DB]">
           <p className="text-[10px] text-[#6B7280]">
@@ -908,7 +922,7 @@ function CommunityTicker({ students }: { students: Student[] }) {
                   key={`${student.id}-${index}`}
                   type="button"
                   onClick={() => setSelectedStudent(student)}
-                  className="relative h-20 w-20 shrink-0 overflow-hidden bg-white border-2 border-transparent hover:border-[#B98A3E] active:border-[#B98A3E] active:scale-95 transition-all focus:border-[#B98A3E] focus:outline-none touch-manipulation sm:h-20 sm:w-20"
+                  className="relative h-20 w-20 shrink-0 overflow-hidden bg-white border-2 border-transparent hover:border-[#D4A84B] active:border-[#D4A84B] active:scale-95 transition-all focus:border-[#D4A84B] focus:outline-none touch-manipulation sm:h-20 sm:w-20"
                   title={`${student.firstName} ${student.lastName}`}
                   aria-label={`View ${student.firstName} ${student.lastName}'s info`}
                 >
@@ -917,7 +931,7 @@ function CommunityTicker({ students }: { students: Student[] }) {
                     alt={`${student.firstName} ${student.lastName}`}
                     fill
                     sizes="80px"
-                    className="object-cover"
+                    className="object-cover object-top"
                   />
                 </button>
               ))}
@@ -1076,7 +1090,10 @@ export default function StudentsPage() {
 
         {/* Dynamic Rails / Content */}
         {isLoading ? (
-          <StudentDirectorySkeleton />
+          <>
+            <TrendingSkeleton />
+            <StudentDirectorySkeleton />
+          </>
         ) : error ? (
           <div className="border border-[#A4462F] bg-white p-6 text-center">
             <AlertCircle className="mx-auto h-6 w-6 text-[#A4462F]" />
@@ -1107,12 +1124,11 @@ export default function StudentsPage() {
               <>
                 <HorizontalRail
                   label="Trending Student Profiles"
-                  hue="#B98A3E"
+                  hue="#D4A84B"
                   students={rankByTrending(filteredScoped).slice(0, 10)}
                   router={router}
                   currentUserId={currentUserId}
                   showRank={true}
-                  isTrendingSection={true}
                 />
 
                 <HorizontalRail

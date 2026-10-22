@@ -483,7 +483,7 @@ export function DiscoverStudents({
               className="absolute inset-0 flex h-full w-full flex-col overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] shadow-[0_24px_65px_rgba(0,0,0,0.52)]"
             >
               {/* IMAGE */}
-              <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
+              <div className="relative h-full w-full overflow-hidden bg-black">
                 {imageSrc ? (
                   <Image
                     key={imageSrc}
@@ -500,64 +500,49 @@ export function DiscoverStudents({
                     {initials}
                   </div>
                 )}
-              </div>
 
-              {/* INFO FOOTER */}
-              <div
-                className="relative flex shrink-0 flex-col justify-center overflow-hidden px-4 sm:px-5"
-                style={{
-                  height: infoHeight,
-                  backgroundColor: PANEL_BG,
-                  borderTop: `1px solid ${PANEL_BORDER}`,
-                }}
-              >
-                <div className="flex flex-col gap-1">
-                  {/* Row 1 — Name + Role */}
-                  <div className="flex items-center justify-between gap-2">
-                    <h3
-                      className="min-w-0 flex-1 truncate text-[15px] font-bold leading-tight tracking-[-0.02em]"
-                      style={{ color: GOLD_BRIGHT }}
-                      title={fullName}
-                    >
-                      {fullName}
-                    </h3>
-                    {roleLabel && (
-                      <span
-                        className="shrink-0 truncate text-[10.5px] font-medium leading-tight"
-                        style={{ color: WHITE_70 }}
+                {/* INFO OVERLAY - Plain text on top of image */}
+                <div className="absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-black/70 via-black/30 to-transparent">
+                  <div className="flex flex-col gap-2">
+                    {/* Row 1 — Name + Role */}
+                    <div className="flex items-center justify-between gap-2">
+                      <h3
+                        className="text-[16px] font-bold leading-tight text-white"
                       >
-                        {roleLabel}
-                      </span>
+                        {fullName}
+                      </h3>
+                      {roleLabel && (
+                        <span
+                          className="text-[11px] font-medium text-white/90"
+                        >
+                          {roleLabel}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Row 2 — Course */}
+                    {!isSuperAdmin && (
+                      <p
+                        className="text-[13px] font-medium text-white"
+                      >
+                        {courseName || "Student"}
+                      </p>
+                    )}
+
+                    {/* Row 3 — Tech Center */}
+                    {!isSuperAdmin && techCenterName && (
+                      <div className="flex items-center gap-1.5">
+                        <MapPin
+                          className="h-[12px] w-[12px] shrink-0 text-[#D4A84B]"
+                        />
+                        <span
+                          className="text-[12px] font-medium text-white/90"
+                        >
+                          {techCenterName}
+                        </span>
+                      </div>
                     )}
                   </div>
-
-                  {/* Row 2 — Course */}
-                  {!isSuperAdmin && (
-                    <p
-                      className="truncate text-[12px] font-medium leading-tight"
-                      style={{ color: WHITE }}
-                      title={courseName || "Student"}
-                    >
-                      {courseName || "Student"}
-                    </p>
-                  )}
-
-                  {/* Row 3 — Tech Center */}
-                  {!isSuperAdmin && techCenterName && (
-                    <div className="flex items-center gap-1.5">
-                      <MapPin
-                        className="h-[10px] w-[10px] shrink-0"
-                        style={{ color: GOLD }}
-                      />
-                      <span
-                        className="min-w-0 truncate text-[11.5px] font-medium leading-tight"
-                        style={{ color: WHITE_85 }}
-                        title={techCenterName}
-                      >
-                        {techCenterName}
-                      </span>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
