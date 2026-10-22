@@ -125,43 +125,43 @@ const TOKENS = `
 const ENGLISH_CATEGORIES: Category[] = [
   {
     id: "all",
-    label: "All",
-    query: "English language learning",
+    label: "University English",
+    query: "advanced English communication for university students",
   },
   {
-    id: "grammar",
-    label: "Grammar",
-    query: "English grammar tutorial",
+    id: "presentations",
+    label: "Presentations",
+    query: "university student presentations public speaking in English",
   },
   {
-    id: "pronunciation",
-    label: "Pronunciation",
-    query: "English pronunciation guide",
+    id: "academic-discussion",
+    label: "Academic Discussion",
+    query: "academic discussion debate seminar English speaking skills",
   },
   {
-    id: "conversation",
-    label: "Conversation",
-    query: "conversational English",
+    id: "academic-writing",
+    label: "Academic Writing",
+    query: "academic English writing university essays lectures",
   },
   {
     id: "vocabulary",
-    label: "Vocabulary",
-    query: "English vocabulary",
+    label: "Academic Vocabulary",
+    query: "academic English vocabulary university students",
   },
   {
     id: "listening",
     label: "Listening",
-    query: "English listening practice",
+    query: "university lecture listening comprehension English",
   },
   {
-    id: "beginners",
-    label: "Beginners",
-    query: "English for beginners",
+    id: "pronunciation",
+    label: "Clear Speech",
+    query: "English pronunciation clarity public speaking university",
   },
   {
-    id: "series",
-    label: "English Series",
-    query: "English TV series educational",
+    id: "lectures",
+    label: "Lectures & Seminars",
+    query: "university lecture seminar in English communication",
   },
 ];
 
@@ -820,25 +820,6 @@ export default function StreamingPage() {
   }, []);
 
   useEffect(() => {
-    if (!videos.length) {
-      setSelectedVideo(null);
-      return;
-    }
-
-    setSelectedVideo((current) => {
-      const stillExists = current
-        ? videos.some((video) => video.id === current.id)
-        : false;
-
-      return stillExists ? current : videos[0];
-    });
-
-    // A new category/search result should load into the player
-    // without unexpectedly starting playback.
-    setShouldAutoplaySelected(false);
-  }, [videos]);
-
-  useEffect(() => {
     const handleScroll = () => {
       setShowBackToTop(window.scrollY > 400);
     };
@@ -974,7 +955,7 @@ export default function StreamingPage() {
                 type="search"
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="Search English lessons..."
+                placeholder="Search academic English skills..."
                 className="h-11 w-full rounded-xl border border-[#e2e6ec] bg-white pl-10 pr-24 text-sm text-[#10192b] outline-none transition placeholder:text-[#98a2b3] focus:border-[#1a365d] focus:ring-2 focus:ring-[#1a365d]/10"
               />
 

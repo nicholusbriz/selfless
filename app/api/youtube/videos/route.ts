@@ -4,7 +4,9 @@ import { YouTubeService } from '@/lib/services/youtube-service';
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const query = searchParams.get('query') || 'English language learning';
+    const query =
+      searchParams.get('query') ||
+      'advanced English communication for university students';
     const maxResults = parseInt(searchParams.get('maxResults') || '12');
     const pageToken = searchParams.get('pageToken') || undefined;
     const videoCategoryId = searchParams.get('videoCategoryId') || undefined;
