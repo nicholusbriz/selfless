@@ -79,26 +79,25 @@ export class YouTubeService {
    * Search for English learning content
    */
   static async searchEnglishLearning(
-    query: string = 'English language learning',
+    query: string = 'advanced English communication for university students',
     maxResults: number = 12,
     pageToken?: string
   ): Promise<{ videos: YouTubeVideo[]; nextPageToken?: string; prevPageToken?: string }> {
     try {
       // English learning specific search terms
       const searchQueries = [
-        'English language lessons',
-        'English grammar tutorial',
-        'English pronunciation guide',
-        'conversational English',
-        'English for beginners',
-        'English speaking practice',
-        'English vocabulary',
-        'English listening practice',
-        'English TV series educational',
-        'English shows for learning'
+        'academic English communication for university students',
+        'university student presentations public speaking in English',
+        'academic discussion debate seminar English speaking skills',
+        'academic English writing university students',
+        'academic English vocabulary university students',
+        'university lecture listening comprehension English',
+        'English pronunciation clarity public speaking',
+        'university lecture seminar communication skills'
       ];
 
-      const searchQuery = query || searchQueries[Math.floor(Math.random() * searchQueries.length)];
+      const searchQuery =
+        query || searchQueries[Math.floor(Math.random() * searchQueries.length)];
 
       const url = new URL(`${BASE_URL}/search`);
       url.searchParams.append('part', 'snippet');
@@ -106,8 +105,8 @@ export class YouTubeService {
       url.searchParams.append('maxResults', maxResults.toString());
       url.searchParams.append('type', 'video');
       url.searchParams.append('order', 'relevance');
-      url.searchParams.append('videoDuration', 'medium'); // Medium length videos (4-20 minutes)
       url.searchParams.append('relevanceLanguage', 'en');
+      url.searchParams.append('videoCategoryId', CATEGORIES.EDUCATION);
       url.searchParams.append('key', API_KEY || '');
 
       if (pageToken) {

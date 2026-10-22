@@ -24,7 +24,7 @@ interface YouTubeSearchResult {
 /**
  * Hook for fetching English learning videos with pagination
  */
-export function useEnglishLearningVideos(query: string = 'English language learning', maxResults: number = 12) {
+export function useEnglishLearningVideos(query: string = 'advanced English communication for university students', maxResults: number = 12) {
   return useQuery({
     queryKey: ['youtube', 'search', query, maxResults],
     queryFn: async () => {
@@ -179,7 +179,7 @@ export function useInfiniteMusicVideos(query: string = 'music videos', maxResult
 /**
  * Hook for infinite scroll of English learning videos
  */
-export function useInfiniteEnglishVideos(query: string = 'English language learning', maxResults: number = 12) {
+export function useInfiniteEnglishVideos(query: string = 'advanced English communication for university students', maxResults: number = 12) {
   return useInfiniteQuery({
     queryKey: ['youtube', 'infinite', query, maxResults],
     queryFn: async ({ pageParam }) => {
