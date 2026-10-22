@@ -25,7 +25,6 @@ import Link from 'next/link';
 
 import { GlobalOnlineUsersPopup } from '@/components/GlobalOnlineUsersPopup';
 import { useOnlineUsers } from '@/lib/hooks/useOnlineUsers';
-import { useActivityTracker } from '@/lib/hooks/useActivityTracker';
 
 // ============================================================
 // LAYOUT CONSTANTS
@@ -87,6 +86,10 @@ function getPageInfo(pathname: string) {
     '/dashboard/courses': {
       title: 'Courses',
       section: 'Academics',
+    },
+    '/dashboard/course-units': {
+      title: 'Course Units',
+      section: 'System',
     },
     '/dashboard/grades': {
       title: 'Grades',
@@ -273,8 +276,6 @@ export default function DashboardLayout({
   // ----------------------------------------------------------
   // ACTIVITY TRACKING
   // ----------------------------------------------------------
-
-  useActivityTracker(Boolean(user?.id));
 
   // ----------------------------------------------------------
   // LOGOUT

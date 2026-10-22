@@ -413,6 +413,13 @@ const superAdminNavigation: NavSection = {
   label: 'System',
   items: [
     {
+      id: 'course-units',
+      label: 'Course Units',
+      path: '/dashboard/course-units',
+      icon: <BookMarked className={iconClass} />,
+      roles: ['dev', 'super_admin'],
+    },
+    {
       id: 'super-admin-dashboard',
       label: 'Overview',
       path: '/dashboard/super-admin',
@@ -568,6 +575,12 @@ function getNavigation(userRole: string): NavSection[] {
     navigation.push({
       ...devNavigation,
       items: devNavigation.items.filter((item) =>
+        item.roles.includes(userRole)
+      ),
+    });
+    navigation.push({
+      ...superAdminNavigation,
+      items: superAdminNavigation.items.filter((item) =>
         item.roles.includes(userRole)
       ),
     });

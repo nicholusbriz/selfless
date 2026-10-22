@@ -107,6 +107,10 @@ function getPageInfo(pathname: string) {
       title: 'Courses',
       section: 'Academics',
     },
+    '/dashboard/course-units': {
+      title: 'Course Units',
+      section: 'System',
+    },
     '/dashboard/grades': {
       title: 'Grades',
       section: 'Academics',

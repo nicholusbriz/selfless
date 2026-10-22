@@ -18,7 +18,7 @@ function pruneSuccessfulWrites(now: number) {
 async function persistLastActiveAt(userId: string): Promise<void> {
   for (let attempt = 0; ; attempt += 1) {
     try {
-      await prisma.user.updateMany({
+      await prisma.user.update({
         where: { id: userId },
         data: { lastActiveAt: new Date() },
       });
