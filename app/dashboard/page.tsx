@@ -781,6 +781,13 @@ function SuggestedStudents({ trending = [], isLoading }: { trending?: SocialUser
   const { data: session } = useSession();
   const currentUserId = session?.user?.id;
 
+  // Sort: users with profile images first, then limit to 10
+  const sortedTrending = useMemo(() => {
+    const withImage = trending.filter(u => u.profileImageUrl);
+    const withoutImage = trending.filter(u => !u.profileImageUrl);
+    return [...withImage, ...withoutImage].slice(0, 10);
+  }, [trending]);
+
   if (isLoading) {
     return (
       <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
@@ -794,7 +801,7 @@ function SuggestedStudents({ trending = [], isLoading }: { trending?: SocialUser
     );
   }
 
-  if (trending.length === 0) {
+  if (sortedTrending.length === 0) {
     return (
       <div className="border border-[#D1D5DB] bg-white px-6 py-8 text-center">
         <TrendingUp className="mx-auto mb-3 h-5 w-5 text-[#9CA3AF]" />
@@ -811,7 +818,7 @@ function SuggestedStudents({ trending = [], isLoading }: { trending?: SocialUser
   return (
     <div className="relative">
       <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 scroll-smooth">
-        {trending.map((user) => {
+        {sortedTrending.map((user) => {
           const initials = `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''
             }`.toUpperCase();
           const isSelf = user.id === currentUserId;
@@ -819,83 +826,87 @@ function SuggestedStudents({ trending = [], isLoading }: { trending?: SocialUser
           return (
             <article
               key={user.id}
-              className="w-72 shrink-0 overflow-hidden rounded-md border border-[#E5E7EB] bg-white shadow-sm transition-shadow hover:shadow-md"
+              className="w-60 shrink-0 overflow-hidden rounded-md border border-[#E5E7EB] bg-white shadow-sm transition-shadow hover:shadow-md"
             >
-              <button
-                type="button"
-                onClick={() => router.push(`/dashboard/students/${user.id}`)}
-                className="block w-full"
-              >
-                <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#1A2B4C]">
-                  {user.profileImageUrl ? (
-                    <Image
-                      src={user.profileImageUrl}
-                      alt={`${user.firstName} ${user.lastName}`}
-                      fill
-                      sizes="288px"
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <span className="font-mono text-2xl font-black text-white/90">
-                        {initials}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </button>
-
-              <div className="px-3 py-2.5">
-                <p className="truncate text-[15px] font-bold leading-tight text-[#1A2B4C]">
-                  {user.firstName} {user.lastName}
-                </p>
-                {user.techCenter && (
-                  <p className="mt-0.5 truncate text-[11px] leading-snug text-[#6B7280]">
-                    {user.techCenter.name}
-                  </p>
+              <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#1A2B4C]">
+                {user.profileImageUrl ? (
+                  <Image
+                    src={user.profileImageUrl}
+                    alt={`${user.firstName} ${user.lastName}`}
+                    fill
+                    sizes="240px"
+                    className="object-cover object-top"
+                    quality={100}
+                    priority
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <span className="font-mono text-2xl font-black text-white/90">
+                      {initials}
+                    </span>
+                  </div>
                 )}
 
-                <div className="mt-2 flex items-center gap-2 text-[10px]">
-                  <span className="font-mono font-bold text-[#1A2B4C]">
-                    {user.followersCount}
-                  </span>
-                  <span className="text-[#6B7280]">followers</span>
-                  <span className="text-[#6B7280]">•</span>
-                  <span className="font-mono font-bold text-[#1A2B4C]">
-                    {user.likesReceivedCount}
-                  </span>
-                  <span className="text-[#6B7280]">likes</span>
-                  <span className="text-[#6B7280]">•</span>
-                  <span className="font-mono font-bold text-[#1A2B4C]">
-                    {user.profileViewsCount}
-                  </span>
-                  <span className="text-[#6B7280]">views</span>
-                </div>
+                {/* View Profile - Top Right */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/dashboard/students/${user.id}`);
+                  }}
+                  className="absolute right-2 top-2 text-[11px] font-bold text-white hover:underline"
+                  aria-label={`View ${user.firstName} ${user.lastName}'s profile`}
+                >
+                  View profile
+                </button>
 
-                <div className="mt-2 flex items-center justify-between gap-2">
-                  <button
-                    type="button"
-                    onClick={() => router.push(`/dashboard/students/${user.id}`)}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#1A2B4C] hover:text-[#B98A3E]"
-                  >
-                    View profile
-                    <ChevronRight className="h-3 w-3" />
-                  </button>
+                {/* Gradient overlay for text readability */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
 
-                  {!isSelf && (
-                    <div className="flex min-w-0 flex-wrap items-center justify-end gap-1">
-                      <SocialActions
-                        userId={user.id}
-                        currentUserId={currentUserId}
-                        isFollowing={user.isFollowing}
-                        isLiked={user.isLiked}
-                        pageAdapters={DASHBOARD_TRENDING_ADAPTERS}
-                        size="xs"
-                        allowUnfollow={false}
-                        allowUnlike={true}
-                      />
-                    </div>
+                {/* Content overlay */}
+                <div className="absolute inset-0 flex flex-col justify-end p-3">
+                  <p className="truncate text-[15px] font-bold leading-tight text-white">
+                    {user.firstName} {user.lastName}
+                  </p>
+                  {user.techCenter && (
+                    <p className="mt-0.5 truncate text-[11px] leading-snug text-white/90">
+                      {user.techCenter.name}
+                    </p>
                   )}
+
+                  <div className="mt-2 flex items-center gap-2 text-[10px]">
+                    <span className="font-mono font-bold text-white">
+                      {user.followersCount}
+                    </span>
+                    <span className="text-white/80">followers</span>
+                    <span className="text-white/80">•</span>
+                    <span className="font-mono font-bold text-white">
+                      {user.likesReceivedCount}
+                    </span>
+                    <span className="text-white/80">likes</span>
+                    <span className="text-white/80">•</span>
+                    <span className="font-mono font-bold text-white">
+                      {user.profileViewsCount}
+                    </span>
+                    <span className="text-white/80">views</span>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-end gap-2">
+                    {!isSelf && (
+                      <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+                        <SocialActions
+                          userId={user.id}
+                          currentUserId={currentUserId}
+                          isFollowing={user.isFollowing}
+                          isLiked={user.isLiked}
+                          pageAdapters={DASHBOARD_TRENDING_ADAPTERS}
+                          size="sm"
+                          allowUnfollow={false}
+                          allowUnlike={true}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </article>
@@ -903,7 +914,7 @@ function SuggestedStudents({ trending = [], isLoading }: { trending?: SocialUser
         })}
       </div>
 
-      {trending.length > 3 && (
+      {sortedTrending.length > 3 && (
         <div className="flex items-center justify-center gap-2 mt-3 text-[11px] text-[#6B7280]">
           <span className="font-mono text-[10px] uppercase tracking-wider">
             Scroll to discover more

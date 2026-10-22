@@ -26,6 +26,8 @@ interface SocialActionsProps {
 const baseBtn =
   'inline-flex items-center justify-center gap-1 font-semibold transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] focus-visible:ring-offset-1';
 
+const stopPropagation = (e: React.MouseEvent) => e.stopPropagation();
+
 const sizeClasses: Record<Size, string> = {
   xs: 'px-1.5 py-0.5 text-[10px] rounded',
   sm: 'px-2.5 py-1 text-[11px] rounded-full',
@@ -107,7 +109,10 @@ export function SocialActions({
         {onViewProfile && (
           <button
             type="button"
-            onClick={onViewProfile}
+            onClick={(e) => {
+              stopPropagation(e);
+              onViewProfile();
+            }}
             className={`${baseBtn} ${szCls} border border-transparent text-[#4B5646] hover:border-[#E5E7EB] hover:bg-white/70`}
           >
             View
@@ -126,7 +131,10 @@ export function SocialActions({
           <button
             type="button"
             disabled={likePending}
-            onClick={() => social.toggleLike(userId)}
+            onClick={(e) => {
+              stopPropagation(e);
+              social.toggleLike(userId);
+            }}
             className={`${baseBtn} ${szCls} ${likeActive}`}
             aria-label="Unlike this profile"
             title="Unlike"
@@ -148,7 +156,10 @@ export function SocialActions({
         <button
           type="button"
           disabled={likePending}
-          onClick={() => social.toggleLike(userId)}
+          onClick={(e) => {
+            stopPropagation(e);
+            social.toggleLike(userId);
+          }}
           className={`${baseBtn} ${szCls} ${
             isFeatured ? likeIdleFeatured : likeIdleOutlined
           }`}
@@ -166,7 +177,10 @@ export function SocialActions({
           <button
             type="button"
             disabled={unfollowPending}
-            onClick={() => social.unfollow(userId)}
+            onClick={(e) => {
+              stopPropagation(e);
+              social.unfollow(userId);
+            }}
             className={`${baseBtn} ${szCls} ${followActive}`}
             aria-label="Unfollow this user"
             title="Unfollow"
@@ -192,7 +206,10 @@ export function SocialActions({
         <button
           type="button"
           disabled={followLoading}
-          onClick={() => social.follow(userId)}
+          onClick={(e) => {
+            stopPropagation(e);
+            social.follow(userId);
+          }}
           className={`${baseBtn} ${szCls} ${followIdle}`}
           aria-label="Follow this user"
           title="Follow"
@@ -210,7 +227,10 @@ export function SocialActions({
       {onViewProfile && (
         <button
           type="button"
-          onClick={onViewProfile}
+          onClick={(e) => {
+            stopPropagation(e);
+            onViewProfile();
+          }}
           className={`${baseBtn} ${szCls} border border-transparent text-[#4B5646] hover:border-[#E5E7EB] hover:bg-white/70`}
         >
           {variant === 'featured' ? (

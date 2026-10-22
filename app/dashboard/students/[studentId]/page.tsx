@@ -336,7 +336,7 @@ export default function StudentProfilePage() {
                 </div>
               )}
 
-              <div className="absolute inset-0 bg-gradient-to-t from-[#1A2B4C] via-[#1A2B4C]/30 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#1A2B4C] via-[#1A2B4C]/60 to-transparent" />
               <div className="absolute inset-x-0 top-0 h-1 bg-[#C59B4C]" />
 
               {student.profileImage && (

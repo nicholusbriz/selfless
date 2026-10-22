@@ -174,32 +174,32 @@ export function useSocialActions(opts: Options = {}) {
   const invalidateAll = useCallback(() => {
     queryClient.invalidateQueries({
       queryKey: socialKeys.students,
-      refetchType: 'active',
+      refetchType: 'none',
     });
     queryClient.invalidateQueries({
       queryKey: socialKeys.trending,
-      refetchType: 'active',
+      refetchType: 'none',
     });
     queryClient.invalidateQueries({
       queryKey: ['social', 'stats'],
-      refetchType: 'active',
+      refetchType: 'none',
     });
     if (currentUserId) {
       queryClient.invalidateQueries({
         queryKey: socialKeys.followers(currentUserId),
-        refetchType: 'active',
+        refetchType: 'none',
       });
       queryClient.invalidateQueries({
         queryKey: socialKeys.following(currentUserId),
-        refetchType: 'active',
+        refetchType: 'none',
       });
       queryClient.invalidateQueries({
         queryKey: socialKeys.likes(currentUserId),
-        refetchType: 'active',
+        refetchType: 'none',
       });
       queryClient.invalidateQueries({
         queryKey: socialKeys.userStats(currentUserId),
-        refetchType: 'active',
+        refetchType: 'none',
       });
     }
   }, [queryClient, currentUserId]);
