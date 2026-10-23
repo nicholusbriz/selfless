@@ -2,7 +2,7 @@ import { useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import type { Message } from '@/types/messaging';
-import { createPartySocket } from '@/lib/partykit';
+import { createPartyServerSocket } from '@/lib/party-socket';
 
 interface UseMessagesProps {
   conversationId: string;
@@ -154,7 +154,7 @@ export function useUnreadMessageCount() {
   useEffect(() => {
     if (!currentUserId) return;
 
-    let socket: Awaited<ReturnType<typeof createPartySocket>> = null;
+    let socket: Awaited<ReturnType<typeof createPartyServerSocket>> = null;
     let disposed = false;
 
     const handleMessage = (event: MessageEvent<string>) => {
@@ -214,7 +214,7 @@ export function useUnreadMessageCount() {
       void queryClient.invalidateQueries({ queryKey: ['messages'] });
     };
 
-    void createPartySocket(`user:${currentUserId}`).then((connectedSocket) => {
+    void createPartyServerSocket(`user:${currentUserId}`).then((connectedSocket) => {
       if (!connectedSocket || disposed) {
         connectedSocket?.close();
         return;

@@ -16,7 +16,7 @@ import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
 import { createNotificationForUser } from '@/lib/notifications';
-import { publishSocialInvalidation } from '@/lib/partykit-server';
+import { publishSocialInvalidation } from '@/lib/partyserver-client';
 
 export async function POST(
   request: Request,

@@ -15,7 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerAuthUser, requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
-import { publishUserProfileInvalidation } from '@/lib/partykit-server';
+import { publishUserProfileInvalidation } from '@/lib/partyserver-client';
 
 export async function POST(req: NextRequest) {
   try {

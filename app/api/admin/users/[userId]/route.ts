@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
 import { logUserAction } from '@/lib/logger';
 import { deleteProfileImage } from '@/lib/azure-storage';
-import { publishUserProfileInvalidation } from '@/lib/partykit-server';
+import { publishUserProfileInvalidation } from '@/lib/partyserver-client';
 
 // GET - Fetch single user details
 export async function GET(

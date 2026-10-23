@@ -12,7 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
-import { publishSocialInvalidation } from '@/lib/partykit-server';
+import { publishSocialInvalidation } from '@/lib/partyserver-client';
 
 export async function GET(
   req: NextRequest,

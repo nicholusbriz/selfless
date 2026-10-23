@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
-import { publishApprovalInvalidation } from '@/lib/partykit-server';
+import { publishApprovalInvalidation } from '@/lib/partyserver-client';
 
 export async function DELETE() {
   try {

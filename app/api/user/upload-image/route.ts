@@ -16,7 +16,7 @@ import {
   uploadProfileImage,
   deleteProfileImage,
 } from '@/lib/azure-storage';
-import { publishUserProfileInvalidation } from '@/lib/partykit-server';
+import { publishUserProfileInvalidation } from '@/lib/partyserver-client';
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 const ALLOWED_TYPES  = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];

@@ -21,6 +21,7 @@ import {
   Library,
   Star,
   MessageCircle,
+  MessageSquare,
   Trash2,
   Loader2,
   Send,
@@ -57,6 +58,7 @@ import {
   patchStudentsShape,
 } from '@/lib/social/patchHelpers';
 import { SocialActions } from '@/components/social/SocialActions';
+import { compareProfileImageFirst } from '@/lib/social/ranking';
 
 /* ============================================================
    TYPES
@@ -185,7 +187,9 @@ interface SocialUser {
   firstName: string;
   lastName: string;
   profileImageUrl: string | null;
+  role?: string | null;
   techCenter: { id: string; name: string } | null;
+  previousTechCenter?: { id: string; name: string } | null;
   followersCount: number;
   followingCount: number;
   likesReceivedCount: number;
@@ -193,6 +197,21 @@ interface SocialUser {
   isFollowing: boolean;
   isLiked: boolean;
 }
+
+const getTrendingRoleLabel = (role?: string | null) => {
+  if (!role) return null;
+  const roleLabels: Record<string, string> = {
+    admin: 'Manager',
+    super_admin: 'Director',
+    dev: 'Developer',
+    student: 'Student',
+    teacher: 'Teacher',
+  };
+  return (
+    roleLabels[role.toLowerCase()] ??
+    role.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+  );
+};
 
 const DASHBOARD_TRENDING_ADAPTERS: PageCacheAdapter[] = [
   {
@@ -781,11 +800,9 @@ function SuggestedStudents({ trending = [], isLoading }: { trending?: SocialUser
   const { data: session } = useSession();
   const currentUserId = session?.user?.id;
 
-  // Sort: users with profile images first, then limit to 10
+  // Prioritize profile images, then followers and likes.
   const sortedTrending = useMemo(() => {
-    const withImage = trending.filter(u => u.profileImageUrl);
-    const withoutImage = trending.filter(u => !u.profileImageUrl);
-    return [...withImage, ...withoutImage].slice(0, 10);
+    return [...trending].sort(compareProfileImageFirst).slice(0, 10);
   }, [trending]);
 
   if (isLoading) {
@@ -854,7 +871,7 @@ function SuggestedStudents({ trending = [], isLoading }: { trending?: SocialUser
                     e.stopPropagation();
                     router.push(`/dashboard/students/${user.id}`);
                   }}
-                  className="absolute right-2 top-2 text-[11px] font-bold text-white hover:underline"
+                  className="absolute right-2 top-2 z-10 rounded-md border border-white/30 bg-black/40 px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:border-white/50 hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B]"
                   aria-label={`View ${user.firstName} ${user.lastName}'s profile`}
                 >
                   View profile
@@ -868,9 +885,18 @@ function SuggestedStudents({ trending = [], isLoading }: { trending?: SocialUser
                   <p className="truncate text-[15px] font-bold leading-tight text-white">
                     {user.firstName} {user.lastName}
                   </p>
-                  {user.techCenter && (
+                  {getTrendingRoleLabel(user.role) && (
                     <p className="mt-0.5 truncate text-[11px] leading-snug text-white/90">
-                      {user.techCenter.name}
+                      {getTrendingRoleLabel(user.role)}
+                    </p>
+                  )}
+                  {(user.role === 'super_admin'
+                    ? user.previousTechCenter ?? user.techCenter
+                    : user.techCenter) && (
+                    <p className="mt-0.5 truncate text-[11px] leading-snug text-white/90">
+                      {(user.role === 'super_admin'
+                        ? user.previousTechCenter ?? user.techCenter
+                        : user.techCenter)?.name}
                     </p>
                   )}
 
@@ -891,18 +917,32 @@ function SuggestedStudents({ trending = [], isLoading }: { trending?: SocialUser
                     <span className="text-white/80">views</span>
                   </div>
 
-                  <div className="mt-3 flex items-center justify-end gap-2">
+                  <div className="mt-3 flex flex-nowrap items-center justify-between gap-1">
                     {!isSelf && (
-                      <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          router.push(`/dashboard/messages?userId=${user.id}`)
+                        }
+                        className="inline-flex shrink-0 items-center gap-1 rounded-md border border-white/30 bg-black/25 px-2 py-1 text-[10px] font-semibold text-white transition-all hover:border-white/50 hover:bg-black/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B]"
+                        aria-label={`Message ${user.firstName} ${user.lastName}`}
+                      >
+                        <MessageSquare className="h-3 w-3 shrink-0" />
+                        Message
+                      </button>
+                    )}
+                    {!isSelf && (
+                      <div className="flex shrink-0 items-center justify-end gap-1">
                         <SocialActions
                           userId={user.id}
                           currentUserId={currentUserId}
                           isFollowing={user.isFollowing}
                           isLiked={user.isLiked}
                           pageAdapters={DASHBOARD_TRENDING_ADAPTERS}
-                          size="sm"
+                          size="xs"
                           allowUnfollow={false}
                           allowUnlike={true}
+                          className="!flex-nowrap shrink-0 gap-1"
                         />
                       </div>
                     )}

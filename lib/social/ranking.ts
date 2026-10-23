@@ -1,5 +1,5 @@
 // lib/social/ranking.ts
-// Profile image priority, then followers, likes as tie-breaker, name for stability.
+// Profile image priority, then followers and likes as tie-breakers.
 
 import type { Rankable } from '@/lib/social/types';
 
@@ -25,22 +25,17 @@ export function compareProfileImageFirst(a: Rankable, b: Rankable): number {
     return bHasImage ? 1 : -1; // Users with images come first
   }
 
-  // Priority 2: Profile views (if both have or both don't have images)
-  const av = a.profileViewsCount || 0;
-  const bv = b.profileViewsCount || 0;
-  if (bv !== av) return bv - av;
-
-  // Priority 3: Followers count
+  // Priority 2: Followers count
   const af = a.followersCount || 0;
   const bf = b.followersCount || 0;
   if (bf !== af) return bf - af;
 
-  // Priority 4: Likes count
+  // Priority 3: Likes count
   const al = Math.max(0, a.likesReceivedCount || 0);
   const bl = Math.max(0, b.likesReceivedCount || 0);
   if (bl !== al) return bl - al;
 
-  // Priority 5: Name for stability
+  // Priority 4: Name for stability
   const nameA = `${a.firstName ?? ''} ${a.lastName ?? ''}`.trim().toLowerCase();
   const nameB = `${b.firstName ?? ''} ${b.lastName ?? ''}`.trim().toLowerCase();
   return nameA.localeCompare(nameB);

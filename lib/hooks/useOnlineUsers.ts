@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { createPublicPresenceSocket } from '@/lib/partykit';
+import { createPublicPresenceSocket } from '@/lib/party-socket';
 
 export interface OnlineUser {
   userId: string;
@@ -61,10 +61,10 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
 
     const socket = createPublicPresenceSocket(currentUserId);
     if (!socket) {
-      console.error('PartyKit presence socket could not be created.');
+      console.error('PartyServer presence socket could not be created.');
       return;
     }
-    console.info('[presence] Connecting to PartyKit online-users room.');
+    console.info('[presence] Connecting to PartyServer online-users room.');
 
     let disposed = false;
     const onlineUserIds = new Set<string>();
@@ -147,7 +147,7 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
             ? message.users.length
             : 'not-provided';
         console.info(
-          `[presence] PartyKit message received: type=${messageType}; rosterCount=${rosterCount}`,
+          `[presence] PartyServer message received: type=${messageType}; rosterCount=${rosterCount}`,
         );
 
         if (message.type === 'current-online-users') {
@@ -213,18 +213,18 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
     };
 
     const handleError = (event: Event) => {
-      console.warn('PartyKit presence connection interrupted.', {
+      console.warn('PartyServer presence connection interrupted.', {
         eventType: event.type,
         readyState: socket.readyState,
       });
     };
 
     const handleOpen = () => {
-      console.info('[presence] PartyKit WebSocket connected.');
+      console.info('[presence] PartyServer WebSocket connected.');
     };
 
     const handleClose = (event: CloseEvent) => {
-      console.warn('[presence] PartyKit WebSocket closed.', {
+      console.warn('[presence] PartyServer WebSocket closed.', {
         code: event.code,
         wasClean: event.wasClean,
       });

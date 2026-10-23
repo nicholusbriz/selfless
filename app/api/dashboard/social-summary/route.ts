@@ -26,7 +26,9 @@ interface TrendingStudent {
   firstName: string;
   lastName: string;
   profileImageUrl: string | null;
+  role: string | null;
   techCenter: { id: string; name: string } | null;
+  previousTechCenter: { id: string; name: string } | null;
   followersCount: number;
   followingCount: number;
   likesReceivedCount: number;
@@ -99,12 +101,35 @@ export async function GET(request: Request) {
           firstName: true,
           lastName: true,
           profileImageUrl: true,
+          role: { select: { name: true } },
+          previousTechCenterId: true,
           techCenter: { select: { id: true, name: true } },
         },
       });
 
       const userIds = users.map((u) => u.id);
-      const statsMap = await getStatsForUsers(viewerId, userIds);
+      const previousTechCenterIds = Array.from(
+        new Set(
+          users
+            .filter((user) => user.role?.name === 'super_admin')
+            .map((user) => user.previousTechCenterId)
+            .filter(
+              (id): id is string => typeof id === 'string' && id.length > 0,
+            ),
+        ),
+      );
+      const [statsMap, previousTechCenters] = await Promise.all([
+        getStatsForUsers(viewerId, userIds),
+        previousTechCenterIds.length > 0
+          ? prisma.techCenter.findMany({
+              where: { id: { in: previousTechCenterIds } },
+              select: { id: true, name: true },
+            })
+          : Promise.resolve([]),
+      ]);
+      const previousTechCentersById = new Map(
+        previousTechCenters.map((techCenter) => [techCenter.id, techCenter]),
+      );
 
       const ranked = users
         .map((u) => {
@@ -116,6 +141,9 @@ export async function GET(request: Request) {
         })
         .filter((u) => u.followersCount > 0 || u.likesReceivedCount > 0)
         .sort((a, b) => {
+          const aHasImage = Boolean(a.profileImageUrl?.trim());
+          const bHasImage = Boolean(b.profileImageUrl?.trim());
+          if (aHasImage !== bHasImage) return bHasImage ? 1 : -1;
           if (b.followersCount !== a.followersCount)
             return b.followersCount - a.followersCount;
           if (b.likesReceivedCount !== a.likesReceivedCount)
@@ -131,7 +159,12 @@ export async function GET(request: Request) {
         firstName: u.firstName,
         lastName: u.lastName,
         profileImageUrl: u.profileImageUrl,
+        role: u.role?.name ?? null,
         techCenter: u.techCenter,
+        previousTechCenter:
+          u.role?.name === 'super_admin' && u.previousTechCenterId
+            ? previousTechCentersById.get(u.previousTechCenterId) ?? null
+            : null,
         followersCount: u.followersCount,
         followingCount: u.followingCount,
         likesReceivedCount: u.likesReceivedCount,

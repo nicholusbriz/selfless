@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
-import { publishUserProfileInvalidation } from '@/lib/partykit-server';
+import { publishUserProfileInvalidation } from '@/lib/partyserver-client';
 
 // GET - Fetch single user details (only if in same tech center)
 export async function GET(

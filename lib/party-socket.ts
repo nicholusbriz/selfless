@@ -8,7 +8,7 @@ async function getPartyTicket(): Promise<string | null> {
   }
 
   try {
-    const response = await fetch('/api/partykit-ticket', { cache: 'no-store' });
+    const response = await fetch('/api/party-ticket', { cache: 'no-store' });
     if (!response.ok) return null;
 
     const ticket = (await response.json()) as {
@@ -29,15 +29,15 @@ async function getPartyTicket(): Promise<string | null> {
   }
 }
 
-export async function createPartySocket(room: string) {
-  const host = process.env.NEXT_PUBLIC_PARTYKIT_HOST;
+export async function createPartyServerSocket(room: string) {
+  const host = process.env.NEXT_PUBLIC_PARTYSERVER_HOST;
 
   if (!host && process.env.NODE_ENV === 'production') {
     return null;
   }
 
   return new PartySocket({
-    host: host || 'localhost:1999',
+    host: host || 'localhost:8787',
     party: 'main',
     room,
     query: async () => {
@@ -48,14 +48,14 @@ export async function createPartySocket(room: string) {
 }
 
 export function createPublicPresenceSocket(userId: string) {
-  const host = process.env.NEXT_PUBLIC_PARTYKIT_HOST;
+  const host = process.env.NEXT_PUBLIC_PARTYSERVER_HOST;
 
   if (!host && process.env.NODE_ENV === 'production') {
     return null;
   }
 
   return new PartySocket({
-    host: host || 'localhost:1999',
+    host: host || 'localhost:8787',
     party: 'main',
     room: 'online-users',
     query: { userId },
