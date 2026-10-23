@@ -14,6 +14,7 @@ import {
   useTeam, useRegisterForTeam, useLeaveTeam, useUpdateTeamMembership,
 } from "@/hooks/useTeam";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { getResponseError, isRecord } from "../response-guards";
 
 // Types
 export interface TeamMember {
@@ -51,6 +52,20 @@ interface TeamContext {
     name: string;
     country: { name: string } | null;
   } | null;
+}
+
+function isTeamContext(value: unknown): value is TeamContext {
+  return (
+    isRecord(value) &&
+    (typeof value.techCenterId === "string" || value.techCenterId === null) &&
+    (value.techCenter === null ||
+      (isRecord(value.techCenter) &&
+        typeof value.techCenter.id === "string" &&
+        typeof value.techCenter.name === "string" &&
+        (value.techCenter.country === null ||
+          (isRecord(value.techCenter.country) &&
+            typeof value.techCenter.country.name === "string"))))
+  );
 }
 
 export type SportType = "FOOTBALL" | "VOLLEYBALL" | "NETBALL" | "BASKETBALL" | "ATHLETICS";
@@ -598,11 +613,14 @@ export default function FootballTeamPage() {
     queryKey: ["team-context", user?.id],
     queryFn: async () => {
       const response = await fetch("/api/team/context");
-      const result = await response.json();
+      const result: unknown = await response.json();
       if (!response.ok) {
-        throw new Error(result.error || "Failed to load team context");
+        throw new Error(getResponseError(result, "Failed to load team context"));
       }
-      return result as TeamContext;
+      if (!isTeamContext(result)) {
+        throw new Error("Invalid team context response");
+      }
+      return result;
     },
     enabled: Boolean(user?.id),
     staleTime: 5 * 60 * 1000,

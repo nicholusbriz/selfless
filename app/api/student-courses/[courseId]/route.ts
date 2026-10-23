@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import {
+  invalidJsonBodyResponse,
+  isBoolean,
+  isString,
+  isStringOrNumber,
+  optional,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 // PUT - Update a course
 export async function PUT(
@@ -16,8 +24,22 @@ export async function PUT(
     }
 
     const { courseId } = await params;
-    const body = await request.json();
+    const body = await parseJsonBody(request, {
+      code: optional(isString),
+      courseUnit: optional(isString),
+      credits: optional(isStringOrNumber),
+      takesReligion: optional(isBoolean),
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { code, courseUnit, credits, takesReligion } = body;
+    const parsedCredits = credits === undefined ? undefined : Number(credits);
+
+    if (
+      parsedCredits !== undefined &&
+      (!Number.isInteger(parsedCredits) || !Number.isFinite(parsedCredits))
+    ) {
+      return NextResponse.json({ error: 'Credits must be a whole number' }, { status: 400 });
+    }
 
     // Get the course to verify ownership
     const course = await prisma.studentCourse.findUnique({
@@ -39,7 +61,7 @@ export async function PUT(
       data: {
         code: code || undefined,
         courseUnit: courseUnit || undefined,
-        credits: credits !== undefined ? parseInt(credits) : undefined,
+        credits: parsedCredits,
         takesReligion: takesReligion !== undefined ? takesReligion : undefined
       }
     });

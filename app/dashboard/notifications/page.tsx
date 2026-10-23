@@ -13,6 +13,7 @@ import {
   useMarkAllAsRead,
 } from '@/hooks/useNotifications';
 import { motion } from 'framer-motion';
+import { isRecord } from '../response-guards';
 
 /* ============================================================
    TYPES
@@ -25,6 +26,34 @@ interface Notification {
   type: string;
   isRead: boolean;
   createdAt: string;
+}
+
+interface NotificationsPageData {
+  notifications: Notification[];
+  unreadCount: number;
+}
+
+function isNotification(value: unknown): value is Notification {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.title === 'string' &&
+    typeof value.message === 'string' &&
+    typeof value.type === 'string' &&
+    typeof value.isRead === 'boolean' &&
+    typeof value.createdAt === 'string'
+  );
+}
+
+function isNotificationsPageData(
+  value: unknown,
+): value is NotificationsPageData {
+  return (
+    isRecord(value) &&
+    typeof value.unreadCount === 'number' &&
+    Array.isArray(value.notifications) &&
+    value.notifications.every(isNotification)
+  );
 }
 
 /* ============================================================
@@ -42,7 +71,11 @@ function cn(...classes: (string | boolean | undefined)[]) {
 export default function NotificationsPage() {
   const router = useRouter();
 
-  const { data, isLoading, error } = useNotifications(false);
+  const notificationsQuery = useNotifications(false);
+  const { isLoading, error } = notificationsQuery;
+  const data = isNotificationsPageData(notificationsQuery.data)
+    ? notificationsQuery.data
+    : null;
 
   const markAsRead = useMarkNotificationAsRead();
   const markAllAsReadMutation = useMarkAllAsRead();

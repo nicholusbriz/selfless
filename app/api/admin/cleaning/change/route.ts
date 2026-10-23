@@ -15,10 +15,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { oldDayId, newDayId } = body;
+    const body: unknown = await request.json();
+    if (
+      typeof body !== 'object' ||
+      body === null ||
+      !('oldDayId' in body) ||
+      !('newDayId' in body)
+    ) {
+      return NextResponse.json(
+        { error: 'Both old and new day IDs are required' },
+        { status: 400 }
+      );
+    }
 
-    if (!oldDayId || !newDayId) {
+    const { oldDayId, newDayId } = body;
+    if (
+      typeof oldDayId !== 'string' ||
+      !oldDayId ||
+      typeof newDayId !== 'string' ||
+      !newDayId
+    ) {
       return NextResponse.json(
         { error: 'Both old and new day IDs are required' },
         { status: 400 }

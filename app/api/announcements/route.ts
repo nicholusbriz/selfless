@@ -1,4 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  invalidJsonBodyResponse,
+  isBoolean,
+  isString,
+  nullable,
+  optional,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
@@ -94,7 +102,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    const body = await parseJsonBody(request, {
+      title: isString,
+      content: isString,
+      deadline: optional(nullable(isString)),
+      isGlobal: optional(isBoolean),
+      techCenterId: optional(nullable(isString)),
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { title, content, deadline, isGlobal, techCenterId } = body;
 
     if (!title || !content) {

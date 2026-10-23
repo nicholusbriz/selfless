@@ -39,6 +39,9 @@ export async function GET(
                   firstName: true,
                   lastName: true,
                   profileImageUrl: true,
+                  role: { select: { name: true } },
+                  previousTechCenterId: true,
+                  generalCourse: true,
                   techCenter: { select: { id: true, name: true } },
                 },
               },
@@ -55,6 +58,9 @@ export async function GET(
                   firstName: true,
                   lastName: true,
                   profileImageUrl: true,
+                  role: { select: { name: true } },
+                  previousTechCenterId: true,
+                  generalCourse: true,
                   techCenter: { select: { id: true, name: true } },
                 },
               },
@@ -69,6 +75,9 @@ export async function GET(
         firstName: u.firstName,
         lastName: u.lastName,
         profileImageUrl: u.profileImageUrl,
+        role: u.role,
+        previousTechCenterId: u.previousTechCenterId,
+        generalCourse: u.generalCourse,
         techCenter: u.techCenter,
         connectedAt: r.createdAt.toISOString(),
       };
@@ -79,8 +88,34 @@ export async function GET(
       base.map((c) => c.id),
     );
 
+    // Fetch previous tech centers for directors
+    const previousTechCenterIds = Array.from(
+      new Set(
+        base
+          .filter((user) => user.role?.name === 'super_admin')
+          .map((user) => user.previousTechCenterId)
+          .filter((id): id is string => typeof id === 'string' && id.length > 0)
+      ),
+    );
+
+    const previousTechCenters =
+      previousTechCenterIds.length > 0
+        ? await prisma.techCenter.findMany({
+            where: { id: { in: previousTechCenterIds } },
+            select: { id: true, name: true },
+          })
+        : [];
+
+    const previousTechCentersById = new Map(
+      previousTechCenters.map((techCenter) => [techCenter.id, techCenter]),
+    );
+
     const connections = base.map((c) => ({
       ...c,
+      previousTechCenter:
+        c.role?.name === 'super_admin' && c.previousTechCenterId
+          ? previousTechCentersById.get(c.previousTechCenterId) ?? null
+          : null,
       ...(statsMap.get(c.id) ?? EMPTY_STATS),
     }));
 

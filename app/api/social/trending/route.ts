@@ -37,7 +37,7 @@ interface TrendingStudent {
   firstName: string;
   lastName: string;
   profileImageUrl: string | null;
-  role: string | null;
+  role: { name: string } | null;
   techCenter: { id: string; name: string } | null;
   previousTechCenter: { id: string; name: string } | null;
   followersCount: number;
@@ -132,11 +132,11 @@ export async function GET(request: Request) {
           ...stats,
         };
       })
-      .filter((u) => u.followersCount > 0 || u.likesReceivedCount > 0)
+      .filter((u) =>
+        Boolean(u.profileImageUrl?.trim()) &&
+        (u.followersCount || 0) >= 1
+      )
       .sort((a, b) => {
-        const aHasImage = Boolean(a.profileImageUrl?.trim());
-        const bHasImage = Boolean(b.profileImageUrl?.trim());
-        if (aHasImage !== bHasImage) return bHasImage ? 1 : -1;
         if (b.followersCount !== a.followersCount)
           return b.followersCount - a.followersCount;
         if (b.likesReceivedCount !== a.likesReceivedCount)
@@ -144,8 +144,7 @@ export async function GET(request: Request) {
         return `${a.firstName} ${a.lastName}`.localeCompare(
           `${b.firstName} ${b.lastName}`,
         );
-      })
-      .slice(0, limit);
+      });
 
     // -------- 5. Build response rows --------
     const students: TrendingStudent[] = ranked.map((u) => ({
@@ -153,7 +152,7 @@ export async function GET(request: Request) {
       firstName: u.firstName,
       lastName: u.lastName,
       profileImageUrl: u.profileImageUrl,
-      role: u.role?.name ?? null,
+      role: u.role ?? null,
       techCenter: u.techCenter,
       previousTechCenter:
         u.role?.name === 'super_admin' && u.previousTechCenterId

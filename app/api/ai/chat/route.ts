@@ -3,6 +3,14 @@ import { PrismaClient } from '@prisma/client';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { generateRAGResponse, type RAGResponse, type RAGOptions } from '@/lib/services/rag-service';
+import {
+  invalidJsonBodyResponse,
+  isJsonObject,
+  isString,
+  optional,
+  parseJsonBody,
+  type JsonGuard,
+} from '@/app/api/_lib/request-validation';
 
 const prisma = new PrismaClient();
 
@@ -11,6 +19,20 @@ type ChatHistoryMessage = {
   content: string;
   timestamp?: string | Date;
 };
+
+const isChatHistory: JsonGuard<ChatHistoryMessage[]> = (
+  value,
+): value is ChatHistoryMessage[] =>
+  Array.isArray(value) &&
+  value.every(
+    (item) =>
+      isJsonObject(item) &&
+      (item.role === 'system' ||
+        item.role === 'user' ||
+        item.role === 'assistant') &&
+      isString(item.content) &&
+      (item.timestamp === undefined || isString(item.timestamp)),
+  );
 
 type LearningProfileRecord = {
   preferredTopics?: string[];
@@ -248,11 +270,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const {
-      message,
-      conversationHistory,
-      conversationId
-    } = await request.json();
+    const body = await parseJsonBody(request, {
+      message: isString,
+      conversationHistory: optional(isChatHistory),
+      conversationId: optional(isString),
+    });
+    if (!body) return invalidJsonBodyResponse();
+    const { message, conversationHistory, conversationId } = body;
     const userId = session.user.id;
 
     if (!message || typeof message !== 'string') {
@@ -262,9 +286,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const conversationHistoryMessages = Array.isArray(conversationHistory)
-      ? (conversationHistory as ChatHistoryMessage[])
-      : [];
+    const conversationHistoryMessages = conversationHistory ?? [];
 
     // Build trusted context from the authenticated user's database record.
     let userContext = '';
@@ -635,4 +657,3 @@ function assessDifficulty(message: string): string {
 
   return 'medium';
 }
-

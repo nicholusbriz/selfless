@@ -3,6 +3,11 @@ import { NextResponse } from 'next/server';
 import { BlobServiceClient } from '@azure/storage-blob';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 export const runtime = 'nodejs';
 
@@ -24,8 +29,9 @@ export async function DELETE(request: Request) {
   }
 
   try {
-    const body = await request.json();
-    const mediaId = typeof body?.mediaId === 'string' ? body.mediaId : '';
+    const body = await parseJsonBody(request, { mediaId: isString });
+    if (!body) return invalidJsonBodyResponse();
+    const { mediaId } = body;
 
     if (!mediaId) {
       return NextResponse.json(

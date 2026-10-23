@@ -13,6 +13,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, hasRole } from '@/lib/auth/server';
 import { revokeResetToken } from '@/lib/auth/server';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,7 +31,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
+    const body = await parseJsonBody(req, { userId: isString });
+    if (!body) return invalidJsonBodyResponse();
     const { userId } = body;
 
     // Validate required fields

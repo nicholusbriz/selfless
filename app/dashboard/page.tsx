@@ -58,7 +58,8 @@ import {
   patchStudentsShape,
 } from '@/lib/social/patchHelpers';
 import { SocialActions } from '@/components/social/SocialActions';
-import { compareProfileImageFirst } from '@/lib/social/ranking';
+import { compareSuperadminWithImageFirst } from '@/lib/social/ranking';
+import { getResponseError, isRecord } from './response-guards';
 
 /* ============================================================
    TYPES
@@ -198,6 +199,218 @@ interface SocialUser {
   isLiked: boolean;
 }
 
+function isMediaItem(value: unknown): value is MediaItem {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.publicUrl === 'string' &&
+    typeof value.blobName === 'string' &&
+    typeof value.contentType === 'string' &&
+    typeof value.size === 'number' &&
+    typeof value.title === 'string' &&
+    (typeof value.description === 'string' || value.description === null) &&
+    (typeof value.category === 'string' || value.category === null) &&
+    typeof value.createdAt === 'string' &&
+    (value.user === undefined ||
+      value.user === null ||
+      (isRecord(value.user) &&
+        typeof value.user.id === 'string' &&
+        typeof value.user.firstName === 'string' &&
+        typeof value.user.lastName === 'string' &&
+        (typeof value.user.profileImageUrl === 'string' ||
+          value.user.profileImageUrl === null)))
+  );
+}
+
+function isVideoRequest(value: unknown): value is VideoRequest {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.request === 'string' &&
+    typeof value.status === 'string' &&
+    typeof value.createdAt === 'string' &&
+    isRecord(value.user) &&
+    typeof value.user.id === 'string' &&
+    typeof value.user.firstName === 'string' &&
+    typeof value.user.lastName === 'string' &&
+    (typeof value.user.profileImageUrl === 'string' ||
+      value.user.profileImageUrl === null) &&
+    (value.techCenter === undefined ||
+      value.techCenter === null ||
+      (isRecord(value.techCenter) &&
+        typeof value.techCenter.id === 'string' &&
+        typeof value.techCenter.name === 'string' &&
+        (value.techCenter.country === undefined ||
+          (isRecord(value.techCenter.country) &&
+            typeof value.techCenter.country.name === 'string'))))
+  );
+}
+
+function isTechCenter(value: unknown): value is TechCenter {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.name === 'string' &&
+    (value.city === undefined ||
+      typeof value.city === 'string' ||
+      value.city === null)
+  );
+}
+
+function isTutor(value: unknown): value is Tutor {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.firstName === 'string' &&
+    typeof value.lastName === 'string' &&
+    (typeof value.profileImageUrl === 'string' ||
+      value.profileImageUrl === null) &&
+    typeof value.email === 'string' &&
+    (value.techCenter === undefined ||
+      (isRecord(value.techCenter) &&
+        typeof value.techCenter.id === 'string' &&
+        typeof value.techCenter.name === 'string')) &&
+    (value.role === undefined ||
+      (isRecord(value.role) && typeof value.role.name === 'string'))
+  );
+}
+
+function isCenterAdmin(value: unknown): value is CenterAdmin {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.firstName === 'string' &&
+    typeof value.lastName === 'string' &&
+    (typeof value.profileImageUrl === 'string' ||
+      value.profileImageUrl === null)
+  );
+}
+
+function isActivityItem(value: unknown): value is ActivityItem {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.action === 'string' &&
+    (typeof value.createdAt === 'string' || value.createdAt instanceof Date) &&
+    (value.entityId === undefined || typeof value.entityId === 'string') &&
+    (value.userAgent === undefined || typeof value.userAgent === 'string') &&
+    (value.location === undefined || typeof value.location === 'string') &&
+    (value.page === undefined || typeof value.page === 'string') &&
+    (value.method === undefined || typeof value.method === 'string') &&
+    (value.details === undefined ||
+      value.details === null ||
+      (isRecord(value.details) &&
+        Object.values(value.details).every(
+          (item) => typeof item === 'string' || typeof item === 'number',
+        ))) &&
+    (value.user === undefined ||
+      value.user === null ||
+      (isRecord(value.user) &&
+        typeof value.user.firstName === 'string' &&
+        typeof value.user.lastName === 'string' &&
+        (value.user.profileImageUrl === undefined ||
+          typeof value.user.profileImageUrl === 'string' ||
+          value.user.profileImageUrl === null))) &&
+    (value.techCenter === undefined ||
+      value.techCenter === null ||
+      (isRecord(value.techCenter) &&
+        typeof value.techCenter.id === 'string' &&
+        typeof value.techCenter.name === 'string'))
+  );
+}
+
+function isTechCenterActivityItem(
+  value: unknown,
+): value is TechCenterActivityItem {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.action === 'string' &&
+    typeof value.createdAt === 'string' &&
+    isRecord(value.user) &&
+    typeof value.user.id === 'string' &&
+    typeof value.user.firstName === 'string' &&
+    typeof value.user.lastName === 'string' &&
+    typeof value.user.email === 'string' &&
+    (typeof value.user.profileImageUrl === 'string' ||
+      value.user.profileImageUrl === null) &&
+    (value.techCenter === undefined ||
+      (isRecord(value.techCenter) &&
+        typeof value.techCenter.id === 'string' &&
+        typeof value.techCenter.name === 'string'))
+  );
+}
+
+function isSocialUser(value: unknown): value is SocialUser {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.firstName === 'string' &&
+    typeof value.lastName === 'string' &&
+    (typeof value.profileImageUrl === 'string' ||
+      value.profileImageUrl === null) &&
+    (value.role === undefined ||
+      typeof value.role === 'string' ||
+      value.role === null) &&
+    (value.techCenter === null ||
+      (isRecord(value.techCenter) &&
+        typeof value.techCenter.id === 'string' &&
+        typeof value.techCenter.name === 'string')) &&
+    (value.previousTechCenter === undefined ||
+      value.previousTechCenter === null ||
+      (isRecord(value.previousTechCenter) &&
+        typeof value.previousTechCenter.id === 'string' &&
+        typeof value.previousTechCenter.name === 'string')) &&
+    typeof value.followersCount === 'number' &&
+    typeof value.followingCount === 'number' &&
+    typeof value.likesReceivedCount === 'number' &&
+    typeof value.profileViewsCount === 'number' &&
+    typeof value.isFollowing === 'boolean' &&
+    typeof value.isLiked === 'boolean'
+  );
+}
+
+function isLiker(value: unknown): value is SocialUser & { likedAt?: string } {
+  return (
+    isSocialUser(value) &&
+    isRecord(value) &&
+    (value.likedAt === undefined || typeof value.likedAt === 'string')
+  );
+}
+
+function isFollower(
+  value: unknown,
+): value is SocialUser & { connectedAt?: string } {
+  return (
+    isSocialUser(value) &&
+    isRecord(value) &&
+    (value.connectedAt === undefined || typeof value.connectedAt === 'string')
+  );
+}
+
+function isSocialSummary(value: unknown): value is SocialSummary {
+  return (
+    isRecord(value) &&
+    isRecord(value.me) &&
+    typeof value.me.id === 'string' &&
+    typeof value.me.followersCount === 'number' &&
+    typeof value.me.followingCount === 'number' &&
+    typeof value.me.likesReceivedCount === 'number' &&
+    typeof value.me.profileViewsCount === 'number' &&
+    isRecord(value.trending) &&
+    Array.isArray(value.trending.students) &&
+    value.trending.students.every(isSocialUser) &&
+    typeof value.trending.generatedAt === 'string' &&
+    isRecord(value.activity) &&
+    Array.isArray(value.activity.likers) &&
+    value.activity.likers.every(isLiker) &&
+    Array.isArray(value.activity.likedUsers) &&
+    value.activity.likedUsers.every(isLiker) &&
+    Array.isArray(value.activity.followers) &&
+    value.activity.followers.every(isFollower)
+  );
+}
+
 const getTrendingRoleLabel = (role?: string | null) => {
   if (!role) return null;
   const roleLabels: Record<string, string> = {
@@ -205,7 +418,7 @@ const getTrendingRoleLabel = (role?: string | null) => {
     super_admin: 'Director',
     dev: 'Developer',
     student: 'Student',
-    teacher: 'Teacher',
+    teacher: 'Tutor',
   };
   return (
     roleLabels[role.toLowerCase()] ??
@@ -393,9 +606,11 @@ function MediaLibrary() {
     queryFn: async () => {
       const response = await fetch('/api/media/list');
       if (!response.ok) throw new Error('Failed to fetch media');
-      const data = await response.json();
-      if (!data.success) throw new Error(data?.error ?? 'Failed');
-      return (data.items ?? []) as MediaItem[];
+      const data: unknown = await response.json();
+      if (!isRecord(data) || data.success !== true || !Array.isArray(data.items)) {
+        throw new Error(getResponseError(data, 'Failed'));
+      }
+      return data.items.filter(isMediaItem);
     },
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -406,9 +621,11 @@ function MediaLibrary() {
     queryFn: async () => {
       const response = await fetch('/api/video-requests');
       if (!response.ok) throw new Error('Failed to fetch video requests');
-      const data = await response.json();
-      if (!data.success) throw new Error(data?.error ?? 'Failed');
-      return data.data as VideoRequest[];
+      const data: unknown = await response.json();
+      if (!isRecord(data) || data.success !== true || !Array.isArray(data.data)) {
+        throw new Error(getResponseError(data, 'Failed'));
+      }
+      return data.data.filter(isVideoRequest);
     },
     staleTime: 1 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -457,9 +674,9 @@ function MediaLibrary() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ request: content }),
       });
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data?.error ?? 'Request failed');
+      const data: unknown = await response.json();
+      if (!response.ok || !isRecord(data) || data.success !== true) {
+        throw new Error(getResponseError(data, 'Request failed'));
       }
       setRequestInput('');
       queryClient.invalidateQueries({ queryKey: ['video-requests'] });
@@ -476,8 +693,10 @@ function MediaLibrary() {
       const response = await fetch(`/api/video-requests/${requestId}`, {
         method: 'DELETE',
       });
-      const data = await response.json();
-      if (!response.ok || !data.success) throw new Error(data?.error ?? 'Failed');
+      const data: unknown = await response.json();
+      if (!response.ok || !isRecord(data) || data.success !== true) {
+        throw new Error(getResponseError(data, 'Failed'));
+      }
       queryClient.invalidateQueries({ queryKey: ['video-requests'] });
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to delete request');
@@ -800,9 +1019,9 @@ function SuggestedStudents({ trending = [], isLoading }: { trending?: SocialUser
   const { data: session } = useSession();
   const currentUserId = session?.user?.id;
 
-  // Prioritize profile images, then followers and likes.
+  // Prioritize superadmin with profile image first, then profile images, then followers and likes.
   const sortedTrending = useMemo(() => {
-    return [...trending].sort(compareProfileImageFirst).slice(0, 10);
+    return [...trending].sort(compareSuperadminWithImageFirst).slice(0, 50);
   }, [trending]);
 
   if (isLoading) {
@@ -885,20 +1104,29 @@ function SuggestedStudents({ trending = [], isLoading }: { trending?: SocialUser
                   <p className="truncate text-[15px] font-bold leading-tight text-white">
                     {user.firstName} {user.lastName}
                   </p>
-                  {getTrendingRoleLabel(user.role) && (
-                    <p className="mt-0.5 truncate text-[11px] leading-snug text-white/90">
-                      {getTrendingRoleLabel(user.role)}
-                    </p>
-                  )}
-                  {(user.role === 'super_admin'
-                    ? user.previousTechCenter ?? user.techCenter
-                    : user.techCenter) && (
-                    <p className="mt-0.5 truncate text-[11px] leading-snug text-white/90">
-                      {(user.role === 'super_admin'
-                        ? user.previousTechCenter ?? user.techCenter
-                        : user.techCenter)?.name}
-                    </p>
-                  )}
+                  <div className="mt-0.5 flex items-center gap-1.5 truncate text-[11px] leading-snug text-white/90">
+                    {(user.role === 'super_admin'
+                      ? user.previousTechCenter ?? user.techCenter
+                      : user.techCenter) && (
+                      <span className="truncate">
+                        {(user.role === 'super_admin'
+                          ? user.previousTechCenter ?? user.techCenter
+                          : user.techCenter)?.name}
+                      </span>
+                    )}
+                    {getTrendingRoleLabel(user.role) && (
+                      <>
+                        {(user.role === 'super_admin'
+                          ? user.previousTechCenter ?? user.techCenter
+                          : user.techCenter) && (
+                          <span className="shrink-0 text-white/60">•</span>
+                        )}
+                        <span className="shrink-0">
+                          {getTrendingRoleLabel(user.role)}
+                        </span>
+                      </>
+                    )}
+                  </div>
 
                   <div className="mt-2 flex items-center gap-2 text-[10px]">
                     <span className="font-mono font-bold text-white">
@@ -1134,22 +1362,18 @@ function TechCenterActivity({
         if (!res.ok) {
           throw new Error('Failed to fetch all activities');
         }
-        const json = await res.json();
-        const mapped =
-          json.logs?.map((log: any) => ({
-            id: log.id,
-            action: log.action,
-            user: log.user,
-            techCenter: log.techCenter,
-            createdAt: log.createdAt,
-          })) || [];
-        return mapped;
+        const json: unknown = await res.json();
+        if (!isRecord(json) || !Array.isArray(json.logs)) return [];
+        return json.logs.filter(isTechCenterActivityItem);
       } else if (techCenterId) {
         const res = await fetch(
           `/api/tech-centers/${techCenterId}/activity?limit=all`,
         );
         if (!res.ok) throw new Error('Failed to fetch tech center activity');
-        return res.json();
+        const result: unknown = await res.json();
+        return Array.isArray(result)
+          ? result.filter(isTechCenterActivityItem)
+          : [];
       }
       return [];
     },
@@ -1294,9 +1518,13 @@ export default function DashboardPage() {
   const { data: socialSummary } = useQuery<SocialSummary>({
     queryKey: ['dashboard', 'social-summary'],
     queryFn: async () => {
-      const res = await fetch('/api/dashboard/social-summary?limit=6');
+      const res = await fetch('/api/dashboard/social-summary?limit=50');
       if (!res.ok) throw new Error('Failed to fetch social summary');
-      return res.json();
+      const result: unknown = await res.json();
+      if (!isSocialSummary(result)) {
+        throw new Error('Invalid social summary response');
+      }
+      return result;
     },
     enabled: !!currentUserId,
     staleTime: 30 * 1000,
@@ -1314,9 +1542,11 @@ export default function DashboardPage() {
         queryFn: async () => {
           const response = await fetch('/api/directors');
           if (!response.ok) throw new Error('Failed to fetch directors');
-          const data = await response.json();
-          if (!data.success) throw new Error(data?.error ?? 'Failed');
-          return data.directors;
+          const data: unknown = await response.json();
+          if (!isRecord(data) || data.success !== true || !Array.isArray(data.directors)) {
+            throw new Error(getResponseError(data, 'Failed'));
+          }
+          return data.directors.filter(isRecord);
         },
         staleTime: 5 * 60 * 1000,
       });
@@ -1327,9 +1557,11 @@ export default function DashboardPage() {
         queryFn: async () => {
           const response = await fetch('/api/tech-centers/admin-teams');
           if (!response.ok) throw new Error('Failed to fetch tech center admin teams');
-          const data = await response.json();
-          if (!data.success) throw new Error(data?.error ?? 'Failed');
-          return data.techCenters;
+          const data: unknown = await response.json();
+          if (!isRecord(data) || data.success !== true || !Array.isArray(data.techCenters)) {
+            throw new Error(getResponseError(data, 'Failed'));
+          }
+          return data.techCenters.filter(isTechCenter);
         },
         staleTime: 5 * 60 * 1000,
       });
@@ -1342,8 +1574,8 @@ export default function DashboardPage() {
     try {
       const response = await fetch(`/api/tech-centers/${techCenterId}`);
       if (response.ok) {
-        const data = await response.json();
-        setTechCenter(data);
+        const data: unknown = await response.json();
+        if (isTechCenter(data)) setTechCenter(data);
       }
     } catch (error) {
       console.error('Error fetching tech center:', error);
@@ -1356,8 +1588,10 @@ export default function DashboardPage() {
         `/api/tech-centers/${techCenterId}/activity?limit=all`,
       );
       if (response.ok) {
-        const data = await response.json();
-        setRecentActivity(data);
+        const data: unknown = await response.json();
+        if (Array.isArray(data)) {
+          setRecentActivity(data.filter(isActivityItem));
+        }
       }
     } catch (error) {
       console.error('Error fetching recent activity:', error);
@@ -1368,7 +1602,10 @@ export default function DashboardPage() {
     try {
       const techCentersResponse = await fetch('/api/admin/tech-centers');
       if (techCentersResponse.ok) {
-        const techCenters: TechCenter[] = await techCentersResponse.json();
+        const techCentersData: unknown = await techCentersResponse.json();
+        const techCenters = Array.isArray(techCentersData)
+          ? techCentersData.filter(isTechCenter)
+          : [];
 
         const activityPromises = techCenters.map(async (tc) => {
           try {
@@ -1376,7 +1613,10 @@ export default function DashboardPage() {
               `/api/tech-centers/${tc.id}/activity?limit=all`,
             );
             if (activityResponse.ok) {
-              const activities: ActivityItem[] = await activityResponse.json();
+              const activitiesData: unknown = await activityResponse.json();
+              const activities = Array.isArray(activitiesData)
+                ? activitiesData.filter(isActivityItem)
+                : [];
               return (activities || []).map((activity) => ({
                 ...activity,
                 techCenter: { id: tc.id, name: tc.name },
@@ -1426,8 +1666,11 @@ export default function DashboardPage() {
     queryFn: async () => {
       const response = await fetch('/api/tech-centers/tutors?limit=100');
       if (!response.ok) throw new Error('Failed to fetch tutors');
-      const data = await response.json();
-      const allTutors = data.tutors || [];
+      const data: unknown = await response.json();
+      const allTutors =
+        isRecord(data) && Array.isArray(data.tutors)
+          ? data.tutors.filter(isTutor)
+          : [];
       if (user?.techCenterId) {
         return allTutors.filter(
           (tutor: Tutor) => tutor.techCenter?.id === user.techCenterId,
@@ -1447,8 +1690,10 @@ export default function DashboardPage() {
     queryFn: async () => {
       const response = await fetch('/api/tech-centers/admins');
       if (!response.ok) throw new Error('Failed to fetch tech center admins');
-      const data = await response.json();
-      return data.admins as CenterAdmin[];
+      const data: unknown = await response.json();
+      return isRecord(data) && Array.isArray(data.admins)
+        ? data.admins.filter(isCenterAdmin)
+        : [];
     },
     staleTime: 10 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
@@ -1969,7 +2214,7 @@ export default function DashboardPage() {
         ============================================================ */}
         {(user?.role === 'student' || user?.role === 'teacher') && (
           <section className="mt-12">
-            <SectionHeader label={isTeacher ? 'Your students' : 'Your tutor'} />
+            <SectionHeader label={isTeacher ? 'Your students' : 'Your tutor(s)'} />
             {loadingAssignment ? (
               <div className="border border-[#E5E7EB] bg-white p-5">
                 <div className="h-4 w-48 animate-pulse bg-[#E5E7EB]" />

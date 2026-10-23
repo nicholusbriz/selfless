@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Play, Pause, User, Users, Trophy, Crown, Bri
 import { useAllFootballTeams } from '@/hooks/useAllFootballTeams';
 import { useQuery } from '@tanstack/react-query';
 import Image from 'next/image';
+import { getApiErrorMessage, isJsonObject } from '@/lib/api-response';
 
 const AUTO_SCROLL_MS = 10000;
 
@@ -105,6 +106,32 @@ type TechCenterAdmin = {
   isManager?: boolean;
   isTutor?: boolean;
 };
+
+function isDirector(value: unknown): value is Director {
+  return (
+    isJsonObject(value) &&
+    typeof value.id === 'string' &&
+    typeof value.firstName === 'string' &&
+    typeof value.lastName === 'string' &&
+    (value.profileImageUrl === undefined ||
+      value.profileImageUrl === null ||
+      typeof value.profileImageUrl === 'string')
+  );
+}
+
+function isTechCenterAdmin(value: unknown): value is TechCenterAdmin {
+  return (
+    isJsonObject(value) &&
+    typeof value.id === 'string' &&
+    typeof value.firstName === 'string' &&
+    typeof value.lastName === 'string' &&
+    (value.profileImageUrl === undefined ||
+      value.profileImageUrl === null ||
+      typeof value.profileImageUrl === 'string') &&
+    (value.isManager === undefined || typeof value.isManager === 'boolean') &&
+    (value.isTutor === undefined || typeof value.isTutor === 'boolean')
+  );
+}
 
 function PlayerGrid({
   players,
@@ -225,8 +252,13 @@ export default function AnnouncementCarousel({
     queryFn: async () => {
       const response = await fetch('/api/directors');
       if (!response.ok) throw new Error('Failed to fetch directors');
-      const data = await response.json();
-      if (!data.success) throw new Error(data?.error ?? 'Failed');
+      const data: unknown = await response.json();
+      if (!isJsonObject(data) || data.success !== true) {
+        throw new Error(getApiErrorMessage(data, 'Failed'));
+      }
+      if (!Array.isArray(data.directors) || !data.directors.every(isDirector)) {
+        throw new Error('Invalid directors response');
+      }
       return data.directors;
     },
     staleTime: 5 * 60 * 1000,
@@ -240,8 +272,16 @@ export default function AnnouncementCarousel({
     queryFn: async () => {
       const response = await fetch('/api/tech-centers/admin-teams');
       if (!response.ok) throw new Error('Failed to fetch tech center admin teams');
-      const data = await response.json();
-      if (!data.success) throw new Error(data?.error ?? 'Failed');
+      const data: unknown = await response.json();
+      if (!isJsonObject(data) || data.success !== true) {
+        throw new Error(getApiErrorMessage(data, 'Failed'));
+      }
+      if (
+        !Array.isArray(data.techCenters) ||
+        !data.techCenters.every(isTechCenterAdmin)
+      ) {
+        throw new Error('Invalid tech center response');
+      }
       return data.techCenters;
     },
     staleTime: 5 * 60 * 1000,

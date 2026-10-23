@@ -16,10 +16,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied. Admin privileges required.' }, { status: 403 });
     }
 
-    const body = await request.json();
-    const { studentUserId, cleaningDayId } = body;
+    const body: unknown = await request.json();
+    if (
+      typeof body !== 'object' ||
+      body === null ||
+      !('studentUserId' in body) ||
+      !('cleaningDayId' in body)
+    ) {
+      return NextResponse.json(
+        { error: 'Student ID and Cleaning Day ID are required' },
+        { status: 400 }
+      );
+    }
 
-    if (!studentUserId || !cleaningDayId) {
+    const { studentUserId, cleaningDayId } = body;
+    if (
+      typeof studentUserId !== 'string' ||
+      !studentUserId ||
+      typeof cleaningDayId !== 'string' ||
+      !cleaningDayId
+    ) {
       return NextResponse.json(
         { error: 'Student ID and Cleaning Day ID are required' },
         { status: 400 }

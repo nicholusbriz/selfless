@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { getResponseError, isRecord } from '../../response-guards';
 import {
   Mail,
   RefreshCw,
@@ -54,6 +55,55 @@ interface TechCenter {
   id: string;
   name: string;
   code: string;
+}
+
+function isEmailStats(value: unknown): value is EmailStats {
+  return (
+    isRecord(value) &&
+    typeof value.provider === 'string' &&
+    typeof value.dailyLimit === 'number' &&
+    typeof value.dailyUsed === 'number' &&
+    typeof value.dailyRemaining === 'number' &&
+    typeof value.monthlyLimit === 'number' &&
+    typeof value.monthlyUsed === 'number' &&
+    typeof value.monthlyRemaining === 'number' &&
+    (typeof value.lastUpdated === 'string' || value.lastUpdated instanceof Date)
+  );
+}
+
+function isAllStats(value: unknown): value is AllStats {
+  return (
+    isRecord(value) &&
+    (value.resend === null || isEmailStats(value.resend)) &&
+    (value.mailjet === null || isEmailStats(value.mailjet))
+  );
+}
+
+function isTechCenter(value: unknown): value is TechCenter {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.name === 'string' &&
+    typeof value.code === 'string'
+  );
+}
+
+function isEmailUser(value: unknown): value is EmailUser {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.email === 'string' &&
+    typeof value.firstName === 'string' &&
+    typeof value.lastName === 'string' &&
+    (value.role === undefined ||
+      (isRecord(value.role) &&
+        typeof value.role.name === 'string' &&
+        typeof value.role.displayName === 'string')) &&
+    (value.techCenter === undefined ||
+      (isRecord(value.techCenter) &&
+        typeof value.techCenter.name === 'string' &&
+        typeof value.techCenter.code === 'string'))
+  );
 }
 
 // ─── Audience presets ─────────────────────────────────────────────────────────
@@ -147,9 +197,9 @@ export default function EmailPage() {
     setStatsError('');
     try {
       const res = await fetch('/api/admin/email-stats-both');
-      const data = await res.json();
-      if (res.ok) setStats(data);
-      else setStatsError(data.error || 'Failed to fetch stats');
+      const data: unknown = await res.json();
+      if (res.ok && isAllStats(data)) setStats(data);
+      else setStatsError(getResponseError(data, 'Failed to fetch stats'));
     } catch {
       setStatsError('Failed to connect to server');
     } finally {
@@ -160,15 +210,24 @@ export default function EmailPage() {
   const fetchTechCenters = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/all-tech-centers');
-      if (res.ok) setTechCenters(await res.json());
+      if (res.ok) {
+        const data: unknown = await res.json();
+        setTechCenters(Array.isArray(data) ? data.filter(isTechCenter) : []);
+      }
     } catch { /* non-fatal */ }
   }, []);
 
   const fetchAllUsers = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/email-recipients');
-      const data = await res.json();
-      if (res.ok) setAvailableUsers(data.users ?? []);
+      const data: unknown = await res.json();
+      if (res.ok) {
+        setAvailableUsers(
+          isRecord(data) && Array.isArray(data.users)
+            ? data.users.filter(isEmailUser)
+            : [],
+        );
+      }
     } catch { /* non-fatal */ }
   }, []);
 
@@ -187,9 +246,13 @@ export default function EmailPage() {
       if (opts.role) params.set('role', opts.role);
       if (opts.techCenterId) params.set('techCenterId', opts.techCenterId);
       const res = await fetch(`/api/admin/email-recipients?${params}`);
-      const data = await res.json();
+      const data: unknown = await res.json();
       if (res.ok) {
-        setSelectedUsers(data.users ?? []);
+        setSelectedUsers(
+          isRecord(data) && Array.isArray(data.users)
+            ? data.users.filter(isEmailUser)
+            : [],
+        );
         setSendResult(null);
       }
     } catch { /* non-fatal */ }
@@ -279,12 +342,20 @@ export default function EmailPage() {
           isBulk,
         }),
       });
-      const data = await res.json();
+      const data: unknown = await res.json();
       if (res.ok) {
+        const responseCounts =
+          isRecord(data) &&
+          typeof data.successCount === 'number' &&
+          typeof data.total === 'number'
+            ? data
+            : null;
         setSendResult({
           success: true,
           message: isBulk
-            ? `Successfully sent ${data.successCount} of ${data.total} emails`
+            ? responseCounts
+              ? `Successfully sent ${responseCounts.successCount} of ${responseCounts.total} emails`
+              : 'Emails sent successfully'
             : 'Email sent successfully',
         });
         setComposeForm({ subject: '', message: '' });
@@ -293,7 +364,10 @@ export default function EmailPage() {
         setSelectedTechCenter('');
         fetchStats();
       } else {
-        setSendResult({ success: false, message: data.message || data.error || 'Failed to send email' });
+        setSendResult({
+          success: false,
+          message: getResponseError(data, 'Failed to send email'),
+        });
       }
     } catch {
       setSendResult({ success: false, message: 'Failed to send email. Please try again.' });

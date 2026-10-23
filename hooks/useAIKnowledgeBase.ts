@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { isJsonObject, readJsonObject } from '@/lib/api-response';
 
 interface KnowledgeEntry {
   id: string;
@@ -12,6 +13,26 @@ interface KnowledgeEntry {
   priority: number;
   embedding?: number[];
   isChunked?: boolean;
+}
+
+function isKnowledgeEntry(value: unknown): value is KnowledgeEntry {
+  return (
+    isJsonObject(value) &&
+    typeof value.id === 'string' &&
+    typeof value.category === 'string' &&
+    typeof value.subcategory === 'string' &&
+    typeof value.title === 'string' &&
+    typeof value.content === 'string' &&
+    typeof value.summary === 'string' &&
+    Array.isArray(value.tags) &&
+    value.tags.every((tag: unknown) => typeof tag === 'string') &&
+    typeof value.difficulty === 'string' &&
+    typeof value.priority === 'number' &&
+    (value.embedding === undefined ||
+      (Array.isArray(value.embedding) &&
+        value.embedding.every((item: unknown) => typeof item === 'number'))) &&
+    (value.isChunked === undefined || typeof value.isChunked === 'boolean')
+  );
 }
 
 /**
@@ -58,7 +79,15 @@ export function useAIKnowledgeBase(options?: {
       if (!response.ok) {
         throw new Error('Failed to fetch knowledge base');
       }
-      return response.json();
+      const responseData = await readJsonObject(response);
+      const data = Array.isArray(responseData.data)
+        ? responseData.data.filter(isKnowledgeEntry)
+        : [];
+      return {
+        data,
+        total: typeof responseData.total === 'number' ? responseData.total : 0,
+        hasMore: Boolean(responseData.hasMore),
+      };
     },
     staleTime: 15 * 60 * 1000, // 15 minutes - cache knowledge base longer
     gcTime: 30 * 60 * 1000, // 30 minutes - keep in cache longer

@@ -2,6 +2,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma/client';
 import { getServerAuthUser } from '@/lib/auth/server';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  nullable,
+  optional,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 export async function POST(request: Request) {
   try {
@@ -14,7 +21,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json();
+    const body = await parseJsonBody(request, {
+      techCenterId: optional(nullable(isString)),
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { techCenterId } = body;
 
     // Invalidate sessions by incrementing tokenVersion

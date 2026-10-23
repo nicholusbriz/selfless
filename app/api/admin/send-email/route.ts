@@ -4,6 +4,34 @@ import { sendNotificationEmail, sendBulkNotificationEmail } from '@/lib/email';
 import { NotificationEmail } from '@/components/email/NotificationEmail';
 import { requireAuth } from '@/lib/auth/server';
 import { trackEmailSent, getMailjetStats } from '@/lib/email-stats';
+import {
+  invalidJsonBodyResponse,
+  isBoolean,
+  isJsonObject,
+  isString,
+  isStringOrStringArray,
+  optional,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
+
+type RecipientDetail = {
+  email: string;
+  firstName?: string;
+  lastName?: string;
+};
+
+function isRecipientDetails(value: unknown): value is RecipientDetail[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (item) =>
+        isJsonObject(item) &&
+        isString(item.email) &&
+        (item.firstName === undefined || isString(item.firstName)) &&
+        (item.lastName === undefined || isString(item.lastName)),
+    )
+  );
+}
 
 // ── Greeting helper ────────────────────────────────────────────────────────────
 // Uses UTC hour at send time. Uganda is UTC+3, so the offsets map naturally:
@@ -31,7 +59,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const body = await req.json();
+    const body = await parseJsonBody(req, {
+      recipients: isStringOrStringArray,
+      recipientDetails: optional(isRecipientDetails),
+      subject: isString,
+      message: isString,
+      recipientName: optional(isString),
+      isBulk: optional(isBoolean),
+    });
+    if (!body) return invalidJsonBodyResponse();
     const {
       recipients,          // string[]  — email addresses
       recipientDetails,    // { email: string; firstName: string; lastName: string }[] (optional)

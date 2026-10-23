@@ -22,6 +22,50 @@ import {
   Calendar
 } from 'lucide-react';
 import Image from 'next/image';
+import { isRecord } from '../../response-guards';
+
+interface PasswordResetUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  profileImageUrl?: string | null;
+  resetToken: string;
+  resetTokenExpiry: string;
+  techCenter?: {
+    name?: string;
+    city?: string | null;
+    country?: { name?: string } | null;
+  } | null;
+}
+
+function isPasswordResetUser(value: unknown): value is PasswordResetUser {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.firstName === 'string' &&
+    typeof value.lastName === 'string' &&
+    typeof value.email === 'string' &&
+    (value.profileImageUrl === undefined ||
+      typeof value.profileImageUrl === 'string' ||
+      value.profileImageUrl === null) &&
+    typeof value.resetToken === 'string' &&
+    typeof value.resetTokenExpiry === 'string' &&
+    (value.techCenter === undefined ||
+      value.techCenter === null ||
+      (isRecord(value.techCenter) &&
+        (value.techCenter.name === undefined ||
+          typeof value.techCenter.name === 'string') &&
+        (value.techCenter.city === undefined ||
+          typeof value.techCenter.city === 'string' ||
+          value.techCenter.city === null) &&
+        (value.techCenter.country === undefined ||
+          value.techCenter.country === null ||
+          (isRecord(value.techCenter.country) &&
+            (value.techCenter.country.name === undefined ||
+              typeof value.techCenter.country.name === 'string')))))
+  );
+}
 
 // ============================================
 // USER AVATAR COMPONENT
@@ -138,7 +182,7 @@ const TableSkeleton = () => (
 export default function PasswordResetsPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<PasswordResetUser[]>([]);
   const [error, setError] = useState('');
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
@@ -148,15 +192,27 @@ export default function PasswordResetsPage() {
     setError('');
     try {
       const response = await fetch('/api/admin/password-resets');
-      const data = await response.json();
+      const data: unknown = await response.json();
 
       if (response.ok) {
-        setUsers(data.users || []);
+        setUsers(
+          isRecord(data) && Array.isArray(data.users)
+            ? data.users.filter(isPasswordResetUser)
+            : [],
+        );
       } else {
-        setError(data.error || 'Failed to fetch password reset requests');
+        setError(
+          isRecord(data) && typeof data.error === 'string'
+            ? data.error
+            : 'Failed to fetch password reset requests',
+        );
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch password reset requests');
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to fetch password reset requests',
+      );
     } finally {
       setIsLoading(false);
     }
@@ -180,16 +236,24 @@ export default function PasswordResetsPage() {
         body: JSON.stringify({ userId }),
       });
 
-      const data = await response.json();
+      const data: unknown = await response.json();
 
       if (response.ok) {
-        alert(data.message);
+        alert(
+          isRecord(data) && typeof data.message === 'string'
+            ? data.message
+            : 'Password reset token revoked',
+        );
         fetchPasswordResets();
       } else {
-        alert(data.error || 'Failed to revoke token');
+        alert(
+          isRecord(data) && typeof data.error === 'string'
+            ? data.error
+            : 'Failed to revoke token',
+        );
       }
-    } catch (err: any) {
-      alert(err.message || 'Failed to revoke token');
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Failed to revoke token');
     }
   };
 

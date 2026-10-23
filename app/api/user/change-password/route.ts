@@ -13,6 +13,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, verifyPassword, hashPassword } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,7 +25,11 @@ export async function POST(req: NextRequest) {
     const user = await requireAuth();
 
     // Parse request body
-    const body = await req.json();
+    const body = await parseJsonBody(req, {
+      currentPassword: isString,
+      newPassword: isString,
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { currentPassword, newPassword } = body;
 
     // Validate required fields
@@ -83,10 +92,10 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Change password API error:', error);
     
-    if (error.message === 'Unauthorized') {
+    if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }

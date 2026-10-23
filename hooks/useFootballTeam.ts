@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/api-response';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 // Types
@@ -45,7 +46,7 @@ export function useFootballTeam(techCenterId: string | null) {
       const response = await fetch(`/api/football-team/${techCenterId}`);
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to fetch football team');
+        throw new Error(getApiErrorMessage(error, 'Failed to fetch football team'));
       }
       return response.json();
     },
@@ -68,7 +69,7 @@ export function useRegisterForFootballTeam() {
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to register for football team');
+        throw new Error(getApiErrorMessage(error, 'Failed to register for football team'));
       }
       return response.json();
     },
@@ -146,7 +147,7 @@ export function useLeaveFootballTeam() {
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to leave football team');
+        throw new Error(getApiErrorMessage(error, 'Failed to leave football team'));
       }
       return response.json();
     },
@@ -203,7 +204,7 @@ export function useUpdateFootballTeamMembership() {
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to update football team membership');
+        throw new Error(getApiErrorMessage(error, 'Failed to update football team membership'));
       }
       return response.json();
     },

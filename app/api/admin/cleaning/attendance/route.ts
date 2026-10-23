@@ -16,18 +16,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied. Teacher or admin privileges required.' }, { status: 403 });
     }
 
-    const body = await request.json();
-    const { userId, cleaningDayId, status } = body;
-
-    if (!userId || !cleaningDayId || !status) {
+    const body: unknown = await request.json();
+    if (
+      typeof body !== 'object' ||
+      body === null ||
+      !('userId' in body) ||
+      !('cleaningDayId' in body) ||
+      !('status' in body)
+    ) {
       return NextResponse.json(
         { error: 'User ID, Cleaning Day ID, and Status are required' },
         { status: 400 }
       );
     }
 
-    const validStatuses = ['ATTENDED', 'NO_SHOW', 'PENDING'];
-    if (!validStatuses.includes(status)) {
+    const { userId, cleaningDayId, status } = body;
+    if (
+      typeof userId !== 'string' ||
+      !userId ||
+      typeof cleaningDayId !== 'string' ||
+      !cleaningDayId ||
+      typeof status !== 'string' ||
+      !status
+    ) {
+      return NextResponse.json(
+        { error: 'User ID, Cleaning Day ID, and Status are required' },
+        { status: 400 }
+      );
+    }
+
+    if (status !== 'ATTENDED' && status !== 'NO_SHOW' && status !== 'PENDING') {
       return NextResponse.json(
         { error: 'Invalid status. Must be ATTENDED, NO_SHOW, or PENDING' },
         { status: 400 }

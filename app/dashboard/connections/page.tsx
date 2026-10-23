@@ -28,13 +28,7 @@ import { useSocialActions } from '@/lib/hooks/useSocialActions';
 // BRAND TOKENS (mirrors students page)
 // ============================================================
 
-const NAVY = '#1A2B4C';
-const NAVY_HOVER = '#2C3E5A';
-const GOLD = '#D4A84B';
 const GOLD_DEEP = '#B98A3E';
-const CREAM = '#F7F6F2';
-const DARK_CARD = '#0F1115';
-const BORDER = '#D1D5DB';
 
 // ============================================================
 // TYPES
@@ -48,6 +42,7 @@ interface ConnectionUser {
   techCenter: { id: string; name: string } | null;
   role?: { name: string } | null;
   generalCourse?: string | null;
+  previousTechCenter?: { id: string; name: string } | null;
   followersCount: number;
   followingCount: number;
   likesReceivedCount: number;
@@ -80,7 +75,7 @@ type TabKey = 'trending' | 'followers' | 'following' | 'likes';
 type LikesView = 'received' | 'sent';
 
 // ============================================================
-// FETCHERS (unchanged behavior)
+// FETCHERS (typed to satisfy strict TS)
 // ============================================================
 
 async function fetchConnections(
@@ -89,34 +84,37 @@ async function fetchConnections(
 ): Promise<ConnectionUser[]> {
   const res = await fetch(`/api/social/connections/${userId}?type=${type}`);
   if (!res.ok) throw new Error(`Failed to fetch ${type}`);
-  const data = await res.json();
+  const data = (await res.json()) as { connections?: ConnectionUser[] };
   return Array.isArray(data.connections) ? data.connections : [];
 }
 
 async function fetchLikes(userId: string): Promise<LikesData> {
   const res = await fetch(`/api/social/likes/${userId}`);
   if (!res.ok) throw new Error('Failed to fetch likes');
-  const data = await res.json();
+  const data = (await res.json()) as {
+    likers?: ConnectionUser[];
+    likedUsers?: ConnectionUser[];
+  };
   return {
     likers: Array.isArray(data.likers) ? data.likers : [],
     likedUsers: Array.isArray(data.likedUsers) ? data.likedUsers : [],
   };
 }
 
-async function fetchTrending(limit = 10): Promise<ConnectionUser[]> {
+async function fetchTrending(limit = 100): Promise<ConnectionUser[]> {
   const res = await fetch(
     `/api/social/trending?limit=${limit}&_t=${Date.now()}`,
     { cache: 'no-store' },
   );
   if (!res.ok) throw new Error('Failed to fetch trending');
-  const data: TrendingApiResponse = await res.json();
+  const data = (await res.json()) as TrendingApiResponse;
   return Array.isArray(data.students) ? data.students : [];
 }
 
 async function fetchMe(): Promise<MeStats | null> {
   const res = await fetch('/api/social/me');
   if (!res.ok) throw new Error('Failed to fetch personal stats');
-  return res.json();
+  return (await res.json()) as MeStats | null;
 }
 
 // ============================================================
@@ -137,11 +135,13 @@ function formatDate(value?: string): string | null {
 const getInitials = (first?: string, last?: string) =>
   `${(first || '?').charAt(0)}${(last || '?').charAt(0)}`.toUpperCase();
 
-function formatRole(roleName?: string | null) {
-  if (!roleName) return null;
+function formatRole(role?: { name: string } | null) {
+  if (!role || !role.name) return 'Student';
+  const roleName = role.name;
   if (roleName === 'teacher') return 'Tutor';
   if (roleName === 'admin') return 'Manager';
   if (roleName === 'superadmin' || roleName === 'super_admin') return 'Director';
+  if (roleName === 'student') return 'Student';
   return roleName;
 }
 
@@ -204,7 +204,7 @@ function ConnectionCard({
   const fullName =
     `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || 'Unknown';
   const initials = getInitials(user.firstName, user.lastName);
-  const roleLabel = formatRole(user.role?.name);
+  const roleLabel = formatRole(user.role);
 
   const rankBadgeStyles =
     rank === 1
@@ -270,9 +270,11 @@ function ConnectionCard({
             </div>
 
             {/* Row 2 — Course */}
-            <p className="text-[13px] font-medium text-white">
-              {user.generalCourse || 'Student'}
-            </p>
+            {user.generalCourse && (
+              <p className="text-[13px] font-medium text-white">
+                {user.generalCourse}
+              </p>
+            )}
 
             {/* Row 3 — Tech Center */}
             {user.techCenter?.name && (
@@ -280,6 +282,16 @@ function ConnectionCard({
                 <MapPin className="h-[12px] w-[12px] shrink-0 text-[#D4A84B]" />
                 <span className="text-[12px] font-medium text-white/90">
                   {user.techCenter.name}
+                </span>
+              </div>
+            )}
+
+            {/* Row 3.5 — Previous Tech Center (for directors) */}
+            {user.previousTechCenter?.name && (
+              <div className="flex items-center gap-1.5">
+                <MapPin className="h-[12px] w-[12px] shrink-0 text-white/60" />
+                <span className="text-[11px] font-medium text-white/70">
+                  {user.previousTechCenter.name}
                 </span>
               </div>
             )}
@@ -320,6 +332,19 @@ function ConnectionCard({
                   className="inline-flex items-center gap-1 rounded-md border border-white/30 bg-black/25 px-2.5 py-1 text-[10px] font-semibold text-white transition-all hover:border-white/50 hover:bg-black/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B]"
                 >
                   View Profile
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    router.push(`/dashboard/messages?userId=${user.id}`)
+                  }
+                  className="inline-flex items-center gap-1 rounded-md border border-white/30 bg-black/25 px-2.5 py-1 text-[10px] font-semibold text-white transition-all hover:bg-black/35 hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B]"
+                  aria-label={`Message ${fullName}`}
+                  title={`Message ${fullName}`}
+                >
+                  <MessageSquare className="h-3 w-3" />
+                  Message
                 </button>
 
                 {isTrending ? (
@@ -415,7 +440,7 @@ export default function ConnectionsPage() {
 
     queryClient.prefetchQuery({
       queryKey: ['social', 'trending'],
-      queryFn: () => fetchTrending(10),
+      queryFn: () => fetchTrending(100),
       staleTime: 0,
     });
 
@@ -472,7 +497,7 @@ export default function ConnectionsPage() {
 
   const trendingQuery = useQuery({
     queryKey: ['social', 'trending'],
-    queryFn: () => fetchTrending(10),
+    queryFn: () => fetchTrending(100),
     enabled: !!currentUserId,
     staleTime: 0,
     gcTime: 5 * 60 * 1000,

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { techCentersApi } from '@/lib/api/tech-centers';
+import { getResponseError } from '../../../../response-guards';
 
 export default function EditTechCenterPage() {
   const router = useRouter();
@@ -98,9 +99,9 @@ export default function EditTechCenterPage() {
         body: JSON.stringify(data),
       }).then(async (res) => {
         if (!res.ok) {
-          const error = await res.json();
+          const error: unknown = await res.json();
           throw new Error(
-            error.error || 'Failed to update tech center'
+            getResponseError(error, 'Failed to update tech center')
           );
         }
 

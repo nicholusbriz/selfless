@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import { requireAuth, hasRole } from '@/lib/auth/server';
+import {
+  invalidJsonBodyResponse,
+  isNumber,
+  isString,
+  isStringArray,
+  optional,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 const prisma = new PrismaClient();
 
@@ -65,7 +74,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const skip = parseInt(searchParams.get('skip') || '0');
 
-    const where: any = { isActive: true };
+    const where: Prisma.AIKnowledgeBaseWhereInput = { isActive: true };
     
     if (category) {
       where.category = { contains: category };
@@ -157,8 +166,18 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
-    const body = await request.json();
-    
+    const body = await parseJsonBody(request, {
+      category: isString,
+      subcategory: optional(isString),
+      title: optional(isString),
+      content: isString,
+      summary: optional(isString),
+      tags: optional(isStringArray),
+      difficulty: optional(isString),
+      priority: optional(isNumber),
+      relatedIds: optional(isStringArray),
+    });
+    if (!body) return invalidJsonBodyResponse();
     const {
       category,
       subcategory,
@@ -168,7 +187,7 @@ export async function POST(request: NextRequest) {
       tags,
       difficulty,
       priority,
-      relatedIds
+      relatedIds,
     } = body;
 
     if (!category || !content?.trim()) {
@@ -188,10 +207,10 @@ export async function POST(request: NextRequest) {
         title: title?.trim() || generated.title,
         content,
         summary: summary?.trim() || generated.summary,
-        tags: Array.isArray(tags) && tags.length > 0 ? tags : generated.tags,
+        tags: tags && tags.length > 0 ? tags : generated.tags,
         difficulty,
-        priority: priority || 0,
-        relatedIds: relatedIds || []
+        priority: priority ?? 0,
+        relatedIds: relatedIds ?? [],
       }
     });
 

@@ -25,6 +25,7 @@ import {
   Maximize2,
   ImageIcon,
 } from 'lucide-react';
+import { getResponseError, isRecord } from '../../response-guards';
 
 interface StudentProfile {
   _id: string;
@@ -64,6 +65,52 @@ interface StudentProfile {
     credits: number;
     status: string;
   }>;
+}
+
+function isStudentProfile(value: unknown): value is StudentProfile {
+  return (
+    isRecord(value) &&
+    typeof value._id === 'string' &&
+    typeof value.firstName === 'string' &&
+    typeof value.lastName === 'string' &&
+    typeof value.email === 'string' &&
+    (typeof value.phoneNumber === 'string' || value.phoneNumber === null) &&
+    (typeof value.profileImage === 'string' || value.profileImage === null) &&
+    typeof value.role === 'string' &&
+    typeof value.studentId === 'string' &&
+    (value.techCenter === null ||
+      (isRecord(value.techCenter) &&
+        typeof value.techCenter.id === 'string' &&
+        typeof value.techCenter.name === 'string' &&
+        isRecord(value.techCenter.country) &&
+        typeof value.techCenter.country.name === 'string')) &&
+    (typeof value.country === 'string' || value.country === null) &&
+    (typeof value.city === 'string' || value.city === null) &&
+    (typeof value.town === 'string' || value.town === null) &&
+    (typeof value.street === 'string' || value.street === null) &&
+    (typeof value.generalCourse === 'string' || value.generalCourse === null) &&
+    (typeof value.takesReligion === 'boolean' || value.takesReligion === null) &&
+    (typeof value.linkedinUrl === 'string' || value.linkedinUrl === null) &&
+    (typeof value.githubUrl === 'string' || value.githubUrl === null) &&
+    Array.isArray(value.projectUrls) &&
+    value.projectUrls.every((url) => typeof url === 'string') &&
+    (typeof value.gender === 'string' || value.gender === null) &&
+    typeof value.createdAt === 'string' &&
+    typeof value.updatedAt === 'string' &&
+    typeof value.status === 'string' &&
+    typeof value.isActive === 'boolean' &&
+    (typeof value.lastLoginAt === 'string' || value.lastLoginAt === null) &&
+    Array.isArray(value.studentCourses) &&
+    value.studentCourses.every(
+      (course) =>
+        isRecord(course) &&
+        typeof course.id === 'string' &&
+        typeof course.code === 'string' &&
+        typeof course.courseUnit === 'string' &&
+        typeof course.credits === 'number' &&
+        typeof course.status === 'string',
+    )
+  );
 }
 
 /* ============================================================
@@ -174,9 +221,14 @@ export default function StudentProfilePage() {
         const response = await fetch(`/api/students/${params.studentId}`, {
           headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
         });
-        const data = await response.json();
+        const data: unknown = await response.json();
         if (!response.ok) {
-          throw new Error(data?.message || data?.error || 'Failed to fetch student profile');
+          throw new Error(
+            getResponseError(data, 'Failed to fetch student profile'),
+          );
+        }
+        if (!isRecord(data) || !isStudentProfile(data.student)) {
+          throw new Error('Invalid student profile response');
         }
         setStudent(data.student);
       } catch (err: unknown) {

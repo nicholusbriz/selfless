@@ -5,6 +5,7 @@ import { MoreVertical, Send, Trash2, AlertCircle } from 'lucide-react';
 import { useMessages } from '@/hooks/useMessages';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ConversationCacheItem, Message } from '@/types/messaging';
+import { getApiErrorMessage } from '@/lib/api-response';
 
 interface ChatProps {
   conversationId: string;
@@ -113,8 +114,8 @@ export function Chat({ conversationId, currentUserId }: ChatProps) {
       );
 
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to delete message');
+        const data: unknown = await response.json().catch(() => null);
+        throw new Error(getApiErrorMessage(data, 'Failed to delete message'));
       }
 
       void queryClient.invalidateQueries({

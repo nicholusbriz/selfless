@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/api-response';
 // lib/api/admin-tech-center-users.ts
 export interface User {
   id: string;
@@ -80,7 +81,7 @@ export const adminTechCenterUsersApi = {
     const response = await fetch(`/api/admin/tech-centers/users?${queryParams.toString()}`);
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to fetch users');
+      throw new Error(getApiErrorMessage(error, 'Failed to fetch users'));
     }
     return response.json();
   },
@@ -90,7 +91,7 @@ export const adminTechCenterUsersApi = {
     const response = await fetch(`/api/admin/tech-centers/users/${userId}`);
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to fetch user');
+      throw new Error(getApiErrorMessage(error, 'Failed to fetch user'));
     }
     return response.json();
   },
@@ -104,7 +105,7 @@ export const adminTechCenterUsersApi = {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to update user');
+      throw new Error(getApiErrorMessage(error, 'Failed to update user'));
     }
     return response.json();
   },
@@ -119,7 +120,7 @@ export const adminTechCenterUsersApi = {
     if (!response.ok) {
       const error = await response.json();
       console.error('Error response:', error);
-      throw new Error(error.message || 'Failed to update user role');
+      throw new Error(getApiErrorMessage(error, 'Failed to update user role'));
     }
     return response.json();
   },
@@ -134,7 +135,7 @@ export const adminTechCenterUsersApi = {
     if (!response.ok) {
       const error = await response.json();
       console.error('Error response:', error);
-      throw new Error(error.message || 'Failed to update user status');
+      throw new Error(getApiErrorMessage(error, 'Failed to update user status'));
     }
     return response.json();
   },

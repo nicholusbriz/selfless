@@ -3,6 +3,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import { UserStatus } from '@prisma/client';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 import { logUserAction } from '@/lib/logger';
 
 // PATCH - Update user status
@@ -19,7 +25,8 @@ export async function PATCH(
     }
 
     const { userId } = await params;
-    const body = await request.json();
+    const body = await parseJsonBody(request, { status: isString });
+    if (!body) return invalidJsonBodyResponse();
     const { status } = body;
 
     if (!status) {
@@ -29,8 +36,11 @@ export async function PATCH(
       );
     }
 
-    const validStatuses = ['ACTIVE', 'INACTIVE', 'SUSPENDED'];
-    if (!validStatuses.includes(status)) {
+    if (
+      status !== UserStatus.ACTIVE &&
+      status !== UserStatus.INACTIVE &&
+      status !== UserStatus.SUSPENDED
+    ) {
       return NextResponse.json(
         { error: 'Invalid status. Must be ACTIVE, INACTIVE, or SUSPENDED' },
         { status: 400 },

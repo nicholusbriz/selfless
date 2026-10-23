@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
+import { getStringProperty, isJsonObject, readJsonObject } from '@/lib/api-response';
 
 /**
  * Hook for fetching AI user context with caching
@@ -31,7 +32,16 @@ export function useAIUserData() {
       if (!response.ok) {
         throw new Error('Failed to fetch user context');
       }
-      return response.json();
+      const responseData = await readJsonObject(response);
+      const context = isJsonObject(responseData.data) ? responseData.data : {};
+      return {
+        context: getStringProperty(context, 'context') || '',
+        profileRecommendations:
+          getStringProperty(context, 'profileRecommendations') || '',
+        learningProfile: context.learningProfile || null,
+        recentTopics: Array.isArray(context.recentTopics) ? context.recentTopics : [],
+        profileCompleteness: context.profileCompleteness || null,
+      };
     },
     enabled: !!userId,
     staleTime: 5 * 60 * 1000, // 5 minutes - cache user data
@@ -41,11 +51,11 @@ export function useAIUserData() {
 
   // The API returns context and profile recommendations
   return {
-    userContext: userContextData?.data?.context || '',
-    profileRecommendations: userContextData?.data?.profileRecommendations || '',
-    learningProfile: userContextData?.data?.learningProfile || null,
-    recentTopics: userContextData?.data?.recentTopics || [],
-    profileCompleteness: userContextData?.data?.profileCompleteness || null,
+    userContext: userContextData?.context || '',
+    profileRecommendations: userContextData?.profileRecommendations || '',
+    learningProfile: userContextData?.learningProfile || null,
+    recentTopics: userContextData?.recentTopics || [],
+    profileCompleteness: userContextData?.profileCompleteness || null,
     isLoading,
     userId,
   };

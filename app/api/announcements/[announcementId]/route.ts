@@ -1,4 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  invalidJsonBodyResponse,
+  isBoolean,
+  isString,
+  nullable,
+  optional,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
@@ -16,7 +24,13 @@ export async function PUT(
     }
 
     const { announcementId } = await params;
-    const body = await request.json();
+    const body = await parseJsonBody(request, {
+      title: optional(isString),
+      content: optional(isString),
+      deadline: optional(nullable(isString)),
+      isGlobal: optional(isBoolean),
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { title, content, deadline, isGlobal } = body;
 
     // Get the announcement

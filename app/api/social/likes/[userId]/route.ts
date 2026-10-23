@@ -35,6 +35,9 @@ export async function GET(
               firstName: true,
               lastName: true,
               profileImageUrl: true,
+              role: { select: { name: true } },
+              previousTechCenterId: true,
+              generalCourse: true,
               techCenter: { select: { id: true, name: true } },
             },
           },
@@ -52,6 +55,9 @@ export async function GET(
               firstName: true,
               lastName: true,
               profileImageUrl: true,
+              role: { select: { name: true } },
+              previousTechCenterId: true,
+              generalCourse: true,
               techCenter: { select: { id: true, name: true } },
             },
           },
@@ -66,6 +72,9 @@ export async function GET(
       firstName: like.liker.firstName,
       lastName: like.liker.lastName,
       profileImageUrl: like.liker.profileImageUrl,
+      role: like.liker.role,
+      previousTechCenterId: like.liker.previousTechCenterId,
+      generalCourse: like.liker.generalCourse,
       techCenter: like.liker.techCenter,
       likedAt: like.createdAt.toISOString(),
     }));
@@ -75,6 +84,9 @@ export async function GET(
       firstName: like.likedUser.firstName,
       lastName: like.likedUser.lastName,
       profileImageUrl: like.likedUser.profileImageUrl,
+      role: like.likedUser.role,
+      previousTechCenterId: like.likedUser.previousTechCenterId,
+      generalCourse: like.likedUser.generalCourse,
       techCenter: like.likedUser.techCenter,
       likedAt: like.createdAt.toISOString(),
     }));
@@ -85,8 +97,34 @@ export async function GET(
     ];
     const statsMap = await getStatsForUsers(currentUser.id, allIds);
 
-    const withStats = <T extends { id: string }>(u: T) => ({
+    // Fetch previous tech centers for directors
+    const previousTechCenterIds = Array.from(
+      new Set(
+        [...likersBase, ...likedUsersBase]
+          .filter((user) => user.role?.name === 'super_admin')
+          .map((user) => user.previousTechCenterId)
+          .filter((id): id is string => typeof id === 'string' && id.length > 0)
+      ),
+    );
+
+    const previousTechCenters =
+      previousTechCenterIds.length > 0
+        ? await prisma.techCenter.findMany({
+            where: { id: { in: previousTechCenterIds } },
+            select: { id: true, name: true },
+          })
+        : [];
+
+    const previousTechCentersById = new Map(
+      previousTechCenters.map((techCenter) => [techCenter.id, techCenter]),
+    );
+
+    const withStats = <T extends { id: string; role?: { name: string } | null; previousTechCenterId?: string | null }>(u: T) => ({
       ...u,
+      previousTechCenter:
+        u.role?.name === 'super_admin' && u.previousTechCenterId
+          ? previousTechCentersById.get(u.previousTechCenterId) ?? null
+          : null,
       ...(statsMap.get(u.id) ?? EMPTY_STATS),
     });
 

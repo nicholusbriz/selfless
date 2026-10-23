@@ -23,6 +23,7 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import { useAIUserData } from '@/hooks/useAIUserData';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
+import { isRecord, isStringArray } from '../response-guards';
 
 // =========================================================
 // Design tokens — ink/brass palette matching the rest of the app
@@ -114,6 +115,110 @@ interface ConversationSummary {
   title: string | null;
   updatedAt: string;
   topics?: string[];
+}
+
+interface AIResponseData {
+  response?: string;
+  ragEnabled?: boolean;
+  fromCache?: boolean;
+  provider?: string;
+  sources?: NonNullable<Message['sources']>;
+  studentCard?: NonNullable<Message['studentCard']> | null;
+  conversationId?: string;
+  sourcesFound?: number;
+  tokenUsage?: unknown;
+  processingTime?: number;
+}
+
+function isConversationSummary(value: unknown): value is ConversationSummary {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    (typeof value.title === 'string' || value.title === null) &&
+    typeof value.updatedAt === 'string' &&
+    (value.topics === undefined || isStringArray(value.topics))
+  );
+}
+
+function isConversationMessage(
+  value: unknown,
+): value is { role: string; content: string; timestamp?: string | Date } {
+  return (
+    isRecord(value) &&
+    typeof value.role === 'string' &&
+    typeof value.content === 'string' &&
+    (value.timestamp === undefined ||
+      typeof value.timestamp === 'string' ||
+      value.timestamp instanceof Date)
+  );
+}
+
+function isMessageSource(
+  value: unknown,
+): value is NonNullable<Message['sources']>[number] {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.title === 'string' &&
+    typeof value.category === 'string' &&
+    (typeof value.subcategory === 'string' || value.subcategory === null) &&
+    typeof value.similarity === 'number' &&
+    (value.source === 'semantic' ||
+      value.source === 'keyword' ||
+      value.source === 'hybrid') &&
+    (value.chunkIndex === undefined || typeof value.chunkIndex === 'number')
+  );
+}
+
+function isStudentCard(
+  value: unknown,
+): value is NonNullable<Message['studentCard']> {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.firstName === 'string' &&
+    typeof value.lastName === 'string' &&
+    (typeof value.profileImageUrl === 'string' || value.profileImageUrl === null) &&
+    (typeof value.generalCourse === 'string' || value.generalCourse === null) &&
+    (typeof value.gender === 'string' || value.gender === null) &&
+    (typeof value.city === 'string' || value.city === null) &&
+    (typeof value.country === 'string' || value.country === null) &&
+    (typeof value.linkedinUrl === 'string' || value.linkedinUrl === null) &&
+    (typeof value.githubUrl === 'string' || value.githubUrl === null) &&
+    (value.techCenter === null ||
+      (isRecord(value.techCenter) && typeof value.techCenter.name === 'string')) &&
+    (value.role === null ||
+      (isRecord(value.role) && typeof value.role.displayName === 'string')) &&
+    Array.isArray(value.courses) &&
+    value.courses.every(
+      (course) =>
+        isRecord(course) &&
+        typeof course.name === 'string' &&
+        typeof course.code === 'string' &&
+        typeof course.courseUnit === 'string' &&
+        typeof course.credits === 'number',
+    )
+  );
+}
+
+function isAIResponseData(value: unknown): value is AIResponseData {
+  return (
+    isRecord(value) &&
+    (value.response === undefined || typeof value.response === 'string') &&
+    (value.ragEnabled === undefined || typeof value.ragEnabled === 'boolean') &&
+    (value.fromCache === undefined || typeof value.fromCache === 'boolean') &&
+    (value.provider === undefined || typeof value.provider === 'string') &&
+    (value.sources === undefined ||
+      (Array.isArray(value.sources) && value.sources.every(isMessageSource))) &&
+    (value.studentCard === undefined ||
+      value.studentCard === null ||
+      isStudentCard(value.studentCard)) &&
+    (value.conversationId === undefined ||
+      typeof value.conversationId === 'string') &&
+    (value.sourcesFound === undefined || typeof value.sourcesFound === 'number') &&
+    (value.processingTime === undefined ||
+      typeof value.processingTime === 'number')
+  );
 }
 
 export default function AIDashboardPage() {
@@ -227,9 +332,14 @@ export default function AIDashboardPage() {
     setHistoryLoading(true);
     try {
       const response = await fetch(`/api/ai/chat?userId=${user.id}`);
-      const data = await response.json();
-      if (data.success) {
-        setHistoryItems(data.data.conversations || []);
+      const data: unknown = await response.json();
+      if (
+        isRecord(data) &&
+        data.success === true &&
+        isRecord(data.data) &&
+        Array.isArray(data.data.conversations)
+      ) {
+        setHistoryItems(data.data.conversations.filter(isConversationSummary));
       }
     } catch (err) {
       console.error('Failed to load chat history:', err);
@@ -521,10 +631,16 @@ export default function AIDashboardPage() {
     setHistoryLoading(true);
     try {
       const response = await fetch(`/api/ai/chat?userId=${user.id}&conversationId=${conversationId}`);
-      const data = await response.json();
-      if (data.success && data.data.conversation) {
-        const loadedMessages = Array.isArray(data.data.conversation.messages)
-          ? data.data.conversation.messages.map((message: { role: string; content: string; timestamp?: string | Date }) => ({
+      const data: unknown = await response.json();
+      if (
+        isRecord(data) &&
+        data.success === true &&
+        isRecord(data.data) &&
+        isRecord(data.data.conversation)
+      ) {
+        const messages = data.data.conversation.messages;
+        const loadedMessages: Message[] = Array.isArray(messages)
+          ? messages.filter(isConversationMessage).map((message) => ({
             id: createMessageId(message.role),
             role: message.role === 'user' ? 'user' : 'assistant',
             content: message.content,
@@ -585,30 +701,35 @@ export default function AIDashboardPage() {
         }),
       });
 
-      const data = await response.json();
+      const data: unknown = await response.json();
 
-      if (data.success) {
+      if (
+        isRecord(data) &&
+        data.success === true &&
+        isAIResponseData(data.data)
+      ) {
+        const responseData = data.data;
         const assistantMessage: Message = {
           id: createMessageId('assistant'),
           role: 'assistant',
           content: '',
           timestamp: new Date(),
-          ragEnabled: data.data.ragEnabled || false,
-          fromCache: data.data.fromCache || false,
-          provider: data.data.provider || 'unknown',
-          sources: data.data.sources || [],
-          studentCard: data.data.studentCard ?? null,
+          ragEnabled: responseData.ragEnabled ?? false,
+          fromCache: responseData.fromCache ?? false,
+          provider: responseData.provider ?? 'unknown',
+          sources: responseData.sources ?? [],
+          studentCard: responseData.studentCard ?? null,
         };
         setMessages((prev) => [...prev, assistantMessage]);
-        if (data.data.conversationId) {
-          setActiveConversationId(data.data.conversationId);
+        if (responseData.conversationId) {
+          setActiveConversationId(responseData.conversationId);
         }
 
-        const responseText = typeof data.data.response === 'string' ? data.data.response : '';
+        const responseText = responseData.response ?? '';
         streamAssistantResponse(assistantMessage.id, responseText);
         void loadConversationHistory();
 
-        if (user?.id && data.data.ragEnabled) {
+        if (user?.id && responseData.ragEnabled) {
           fetch('/api/ai/log-usage', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -617,13 +738,13 @@ export default function AIDashboardPage() {
               techCenterId: user.techCenterId,
               details: { messageCount: messages.length + 1 },
               ragMetrics: {
-                ragEnabled: data.data.ragEnabled,
-                sourcesFound: data.data.sourcesFound,
-                fromCache: data.data.fromCache,
-                provider: data.data.provider,
-                tokenUsage: data.data.tokenUsage,
-                processingTime: data.data.processingTime,
-                sources: data.data.sources,
+                ragEnabled: responseData.ragEnabled,
+                sourcesFound: responseData.sourcesFound,
+                fromCache: responseData.fromCache,
+                provider: responseData.provider,
+                tokenUsage: responseData.tokenUsage,
+                processingTime: responseData.processingTime,
+                sources: responseData.sources,
               },
             }),
           }).catch((err) => console.error('Failed to log AI message:', err));
@@ -639,7 +760,11 @@ export default function AIDashboardPage() {
           }).catch((err) => console.error('Failed to log AI message:', err));
         }
       } else {
-        throw new Error(data.error || 'Failed to get response');
+        throw new Error(
+          isRecord(data) && typeof data.error === 'string'
+            ? data.error
+            : 'Failed to get response',
+        );
       }
     } catch {
       const errorMessage: Message = {

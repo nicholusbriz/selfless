@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  isStringOrNumber,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 // PUT - Update user's football team membership (jersey number, position)
 export async function PUT(request: NextRequest) {
@@ -13,10 +19,23 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    const body = await parseJsonBody(request, {
+      teamId: isString,
+      jerseyNumber: isStringOrNumber,
+      position: isString,
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { teamId, jerseyNumber, position } = body;
+    const parsedJerseyNumber =
+      typeof jerseyNumber === 'string' ? Number(jerseyNumber) : jerseyNumber;
 
-    if (!teamId || !jerseyNumber || !position) {
+    if (
+      !teamId ||
+      parsedJerseyNumber === undefined ||
+      !Number.isInteger(parsedJerseyNumber) ||
+      parsedJerseyNumber < 0 ||
+      !position
+    ) {
       return NextResponse.json({ error: 'Team ID, jersey number, and position are required' }, { status: 400 });
     }
 
@@ -42,7 +61,7 @@ export async function PUT(request: NextRequest) {
     const updatedMembership = await prisma.teamMembership.update({
       where: { id: teamId },
       data: {
-        jerseyNumber: jerseyNumber,
+        jerseyNumber: parsedJerseyNumber,
         position: position,
       },
       include: {

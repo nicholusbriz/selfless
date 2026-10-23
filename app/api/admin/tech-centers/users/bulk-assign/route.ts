@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  isStringArray,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 // PATCH - Bulk assign multiple students to a teacher
 export async function PATCH(request: NextRequest) {
@@ -18,7 +24,11 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied. Admin privileges required.' }, { status: 403 });
     }
 
-    const body = await request.json();
+    const body = await parseJsonBody(request, {
+      userIds: isStringArray,
+      teacherId: isString,
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { userIds, teacherId } = body;
 
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {

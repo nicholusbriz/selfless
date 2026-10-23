@@ -26,6 +26,8 @@ export interface Rankable {
   lastName?: string;
   profileImageUrl?: string | null;
   profileViewsCount?: number;
+  role?: string | null;
+  previousTechCenterId?: string | null;
 }
 
 export interface UserSocialStats {

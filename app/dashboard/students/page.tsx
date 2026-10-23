@@ -27,6 +27,7 @@ import { SocialActions } from '@/components/social/SocialActions';
 import {
   compareProfileImageFirst,
   rankByTrending,
+  rankStudentsByTrendingCustom,
 } from '@/lib/social/ranking';
 import {
   patchStudentsShape,
@@ -34,6 +35,7 @@ import {
 } from '@/lib/social/patchHelpers';
 import type { PageCacheAdapter } from '@/lib/social/cacheKeys';
 import { getTechCenterHue } from '@/lib/social/constants';
+import { isRecord } from '../response-guards';
 
 // ============================================================
 // TYPES
@@ -121,7 +123,23 @@ const getStudentInitial = (student: Student): string =>
 
 const sortStudents = (students: Student[], sortBy: SortOption): Student[] => {
   if (sortBy === 'trending') {
-    return [...students].sort(compareProfileImageFirst);
+    return [...students].sort((a, b) =>
+      compareProfileImageFirst({
+        id: a.id,
+        followersCount: a.followersCount,
+        likesReceivedCount: a.likesReceivedCount,
+        firstName: a.firstName,
+        lastName: a.lastName,
+        profileImageUrl: a.profileImageUrl,
+      }, {
+        id: b.id,
+        followersCount: b.followersCount,
+        likesReceivedCount: b.likesReceivedCount,
+        firstName: b.firstName,
+        lastName: b.lastName,
+        profileImageUrl: b.profileImageUrl,
+      }),
+    );
   }
 
   const copy = [...students];
@@ -212,10 +230,15 @@ function StudentMessageComposer({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ participantId: recipientId }),
       });
-      const conversationData = await conversationResponse
+      const conversationData: unknown = await conversationResponse
         .json()
-        .catch(() => ({}));
-      if (!conversationResponse.ok || !conversationData.conversation?.id) {
+        .catch(() => null);
+      if (
+        !conversationResponse.ok ||
+        !isRecord(conversationData) ||
+        !isRecord(conversationData.conversation) ||
+        typeof conversationData.conversation.id !== 'string'
+      ) {
         throw new Error('Failed to start conversation');
       }
 
@@ -361,9 +384,11 @@ const StudentCard = ({
             </div>
 
             {/* Row 2 — Course */}
-            <p className="text-[13px] font-medium text-white">
-              {student.generalCourse || 'Student'}
-            </p>
+            {student.role?.name !== 'super_admin' && (
+              <p className="text-[13px] font-medium text-white">
+                {student.generalCourse || 'Student'}
+              </p>
+            )}
 
             {/* Row 3 — Tech Center with MapPin icon */}
             {student.techCenter?.name && (
@@ -962,7 +987,7 @@ function CommunityTicker({ students }: { students: Student[] }) {
 
       <style jsx>{`
         .student-avatar-ticker {
-          animation: studentAvatarTicker 70s linear infinite;
+          animation: studentAvatarTicker 120s linear infinite;
           will-change: transform;
         }
         @keyframes studentAvatarTicker {
@@ -1126,7 +1151,7 @@ export default function StudentsPage() {
                 <HorizontalRail
                   label="Trending Student Profiles"
                   hue="#D4A84B"
-                  students={rankByTrending(filteredScoped).slice(0, 10)}
+                  students={rankStudentsByTrendingCustom(filteredScoped)}
                   router={router}
                   currentUserId={currentUserId}
                   showRank={true}

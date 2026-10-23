@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/api-response';
 // lib/api/tech-centers.ts
 export interface TechCenter {
   id: string;
@@ -39,7 +40,7 @@ export const techCentersApi = {
     const response = await fetch('/api/admin/tech-centers');
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to fetch tech centers');
+      throw new Error(getApiErrorMessage(error, 'Failed to fetch tech centers'));
     }
     return response.json();
   },
@@ -49,7 +50,7 @@ export const techCentersApi = {
     const response = await fetch(`/api/admin/tech-centers/${id}`);
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to fetch tech center');
+      throw new Error(getApiErrorMessage(error, 'Failed to fetch tech center'));
     }
     return response.json();
   },
@@ -59,7 +60,7 @@ export const techCentersApi = {
     const response = await fetch('/api/admin/countries');
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to fetch countries');
+      throw new Error(getApiErrorMessage(error, 'Failed to fetch countries'));
     }
     return response.json();
   },
@@ -73,7 +74,7 @@ export const techCentersApi = {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to create tech center');
+      throw new Error(getApiErrorMessage(error, 'Failed to create tech center'));
     }
     return response.json();
   },
@@ -87,7 +88,7 @@ export const techCentersApi = {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to update tech center');
+      throw new Error(getApiErrorMessage(error, 'Failed to update tech center'));
     }
     return response.json();
   },
@@ -99,7 +100,7 @@ export const techCentersApi = {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to delete tech center');
+      throw new Error(getApiErrorMessage(error, 'Failed to delete tech center'));
     }
     return response.json();
   },

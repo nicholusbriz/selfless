@@ -15,6 +15,7 @@ import {
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { isRecord } from '../../response-guards';
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -73,38 +74,127 @@ interface GradeScale {
   description: string | null;
 }
 
+interface StudentsResponse {
+  studentsWithCourses: User[];
+  studentsWithoutCourses: User[];
+}
+
+interface GradeScaleResponse {
+  gradeScale: GradeScale[];
+}
+
+interface AllGradesResponse {
+  grades: Grade[];
+}
+
+function isStudentCourse(value: unknown): value is StudentCourse {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.name === 'string' &&
+    typeof value.code === 'string' &&
+    typeof value.courseUnit === 'string' &&
+    typeof value.credits === 'number'
+  );
+}
+
+function isGradeStudent(value: unknown): value is User {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.firstName === 'string' &&
+    typeof value.lastName === 'string' &&
+    typeof value.email === 'string' &&
+    isRecord(value.role) &&
+    typeof value.role.name === 'string' &&
+    isRecord(value.techCenter) &&
+    typeof value.techCenter.id === 'string' &&
+    typeof value.techCenter.name === 'string' &&
+    (typeof value.profileImageUrl === 'string' ||
+      value.profileImageUrl === null) &&
+    (value.submittedCourses === undefined ||
+      (Array.isArray(value.submittedCourses) &&
+        value.submittedCourses.every(isStudentCourse)))
+  );
+}
+
+function isGradeScale(value: unknown): value is GradeScale {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.gradeLetter === 'string' &&
+    typeof value.minScore === 'number' &&
+    typeof value.maxScore === 'number' &&
+    typeof value.gradePoints === 'number' &&
+    (typeof value.description === 'string' || value.description === null)
+  );
+}
+
+function isGrade(value: unknown): value is Grade {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.studentId === 'string' &&
+    typeof value.gradeLetter === 'string' &&
+    typeof value.gradePoints === 'number' &&
+    (typeof value.score === 'number' || value.score === null) &&
+    typeof value.week === 'number' &&
+    typeof value.assignedAt === 'string' &&
+    (typeof value.notes === 'string' || value.notes === null)
+  );
+}
+
 /* -------------------------------------------------------------------------- */
 /* API                                                                        */
 /* -------------------------------------------------------------------------- */
 
-const fetchStudents = async () => {
+const fetchStudents = async (): Promise<StudentsResponse> => {
   const response = await fetch('/api/grades/students');
 
   if (!response.ok) {
     throw new Error('Failed to fetch students');
   }
 
-  return response.json();
+  const data: unknown = await response.json();
+  if (
+    !isRecord(data) ||
+    !Array.isArray(data.studentsWithCourses) ||
+    !Array.isArray(data.studentsWithoutCourses)
+  ) {
+    throw new Error('Invalid students response');
+  }
+  return {
+    studentsWithCourses: data.studentsWithCourses.filter(isGradeStudent),
+    studentsWithoutCourses: data.studentsWithoutCourses.filter(isGradeStudent),
+  };
 };
 
-const fetchGradeScale = async () => {
+const fetchGradeScale = async (): Promise<GradeScaleResponse> => {
   const response = await fetch('/api/grades/scale');
 
   if (!response.ok) {
     throw new Error('Failed to fetch grade scale');
   }
 
-  return response.json();
+  const data: unknown = await response.json();
+  if (!isRecord(data) || !Array.isArray(data.gradeScale)) {
+    throw new Error('Invalid grade scale response');
+  }
+  return { gradeScale: data.gradeScale.filter(isGradeScale) };
 };
 
-const fetchAllGrades = async () => {
+const fetchAllGrades = async (): Promise<AllGradesResponse> => {
   const response = await fetch('/api/grades/all-grades');
 
   if (!response.ok) {
     throw new Error('Failed to fetch all grades');
   }
 
-  return response.json();
+  const data: unknown = await response.json();
+  if (!isRecord(data) || !Array.isArray(data.grades)) {
+    throw new Error('Invalid grades response');
+  }
+  return { grades: data.grades.filter(isGrade) };
 };
 
 const submitGrade = async (grade: {

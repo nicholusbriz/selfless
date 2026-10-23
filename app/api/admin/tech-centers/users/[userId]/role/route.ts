@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 export async function PATCH(
   request: NextRequest,
@@ -20,7 +25,8 @@ export async function PATCH(
 
     const { userId } = await params;
     
-    const body = await request.json();
+    const body = await parseJsonBody(request, { roleId: isString });
+    if (!body) return invalidJsonBodyResponse();
     const { roleId } = body;
 
     if (!roleId) {

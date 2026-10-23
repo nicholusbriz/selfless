@@ -1,4 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  invalidJsonBodyResponse,
+  isNumber,
+  isString,
+  optional,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
@@ -20,7 +27,11 @@ export async function PUT(
       return NextResponse.json({ error: 'Access denied. Dev or Super Admin privileges required.' }, { status: 403 });
     }
 
-    const body = await request.json();
+    const body = await parseJsonBody(request, {
+      capacityLimit: optional(isNumber),
+      status: optional(isString),
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { capacityLimit, status } = body;
 
     // Use transaction to prevent race conditions

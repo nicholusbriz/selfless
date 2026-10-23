@@ -24,6 +24,7 @@ import {
   Code,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { getResponseError, isRecord } from '../../response-guards';
 
 interface KnowledgeEntry {
   id: string;
@@ -37,10 +38,10 @@ interface KnowledgeEntry {
   priority: number;
   isActive: boolean;
   // embedding: number[] | null; // Excluded to avoid MongoDB memory issues
-  embeddingGeneratedAt: Date | null;
+  embeddingGeneratedAt: string | null;
   isChunked: boolean;
-  createdAt: Date;
-  lastUpdated: Date;
+  createdAt: string;
+  lastUpdated: string;
 }
 
 interface EmbeddingStats {
@@ -130,6 +131,65 @@ const KNOWLEDGE_CATEGORIES = [
   ['other', 'Other'],
 ] as const;
 
+function isKnowledgeEntry(value: unknown): value is KnowledgeEntry {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.category === 'string' &&
+    (typeof value.subcategory === 'string' || value.subcategory === null) &&
+    typeof value.title === 'string' &&
+    typeof value.content === 'string' &&
+    (typeof value.summary === 'string' || value.summary === null) &&
+    Array.isArray(value.tags) &&
+    value.tags.every((tag) => typeof tag === 'string') &&
+    (typeof value.difficulty === 'string' || value.difficulty === null) &&
+    typeof value.priority === 'number' &&
+    typeof value.isActive === 'boolean' &&
+    (typeof value.embeddingGeneratedAt === 'string' ||
+      value.embeddingGeneratedAt === null) &&
+    typeof value.isChunked === 'boolean' &&
+    typeof value.createdAt === 'string' &&
+    typeof value.lastUpdated === 'string'
+  );
+}
+
+function isEmbeddingStats(value: unknown): value is EmbeddingStats {
+  return (
+    isRecord(value) &&
+    typeof value.total === 'number' &&
+    typeof value.withEmbeddings === 'number' &&
+    typeof value.withoutEmbeddings === 'number' &&
+    typeof value.chunked === 'number' &&
+    typeof value.totalChunks === 'number' &&
+    typeof value.percentageEmbedded === 'number'
+  );
+}
+
+function isAIStatus(value: unknown): value is AIStatus {
+  return (
+    isRecord(value) &&
+    typeof value.ragAvailable === 'boolean' &&
+    Array.isArray(value.providers) &&
+    value.providers.every(
+      (provider) =>
+        isRecord(provider) &&
+        typeof provider.provider === 'string' &&
+        typeof provider.status === 'string' &&
+        (provider.model === undefined || typeof provider.model === 'string') &&
+        (provider.error === undefined || typeof provider.error === 'string'),
+    )
+  );
+}
+
+function isUsageStats(value: unknown): value is UsageStats {
+  return (
+    isRecord(value) &&
+    typeof value.totalQueries === 'number' &&
+    typeof value.recentQueries === 'number' &&
+    typeof value.activeUsers === 'number'
+  );
+}
+
 export default function KnowledgeBaseManagementPage() {
   const router = useRouter();
   const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
@@ -170,16 +230,28 @@ export default function KnowledgeBaseManagementPage() {
         fetch('/api/admin/ai/usage'),
       ]);
       if (statusResponse.ok) {
-        const statusData = await statusResponse.json();
-        setAIStatus(statusData.data || null);
+        const statusData: unknown = await statusResponse.json();
+        setAIStatus(
+          isRecord(statusData) && isAIStatus(statusData.data)
+            ? statusData.data
+            : null,
+        );
       }
       if (embeddingsResponse.ok) {
-        const embeddingData = await embeddingsResponse.json();
-        setEmbeddingStats(embeddingData.data || null);
+        const embeddingData: unknown = await embeddingsResponse.json();
+        setEmbeddingStats(
+          isRecord(embeddingData) && isEmbeddingStats(embeddingData.data)
+            ? embeddingData.data
+            : null,
+        );
       }
       if (usageResponse.ok) {
-        const usageData = await usageResponse.json();
-        setUsageStats(usageData.data || null);
+        const usageData: unknown = await usageResponse.json();
+        setUsageStats(
+          isRecord(usageData) && isUsageStats(usageData.data)
+            ? usageData.data
+            : null,
+        );
       }
     } catch (error) {
       console.error('Failed to load AI control data:', error);
@@ -192,9 +264,9 @@ export default function KnowledgeBaseManagementPage() {
     setLoading(true);
     try {
       const response = await fetch('/api/ai/knowledge-base');
-      const data = await response.json();
-      if (data.success) {
-        setEntries(data.data || []);
+      const data: unknown = await response.json();
+      if (isRecord(data) && data.success === true && Array.isArray(data.data)) {
+        setEntries(data.data.filter(isKnowledgeEntry));
       }
     } catch (error) {
       console.error('Failed to load entries:', error);
@@ -210,12 +282,12 @@ export default function KnowledgeBaseManagementPage() {
       const response = await fetch(`/api/ai/knowledge-base/${id}`, {
         method: 'DELETE',
       });
-      const data = await response.json();
-      if (data.success) {
+      const data: unknown = await response.json();
+      if (isRecord(data) && data.success === true) {
         loadEntries();
         loadAIControlData();
       } else {
-        alert('Failed to delete entry: ' + data.error);
+        alert('Failed to delete entry: ' + getResponseError(data, 'Request failed'));
       }
     } catch (error) {
       console.error('Failed to delete entry:', error);
@@ -229,11 +301,11 @@ export default function KnowledgeBaseManagementPage() {
       const response = await fetch(`/api/ai/knowledge-base/${id}/embedding`, {
         method: 'POST',
       });
-      const data = await response.json();
-      if (data.success) {
+      const data: unknown = await response.json();
+      if (isRecord(data) && data.success === true) {
         loadEntries();
       } else {
-        alert('Failed to generate embedding: ' + data.error);
+        alert('Failed to generate embedding: ' + getResponseError(data, 'Request failed'));
       }
     } catch (error) {
       console.error('Failed to generate embedding:', error);
@@ -257,12 +329,19 @@ export default function KnowledgeBaseManagementPage() {
           limit: 100
         })
       });
-      const data = await response.json();
-      if (data.success) {
+      const data: unknown = await response.json();
+      if (
+        isRecord(data) &&
+        data.success === true &&
+        isRecord(data.data) &&
+        typeof data.data.processed === 'number' &&
+        typeof data.data.embedded === 'number' &&
+        typeof data.data.totalChunks === 'number'
+      ) {
         alert(`Regeneration complete! Processed ${data.data.processed} entries, generated ${data.data.embedded} embeddings, created ${data.data.totalChunks} chunks.`);
         loadEntries();
       } else {
-        alert('Failed to regenerate embeddings: ' + data.error);
+        alert('Failed to regenerate embeddings: ' + getResponseError(data, 'Request failed'));
       }
     } catch (error) {
       console.error('Failed to regenerate embeddings:', error);
@@ -698,11 +777,11 @@ function KnowledgeForm({
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
-      if (data.success) {
+      const data: unknown = await response.json();
+      if (isRecord(data) && data.success === true) {
         onSuccess();
       } else {
-        alert('Failed to save entry: ' + data.error);
+        alert('Failed to save entry: ' + getResponseError(data, 'Request failed'));
       }
     } catch (error) {
       console.error('Failed to save entry:', error);

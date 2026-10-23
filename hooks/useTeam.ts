@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/api-response';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 // Types
@@ -45,7 +46,7 @@ export function useTeam(techCenterId: string | null, teamType: string) {
       const response = await fetch(`/api/team/${techCenterId}/${teamType}`);
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to fetch team');
+        throw new Error(getApiErrorMessage(error, 'Failed to fetch team'));
       }
       return response.json();
     },
@@ -72,7 +73,7 @@ export function useRegisterForTeam() {
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to register for team');
+        throw new Error(getApiErrorMessage(error, 'Failed to register for team'));
       }
       return response.json();
     },
@@ -168,7 +169,7 @@ export function useLeaveTeam() {
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to leave team');
+        throw new Error(getApiErrorMessage(error, 'Failed to leave team'));
       }
       return response.json();
     },
@@ -235,7 +236,7 @@ export function useUpdateTeamMembership() {
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to update team membership');
+        throw new Error(getApiErrorMessage(error, 'Failed to update team membership'));
       }
       return response.json();
     },

@@ -13,6 +13,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/lib/hooks/useAuth';
+import { getResponseError, isRecord } from '../response-guards';
 
 interface SupportResource {
   id: string;
@@ -25,6 +26,17 @@ interface SupportResource {
 interface SupportQueryData {
   resources: SupportResource[];
   canManage: boolean;
+}
+
+function isSupportResource(value: unknown): value is SupportResource {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.title === 'string' &&
+    typeof value.link === 'string' &&
+    typeof value.description === 'string' &&
+    typeof value.createdAt === 'string'
+  );
 }
 
 const INITIAL_FORM = {
@@ -69,7 +81,18 @@ export default function SupportPage() {
         throw new Error('Failed to load support resources');
       }
 
-      return response.json();
+      const data: unknown = await response.json();
+      if (
+        !isRecord(data) ||
+        !Array.isArray(data.resources) ||
+        typeof data.canManage !== 'boolean'
+      ) {
+        throw new Error('Invalid support resources response');
+      }
+      return {
+        resources: data.resources.filter(isSupportResource),
+        canManage: data.canManage,
+      };
     },
     enabled: !authLoading,
   });
@@ -82,10 +105,12 @@ export default function SupportPage() {
         body: JSON.stringify(formData),
       });
 
-      const result = await response.json();
+      const result: unknown = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to add support resource');
+        throw new Error(
+          getResponseError(result, 'Failed to add support resource'),
+        );
       }
 
       return result;

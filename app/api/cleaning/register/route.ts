@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
@@ -21,7 +26,8 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-    const body = await request.json();
+    const body = await parseJsonBody(request, { cleaningDayId: isString });
+    if (!body) return invalidJsonBodyResponse();
     const { cleaningDayId } = body;
 
     // Check if student already has a registration (allow up to 2 registrations)
@@ -159,7 +165,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const body = await request.json();
+    const body = await parseJsonBody(request, { cleaningDayId: isString });
+    if (!body) return invalidJsonBodyResponse();
     const { cleaningDayId } = body;
 
     if (!cleaningDayId) {

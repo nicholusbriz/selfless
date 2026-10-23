@@ -1,3 +1,4 @@
+import { getApiErrorMessage, readJsonObject } from '@/lib/api-response';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export interface Notification {
@@ -29,8 +30,8 @@ export function useNotifications(unreadOnly: boolean = false) {
     queryFn: async () => {
       const response = await fetch(`/api/notifications?unreadOnly=${unreadOnly}`);
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to fetch notifications');
+        const error = await readJsonObject(response);
+        throw new Error(getApiErrorMessage(error, 'Failed to fetch notifications'));
       }
       return response.json();
     },
@@ -55,10 +56,10 @@ export function useUnreadNotificationCount(enabled: boolean = true) {
             return 0;
           }
           const error = await response.json();
-          throw new Error(error.message || 'Failed to fetch unread count');
+          throw new Error(getApiErrorMessage(error, 'Failed to fetch unread count'));
         }
-        const data = await response.json();
-        return data.unreadCount || 0;
+        const data = await readJsonObject(response);
+        return typeof data.unreadCount === 'number' ? data.unreadCount : 0;
       } catch (error) {
         console.error('Error fetching unread count:', error);
         return 0;
@@ -85,11 +86,11 @@ export function useAnnouncementCount(enabled: boolean = true) {
           if (response.status === 401 || response.status === 403) {
             return 0;
           }
-          const error = await response.json();
-          throw new Error(error.message || 'Failed to fetch announcements');
+          const error = await readJsonObject(response);
+          throw new Error(getApiErrorMessage(error, 'Failed to fetch announcements'));
         }
-        const data = await response.json();
-        return data.announcements?.length || 0;
+        const data = await readJsonObject(response);
+        return Array.isArray(data.announcements) ? data.announcements.length : 0;
       } catch (error) {
         console.error('Error fetching announcement count:', error);
         return 0;
@@ -112,7 +113,7 @@ export function useMarkNotificationAsRead() {
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to mark notification as read');
+        throw new Error(getApiErrorMessage(error, 'Failed to mark notification as read'));
       }
       return response.json();
     },
@@ -134,7 +135,7 @@ export function useMarkAllAsRead() {
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to mark all as read');
+        throw new Error(getApiErrorMessage(error, 'Failed to mark all as read'));
       }
       return response.json();
     },

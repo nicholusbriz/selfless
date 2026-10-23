@@ -2,14 +2,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma/client';
 import { requireAuth } from '@/lib/auth/server';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 export async function POST(req: NextRequest) {
   try {
     const user = await requireAuth();
-    const body = await req.json();
+    const body = await parseJsonBody(req, { pagePath: isString });
+    if (!body) return invalidJsonBodyResponse();
     const { pagePath } = body;
 
-    if (!pagePath || typeof pagePath !== 'string') {
+    if (!pagePath) {
       return NextResponse.json(
         { error: 'Invalid page path' },
         { status: 400 }

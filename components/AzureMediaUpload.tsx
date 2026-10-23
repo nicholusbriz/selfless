@@ -8,6 +8,7 @@ import {
   X,
   FileVideo,
 } from 'lucide-react';
+import { getApiErrorMessage, isJsonObject, readJsonObject } from '@/lib/api-response';
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
 
@@ -26,6 +27,41 @@ export interface UploadedMedia {
   size: number;
   title: string;
   description: string;
+}
+
+interface SasTokenResponse {
+  success: boolean;
+  uploadUrl: string;
+  publicUrl: string;
+  blobName: string;
+  error?: string;
+}
+
+interface SavedMediaResponse {
+  success: boolean;
+  media: { id: string };
+  error?: string;
+}
+
+function isSasTokenResponse(value: unknown): value is SasTokenResponse {
+  return (
+    isJsonObject(value) &&
+    typeof value.success === 'boolean' &&
+    typeof value.uploadUrl === 'string' &&
+    typeof value.publicUrl === 'string' &&
+    typeof value.blobName === 'string' &&
+    (value.error === undefined || typeof value.error === 'string')
+  );
+}
+
+function isSavedMediaResponse(value: unknown): value is SavedMediaResponse {
+  return (
+    isJsonObject(value) &&
+    typeof value.success === 'boolean' &&
+    isJsonObject(value.media) &&
+    typeof value.media.id === 'string' &&
+    (value.error === undefined || typeof value.error === 'string')
+  );
 }
 
 interface AzureMediaUploadProps {
@@ -149,9 +185,9 @@ export default function AzureMediaUpload({
           contentType: file.type,
         }),
       });
-      const tokenData = await tokenRes.json();
-      if (!tokenRes.ok || !tokenData.success) {
-        throw new Error(tokenData?.error ?? 'Could not prepare upload');
+      const tokenData = await readJsonObject(tokenRes);
+      if (!tokenRes.ok || !isSasTokenResponse(tokenData) || !tokenData.success) {
+        throw new Error(getApiErrorMessage(tokenData, 'Could not prepare upload'));
       }
       const { uploadUrl, publicUrl, blobName } = tokenData;
 
@@ -190,10 +226,10 @@ export default function AzureMediaUpload({
           category: defaultCategory,
         }),
       });
-      const saveData = await saveRes.json();
-      if (!saveRes.ok || !saveData.success) {
+      const saveData = await readJsonObject(saveRes);
+      if (!saveRes.ok || !isSavedMediaResponse(saveData) || !saveData.success) {
         throw new Error(
-          saveData?.error ?? 'Uploaded to Azure, but metadata failed to save',
+          getApiErrorMessage(saveData, 'Uploaded to Azure, but metadata failed to save'),
         );
       }
 

@@ -2,6 +2,14 @@
 // API route for dev cleaning management - GET all tech centers data, POST create week for any center
 
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  invalidJsonBodyResponse,
+  isNumber,
+  isString,
+  nullable,
+  optional,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
@@ -189,7 +197,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied. Dev or Super Admin privileges required.' }, { status: 403 });
     }
 
-    const body = await request.json();
+    const body = await parseJsonBody(request, {
+      startDate: optional(isString),
+      weekLabel: optional(isString),
+      capacityLimit: optional(isNumber),
+      registrationDeadline: optional(nullable(isString)),
+      techCenterId: optional(nullable(isString)),
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { startDate, weekLabel, capacityLimit, registrationDeadline, techCenterId } = body;
 
     if (!startDate) {

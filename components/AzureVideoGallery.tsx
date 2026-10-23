@@ -8,6 +8,7 @@ import {
   Loader2,
   RefreshCw,
 } from 'lucide-react';
+import { getApiErrorMessage, isJsonObject, readJsonObject } from '@/lib/api-response';
 
 interface MediaItem {
   id: string;
@@ -19,6 +20,21 @@ interface MediaItem {
   description: string | null;
   category: string | null;
   createdAt: string;
+}
+
+function isMediaItem(value: unknown): value is MediaItem {
+  return (
+    isJsonObject(value) &&
+    typeof value.id === 'string' &&
+    typeof value.publicUrl === 'string' &&
+    typeof value.blobName === 'string' &&
+    typeof value.contentType === 'string' &&
+    typeof value.size === 'number' &&
+    typeof value.title === 'string' &&
+    (typeof value.description === 'string' || value.description === null) &&
+    (typeof value.category === 'string' || value.category === null) &&
+    typeof value.createdAt === 'string'
+  );
 }
 
 export default function AzureVideoGallery({
@@ -46,13 +62,16 @@ export default function AzureVideoGallery({
           : '/api/media/list';
 
         const res = await fetch(url, { signal: controller.signal });
-        const data = await res.json();
+        const data = await readJsonObject(res);
 
         if (!res.ok || !data.success) {
-          throw new Error(data?.error ?? 'Could not load media');
+          throw new Error(getApiErrorMessage(data, 'Could not load media'));
         }
 
-        if (!cancelled) setItems(data.items ?? []);
+        const mediaItems = Array.isArray(data.items)
+          ? data.items.filter(isMediaItem)
+          : [];
+        if (!cancelled) setItems(mediaItems);
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return;
         if (!cancelled) {
@@ -80,9 +99,9 @@ export default function AzureVideoGallery({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mediaId: id }),
       });
-      const data = await res.json();
+      const data = await readJsonObject(res);
       if (!res.ok || !data.success) {
-        throw new Error(data?.error ?? 'Delete failed');
+        throw new Error(getApiErrorMessage(data, 'Delete failed'));
       }
       setItems((prev) => prev.filter((item) => item.id !== id));
     } catch (err) {

@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 // POST - Manual assign student (Admin/Teacher)
 export async function POST(request: NextRequest) {
@@ -23,7 +28,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
+    const body = await parseJsonBody(request, {
+      studentUserId: isString,
+      cleaningDayId: isString,
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { studentUserId, cleaningDayId } = body;
 
     if (!studentUserId || !cleaningDayId) {

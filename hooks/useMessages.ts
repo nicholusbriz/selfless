@@ -1,3 +1,4 @@
+import { getApiErrorMessage, isJsonObject, readJsonObject } from '@/lib/api-response';
 import { useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
@@ -25,11 +26,11 @@ export function useMessages({ conversationId, currentUserId }: UseMessagesProps)
       if (!conversationId) return [];
       const response = await fetch(`/api/messages/${conversationId}`);
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to fetch messages');
+        const errorData = await readJsonObject(response).catch(() => ({}));
+        throw new Error(getApiErrorMessage(errorData, 'Failed to fetch messages'));
       }
-      const data = await response.json();
-      return data.messages || [];
+      const data = await readJsonObject(response);
+      return isJsonObject(data) && Array.isArray(data.messages) ? data.messages : [];
     },
     enabled: !!conversationId && !!currentUserId,
     refetchOnWindowFocus: false,
@@ -49,10 +50,10 @@ export function useMessages({ conversationId, currentUserId }: UseMessagesProps)
         body: JSON.stringify({ content, attachments }),
       });
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to send message');
+        const errorData = await readJsonObject(response).catch(() => ({}));
+        throw new Error(getApiErrorMessage(errorData, 'Failed to send message'));
       }
-      return response.json();
+      return readJsonObject(response);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({
@@ -85,8 +86,8 @@ export function useMessages({ conversationId, currentUserId }: UseMessagesProps)
     })
       .then(async (response) => {
         if (!response.ok) throw new Error('Failed to mark messages as read');
-        const data = await response.json();
-        const markedCount = data.markedCount || 0;
+        const data = await readJsonObject(response);
+        const markedCount = typeof data.markedCount === 'number' ? data.markedCount : 0;
 
         if (markedCount > 0) {
           void queryClient.invalidateQueries({
@@ -135,11 +136,11 @@ export function useUnreadMessageCount() {
           if (response.status === 401 || response.status === 403) {
             return 0;
           }
-          const error = await response.json();
-          throw new Error(error.message || 'Failed to fetch unread count');
+          const error = await readJsonObject(response);
+          throw new Error(getApiErrorMessage(error, 'Failed to fetch unread count'));
         }
-        const data = await response.json();
-        return data.unreadCount || 0;
+        const data = await readJsonObject(response);
+        return typeof data.unreadCount === 'number' ? data.unreadCount : 0;
       } catch (error) {
         console.error('Error fetching unread message count:', error);
         return 0;

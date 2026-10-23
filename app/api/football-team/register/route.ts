@@ -3,6 +3,14 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
 import { createActivityLog } from '@/lib/logger';
+import { TeamRole } from '@prisma/client';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  isStringOrNumber,
+  optional,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 // POST - Register user as football team member
 export async function POST(request: NextRequest) {
@@ -13,10 +21,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    const body = await parseJsonBody(request, {
+      techCenterId: isString,
+      jerseyNumber: optional(isStringOrNumber),
+      position: optional(isString),
+      teamRole: optional(
+        (value): value is TeamRole =>
+          value === TeamRole.PLAYER ||
+          value === TeamRole.COACH ||
+          value === TeamRole.KIT_MANAGER ||
+          value === TeamRole.CHEERLEADER ||
+          value === TeamRole.TEAM_MANAGER ||
+          value === TeamRole.MEDICAL ||
+          value === TeamRole.REFEREE,
+      ),
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { techCenterId, jerseyNumber, position, teamRole } = body;
+    const parsedJerseyNumber =
+      typeof jerseyNumber === 'string' ? Number(jerseyNumber) : jerseyNumber;
 
-    if (!techCenterId) {
+    if (
+      !techCenterId ||
+      (parsedJerseyNumber !== undefined &&
+        (!Number.isInteger(parsedJerseyNumber) || parsedJerseyNumber < 0))
+    ) {
       return NextResponse.json({ error: 'Tech center ID is required' }, { status: 400 });
     }
 
@@ -50,7 +79,7 @@ export async function POST(request: NextRequest) {
         techCenterId,
         teamType: 'FOOTBALL',
         teamRole: teamRole || 'PLAYER',
-        jerseyNumber,
+        jerseyNumber: parsedJerseyNumber,
         position
       },
       include: {

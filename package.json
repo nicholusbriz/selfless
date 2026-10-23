@@ -9,12 +9,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate",
-    "migrate:images": "tsx scripts/migrate-images-to-azure.ts",
-    "sync:email": "tsx scripts/sync-email-database.ts",
-    "check:email": "tsx scripts/check-email-logs.ts",
-    "reset:email": "tsx scripts/reset-email-logs.ts",
-    "cleanup:email": "tsx scripts/cleanup-old-email-logs.ts"
+    "postinstall": "prisma generate"
   },
   "prisma": {
     "seed": "node ./prisma/test-database.js"

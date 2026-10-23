@@ -1,5 +1,10 @@
 // app/api/cleaning/change-day/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
@@ -23,7 +28,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const body = await request.json();
+    const body = await parseJsonBody(request, {
+      newDayId: isString,
+      oldDayId: isString,
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { newDayId, oldDayId } = body;
 
     if (!newDayId) {

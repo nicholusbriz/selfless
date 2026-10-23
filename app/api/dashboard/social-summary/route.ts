@@ -4,13 +4,13 @@
  *
  * Merges multiple social stats APIs into one call to reduce dashboard load time:
  *   - /api/social/me (personal stats)
- *   - /api/social/trending?limit=6 (trending users)
+ *   - /api/social/trending?limit=50 (trending users, includes superadmins with profile images)
  *   - /api/social/likes/${userId} (recent likes activity)
  *   - /api/social/connections/${userId}?type=followers (recent followers activity)
  *
  * Returns a single response with all social data needed for the dashboard.
  *
- * GET /api/dashboard/social-summary?limit=6
+ * GET /api/dashboard/social-summary?limit=50
  */
 
 import { NextResponse } from 'next/server';
@@ -52,9 +52,9 @@ export async function GET(request: Request) {
     const currentUser = await requireAuth();
     const viewerId = currentUser.id;
     const { searchParams } = new URL(request.url);
-    const limitParam = Number(searchParams.get('limit') ?? '6');
+    const limitParam = Number(searchParams.get('limit') ?? '50');
     const limit = Math.min(
-      Math.max(Number.isFinite(limitParam) ? limitParam : 6, 1),
+      Math.max(Number.isFinite(limitParam) ? limitParam : 50, 1),
       100,
     );
 
@@ -91,6 +91,24 @@ export async function GET(request: Request) {
       ...followerGroups.map((g) => g.followingId),
       ...likeGroups.map((g) => g.likedUserId),
     ]);
+
+    // Also fetch all admins and tutors with profile images
+    const privilegedUsersWithImages = await prisma.user.findMany({
+      where: {
+        role: { name: { in: ['super_admin', 'admin', 'teacher'] } },
+        AND: [
+          { profileImageUrl: { not: null } },
+          { profileImageUrl: { not: '' } },
+        ],
+        OR: [
+          { role: { name: { not: 'super_admin' } } },
+          { previousTechCenterId: { not: null } },
+        ],
+      },
+      select: { id: true },
+    });
+
+    privilegedUsersWithImages.forEach((u) => activeIds.add(u.id));
 
     let trendingStudents: TrendingStudent[] = [];
     if (activeIds.size > 0) {
@@ -139,15 +157,39 @@ export async function GET(request: Request) {
             ...stats,
           };
         })
-        .filter((u) => u.followersCount > 0 || u.likesReceivedCount > 0)
+        .filter((u) =>
+          Boolean(u.profileImageUrl?.trim()) &&
+          (u.followersCount > 0 ||
+            u.likesReceivedCount > 0 ||
+            ((u.role?.name === 'super_admin' || u.role?.name === 'admin' || u.role?.name === 'teacher') &&
+              (u.role?.name !== 'super_admin' || Boolean(u.previousTechCenterId))))
+        )
         .sort((a, b) => {
+          // Priority 1: Role hierarchy (super_admin > admin > tutor > student)
+          const rolePriority: Record<string, number> = {
+            super_admin: 4,
+            admin: 3,
+            teacher: 2,
+            student: 1,
+          };
+          const aPriority = rolePriority[a.role?.name || ''] || 0;
+          const bPriority = rolePriority[b.role?.name || ''] || 0;
+          if (aPriority !== bPriority) return bPriority - aPriority;
+
+          // Priority 2: Has profile image (within the same role, users with images come first)
           const aHasImage = Boolean(a.profileImageUrl?.trim());
           const bHasImage = Boolean(b.profileImageUrl?.trim());
           if (aHasImage !== bHasImage) return bHasImage ? 1 : -1;
+
+          // Priority 3: Followers count (highest to lowest)
           if (b.followersCount !== a.followersCount)
             return b.followersCount - a.followersCount;
+
+          // Priority 4: Likes count (highest to lowest)
           if (b.likesReceivedCount !== a.likesReceivedCount)
             return b.likesReceivedCount - a.likesReceivedCount;
+
+          // Priority 5: Name for stability
           return `${a.firstName} ${a.lastName}`.localeCompare(
             `${b.firstName} ${b.lastName}`,
           );
@@ -162,8 +204,10 @@ export async function GET(request: Request) {
         role: u.role?.name ?? null,
         techCenter: u.techCenter,
         previousTechCenter:
-          u.role?.name === 'super_admin' && u.previousTechCenterId
-            ? previousTechCentersById.get(u.previousTechCenterId) ?? null
+          u.role?.name === 'super_admin'
+            ? (u.previousTechCenterId
+                ? previousTechCentersById.get(u.previousTechCenterId) ?? null
+                : null)
             : null,
         followersCount: u.followersCount,
         followingCount: u.followingCount,

@@ -13,9 +13,18 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerAuthUser, requireAuth } from '@/lib/auth/server';
+import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
 import { publishUserProfileInvalidation } from '@/lib/partyserver-client';
+import type { Prisma } from '@prisma/client';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  isStringArray,
+  nullable,
+  optional,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,7 +32,23 @@ export async function POST(req: NextRequest) {
     const user = await requireAuth();
 
     // Parse request body
-    const body = await req.json();
+    const body = await parseJsonBody(req, {
+      firstName: optional(isString),
+      lastName: optional(isString),
+      email: optional(isString),
+      profileImageUrl: optional(nullable(isString)),
+      phoneNumber: optional(nullable(isString)),
+      country: optional(nullable(isString)),
+      city: optional(nullable(isString)),
+      town: optional(nullable(isString)),
+      street: optional(nullable(isString)),
+      generalCourse: optional(nullable(isString)),
+      linkedinUrl: optional(nullable(isString)),
+      githubUrl: optional(nullable(isString)),
+      projectUrls: optional(isStringArray),
+      gender: optional(nullable(isString)),
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { 
       firstName, 
       lastName, 
@@ -42,7 +67,7 @@ export async function POST(req: NextRequest) {
     } = body;
 
     // Build update object with only provided fields
-    const updateData: any = {};
+    const updateData: Prisma.UserUpdateInput = {};
     
     if (firstName !== undefined) updateData.firstName = firstName;
     if (lastName !== undefined) updateData.lastName = lastName;
@@ -98,7 +123,22 @@ export async function POST(req: NextRequest) {
         action: 'update_profile',
         entityType: 'user',
         entityId: user.id,
-        details: updateData,
+        details: {
+          ...(firstName !== undefined && { firstName }),
+          ...(lastName !== undefined && { lastName }),
+          ...(email !== undefined && email !== user.email && { email }),
+          ...(profileImageUrl !== undefined && { profileImageUrl }),
+          ...(phoneNumber !== undefined && { phoneNumber }),
+          ...(country !== undefined && { country }),
+          ...(city !== undefined && { city }),
+          ...(town !== undefined && { town }),
+          ...(street !== undefined && { street }),
+          ...(generalCourse !== undefined && { generalCourse }),
+          ...(linkedinUrl !== undefined && { linkedinUrl }),
+          ...(githubUrl !== undefined && { githubUrl }),
+          ...(projectUrls !== undefined && { projectUrls }),
+          ...(gender !== undefined && { gender }),
+        },
         techCenterId: user.techCenterId,
       },
     });
@@ -129,10 +169,10 @@ export async function POST(req: NextRequest) {
         gender: updatedUser.gender,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('User update API error:', error);
     
-    if (error.message === 'Unauthorized') {
+    if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
