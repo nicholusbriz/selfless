@@ -3,6 +3,12 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
 import { logUserAction, extractIpAddress, extractUserAgent } from '@/lib/logger';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  optional,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 // GET - Fetch all tech centers
 export async function GET() {
@@ -55,7 +61,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    const body = await parseJsonBody(request, {
+      name: optional(isString),
+      code: optional(isString),
+      description: optional(isString),
+      countryId: optional(isString),
+      city: optional(isString),
+      address: optional(isString),
+      phone: optional(isString),
+      email: optional(isString),
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { name, code, description, countryId, city, address, phone, email } = body;
 
     // Validate required fields

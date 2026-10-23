@@ -13,14 +13,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/server';
 import { deleteVideo } from '@/lib/supabase';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 export async function DELETE(req: NextRequest) {
   try {
     // Get authenticated user
-    const user = await requireAuth();
+    await requireAuth();
 
     // Parse request body
-    const body = await req.json();
+    const body = await parseJsonBody(req, { videoUrl: isString });
+    if (!body) return invalidJsonBodyResponse();
     const { videoUrl } = body;
 
     if (!videoUrl) {
@@ -36,10 +42,10 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({
       message: 'Video deleted successfully',
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Video delete API error:', error);
     
-    if (error.message === 'Unauthorized') {
+    if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -47,7 +53,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: error.message || 'Failed to delete video' },
+      { error: error instanceof Error ? error.message : 'Failed to delete video' },
       { status: 500 }
     );
   }

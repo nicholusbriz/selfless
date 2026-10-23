@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/api-response';
 // lib/api/admin-tech-center.ts
 export interface TechCenter {
   id: string;
@@ -72,7 +73,7 @@ export const adminTechCenterApi = {
     const response = await fetch('/api/admin/tech-centers/me');
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to fetch tech center');
+      throw new Error(getApiErrorMessage(error, 'Failed to fetch tech center'));
     }
     return response.json();
   },
@@ -82,7 +83,7 @@ export const adminTechCenterApi = {
     const response = await fetch('/api/admin/tech-centers/me/stats');
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to fetch tech center stats');
+      throw new Error(getApiErrorMessage(error, 'Failed to fetch tech center stats'));
     }
     return response.json();
   },
@@ -96,7 +97,7 @@ export const adminTechCenterApi = {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to update tech center');
+      throw new Error(getApiErrorMessage(error, 'Failed to update tech center'));
     }
     return response.json();
   },

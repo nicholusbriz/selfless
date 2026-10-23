@@ -50,6 +50,16 @@ import {
   type CleaningRegistration,
   type AttendanceRecord,
 } from '@/hooks/useDevCleaning';
+import { isJsonObject } from '@/lib/api-response';
+
+function isTechCenter(value: unknown): value is TechCenter {
+  return (
+    isJsonObject(value) &&
+    typeof value.id === 'string' &&
+    typeof value.name === 'string' &&
+    typeof value.code === 'string'
+  );
+}
 
 // =========================================================
 // DESIGN TOKENS (from cleaning rota page)
@@ -774,7 +784,14 @@ export default function DevCleaningManagement() {
   useEffect(() => {
     fetch('/api/dev/tech-centers')
       .then((res) => res.json())
-      .then((data) => setAllTechCenters(data))
+      .then((data: unknown) => {
+        if (
+          Array.isArray(data) &&
+          data.every(isTechCenter)
+        ) {
+          setAllTechCenters(data);
+        }
+      })
       .catch((err) => console.error('Failed to load tech centers:', err));
   }, []);
 

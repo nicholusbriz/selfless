@@ -3,6 +3,11 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 const MANAGER_ROLES = new Set(['admin', 'super_admin', 'dev']);
 
@@ -59,11 +64,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const body = await request.json();
-    const title = typeof body.title === 'string' ? body.title.trim() : '';
-    const link = typeof body.link === 'string' ? body.link.trim() : '';
-    const description =
-      typeof body.description === 'string' ? body.description.trim() : '';
+    const body = await parseJsonBody(request, {
+      title: isString,
+      link: isString,
+      description: isString,
+    });
+    if (!body) return invalidJsonBodyResponse();
+    const title = body.title.trim();
+    const link = body.link.trim();
+    const description = body.description.trim();
 
     if (!title || !link || !description) {
       return NextResponse.json(

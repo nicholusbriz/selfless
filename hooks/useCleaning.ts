@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/api-response';
 // hooks/useCleaning.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -81,7 +82,7 @@ const api = {
     const response = await fetch('/api/admin/cleaning');
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to fetch cleaning data');
+      throw new Error(getApiErrorMessage(error, 'Failed to fetch cleaning data'));
     }
     return response.json();
   },
@@ -94,7 +95,7 @@ const api = {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to create week');
+      throw new Error(getApiErrorMessage(error, 'Failed to create week'));
     }
     return response.json();
   },
@@ -107,7 +108,7 @@ const api = {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to update week');
+      throw new Error(getApiErrorMessage(error, 'Failed to update week'));
     }
     return response.json();
   },
@@ -118,7 +119,7 @@ const api = {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to delete week');
+      throw new Error(getApiErrorMessage(error, 'Failed to delete week'));
     }
     return response.json();
   },
@@ -131,7 +132,7 @@ const api = {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to update day');
+      throw new Error(getApiErrorMessage(error, 'Failed to update day'));
     }
     return response.json();
   },
@@ -142,7 +143,7 @@ const api = {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to delete day');
+      throw new Error(getApiErrorMessage(error, 'Failed to delete day'));
     }
     return response.json();
   },
@@ -156,7 +157,7 @@ const api = {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(
-        error.error || error.message || 'Failed to assign student',
+        getApiErrorMessage(error, 'Failed to assign student'),
       );
     }
     return response.json();
@@ -170,7 +171,7 @@ const api = {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to mark attendance');
+      throw new Error(getApiErrorMessage(error, 'Failed to mark attendance'));
     }
     return response.json();
   },
@@ -183,7 +184,7 @@ const api = {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to remove student');
+      throw new Error(getApiErrorMessage(error, 'Failed to remove student'));
     }
     return response.json();
   },

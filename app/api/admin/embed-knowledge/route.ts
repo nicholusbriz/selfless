@@ -4,6 +4,14 @@ import { authOptions } from '@/lib/auth/nextauth';
 import { PrismaClient } from '@prisma/client';
 import { generateEmbedding, chunkText } from '@/lib/services/embedding-service';
 import { clearRAGCache } from '@/lib/services/rag-service';
+import {
+  invalidJsonBodyResponse,
+  isBoolean,
+  isNumber,
+  isString,
+  optional,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 const prisma = new PrismaClient();
 
@@ -48,7 +56,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden - dev only' }, { status: 403 });
     }
 
-    const body = await request.json();
+    const body = await parseJsonBody(request, {
+      forceRegenerate: optional(isBoolean),
+      chunkLargeDocuments: optional(isBoolean),
+      limit: optional(isNumber),
+      category: optional(isString),
+    });
+    if (!body) return invalidJsonBodyResponse();
     const {
       forceRegenerate = false,
       chunkLargeDocuments = true,

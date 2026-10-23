@@ -13,6 +13,20 @@ import AzureMediaUpload, {
   type UploadedMedia,
 } from '@/components/AzureMediaUpload';
 import AzureVideoGallery from '@/components/AzureVideoGallery';
+import { getApiErrorMessage, isJsonObject } from '@/lib/api-response';
+
+interface TechCenterOption {
+  id: string;
+  name: string;
+}
+
+function isTechCenterOption(value: unknown): value is TechCenterOption {
+  return (
+    isJsonObject(value) &&
+    typeof value.id === 'string' &&
+    typeof value.name === 'string'
+  );
+}
 
 const TOKENS = {
   brand: '#1a365d',
@@ -53,13 +67,17 @@ export default function DevDashboardPage() {
   const [selectedTechCenter, setSelectedTechCenter] = useState<string>('');
   const [sessionMessage, setSessionMessage] = useState<string | null>(null);
   const [isInvalidating, setIsInvalidating] = useState(false);
-  const [techCenters, setTechCenters] = useState<any[]>([]);
+  const [techCenters, setTechCenters] = useState<TechCenterOption[]>([]);
 
   // Load tech centers on mount
   useEffect(() => {
     fetch('/api/tech-centers')
       .then((res) => res.json())
-      .then((data) => setTechCenters(data))
+      .then((data: unknown) => {
+        if (Array.isArray(data) && data.every(isTechCenterOption)) {
+          setTechCenters(data);
+        }
+      })
       .catch((err) => console.error('Failed to load tech centers:', err));
   }, []);
 
@@ -87,12 +105,17 @@ export default function DevDashboardPage() {
         }),
       });
 
-      const data = await response.json();
+      const data: unknown = await response.json();
+      const dataObject = isJsonObject(data) ? data : null;
 
       if (response.ok) {
-        setSessionMessage(data.message);
+        setSessionMessage(
+          typeof dataObject?.message === 'string' ? dataObject.message : '',
+        );
       } else {
-        setSessionMessage(data.error || 'Failed to invalidate sessions');
+        setSessionMessage(
+          getApiErrorMessage(data, 'Failed to invalidate sessions'),
+        );
       }
     } catch (error) {
       console.error('Error invalidating sessions:', error);

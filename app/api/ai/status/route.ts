@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { isRAGAvailable } from '@/lib/services/rag-service';
 import { requireAuth, hasRole } from '@/lib/auth/server';
+import { isJsonObject } from '@/app/api/_lib/request-validation';
+import { getApiErrorMessage } from '@/lib/api-response';
 
 type ProviderStatus = {
   provider: string;
@@ -69,12 +71,14 @@ async function testOpenAI(): Promise<ProviderStatus> {
       })
     });
 
-    const data = await response.json();
+    const data: unknown = await response.json();
 
     if (response.ok) {
       return { provider: 'openrouter', configured: true, status: 'working', model: process.env.OPENROUTER_MODEL?.trim() || 'openai/gpt-4.1-mini' };
     } else {
-      const errorMessage = data.error?.message || 'Unknown error';
+      const errorMessage = isJsonObject(data)
+        ? getApiErrorMessage(data.error, 'Unknown error')
+        : 'Unknown error';
       if (errorMessage.includes('quota') || errorMessage.includes('billing') || errorMessage.includes('exceeded')) {
         return { provider: 'openrouter', configured: true, status: 'quota_exceeded', error: errorMessage };
       }

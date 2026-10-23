@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 // POST - Create a new video request
 export async function POST(request: NextRequest) {
@@ -15,8 +20,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const { request: requestContent } = body;
+    const body = await parseJsonBody(request, { request: isString });
+    if (!body) return invalidJsonBodyResponse();
+    const requestContent = body.request;
 
     if (!requestContent || typeof requestContent !== 'string' || requestContent.trim().length === 0) {
       return NextResponse.json(
@@ -62,7 +68,7 @@ export async function POST(request: NextRequest) {
 }
 
 // GET - Fetch all video requests
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     

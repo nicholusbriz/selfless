@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
+import { readJsonObject } from '@/lib/api-response';
 
 export function SessionValidator() {
   const { data: session } = useSession();
@@ -18,7 +19,7 @@ export function SessionValidator() {
           return;
         }
 
-        const data = await response.json();
+        const data = await readJsonObject(response);
 
         // If tokenVersion doesn't match, sign out
         if (data.tokenVersion !== session.user.tokenVersion) {

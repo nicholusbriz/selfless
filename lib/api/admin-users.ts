@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/api-response';
 // lib/api/admin-users.ts
 export interface User {
   id: string;
@@ -86,7 +87,7 @@ export const adminUsersApi = {
     const response = await fetch(`/api/admin/users?${queryParams.toString()}`);
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to fetch users');
+      throw new Error(getApiErrorMessage(error, 'Failed to fetch users'));
     }
     return response.json();
   },
@@ -96,7 +97,7 @@ export const adminUsersApi = {
     const response = await fetch(`/api/admin/users/${userId}`);
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to fetch user');
+      throw new Error(getApiErrorMessage(error, 'Failed to fetch user'));
     }
     return response.json();
   },
@@ -110,7 +111,7 @@ export const adminUsersApi = {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to update user');
+      throw new Error(getApiErrorMessage(error, 'Failed to update user'));
     }
     return response.json();
   },
@@ -124,7 +125,7 @@ export const adminUsersApi = {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to update user role');
+      throw new Error(getApiErrorMessage(error, 'Failed to update user role'));
     }
     return response.json();
   },
@@ -138,7 +139,7 @@ export const adminUsersApi = {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to update user status');
+      throw new Error(getApiErrorMessage(error, 'Failed to update user status'));
     }
     return response.json();
   },
@@ -150,7 +151,7 @@ export const adminUsersApi = {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to delete user');
+      throw new Error(getApiErrorMessage(error, 'Failed to delete user'));
     }
     return response.json();
   },

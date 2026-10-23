@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { clearRAGCache } from '@/lib/services/rag-service';
+import {
+  invalidJsonBodyResponse,
+  isBoolean,
+  isNumber,
+  isString,
+  isStringArray,
+  optional,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 const prisma = new PrismaClient();
 
@@ -11,7 +20,20 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const body = await request.json();
+    const body = await parseJsonBody(request, {
+      category: optional(isString),
+      subcategory: optional(isString),
+      title: optional(isString),
+      content: optional(isString),
+      summary: optional(isString),
+      tags: optional(isStringArray),
+      difficulty: optional(isString),
+      priority: optional(isNumber),
+      relatedIds: optional(isStringArray),
+      isActive: optional(isBoolean),
+      helpfulRating: optional(isNumber),
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { category, subcategory, title, content, summary, tags, difficulty, priority, relatedIds, isActive, helpfulRating } = body;
 
     const knowledge = await prisma.aIKnowledgeBase.update({

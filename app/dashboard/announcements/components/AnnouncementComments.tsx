@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { MessageCircle, MoreVertical, Reply, Send, Trash2 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { getApiErrorMessage, isJsonObject } from '@/lib/api-response';
 
 interface CommentAuthor {
   id: string;
@@ -31,6 +32,47 @@ interface AnnouncementComment {
   content: string;
   createdAt: string;
   author: CommentAuthor;
+}
+
+function isAnnouncementComment(value: unknown): value is AnnouncementComment {
+  if (
+    !isJsonObject(value) ||
+    typeof value.id !== 'string' ||
+    (value.parentId !== null && typeof value.parentId !== 'string') ||
+    typeof value.content !== 'string' ||
+    typeof value.createdAt !== 'string' ||
+    !isJsonObject(value.author)
+  ) {
+    return false;
+  }
+
+  const author = value.author;
+  if (
+    typeof author.id !== 'string' ||
+    typeof author.firstName !== 'string' ||
+    typeof author.lastName !== 'string' ||
+    (author.profileImageUrl !== null &&
+      typeof author.profileImageUrl !== 'string')
+  ) {
+    return false;
+  }
+
+  if (
+    author.role !== undefined &&
+    author.role !== null &&
+    (!isJsonObject(author.role) ||
+      typeof author.role.name !== 'string' ||
+      typeof author.role.displayName !== 'string')
+  ) {
+    return false;
+  }
+
+  return (
+    author.techCenter === undefined ||
+    author.techCenter === null ||
+    (isJsonObject(author.techCenter) &&
+      typeof author.techCenter.name === 'string')
+  );
 }
 
 interface AnnouncementCommentsProps {
@@ -78,10 +120,14 @@ export function AnnouncementComments({
         body: JSON.stringify({ content, parentId: replyingTo }),
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Failed to post comment');
+        const err: unknown = await res.json().catch(() => null);
+        throw new Error(getApiErrorMessage(err, 'Failed to post comment'));
       }
-      return res.json();
+      const result: unknown = await res.json();
+      if (!isJsonObject(result) || !isAnnouncementComment(result.comment)) {
+        throw new Error('Invalid comment response');
+      }
+      return { comment: result.comment };
     },
     onSuccess: (result) => {
       queryClient.setQueryData<{ comments: AnnouncementComment[] }>(
@@ -100,8 +146,8 @@ export function AnnouncementComments({
         { method: 'DELETE' }
       );
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Failed to delete comment');
+        const err: unknown = await res.json().catch(() => null);
+        throw new Error(getApiErrorMessage(err, 'Failed to delete comment'));
       }
       return commentId;
     },

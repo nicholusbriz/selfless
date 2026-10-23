@@ -16,9 +16,93 @@ import { ChatsList } from './components/ChatsList';
 import { AllUsersList } from './components/AllUsersList';
 import Link from 'next/link';
 import Image from 'next/image';
-import type { User, Conversation, TabType } from '@/types/messaging';
+import type { User, Conversation, Message, TabType } from '@/types/messaging';
 import { useOnlineUsers } from '@/lib/hooks/useOnlineUsers';
 import { getDisplayName } from '@/lib/messaging/displayName';
+import { getApiErrorMessage, isJsonObject } from '@/lib/api-response';
+
+function isMessagingUser(value: unknown): value is User {
+  if (
+    !isJsonObject(value) ||
+    typeof value.id !== 'string' ||
+    typeof value.firstName !== 'string' ||
+    typeof value.lastName !== 'string'
+  ) {
+    return false;
+  }
+
+  return (
+    (value.fullName === undefined || typeof value.fullName === 'string') &&
+    (value.email === undefined || typeof value.email === 'string') &&
+    (value.image === undefined ||
+      value.image === null ||
+      typeof value.image === 'string') &&
+    (value.roleName === undefined || typeof value.roleName === 'string') &&
+    (value.roleDisplayName === undefined ||
+      typeof value.roleDisplayName === 'string') &&
+    (value.techCenter === undefined ||
+      (isJsonObject(value.techCenter) &&
+        typeof value.techCenter.id === 'string' &&
+        typeof value.techCenter.name === 'string'))
+  );
+}
+
+function isConversation(value: unknown): value is Conversation {
+  if (
+    !isJsonObject(value) ||
+    typeof value.id !== 'string' ||
+    !Array.isArray(value.participants) ||
+    !value.participants.every(
+      (participant: unknown) => typeof participant === 'string',
+    ) ||
+    (value.lastMessage !== null &&
+      (!isJsonObject(value.lastMessage) ||
+        typeof value.lastMessage.content !== 'string' ||
+        typeof value.lastMessage.senderId !== 'string' ||
+        typeof value.lastMessage.createdAt !== 'string')) ||
+    typeof value.createdAt !== 'string' ||
+    typeof value.updatedAt !== 'string'
+  ) {
+    return false;
+  }
+
+  return (
+    (value.unreadCount === undefined ||
+      typeof value.unreadCount === 'number') &&
+    (value.otherUser === undefined ||
+      value.otherUser === null ||
+      (isJsonObject(value.otherUser) &&
+        typeof value.otherUser.id === 'string' &&
+        typeof value.otherUser.firstName === 'string' &&
+        typeof value.otherUser.lastName === 'string' &&
+        typeof value.otherUser.fullName === 'string' &&
+        (value.otherUser.image === undefined ||
+          value.otherUser.image === null ||
+          typeof value.otherUser.image === 'string') &&
+        (value.otherUser.techCenter === undefined ||
+          (isJsonObject(value.otherUser.techCenter) &&
+            typeof value.otherUser.techCenter.id === 'string' &&
+            typeof value.otherUser.techCenter.name === 'string'))))
+  );
+}
+
+function isMessage(value: unknown): value is Message {
+  return (
+    isJsonObject(value) &&
+    typeof value.id === 'string' &&
+    typeof value.conversationId === 'string' &&
+    typeof value.senderId === 'string' &&
+    typeof value.content === 'string' &&
+    typeof value.isRead === 'boolean' &&
+    (value.readAt === null || typeof value.readAt === 'string') &&
+    Array.isArray(value.attachments) &&
+    value.attachments.every(
+      (attachment: unknown) => typeof attachment === 'string',
+    ) &&
+    typeof value.createdAt === 'string' &&
+    typeof value.updatedAt === 'string'
+  );
+}
 
 // ============================================================
 // MAIN PAGE
@@ -48,11 +132,14 @@ export default function MessagesPage() {
     queryFn: async () => {
       const response = await fetch('/api/users');
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to fetch users');
+        const errorData: unknown = await response.json().catch(() => null);
+        throw new Error(getApiErrorMessage(errorData, 'Failed to fetch users'));
       }
-      const data = await response.json() as { users?: User[] };
-      return data.users || [];
+      const data: unknown = await response.json();
+      if (!isJsonObject(data) || !Array.isArray(data.users) || !data.users.every(isMessagingUser)) {
+        throw new Error('Invalid users response');
+      }
+      return data.users;
     },
     enabled: !!currentUserId,
     refetchOnWindowFocus: false,
@@ -70,11 +157,18 @@ export default function MessagesPage() {
     queryFn: async () => {
       const response = await fetch('/api/messages/conversations');
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to fetch conversations');
+        const errorData: unknown = await response.json().catch(() => null);
+        throw new Error(getApiErrorMessage(errorData, 'Failed to fetch conversations'));
       }
-      const data = await response.json();
-      return data.conversations || [];
+      const data: unknown = await response.json();
+      if (
+        !isJsonObject(data) ||
+        !Array.isArray(data.conversations) ||
+        !data.conversations.every(isConversation)
+      ) {
+        throw new Error('Invalid conversations response');
+      }
+      return data.conversations;
     },
     enabled: !!currentUserId,
     refetchOnWindowFocus: false,
@@ -94,11 +188,14 @@ export default function MessagesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ participantId }),
       });
-      const result = await response.json().catch(() => ({}));
+      const result: unknown = await response.json().catch(() => null);
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to create conversation');
+        throw new Error(getApiErrorMessage(result, 'Failed to create conversation'));
       }
-      return result;
+      if (!isJsonObject(result) || !isConversation(result.conversation)) {
+        throw new Error('Invalid conversation response');
+      }
+      return { conversation: result.conversation };
     },
     onSuccess: (data) => {
       setSelectedConversation(data.conversation);
@@ -194,11 +291,18 @@ export default function MessagesPage() {
       queryFn: async () => {
         const response = await fetch(`/api/messages/${conversationId}`);
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || 'Failed to fetch messages');
+          const errorData: unknown = await response.json().catch(() => null);
+          throw new Error(getApiErrorMessage(errorData, 'Failed to fetch messages'));
         }
-        const data = await response.json();
-        return data.messages || [];
+        const data: unknown = await response.json();
+        if (
+          !isJsonObject(data) ||
+          !Array.isArray(data.messages) ||
+          !data.messages.every(isMessage)
+        ) {
+          throw new Error('Invalid messages response');
+        }
+        return data.messages;
       },
       staleTime: Infinity,
     });

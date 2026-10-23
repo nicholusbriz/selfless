@@ -3,16 +3,47 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
 import { logCourseSubmission } from '@/lib/logger';
+import {
+  invalidJsonBodyResponse,
+  isBoolean,
+  isJsonObject,
+  isString,
+  isStringOrNumber,
+  nullable,
+  optional,
+  parseJsonBody,
+  type JsonGuard,
+} from '@/app/api/_lib/request-validation';
+
+type CourseSubmission = {
+  code: string;
+  courseUnit: string;
+  credits: string | number;
+  name?: string;
+};
+
+const isCourseSubmissionArray: JsonGuard<CourseSubmission[]> = (
+  value,
+): value is CourseSubmission[] =>
+  Array.isArray(value) &&
+  value.every(
+    (course) =>
+      isJsonObject(course) &&
+      isString(course.code) &&
+      isString(course.courseUnit) &&
+      isStringOrNumber(course.credits) &&
+      Number.isInteger(Number(course.credits)) &&
+      (course.name === undefined || isString(course.name)),
+  );
 
 // GET - Fetch student's courses
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
     const courses = await prisma.studentCourse.findMany({
       where: {
         studentId: session.user.id,
@@ -48,7 +79,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    const body = await parseJsonBody(request, {
+      courses: isCourseSubmissionArray,
+      tuitionAmount: optional(nullable(isStringOrNumber)),
+      takesReligion: optional(isBoolean),
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { courses, tuitionAmount, takesReligion } = body;
 
     if (!courses || !Array.isArray(courses) || courses.length === 0) {
@@ -56,12 +92,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate each course
-    for (const course of courses) {
-      if (!course.code || !course.courseUnit || !course.credits) {
-        return NextResponse.json({ error: 'Each course must have code, course unit, and credits' }, { status: 400 });
-      }
-    }
-
     // Get user's tech center
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
@@ -71,24 +101,25 @@ export async function POST(request: NextRequest) {
     if (!user?.techCenterId) {
       return NextResponse.json({ error: 'User must be assigned to a tech center to submit courses' }, { status: 400 });
     }
+    const techCenterId = user.techCenterId;
 
     // Parse tuition amount
     const parsedTuition = tuitionAmount !== undefined && tuitionAmount !== null && tuitionAmount !== ''
-      ? parseFloat(tuitionAmount)
+      ? Number(tuitionAmount)
       : null;
 
     // Create courses with tuition and religion data stored in each record
     const createdCourses = await Promise.all(
-      courses.map((course: any) =>
+      courses.map((course) =>
         prisma.studentCourse.create({
           data: {
             studentId: session.user.id,
-            techCenterId: user.techCenterId as string,
+            techCenterId,
             name: course.name || course.code,
             code: course.code,
             courseUnit: course.courseUnit,
-            credits: parseInt(course.credits),
-            takesReligion: takesReligion || false,
+            credits: Number(course.credits),
+            takesReligion: takesReligion ?? false,
             tuition: parsedTuition
           }
         })
@@ -128,12 +159,16 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    const body = await parseJsonBody(request, {
+      tuitionAmount: optional(nullable(isStringOrNumber)),
+      takesReligion: optional(isBoolean),
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { tuitionAmount, takesReligion } = body;
 
     // Parse tuition amount
     const parsedTuition = tuitionAmount !== undefined && tuitionAmount !== null && tuitionAmount !== ''
-      ? parseFloat(tuitionAmount)
+      ? Number(tuitionAmount)
       : null;
 
     // Update all active courses for this student with the new tuition and religion settings

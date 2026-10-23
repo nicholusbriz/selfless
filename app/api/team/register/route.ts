@@ -4,6 +4,34 @@ import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
 import { createNotificationForTechCenter } from '@/lib/notifications';
 import { createActivityLog } from '@/lib/logger';
+import { TeamRole, TeamType } from '@prisma/client';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  isStringOrNumber,
+  parseJsonBody,
+  type JsonGuard,
+} from '@/app/api/_lib/request-validation';
+
+const isTeamType: JsonGuard<TeamType> = (
+  value,
+): value is TeamType =>
+  value === TeamType.FOOTBALL ||
+  value === TeamType.VOLLEYBALL ||
+  value === TeamType.NETBALL ||
+  value === TeamType.BASKETBALL ||
+  value === TeamType.ATHLETICS;
+
+const isTeamRole: JsonGuard<TeamRole> = (
+  value,
+): value is TeamRole =>
+  value === TeamRole.PLAYER ||
+  value === TeamRole.COACH ||
+  value === TeamRole.KIT_MANAGER ||
+  value === TeamRole.CHEERLEADER ||
+  value === TeamRole.TEAM_MANAGER ||
+  value === TeamRole.MEDICAL ||
+  value === TeamRole.REFEREE;
 
 // POST - Register user as team member
 export async function POST(request: NextRequest) {
@@ -14,23 +42,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    const body = await parseJsonBody(request, {
+      techCenterId: isString,
+      teamType: isTeamType,
+      teamRole: isTeamRole,
+      jerseyNumber: isStringOrNumber,
+      position: isString,
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { techCenterId, teamType, teamRole, jerseyNumber, position } = body;
+    const parsedJerseyNumber =
+      typeof jerseyNumber === 'string' ? Number(jerseyNumber) : jerseyNumber;
 
-    if (!techCenterId || !teamType || !teamRole || !jerseyNumber || !position) {
+    if (
+      !techCenterId ||
+      !teamType ||
+      !teamRole ||
+      !position ||
+      !Number.isInteger(parsedJerseyNumber) ||
+      parsedJerseyNumber < 0
+    ) {
       return NextResponse.json({ error: 'Tech center, team type, team role, jersey number, and position are required' }, { status: 400 });
-    }
-
-    // Validate team type
-    const validTeamTypes = ['FOOTBALL', 'VOLLEYBALL', 'NETBALL', 'BASKETBALL', 'ATHLETICS'];
-    if (!validTeamTypes.includes(teamType)) {
-      return NextResponse.json({ error: 'Invalid team type' }, { status: 400 });
-    }
-
-    // Validate team role
-    const validTeamRoles = ['PLAYER', 'COACH', 'KIT_MANAGER', 'CHEERLEADER', 'TEAM_MANAGER', 'MEDICAL', 'REFEREE'];
-    if (!validTeamRoles.includes(teamRole)) {
-      return NextResponse.json({ error: 'Invalid team role' }, { status: 400 });
     }
 
     // Check if user already belongs to this tech center's team
@@ -38,8 +70,8 @@ export async function POST(request: NextRequest) {
       where: {
         userId: session.user.id,
         techCenterId,
-        teamType: teamType as any,
-        teamRole: teamRole as any
+        teamType,
+        teamRole
       }
     });
 
@@ -70,9 +102,9 @@ export async function POST(request: NextRequest) {
       data: {
         userId: session.user.id,
         techCenterId,
-        teamType: teamType as any,
-        teamRole: teamRole as any,
-        jerseyNumber,
+        teamType,
+        teamRole,
+        jerseyNumber: parsedJerseyNumber,
         position
       },
       include: {

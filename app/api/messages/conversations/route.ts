@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 export async function GET() {
   try {
@@ -110,11 +115,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json().catch(() => null);
-    const participantId =
-      body && typeof body.participantId === 'string'
-        ? body.participantId.trim()
-        : '';
+    const body = await parseJsonBody(request, { participantId: isString });
+    if (!body) return invalidJsonBodyResponse();
+    const participantId = body.participantId.trim();
     
     if (!participantId) {
       return NextResponse.json(

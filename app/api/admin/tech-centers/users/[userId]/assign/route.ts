@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 // PATCH - Assign a student to a teacher
 export async function PATCH(
@@ -22,7 +27,8 @@ export async function PATCH(
     }
 
     const { userId } = await params;
-    const body = await request.json();
+    const body = await parseJsonBody(request, { teacherId: isString });
+    if (!body) return invalidJsonBodyResponse();
     const { teacherId } = body;
 
     if (!teacherId) {
@@ -123,7 +129,8 @@ export async function DELETE(
     }
 
     const { userId } = await params;
-    const body = await request.json();
+    const body = await parseJsonBody(request, { teacherId: isString });
+    if (!body) return invalidJsonBodyResponse();
     const { teacherId } = body;
 
     if (!teacherId) {

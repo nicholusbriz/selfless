@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  optional,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 // PATCH - Update tech center details
 export async function PATCH(request: NextRequest) {
@@ -31,7 +37,16 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
+    const body = await parseJsonBody(request, {
+      name: optional(isString),
+      description: optional(isString),
+      countryId: optional(isString),
+      city: optional(isString),
+      address: optional(isString),
+      phone: optional(isString),
+      email: optional(isString),
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { name, description, countryId, city, address, phone, email } = body;
 
     // Validate - at least one field to update

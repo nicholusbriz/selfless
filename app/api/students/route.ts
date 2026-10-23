@@ -14,14 +14,13 @@
  */
 
 import { NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
 import { getStatsForUsers, EMPTY_STATS } from '@/lib/social/attachStats';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-const MAX_STUDENTS = 1000;
 
 interface TechCenterWithCountry {
   id: string;
@@ -63,6 +62,10 @@ interface GroupedStudent {
 }
 
 function popularityComparator(a: GroupedStudent, b: GroupedStudent): number {
+  const aHasImage = Boolean(a.profileImageUrl?.trim());
+  const bHasImage = Boolean(b.profileImageUrl?.trim());
+  if (aHasImage !== bHasImage) return bHasImage ? 1 : -1;
+
   if (b.followersCount !== a.followersCount) {
     return b.followersCount - a.followersCount;
   }
@@ -74,9 +77,64 @@ function popularityComparator(a: GroupedStudent, b: GroupedStudent): number {
   return a.firstName.localeCompare(b.firstName);
 }
 
-export async function GET(_request: Request) {
+export async function GET(request: Request) {
   try {
     const currentUser = await requireAuth();
+    const searchParams = new URL(request.url).searchParams;
+    const search = searchParams.get('search')?.trim().slice(0, 100) || '';
+    const techCenterId = searchParams.get('techCenterId')?.trim() || '';
+
+    const filters: Prisma.UserWhereInput[] = [
+      {
+        OR: [
+          { techCenterId: { not: null } },
+          {
+            previousTechCenterId: { not: null },
+            role: { is: { name: 'super_admin' } },
+          },
+        ],
+      },
+      { isVerified: true, verificationStatus: 'APPROVED' },
+      {
+        OR: [
+          { role: { isNot: { name: 'dev' } } },
+          { role: null },
+        ],
+      },
+    ];
+
+    if (techCenterId) {
+      filters.push({
+        OR: [
+          { techCenterId },
+          {
+            previousTechCenterId: techCenterId,
+            role: { is: { name: 'super_admin' } },
+          },
+        ],
+      });
+    }
+
+    if (search) {
+      filters.push({
+        OR: [
+          { firstName: { contains: search } },
+          { lastName: { contains: search } },
+          { generalCourse: { contains: search } },
+          { techCenter: { is: { name: { contains: search } } } },
+          {
+            submittedCourses: {
+              some: {
+                OR: [
+                  { code: { contains: search } },
+                  { courseUnit: { contains: search } },
+                ],
+              },
+            },
+          },
+        ],
+      });
+    }
 
     // -------- 1. Fetch tech centers + candidate users --------
     const [techCenters, studentCandidates] = await Promise.all([
@@ -88,22 +146,8 @@ export async function GET(_request: Request) {
         },
         orderBy: { name: 'asc' },
       }),
-
       prisma.user.findMany({
-        where: {
-          AND: [
-            {
-              OR: [
-                { techCenterId: { not: null } },
-                { previousTechCenterId: { not: null } },
-              ],
-            },
-            {
-              isVerified: true,
-              verificationStatus: 'APPROVED',
-            },
-          ],
-        },
+        where: { AND: filters },
         select: {
           id: true,
           techCenterId: true,
@@ -139,24 +183,13 @@ export async function GET(_request: Request) {
         orderBy: [
           { lastName: 'asc' },
           { firstName: 'asc' },
+          { id: 'asc' },
         ],
-        take: MAX_STUDENTS,
       }),
     ]);
 
-    // -------- 2. Filter --------
-    const students = studentCandidates.filter(
-      (student) =>
-        student.role?.name !== 'dev' &&
-        (student.techCenterId !== null ||
-          (student.role?.name === 'super_admin' &&
-            student.previousTechCenterId !== null &&
-            techCenters.some(
-              (center) => center.id === student.previousTechCenterId,
-            ))),
-    );
-
-    const studentIds = students.map((s) => s.id);
+    const students = studentCandidates;
+    const studentIds = students.map((student) => student.id);
 
     // -------- 3. Get live stats using centralized function --------
     const statsMap = await getStatsForUsers(currentUser.id, studentIds);
@@ -199,48 +232,24 @@ export async function GET(_request: Request) {
       })
       .sort(popularityComparator);
 
-    // -------- 5. Group by tech center --------
+    // -------- 5. Group the ranked directory by tech center --------
     const studentsByTechCenter: Record<string, GroupedStudent[]> = {};
-    const techCenterTotals: Record<string, number> = {};
 
     for (const student of rankedStudents) {
       const techCenterName = student.techCenter?.name || 'No Tech Center';
 
       if (!studentsByTechCenter[techCenterName]) {
         studentsByTechCenter[techCenterName] = [];
-        techCenterTotals[techCenterName] = 0;
       }
 
       studentsByTechCenter[techCenterName].push(student);
-      techCenterTotals[techCenterName] += student.followersCount;
     }
 
-    // -------- 6. Order tech centers --------
-    const sortedTechCenterNames = Object.keys(studentsByTechCenter).sort(
-      (a, b) => {
-        const diff = techCenterTotals[b] - techCenterTotals[a];
-        if (diff !== 0) return diff;
-        return a.localeCompare(b);
-      },
-    );
-
-    const orderedStudentsByTechCenter: Record<string, GroupedStudent[]> = {};
-    for (const name of sortedTechCenterNames) {
-      orderedStudentsByTechCenter[name] = studentsByTechCenter[name];
-    }
-
-    const orderedTechCenters: TechCenterWithCountry[] = [...techCenters].sort(
-      (a, b) => {
-        const diff =
-          (techCenterTotals[b.name] ?? 0) - (techCenterTotals[a.name] ?? 0);
-        if (diff !== 0) return diff;
-        return a.name.localeCompare(b.name);
-      },
-    );
+    const orderedTechCenters: TechCenterWithCountry[] = techCenters;
 
     return NextResponse.json(
       {
-        studentsByTechCenter: orderedStudentsByTechCenter,
+        studentsByTechCenter,
         techCenters: orderedTechCenters,
         totalStudents: rankedStudents.length,
       },

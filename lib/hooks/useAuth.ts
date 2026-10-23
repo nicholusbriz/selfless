@@ -1,6 +1,7 @@
 // lib/hooks/useAuth.ts
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { getApiErrorMessage, readJsonObject } from '@/lib/api-response';
 
 export function useAuth() {
   const { data: session, status, update } = useSession();
@@ -24,13 +25,19 @@ export function useAuth() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      const data = await response.json().catch(() => ({}));
+      const data = await readJsonObject(response).catch(
+        (): Record<string, unknown> => ({}),
+      );
 
       if (response.status === 403 && data.requiresApproval) {
-        return { requiresApproval: true, user: data.user, error: data.error };
+        return {
+          requiresApproval: true,
+          user: data.user,
+          error: getApiErrorMessage(data, 'Unable to check account approval status'),
+        };
       }
 
-      return { error: data.error || 'Unable to check account approval status' };
+      return { error: getApiErrorMessage(data, 'Unable to check account approval status') };
     }
 
     if (result?.error) {
@@ -42,7 +49,7 @@ export function useAuth() {
       try {
         const userResponse = await fetch('/api/auth/me');
         if (userResponse.ok) {
-          const userData = await userResponse.json();
+          const userData = await readJsonObject(userResponse);
           return { user: userData };
         }
       } catch (error) {
@@ -58,7 +65,7 @@ export function useAuth() {
     router.push('/');
   };
 
-  const updateUser = async (updates: any) => {
+  const updateUser = async (updates: object) => {
     const response = await fetch('/api/user/update', {
       method: 'POST',
       headers: {
@@ -66,7 +73,7 @@ export function useAuth() {
       },
       body: JSON.stringify(updates),
     });
-    const data = await response.json();
+    const data = await readJsonObject(response);
     // Update the NextAuth session immediately with the new data
     await update();
     return data;

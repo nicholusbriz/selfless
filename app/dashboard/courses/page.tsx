@@ -20,6 +20,7 @@ import {
   useDeleteCourse,
 } from '@/hooks/useCourses';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { getApiErrorMessage, isJsonObject } from '@/lib/api-response';
 
 // =========================================================
 // Design tokens — matching the rest of the app
@@ -89,6 +90,16 @@ interface SubmittedCourse {
   credits: number;
 }
 
+function isSubmittedCourse(value: unknown): value is SubmittedCourse {
+  return (
+    isJsonObject(value) &&
+    typeof value.id === 'string' &&
+    typeof value.code === 'string' &&
+    typeof value.courseUnit === 'string' &&
+    typeof value.credits === 'number'
+  );
+}
+
 export default function MyCoursesPage() {
   const router = useRouter();
   const { user, updateUser } = useAuth();
@@ -129,18 +140,31 @@ export default function MyCoursesPage() {
         const response = await fetch('/api/student-courses');
 
         if (response.ok) {
-          const settingsData = await response.json();
+          const settingsData: unknown = await response.json();
 
           // Get tuition and religion from the first active course (all courses should have the same values)
-          if (settingsData.courses && settingsData.courses.length > 0) {
-            const firstCourse = settingsData.courses[0];
-            setUserTakesReligion(firstCourse.takesReligion ?? false);
-            setUserTuitionAmount(
-              firstCourse.tuition !== null &&
-                firstCourse.tuition !== undefined
-                ? firstCourse.tuition.toString()
-                : ''
-            );
+          if (
+            isJsonObject(settingsData) &&
+            Array.isArray(settingsData.courses) &&
+            settingsData.courses.length > 0
+          ) {
+            const firstCourse: unknown = settingsData.courses[0];
+            if (isJsonObject(firstCourse)) {
+              if (typeof firstCourse.takesReligion === 'boolean') {
+                setUserTakesReligion(firstCourse.takesReligion);
+              }
+              if (
+                typeof firstCourse.tuition === 'number' ||
+                typeof firstCourse.tuition === 'string' ||
+                firstCourse.tuition === null
+              ) {
+                setUserTuitionAmount(
+                  firstCourse.tuition !== null
+                    ? firstCourse.tuition.toString()
+                    : '',
+                );
+              }
+            }
           }
         } else {
           console.error(
@@ -241,11 +265,11 @@ export default function MyCoursesPage() {
           setSaveSuccess(false);
         }, 1500);
       } else {
-        const errorData = await response.json();
+        const errorData: unknown = await response.json().catch(() => null);
         // Roll back — re-open the edit panel so the user can retry
         setShowGeneralCourseEdit(true);
         alert(
-          errorData.error || 'Failed to update general course'
+          getApiErrorMessage(errorData, 'Failed to update general course')
         );
       }
     } catch (error) {
@@ -257,8 +281,16 @@ export default function MyCoursesPage() {
     }
   };
 
-  const submittedCourses: SubmittedCourse[] = data?.courses || [];
-  const totalCredits = data?.totalCredits || 0;
+  const submittedCourses: SubmittedCourse[] =
+    isJsonObject(data) &&
+    Array.isArray(data.courses) &&
+    data.courses.every(isSubmittedCourse)
+      ? data.courses
+      : [];
+  const totalCredits =
+    isJsonObject(data) && typeof data.totalCredits === 'number'
+      ? data.totalCredits
+      : 0;
 
   const addCourseToList = () => {
     if (!courseCode || !courseUnit || !credits) {

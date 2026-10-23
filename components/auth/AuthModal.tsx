@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signIn } from 'next-auth/react';
+import { getApiErrorMessage, getStringProperty, isJsonObject, readJsonObject } from '@/lib/api-response';
 import {
   X,
   Mail,
@@ -542,12 +543,12 @@ function RegisterForm({
         body: JSON.stringify(formData),
       });
 
-      const data = await response.json();
+      const data = await readJsonObject(response);
 
       if (
         response.status === 201 &&
-        data.user &&
-        data.user.id
+        isJsonObject(data.user) &&
+        typeof data.user.id === 'string'
       ) {
         setSuccess(true);
         
@@ -563,7 +564,7 @@ function RegisterForm({
         // Show pending approval message instead of auto-login
         setShowPendingApproval(true);
       } else {
-        setError(data.error || 'Registration failed');
+        setError(getApiErrorMessage(data, 'Registration failed'));
       }
     } catch (err: unknown) {
       setError(
@@ -931,7 +932,7 @@ function ForgotPasswordForm({
             }
           );
 
-          const data = await response.json();
+          const data = await readJsonObject(response);
 
           if (response.ok) {
             setHasActiveToken(Boolean(data.hasActiveToken));
@@ -989,7 +990,7 @@ function ForgotPasswordForm({
         }
       );
 
-      const checkData = await checkResponse.json();
+      const checkData = await readJsonObject(checkResponse);
 
       if (
         checkResponse.ok &&
@@ -1019,7 +1020,7 @@ function ForgotPasswordForm({
         }
       );
 
-      const data = await response.json();
+      const data = await readJsonObject(response);
 
       if (response.ok) {
         setSuccess(
@@ -1031,10 +1032,7 @@ function ForgotPasswordForm({
           setSuccess('');
         }, 2500);
       } else {
-        setError(
-          data.error ||
-            'Failed to request password reset'
-        );
+        setError(getApiErrorMessage(data, 'Failed to request password reset'));
       }
     } catch (err: unknown) {
       setError(
@@ -1075,7 +1073,7 @@ function ForgotPasswordForm({
         }
       );
 
-      const data = await response.json();
+      const data = await readJsonObject(response);
 
       if (response.ok) {
         setSuccess(
@@ -1087,7 +1085,7 @@ function ForgotPasswordForm({
           setSuccess('');
         }, 1000);
       } else {
-        setError(data.error || 'Invalid reset code');
+        setError(getApiErrorMessage(data, 'Invalid reset code'));
       }
     } catch (err: unknown) {
       setError(
@@ -1142,21 +1140,19 @@ function ForgotPasswordForm({
         }
       );
 
-      const data = await response.json();
+      const data = await readJsonObject(response);
 
       if (response.ok) {
         setSuccess(
-          data.message ||
-            'Password reset successfully.'
+          getStringProperty(data, 'message') ||
+            'Password reset successfully.',
         );
 
         setTimeout(() => {
           onSwitchToLogin();
         }, 2000);
       } else {
-        setError(
-          data.error || 'Failed to reset password'
-        );
+        setError(getApiErrorMessage(data, 'Failed to reset password'));
       }
     } catch (err: unknown) {
       setError(

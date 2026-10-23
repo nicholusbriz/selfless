@@ -5,6 +5,11 @@ import {
   BlobSASPermissions,
 } from '@azure/storage-blob';
 import { requireAuth } from '@/lib/auth/server';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 export const runtime = 'nodejs';
 
@@ -46,11 +51,12 @@ const safeExtension = (fileName: string, contentType: string) => {
 export async function POST(request: Request) {
   try {
     const user = await requireAuth();
-    const body = await request.json();
-
-    const fileName = typeof body?.fileName === 'string' ? body.fileName : '';
-    const contentType =
-      typeof body?.contentType === 'string' ? body.contentType : '';
+    const body = await parseJsonBody(request, {
+      fileName: isString,
+      contentType: isString,
+    });
+    if (!body) return invalidJsonBodyResponse();
+    const { fileName, contentType } = body;
 
     if (!fileName || !contentType) {
       return NextResponse.json(

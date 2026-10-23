@@ -25,6 +25,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 import { useAuth } from '@/lib/hooks/useAuth';
+import { getResponseError } from '../../response-guards';
 
 interface User {
   id: string;
@@ -252,11 +253,11 @@ export default function ManageTeachersPage() {
       );
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData: unknown = await response.json();
 
         await refetch();
 
-        throw new Error(errorData.error || 'Failed to assign user');
+        throw new Error(getResponseError(errorData, 'Failed to assign user'));
       }
 
       setSuccess('User assigned successfully');
@@ -312,11 +313,11 @@ export default function ManageTeachersPage() {
       );
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData: unknown = await response.json();
 
         await refetch();
 
-        throw new Error(errorData.error || 'Failed to assign users');
+        throw new Error(getResponseError(errorData, 'Failed to assign users'));
       }
 
       setSuccess('Users assigned successfully');
@@ -1571,4 +1572,3 @@ export default function ManageTeachersPage() {
     </div>
   );
 }
-

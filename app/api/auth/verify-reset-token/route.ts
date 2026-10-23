@@ -10,11 +10,20 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 import { verifyResetToken } from '@/lib/auth/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const body = await parseJsonBody(req, {
+      email: isString,
+      token: isString,
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { email, token } = body;
 
     // Validate required fields

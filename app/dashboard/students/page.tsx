@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
 import {
   Users,
   Search,
@@ -26,6 +27,7 @@ import { SocialActions } from '@/components/social/SocialActions';
 import {
   compareProfileImageFirst,
   rankByTrending,
+  rankStudentsByTrendingCustom,
 } from '@/lib/social/ranking';
 import {
   patchStudentsShape,
@@ -33,6 +35,7 @@ import {
 } from '@/lib/social/patchHelpers';
 import type { PageCacheAdapter } from '@/lib/social/cacheKeys';
 import { getTechCenterHue } from '@/lib/social/constants';
+import { isRecord } from '../response-guards';
 
 // ============================================================
 // TYPES
@@ -120,7 +123,23 @@ const getStudentInitial = (student: Student): string =>
 
 const sortStudents = (students: Student[], sortBy: SortOption): Student[] => {
   if (sortBy === 'trending') {
-    return [...students].sort(compareProfileImageFirst);
+    return [...students].sort((a, b) =>
+      compareProfileImageFirst({
+        id: a.id,
+        followersCount: a.followersCount,
+        likesReceivedCount: a.likesReceivedCount,
+        firstName: a.firstName,
+        lastName: a.lastName,
+        profileImageUrl: a.profileImageUrl,
+      }, {
+        id: b.id,
+        followersCount: b.followersCount,
+        likesReceivedCount: b.likesReceivedCount,
+        firstName: b.firstName,
+        lastName: b.lastName,
+        profileImageUrl: b.profileImageUrl,
+      }),
+    );
   }
 
   const copy = [...students];
@@ -211,10 +230,15 @@ function StudentMessageComposer({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ participantId: recipientId }),
       });
-      const conversationData = await conversationResponse
+      const conversationData: unknown = await conversationResponse
         .json()
-        .catch(() => ({}));
-      if (!conversationResponse.ok || !conversationData.conversation?.id) {
+        .catch(() => null);
+      if (
+        !conversationResponse.ok ||
+        !isRecord(conversationData) ||
+        !isRecord(conversationData.conversation) ||
+        typeof conversationData.conversation.id !== 'string'
+      ) {
         throw new Error('Failed to start conversation');
       }
 
@@ -293,6 +317,9 @@ const StudentCard = ({
   const initials = `${student.firstName.charAt(0)}${student.lastName.charAt(0)}`.toUpperCase();
   const fullName = `${student.firstName} ${student.lastName}`;
   const isCurrentUser = currentUserId === student.id;
+  const isSuperAdmin = ['superadmin', 'super_admin'].includes(
+    student.role?.name?.toLowerCase() || '',
+  );
   const roleLabel =
     student.role?.name === 'teacher'
       ? 'Tutor'
@@ -312,6 +339,20 @@ const StudentCard = ({
     <article className={`group ${cardWidth} shrink-0 snap-start overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] shadow-[0_24px_65px_rgba(0,0,0,0.52)] transition-all hover:border-[#C8A24A]/70 hover:shadow-[0_28px_75px_rgba(0,0,0,0.6)] ${cardWidthSm}`}>
       {/* Image fills the entire card — same as discovery component */}
       <div className="relative aspect-[3/4] w-full overflow-hidden bg-black">
+        <div className="absolute inset-x-3 top-3 z-10 flex items-center justify-between gap-2 text-white">
+          {!isSuperAdmin && (
+            <span className="inline-flex shrink-0 items-center rounded-md border border-white/30 bg-black/40 px-2.5 py-1 text-[10px] font-semibold">
+              {totalCredits >= 6 ? 'Full time' : 'Part time'}
+            </span>
+          )}
+          <Link
+            href={`/dashboard/students/${student.id}`}
+            className="ml-auto inline-flex shrink-0 items-center rounded-md border border-white/30 bg-black/40 px-2.5 py-1 text-[10px] font-semibold transition-colors hover:border-white/50 hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B]"
+            aria-label={`View ${fullName}'s profile`}
+          >
+            View profile
+          </Link>
+        </div>
         {student.profileImageUrl ? (
           <Image
             src={student.profileImageUrl}
@@ -320,7 +361,6 @@ const StudentCard = ({
             className="h-full w-full object-cover object-center"
             sizes="285px"
             quality={95}
-            priority
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-[#18212F] text-4xl font-semibold text-white/70">
@@ -344,9 +384,11 @@ const StudentCard = ({
             </div>
 
             {/* Row 2 — Course */}
-            <p className="text-[13px] font-medium text-white">
-              {student.generalCourse || 'Student'}
-            </p>
+            {student.role?.name !== 'super_admin' && (
+              <p className="text-[13px] font-medium text-white">
+                {student.generalCourse || 'Student'}
+              </p>
+            )}
 
             {/* Row 3 — Tech Center with MapPin icon */}
             {student.techCenter?.name && (
@@ -371,7 +413,7 @@ const StudentCard = ({
             </div>
 
             {/* Row 5 — Enrolled Units summary */}
-            {student.studentCourses?.length > 0 && (
+            {student.studentCourses?.length > 0 ? (
               <div className="mt-1">
                 <div className="flex items-center justify-between gap-1 mb-0.5">
                   <div className="flex items-center gap-1">
@@ -385,7 +427,7 @@ const StudentCard = ({
                   </span>
                 </div>
                 <div className="space-y-0.5">
-                  {student.studentCourses.slice(0, 2).map((course) => (
+                  {student.studentCourses.map((course) => (
                     <div key={course.id} className="flex items-start justify-between gap-2">
                       <span className="text-white text-[11px] font-medium">
                         {course.courseUnit}
@@ -395,14 +437,13 @@ const StudentCard = ({
                       </span>
                     </div>
                   ))}
-                  {student.studentCourses.length > 2 && (
-                    <span className="text-white/70 text-[10px]">
-                      +{student.studentCourses.length - 2} more
-                    </span>
-                  )}
                 </div>
               </div>
-            )}
+            ) : !isSuperAdmin ? (
+              <p className="mt-1 text-[11px] font-medium text-white/90">
+                Please submit your courses
+              </p>
+            ) : null}
 
             {/* Row 6 — Actions */}
             <div className="mt-2 flex items-center justify-end gap-1.5 overflow-hidden">
@@ -552,11 +593,38 @@ function HorizontalRail({
         <div className="w-1 shrink-0" aria-hidden />
       </div>
 
-      <div className="mt-1 flex items-center justify-between gap-2">
+      <div className="mt-1 flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={scrollLeft}
+            aria-label="Scroll left"
+            className="inline-flex h-7 w-7 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C] active:bg-[#E5E7EB] sm:h-6 sm:w-6"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={togglePause}
+            aria-label={isPaused ? "Resume auto-scroll" : "Pause auto-scroll"}
+            className="inline-flex h-7 w-7 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C] active:bg-[#E5E7EB] sm:h-6 sm:w-6"
+          >
+            {isPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
+          </button>
+          <button
+            type="button"
+            onClick={scrollRight}
+            aria-label="Scroll right"
+            className="inline-flex h-7 w-7 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C] active:bg-[#E5E7EB] sm:h-6 sm:w-6"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
         {enableAlphabetNav && (
           <nav
             aria-label={`Browse ${label} by first name`}
-            className="flex items-center gap-1 flex-wrap"
+            className="flex min-w-0 items-center gap-1 flex-wrap"
           >
             <button
               type="button"
@@ -594,33 +662,6 @@ function HorizontalRail({
             })}
           </nav>
         )}
-
-        <div className="flex items-center gap-1 shrink-0">
-          <button
-            type="button"
-            onClick={scrollLeft}
-            aria-label="Scroll left"
-            className="inline-flex h-7 w-7 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C] active:bg-[#E5E7EB] sm:h-6 sm:w-6"
-          >
-            <ChevronLeft className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={togglePause}
-            aria-label={isPaused ? "Resume auto-scroll" : "Pause auto-scroll"}
-            className="inline-flex h-7 w-7 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C] active:bg-[#E5E7EB] sm:h-6 sm:w-6"
-          >
-            {isPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
-          </button>
-          <button
-            type="button"
-            onClick={scrollRight}
-            aria-label="Scroll right"
-            className="inline-flex h-7 w-7 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C] active:bg-[#E5E7EB] sm:h-6 sm:w-6"
-          >
-            <ChevronRight className="h-3.5 w-3.5" />
-          </button>
-        </div>
       </div>
     </section>
   );
@@ -670,7 +711,7 @@ function TrendingSkeleton() {
           <div
             key={card}
             aria-hidden="true"
-            className="h-[380px] w-[340px] shrink-0 rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] sm:w-[360px]"
+            className="aspect-[3/4] w-[275px] shrink-0 rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] sm:w-[285px]"
           >
             <div className="flex h-full w-full items-center justify-center">
               <div className="h-full w-full animate-pulse rounded-[22px] bg-[#18212F]" />
@@ -946,7 +987,7 @@ function CommunityTicker({ students }: { students: Student[] }) {
 
       <style jsx>{`
         .student-avatar-ticker {
-          animation: studentAvatarTicker 70s linear infinite;
+          animation: studentAvatarTicker 120s linear infinite;
           will-change: transform;
         }
         @keyframes studentAvatarTicker {
@@ -981,6 +1022,15 @@ export default function StudentsPage() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('trending');
   const [feedScope] = useState<FeedScope>('all');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
+  useEffect(() => {
+    const timeout = window.setTimeout(
+      () => setDebouncedSearchQuery(searchQuery.trim()),
+      250,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [searchQuery]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -997,9 +1047,15 @@ export default function StudentsPage() {
     error,
     refetch: refetchStudents,
   } = useQuery({
-    queryKey: ['studentDirectory'],
+    queryKey: ['studentDirectory', debouncedSearchQuery, selectedLocation],
     queryFn: async () => {
-      const response = await fetch('/api/students');
+      const params = new URLSearchParams();
+      if (debouncedSearchQuery) params.set('search', debouncedSearchQuery);
+      if (selectedLocation !== 'all') {
+        params.set('techCenterId', selectedLocation);
+      }
+
+      const response = await fetch(`/api/students?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch students');
       return response.json() as Promise<{
         studentsByTechCenter: Record<string, Student[]>;
@@ -1008,7 +1064,6 @@ export default function StudentsPage() {
     },
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
-    refetchInterval: 30 * 1000,
   });
 
   const studentsByTechCenter = useMemo(
@@ -1029,38 +1084,9 @@ export default function StudentsPage() {
     return allStudents;
   }, [allStudents, feedScope]);
 
-  const filterStudents = useCallback((students: Student[]) => {
-    let filtered = students;
-    if (selectedLocation !== 'all') {
-      filtered = filtered.filter(
-        (student) => student.techCenter?.id === selectedLocation,
-      );
-    }
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter((student) => {
-        const fullName =
-          `${student.firstName} ${student.lastName}`.toLowerCase();
-        return (
-          fullName.includes(query) ||
-          student.studentCourses?.some(
-            (course) =>
-              course.code.toLowerCase().includes(query) ||
-              course.courseUnit.toLowerCase().includes(query),
-          ) ||
-          (student.generalCourse &&
-            student.generalCourse.toLowerCase().includes(query)) ||
-          (student.techCenter &&
-            student.techCenter.name.toLowerCase().includes(query))
-        );
-      });
-    }
-    return filtered;
-  }, [selectedLocation, searchQuery]);
-
   const filteredScoped = useMemo(
-    () => filterStudents(scopedStudents),
-    [filterStudents, scopedStudents],
+    () => scopedStudents,
+    [scopedStudents],
   );
   const isSearching = searchQuery.trim().length > 0;
 
@@ -1125,7 +1151,7 @@ export default function StudentsPage() {
                 <HorizontalRail
                   label="Trending Student Profiles"
                   hue="#D4A84B"
-                  students={rankByTrending(filteredScoped).slice(0, 10)}
+                  students={rankStudentsByTrendingCustom(filteredScoped)}
                   router={router}
                   currentUserId={currentUserId}
                   showRank={true}
@@ -1134,7 +1160,7 @@ export default function StudentsPage() {
                 <HorizontalRail
                   label="All Students"
                   hue="#1A2B4C"
-                  students={sortStudents(filteredScoped, 'name')}
+                  students={sortStudents(filteredScoped, 'trending')}
                   router={router}
                   currentUserId={currentUserId}
                   enableAlphabetNav={true}

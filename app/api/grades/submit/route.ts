@@ -2,6 +2,40 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma/client';
 import { getServerAuthUser } from '@/lib/auth/server';
 import { createNotificationForUser } from '@/lib/notifications';
+import {
+  invalidJsonBodyResponse,
+  isJsonObject,
+  isNumber,
+  isString,
+  parseJsonBody,
+  type JsonGuard,
+} from '@/app/api/_lib/request-validation';
+
+type GradeSubmission = {
+  studentCourseId: string;
+  studentId: string;
+  week: string;
+  gradeLetter: string;
+  score?: number | null;
+  notes?: string | null;
+};
+
+const isGradeSubmissionArray: JsonGuard<GradeSubmission[]> = (
+  value,
+): value is GradeSubmission[] =>
+  Array.isArray(value) &&
+  value.every(
+    (item) =>
+      isJsonObject(item) &&
+      isString(item.studentCourseId) &&
+      isString(item.studentId) &&
+      isString(item.week) &&
+      item.week.trim() !== '' &&
+      Number.isInteger(Number(item.week)) &&
+      isString(item.gradeLetter) &&
+      (item.score === undefined || item.score === null || isNumber(item.score)) &&
+      (item.notes === undefined || item.notes === null || isString(item.notes)),
+  );
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +52,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    const body = await request.json();
+    const body = await parseJsonBody(request, { grades: isGradeSubmissionArray });
+    if (!body) return invalidJsonBodyResponse();
     const { grades } = body;
 
     if (!grades || !Array.isArray(grades)) {
@@ -28,7 +63,8 @@ export async function POST(request: NextRequest) {
     // Process each grade
     const results = [];
     for (const gradeData of grades) {
-      const { studentCourseId, studentId, week, gradeLetter, score, notes } = gradeData;
+      const { studentCourseId, studentId, gradeLetter, score, notes } = gradeData;
+      const week = Number(gradeData.week);
 
       // Validate required fields
       if (!studentCourseId || !studentId || !week || !gradeLetter) {
@@ -83,16 +119,10 @@ export async function POST(request: NextRequest) {
         }
       });
 
-      const [student, course] = await Promise.all([
-        prisma.user.findUnique({
-          where: { id: studentId },
-          select: { firstName: true, lastName: true },
-        }),
-        prisma.studentCourse.findUnique({
-          where: { id: studentCourseId },
-          select: { name: true },
-        }),
-      ]);
+      const course = await prisma.studentCourse.findUnique({
+        where: { id: studentCourseId },
+        select: { name: true },
+      });
 
       try {
         await createNotificationForUser({

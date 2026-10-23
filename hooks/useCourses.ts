@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/api-response';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export interface Course {
@@ -26,7 +27,7 @@ export function useCourses() {
       const response = await fetch('/api/student-courses');
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to fetch courses');
+        throw new Error(getApiErrorMessage(error, 'Failed to fetch courses'));
       }
       return response.json();
     },
@@ -48,7 +49,7 @@ export function useSubmitCourses() {
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to submit courses');
+        throw new Error(getApiErrorMessage(error, 'Failed to submit courses'));
       }
       return response.json();
     },
@@ -108,7 +109,7 @@ export function useUpdateCourse() {
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to update course');
+        throw new Error(getApiErrorMessage(error, 'Failed to update course'));
       }
       return response.json();
     },
@@ -152,7 +153,7 @@ export function useDeleteCourse() {
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to delete course');
+        throw new Error(getApiErrorMessage(error, 'Failed to delete course'));
       }
       return response.json();
     },

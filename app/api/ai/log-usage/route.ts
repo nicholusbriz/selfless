@@ -2,9 +2,50 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { logAIChatUsage } from '@/lib/logger';
-import { PrismaClient } from '@prisma/client';
+import {
+  invalidJsonBodyResponse,
+  isJsonObject,
+  isNumber,
+  isString,
+  optional,
+  parseJsonBody,
+  type JsonGuard,
+} from '@/app/api/_lib/request-validation';
 
-const prisma = new PrismaClient();
+type UsageDetails = {
+  messageCount?: number;
+  firstMessage?: string;
+  conversationId?: string;
+};
+
+type RagMetrics = {
+  ragEnabled?: boolean;
+  sourcesFound?: number;
+  fromCache?: boolean;
+  provider?: string;
+  tokenUsage?: unknown;
+  processingTime?: number;
+  sources?: unknown[];
+};
+
+const isUsageDetails: JsonGuard<UsageDetails> = (
+  value,
+): value is UsageDetails =>
+  isJsonObject(value) &&
+  (value.messageCount === undefined || isNumber(value.messageCount)) &&
+  (value.firstMessage === undefined || isString(value.firstMessage)) &&
+  (value.conversationId === undefined || isString(value.conversationId));
+
+const isRagMetrics: JsonGuard<RagMetrics> = (
+  value,
+): value is RagMetrics =>
+  isJsonObject(value) &&
+  (value.ragEnabled === undefined || typeof value.ragEnabled === 'boolean') &&
+  (value.sourcesFound === undefined || isNumber(value.sourcesFound)) &&
+  (value.fromCache === undefined || typeof value.fromCache === 'boolean') &&
+  (value.provider === undefined || isString(value.provider)) &&
+  (value.processingTime === undefined || isNumber(value.processingTime)) &&
+  (value.sources === undefined || Array.isArray(value.sources));
 
 /**
  * POST /api/ai/log-usage
@@ -45,7 +86,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    const body = await parseJsonBody(request, {
+      userId: isString,
+      techCenterId: optional(isString),
+      details: optional(isUsageDetails),
+      ragMetrics: optional(isRagMetrics),
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { userId, techCenterId, details, ragMetrics } = body;
 
     // Verify the user is logging their own usage

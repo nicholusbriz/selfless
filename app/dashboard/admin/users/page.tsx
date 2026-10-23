@@ -31,6 +31,23 @@ import {
   useUpdateUserStatus,
 } from '@/hooks/useAdminUsers';
 import { useDeleteSuperAdminUser } from '@/hooks/useSuperAdminUsers';
+import { isRecord } from '../../response-guards';
+import type { User as AdminUser } from '@/lib/api/admin-tech-center-users';
+
+interface TechCenterOption {
+  id: string;
+  name: string;
+  code: string;
+}
+
+function isTechCenterOption(value: unknown): value is TechCenterOption {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.name === 'string' &&
+    typeof value.code === 'string'
+  );
+}
 
 type ActionType = 'edit' | 'role' | 'status' | null;
 
@@ -201,7 +218,7 @@ export default function AdminUsersPage() {
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
 
-  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [expandedAction, setExpandedAction] = useState<ActionType>(null);
 
@@ -219,9 +236,13 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     fetch('/api/admin/all-tech-centers')
-      .then((res) => (res.ok ? res.json() : []))
+      .then(async (res) => {
+        if (!res.ok) return [];
+        const data: unknown = await res.json();
+        return Array.isArray(data) ? data.filter(isTechCenterOption) : [];
+      })
       .then(setAllTechCenters)
-      .catch(() => { });
+      .catch(() => {});
   }, []);
 
   const [filters, setFilters] = useState({
@@ -231,7 +252,7 @@ export default function AdminUsersPage() {
 
   const [showFilters, setShowFilters] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<any | null>(null);
+  const [userToDelete, setUserToDelete] = useState<AdminUser | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -323,10 +344,11 @@ export default function AdminUsersPage() {
         data: editFormData,
       },
       {
-        onError: (mutationError: any) => {
+        onError: (mutationError: unknown) => {
           alert(
-            mutationError.message ||
-            'Failed to update user'
+            mutationError instanceof Error
+              ? mutationError.message
+              : 'Failed to update user'
           );
         },
       }
@@ -343,10 +365,11 @@ export default function AdminUsersPage() {
         roleId,
       },
       {
-        onError: (mutationError: any) => {
+        onError: (mutationError: unknown) => {
           alert(
-            mutationError.message ||
-            'Failed to update user role'
+            mutationError instanceof Error
+              ? mutationError.message
+              : 'Failed to update user role'
           );
         },
       }
@@ -363,10 +386,11 @@ export default function AdminUsersPage() {
         status,
       },
       {
-        onError: (mutationError: any) => {
+        onError: (mutationError: unknown) => {
           alert(
-            mutationError.message ||
-            'Failed to update user status'
+            mutationError instanceof Error
+              ? mutationError.message
+              : 'Failed to update user status'
           );
         },
       }
@@ -374,7 +398,7 @@ export default function AdminUsersPage() {
     closeExpandedAction();
   };
 
-  const handleDeleteUser = (user: any) => {
+  const handleDeleteUser = (user: AdminUser) => {
     setUserToDelete(user);
     setShowDeleteDialog(true);
   };
@@ -391,12 +415,13 @@ export default function AdminUsersPage() {
     setUserToDelete(null);
 
     deleteUserMutation.mutate(userId, {
-      onError: (mutationError: any) => {
+      onError: (mutationError: unknown) => {
         // The optimistic rollback in onError already restores the user
         // to the list — just show the error message.
         alert(
-          mutationError.message ||
-          'Failed to delete user'
+          mutationError instanceof Error
+            ? mutationError.message
+            : 'Failed to delete user',
         );
       },
     });

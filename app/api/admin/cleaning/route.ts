@@ -6,6 +6,14 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
 import { logCleaningWeekCreation, logCleaningDayCreation } from '@/lib/logger';
+import {
+  invalidJsonBodyResponse,
+  isNumber,
+  isString,
+  nullable,
+  optional,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 // GET - Fetch all cleaning data for admin's tech center
 export async function GET() {
@@ -207,9 +215,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
+    const body = await parseJsonBody(request, {
+      startDate: optional(isString),
+      weekLabel: optional(isString),
+      capacityLimit: optional(isNumber),
+      registrationDeadline: optional(nullable(isString)),
+    });
+    if (!body) return invalidJsonBodyResponse();
     console.log('📝 Received body:', body);
-    
     const { startDate, weekLabel, capacityLimit, registrationDeadline } = body;
 
     if (!startDate) {

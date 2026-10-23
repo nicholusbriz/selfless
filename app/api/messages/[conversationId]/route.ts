@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
-import { publishPartyInvalidation } from '@/lib/partykit-server';
+import { publishRealtimeInvalidation } from '@/lib/partyserver-client';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  isStringArray,
+  optional,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 export async function GET(
   request: NextRequest,
@@ -69,7 +76,12 @@ export async function POST(
 
     // Await params to get conversationId
     const { conversationId } = await params;
-    const { content, attachments = [] } = await request.json();
+    const body = await parseJsonBody(request, {
+      content: isString,
+      attachments: optional(isStringArray),
+    });
+    if (!body) return invalidJsonBodyResponse();
+    const { content, attachments = [] } = body;
 
     if (!content || !content.trim()) {
       return NextResponse.json(
@@ -118,7 +130,7 @@ export async function POST(
 
     await Promise.all(
       conversation.participantIds.map((participantId) =>
-        publishPartyInvalidation(`user:${participantId}`, {
+        publishRealtimeInvalidation(`user:${participantId}`, {
           type: 'invalidate',
           resource: 'messages',
           conversationId,

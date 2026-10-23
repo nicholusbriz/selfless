@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from '@/lib/api-response';
 // hooks/useCleaningStudent.ts
 // Custom hook for student cleaning page - registration, change, and status
 
@@ -153,7 +154,7 @@ const api = {
     const response = await fetch('/api/cleaning/student');
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to fetch cleaning data');
+      throw new Error(getApiErrorMessage(error, 'Failed to fetch cleaning data'));
     }
     return response.json();
   },
@@ -166,7 +167,7 @@ const api = {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to register for cleaning');
+      throw new Error(getApiErrorMessage(error, 'Failed to register for cleaning'));
     }
     return response.json();
   },
@@ -179,7 +180,7 @@ const api = {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to change registration');
+      throw new Error(getApiErrorMessage(error, 'Failed to change registration'));
     }
     return response.json();
   },
@@ -192,7 +193,7 @@ const api = {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to unregister from cleaning day');
+      throw new Error(getApiErrorMessage(error, 'Failed to unregister from cleaning day'));
     }
     return response.json();
   },
@@ -213,14 +214,14 @@ const api = {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to mark attendance');
+      throw new Error(getApiErrorMessage(error, 'Failed to mark attendance'));
     }
     return response.json();
   },
 };
 
 // ----------------------------------------------------------------
-// Primary query — everything derives from this single source
+// Primary query â€” everything derives from this single source
 // ----------------------------------------------------------------
 
 export const useStudentCleaningData = () => {
@@ -235,7 +236,7 @@ export const useStudentCleaningData = () => {
 };
 
 // ----------------------------------------------------------------
-// Status — derived from the same cache. NO second network call.
+// Status â€” derived from the same cache. NO second network call.
 // ----------------------------------------------------------------
 
 export const useStudentCleaningStatus = () => {
@@ -272,7 +273,7 @@ export const useStudentCleaningStatus = () => {
 };
 
 // ----------------------------------------------------------------
-// Register for the first time — optimistic, non-blocking
+// Register for the first time â€” optimistic, non-blocking
 // ----------------------------------------------------------------
 
 export const useRegisterForCleaning = () => {
@@ -354,7 +355,7 @@ export const useRegisterForCleaning = () => {
     },
 
     onSettled: () => {
-      // Mark stale WITHOUT a blocking refetch — the optimistic state
+      // Mark stale WITHOUT a blocking refetch â€” the optimistic state
       // remains visible. The next 30s tick (or window focus) will re-sync.
       queryClient.invalidateQueries({
         queryKey: ['studentCleaningData'],
@@ -365,7 +366,7 @@ export const useRegisterForCleaning = () => {
 };
 
 // ----------------------------------------------------------------
-// Change (switch) day — optimistic, non-blocking
+// Change (switch) day â€” optimistic, non-blocking
 // ----------------------------------------------------------------
 
 export const useChangeRegistration = () => {
@@ -475,7 +476,7 @@ export const useChangeRegistration = () => {
 };
 
 // ----------------------------------------------------------------
-// Unregister from a specific day — optimistic, non-blocking
+// Unregister from a specific day â€” optimistic, non-blocking
 // ----------------------------------------------------------------
 
 export const useUnregisterFromCleaning = () => {
@@ -548,7 +549,7 @@ export const useUnregisterFromCleaning = () => {
 };
 
 // ----------------------------------------------------------------
-// Mark attendance — optimistic, non-blocking
+// Mark attendance â€” optimistic, non-blocking
 // ----------------------------------------------------------------
 
 export const useMarkAttendance = () => {

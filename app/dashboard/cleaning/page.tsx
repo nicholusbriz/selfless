@@ -54,6 +54,7 @@ import {
   type UnregisteredStudent,
   type Week as WeekType,
 } from '@/hooks/useCleaningStudent';
+import { isRecord } from '../response-guards';
 
 // =========================================================
 // DESIGN TOKENS
@@ -1758,7 +1759,9 @@ export default function CleaningPage() {
       const result = await registerMutation.mutateAsync(dayId);
       flash(
         'ok',
-        result.message ?? 'You are registered for this cleaning day.',
+        isRecord(result) && typeof result.message === 'string'
+          ? result.message
+          : 'You are registered for this cleaning day.',
       );
       await Promise.all([refetch(), refetchStatus()]);
     } catch (err: unknown) {
@@ -1796,9 +1799,10 @@ export default function CleaningPage() {
       const newDay = allDays.find((day) => day.id === newDayId);
       flash(
         'ok',
-        result.message ??
-        `Your registration moved to ${newDay?.dayOfWeek ?? 'the selected day'
-        }.`,
+        isRecord(result) && typeof result.message === 'string'
+          ? result.message
+          : `Your registration moved to ${newDay?.dayOfWeek ?? 'the selected day'
+          }.`,
       );
       await Promise.all([refetch(), refetchStatus()]);
     } catch (err: unknown) {

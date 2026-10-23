@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import {
+  invalidJsonBodyResponse,
+  isBoolean,
+  isString,
+  optional,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 // GET - Fetch a single tech center by ID
 export async function GET(
@@ -65,7 +72,18 @@ export async function PATCH(
     }
 
     const { id } = await params;
-    const body = await request.json();
+    const body = await parseJsonBody(request, {
+      name: optional(isString),
+      code: optional(isString),
+      description: optional(isString),
+      countryId: optional(isString),
+      city: optional(isString),
+      address: optional(isString),
+      phone: optional(isString),
+      email: optional(isString),
+      isActive: optional(isBoolean),
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { name, code, description, countryId, city, address, phone, email, isActive } = body;
 
     // Check if tech center exists

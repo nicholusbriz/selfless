@@ -1,18 +1,18 @@
-type PartyInvalidation =
+type RealtimeInvalidation =
   | { type: 'invalidate'; resource: 'messages'; conversationId: string }
   | { type: 'invalidate'; resource: 'profile' | 'social'; userId: string }
   | { type: 'invalidate'; resource: 'approvals' };
 
-export async function publishPartyInvalidation(
+export async function publishRealtimeInvalidation(
   room: string,
-  event: PartyInvalidation,
+  event: RealtimeInvalidation,
 ): Promise<void> {
   const host =
-    process.env.PARTYKIT_HOST || process.env.NEXT_PUBLIC_PARTYKIT_HOST;
-  const secret = process.env.PARTYKIT_SYNC_SECRET;
+    process.env.PARTYSERVER_HOST || process.env.NEXT_PUBLIC_PARTYSERVER_HOST;
+  const secret = process.env.PARTYSERVER_SYNC_SECRET;
 
   if (!host || !secret) {
-    console.warn('PartyKit invalidation skipped: host or sync secret is missing.');
+    console.warn('PartyServer invalidation skipped: host or sync secret is missing.');
     return;
   }
 
@@ -36,10 +36,10 @@ export async function publishPartyInvalidation(
     );
 
     if (!response.ok) {
-      console.warn(`PartyKit invalidation failed with status ${response.status}.`);
+      console.warn(`PartyServer invalidation failed with status ${response.status}.`);
     }
   } catch (error) {
-    console.warn('PartyKit invalidation request failed.', error);
+    console.warn('PartyServer invalidation request failed.', error);
   }
 }
 
@@ -47,12 +47,12 @@ export async function publishUserProfileInvalidation(
   userId: string,
 ): Promise<void> {
   await Promise.all([
-    publishPartyInvalidation(`user:${userId}`, {
+    publishRealtimeInvalidation(`user:${userId}`, {
       type: 'invalidate',
       resource: 'profile',
       userId,
     }),
-    publishPartyInvalidation('online-users', {
+    publishRealtimeInvalidation('online-users', {
       type: 'invalidate',
       resource: 'profile',
       userId,
@@ -65,7 +65,7 @@ export async function publishSocialInvalidation(
 ): Promise<void> {
   await Promise.all(
     Array.from(new Set(userIds)).map((userId) =>
-      publishPartyInvalidation(`user:${userId}`, {
+      publishRealtimeInvalidation(`user:${userId}`, {
         type: 'invalidate',
         resource: 'social',
         userId,
@@ -75,7 +75,7 @@ export async function publishSocialInvalidation(
 }
 
 export async function publishApprovalInvalidation(): Promise<void> {
-  await publishPartyInvalidation('online-users', {
+  await publishRealtimeInvalidation('online-users', {
     type: 'invalidate',
     resource: 'approvals',
   });

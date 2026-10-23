@@ -25,6 +25,7 @@ import {
   useQuery,
 } from '@tanstack/react-query';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { isRecord } from '../../response-guards';
 
 
 
@@ -105,6 +106,30 @@ interface PageVisitStats {
 interface ActionStat {
   action: string;
   count: number;
+}
+
+interface ActivityLogsResponse {
+  logs: ActivityLog[];
+  total: number;
+  actionStats: ActionStat[];
+}
+
+function isActivityLog(value: unknown): value is ActivityLog {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.action === 'string' &&
+    typeof value.entityType === 'string' &&
+    typeof value.createdAt === 'string'
+  );
+}
+
+function isActionStat(value: unknown): value is ActionStat {
+  return (
+    isRecord(value) &&
+    typeof value.action === 'string' &&
+    typeof value.count === 'number'
+  );
 }
 
 // ============================================================
@@ -473,7 +498,22 @@ export default function ActivityLogsPage() {
         throw new Error('Failed to fetch logs');
       }
 
-      return response.json();
+      const result: unknown = await response.json();
+      if (
+        !isRecord(result) ||
+        !Array.isArray(result.logs) ||
+        !Array.isArray(result.actionStats) ||
+        typeof result.total !== 'number'
+      ) {
+        throw new Error('Invalid activity logs response');
+      }
+
+      const payload: ActivityLogsResponse = {
+        logs: result.logs.filter(isActivityLog),
+        total: result.total,
+        actionStats: result.actionStats.filter(isActionStat),
+      };
+      return payload;
     },
 
     enabled: isDev,
@@ -622,10 +662,14 @@ export default function ActivityLogsPage() {
           throw new Error('Failed to delete logs');
         }
 
-        const result = await response.json();
+        const result: unknown = await response.json();
 
         alert(
-          `Successfully deleted ${result.deletedCount} log(s)`,
+          `Successfully deleted ${
+            isRecord(result) && typeof result.deletedCount === 'number'
+              ? result.deletedCount
+              : 0
+          } log(s)`,
         );
 
         await refetch();

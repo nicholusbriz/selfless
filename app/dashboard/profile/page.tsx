@@ -27,6 +27,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import Link from 'next/link';
+import { getResponseError, isRecord } from '../response-guards';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -93,7 +94,9 @@ export default function ProfilePage() {
     const reader = new FileReader();
 
     reader.onload = () => {
-      setPreviewImage(reader.result as string);
+      if (typeof reader.result === 'string') {
+        setPreviewImage(reader.result);
+      }
     };
 
     reader.readAsDataURL(file);
@@ -113,10 +116,14 @@ export default function ProfilePage() {
         body: form,
       });
 
-      const data = await res.json();
+      const data: unknown = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to upload image');
+        throw new Error(getResponseError(data, 'Failed to upload image'));
+      }
+
+      if (!isRecord(data) || typeof data.imageUrl !== 'string') {
+        throw new Error('Failed to upload image');
       }
 
       // Sync the new URL into the NextAuth session / useAuth state.
@@ -219,13 +226,11 @@ export default function ProfilePage() {
           },
         );
 
-        const passwordData =
-          await passwordResponse.json();
+        const passwordData: unknown = await passwordResponse.json();
 
         if (!passwordResponse.ok) {
           setError(
-            passwordData.error ||
-            'Failed to change password',
+            getResponseError(passwordData, 'Failed to change password'),
           );
           return;
         }

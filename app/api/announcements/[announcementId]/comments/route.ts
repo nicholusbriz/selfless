@@ -1,4 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  optional,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
@@ -65,9 +71,13 @@ export async function POST(
   const announcement = await getAccessibleAnnouncement(announcementId, session.user.id);
   if (!announcement) return NextResponse.json({ error: 'Announcement not found' }, { status: 404 });
 
-  const body = await request.json();
-  const content = typeof body.content === 'string' ? body.content.trim() : '';
-  const parentId = typeof body.parentId === 'string' ? body.parentId : null;
+  const body = await parseJsonBody(request, {
+    content: isString,
+    parentId: optional(isString),
+  });
+  if (!body) return invalidJsonBodyResponse();
+  const content = body.content.trim();
+  const parentId = body.parentId ?? null;
 
   if (!content) return NextResponse.json({ error: 'Comment content is required' }, { status: 400 });
   if (content.length > 1000) return NextResponse.json({ error: 'Comment is too long' }, { status: 400 });

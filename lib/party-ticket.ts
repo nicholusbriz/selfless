@@ -35,7 +35,10 @@ export async function createPartyTicket(
     new TextEncoder().encode(payload),
   );
 
-  return { ticket: `${payload}.${encodeBytes(new Uint8Array(signature))}`, expiresAt };
+  return {
+    ticket: `${payload}.${encodeBytes(new Uint8Array(signature))}`,
+    expiresAt,
+  };
 }
 
 export async function verifyPartyTicket(

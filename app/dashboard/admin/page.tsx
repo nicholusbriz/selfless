@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { getResponseError } from '../response-guards';
 
 interface AdminUser {
   id: string;
@@ -256,8 +257,8 @@ export default function AdminOverviewPage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to approve user');
+        const errorData: unknown = await response.json();
+        throw new Error(getResponseError(errorData, 'Failed to approve user'));
       }
 
       return response.json();
@@ -323,9 +324,8 @@ export default function AdminOverviewPage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-
-        throw new Error(errorData.error || 'Failed to reject user');
+        const errorData: unknown = await response.json();
+        throw new Error(getResponseError(errorData, 'Failed to reject user'));
       }
 
       return response.json();

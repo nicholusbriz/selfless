@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerAuthUser, requireAuth } from '@/lib/auth/server';
+import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
-import { publishUserProfileInvalidation } from '@/lib/partykit-server';
+import { publishUserProfileInvalidation } from '@/lib/partyserver-client';
+import type { Prisma } from '@prisma/client';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,7 +15,8 @@ export async function POST(req: NextRequest) {
     const user = await requireAuth();
 
     // Parse request body
-    const body = await req.json();
+    const body = await parseJsonBody(req, { personalEmail: isString });
+    if (!body) return invalidJsonBodyResponse();
     const { personalEmail } = body;
 
     if (!personalEmail) {
@@ -53,7 +60,7 @@ export async function POST(req: NextRequest) {
     const isEduEmail = user.email.toLowerCase().endsWith('.edu');
 
     // Update user: replace main email with Gmail, save old .edu email if applicable
-    const updateData: any = { email: personalEmail };
+    const updateData: Prisma.UserUpdateInput = { email: personalEmail };
     if (isEduEmail) {
       updateData.eduEmail = user.email;
     }
@@ -106,10 +113,10 @@ export async function POST(req: NextRequest) {
         isActive: updatedUser.isActive,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Email update API error:', error);
     
-    if (error.message === 'Unauthorized') {
+    if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }

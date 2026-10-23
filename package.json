@@ -3,18 +3,13 @@
   "version": "0.4.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently -k -n next,partykit -c blue,magenta \"npm run dev:next\" \"npm run dev:partykit\"",
+    "dev": "concurrently -k -n next,partyserver -c blue,magenta \"npm run dev:next\" \"npm run dev:partyserver\"",
     "dev:next": "set NODE_OPTIONS=--max-old-space-size=8192&& set NODE_NO_WARNINGS=1&& next dev --turbo",
-    "dev:partykit": "partykit dev",
+    "dev:partyserver": "wrangler dev",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate",
-    "migrate:images": "tsx scripts/migrate-images-to-azure.ts",
-    "sync:email": "tsx scripts/sync-email-database.ts",
-    "check:email": "tsx scripts/check-email-logs.ts",
-    "reset:email": "tsx scripts/reset-email-logs.ts",
-    "cleanup:email": "tsx scripts/cleanup-old-email-logs.ts"
+    "postinstall": "prisma generate"
   },
   "prisma": {
     "seed": "node ./prisma/test-database.js"
@@ -36,7 +31,7 @@
     "next": "^16.0.7",
     "next-auth": "^4.24.11",
     "node-mailjet": "^6.0.11",
-    "partykit": "^0.0.115",
+    "partyserver": "^0.5.10",
     "partysocket": "^1.3.0",
     "prisma": "^5.22.0",
     "react": "^19.0.1",
@@ -61,6 +56,7 @@
     "eslint-config-next": "16.0.7",
     "postcss": "^8.5.24",
     "tailwindcss": "^3.4.17",
-    "tsx": "^4.23.4"
+    "tsx": "^4.23.4",
+    "wrangler": "^4.152.0"
   }
 }

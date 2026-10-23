@@ -4,10 +4,27 @@ import { registerUser } from '@/lib/auth/server';
 import { AUTH_CONSTANTS } from '@/lib/auth/types';
 import { cookies } from 'next/headers';
 import { generateToken } from '@/lib/auth/server';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  optional,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const body = await parseJsonBody(req, {
+      firstName: isString,
+      lastName: isString,
+      email: isString,
+      password: isString,
+      phoneNumber: isString,
+      techCenterId: isString,
+      gender: optional(isString),
+      preferredTeamType: optional(isString),
+      preferredTeamRole: optional(isString),
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { firstName, lastName, email, password, phoneNumber, techCenterId, gender, preferredTeamType, preferredTeamRole } = body;
 
     // Validate required fields

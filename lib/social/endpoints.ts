@@ -1,5 +1,6 @@
 // lib/social/endpoints.ts
 // Single source of truth for social URLs.
+import { getApiErrorMessage, readJsonObject } from '@/lib/api-response';
 
 export const socialEndpoints = {
   follow: (id: string) => `/api/social/follow/${id}`,
@@ -18,8 +19,8 @@ export async function socialFetch<T>(
 ): Promise<T> {
   const res = await fetch(url, init);
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error || `Request failed: ${res.status}`);
+    const err = await readJsonObject(res).catch(() => ({}));
+    throw new Error(getApiErrorMessage(err, `Request failed: ${res.status}`));
   }
   return res.json();
 }

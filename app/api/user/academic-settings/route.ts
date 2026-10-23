@@ -2,6 +2,14 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import {
+  invalidJsonBodyResponse,
+  isBoolean,
+  isStringOrNumber,
+  nullable,
+  optional,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 export async function PUT(request: Request) {
   try {
@@ -11,19 +19,21 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    const body = await parseJsonBody(request, {
+      takesReligion: optional(isBoolean),
+      tuitionAmount: optional(nullable(isStringOrNumber)),
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { takesReligion, tuitionAmount } = body;
 
-    const updateData: any = {};
+    const updateData: { takesReligion?: boolean; tuitionAmount?: number | null } = {};
 
-    if (typeof takesReligion === 'boolean') {
-      updateData.takesReligion = takesReligion;
-    }
+    if (takesReligion !== undefined) updateData.takesReligion = takesReligion;
 
     // Allow 0 as a valid value
     if (tuitionAmount !== undefined && tuitionAmount !== null && tuitionAmount !== '') {
-      const parsed = parseFloat(tuitionAmount);
-      if (!isNaN(parsed)) {
+      const parsed = Number(tuitionAmount);
+      if (Number.isFinite(parsed)) {
         updateData.tuitionAmount = parsed;
       }
     } else if (tuitionAmount === '') {
@@ -51,7 +61,7 @@ export async function PUT(request: Request) {
   }
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
 

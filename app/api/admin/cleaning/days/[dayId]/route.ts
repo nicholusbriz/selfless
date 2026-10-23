@@ -20,8 +20,40 @@ export async function PUT(
       return NextResponse.json({ error: 'Access denied. Admin or Teacher privileges required.' }, { status: 403 });
     }
 
-    const body = await request.json();
-    const { capacityLimit, status } = body;
+    const body: unknown = await request.json();
+    if (typeof body !== 'object' || body === null) {
+      return NextResponse.json(
+        { error: 'Invalid request body' },
+        { status: 400 }
+      );
+    }
+
+    const capacityLimit = 'capacityLimit' in body ? body.capacityLimit : undefined;
+    const status = 'status' in body ? body.status : undefined;
+
+    if (
+      capacityLimit !== undefined &&
+      (typeof capacityLimit !== 'number' ||
+        !Number.isInteger(capacityLimit) ||
+        capacityLimit < 1)
+    ) {
+      return NextResponse.json(
+        { error: 'Capacity limit must be a positive integer' },
+        { status: 400 }
+      );
+    }
+
+    if (
+      status !== undefined &&
+      status !== 'OPEN' &&
+      status !== 'CLOSED' &&
+      status !== 'FULL'
+    ) {
+      return NextResponse.json(
+        { error: 'Invalid status. Must be OPEN, CLOSED, or FULL' },
+        { status: 400 }
+      );
+    }
 
     // Use transaction to prevent race conditions
     const result = await prisma.$transaction(async (tx: any) => {

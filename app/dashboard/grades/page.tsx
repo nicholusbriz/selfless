@@ -19,6 +19,7 @@ import {
   calculateGPA,
   calculateWeeklyGPAs,
 } from '@/lib/gpa-calculator';
+import { isRecord } from '../response-guards';
 
 interface StudentCourse {
   id: string;
@@ -48,14 +49,62 @@ interface Grade {
   };
 }
 
-const fetchMyGrades = async () => {
+interface MyGradesResponse {
+  grades: Grade[];
+  courses: StudentCourse[];
+}
+
+function isStudentCourse(value: unknown): value is StudentCourse {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.name === 'string' &&
+    typeof value.code === 'string' &&
+    typeof value.courseUnit === 'string' &&
+    typeof value.credits === 'number'
+  );
+}
+
+function isGrade(value: unknown): value is Grade {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.gradeLetter === 'string' &&
+    typeof value.gradePoints === 'number' &&
+    (typeof value.score === 'number' || value.score === null) &&
+    typeof value.week === 'number' &&
+    typeof value.assignedAt === 'string' &&
+    (typeof value.notes === 'string' || value.notes === null) &&
+    isRecord(value.studentCourse) &&
+    typeof value.studentCourse.id === 'string' &&
+    typeof value.studentCourse.name === 'string' &&
+    typeof value.studentCourse.code === 'string' &&
+    typeof value.studentCourse.credits === 'number' &&
+    isRecord(value.teacher) &&
+    typeof value.teacher.firstName === 'string' &&
+    typeof value.teacher.lastName === 'string'
+  );
+}
+
+const fetchMyGrades = async (): Promise<MyGradesResponse> => {
   const response = await fetch('/api/grades/my-grades');
 
   if (!response.ok) {
     throw new Error('Failed to fetch grades');
   }
 
-  return response.json();
+  const data: unknown = await response.json();
+  if (
+    !isRecord(data) ||
+    !Array.isArray(data.grades) ||
+    !Array.isArray(data.courses)
+  ) {
+    throw new Error('Invalid grades response');
+  }
+  return {
+    grades: data.grades.filter(isGrade),
+    courses: data.courses.filter(isStudentCourse),
+  };
 };
 
 const weeks = [1, 2, 3, 4, 5, 6, 7];

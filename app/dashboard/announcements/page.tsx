@@ -22,6 +22,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { isJsonObject } from '@/lib/api-response';
 import { AnnouncementComments } from './components/AnnouncementComments';
 
 interface Announcement {
@@ -128,8 +129,10 @@ export default function AnnouncementsPage() {
           return 0;
         }
 
-        const result = await response.json();
-        return result.announcements?.length || 0;
+        const result: unknown = await response.json();
+        return isJsonObject(result) && Array.isArray(result.announcements)
+          ? result.announcements.length
+          : 0;
       } catch (error) {
         console.error('Error fetching announcement count:', error);
         return 0;

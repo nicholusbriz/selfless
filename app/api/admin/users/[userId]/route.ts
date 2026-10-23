@@ -2,9 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  optional,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 import { logUserAction } from '@/lib/logger';
 import { deleteProfileImage } from '@/lib/azure-storage';
-import { publishUserProfileInvalidation } from '@/lib/partykit-server';
+import { publishUserProfileInvalidation } from '@/lib/partyserver-client';
 
 // GET - Fetch single user details
 export async function GET(
@@ -86,7 +92,16 @@ export async function PATCH(
     }
 
     const { userId } = await params;
-    const body = await request.json();
+    const body = await parseJsonBody(request, {
+      firstName: optional(isString),
+      lastName: optional(isString),
+      email: optional(isString),
+      phoneNumber: optional(isString),
+      country: optional(isString),
+      city: optional(isString),
+      techCenterId: optional(isString),
+    });
+    if (!body) return invalidJsonBodyResponse();
     const { firstName, lastName, email, phoneNumber, country, city, techCenterId } = body;
 
     // Cannot update self

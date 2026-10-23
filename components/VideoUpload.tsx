@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { Upload, X, Video as VideoIcon, CheckCircle, AlertCircle } from 'lucide-react';
+import { getApiErrorMessage, getStringProperty, readJsonObject } from '@/lib/api-response';
 
 interface VideoUploadProps {
   onUploadComplete?: (videoUrl: string) => void;
@@ -91,31 +92,32 @@ export default function VideoUpload({ onUploadComplete, onError }: VideoUploadPr
       if (!response.ok) {
         let errorMessage = 'Upload failed';
         try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
+          const errorData = await readJsonObject(response);
+          errorMessage = getApiErrorMessage(errorData, errorMessage);
         } catch (parseError) {
           errorMessage = `Upload failed with status ${response.status}`;
         }
         throw new Error(errorMessage);
       }
 
-      let data;
+      let data: Record<string, unknown>;
       try {
-        data = await response.json();
+        data = await readJsonObject(response);
       } catch (parseError) {
         throw new Error('Failed to parse server response');
       }
 
-      if (!data.videoUrl) {
+      const videoUrl = getStringProperty(data, 'videoUrl');
+      if (!videoUrl) {
         throw new Error('No video URL returned from server');
       }
 
-      setUploadedVideoUrl(data.videoUrl);
+      setUploadedVideoUrl(videoUrl);
       setSuccess(true);
       setUploadProgress(100);
-      onUploadComplete?.(data.videoUrl);
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to upload video';
+      onUploadComplete?.(videoUrl);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to upload video';
       setError(errorMessage);
       onError?.(errorMessage);
     } finally {

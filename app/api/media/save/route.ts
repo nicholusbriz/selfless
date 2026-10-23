@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
+import {
+  invalidJsonBodyResponse,
+  isString,
+  isStringOrNumber,
+  optional,
+  parseJsonBody,
+} from '@/app/api/_lib/request-validation';
 
 export const runtime = 'nodejs';
 
@@ -16,7 +23,17 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json();
+    const body = await parseJsonBody(request, {
+      blobName: isString,
+      publicUrl: isString,
+      fileName: optional(isString),
+      contentType: optional(isString),
+      size: optional(isStringOrNumber),
+      title: isString,
+      description: optional(isString),
+      category: optional(isString),
+    });
+    if (!body) return invalidJsonBodyResponse();
     const {
       blobName,
       publicUrl,
@@ -26,7 +43,7 @@ export async function POST(request: Request) {
       title,
       description,
       category,
-    } = body ?? {};
+    } = body;
 
     if (!blobName || !publicUrl || !title) {
       return NextResponse.json(
@@ -52,7 +69,7 @@ export async function POST(request: Request) {
         publicUrl,
         containerName: 'media',
         contentType: contentType ?? 'application/octet-stream',
-        size: Number(size) || 0,
+        size: size === undefined ? 0 : Number(size) || 0,
         fileExtension: ext,
         title: String(title).slice(0, 120),
         description: description ? String(description).slice(0, 500) : null,

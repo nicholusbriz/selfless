@@ -22,6 +22,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { semanticSearch, hybridSearch as hybridSearchFn, type KnowledgeResult } from './knowledge-retriever';
+import { isJsonObject, readJsonObject } from '@/lib/api-response';
 
 const prisma = new PrismaClient();
 
@@ -401,17 +402,22 @@ async function callOpenAI(
     })
   });
 
-  const data = await response.json();
+  const data = await readJsonObject(response);
 
   if (!response.ok) {
-    throw new Error(data.error?.message || 'OpenAI API error');
+    const apiError = isJsonObject(data.error) ? data.error.message : undefined;
+    throw new Error(typeof apiError === 'string' ? apiError : 'OpenAI API error');
   }
 
-  const text = data.choices?.[0]?.message?.content || '';
-  const tokenUsage = data.usage ? {
-    prompt: data.usage.prompt_tokens || 0,
-    completion: data.usage.completion_tokens || 0,
-    total: data.usage.total_tokens || 0
+  const firstChoice = Array.isArray(data.choices) ? data.choices[0] : undefined;
+  const message = isJsonObject(firstChoice) ? firstChoice.message : undefined;
+  const content = isJsonObject(message) ? message.content : undefined;
+  const text = typeof content === 'string' ? content : '';
+  const usage = isJsonObject(data.usage) ? data.usage : undefined;
+  const tokenUsage = usage ? {
+    prompt: typeof usage.prompt_tokens === 'number' ? usage.prompt_tokens : 0,
+    completion: typeof usage.completion_tokens === 'number' ? usage.completion_tokens : 0,
+    total: typeof usage.total_tokens === 'number' ? usage.total_tokens : 0
   } : undefined;
 
   console.log(`[RAGService] OpenAI token usage:`, tokenUsage);

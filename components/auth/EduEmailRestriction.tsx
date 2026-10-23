@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Mail, AlertCircle, ArrowRight, Loader2 } from 'lucide-react';
+import { getApiErrorMessage, readJsonObject } from '@/lib/api-response';
 
 const COLORS = {
   navy: '#12203B',
@@ -67,7 +68,7 @@ export default function EduEmailRestriction({ eduEmail, onClose }: EduEmailRestr
         body: JSON.stringify({ personalEmail }),
       });
 
-      const data = await response.json();
+      const data = await readJsonObject(response);
 
       if (response.ok) {
         // Success - redirect to dashboard
@@ -75,7 +76,7 @@ export default function EduEmailRestriction({ eduEmail, onClose }: EduEmailRestr
         router.push('/dashboard');
         router.refresh();
       } else {
-        setError(data.error || 'Failed to update email');
+        setError(getApiErrorMessage(data, 'Failed to update email'));
       }
     } catch (err) {
       setError('Something went wrong. Please try again.');
