@@ -16,11 +16,9 @@ const nextConfig = {
     proxyClientMaxBodySize: 100 * 1024 * 1024, // 100MB
   },
 
-  // 🚨 CRITICAL FIX: Tell Next.js NOT to bundle Prisma and Transformers.
-  // Let Vercel load them natively from node_modules at runtime.
+  // Keep server-only runtime dependencies external to the server bundle.
   serverExternalPackages: [
-    "@xenova/transformers", 
-    "@prisma/client", 
+    "@prisma/client",
     "prisma"
   ],
 

@@ -157,9 +157,6 @@ const ACTION_BADGE_COLORS: Record<string, string> = {
   delete:
     'bg-[#A4462F]/10 text-[#A4462F] border-[#A4462F]/20',
 
-  ai_chat_opened:
-    'bg-pink-50 text-pink-700 border-pink-200',
-
   page_visit:
     'bg-cyan-50 text-cyan-700 border-cyan-200',
 
