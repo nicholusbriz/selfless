@@ -46,7 +46,7 @@ const portalAreas = [
     number: "04",
     title: "Student community",
     description:
-      "Stay connected to your tech center while participating in the wider SELFLESS CE student community.",
+      "Stay connected to your tech center while participating in the wider Selfless student community.",
   },
   {
     icon: Briefcase,
@@ -140,7 +140,7 @@ export default function FeaturesPage() {
   return (
     <PublicPageShell>
       <PublicPageHero
-        eyebrow="SELFLESS CE Portal"
+        eyebrow="SELFLESS Portal"
         title="Everything around your student journey, connected."
         description="A single portal for learning, communication, community, opportunities, and student support."
         backgroundImage="/features.jpg"
@@ -168,7 +168,7 @@ export default function FeaturesPage() {
 
             <motion.div variants={slideInRight} className="max-w-xl">
               <p className="text-[14px] leading-7 text-[#5F685F] sm:text-[15px]">
-                SELFLESS CE brings the important parts of student life into
+                Selfless brings the important parts of student life into
                 one organized experience. Instead of moving between separate
                 systems, students and support teams work from the same
                 connected portal.
@@ -178,7 +178,7 @@ export default function FeaturesPage() {
                 href="/about"
                 className="group mt-6 inline-flex items-center gap-2 text-[13px] font-bold text-[#55705B] transition-colors hover:text-[#B98A3E]"
               >
-                Learn about SELFLESS CE
+                Learn about Selfless
                 <ArrowRight
                   size={15}
                   className="transition-transform group-hover:translate-x-1"
@@ -285,7 +285,7 @@ export default function FeaturesPage() {
               </h2>
 
               <p className="mt-5 max-w-md text-[14px] leading-7 text-[#626B62] sm:text-[15px]">
-                SELFLESS CE is not a one-size-fits-all system. Each role gets
+                Selfless is not a one-size-fits-all system. Each role gets
                 access to the information and tools needed to contribute
                 effectively.
               </p>
@@ -356,7 +356,7 @@ export default function FeaturesPage() {
 
                 <div className="mt-5 flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.16em] text-[#E8A33D]">
                   <BellRing size={13} strokeWidth={1.8} />
-                  <span>Connected across the SELFLESS CE network</span>
+                  <span>Connected across the Selfless network</span>
                 </div>
               </div>
 
@@ -402,7 +402,7 @@ export default function FeaturesPage() {
             variants={slideInUp}
             className="mx-auto mt-4 max-w-2xl text-[14px] leading-7 text-[#626B62] sm:text-[15px]"
           >
-            Explore what SELFLESS CE offers and see how the portal brings your
+            Explore what Selfless offers and see how the portal brings your
             academic and student experience together.
           </motion.p>
 
@@ -411,7 +411,7 @@ export default function FeaturesPage() {
               href="/about"
               className="group mt-8 inline-flex items-center gap-2 rounded-lg bg-[#12203B] px-6 py-3 text-[13px] font-bold text-white transition-all hover:bg-[#55705B]"
             >
-              Discover SELFLESS CE
+              Discover Selfless
               <ArrowRight
                 size={16}
                 className="transition-transform group-hover:translate-x-1"

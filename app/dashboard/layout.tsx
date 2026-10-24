@@ -298,7 +298,7 @@ export default function DashboardLayout({
           </div>
 
           <p className="text-[#6B7268] text-sm font-mono uppercase tracking-wide">
-            Loading Selfless CE...
+            Loading Selfless...
           </p>
         </motion.div>
       </div>
@@ -329,7 +329,7 @@ export default function DashboardLayout({
         />
 
         <title>
-          {pageInfo.title} | Selfless CE
+          {pageInfo.title} | Selfless
         </title>
       </Head>
 
@@ -474,7 +474,7 @@ export default function DashboardLayout({
               <div className="w-full px-3 xl:px-4 py-3">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-2">
                   <p className="font-mono text-xs text-[#8A9088]">
-                    Selfless CE Portal - Learn, connect, grow.
+                    Selfless Portal - Learn, connect, grow.
                   </p>
 
                   <div className="flex items-center gap-5 text-xs text-[#8A9088]">

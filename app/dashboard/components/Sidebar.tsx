@@ -223,7 +223,7 @@ const sharedNavigation: NavSection[] = [
       },
       {
         id: 'gallery',
-        label: 'Selfless CE Gallery',
+        label: 'Selfless Gallery',
         path: '/dashboard/gallery',
         icon: <Images className={iconClass} />,
         roles: ALL_ROLES,
@@ -1042,7 +1042,7 @@ export default function Sidebar({
             href="/dashboard"
             onClick={() => isMobile && sidebarOpen && setSidebarOpen?.(false)}
             className="relative flex items-center gap-3 min-w-0 group"
-            aria-label="Selfless CE Dashboard"
+            aria-label="Selfless Dashboard"
           >
             <motion.div
               whileHover={{
@@ -1056,7 +1056,7 @@ export default function Sidebar({
             >
               <Image
                 src="/freedom.png"
-                alt="Selfless CE Logo"
+                alt="Selfless Logo"
                 width={36}
                 height={36}
                 className="w-full h-full object-cover"
@@ -1083,7 +1083,7 @@ export default function Sidebar({
                 className="flex-1 min-w-0"
               >
                 <p className="text-[13px] font-semibold text-[#1A2B4C] leading-tight">
-                  Selfless CE
+                  Selfless
                 </p>
                 <p className="text-[10.5px] text-[#8A9088] leading-tight">
                   Nurturing Resilient Minds

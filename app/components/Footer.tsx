@@ -99,13 +99,13 @@ export default function Footer() {
           <motion.div variants={slideInLeft}>
             <Link
               href="/"
-              aria-label="Selfless CE Portal home"
+              aria-label="Selfless Portal home"
               className="group inline-flex items-center gap-3 outline-none"
             >
               <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-white p-0.5 transition-transform duration-300 group-hover:scale-105">
                 <Image
                   src="/freedom.png"
-                  alt="Selfless CE logo"
+                  alt="Selfless logo"
                   fill
                   sizes="40px"
                   className="rounded-[7px] object-contain"
@@ -115,7 +115,7 @@ export default function Footer() {
               <div>
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-[16px] font-bold tracking-[-0.025em] text-white sm:text-[17px]">
-                    Selfless CE
+                    Selfless
                   </span>
 
                   <span className="text-[16px] font-semibold text-[#E8A33D]">
@@ -151,7 +151,7 @@ export default function Footer() {
         >
           {/* Brand / statement */}
           <motion.div variants={slideInLeft}>
-            <FooterHeading>Selfless CE</FooterHeading>
+            <FooterHeading>Selfless</FooterHeading>
 
             <p className="mt-4 max-w-sm text-[12.5px] leading-6 text-white/60">
               Empowering students through a connected, student-centered
@@ -206,19 +206,19 @@ export default function Footer() {
               <ContactIcon
                 icon={<MessageCircle size={17} strokeWidth={1.9} />}
                 href="https://wa.me/256761996296"
-                label="Chat with Selfless CE on WhatsApp"
+                label="Chat with Selfless on WhatsApp"
               />
 
               <ContactIcon
                 icon={<Phone size={17} strokeWidth={1.9} />}
                 href="tel:+256761996296"
-                label="Call Selfless CE"
+                label="Call Selfless"
               />
 
               <ContactIcon
                 icon={<Mail size={17} strokeWidth={1.9} />}
                 href="mailto:turyamurebanicholus@gmail.com"
-                label="Email Selfless CE"
+                label="Email Selfless"
               />
             </div>
           </motion.div>

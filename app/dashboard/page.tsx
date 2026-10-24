@@ -1975,7 +1975,7 @@ export default function DashboardPage() {
         <div className="mt-3 bg-[#1A2B4C]">
           <div className="px-4 pt-4 sm:px-6">
             <h2 className="text-sm font-semibold text-white sm:text-base">
-              Selfless CE Live Updates
+              Selfless Live Updates
             </h2>
           </div>
           <div className="px-4 pb-4 pt-3 sm:px-6">

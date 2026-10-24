@@ -135,7 +135,7 @@ export default function AboutPage() {
                 className="max-w-6xl"
               >
                 <motion.div variants={slideInLeft}>
-                  <SectionLabel label="About Selfless CE" />
+                  <SectionLabel label="About Selfless" />
                 </motion.div>
 
                 <div className="mt-6 grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-end lg:gap-14">
@@ -154,7 +154,7 @@ export default function AboutPage() {
                     className="max-w-xl lg:pb-2"
                   >
                     <p className="text-base leading-7 text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-lg sm:leading-8">
-                      Selfless CE Portal gives students one dependable place to
+                      Selfless Portal gives students one dependable place to
                       manage academic progress, stay connected to their tech
                       center, communicate with others, and find the support
                       and opportunities that help them move forward.
@@ -219,7 +219,7 @@ export default function AboutPage() {
           </section>
 
           {/* =====================================================
-              WHAT SELFLESS CE BRINGS TOGETHER
+              WHAT SELFLESS BRINGS TOGETHER
           ====================================================== */}
           <section className="relative px-5 py-14 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
             <motion.div
@@ -251,7 +251,7 @@ export default function AboutPage() {
                   </p>
 
                   <p className="mt-3 text-base leading-7 text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-lg sm:leading-8">
-                    Selfless CE brings these parts of the experience together
+                    Selfless brings these parts of the experience together
                     in one organized digital environment, helping students
                     spend less time searching for information and more time
                     moving forward.
@@ -325,7 +325,7 @@ export default function AboutPage() {
                       <div className="absolute bottom-0 left-0 right-0 flex items-end justify-between bg-black/60 p-5 backdrop-blur-sm">
                         <div>
                           <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-[#E8A33D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.95)]">
-                            Selfless CE
+                            Selfless
                           </p>
                           <p className="mt-1.5 text-base font-bold text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.9)]">
                             Student experience
@@ -366,9 +366,9 @@ export default function AboutPage() {
 
                   <div className="mt-5 space-y-4 text-[15px] leading-7 tracking-[0.005em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-base sm:leading-8">
                     <p>
-                      The Selfless CE Student Portal is a centralized digital
+                      The Selfless Student Portal is a centralized digital
                       platform created to support students studying through the
-                      Selfless CE network. It brings important parts of student
+                      Selfless network. It brings important parts of student
                       life into one organized environment.
                     </p>
 
@@ -437,7 +437,7 @@ export default function AboutPage() {
                 </h2>
 
                 <p className="mt-5 max-w-2xl text-base leading-7 text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-lg sm:leading-8">
-                  Selfless CE brings the operational side of student support
+                  Selfless brings the operational side of student support
                   together so students can spend less time figuring out where
                   information lives and more time learning, connecting, and
                   progressing toward their goals.
@@ -482,7 +482,7 @@ export default function AboutPage() {
                 </p>
 
                 <p className="mt-1 max-w-2xl text-sm leading-6 text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
-                  Learn what is available to students across the Selfless CE
+                  Learn what is available to students across the Selfless
                   network.
                 </p>
               </motion.div>

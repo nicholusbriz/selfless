@@ -18,7 +18,7 @@ const sections = [
   {
     number: "03",
     title: "Who may access information",
-    body: "Access is limited according to the responsibilities associated with your account. Students, tutors, teachers, administrators, and other authorized Selfless CE personnel may see information needed for their work within the portal.",
+    body: "Access is limited according to the responsibilities associated with your account. Students, tutors, teachers, administrators, and other authorized Selfless personnel may see information needed for their work within the portal.",
   },
   {
     number: "04",
@@ -38,7 +38,7 @@ export default function PrivacyPage() {
       <PublicPageHero
         eyebrow="Legal"
         title="Privacy and responsible information use."
-        description="This page explains how the Selfless CE Student Portal uses information to provide academic services, communication, and support across the tech-center network."
+        description="This page explains how the Selfless Student Portal uses information to provide academic services, communication, and support across the tech-center network."
       />
 
       <main className="bg-[#F1F1EC]">
@@ -90,7 +90,7 @@ export default function PrivacyPage() {
 
                 <p className="mt-3 text-[13px] leading-6.5 text-[#6B7268] sm:text-sm sm:leading-7">
                   The sections below provide a practical overview of how
-                  information may be used within the Selfless CE Student
+                  information may be used within the Selfless Student
                   Portal.
                 </p>
               </div>
@@ -140,7 +140,7 @@ export default function PrivacyPage() {
               </div>
 
               <span className="hidden font-mono text-[10px] font-bold tracking-[0.16em] text-[#8A9088] sm:block">
-                SELFLESS CE
+                SELFLESS
               </span>
             </div>
 

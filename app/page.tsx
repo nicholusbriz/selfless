@@ -45,8 +45,6 @@ type HeroImage = {
   eyebrow: string;
   title: string;
   description: string;
-  enhanced?: boolean;
-  stats?: { label: string; value: string }[];
 };
 
 const features = [
@@ -71,7 +69,7 @@ const features = [
     icon: Network,
     title: "Tech-center network",
     description:
-      "Stay connected to the wider SELFLESS CE community across different centers.",
+      "Stay connected to the wider Selfless community across different centers.",
     href: "/tech-centers",
   },
   {
@@ -87,10 +85,10 @@ const features = [
 const heroImages: HeroImage[] = [
   {
     src: "/ce1.jpeg",
-    eyebrow: "SELFLESS CE STUDENT PORTAL",
+    eyebrow: "SELFLESS STUDENT PORTAL",
     title: "Your education, connected.",
     description:
-      "A central place for students studying online through BYU-Idaho with SELFLESS CE.",
+      "A central place for students studying online through BYU-Idaho with Selfless.",
   },
   {
     src: "/ce2.jpeg",
@@ -105,12 +103,6 @@ const heroImages: HeroImage[] = [
     title: "Know where you are in your journey.",
     description:
       "Access the information you need to stay aware of your academic progress.",
-    enhanced: true,
-    stats: [
-      { label: "Courses", value: "Track" },
-      { label: "Grades", value: "View" },
-      { label: "Credits", value: "Manage" },
-    ],
   },
   {
     src: "/ce4.jpeg",
@@ -445,34 +437,6 @@ export default function HomePage() {
                       {activeHero.description}
                     </motion.p>
 
-                    {activeHero.enhanced && activeHero.stats && (
-                      <motion.div
-                        variants={slideInLeft}
-                        className="mt-7 grid grid-cols-3 gap-4 sm:gap-6"
-                      >
-                        {activeHero.stats.map((stat, index) => (
-                          <motion.div
-                            key={stat.label}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.3 + index * 0.1, duration: 0.5 }}
-                            className="rounded-xl p-4 text-center backdrop-blur-sm"
-                            style={{
-                              backgroundColor: "rgba(232, 176, 77, 0.15)",
-                              border: "1px solid rgba(232, 176, 77, 0.3)",
-                            }}
-                          >
-                            <p className="text-[20px] font-bold leading-none" style={{ color: COLORS.brassLight }}>
-                              {stat.value}
-                            </p>
-                            <p className="mt-2 text-[11px] font-medium uppercase tracking-[0.1em]" style={{ color: "rgba(255,255,255,0.85)" }}>
-                              {stat.label}
-                            </p>
-                          </motion.div>
-                        ))}
-                      </motion.div>
-                    )}
-
                     <motion.div
                       variants={slideInLeft}
                       className="mt-8 flex flex-wrap items-center gap-4 sm:mt-9"
@@ -736,7 +700,7 @@ export default function HomePage() {
                 >
                   <motion.div variants={slideInLeft}>
                     <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#E8B04D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)]">
-                      About SELFLESS CE
+                      About Selfless
                     </p>
 
                     <h2 className="mt-6 max-w-xl text-[clamp(2.6rem,5.5vw,4.8rem)] font-semibold leading-[0.96] tracking-[-0.04em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
@@ -750,7 +714,7 @@ export default function HomePage() {
 
                   <motion.div variants={slideInRight} className="max-w-2xl">
                     <p className="text-[17px] leading-[1.8] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.75)] sm:text-[18px] sm:leading-[1.75] font-normal">
-                      SELFLESS CE brings students, tech centers, academic
+                      Selfless brings students, tech centers, academic
                       support, and community into one connected experience.
                     </p>
 
@@ -764,7 +728,7 @@ export default function HomePage() {
                       href="/about"
                       className="group mt-8 inline-flex items-center gap-2.5 text-[15px] font-semibold text-[#E8B04D] drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)] transition-colors duration-300 hover:text-white"
                     >
-                      Learn about SELFLESS CE
+                      Learn about Selfless
 
                       <ArrowRight
                         size={16}
@@ -841,7 +805,7 @@ export default function HomePage() {
                     <p className="mt-7 max-w-2xl text-[16px] leading-[1.8] tracking-[0.005em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)] sm:text-[17px] sm:leading-[1.75] font-normal">
                       Your studies and student services are brought together
                       in one place, with the tools you need throughout your
-                      time with SELFLESS CE.
+                      time with Selfless.
                     </p>
                   </motion.div>
 
@@ -983,7 +947,7 @@ export default function HomePage() {
                 >
                   <motion.div variants={slideInLeft} className="max-w-3xl">
                     <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#E8B04D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
-                      SELFLESS CE
+                      SELFLESS
                     </p>
 
                     <h2 className="mt-6 text-[clamp(2.5rem,5.5vw,4.7rem)] font-semibold leading-[0.95] tracking-[-0.04em] text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.75)]">
@@ -997,7 +961,7 @@ export default function HomePage() {
 
                     <p className="mt-7 max-w-2xl text-[15px] leading-[1.8] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)] sm:text-[16px] sm:leading-[1.75] font-normal">
                       Connect with tutors, students, tech-center teams, and the
-                      wider SELFLESS CE community whenever you need support.
+                      wider Selfless community whenever you need support.
                     </p>
                   </motion.div>
 

@@ -13,13 +13,13 @@ export default function GalleryPage() {
             </div>
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#B98A3E]">
-                Selfless CE moments
+                Selfless moments
               </p>
               <h2 className="mt-1 text-2xl font-bold tracking-tight text-[#12203B] sm:text-3xl">
                 Gallery
               </h2>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-[#4B564C] sm:text-base">
-                All Selfless CE moments will be displayed here.
+                All Selfless moments will be displayed here.
               </p>
             </div>
           </div>
@@ -34,7 +34,7 @@ export default function GalleryPage() {
           </h3>
           <p className="mt-2 max-w-md text-sm leading-6 text-[#6B7268]">
             Photos, celebrations, learning experiences, and community moments
-            from across Selfless CE will be collected in this gallery.
+            from across Selfless will be collected in this gallery.
           </p>
         </div>
       </section>

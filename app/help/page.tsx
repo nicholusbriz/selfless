@@ -83,7 +83,7 @@ export default function HelpPage() {
       <PublicPageHero
         eyebrow="Support center"
         title="Need a hand? Start here."
-        description="Find answers to common questions or contact the SELFLESS CE team for help with your account, courses, and portal access."
+        description="Find answers to common questions or contact the Selfless team for help with your account, courses, and portal access."
         actionHref="#support"
         actionLabel="Contact support"
       />
@@ -113,7 +113,7 @@ export default function HelpPage() {
               <p className="text-[15px] leading-7 text-[#5F685F]">
                 Whether you are having trouble accessing the portal, need
                 clarification about your studies, or are unsure where to go
-                next, SELFLESS CE provides several straightforward ways to get
+                next, Selfless provides several straightforward ways to get
                 support.
               </p>
 
@@ -284,7 +284,7 @@ export default function HelpPage() {
             </h2>
 
             <p className="mt-3 max-w-2xl text-sm leading-7 text-[#C5CBD1]">
-              Contact the SELFLESS CE support team if you cannot find the
+              Contact the Selfless support team if you cannot find the
               information you need in the FAQ or need help with your portal
               access.
             </p>

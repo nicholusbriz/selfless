@@ -148,7 +148,7 @@ function AuthHeader({ title, description }: AuthHeaderProps) {
         <div className="w-full h-full rounded-2xl bg-[#12203B] flex items-center justify-center overflow-hidden">
           <img
             src="/freedom.png"
-            alt="SELFLESS CE"
+            alt="SELFLESS"
             className="w-full h-full object-cover"
           />
         </div>
@@ -621,7 +621,7 @@ function RegisterForm({
         <div className={cardClassName}>
           <AuthHeader
             title="Create Account"
-            description="Join the SELFLESS CE community"
+            description="Join the SELFLESS community"
           />
 
           <form onSubmit={handleSubmit} className="space-y-4">
