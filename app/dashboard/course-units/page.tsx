@@ -32,6 +32,19 @@ interface Student {
   studentCourses: StudentCourse[];
 }
 
+function CountDisplay({ value, loading }: { value: number; loading: boolean }) {
+  if (loading) {
+    return (
+      <span
+        className="inline-block h-4 w-7 animate-pulse rounded-sm bg-current opacity-25"
+        aria-label="Loading count"
+      />
+    );
+  }
+
+  return <>{value}</>;
+}
+
 interface TechCenter {
   id: string;
   name: string;
@@ -110,6 +123,13 @@ export default function CourseUnitsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const canViewAllCenters =
     user?.role === 'super_admin' || user?.role === 'dev';
+  const canViewCourseUnits = [
+    'student',
+    'teacher',
+    'admin',
+    'dev',
+    'super_admin',
+  ].includes(user?.role ?? '');
 
   const {
     data,
@@ -117,15 +137,15 @@ export default function CourseUnitsPage() {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['courseUnitRoster'],
+    queryKey: ['courseUnitRoster', user?.role],
     queryFn: async (): Promise<StudentDirectoryData> => {
-      const response = await fetch('/api/students');
+      const response = await fetch('/api/course-units');
       if (!response.ok) {
         throw new Error('Failed to fetch students and course units');
       }
       return response.json() as Promise<StudentDirectoryData>;
     },
-    enabled: canViewAllCenters,
+    enabled: canViewCourseUnits && !isAuthLoading,
     staleTime: 30_000,
   });
 
@@ -235,7 +255,7 @@ export default function CourseUnitsPage() {
     return <CourseUnitsSkeleton />;
   }
 
-  if (!canViewAllCenters) {
+  if (!canViewCourseUnits) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-8 text-sm text-[#1A2B4C]">
         You do not have permission to view the course units roster.
@@ -306,7 +326,9 @@ export default function CourseUnitsPage() {
               }}
               className="h-10 w-full min-w-0 border border-[#D1D5DB] bg-white px-3 text-sm focus:border-[#1A2B4C] focus:outline-none focus:ring-2 focus:ring-[#B98A3E]"
             >
-              <option value="all">All tech centers</option>
+              <option value="all">
+                {canViewAllCenters ? 'All tech centers' : 'My tech center'}
+              </option>
               {centers.map((center) => (
                 <option key={center.id} value={center.id}>
                   {center.name}
@@ -363,9 +385,13 @@ export default function CourseUnitsPage() {
                         ? 'text-[#F3D9A8]'
                         : 'text-[#55705B]'
                     }`}
-                    aria-label={`${option.count} students`}
+                    aria-label={
+                      isLoading
+                        ? `Loading ${option.label.toLowerCase()} count`
+                        : `${option.count} students`
+                    }
                   >
-                    {option.count}
+                    <CountDisplay value={option.count} loading={isLoading} />
                   </span>
                 </button>
               ))}
@@ -415,9 +441,13 @@ export default function CourseUnitsPage() {
                         ? 'text-[#F3D9A8]'
                         : 'text-[#55705B]'
                     }`}
-                    aria-label={`${option.count} students`}
+                    aria-label={
+                      isLoading
+                        ? `Loading ${option.label.toLowerCase()} count`
+                        : `${option.count} students`
+                    }
                   >
-                    {option.count}
+                    <CountDisplay value={option.count} loading={isLoading} />
                   </span>
                 </button>
               ))}

@@ -33,7 +33,7 @@ const DASHBOARD_FOOTER_LINKS = [
 // HELPERS
 // ============================================================
 
-function getPageInfo(pathname: string) {
+function getPageInfo(pathname: string, userRole?: string) {
   const pages: Record<
     string,
     { title: string; section?: string }
@@ -60,7 +60,12 @@ function getPageInfo(pathname: string) {
     },
     '/dashboard/course-units': {
       title: 'Course Units',
-      section: 'System',
+      section:
+        userRole === 'admin'
+          ? 'Administration'
+          : userRole === 'super_admin'
+            ? 'System'
+            : 'Academics',
     },
     '/dashboard/manage-grades': {
       title: 'Manage Grades',
@@ -313,7 +318,7 @@ export default function DashboardLayout({
   }
 
   const pageInfo =
-    getPageInfo(pathname);
+    getPageInfo(pathname, userRole);
 
   return (
     <>

@@ -180,6 +180,13 @@ const sharedNavigation: NavSection[] = [
         roles: NON_SUPER_ADMIN_ROLES,
       },
       {
+        id: 'course-units',
+        label: 'Course Units',
+        path: '/dashboard/course-units',
+        icon: <BookMarked className={iconClass} />,
+        roles: ['student', 'teacher', 'dev'],
+      },
+      {
         id: 'grades',
         label: 'My Grades',
         path: '/dashboard/grades',
@@ -370,6 +377,13 @@ const adminNavigation: NavSection = {
       roles: ['admin'],
     },
     {
+      id: 'course-units',
+      label: 'Course Units',
+      path: '/dashboard/course-units',
+      icon: <BookMarked className={iconClass} />,
+      roles: ['admin'],
+    },
+    {
       id: 'manage-cleaning',
       label: 'Cleaning Management',
       path: '/dashboard/admin/cleaning',
@@ -412,18 +426,18 @@ const superAdminNavigation: NavSection = {
   label: 'System',
   items: [
     {
-      id: 'course-units',
-      label: 'Course Units',
-      path: '/dashboard/course-units',
-      icon: <BookMarked className={iconClass} />,
-      roles: ['dev', 'super_admin'],
-    },
-    {
       id: 'manage-grades',
       label: 'Manage Grades',
       path: '/dashboard/manage-grades',
       icon: <Award className={iconClass} />,
       roles: ['dev', 'super_admin'],
+    },
+    {
+      id: 'course-units',
+      label: 'Course Units',
+      path: '/dashboard/course-units',
+      icon: <BookMarked className={iconClass} />,
+      roles: ['super_admin'],
     },
     {
       id: 'super-admin-dashboard',
