@@ -227,7 +227,7 @@ function TickerStrip() {
         >
           <span className="size-1.5 rounded-full" style={{ backgroundColor: COLORS.brassLight, boxShadow: `0 0 8px ${COLORS.brassLight}` }} />
           <span className="font-mono text-[9px] uppercase tracking-[0.14em] sm:text-[10px] sm:tracking-[0.2em]" style={{ color: COLORS.brassLight }}>
-            SELFLESS CE
+            SELFLESS
           </span>
         </div>
 
@@ -696,10 +696,10 @@ export default function Header2() {
             {/* ---------- DESKTOP (lg+) ---------- */}
             <div className={`hidden items-center justify-between gap-4 transition-all duration-300 lg:flex ${scrolled ? "h-[64px]" : "h-[74px]"}`}>
               {/* Enhanced Logo Area */}
-              <Link href="/" aria-label="SELFLESS CE home" className="group flex shrink-0 items-center relative pl-3">
+              <Link href="/" aria-label="SELFLESS home" className="group flex shrink-0 items-center relative pl-3">
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-full" style={{ backgroundColor: COLORS.brassLight, boxShadow: `0 0 6px ${COLORS.brassLight}` }} />
                 <div className="relative h-10 w-[130px] lg:h-11 lg:w-[150px]">
-                  <Image src="/freedom.png" alt="SELFLESS CE" fill priority className="object-contain object-left transition-transform duration-300 group-hover:scale-[1.02]" />
+                  <Image src="/freedom.png" alt="SELFLESS" fill priority className="object-contain object-left transition-transform duration-300 group-hover:scale-[1.02]" />
                 </div>
               </Link>
 
@@ -746,10 +746,10 @@ export default function Header2() {
             {/* ---------- MOBILE / TABLET (up to lg) ---------- */}
             <div className={`flex items-center justify-between gap-2 transition-all duration-300 lg:hidden ${scrolled ? "h-[64px]" : "h-[74px]"}`}>
               {/* Enhanced Mobile Logo */}
-              <Link href="/" aria-label="SELFLESS CE home" className="group flex min-w-0 shrink items-center relative pl-2">
+              <Link href="/" aria-label="SELFLESS home" className="group flex min-w-0 shrink items-center relative pl-2">
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full" style={{ backgroundColor: COLORS.brassLight, boxShadow: `0 0 4px ${COLORS.brassLight}` }} />
                 <div className="relative h-9 w-[100px] sm:h-10 sm:w-[120px]">
-                  <Image src="/freedom.png" alt="SELFLESS CE" fill priority className="object-contain object-left transition-transform duration-300 group-hover:scale-[1.02]" />
+                  <Image src="/freedom.png" alt="SELFLESS" fill priority className="object-contain object-left transition-transform duration-300 group-hover:scale-[1.02]" />
                 </div>
               </Link>
 
@@ -883,7 +883,7 @@ export default function Header2() {
 
                       <div className="mt-4 flex items-center justify-center gap-2 pt-3 text-[10px] font-medium uppercase tracking-[0.15em]" style={{ color: COLORS.subtle, boxShadow: "inset 0 1px 0 rgba(18,32,59,0.06)" }}>
                         <GraduationCap size={14} strokeWidth={1.7} style={{ color: COLORS.brass }} />
-                        <span>SELFLESS CE Student Portal</span>
+                        <span>SELFLESS Student Portal</span>
                       </div>
                     </>
                   ) : (
@@ -899,7 +899,7 @@ export default function Header2() {
 
                       <div className="mt-4 flex items-center justify-center gap-2 pt-3 text-[10px] font-medium uppercase tracking-[0.15em]" style={{ color: COLORS.subtle, boxShadow: "inset 0 1px 0 rgba(18,32,59,0.06)" }}>
                         <GraduationCap size={14} strokeWidth={1.7} style={{ color: COLORS.brass }} />
-                        <span>SELFLESS CE Student Portal</span>
+                        <span>SELFLESS Student Portal</span>
                       </div>
                     </>
                   )}

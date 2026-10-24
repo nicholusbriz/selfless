@@ -312,7 +312,7 @@ export default function TopNav({
             <div className="relative w-8 h-8 bg-[#B98A3E] flex items-center justify-center overflow-hidden rounded-lg shadow-md">
               <Image
                 src="/freedom.png"
-                alt="Selfless CE Logo"
+                alt="Selfless Logo"
                 width={32}
                 height={32}
                 className="w-full h-full object-cover"

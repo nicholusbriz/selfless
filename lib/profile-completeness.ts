@@ -20,7 +20,23 @@ interface ProfileCompleteness {
   recommendations: string[];
 }
 
-export function checkProfileCompleteness(user: any): ProfileCompleteness {
+interface ProfileCompletenessUser {
+  phoneNumber?: string | null;
+  country?: string | null;
+  city?: string | null;
+  town?: string | null;
+  street?: string | null;
+  generalCourse?: string | null;
+  linkedinUrl?: string | null;
+  githubUrl?: string | null;
+  preferredTeamType?: string | null;
+  preferredTeamRole?: string | null;
+  footballTeamRegistration?: { length: number } | null;
+}
+
+export function checkProfileCompleteness(
+  user: ProfileCompletenessUser,
+): ProfileCompleteness {
   const missingFields: MissingField[] = [];
   const recommendations: string[] = [];
 

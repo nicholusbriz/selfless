@@ -37,7 +37,7 @@ const networkPoints = [
     icon: Users,
     title: "Local support, wider community",
     description:
-      "Your center remains your local hub while the portal connects you to the broader SELFLESS CE community.",
+      "Your center remains your local hub while the portal connects you to the broader Selfless community.",
   },
   {
     number: "03",
@@ -189,7 +189,7 @@ export default function TechCentersPage() {
                   variants={slideInLeft}
                   className="mt-5 max-w-2xl text-base leading-7 text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-lg sm:leading-8"
                 >
-                  SELFLESS CE unites its tech centers through one student
+                  Selfless unites its tech centers through one student
                   portal—a consistent digital experience for learning,
                   community, and support.
                 </motion.p>
@@ -276,7 +276,7 @@ export default function TechCentersPage() {
               >
                 Local spaces provide support and learning while the portal
                 extends that experience beyond the physical center. Students
-                remain connected to their center and the wider SELFLESS CE
+                remain connected to their center and the wider Selfless
                 community.
               </motion.p>
             </div>
@@ -448,7 +448,7 @@ export default function TechCentersPage() {
               >
                 Your physical center gives you a local place to learn and
                 connect. The portal helps that experience continue across the
-                wider SELFLESS CE network.
+                wider Selfless network.
               </motion.p>
             </div>
 

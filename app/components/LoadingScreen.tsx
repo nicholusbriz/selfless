@@ -78,7 +78,7 @@ export default function LoadingScreen({ onComplete, delay = 2000 }: LoadingScree
             <div className="absolute inset-6 flex items-center justify-center">
               <Image
                 src="/icon-512x512.png"
-                alt="Selfless CE Logo"
+                alt="Selfless Logo"
                 width={80}
                 height={80}
                 loading="eager"
@@ -101,7 +101,7 @@ export default function LoadingScreen({ onComplete, delay = 2000 }: LoadingScree
               opacity: 0
             }}
           >
-            Selfless CE
+            Selfless
           </h1>
           
           <div className="flex items-center justify-center gap-3">
