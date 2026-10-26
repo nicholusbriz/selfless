@@ -22,9 +22,7 @@ import {
   Star,
   MessageCircle,
   MessageSquare,
-  Trash2,
   Loader2,
-  Send,
   Heart,
   UserPlus,
   TrendingUp,
@@ -144,24 +142,6 @@ interface MediaItem {
   } | null;
 }
 
-interface VideoRequest {
-  id: string;
-  request: string;
-  status: string;
-  createdAt: string;
-  user: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    profileImageUrl: string | null;
-  };
-  techCenter?: {
-    id: string;
-    name: string;
-    country?: { name: string };
-  } | null;
-}
-
 interface MeStats {
   id: string;
   followersCount: number;
@@ -219,30 +199,6 @@ function isMediaItem(value: unknown): value is MediaItem {
         typeof value.user.lastName === 'string' &&
         (typeof value.user.profileImageUrl === 'string' ||
           value.user.profileImageUrl === null)))
-  );
-}
-
-function isVideoRequest(value: unknown): value is VideoRequest {
-  return (
-    isRecord(value) &&
-    typeof value.id === 'string' &&
-    typeof value.request === 'string' &&
-    typeof value.status === 'string' &&
-    typeof value.createdAt === 'string' &&
-    isRecord(value.user) &&
-    typeof value.user.id === 'string' &&
-    typeof value.user.firstName === 'string' &&
-    typeof value.user.lastName === 'string' &&
-    (typeof value.user.profileImageUrl === 'string' ||
-      value.user.profileImageUrl === null) &&
-    (value.techCenter === undefined ||
-      value.techCenter === null ||
-      (isRecord(value.techCenter) &&
-        typeof value.techCenter.id === 'string' &&
-        typeof value.techCenter.name === 'string' &&
-        (value.techCenter.country === undefined ||
-          (isRecord(value.techCenter.country) &&
-            typeof value.techCenter.country.name === 'string'))))
   );
 }
 
@@ -628,30 +584,12 @@ function MediaLibrary() {
     gcTime: 10 * 60 * 1000,
   });
 
-  const { data: videoRequests = [] } = useQuery<VideoRequest[]>({
-    queryKey: ['video-requests'],
-    queryFn: async () => {
-      const response = await fetch('/api/video-requests');
-      if (!response.ok) throw new Error('Failed to fetch video requests');
-      const data: unknown = await response.json();
-      if (!isRecord(data) || data.success !== true || !Array.isArray(data.data)) {
-        throw new Error(getResponseError(data, 'Failed'));
-      }
-      return data.data.filter(isVideoRequest);
-    },
-    staleTime: 1 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-    enabled: !!user?.id,
-  });
-
   const videos = useMemo(
     () => items.filter((item) => item.contentType.startsWith('video/')),
     [items],
   );
 
   const [rawIndex, setRawIndex] = useState(0);
-  const [requestInput, setRequestInput] = useState('');
-  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
   const videoPlayerRef = useRef<{ play: () => void } | null>(null);
 
   const currentIndex =
@@ -674,46 +612,6 @@ function MediaLibrary() {
     setRawIndex(index);
     setTimeout(() => videoPlayerRef.current?.play(), 100);
   }, []);
-
-  const handleRequestSubmit = async (request: string) => {
-    const content = request.trim();
-    if (!content || isSubmittingRequest) return;
-
-    setIsSubmittingRequest(true);
-    try {
-      const response = await fetch('/api/video-requests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ request: content }),
-      });
-      const data: unknown = await response.json();
-      if (!response.ok || !isRecord(data) || data.success !== true) {
-        throw new Error(getResponseError(data, 'Request failed'));
-      }
-      setRequestInput('');
-      queryClient.invalidateQueries({ queryKey: ['video-requests'] });
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to submit request');
-    } finally {
-      setIsSubmittingRequest(false);
-    }
-  };
-
-  const handleDeleteRequest = async (requestId: string) => {
-    if (!confirm('Delete this request?')) return;
-    try {
-      const response = await fetch(`/api/video-requests/${requestId}`, {
-        method: 'DELETE',
-      });
-      const data: unknown = await response.json();
-      if (!response.ok || !isRecord(data) || data.success !== true) {
-        throw new Error(getResponseError(data, 'Failed'));
-      }
-      queryClient.invalidateQueries({ queryKey: ['video-requests'] });
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete request');
-    }
-  };
 
   if (isLoading) {
     return (
@@ -741,62 +639,6 @@ function MediaLibrary() {
           <p className="mt-1 text-[12px] text-[#6B7280]">
             Be the first to share a video with the community
           </p>
-        </div>
-
-        <div className="border-t border-[#E5E7EB] px-4 py-3">
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={requestInput}
-              onChange={(e) => setRequestInput(e.target.value)}
-              onKeyPress={(e) =>
-                e.key === 'Enter' && handleRequestSubmit(requestInput)
-              }
-              placeholder="Request a video topic…"
-              maxLength={30}
-              disabled={isSubmittingRequest}
-              className="h-9 flex-1 border border-[#E5E7EB] bg-white px-3 text-[12px] font-semibold text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:border-[#B98A3E] focus:outline-none"
-            />
-            <button
-              onClick={() => handleRequestSubmit(requestInput)}
-              disabled={!requestInput.trim() || isSubmittingRequest}
-              className="inline-flex h-9 w-9 items-center justify-center bg-[#1A2B4C] text-white transition-colors hover:bg-[#2C3E5A] disabled:opacity-40"
-              aria-label="Send request"
-            >
-              {isSubmittingRequest ? (
-                <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-              ) : (
-                <Send className="h-3.5 w-3.5" />
-              )}
-            </button>
-          </div>
-
-          {videoRequests.length > 0 && (
-            <div className="mt-3 max-h-24 space-y-1 overflow-y-auto">
-              {videoRequests.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-2 border-b border-[#F3F4F6] py-1 last:border-0"
-                >
-                  <span className="shrink-0 text-[10px] font-bold text-[#B98A3E]">
-                    {item.user.firstName} {item.user.lastName}
-                  </span>
-                  <span className="flex-1 truncate text-[11px] text-[#6B7280]">
-                    {item.request}
-                  </span>
-                  {item.user.id === user?.id && (
-                    <button
-                      onClick={() => handleDeleteRequest(item.id)}
-                      className="shrink-0 text-[#9CA3AF] transition-colors hover:text-[#A4462F]"
-                      aria-label="Delete request"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     );
@@ -872,62 +714,6 @@ function MediaLibrary() {
             </div>
           </div>
         )}
-
-        <div className="border-t border-white/[0.08] px-4 py-3">
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={requestInput}
-              onChange={(e) => setRequestInput(e.target.value)}
-              onKeyPress={(e) =>
-                e.key === 'Enter' && handleRequestSubmit(requestInput)
-              }
-              placeholder="Request a video topic…"
-              maxLength={30}
-              disabled={isSubmittingRequest}
-              className="h-8 flex-1 border border-white/10 bg-white/[0.06] px-3 text-[11px] font-semibold text-white/80 placeholder:text-white/25 focus:border-[#B98A3E]/60 focus:outline-none"
-            />
-            <button
-              onClick={() => handleRequestSubmit(requestInput)}
-              disabled={!requestInput.trim() || isSubmittingRequest}
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center bg-[#B98A3E] text-white transition-colors hover:bg-[#E8A33D] disabled:opacity-40"
-              aria-label="Send request"
-            >
-              {isSubmittingRequest ? (
-                <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-              ) : (
-                <Send className="h-3 w-3" />
-              )}
-            </button>
-          </div>
-
-          {videoRequests.length > 0 && (
-            <div className="mt-2 max-h-24 space-y-1 overflow-y-auto">
-              {videoRequests.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-2 border-b border-white/[0.05] py-1 last:border-0"
-                >
-                  <span className="shrink-0 text-[10px] font-bold text-[#B98A3E]">
-                    {item.user.firstName} {item.user.lastName}
-                  </span>
-                  <span className="flex-1 truncate text-[11px] text-white/50">
-                    {item.request}
-                  </span>
-                  {item.user.id === user?.id && (
-                    <button
-                      onClick={() => handleDeleteRequest(item.id)}
-                      className="shrink-0 text-white/25 transition-colors hover:text-red-400"
-                      aria-label="Delete request"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );
