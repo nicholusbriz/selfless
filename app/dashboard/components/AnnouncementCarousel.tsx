@@ -340,13 +340,12 @@ export default function AnnouncementCarousel({
         firstName: m.user.firstName,
         jerseyNumber: m.jerseyNumber,
         image: m.user.profileImageUrl,
-        isManager: m.isManager,
-        isTutor: m.isTutor,
+        isDirector: m.teamRole === 'superadmin',
+        isManager: m.teamRole === 'admin',
+        isTutor: m.teamRole === 'teacher',
       })),
     })),
   ];
-
-  console.log('Final cards array:', cards);
 
   const total = cards.length;
   const current = cards[index];
