@@ -337,13 +337,16 @@ export default function AnnouncementCarousel({
       players: team.members.map<Player>((m) => ({
         id: m.user.id,
         lastName: m.user.lastName,
+        firstName: m.user.firstName,
         jerseyNumber: m.jerseyNumber,
         image: m.user.profileImageUrl,
-        isDirector: false,
-        position: m.position,
+        isManager: m.isManager,
+        isTutor: m.isTutor,
       })),
     })),
   ];
+
+  console.log('Final cards array:', cards);
 
   const total = cards.length;
   const current = cards[index];

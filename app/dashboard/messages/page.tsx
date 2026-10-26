@@ -41,6 +41,7 @@ function isMessagingUser(value: unknown): value is User {
     (value.roleDisplayName === undefined ||
       typeof value.roleDisplayName === 'string') &&
     (value.techCenter === undefined ||
+      value.techCenter === null ||
       (isJsonObject(value.techCenter) &&
         typeof value.techCenter.id === 'string' &&
         typeof value.techCenter.name === 'string'))
@@ -80,6 +81,7 @@ function isConversation(value: unknown): value is Conversation {
           value.otherUser.image === null ||
           typeof value.otherUser.image === 'string') &&
         (value.otherUser.techCenter === undefined ||
+          value.otherUser.techCenter === null ||
           (isJsonObject(value.otherUser.techCenter) &&
             typeof value.otherUser.techCenter.id === 'string' &&
             typeof value.otherUser.techCenter.name === 'string'))))
@@ -124,7 +126,7 @@ export default function MessagesPage() {
 
   // Fetch users
   const {
-    data: users = [], 
+    data: users = [],
     isLoading: usersLoading,
     error: usersError
   } = useQuery<User[]>({

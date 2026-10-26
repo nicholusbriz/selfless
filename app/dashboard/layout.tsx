@@ -96,7 +96,7 @@ function getPageInfo(pathname: string, userRole?: string) {
       section: 'Community',
     },
     '/dashboard/football-team': {
-      title: 'Football Team',
+      title: 'Sports',
       section: 'Community',
     },
     '/dashboard/cleaning': {

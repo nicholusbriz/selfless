@@ -7,7 +7,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Award, Check, ChevronDown, ChevronRight, Circle,
   Crown, Gamepad2, Globe, Grid, List, Loader2, Megaphone,
-  Package, Phone, PlayCircle, Plus, Save, Search, Shield, Shirt,
+  MapPin, Package, Phone, PlayCircle, Plus, Save, Search, Shield, Shirt,
   Stethoscope, Target, Trophy, User, UserCheck, UserCog, Users, X, Zap, AlertTriangle
 } from "lucide-react";
 import {
@@ -635,6 +635,11 @@ export default function FootballTeamPage() {
   const isLoading = teamContextQuery.isLoading || (Boolean(techCenterId) && teamLoading);
   const error = (teamContextQuery.error as Error | null) ?? teamError;
 
+  // Log errors for debugging
+  if (error) {
+    console.error('Football team page error:', error);
+  }
+
   const registerMutation = useRegisterForTeam();
   const leaveMutation = useLeaveTeam();
   const updateMutation = useUpdateTeamMembership();
@@ -940,6 +945,11 @@ export default function FootballTeamPage() {
           <p className="mt-2 text-xs text-slate-500">
             We were unable to load the {sport.name} squad records for this Tech Center.
           </p>
+          {error.message && (
+            <p className="mt-2 text-xs text-red-600">
+              Error: {error.message}
+            </p>
+          )}
           <button
             onClick={() => window.location.reload()}
             className="mt-6 inline-flex items-center justify-center rounded-xl bg-amber-500 px-5 py-2.5 text-xs font-black text-slate-900 transition hover:bg-amber-600"
@@ -955,9 +965,9 @@ export default function FootballTeamPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F1F1EC] p-6 text-[#12203B]">
         <div className="max-w-md rounded-xl border border-[#DADCD3] bg-white p-8 text-center shadow-sm">
-          <h1 className="text-lg font-black tracking-tight text-slate-900">Football Team unavailable</h1>
+          <h1 className="text-lg font-black tracking-tight text-slate-900">Sports unavailable</h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            {user?.role === "super_admin"
+            {user?.role?.name === "super_admin"
               ? "This Super Admin account has no previous tech center to join a team from."
               : "Your account is not assigned to a tech center."}
           </p>
@@ -1794,54 +1804,61 @@ export default function FootballTeamPage() {
                           whileHover={{ y: -4 }}
                           whileTap={{ scale: 0.98 }}
                           onClick={() => setSelectedMember(member)}
-                          className="group relative aspect-[3/3.8] w-full overflow-hidden rounded-2xl border border-slate-200 bg-[#12203B] text-left shadow-sm transition duration-200 hover:border-[#B98A3E]/60 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A33D] focus-visible:ring-offset-2"
+                          className="group relative aspect-[3/4] w-full overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] shadow-[0_24px_65px_rgba(0,0,0,0.52)] transition-all hover:border-[#C8A24A]/70 hover:shadow-[0_28px_75px_rgba(0,0,0,0.6)]"
                         >
-                          {/* Full-card player profile */}
+                          {/* Image fills the entire card */}
                           {member.user.profileImageUrl ? (
                             <img
                               src={member.user.profileImageUrl}
                               alt={fullName(member)}
                               loading="lazy"
-                              className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
+                              className="h-full w-full object-cover object-center transition duration-500 group-hover:scale-[1.04]"
                             />
                           ) : (
-                            <div className="absolute inset-0 flex h-full w-full items-center justify-center bg-[#E8A33D] text-5xl font-black text-[#12203B] sm:text-6xl">
+                            <div className="flex h-full w-full items-center justify-center bg-[#18212F] text-4xl font-semibold text-white/70">
                               {initials(member.user.firstName, member.user.lastName)}
                             </div>
                           )}
 
-                          {/* Subtle readability layer — intentionally flat, not a gradient */}
-                          <div className="absolute inset-0 bg-black/10 transition group-hover:bg-black/20" />
-
-                          {/* Jersey number */}
-                          <div className="absolute right-2.5 top-2.5 z-10 flex min-h-9 min-w-9 items-center justify-center rounded-xl border border-white/30 bg-[#12203B]/85 px-2 font-mono text-xs font-black text-white shadow-lg backdrop-blur-sm sm:min-h-10 sm:min-w-10">
-                            #{member.jerseyNumber ?? "—"}
-                          </div>
-
-                          {/* Role */}
-                          <div className="absolute left-2.5 top-2.5 z-10 max-w-[70%]">
-                            <RoleBadge teamRole={member.teamRole} size="xs" />
-                          </div>
-
-                          {/* Player information directly over the photograph */}
-                          <div className="absolute inset-x-0 bottom-0 z-10 px-3 pb-3 pt-10 sm:px-3.5 sm:pb-3.5">
-                            <div className="rounded-xl border border-white/15 bg-[#12203B]/88 px-3 py-2.5 shadow-lg backdrop-blur-sm">
-                              <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#E8A33D]">
-                                {member.user.firstName}
-                              </p>
-                              <p className="mt-0.5 text-sm font-black uppercase leading-tight tracking-tight text-white sm:text-base break-words">
-                                {member.user.lastName || member.user.firstName}
-                              </p>
-                              <div className="mt-1.5 flex items-center justify-between gap-2">
-                                <p className="min-w-0 text-[10px] font-bold uppercase tracking-wider text-white/80 break-words">
-                                  {displayRole}
-                                </p>
-                                {member.isActive && (
-                                  <span className="shrink-0 rounded-md bg-[#55705B] px-1.5 py-0.5 text-[7px] font-black uppercase tracking-wider text-white">
-                                    Active
-                                  </span>
-                                )}
+                          {/* Info overlay — gradient at bottom, text on top of image */}
+                          <div className="absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-black/70 via-black/30 to-transparent">
+                            <div className="flex flex-col gap-2">
+                              {/* Jersey number badge */}
+                              <div className="absolute right-3 top-3 z-10 flex min-h-8 min-w-8 items-center justify-center rounded-md border border-white/30 bg-black/40 px-2 font-mono text-[10px] font-black text-white backdrop-blur-sm">
+                                #{member.jerseyNumber ?? "—"}
                               </div>
+
+                              {/* Role badge */}
+                              <div className="absolute left-3 top-3 z-10">
+                                <RoleBadge teamRole={member.teamRole} size="xs" />
+                              </div>
+
+                              {/* Name */}
+                              <h3 className="text-[16px] font-bold leading-tight text-white">
+                                {fullName(member)}
+                              </h3>
+
+                              {/* Position/Role */}
+                              <p className="text-[13px] font-medium text-white">
+                                {displayRole}
+                              </p>
+
+                              {/* Tech center */}
+                              {member.techCenter?.name && (
+                                <div className="flex items-center gap-1.5">
+                                  <MapPin className="h-[12px] w-[12px] shrink-0 text-[#D4A84B]" />
+                                  <span className="text-[12px] font-medium text-white/90">
+                                    {member.techCenter.name}
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Active status */}
+                              {member.isActive && (
+                                <span className="inline-flex shrink-0 items-center rounded-md border border-white/30 bg-black/40 px-2.5 py-1 text-[10px] font-semibold text-white">
+                                  Active
+                                </span>
+                              )}
                             </div>
                           </div>
                         </motion.button>

@@ -429,8 +429,20 @@ const getTrendingRoleLabel = (role?: string | null) => {
 const DASHBOARD_TRENDING_ADAPTERS: PageCacheAdapter[] = [
   {
     queryKey: ['dashboard', 'social-summary'],
-    patch: (old, targetId, patch) =>
-      patchStudentsShape((old as SocialSummary)?.trending?.students || [], targetId, patch),
+    patch: (old, targetId, patch) => {
+      if (!old || typeof old !== 'object') return old;
+      const data = old as SocialSummary;
+      if (!data.trending?.students) return old;
+      return {
+        ...data,
+        trending: {
+          ...data.trending,
+          students: data.trending.students.map((s: any) =>
+            s.id === targetId ? { ...s, ...patch } : s,
+          ),
+        },
+      };
+    },
     find: (old, targetId) => findInStudentsShape((old as SocialSummary)?.trending?.students || [], targetId),
   },
 ];
@@ -1578,7 +1590,7 @@ export default function DashboardPage() {
         if (isTechCenter(data)) setTechCenter(data);
       }
     } catch (error) {
-      console.error('Error fetching tech center:', error);
+      // Error fetching tech center
     }
   }, []);
 
@@ -1594,7 +1606,7 @@ export default function DashboardPage() {
         }
       }
     } catch (error) {
-      console.error('Error fetching recent activity:', error);
+      // Error fetching recent activity
     }
   }, []);
 
@@ -1639,7 +1651,7 @@ export default function DashboardPage() {
         setRecentActivity(flattened);
       }
     } catch (error) {
-      console.error('Error fetching all activity:', error);
+      // Error fetching all activity
     }
   }, []);
 
@@ -1847,7 +1859,7 @@ export default function DashboardPage() {
       { icon: <Briefcase className="h-5 w-5" />, label: 'Internships', description: 'Opportunities', path: '/dashboard/internships' },
       { icon: <Clock className="h-5 w-5" />, label: 'Cleaning', description: 'Your schedule', path: '/dashboard/cleaning' },
       { icon: <Library className="h-5 w-5" />, label: 'Policies', description: 'Read policies', path: '/dashboard/policies' },
-      { icon: <Trophy className="h-5 w-5" />, label: 'Football', description: 'Join team', path: '/dashboard/football-team' },
+      { icon: <Trophy className="h-5 w-5" />, label: 'Sports', description: 'Join team', path: '/dashboard/football-team' },
     ];
   }, [user?.role]);
 
@@ -2014,7 +2026,7 @@ export default function DashboardPage() {
               }
             />
             <SuggestedStudents
-              trending={socialSummary?.trending.students}
+              trending={socialSummary?.trending?.students}
               isLoading={!socialSummary}
             />
           </section>
@@ -2031,8 +2043,8 @@ export default function DashboardPage() {
             <section>
               <SectionHeader label="On your profile" />
               <RecentSocialActivity
-                likers={socialSummary?.activity.likers}
-                followers={socialSummary?.activity.followers}
+                likers={socialSummary?.activity?.likers}
+                followers={socialSummary?.activity?.followers}
               />
             </section>
           </div>
