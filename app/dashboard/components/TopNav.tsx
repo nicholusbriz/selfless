@@ -140,7 +140,7 @@ function getPageInfo(pathname: string) {
       section: 'Community',
     },
     '/dashboard/football-team': {
-      title: 'Football Team',
+      title: 'Sports',
       section: 'Community',
     },
     '/dashboard/cleaning': {

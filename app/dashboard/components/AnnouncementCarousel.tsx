@@ -337,10 +337,12 @@ export default function AnnouncementCarousel({
       players: team.members.map<Player>((m) => ({
         id: m.user.id,
         lastName: m.user.lastName,
+        firstName: m.user.firstName,
         jerseyNumber: m.jerseyNumber,
         image: m.user.profileImageUrl,
-        isDirector: false,
-        position: m.position,
+        isDirector: m.teamRole === 'super_admin',
+        isManager: m.teamRole === 'admin',
+        isTutor: m.teamRole === 'teacher',
       })),
     })),
   ];

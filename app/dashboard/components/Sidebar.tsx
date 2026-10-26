@@ -258,7 +258,7 @@ const sharedNavigation: NavSection[] = [
       },
       {
         id: 'football-team',
-        label: 'Football Team',
+        label: 'Sports',
         path: '/dashboard/football-team',
         icon: <Trophy className={iconClass} />,
         roles: FOOTBALL_TEAM_ROLES,

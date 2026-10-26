@@ -103,8 +103,8 @@ export function useAllFootballTeams() {
         })
       );
 
-      // Filter out teams with no members
-      return teamsData.filter(team => team.members.length > 0);
+      // Return all teams (including those with no members)
+      return teamsData;
     },
     enabled: !!techCenters && !techCentersLoading,
     staleTime: 30 * 1000, // 30 seconds

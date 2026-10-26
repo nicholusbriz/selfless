@@ -33,10 +33,23 @@ export function useSocialActions(opts: Options = {}) {
         patchStudentsShape(old, targetId, patch),
       );
 
-      queryClient.setQueryData(socialKeys.trending, (old) =>
-        Array.isArray(old)
-          ? old.map((u: any) => (u.id === targetId ? { ...u, ...patch } : u))
-          : old,
+      queryClient.setQueryData(socialKeys.trending, (old) => {
+        if (Array.isArray(old)) {
+          return old.map((u: any) => (u.id === targetId ? { ...u, ...patch } : u));
+        }
+        if (old && typeof old === 'object' && 'students' in old && Array.isArray(old.students)) {
+          return {
+            ...old,
+            students: old.students.map((u: any) => (u.id === targetId ? { ...u, ...patch } : u)),
+          };
+        }
+        return old;
+      });
+
+      // Patch all studentDirectory queries (with dynamic keys)
+      queryClient.setQueriesData(
+        { queryKey: ['studentDirectory'] },
+        (old) => patchStudentsShape(old, targetId, patch),
       );
 
       if (currentUserId) {
@@ -172,16 +185,19 @@ export function useSocialActions(opts: Options = {}) {
   );
 
   const invalidateAll = useCallback(() => {
-    queryClient.invalidateQueries({
-      queryKey: socialKeys.students,
-      refetchType: 'none',
-    });
-    queryClient.invalidateQueries({
-      queryKey: socialKeys.trending,
-      refetchType: 'none',
-    });
+    // Don't invalidate student directory or studentDirectory queries to prevent page refresh
+    // These queries rely on optimistic updates via pageAdapters
+    // Don't invalidate trending either - optimistic updates handle it
     queryClient.invalidateQueries({
       queryKey: ['social', 'stats'],
+      refetchType: 'none',
+    });
+    queryClient.invalidateQueries({
+      queryKey: ['studentDirectory'],
+      refetchType: 'none',
+    });
+    queryClient.invalidateQueries({
+      queryKey: ['dashboard', 'social-summary'],
       refetchType: 'none',
     });
     if (currentUserId) {

@@ -13,16 +13,15 @@ export async function GET() {
       return NextResponse.json({ techCenterId: null, techCenter: null });
     }
 
-    const techCenter = user.role?.name === 'super_admin'
-      ? await prisma.techCenter.findUnique({
-          where: { id: techCenterId },
-          select: {
-            id: true,
-            name: true,
-            country: { select: { name: true } },
-          },
-        })
-      : user.techCenter;
+    // Always fetch tech center with specific fields to ensure consistent structure
+    const techCenter = await prisma.techCenter.findUnique({
+      where: { id: techCenterId },
+      select: {
+        id: true,
+        name: true,
+        country: { select: { name: true } },
+      },
+    });
 
     if (!techCenter) {
       return NextResponse.json({ techCenterId: null, techCenter: null });
