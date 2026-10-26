@@ -340,7 +340,7 @@ export default function AnnouncementCarousel({
         firstName: m.user.firstName,
         jerseyNumber: m.jerseyNumber,
         image: m.user.profileImageUrl,
-        isDirector: m.teamRole === 'superadmin',
+        isDirector: m.teamRole === 'super_admin',
         isManager: m.teamRole === 'admin',
         isTutor: m.teamRole === 'teacher',
       })),

@@ -967,7 +967,7 @@ export default function FootballTeamPage() {
         <div className="max-w-md rounded-xl border border-[#DADCD3] bg-white p-8 text-center shadow-sm">
           <h1 className="text-lg font-black tracking-tight text-slate-900">Sports unavailable</h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            {user?.role?.name === "super_admin"
+            {user?.role === "super_admin"
               ? "This Super Admin account has no previous tech center to join a team from."
               : "Your account is not assigned to a tech center."}
           </p>
