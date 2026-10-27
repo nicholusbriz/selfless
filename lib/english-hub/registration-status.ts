@@ -59,7 +59,7 @@ export function getRegistrationStatus(
   if (minuteOfDay < registrationStart) {
     return {
       status: 'NOT_YET_OPEN',
-      message: 'Registration opens at 1:30 PM',
+      message: 'Registration window: 1:30 PM to 2:00 PM',
       canRegister: false,
     };
   }

@@ -8,8 +8,6 @@ import {
   Minimize,
   Play,
   Pause,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 
 interface VideoPlayerProps {
@@ -21,10 +19,6 @@ interface VideoPlayerProps {
   description?: string;
   onEnded?: () => void;
   playRef?: React.RefObject<{ play: () => void } | null>;
-  onPrevious?: () => void;
-  onNext?: () => void;
-  videoIndex?: number;  // 0-based
-  videoCount?: number;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -70,10 +64,6 @@ export function VideoPlayer({
   description,
   onEnded,
   playRef,
-  onPrevious,
-  onNext,
-  videoIndex,
-  videoCount,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -350,39 +340,6 @@ export function VideoPlayer({
             </div>
           ) : (
             <div className="flex-1" />
-          )}
-
-          {/* Prev */}
-          {onPrevious && (
-            <button
-              onClick={onPrevious}
-              disabled={videoCount !== undefined && videoIndex === 0}
-              className="shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-full border border-white/15 bg-white/[0.07] text-white/70 transition-all hover:bg-white/[0.15] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
-              aria-label="Previous video"
-            >
-              <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
-            </button>
-          )}
-
-          {/* Counter */}
-          {videoCount !== undefined && videoIndex !== undefined && (
-            <span className="shrink-0 text-[10px] text-white/50 tabular-nums select-none">
-              <span className="text-white/80 font-medium">{videoIndex + 1}</span>
-              <span className="mx-0.5">/</span>
-              {videoCount}
-            </span>
-          )}
-
-          {/* Next */}
-          {onNext && (
-            <button
-              onClick={onNext}
-              disabled={videoCount !== undefined && videoIndex === videoCount - 1}
-              className="shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-full border border-white/15 bg-white/[0.07] text-white/70 transition-all hover:bg-white/[0.15] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
-              aria-label="Next video"
-            >
-              <ChevronRight className="w-3 h-3" strokeWidth={2.5} />
-            </button>
           )}
 
           {/* Fullscreen */}

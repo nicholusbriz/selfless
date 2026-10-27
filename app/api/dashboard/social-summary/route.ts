@@ -219,7 +219,7 @@ export async function GET(request: Request) {
     }
 
     // ===== 3. Fetch recent likes activity (was /api/social/likes/${userId}) =====
-    const MAX_ACTIVITY = 6;
+    const MAX_ACTIVITY = 10;
     const [receivedLikes, sentLikes] = await Promise.all([
       prisma.like.findMany({
         where: { likedUserId: currentUser.id },

@@ -80,16 +80,6 @@ export async function PATCH(
     };
     const status = getRegistrationStatus(override, now);
 
-    if (!isPastSession && (
-      status.status === 'OPEN' ||
-      !['CLOSED', 'PAST_DEADLINE', 'NOT_AVAILABLE'].includes(status.status)
-    )) {
-      return NextResponse.json(
-        { success: false, error: 'Attendance can only be marked when registration is closed' },
-        { status: 409 }
-      );
-    }
-
     const updatedRegistration = await prisma.englishHubRegistration.update({
       where: { id: registrationId },
       data: {

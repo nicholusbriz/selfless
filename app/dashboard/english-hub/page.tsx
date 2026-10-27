@@ -68,7 +68,7 @@ const practiceSteps = [
 ];
 
 const criticalRules = [
-  { icon: Clock3, title: 'Sheet closes at 1:30 PM', description: 'Circulated exactly 30 minutes before the session. Sign within the window — no exceptions.' },
+  { icon: Clock3, title: 'Sheet closes at 2:00 PM', description: 'Registration opens at 1:30 PM. Sign within the window — no exceptions.' },
   { icon: UserCheck, title: 'Attendance is earned', description: 'You must participate — speak, debate, respond. Silent and present = absent.' },
   { icon: Smartphone, title: 'No phones or laptops', description: 'Prepare points on paper. Using a phone at any time = marked absent without warning.' },
   { icon: Ban, title: 'No special favours', description: 'Do not ask the tutor to add your name or excuse absences after the deadline.' },
@@ -90,7 +90,7 @@ const conductGroups = [
         number: '02',
         title: 'Attendance Sheet — Strict Deadline',
         text:
-          'The official attendance sheet will be circulated exactly thirty minutes before the session begins (at 1:30 PM). You must sign your name within this thirty-minute window. If you fail to register within this window, you will automatically be marked absent. Late registration will not be accepted under any circumstances.',
+          'The official attendance sheet is available from 1:30 PM to 2:00 PM. You must sign your name within this thirty-minute window. If you fail to register within this window, you will automatically be marked absent. Late registration will not be accepted under any circumstances.',
       },
     ],
   },
@@ -216,7 +216,7 @@ export default function EnglishHubPage() {
   const [registrations, setRegistrations] = useState<EnglishHubRegistration[]>([]);
   const [registrationStatus, setRegistrationStatus] = useState<RegistrationStatus>({
     status: 'NOT_YET_OPEN',
-    message: 'Registration opens at 1:30 PM',
+    message: 'Registration window: 1:30 PM to 2:00 PM',
     canRegister: false,
   });
   const [isStatusLoading, setIsStatusLoading] = useState(true);
@@ -637,7 +637,7 @@ export default function EnglishHubPage() {
     <main className="min-h-screen overflow-x-hidden bg-[#F4F5F1] text-[#172033]">
 
       {/* HEADER */}
-      <section className="border-b-4 border-[#B98A3E] bg-[#142B46]">
+      <section className="bg-[#142B46]">
         <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8 lg:px-10">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -649,7 +649,7 @@ export default function EnglishHubPage() {
                 These requirements apply to every English Hub session. Read them carefully before attending.
               </p>
             </div>
-            <div className="flex items-center gap-3 rounded-lg border border-white/15 bg-white/5 px-4 py-2.5">
+            <div className="flex items-center gap-3 rounded-lg bg-white/5 px-4 py-2.5">
               <ShieldCheck className="h-5 w-5 shrink-0 text-[#B98A3E]" />
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-[#B98A3E]">Status</p>
@@ -662,8 +662,8 @@ export default function EnglishHubPage() {
 
       {/* CRITICAL RULES + DEADLINE */}
       <section className="bg-[#F4F5F1]">
-        <div className="mx-auto max-w-7xl px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
-          <div className="mb-5 flex items-center gap-3">
+        <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8 lg:px-10">
+          <div className="mb-4 flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#A4462F] text-white">
               <AlertTriangle className="h-4 w-4" />
             </div>
@@ -673,12 +673,12 @@ export default function EnglishHubPage() {
             </div>
           </div>
 
-          <div className="grid gap-3 lg:grid-cols-3">
-            <div className="grid gap-3 sm:grid-cols-2 lg:col-span-2">
+          <div className="grid gap-4 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
               {criticalRules.map((rule) => {
                 const Icon = rule.icon;
                 return (
-                  <div key={rule.title} className="border-l-4 border-[#B98A3E] bg-white p-4 shadow-sm">
+                  <div key={rule.title} className="bg-white p-4">
                     <div className="flex items-center gap-2">
                       <Icon className="h-4 w-4 text-[#B98A3E]" />
                       <h3 className="text-sm font-bold leading-snug text-[#172033]">{rule.title}</h3>
@@ -689,12 +689,12 @@ export default function EnglishHubPage() {
               })}
             </div>
 
-            <div className="flex flex-col justify-center border-l-4 border-[#B98A3E] bg-[#142B46] p-5 text-white">
+            <div className="flex flex-col justify-center bg-[#142B46] p-5 text-white">
               <Clock3 className="h-5 w-5 text-[#B98A3E]" />
-              <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#B98A3E]">Attendance deadline</p>
-              <h3 className="mt-1 text-base font-bold leading-snug">Sign the sheet by 1:30 PM — no exceptions.</h3>
+              <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#B98A3E]">Registration window</p>
+              <h3 className="mt-1 text-base font-bold leading-snug">1:30 PM to 2:00 PM — no exceptions.</h3>
               <p className="mt-2 text-xs leading-5 text-[#B8D7E8]">
-                Circulated exactly 30 minutes before the session begins. Late registration will not be accepted.
+                Registration opens at 1:30 PM and closes exactly at 2:00 PM. Late registration will not be accepted.
               </p>
             </div>
           </div>
@@ -702,9 +702,9 @@ export default function EnglishHubPage() {
       </section>
 
       {/* FULL CODE OF CONDUCT */}
-      <section className="border-t border-[#D9DDD7] bg-white">
-        <div className="mx-auto max-w-7xl px-5 py-10 sm:px-8 lg:px-10 lg:py-12">
-          <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <section className="bg-white">
+        <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8 lg:px-10">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <div className="flex items-center gap-2 text-[#55705B]">
                 <FileText className="h-4 w-4" />
@@ -721,8 +721,8 @@ export default function EnglishHubPage() {
             {conductGroups.map((group) => {
               const GroupIcon = group.icon;
               return (
-                <div key={group.id} className="rounded-lg border border-[#E7E9E5] bg-[#FBFBF8] p-4 sm:p-5">
-                  <div className="mb-3 flex items-center gap-2.5 border-b border-[#D9DDD7] pb-2.5">
+                <div key={group.id} className="bg-[#FBFBF8] p-4 sm:p-5">
+                  <div className="mb-3 flex items-center gap-2.5 pb-2.5">
                     <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#EEF2F8] text-[#142B46]">
                       <GroupIcon className="h-3.5 w-3.5" />
                     </div>
@@ -746,7 +746,7 @@ export default function EnglishHubPage() {
             })}
           </div>
 
-          <div className="mt-6 flex flex-col items-start gap-2 border-l-4 border-[#B98A3E] bg-[#142B46] px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-4 flex flex-col items-start gap-2 bg-[#142B46] px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#B98A3E]">Final reminder</p>
               <h3 className="mt-0.5 text-sm font-bold sm:text-base">Respect the space. Participate. Come prepared.</h3>
@@ -759,9 +759,9 @@ export default function EnglishHubPage() {
       </section>
 
       {/* LEARNING PATH */}
-      <section className="border-t border-[#D9DDD7] bg-[#F4F5F1]">
-        <div className="mx-auto max-w-7xl px-5 py-10 sm:px-8 lg:px-10 lg:py-12">
-          <div className="mb-6">
+      <section className="bg-[#F4F5F1]">
+        <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8 lg:px-10">
+          <div className="mb-4">
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#55705B]">Once you are ready to practice</p>
             <h2 className="mt-1.5 text-xl font-bold leading-tight text-[#172033] sm:text-2xl">Your learning path</h2>
             <p className="mt-1.5 max-w-xl text-xs leading-5 text-[#687268]">
@@ -769,39 +769,24 @@ export default function EnglishHubPage() {
             </p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {tracks.map((track, index) => {
-              const Icon = track.icon;
-              const isActive = activeTrack === index;
-              return (
-                <Link
-                  key={track.title}
-                  href={track.href}
-                  onMouseEnter={() => setActiveTrack(index)}
-                  className={`group relative flex flex-col rounded-lg border bg-white p-4 transition ${
-                    isActive ? 'border-[#B98A3E] shadow-sm' : 'border-[#E7E9E5] hover:border-[#B98A3E]'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[10px] font-bold text-[#9A9F97]">{track.number}</span>
-                    <Icon className={`h-4 w-4 transition-colors duration-300 ${isActive ? 'text-[#B98A3E]' : 'text-[#718076] group-hover:text-[#B98A3E]'}`} />
-                  </div>
-                  <h3 className="mt-2 text-sm font-bold text-[#172033]">{track.title}</h3>
-                  <p className="mt-1 flex-1 text-xs leading-5 text-[#687268]">{track.description}</p>
-                  <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[#55705B]">
-                    {track.action}
-                    <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
-                  </span>
-                </Link>
-              );
-            })}
+          <div className="space-y-2">
+            {tracks.map((track) => (
+              <Link
+                key={track.title}
+                href={track.href}
+                className="group flex items-center gap-3 text-sm font-semibold text-[#172033] transition-colors hover:text-[#B98A3E]"
+              >
+                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                {track.title}
+              </Link>
+            ))}
           </div>
         </div>
       </section>
 
       {/* DAILY PRACTICE + COMMUNITY */}
       <section className="bg-white">
-        <div className="mx-auto max-w-7xl px-5 py-10 sm:px-8 lg:px-10 lg:py-12">
+        <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8 lg:px-10">
           <div className="grid gap-6 lg:grid-cols-2">
             <div>
               <div className="flex items-center gap-2 text-[#B98A3E]">
@@ -813,7 +798,7 @@ export default function EnglishHubPage() {
                 A simple routine beats a long session. Return to it consistently.
               </p>
 
-              <div className="mt-4 divide-y divide-[#E7E9E5] border-y border-[#D9DDD7]">
+              <div className="mt-4 divide-y divide-[#E7E9E5]">
                 {practiceSteps.map((step) => {
                   const Icon = step.icon;
                   return (
@@ -835,7 +820,7 @@ export default function EnglishHubPage() {
               </Link>
             </div>
 
-            <div className="flex flex-col justify-between rounded-lg border border-[#D0D5CE] bg-[#EDEFEA] p-5">
+            <div className="flex flex-col justify-between rounded-lg bg-[#EDEFEA] p-5">
               <div>
                 <div className="flex items-center gap-2">
                   <BookOpen className="h-4 w-4 text-[#55705B]" />
@@ -845,7 +830,7 @@ export default function EnglishHubPage() {
                   Consistency matters more than long study sessions. Learn something useful, practice it, and use it with someone.
                 </p>
               </div>
-              <div className="mt-4 border-t border-[#D0D5CE] pt-4">
+              <div className="mt-4 pt-4">
                 <p className="text-xs font-semibold text-[#172033]">Learning is better together.</p>
                 <p className="mt-0.5 text-xs text-[#687268]">Practice with someone from your community.</p>
                 <Link href="/dashboard/messages" className="group mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-[#55705B]">
@@ -859,8 +844,8 @@ export default function EnglishHubPage() {
       </section>
 
       {/* REGISTRATION */}
-      <section className="border-t border-[#D9DDD7] bg-white">
-        <div className="mx-auto max-w-7xl px-5 py-8 sm:px-8 lg:px-10">
+      <section className="bg-white">
+        <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8 lg:px-10">
           {/* Status Banner */}
           <p className="mb-2 text-xs font-semibold text-[#687268]">
             {todayDate ? `Today: ${formatRegistrationDate(todayDate)}` : (
@@ -948,9 +933,9 @@ export default function EnglishHubPage() {
 
           {/* Registrations for selected day */}
           <div className="mt-6">
-            <div className="mb-4 flex justify-end">
+            <div className="mb-4 flex justify-start">
               {isTeacherOrAdmin && (
-                <label className="flex w-full items-center justify-end">
+                <label className="flex w-full items-center justify-start">
                   <span className="sr-only">Filter registrations by day</span>
                   <select
                     value={selectedDate}
@@ -963,7 +948,13 @@ export default function EnglishHubPage() {
                       setIsLoading(true);
                       setSelectedDate(event.target.value);
                     }}
-                    className="max-w-full rounded-lg border border-[#D0D5CE] bg-[#FBFBF8] px-3 py-2 text-sm font-semibold text-[#172033] shadow-sm outline-none transition focus:border-[#55705B] focus:ring-2 focus:ring-[#55705B]/20"
+                    className="w-auto min-w-[300px] rounded-lg border border-[#D0D5CE] bg-[#FBFBF8] px-4 py-2.5 pr-10 text-sm font-semibold text-[#172033] shadow-sm outline-none transition focus:border-[#55705B] focus:ring-2 focus:ring-[#55705B]/20 appearance-none"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23B98A3E'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'right 0.75rem center',
+                      backgroundSize: '1rem',
+                    }}
                   >
                     {availableDates.map((date) => (
                       <option key={date} value={date}>
@@ -977,7 +968,7 @@ export default function EnglishHubPage() {
 
             {!isSelectedToday && isTeacherOrAdmin && (
               <p className="mb-4 text-xs text-[#687268]">
-                Past dates are read-only for registration. Staff can update attendance below.
+                Staff will update your status.
               </p>
             )}
 
@@ -991,12 +982,16 @@ export default function EnglishHubPage() {
               </div>
             ) : !registrationLoadError ? (
               <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
-                <p className="mr-1 text-xs font-semibold text-[#687268]">
-                  Total registered on this day: {registrations.length}
-                </p>
+                <button
+                  onClick={() => setAttendanceFilter('ALL')}
+                  aria-pressed={attendanceFilter === 'ALL'}
+                  className={`mr-1 text-xs font-semibold underline-offset-4 transition hover:underline ${
+                    attendanceFilter === 'ALL' ? 'text-[#142B46] underline' : 'text-[#687268]'
+                  }`}
+                >
+                  Total registered: {registrations.length}
+                </button>
                 {([
-                  ['ALL', 'All'],
-                  ['REGISTERED', 'Registered'],
                   ['ATTENDED', 'Attended'],
                   ['NO_SHOW', 'No Show'],
                 ] as const).map(([status, label]) => (
@@ -1073,8 +1068,7 @@ export default function EnglishHubPage() {
                     registration.attendanceStatus === 'REGISTERED';
                   const canMarkAttendance = isTeacherOrAdmin &&
                     !isTemp &&
-                    registration.attendanceStatus === 'REGISTERED' &&
-                    (!isSelectedToday || registrationStatus.status !== 'OPEN');
+                    registration.attendanceStatus === 'REGISTERED';
 
                   return (
                     <div
@@ -1107,12 +1101,6 @@ export default function EnglishHubPage() {
                           </div>
                           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#687268]">
                             <span>
-                              {new Date(registration.registeredAt).toLocaleDateString([], {
-                                month: 'short',
-                                day: 'numeric',
-                                timeZone: 'Africa/Nairobi',
-                              })}
-                              {' · '}
                               {new Date(registration.registeredAt).toLocaleTimeString([], {
                                 hour: 'numeric',
                                 minute: '2-digit',
@@ -1137,18 +1125,9 @@ export default function EnglishHubPage() {
                             </p>
                           )}
 
-                          <div className="mt-1 flex min-h-5 flex-wrap items-center gap-x-4 gap-y-1">
-                            {canCancel && (
-                              <button
-                                onClick={() => handleCancelRegistration(registration.id)}
-                                disabled={cancelingId === registration.id}
-                                className="text-xs font-bold text-[#A4462F] underline-offset-4 transition hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-                              >
-                                {cancelingId === registration.id ? 'Unregistering…' : 'Unregister'}
-                              </button>
-                            )}
+                          <div className="mt-1 flex min-h-5 flex-wrap items-center justify-between gap-x-4 gap-y-1">
                             {canMarkAttendance && (
-                              <>
+                              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                                 <button
                                   onClick={() => handleMarkAttendance(registration.id, 'ATTENDED')}
                                   disabled={markingId === registration.id}
@@ -1163,7 +1142,16 @@ export default function EnglishHubPage() {
                                 >
                                   Mark no show
                                 </button>
-                              </>
+                              </div>
+                            )}
+                            {canCancel && (
+                              <button
+                                onClick={() => handleCancelRegistration(registration.id)}
+                                disabled={cancelingId === registration.id}
+                                className="text-xs font-bold text-[#A4462F] underline-offset-4 transition hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {cancelingId === registration.id ? 'Unregistering…' : 'Unregister'}
+                              </button>
                             )}
                           </div>
                         </div>
@@ -1178,8 +1166,8 @@ export default function EnglishHubPage() {
       </section>
 
       {/* FOOTER */}
-      <footer className="border-t border-[#D9DDD7] bg-white">
-        <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8 lg:px-10">
+      <footer className="bg-white">
+        <div className="mx-auto max-w-7xl px-5 py-4 sm:px-8 lg:px-10">
           <div className="flex flex-col gap-3 text-xs text-[#687268] sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
               <Video className="h-4 w-4 text-[#55705B]" />
