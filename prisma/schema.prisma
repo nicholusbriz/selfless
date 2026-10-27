@@ -141,6 +141,9 @@ model User {
   promotedById String?  @db.ObjectId
   promotedBy   User?    @relation("PromotedUsers", fields: [promotedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
   promotedUsers User[]  @relation("PromotedUsers")
+
+  // English Hub - who marked attendance
+  markedAttendance EnglishHubRegistration[] @relation("AttendanceMarkedBy")
   
   // Teacher-Student Assignment
   teacherId    String?  @db.ObjectId
@@ -203,8 +206,8 @@ model User {
   // Messages sent by this user
   sentMessages Message[] @relation("SenderMessages")
 
-  // Video Requests
-  videoRequests VideoRequest[] @relation("VideoRequests")
+  // English Hub Registrations
+  englishHubRegistrations EnglishHubRegistration[] @relation("EnglishHubRegistrations")
   
   @@index([techCenterId])
   @@index([previousTechCenterId])
@@ -277,7 +280,7 @@ model TechCenter {
   activityLogs ActivityLog[]
   footballTeam FootballTeam[]
   teamMemberships TeamMembership[]
-  videoRequests VideoRequest[] @relation("VideoRequestTechCenter")
+  englishHubRegistrations EnglishHubRegistration[] @relation("EnglishHubRegistrations")
   templeTrips TempleTrip[] @relation("TempleTripTechCenter")
   
   @@index([countryId])
@@ -927,35 +930,47 @@ model Media {
 }
 
 // ============================================
-// VIDEO REQUESTS
+// ENGLISH HUB REGISTRATIONS
 // ============================================
 
-model VideoRequest {
+model EnglishHubRegistration {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
 
-  // User who made the request
+  // User who registered
   userId      String   @db.ObjectId
-  user        User     @relation("VideoRequests", fields: [userId], references: [id], onDelete: Cascade)
+  user        User     @relation("EnglishHubRegistrations", fields: [userId], references: [id], onDelete: Cascade)
 
-  // Request content
-  request     String   // What they want to watch
+  // Tech center - for isolation
+  techCenterId String   @db.ObjectId
+  techCenter   TechCenter @relation("EnglishHubRegistrations", fields: [techCenterId], references: [id], onDelete: Cascade)
 
-  // Tech center location
-  techCenterId String? @db.ObjectId
-  techCenter   TechCenter? @relation("VideoRequestTechCenter", fields: [techCenterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  // Session date (for daily records)
+  sessionDate DateTime // The date of the English Hub session
 
-  // Status
-  status      String   @default("pending") // "pending", "fulfilled", "rejected"
+  // Attendance status
+  attendanceStatus String @default("REGISTERED") // "REGISTERED", "ATTENDED", "NO_SHOW"
+
+  // Who marked attendance (for teachers/admins)
+  markedByUserId String? @db.ObjectId
+  markedBy User? @relation("AttendanceMarkedBy", fields: [markedByUserId], references: [id], onDelete: NoAction)
+
+  // Manual override by teacher/admin
+  manuallyOpened Boolean @default(false) // If true, registration opened manually
+  manuallyClosed Boolean @default(false) // If true, registration closed manually
+  manualOverrideBy String? @db.ObjectId // Who made the override
+  manualOverrideAt DateTime?
 
   // Timestamps
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  registeredAt DateTime @default(now())
+  markedAt     DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  @@index([userId])
+  @@unique([userId, sessionDate]) // One registration per user per day
   @@index([techCenterId])
-  @@index([status])
-  @@index([createdAt])
-  @@map("video_requests")
+  @@index([sessionDate])
+  @@index([attendanceStatus])
+  @@map("english_hub_registrations")
 }
 
 // ============================================

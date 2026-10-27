@@ -1,17 +1,16 @@
 // C:\Selfless\my-app\lib\prisma\client.ts
 /**
  * PRISMA CLIENT
- * 
+ *
  * This file creates and exports a singleton Prisma Client instance.
- * 
+ *
  * Purpose: Prevents multiple database connections during development
  * by reusing the same instance across the application.
- * 
+ *
  * Note: In production, this creates a new instance per request
  * but we use the global object to cache it in development.
  */
 
-// Regenerated after adding VideoRequest model
 import { PrismaClient } from '@prisma/client';
 
 // Use global object to cache Prisma Client across hot reloads

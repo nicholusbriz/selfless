@@ -22,9 +22,7 @@ import {
   Star,
   MessageCircle,
   MessageSquare,
-  Trash2,
   Loader2,
-  Send,
   Heart,
   UserPlus,
   TrendingUp,
@@ -33,6 +31,7 @@ import {
   AlertCircle,
   Sparkles,
   Eye,
+  Crown,
 } from 'lucide-react';
 
 import { useRouter } from 'next/navigation';
@@ -50,8 +49,6 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DiscoverStudents, type DiscoverStudent } from './components/DiscoverStudents';
 import { VideoPlayer } from './components/VideoPlayer';
-import ProfileCompletenessCard from './components/ProfileCompletenessCard';
-import AnnouncementCarousel from './components/AnnouncementCarousel';
 import type { PageCacheAdapter } from '@/lib/social/cacheKeys';
 import {
   findInStudentsShape,
@@ -69,6 +66,13 @@ interface TechCenter {
   id: string;
   name: string;
   city?: string | null;
+}
+
+interface Director {
+  id: string;
+  firstName: string;
+  lastName: string;
+  profileImageUrl?: string | null;
 }
 
 interface Tutor {
@@ -144,24 +148,6 @@ interface MediaItem {
   } | null;
 }
 
-interface VideoRequest {
-  id: string;
-  request: string;
-  status: string;
-  createdAt: string;
-  user: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    profileImageUrl: string | null;
-  };
-  techCenter?: {
-    id: string;
-    name: string;
-    country?: { name: string };
-  } | null;
-}
-
 interface MeStats {
   id: string;
   followersCount: number;
@@ -219,30 +205,6 @@ function isMediaItem(value: unknown): value is MediaItem {
         typeof value.user.lastName === 'string' &&
         (typeof value.user.profileImageUrl === 'string' ||
           value.user.profileImageUrl === null)))
-  );
-}
-
-function isVideoRequest(value: unknown): value is VideoRequest {
-  return (
-    isRecord(value) &&
-    typeof value.id === 'string' &&
-    typeof value.request === 'string' &&
-    typeof value.status === 'string' &&
-    typeof value.createdAt === 'string' &&
-    isRecord(value.user) &&
-    typeof value.user.id === 'string' &&
-    typeof value.user.firstName === 'string' &&
-    typeof value.user.lastName === 'string' &&
-    (typeof value.user.profileImageUrl === 'string' ||
-      value.user.profileImageUrl === null) &&
-    (value.techCenter === undefined ||
-      value.techCenter === null ||
-      (isRecord(value.techCenter) &&
-        typeof value.techCenter.id === 'string' &&
-        typeof value.techCenter.name === 'string' &&
-        (value.techCenter.country === undefined ||
-          (isRecord(value.techCenter.country) &&
-            typeof value.techCenter.country.name === 'string'))))
   );
 }
 
@@ -579,6 +541,101 @@ function RecentAnnouncementsStrip() {
   );
 }
 
+/* ============================================================
+   DIRECTORS DISPLAY — integrated inline
+============================================================ */
+
+function DirectorsDisplay() {
+  const { data: directors = [], isLoading } = useQuery<Director[]>({
+    queryKey: ['directors'],
+    queryFn: async () => {
+      const response = await fetch('/api/directors');
+      if (!response.ok) throw new Error('Failed to fetch directors');
+      const data: unknown = await response.json();
+      if (!isRecord(data) || data.success !== true || !Array.isArray(data.directors)) {
+        throw new Error(getResponseError(data, 'Failed'));
+      }
+      return data.directors.filter((d: unknown) => isRecord(d) && typeof d.id === 'string' && typeof d.firstName === 'string' && typeof d.lastName === 'string');
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchInterval: 3 * 60 * 1000,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="px-4 pb-4 sm:px-6">
+        <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="flex items-center gap-2">
+              <div className="h-8 w-8 shrink-0 animate-pulse rounded-full bg-white/10" />
+              <div className="min-w-0 flex-1 space-y-1">
+                <div className="h-2.5 w-24 animate-pulse rounded bg-white/10" />
+                <div className="h-2 w-12 animate-pulse rounded bg-white/10" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (directors.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="px-4 pb-4 sm:px-6">
+      <div className="mb-3 flex items-center gap-2">
+        <div className="flex h-5 w-5 items-center justify-center rounded bg-[#B98A3E]/15">
+          <Crown className="h-3 w-3 text-[#B98A3E]" />
+        </div>
+        <span className="font-mono text-[9.5px] font-bold uppercase tracking-[0.18em] text-white/50">
+          Selfless Directors
+        </span>
+        <span className="font-mono text-[10px] font-bold tabular-nums text-[#B98A3E]">
+          {directors.length}
+        </span>
+      </div>
+      <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-3">
+        {directors.map((director) => (
+          <div key={director.id} className="flex min-w-0 items-center gap-2">
+            {/* Avatar */}
+            <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-white/10">
+              {director.profileImageUrl ? (
+                <Image
+                  src={director.profileImageUrl}
+                  alt={`${director.firstName} ${director.lastName}`}
+                  fill
+                  sizes="32px"
+                  className="object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <User className="h-4 w-4 text-white/50" />
+                </div>
+              )}
+            </div>
+
+            {/* Name */}
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-semibold leading-tight truncate text-[#F1F1EC]">
+                {`${director.firstName} ${director.lastName}`.trim()}
+              </p>
+              <p className="text-[10px] font-medium leading-tight text-[#E8A33D]">
+                Director
+              </p>
+            </div>
+
+            {/* Crown icon */}
+            <Crown className="h-3.5 w-3.5 shrink-0 text-[#E8A33D]" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SectionHeader({
   label,
   count,
@@ -628,30 +685,12 @@ function MediaLibrary() {
     gcTime: 10 * 60 * 1000,
   });
 
-  const { data: videoRequests = [] } = useQuery<VideoRequest[]>({
-    queryKey: ['video-requests'],
-    queryFn: async () => {
-      const response = await fetch('/api/video-requests');
-      if (!response.ok) throw new Error('Failed to fetch video requests');
-      const data: unknown = await response.json();
-      if (!isRecord(data) || data.success !== true || !Array.isArray(data.data)) {
-        throw new Error(getResponseError(data, 'Failed'));
-      }
-      return data.data.filter(isVideoRequest);
-    },
-    staleTime: 1 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-    enabled: !!user?.id,
-  });
-
   const videos = useMemo(
     () => items.filter((item) => item.contentType.startsWith('video/')),
     [items],
   );
 
   const [rawIndex, setRawIndex] = useState(0);
-  const [requestInput, setRequestInput] = useState('');
-  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
   const videoPlayerRef = useRef<{ play: () => void } | null>(null);
 
   const currentIndex =
@@ -663,57 +702,6 @@ function MediaLibrary() {
     setRawIndex((prev) => (prev + 1) % videos.length);
     setTimeout(() => videoPlayerRef.current?.play(), 100);
   }, [videos.length]);
-
-  const goPrevious = useCallback(() => {
-    if (videos.length <= 1) return;
-    setRawIndex((prev) => (prev - 1 + videos.length) % videos.length);
-    setTimeout(() => videoPlayerRef.current?.play(), 100);
-  }, [videos.length]);
-
-  const selectVideo = useCallback((index: number) => {
-    setRawIndex(index);
-    setTimeout(() => videoPlayerRef.current?.play(), 100);
-  }, []);
-
-  const handleRequestSubmit = async (request: string) => {
-    const content = request.trim();
-    if (!content || isSubmittingRequest) return;
-
-    setIsSubmittingRequest(true);
-    try {
-      const response = await fetch('/api/video-requests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ request: content }),
-      });
-      const data: unknown = await response.json();
-      if (!response.ok || !isRecord(data) || data.success !== true) {
-        throw new Error(getResponseError(data, 'Request failed'));
-      }
-      setRequestInput('');
-      queryClient.invalidateQueries({ queryKey: ['video-requests'] });
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to submit request');
-    } finally {
-      setIsSubmittingRequest(false);
-    }
-  };
-
-  const handleDeleteRequest = async (requestId: string) => {
-    if (!confirm('Delete this request?')) return;
-    try {
-      const response = await fetch(`/api/video-requests/${requestId}`, {
-        method: 'DELETE',
-      });
-      const data: unknown = await response.json();
-      if (!response.ok || !isRecord(data) || data.success !== true) {
-        throw new Error(getResponseError(data, 'Failed'));
-      }
-      queryClient.invalidateQueries({ queryKey: ['video-requests'] });
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete request');
-    }
-  };
 
   if (isLoading) {
     return (
@@ -742,62 +730,6 @@ function MediaLibrary() {
             Be the first to share a video with the community
           </p>
         </div>
-
-        <div className="border-t border-[#E5E7EB] px-4 py-3">
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={requestInput}
-              onChange={(e) => setRequestInput(e.target.value)}
-              onKeyPress={(e) =>
-                e.key === 'Enter' && handleRequestSubmit(requestInput)
-              }
-              placeholder="Request a video topic…"
-              maxLength={30}
-              disabled={isSubmittingRequest}
-              className="h-9 flex-1 border border-[#E5E7EB] bg-white px-3 text-[12px] font-semibold text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:border-[#B98A3E] focus:outline-none"
-            />
-            <button
-              onClick={() => handleRequestSubmit(requestInput)}
-              disabled={!requestInput.trim() || isSubmittingRequest}
-              className="inline-flex h-9 w-9 items-center justify-center bg-[#1A2B4C] text-white transition-colors hover:bg-[#2C3E5A] disabled:opacity-40"
-              aria-label="Send request"
-            >
-              {isSubmittingRequest ? (
-                <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-              ) : (
-                <Send className="h-3.5 w-3.5" />
-              )}
-            </button>
-          </div>
-
-          {videoRequests.length > 0 && (
-            <div className="mt-3 max-h-24 space-y-1 overflow-y-auto">
-              {videoRequests.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-2 border-b border-[#F3F4F6] py-1 last:border-0"
-                >
-                  <span className="shrink-0 text-[10px] font-bold text-[#B98A3E]">
-                    {item.user.firstName} {item.user.lastName}
-                  </span>
-                  <span className="flex-1 truncate text-[11px] text-[#6B7280]">
-                    {item.request}
-                  </span>
-                  {item.user.id === user?.id && (
-                    <button
-                      onClick={() => handleDeleteRequest(item.id)}
-                      className="shrink-0 text-[#9CA3AF] transition-colors hover:text-[#A4462F]"
-                      aria-label="Delete request"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
     );
   }
@@ -813,121 +745,11 @@ function MediaLibrary() {
             description={current.description || undefined}
             className="w-full"
             playRef={videoPlayerRef}
-            onPrevious={videos.length > 1 ? goPrevious : undefined}
-            onNext={videos.length > 1 ? goNext : undefined}
-            videoIndex={currentIndex}
-            videoCount={videos.length}
             onEnded={() => {
               if (videos.length > 1) goNext();
             }}
           />
         )}
-      </div>
-
-      <div className="bg-[#0F1923]">
-        {videos.length > 1 && (
-          <div className="border-t border-white/[0.08]">
-            <div className="flex items-center gap-2 border-b border-white/[0.06] px-4 py-2.5">
-              <Video className="h-3 w-3 text-[#B98A3E]" />
-              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#B98A3E]">
-                Queue
-              </span>
-              <span className="ml-auto font-mono text-[10px] tabular-nums text-white/30">
-                {currentIndex + 1} / {videos.length}
-              </span>
-            </div>
-
-            <div className="max-h-[7.5rem] divide-y divide-white/[0.04] overflow-y-auto">
-              {videos.map((item, idx) => {
-                const isActive = idx === currentIndex;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => selectVideo(idx)}
-                    className={`group flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${isActive
-                      ? 'border-l-2 border-l-[#B98A3E] bg-[#B98A3E]/[0.12]'
-                      : 'border-l-2 border-l-transparent hover:bg-white/[0.04]'
-                      }`}
-                  >
-                    <span
-                      className={`w-5 shrink-0 text-center font-mono text-[10px] font-bold tabular-nums ${isActive
-                        ? 'text-[#B98A3E]'
-                        : 'text-white/25 group-hover:text-white/50'
-                        }`}
-                    >
-                      {String(idx + 1).padStart(2, '0')}
-                    </span>
-                    <span
-                      className={`flex-1 truncate text-[11px] font-bold ${isActive
-                        ? 'text-[#B98A3E]'
-                        : 'text-white/70 group-hover:text-white/90'
-                        }`}
-                    >
-                      {item.title}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        <div className="border-t border-white/[0.08] px-4 py-3">
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={requestInput}
-              onChange={(e) => setRequestInput(e.target.value)}
-              onKeyPress={(e) =>
-                e.key === 'Enter' && handleRequestSubmit(requestInput)
-              }
-              placeholder="Request a video topic…"
-              maxLength={30}
-              disabled={isSubmittingRequest}
-              className="h-8 flex-1 border border-white/10 bg-white/[0.06] px-3 text-[11px] font-semibold text-white/80 placeholder:text-white/25 focus:border-[#B98A3E]/60 focus:outline-none"
-            />
-            <button
-              onClick={() => handleRequestSubmit(requestInput)}
-              disabled={!requestInput.trim() || isSubmittingRequest}
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center bg-[#B98A3E] text-white transition-colors hover:bg-[#E8A33D] disabled:opacity-40"
-              aria-label="Send request"
-            >
-              {isSubmittingRequest ? (
-                <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-              ) : (
-                <Send className="h-3 w-3" />
-              )}
-            </button>
-          </div>
-
-          {videoRequests.length > 0 && (
-            <div className="mt-2 max-h-24 space-y-1 overflow-y-auto">
-              {videoRequests.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-2 border-b border-white/[0.05] py-1 last:border-0"
-                >
-                  <span className="shrink-0 text-[10px] font-bold text-[#B98A3E]">
-                    {item.user.firstName} {item.user.lastName}
-                  </span>
-                  <span className="flex-1 truncate text-[11px] text-white/50">
-                    {item.request}
-                  </span>
-                  {item.user.id === user?.id && (
-                    <button
-                      onClick={() => handleDeleteRequest(item.id)}
-                      className="shrink-0 text-white/25 transition-colors hover:text-red-400"
-                      aria-label="Delete request"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );
@@ -1262,12 +1084,12 @@ function RecentSocialActivity({
 
     return items
       .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
-      .slice(0, 6);
+      .slice(0, 10);
   }, [likers, followers]);
 
   if (events.length === 0) {
     return (
-      <div className="border border-[#D1D5DB] bg-white px-6 py-8 text-center">
+      <div className="bg-white px-6 py-8 text-center">
         <Heart className="mx-auto mb-3 h-5 w-5 text-[#9CA3AF]" />
         <p className="text-[14px] font-bold text-[#1A2B4C]">No activity yet</p>
         <p className="mt-1 text-[12px] text-[#6B7280]">
@@ -1278,14 +1100,14 @@ function RecentSocialActivity({
   }
 
   return (
-    <ul className="divide-y divide-[#E5E7EB] border-y border-[#E5E7EB]">
+    <ul className="space-y-2">
       {events.map((event) => {
         const initials = `${event.user.firstName[0] ?? ''}${event.user.lastName[0] ?? ''
           }`.toUpperCase();
         const isLike = event.kind === 'like';
 
         return (
-          <li key={event.id} className="flex items-center gap-3 py-3">
+          <li key={event.id} className="flex items-center gap-3 rounded-lg bg-white px-3 py-2.5">
             <div className="relative h-9 w-9 shrink-0">
               {event.user.profileImageUrl ? (
                 <Image
@@ -1379,7 +1201,7 @@ function TechCenterActivity({
         return json.logs.filter(isTechCenterActivityItem);
       } else if (techCenterId) {
         const res = await fetch(
-          `/api/tech-centers/${techCenterId}/activity?limit=all`,
+          `/api/tech-centers/${techCenterId}/activity?limit=10`,
         );
         if (!res.ok) throw new Error('Failed to fetch tech center activity');
         const result: unknown = await res.json();
@@ -1423,8 +1245,8 @@ function TechCenterActivity({
 
   if (isLoading) {
     return (
-      <div className="border border-[#E5E7EB] bg-white p-5">
-        <div className="space-y-3">
+      <div className="bg-white p-5">
+        <div className="space-y-2">
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="flex items-center gap-3">
               <div className="h-9 w-9 animate-pulse rounded-full bg-[#E5E7EB]" />
@@ -1441,7 +1263,7 @@ function TechCenterActivity({
 
   if (!activities || activities.length === 0) {
     return (
-      <div className="border border-[#D1D5DB] bg-white px-6 py-8 text-center">
+      <div className="bg-white px-6 py-8 text-center">
         <Sparkles className="mx-auto mb-3 h-5 w-5 text-[#9CA3AF]" />
         <p className="text-[14px] font-bold text-[#1A2B4C]">No activity yet</p>
         <p className="mt-1 text-[12px] text-[#6B7280]">
@@ -1454,60 +1276,58 @@ function TechCenterActivity({
   }
 
   return (
-    <div className="border border-[#E5E7EB] bg-white">
-      <ul className="max-h-[400px] divide-y divide-[#E5E7EB] overflow-y-auto">
-        {activities.map((activity) => {
-          const initials = `${activity.user.firstName[0] ?? ''}${activity.user.lastName[0] ?? ''
-            }`.toUpperCase();
+    <ul className="max-h-[400px] space-y-2 overflow-y-auto">
+      {activities.map((activity) => {
+        const initials = `${activity.user.firstName[0] ?? ''}${activity.user.lastName[0] ?? ''
+          }`.toUpperCase();
 
-          return (
-            <li key={activity.id} className="flex items-center gap-3 py-3">
-              <div className="relative h-9 w-9 shrink-0">
-                {activity.user.profileImageUrl ? (
-                  <Image
-                    src={activity.user.profileImageUrl}
-                    alt={`${activity.user.firstName} ${activity.user.lastName}`}
-                    fill
-                    sizes="36px"
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="flex h-9 w-9 items-center justify-center bg-[#1A2B4C] font-mono text-[11px] font-bold text-white">
-                    {initials}
-                  </div>
-                )}
-                <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center border border-white bg-[#B98A3E]">
-                  {getActionIcon(activity.action)}
-                </span>
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] leading-snug text-[#1A2B4C]">
-                  <span className="font-bold">
-                    {activity.user.firstName} {activity.user.lastName}
-                  </span>{' '}
-                  <span className="text-[#6B7280]">
-                    {getActionLabel(activity.action)}
-                  </span>
-                  {activity.techCenter && (
-                    <span className="ml-2 text-[11px] text-[#B98A3E]">
-                      ({activity.techCenter.name})
-                    </span>
-                  )}
-                </p>
-              </div>
-
-              <span className="shrink-0 font-mono text-[10px] tabular-nums text-[#9CA3AF]">
-                {new Date(activity.createdAt).toLocaleDateString(undefined, {
-                  month: 'short',
-                  day: 'numeric',
-                })}
+        return (
+          <li key={activity.id} className="flex items-center gap-3 rounded-lg bg-white px-3 py-2.5">
+            <div className="relative h-9 w-9 shrink-0">
+              {activity.user.profileImageUrl ? (
+                <Image
+                  src={activity.user.profileImageUrl}
+                  alt={`${activity.user.firstName} ${activity.user.lastName}`}
+                  fill
+                  sizes="36px"
+                  className="object-cover"
+                />
+              ) : (
+                <div className="flex h-9 w-9 items-center justify-center bg-[#1A2B4C] font-mono text-[11px] font-bold text-white">
+                  {initials}
+                </div>
+              )}
+              <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center border border-white bg-[#B98A3E]">
+                {getActionIcon(activity.action)}
               </span>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] leading-snug text-[#1A2B4C]">
+                <span className="font-bold">
+                  {activity.user.firstName} {activity.user.lastName}
+                </span>{' '}
+                <span className="text-[#6B7280]">
+                  {getActionLabel(activity.action)}
+                </span>
+                {activity.techCenter && (
+                  <span className="ml-2 text-[11px] text-[#B98A3E]">
+                    ({activity.techCenter.name})
+                  </span>
+                )}
+              </p>
+            </div>
+
+            <span className="shrink-0 font-mono text-[10px] tabular-nums text-[#9CA3AF]">
+              {new Date(activity.createdAt).toLocaleDateString(undefined, {
+                month: 'short',
+                day: 'numeric',
+              })}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -1562,21 +1382,6 @@ export default function DashboardPage() {
         },
         staleTime: 5 * 60 * 1000,
       });
-
-      // Prefetch tech center admin teams
-      queryClient.prefetchQuery({
-        queryKey: ['tech-center-admin-teams'],
-        queryFn: async () => {
-          const response = await fetch('/api/tech-centers/admin-teams');
-          if (!response.ok) throw new Error('Failed to fetch tech center admin teams');
-          const data: unknown = await response.json();
-          if (!isRecord(data) || data.success !== true || !Array.isArray(data.techCenters)) {
-            throw new Error(getResponseError(data, 'Failed'));
-          }
-          return data.techCenters.filter(isTechCenter);
-        },
-        staleTime: 5 * 60 * 1000,
-      });
     };
 
     prefetchCarouselData();
@@ -1597,7 +1402,7 @@ export default function DashboardPage() {
   const fetchRecentActivity = useCallback(async (techCenterId: string) => {
     try {
       const response = await fetch(
-        `/api/tech-centers/${techCenterId}/activity?limit=all`,
+        `/api/tech-centers/${techCenterId}/activity?limit=10`,
       );
       if (response.ok) {
         const data: unknown = await response.json();
@@ -1622,7 +1427,7 @@ export default function DashboardPage() {
         const activityPromises = techCenters.map(async (tc) => {
           try {
             const activityResponse = await fetch(
-              `/api/tech-centers/${tc.id}/activity?limit=all`,
+              `/api/tech-centers/${tc.id}/activity?limit=10`,
             );
             if (activityResponse.ok) {
               const activitiesData: unknown = await activityResponse.json();
@@ -1871,7 +1676,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-[#F8F9FA] text-[#1A2B4C]">
       <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
         {/* ============================================================
-            HERO — greeting + stats + recent announcements  (1st)
+            HERO — greeting + stats + announcements + directors (unified)
         ============================================================ */}
         <header className="overflow-hidden bg-[#1A2B4C] text-white">
           {/* Status Bar */}
@@ -1979,21 +1784,10 @@ export default function DashboardPage() {
 
           {/* Recent Announcements strip */}
           <RecentAnnouncementsStrip />
-        </header>
 
-        {/* ============================================================
-            ANNOUNCEMENT CAROUSEL — community updates  (2nd)
-        ============================================================ */}
-        <div className="mt-3 bg-[#1A2B4C]">
-          <div className="px-4 pt-4 sm:px-6">
-            <h2 className="text-sm font-semibold text-white sm:text-base">
-              Selfless Live Updates
-            </h2>
-          </div>
-          <div className="px-4 pb-4 pt-3 sm:px-6">
-            <AnnouncementCarousel inHeader={true} />
-          </div>
-        </div>
+          {/* Directors display */}
+          <DirectorsDisplay />
+        </header>
 
         {/* ============================================================
             MAIN CONTENT - Unified layout
@@ -2288,11 +2082,6 @@ export default function DashboardPage() {
             )}
           </section>
         )}
-
-        {/* Profile Completion */}
-        <section className="mt-12">
-          <ProfileCompletenessCard user={user} inHeader={false} />
-        </section>
       </div>
     </div>
   );
