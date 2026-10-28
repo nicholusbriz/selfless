@@ -218,7 +218,8 @@ export default function SuperAdminOverviewPage() {
 
       return response.json() as Promise<ApprovalStats>;
     },
-    refetchInterval: 30_000,
+    refetchInterval: false, // Remove auto-polling
+    staleTime: 2 * 60 * 1000, // 2 minutes
     refetchOnWindowFocus: true,
   });
 

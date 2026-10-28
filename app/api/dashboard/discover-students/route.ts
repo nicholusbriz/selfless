@@ -39,9 +39,9 @@ export async function GET() {
 
     return NextResponse.json(students, {
       headers: {
-        // No caching — always serve fresh data so updated profile images
-        // are picked up immediately instead of being held for 60–300 s.
-        'Cache-Control': 'no-store',
+        // Cache for 5 minutes with stale-while-revalidate
+        // Updated profile images will be picked up within 5 minutes
+        'Cache-Control': 'private, max-age=300, stale-while-revalidate=600',
       },
     });
   } catch (error) {

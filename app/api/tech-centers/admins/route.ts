@@ -38,7 +38,11 @@ export async function GET() {
       take: 100,
     });
 
-    return NextResponse.json({ admins, total: admins.length });
+    return NextResponse.json({ admins, total: admins.length }, {
+      headers: {
+        'Cache-Control': 'private, max-age=300, stale-while-revalidate=600',
+      }
+    });
   } catch (error) {
     console.error('Error fetching tech center admins:', error);
     return NextResponse.json(

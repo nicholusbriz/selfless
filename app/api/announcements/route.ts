@@ -83,6 +83,10 @@ export async function GET(request: NextRequest) {
         isAdmin: user.role?.name === 'admin' || user.role?.name === 'super_admin' || user.role?.name === 'dev',
         techCenterId: user.techCenterId
       }
+    }, {
+      headers: {
+        'Cache-Control': 'private, max-age=60, stale-while-revalidate=120', // 1 min cache for announcements
+      }
     });
   } catch (error) {
     console.error('Error fetching announcements:', error);

@@ -66,6 +66,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       tutors,
       total: tutors.length
+    }, {
+      headers: {
+        'Cache-Control': 'private, max-age=300, stale-while-revalidate=600', // 5 min cache, 10 min SWR
+      }
     });
   } catch (error) {
     console.error('Error fetching tutors:', error);

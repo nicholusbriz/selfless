@@ -12,10 +12,8 @@ export function useActivityTracker(enabled = true) {
       }
     };
 
+    // Send heartbeat on mount
     void sendHeartbeat();
-    const interval = setInterval(() => {
-      void sendHeartbeat();
-    }, 30000);
 
     // Heartbeat on visibility change (user returns to tab)
     const handleVisibilityChange = () => {
@@ -27,7 +25,6 @@ export function useActivityTracker(enabled = true) {
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [enabled]);

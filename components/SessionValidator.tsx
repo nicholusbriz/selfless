@@ -33,10 +33,18 @@ export function SessionValidator() {
     // Check immediately on mount
     checkTokenVersion();
 
-    // Check every 30 seconds
-    const interval = setInterval(checkTokenVersion, 30000);
+    // Check on window focus (user returns to tab)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkTokenVersion();
+      }
+    };
 
-    return () => clearInterval(interval);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [session]);
 
   return null;

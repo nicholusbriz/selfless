@@ -35,9 +35,9 @@ export function useNotifications(unreadOnly: boolean = false) {
       }
       return response.json();
     },
-    staleTime: 1 * 60 * 1000, // 1 minute
-    gcTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 15 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchInterval: false, // Remove auto-polling
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
   });
@@ -66,9 +66,9 @@ export function useUnreadNotificationCount(enabled: boolean = true) {
       }
     },
     enabled,
-    staleTime: 30 * 1000, // 30 seconds
-    gcTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: 15 * 1000,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: false, // Remove auto-polling
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
   });

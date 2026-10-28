@@ -514,8 +514,8 @@ export default function ActivityLogsPage() {
     },
 
     enabled: isDev,
-    staleTime: 30 * 1000,
-    refetchInterval: 60 * 1000,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchInterval: false, // Remove auto-polling
     placeholderData: keepPreviousData,
   });
 
@@ -555,8 +555,8 @@ export default function ActivityLogsPage() {
     },
 
     enabled: isDev,
-    staleTime: 30 * 1000,
-    refetchInterval: 60 * 1000,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchInterval: false, // Remove auto-polling
   });
 
   const totalPageVisits =
