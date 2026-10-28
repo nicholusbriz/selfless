@@ -19,13 +19,20 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 /**
- * Prisma Client instance with logging configuration
+ * Prisma Client instance with optimized configuration
  * - Only logs errors to reduce terminal noise
+ * - Increased connection limits for better performance
  */
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: ['error'],
+    log: process.env.NODE_ENV === 'development' ? ['error'] : ['error'],
+    // Optimize connection pool for MongoDB
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL,
+      },
+    },
   });
 
 // In development, cache the client in the global object

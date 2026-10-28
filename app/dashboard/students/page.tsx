@@ -333,7 +333,7 @@ const sortStudents = (students: Student[], sortBy: SortOption): Student[] => {
 };
 
 // ============================================================
-// STUDENT CARD (ENHANCED — MATCHES DISCOVERY COMPONENT STYLE)
+// STUDENT CARD (ENHANCED DESIGN — KEEPS ORIGINAL INFO)
 // ============================================================
 
 const StudentCard = ({
@@ -368,9 +368,9 @@ const StudentCard = ({
   const cardWidthSm = 'sm:w-[290px]';
 
   return (
-    <article className={`group ${cardWidth} shrink-0 snap-start overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] shadow-[0_24px_65px_rgba(0,0,0,0.52)] transition-all hover:border-[#C8A24A]/70 hover:shadow-[0_28px_75px_rgba(0,0,0,0.6)] ${cardWidthSm}`}>
-      {/* Image fills the entire card — same as discovery component */}
-      <div className="relative aspect-[3/4] w-full overflow-hidden bg-black">
+    <article className={`group ${cardWidth} shrink-0 snap-start overflow-hidden rounded-[22px] border border-[#E5E7EB] bg-white shadow-sm transition-shadow hover:shadow-md ${cardWidthSm}`}>
+      {/* Image fills the entire card */}
+      <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#1A2B4C]">
         <div className="absolute inset-x-3 top-3 z-10 flex items-center justify-between gap-2 text-white">
           {!isSuperAdmin && (
             <span className="inline-flex shrink-0 items-center rounded-md border border-white/30 bg-black/40 px-2.5 py-1 text-[10px] font-semibold">
@@ -395,121 +395,124 @@ const StudentCard = ({
             quality={95}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-[#18212F] text-4xl font-semibold text-white/70">
-            {initials}
+          <div className="flex h-full w-full items-center justify-center">
+            <span className="font-mono text-2xl font-black text-white/90">
+              {initials}
+            </span>
           </div>
         )}
 
+        {/* Gradient overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+
         <div className="absolute inset-0 flex flex-col justify-end p-3">
-          <div className="flex max-h-[78%] flex-col gap-2 overflow-y-auto rounded-xl border border-white/20 bg-[#101827]/75 p-3 text-white shadow-lg backdrop-blur-md">
-            {/* Row 1 — Name + Role */}
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="text-[16px] font-bold leading-tight text-white">
-                <Link
-                  href={`/dashboard/students/${student.id}`}
-                  className="rounded-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B]"
-                  aria-label={`View ${fullName}'s profile`}
-                >
-                  {fullName}
-                </Link>
-              </h3>
-              {roleLabel && (
-                <span className="text-[11px] font-medium text-white/90 shrink-0">
-                  {roleLabel}
-                </span>
-              )}
-            </div>
-
-            {/* Row 2 — Course */}
-            {student.role?.name !== 'super_admin' && (
-              <p className="text-[13px] font-medium text-white">
-                {student.generalCourse || 'Student'}
-              </p>
+          {/* Row 1 — Name + Role */}
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-[16px] font-bold leading-tight text-white">
+              <Link
+                href={`/dashboard/students/${student.id}`}
+                className="rounded-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B]"
+                aria-label={`View ${fullName}'s profile`}
+              >
+                {fullName}
+              </Link>
+            </h3>
+            {roleLabel && (
+              <span className="text-[11px] font-medium text-white/90 shrink-0">
+                {roleLabel}
+              </span>
             )}
+          </div>
 
-            {/* Row 3 — Tech Center with MapPin icon */}
-            {student.techCenter?.name && (
-              <div className="flex items-center gap-1.5">
-                <MapPin className="h-[12px] w-[12px] shrink-0 text-[#D4A84B]" />
-                <span className="text-[12px] font-medium text-white/90">
-                  {student.techCenter.name}
-                </span>
-              </div>
-            )}
+          {/* Row 2 — Course */}
+          {student.role?.name !== 'super_admin' && (
+            <p className="text-[13px] font-medium text-white">
+              {student.generalCourse || 'Student'}
+            </p>
+          )}
 
-            {/* Row 4 — Stats & Credits (compact) */}
-            <div className="mt-1 flex items-center gap-2 text-[11px] text-white/90">
-              <span className="font-semibold text-white">{student.followersCount}</span>
-              <span>followers</span>
-              <span className="text-white/70">•</span>
-              <span className="font-semibold text-white">{Math.max(0, student.likesReceivedCount)}</span>
-              <span>likes</span>
-              <span className="text-white/70">•</span>
-              <span className="font-semibold text-white">{student.profileViewsCount}</span>
-              <span>views</span>
+          {/* Row 3 — Tech Center with MapPin icon */}
+          {student.techCenter?.name && (
+            <div className="flex items-center gap-1.5">
+              <MapPin className="h-[12px] w-[12px] shrink-0 text-[#D4A84B]" />
+              <span className="text-[12px] font-medium text-white/90">
+                {student.techCenter.name}
+              </span>
             </div>
+          )}
 
-            {/* Row 5 — Enrolled Units summary */}
-            {student.studentCourses?.length > 0 ? (
-              <div className="mt-1">
-                <div className="flex items-center justify-between gap-1 mb-0.5">
-                  <div className="flex items-center gap-1">
-                    <BookOpen className="shrink-0 text-[#D4A84B] h-3 w-3" />
-                    <span className="text-[10px] font-semibold uppercase tracking-wide text-white/90">
-                      Enrolled Courses
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-semibold text-[#D4A84B]">
-                    {totalCredits} credits
+          {/* Row 4 — Stats & Credits (compact) */}
+          <div className="mt-1 flex items-center gap-2 text-[11px] text-white/90">
+            <span className="font-semibold text-white">{student.followersCount}</span>
+            <span>followers</span>
+            <span className="text-white/70">•</span>
+            <span className="font-semibold text-white">{Math.max(0, student.likesReceivedCount)}</span>
+            <span>likes</span>
+            <span className="text-white/70">•</span>
+            <span className="font-semibold text-white">{student.profileViewsCount}</span>
+            <span>views</span>
+          </div>
+
+          {/* Row 5 — Enrolled Units summary */}
+          {student.studentCourses?.length > 0 ? (
+            <div className="mt-1">
+              <div className="flex items-center justify-between gap-1 mb-0.5">
+                <div className="flex items-center gap-1">
+                  <BookOpen className="shrink-0 text-[#D4A84B] h-3 w-3" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-white/90">
+                    Enrolled Courses
                   </span>
                 </div>
-                <div className="space-y-0.5">
-                  {student.studentCourses.map((course) => (
-                    <div key={course.id} className="flex items-start justify-between gap-2">
-                      <span className="text-white text-[11px] font-medium">
-                        {course.courseUnit}
-                      </span>
-                      <span className="shrink-0 text-[10px] font-semibold text-white">
-                        {course.credits}cr
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                <span className="text-[10px] font-semibold text-[#D4A84B]">
+                  {totalCredits} credits
+                </span>
               </div>
-            ) : !isSuperAdmin ? (
-              <p className="mt-1 text-[11px] font-medium text-white/90">
-                Please submit your courses
-              </p>
-            ) : null}
-
-            {/* Row 6 — Actions */}
-            <div className="mt-2 flex items-center justify-end gap-1.5 overflow-hidden">
-              {!isCurrentUser && (
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => router.push(`/dashboard/messages?userId=${student.id}`)}
-                    className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-white/30 bg-black/25 px-2.5 py-1 text-[10px] font-semibold text-white transition-all hover:bg-black/35 hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B]"
-                    aria-label={`Message ${fullName}`}
-                    title={`Message ${fullName}`}
-                  >
-                    <MessageSquare className="h-3 w-3" />
-                    Message
-                  </button>
-                  <SocialActions
-                    userId={student.id}
-                    currentUserId={currentUserId}
-                    isFollowing={student.isFollowing}
-                    isLiked={student.isLiked}
-                    pageAdapters={STUDENT_DIRECTORY_ADAPTERS}
-                    size="sm"
-                    allowUnfollow={true}
-                    allowUnlike={true}
-                    className="flex items-center gap-1.5"
-                  />
-                </div>
-              )}
+              <div className="space-y-0.5">
+                {student.studentCourses.map((course) => (
+                  <div key={course.id} className="flex items-start justify-between gap-2">
+                    <span className="text-white text-[11px] font-medium">
+                      {course.courseUnit}
+                    </span>
+                    <span className="shrink-0 text-[10px] font-semibold text-white">
+                      {course.credits}cr
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
+          ) : !isSuperAdmin ? (
+            <p className="mt-1 text-[11px] font-medium text-white/90">
+              Please submit your courses
+            </p>
+          ) : null}
+
+          {/* Row 6 — Actions */}
+          <div className="mt-2 flex items-center justify-end gap-1.5 overflow-hidden">
+            {!isCurrentUser && (
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => router.push(`/dashboard/messages?userId=${student.id}`)}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-white/30 bg-black/25 px-2.5 py-1 text-[10px] font-semibold text-white transition-all hover:bg-black/35 hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B]"
+                  aria-label={`Message ${fullName}`}
+                  title={`Message ${fullName}`}
+                >
+                  <MessageSquare className="h-3 w-3" />
+                  Message
+                </button>
+                <SocialActions
+                  userId={student.id}
+                  currentUserId={currentUserId}
+                  isFollowing={student.isFollowing}
+                  isLiked={student.isLiked}
+                  pageAdapters={STUDENT_DIRECTORY_ADAPTERS}
+                  size="sm"
+                  allowUnfollow={true}
+                  allowUnlike={true}
+                  className="flex items-center gap-1.5"
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -906,10 +909,10 @@ function StudentDirectorySkeleton() {
               <div
                 key={card}
                 aria-hidden="true"
-                className="h-[360px] w-[280px] shrink-0 rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] sm:w-[290px]"
+                className="h-[360px] w-[280px] shrink-0 rounded-[22px] border border-[#E5E7EB] bg-white sm:w-[290px]"
               >
                 <div className="flex h-full w-full items-center justify-center">
-                  <div className="h-full w-full animate-pulse rounded-[22px] bg-[#18212F]" />
+                  <div className="h-full w-full animate-pulse rounded-[22px] bg-[#E5E7EB]" />
                 </div>
               </div>
             ))}
@@ -932,10 +935,10 @@ function TrendingSkeleton() {
           <div
             key={card}
             aria-hidden="true"
-            className="aspect-[3/4] w-[280px] shrink-0 rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] sm:w-[290px]"
+            className="aspect-[3/4] w-[280px] shrink-0 rounded-[22px] border border-[#E5E7EB] bg-white sm:w-[290px]"
           >
             <div className="flex h-full w-full items-center justify-center">
-              <div className="h-full w-full animate-pulse rounded-[22px] bg-[#18212F]" />
+              <div className="h-full w-full animate-pulse rounded-[22px] bg-[#E5E7EB]" />
             </div>
           </div>
         ))}
