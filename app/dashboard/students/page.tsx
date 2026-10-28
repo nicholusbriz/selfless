@@ -1143,6 +1143,7 @@ function CommunityTicker({ students }: { students: Student[] }) {
       typeof student.profileImageUrl === 'string' &&
       student.profileImageUrl.trim().length > 0,
   );
+  const profileCount = profileStudents.length;
   return (
     <div className="border border-[#D1D5DB] bg-white">
       {selectedStudent && (
@@ -1213,15 +1214,18 @@ function CommunityTicker({ students }: { students: Student[] }) {
       )}
 
       <div className="flex h-24 items-center overflow-hidden px-2 sm:px-3">
-        <div className="min-w-0 flex-1 overflow-x-auto">
+        <div className="min-w-0 flex-1 overflow-hidden">
           {profileStudents.length > 0 ? (
-            <div className="flex w-max items-center gap-2 sm:gap-3">
-              {profileStudents.map((student) => (
+            <div
+              className="animate-marquee flex w-max items-center"
+              style={{ animationDuration: `${Math.max(profileCount * 3, 20)}s` }}
+            >
+              {[...profileStudents, ...profileStudents].map((student, index) => (
                 <button
-                  key={student.id}
+                  key={`${student.id}-${index}`}
                   type="button"
                   onClick={() => setSelectedStudent(student)}
-                  className="relative h-20 w-20 shrink-0 overflow-hidden bg-white border-2 border-transparent hover:border-[#D4A84B] active:border-[#D4A84B] active:scale-95 transition-all focus:border-[#D4A84B] focus:outline-none touch-manipulation sm:h-20 sm:w-20"
+                  className="relative mr-2 h-20 w-20 shrink-0 overflow-hidden bg-white border-2 border-transparent hover:border-[#D4A84B] active:border-[#D4A84B] active:scale-95 transition-all focus:border-[#D4A84B] focus:outline-none touch-manipulation sm:h-20 sm:w-20"
                   title={`${student.firstName} ${student.lastName}`}
                   aria-label={`View ${student.firstName} ${student.lastName}'s info`}
                 >
