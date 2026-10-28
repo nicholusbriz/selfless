@@ -21,7 +21,10 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const techCenterId = searchParams.get('techCenterId') || user.techCenterId;
 
-    if (!techCenterId) {
+    // Super admins can view all students without tech center filter
+    const isSuperAdmin = user.role?.name === 'super_admin';
+
+    if (!techCenterId && !isSuperAdmin) {
       return NextResponse.json({ error: 'Tech center ID required' }, { status: 400 });
     }
 
@@ -38,11 +41,19 @@ export async function GET(request: NextRequest) {
     // Fetch all users with courses (not just students) - teachers and admins can also be students
     const usersWithCourses = await prisma.user.findMany({
       where: {
-        techCenterId,
-        submittedCourses: {
-          some: { status: 'ACTIVE' }
-        },
-        ...(user.role?.name === 'teacher' && studentIds.length > 0 ? { id: { in: studentIds } } : {})
+        ...(techCenterId ? {
+          techCenterId,
+          submittedCourses: {
+            some: { status: 'ACTIVE' }
+          },
+          ...(user.role?.name === 'teacher' && studentIds.length > 0 ? { id: { in: studentIds } } : {})
+        } : {
+          // Super admin: show all users with courses, but still respect teacher assignments
+          submittedCourses: {
+            some: { status: 'ACTIVE' }
+          },
+          ...(user.role?.name === 'teacher' && studentIds.length > 0 ? { id: { in: studentIds } } : {})
+        })
       },
       select: {
         id: true,
@@ -97,11 +108,19 @@ export async function GET(request: NextRequest) {
     // Fetch users without courses
     const usersWithoutCourses = await prisma.user.findMany({
       where: {
-        techCenterId,
-        submittedCourses: {
-          none: { status: 'ACTIVE' }
-        },
-        ...(user.role?.name === 'teacher' && studentIds.length > 0 ? { id: { in: studentIds } } : {})
+        ...(techCenterId ? {
+          techCenterId,
+          submittedCourses: {
+            none: { status: 'ACTIVE' }
+          },
+          ...(user.role?.name === 'teacher' && studentIds.length > 0 ? { id: { in: studentIds } } : {})
+        } : {
+          // Super admin: show all users without courses, but still respect teacher assignments
+          submittedCourses: {
+            none: { status: 'ACTIVE' }
+          },
+          ...(user.role?.name === 'teacher' && studentIds.length > 0 ? { id: { in: studentIds } } : {})
+        })
       },
       select: {
         id: true,

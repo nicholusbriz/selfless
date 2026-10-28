@@ -47,6 +47,7 @@ export interface UsersResponse {
     statuses: string[];
   };
   stats: {
+    total: number;
     active: number;
     inactive: number;
     suspended: number;

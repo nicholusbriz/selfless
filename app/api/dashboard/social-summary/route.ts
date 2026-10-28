@@ -4,7 +4,7 @@
  *
  * Merges multiple social stats APIs into one call to reduce dashboard load time:
  *   - /api/social/me (personal stats)
- *   - /api/social/trending?limit=50 (trending users, includes superadmins with profile images)
+ *   - /api/social/trending?limit=50 (trending users, includes eligible superadmins)
  *   - /api/social/likes/${userId} (recent likes activity)
  *   - /api/social/connections/${userId}?type=followers (recent followers activity)
  *
@@ -26,6 +26,7 @@ interface TrendingStudent {
   firstName: string;
   lastName: string;
   profileImageUrl: string | null;
+  status: string;
   role: string | null;
   techCenter: { id: string; name: string } | null;
   previousTechCenter: { id: string; name: string } | null;
@@ -92,23 +93,29 @@ export async function GET(request: Request) {
       ...likeGroups.map((g) => g.likedUserId),
     ]);
 
-    // Also fetch all admins and tutors with profile images
-    const privilegedUsersWithImages = await prisma.user.findMany({
+    // Include privileged users with images, and directors with a previous tech center
+    // even when they have no profile image.
+    const eligiblePrivilegedUsers = await prisma.user.findMany({
       where: {
         role: { name: { in: ['super_admin', 'admin', 'teacher'] } },
-        AND: [
-          { profileImageUrl: { not: null } },
-          { profileImageUrl: { not: '' } },
-        ],
+        status: 'ACTIVE',
         OR: [
-          { role: { name: { not: 'super_admin' } } },
-          { previousTechCenterId: { not: null } },
+          {
+            AND: [
+              { profileImageUrl: { not: null } },
+              { profileImageUrl: { not: '' } },
+            ],
+          },
+          {
+            role: { name: 'super_admin' },
+            previousTechCenterId: { not: null },
+          },
         ],
       },
       select: { id: true },
     });
 
-    privilegedUsersWithImages.forEach((u) => activeIds.add(u.id));
+    eligiblePrivilegedUsers.forEach((u) => activeIds.add(u.id));
 
     let trendingStudents: TrendingStudent[] = [];
     if (activeIds.size > 0) {
@@ -119,6 +126,7 @@ export async function GET(request: Request) {
           firstName: true,
           lastName: true,
           profileImageUrl: true,
+          status: true,
           role: { select: { name: true } },
           previousTechCenterId: true,
           techCenter: { select: { id: true, name: true } },
@@ -158,11 +166,12 @@ export async function GET(request: Request) {
           };
         })
         .filter((u) =>
-          Boolean(u.profileImageUrl?.trim()) &&
+          (Boolean(u.profileImageUrl?.trim()) ||
+            (u.role?.name === 'super_admin' &&
+              Boolean(u.previousTechCenterId))) &&
           (u.followersCount > 0 ||
             u.likesReceivedCount > 0 ||
-            ((u.role?.name === 'super_admin' || u.role?.name === 'admin' || u.role?.name === 'teacher') &&
-              (u.role?.name !== 'super_admin' || Boolean(u.previousTechCenterId))))
+            (u.role?.name === 'super_admin' || u.role?.name === 'admin' || u.role?.name === 'teacher'))
         )
         .sort((a, b) => {
           // Priority 1: Role hierarchy (super_admin > admin > tutor > student)
@@ -201,6 +210,7 @@ export async function GET(request: Request) {
         firstName: u.firstName,
         lastName: u.lastName,
         profileImageUrl: u.profileImageUrl,
+        status: u.status,
         role: u.role?.name ?? null,
         techCenter: u.techCenter,
         previousTechCenter:

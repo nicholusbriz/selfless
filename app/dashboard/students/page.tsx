@@ -1,11 +1,21 @@
 'use client';
 
-import { useEffect, useState, useMemo, useRef } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useState,
+  useMemo,
+  useRef,
+} from 'react';
 import { useSession } from 'next-auth/react';
-import { useQuery } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useQuery,
+  type InfiniteData,
+} from '@tanstack/react-query';
 import Link from 'next/link';
 import {
-  Users,
   Search,
   X,
   BookOpen,
@@ -14,11 +24,10 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowDownUp,
-  Send,
   MessageSquare,
+  MapPin,
   Pause,
   Play,
-  MapPin,
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -26,8 +35,6 @@ import { useRouter } from 'next/navigation';
 import { SocialActions } from '@/components/social/SocialActions';
 import {
   compareProfileImageFirst,
-  rankByTrending,
-  rankStudentsByTrendingCustom,
 } from '@/lib/social/ranking';
 import {
   patchStudentsShape,
@@ -46,11 +53,11 @@ interface Student {
   firstName: string;
   lastName: string;
   profileImageUrl: string | null;
-  role: { name: string };
+  role: { name: string } | null;
   techCenter: {
     id: string;
     name: string;
-    country: { name: string };
+    country: { name: string } | null;
   } | null;
   generalCourse: string | null;
   takesReligion: boolean | null;
@@ -77,11 +84,136 @@ interface Student {
 interface TechCenter {
   id: string;
   name: string;
-  country: { name: string };
+  country: { name: string } | null;
 }
 
+interface StudentPageResponse {
+  students: Student[];
+  hasMore: boolean;
+  nextOffset: number;
+}
+
+type StudentCategory = 'all' | 'trending';
+const STUDENT_PAGE_SIZE = 20;
+
 type Router = ReturnType<typeof useRouter>;
-type FeedScope = 'following' | 'all';
+
+function isStudent(value: unknown): value is Student {
+  if (
+    !isRecord(value) ||
+    typeof value.id !== 'string' ||
+    typeof value.firstName !== 'string' ||
+    typeof value.lastName !== 'string' ||
+    (value.profileImageUrl !== null && typeof value.profileImageUrl !== 'string') ||
+    (value.role !== null &&
+      (!isRecord(value.role) || typeof value.role.name !== 'string')) ||
+    (value.techCenter !== null &&
+      (!isRecord(value.techCenter) ||
+        typeof value.techCenter.id !== 'string' ||
+        typeof value.techCenter.name !== 'string' ||
+        (value.techCenter.country !== null &&
+          (!isRecord(value.techCenter.country) ||
+            typeof value.techCenter.country.name !== 'string')))) ||
+    (value.generalCourse !== null && typeof value.generalCourse !== 'string') ||
+    (value.takesReligion !== null && typeof value.takesReligion !== 'boolean') ||
+    typeof value.status !== 'string' ||
+    typeof value.isActive !== 'boolean' ||
+    typeof value.isVerified !== 'boolean' ||
+    typeof value.verificationStatus !== 'string' ||
+    typeof value.createdAt !== 'string' ||
+    !Array.isArray(value.studentCourses) ||
+    !value.studentCourses.every(
+      (course) =>
+        isRecord(course) &&
+        typeof course.id === 'string' &&
+        typeof course.code === 'string' &&
+        typeof course.courseUnit === 'string' &&
+        typeof course.credits === 'number' &&
+        typeof course.status === 'string',
+    ) ||
+    typeof value.followersCount !== 'number' ||
+    typeof value.followingCount !== 'number' ||
+    typeof value.likesReceivedCount !== 'number' ||
+    typeof value.profileViewsCount !== 'number' ||
+    typeof value.isFollowing !== 'boolean' ||
+    typeof value.isLiked !== 'boolean'
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+async function fetchStudentPage({
+  offset,
+  category = 'all',
+  search,
+  techCenterId,
+  sortBy,
+}: {
+  offset: number;
+  category?: StudentCategory;
+  search?: string;
+  techCenterId?: string;
+  sortBy: SortOption;
+}): Promise<StudentPageResponse> {
+  const params = new URLSearchParams({
+    category,
+    limit: String(STUDENT_PAGE_SIZE),
+    offset: String(offset),
+    sortBy,
+  });
+  if (search) params.set('search', search);
+  if (techCenterId) params.set('techCenterId', techCenterId);
+
+  const response = await fetch(`/api/students?${params.toString()}`);
+  if (!response.ok) throw new Error('Failed to fetch students');
+  const data: unknown = await response.json();
+  if (
+    !isRecord(data) ||
+    !Array.isArray(data.students) ||
+    !data.students.every(isStudent) ||
+    typeof data.hasMore !== 'boolean' ||
+    typeof data.nextOffset !== 'number'
+  ) {
+    throw new Error('Invalid student page response');
+  }
+  return {
+    students: data.students,
+    hasMore: data.hasMore,
+    nextOffset: data.nextOffset,
+  };
+}
+
+function patchStudentDirectoryCache(
+  old: unknown,
+  targetId: string,
+  patch: Parameters<typeof patchStudentsShape>[2],
+): unknown {
+  if (isRecord(old) && Array.isArray(old.pages)) {
+    return {
+      ...old,
+      pages: old.pages.map((page) =>
+        patchStudentsShape(page, targetId, patch),
+      ),
+    };
+  }
+  return patchStudentsShape(old, targetId, patch);
+}
+
+function findStudentInDirectoryCache(
+  old: unknown,
+  targetId: string,
+): Student | undefined {
+  if (isRecord(old) && Array.isArray(old.pages)) {
+    for (const page of old.pages) {
+      const student = findInStudentsShape(page, targetId);
+      if (student) return student as Student;
+    }
+    return undefined;
+  }
+  return findInStudentsShape(old, targetId) as Student | undefined;
+}
 
 // ============================================================
 // PAGE CACHE ADAPTER
@@ -90,9 +222,8 @@ type FeedScope = 'following' | 'all';
 const STUDENT_DIRECTORY_ADAPTERS: PageCacheAdapter[] = [
   {
     queryKey: ['studentDirectory'],
-    patch: (old, targetId, patch) =>
-      patchStudentsShape(old, targetId, patch),
-    find: (old, targetId) => findInStudentsShape(old, targetId),
+    patch: patchStudentDirectoryCache,
+    find: findStudentInDirectoryCache,
   },
 ];
 
@@ -202,105 +333,6 @@ const sortStudents = (students: Student[], sortBy: SortOption): Student[] => {
 };
 
 // ============================================================
-// MESSAGE COMPOSER
-// ============================================================
-
-function StudentMessageComposer({
-  recipientId,
-  recipientName,
-}: {
-  recipientId: string;
-  recipientName: string;
-}) {
-  const [message, setMessage] = useState('');
-  const [isSending, setIsSending] = useState(false);
-  const [sendStatus, setSendStatus] = useState<'sent' | 'error' | null>(null);
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const content = message.trim();
-    if (!content || isSending) return;
-
-    setIsSending(true);
-    setSendStatus(null);
-
-    try {
-      const conversationResponse = await fetch('/api/messages/conversations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ participantId: recipientId }),
-      });
-      const conversationData: unknown = await conversationResponse
-        .json()
-        .catch(() => null);
-      if (
-        !conversationResponse.ok ||
-        !isRecord(conversationData) ||
-        !isRecord(conversationData.conversation) ||
-        typeof conversationData.conversation.id !== 'string'
-      ) {
-        throw new Error('Failed to start conversation');
-      }
-
-      const response = await fetch(
-        `/api/messages/${conversationData.conversation.id}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content }),
-        },
-      );
-      if (!response.ok) throw new Error('Failed to send message');
-
-      setMessage('');
-      setSendStatus('sent');
-    } catch {
-      setSendStatus('error');
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-  return (
-    <div className="border-t border-[#E5E7EB] bg-[#FAFAF8] px-2.5 py-1.5">
-      <form onSubmit={handleSubmit} className="flex min-w-0 items-center gap-1.5">
-        <input
-          type="text"
-          value={message}
-          onChange={(event) => {
-            setMessage(event.target.value);
-            setSendStatus(null);
-          }}
-          placeholder={`Message ${recipientName.split(' ')[0]}...`}
-          aria-label={`Message ${recipientName}`}
-          disabled={isSending}
-          className="h-7 min-w-0 flex-1 border border-[#D1D5DB] bg-white px-2 text-[11px] text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:border-[#1A2B4C] focus:outline-none disabled:opacity-60"
-        />
-        <button
-          type="submit"
-          disabled={!message.trim() || isSending}
-          aria-label="Send message"
-          title="Send message"
-          className="inline-flex h-7 w-7 shrink-0 items-center justify-center bg-[#1A2B4C] text-white transition-colors hover:bg-[#23385d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <Send className="h-3 w-3" />
-        </button>
-      </form>
-      {sendStatus && (
-        <p
-          className={`mt-1 text-[10px] ${
-            sendStatus === 'error' ? 'text-[#A4462F]' : 'text-[#55705B]'
-          }`}
-          aria-live="polite"
-        >
-          {sendStatus === 'sent' ? 'Message sent' : 'Could not send message'}
-        </p>
-      )}
-    </div>
-  );
-}
-
-// ============================================================
 // STUDENT CARD (ENHANCED — MATCHES DISCOVERY COMPONENT STYLE)
 // ============================================================
 
@@ -332,8 +364,8 @@ const StudentCard = ({
   const totalCredits = student.studentCourses?.reduce((sum, course) => sum + (course.credits || 0), 0) || 0;
 
   // Keep card size consistent
-  const cardWidth = 'w-[275px]';
-  const cardWidthSm = 'sm:w-[285px]';
+  const cardWidth = 'w-[280px]';
+  const cardWidthSm = 'sm:w-[290px]';
 
   return (
     <article className={`group ${cardWidth} shrink-0 snap-start overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] shadow-[0_24px_65px_rgba(0,0,0,0.52)] transition-all hover:border-[#C8A24A]/70 hover:shadow-[0_28px_75px_rgba(0,0,0,0.6)] ${cardWidthSm}`}>
@@ -359,7 +391,7 @@ const StudentCard = ({
             alt={fullName}
             fill
             className="h-full w-full object-cover object-center"
-            sizes="285px"
+            sizes="290px"
             quality={95}
           />
         ) : (
@@ -368,13 +400,18 @@ const StudentCard = ({
           </div>
         )}
 
-        {/* Info overlay — plain text on top of image, matching discovery component */}
-        <div className="absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-black/70 via-black/30 to-transparent">
-          <div className="flex flex-col gap-2">
+        <div className="absolute inset-0 flex flex-col justify-end p-3">
+          <div className="flex max-h-[78%] flex-col gap-2 overflow-y-auto rounded-xl border border-white/20 bg-[#101827]/75 p-3 text-white shadow-lg backdrop-blur-md">
             {/* Row 1 — Name + Role */}
             <div className="flex items-center justify-between gap-2">
               <h3 className="text-[16px] font-bold leading-tight text-white">
-                {fullName}
+                <Link
+                  href={`/dashboard/students/${student.id}`}
+                  className="rounded-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B]"
+                  aria-label={`View ${fullName}'s profile`}
+                >
+                  {fullName}
+                </Link>
               </h3>
               {roleLabel && (
                 <span className="text-[11px] font-medium text-white/90 shrink-0">
@@ -485,24 +522,101 @@ const StudentCard = ({
 // ============================================================
 
 function HorizontalRail({
+  railId,
+  onStudentsChange,
   label,
   hue,
-  students,
+  category = 'all',
+  searchQuery,
+  techCenterId,
+  sortBy = 'trending',
+  initialPage,
+  initialPageUpdatedAt,
+  showEmptyMessage = false,
   router,
   currentUserId,
   enableAlphabetNav,
 }: {
+  railId: string;
+  onStudentsChange: (railId: string, students: Student[]) => void;
   label: string;
   hue?: string;
-  students: Student[];
+  category?: StudentCategory;
+  searchQuery?: string;
+  techCenterId?: string;
+  sortBy?: SortOption;
+  initialPage?: StudentPageResponse;
+  initialPageUpdatedAt?: number;
+  showEmptyMessage?: boolean;
   router: Router;
   currentUserId?: string;
   showRank?: boolean;
   enableAlphabetNav?: boolean;
 }) {
+  const sectionRef = useRef<HTMLElement>(null);
   const railRef = useRef<HTMLDivElement>(null);
+  const previousPageCountRef = useRef(0);
+  const pendingScrollLeftRef = useRef<number | null>(null);
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
-  const [isPaused, setIsPaused] = useState(false);
+  const [isNearViewport, setIsNearViewport] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    isFetchNextPageError,
+    error,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+  } = useInfiniteQuery<
+    StudentPageResponse,
+    Error,
+    InfiniteData<StudentPageResponse>,
+    readonly unknown[],
+    number
+  >({
+    queryKey: [
+      'studentDirectory',
+      'pages',
+      category,
+      searchQuery ?? '',
+      techCenterId ?? '',
+      sortBy,
+    ],
+    queryFn: ({ pageParam }) =>
+      fetchStudentPage({
+        offset: pageParam,
+        category,
+        search: searchQuery,
+        techCenterId,
+        sortBy,
+      }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) =>
+      lastPage.hasMore ? lastPage.nextOffset : undefined,
+    initialData: initialPage
+      ? {
+          pages: [initialPage],
+          pageParams: [0],
+        }
+      : undefined,
+    initialDataUpdatedAt: initialPageUpdatedAt,
+    enabled: isNearViewport || Boolean(initialPage),
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
+
+  const students = useMemo(
+    () =>
+      data?.pages.flatMap((page) => sortStudents(page.students, sortBy)) ?? [],
+    [data?.pages, sortBy],
+  );
+
+  useEffect(() => {
+    onStudentsChange(railId, students);
+  }, [onStudentsChange, railId, students]);
+
   const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
   const availableLetters = new Set(students.map(getStudentInitial));
   const visibleStudents = selectedLetter
@@ -510,6 +624,44 @@ function HorizontalRail({
         .filter((student) => getStudentInitial(student) === selectedLetter)
         .sort(compareStudentNames)
     : students;
+
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section || isNearViewport) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsNearViewport(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '400px' },
+    );
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, [isNearViewport]);
+
+  useLayoutEffect(() => {
+    const pageCount = data?.pages.length ?? 0;
+    const previousPageCount = previousPageCountRef.current;
+
+    if (pageCount > previousPageCount && pendingScrollLeftRef.current !== null) {
+      if (railRef.current) {
+        railRef.current.scrollLeft = pendingScrollLeftRef.current;
+      }
+      pendingScrollLeftRef.current = null;
+    } else if (pageCount < previousPageCount) {
+      pendingScrollLeftRef.current = null;
+    }
+
+    previousPageCountRef.current = pageCount;
+  }, [data?.pages.length]);
+
+  const loadMoreStudents = () => {
+    pendingScrollLeftRef.current = railRef.current?.scrollLeft ?? null;
+    void fetchNextPage();
+  };
 
   const scrollLeft = () => {
     railRef.current?.scrollBy({ left: -300, behavior: 'smooth' });
@@ -519,30 +671,34 @@ function HorizontalRail({
   };
 
   useEffect(() => {
-    if (isPaused || visibleStudents.length <= 1) return;
+    if (!isPlaying || visibleStudents.length <= 1) return;
 
-    const interval = setInterval(() => {
+    const interval = window.setInterval(() => {
       const rail = railRef.current;
       if (!rail) return;
 
       const maxScroll = rail.scrollWidth - rail.clientWidth;
-      if (rail.scrollLeft >= maxScroll) {
+      if (rail.scrollLeft >= maxScroll - 1) {
         rail.scrollTo({ left: 0, behavior: 'smooth' });
       } else {
         rail.scrollBy({ left: 300, behavior: 'smooth' });
       }
     }, 7000);
 
-    return () => clearInterval(interval);
-  }, [isPaused, visibleStudents.length]);
+    return () => window.clearInterval(interval);
+  }, [isPlaying, visibleStudents.length]);
 
-  const togglePause = () => {
-    setIsPaused(!isPaused);
-  };
+  if (
+    data &&
+    students.length === 0 &&
+    !showEmptyMessage
+  ) {
+    return null;
+  }
 
-  if (students.length === 0) {
+  if (error && students.length === 0) {
     return (
-      <section className="mb-5 sm:mb-6">
+      <section ref={sectionRef} className="mb-5 sm:mb-6">
         <div className="mb-2.5 flex items-baseline gap-3 border-t border-[#1A2B4C] pt-2">
           {hue && (
             <span
@@ -554,15 +710,28 @@ function HorizontalRail({
             {label}
           </h2>
         </div>
-        <div className="border border-[#D1D5DB] bg-white px-4 py-5 text-center">
-          <p className="text-[12px] text-[#4B5646]">No student records available</p>
+        <div className="border border-[#D1D5DB] bg-white px-4 py-5 text-center" role="alert">
+          <p className="text-[12px] text-[#4B5646]">
+            {error instanceof Error ? error.message : 'Unable to load students.'}
+          </p>
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            className="mt-2 text-xs font-semibold text-[#1A2B4C] underline"
+          >
+            Try again
+          </button>
         </div>
       </section>
     );
   }
 
   return (
-    <section className="mb-5 sm:mb-6">
+    <section
+      ref={sectionRef}
+      className="mb-5 sm:mb-6"
+      aria-busy={isLoading || isFetchingNextPage}
+    >
       <div className="mb-2.5 flex items-baseline border-t border-[#1A2B4C] pt-2">
         <div className="flex items-center gap-2">
           {hue && (
@@ -577,23 +746,68 @@ function HorizontalRail({
         </div>
       </div>
 
-      <div
-        ref={railRef}
-        className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 scroll-smooth px-1"
-        style={{ scrollbarWidth: 'thin', scrollSnapType: 'x mandatory' }}
-      >
-        {visibleStudents.map((student) => (
-          <StudentCard
-            key={student.id}
-            student={student}
-            router={router}
-            currentUserId={currentUserId}
-          />
-        ))}
-        <div className="w-1 shrink-0" aria-hidden />
-      </div>
+      {data && students.length === 0 ? (
+        <div className="border border-dashed border-[#D1D5DB] bg-white px-4 py-5 text-center">
+          <p className="text-[12px] text-[#4B5646]">
+            {showEmptyMessage
+              ? 'No matching student records found. Try another name or search term.'
+              : 'No student records available'}
+          </p>
+        </div>
+      ) : !data ? (
+        <div className="flex gap-3 overflow-hidden" aria-hidden="true">
+          {[0, 1, 2].map((item) => (
+            <div key={item} className="h-72 w-60 shrink-0 animate-pulse bg-[#E5E7EB]" />
+          ))}
+        </div>
+      ) : (
+        <div
+          ref={railRef}
+          className="flex gap-3 overflow-x-auto pb-2 px-1"
+          style={{ scrollbarWidth: 'thin' }}
+        >
+          {visibleStudents.map((student) => (
+            <StudentCard
+              key={student.id}
+              student={student}
+              router={router}
+              currentUserId={currentUserId}
+            />
+          ))}
+          {hasNextPage && (
+            <button
+              type="button"
+              onClick={loadMoreStudents}
+              disabled={isFetchingNextPage}
+              className="flex aspect-[3/4] w-[280px] shrink-0 flex-col items-center justify-center gap-3 rounded-[22px] border border-dashed border-[#1A2B4C]/30 bg-white px-6 text-center text-[#1A2B4C] transition-colors hover:border-[#1A2B4C] hover:bg-[#F7F6F2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B] disabled:cursor-wait disabled:opacity-70 sm:w-[290px]"
+            >
+              {isFetchingNextPage ? (
+                <span
+                  aria-hidden="true"
+                  className="h-5 w-5 animate-spin rounded-full border-2 border-[#D1D5DB] border-t-[#1A2B4C]"
+                />
+              ) : (
+                <ChevronRight className="h-6 w-6" />
+              )}
+              <span className="text-sm font-bold">
+                {isFetchingNextPage
+                  ? 'Loading students…'
+                  : isFetchNextPageError
+                    ? 'Try loading more students'
+                    : 'Load more students'}
+              </span>
+              <span className="text-xs text-[#6B7280]">
+                {isFetchingNextPage
+                  ? 'Please wait'
+                  : 'Show the next 20 profiles'}
+              </span>
+            </button>
+          )}
+          <div className="w-1 shrink-0" aria-hidden />
+        </div>
+      )}
 
-      <div className="mt-1 flex items-center gap-2">
+      {students.length > 0 && <div className="mt-1 flex items-center gap-2">
         <div className="flex shrink-0 items-center gap-1">
           <button
             type="button"
@@ -605,11 +819,12 @@ function HorizontalRail({
           </button>
           <button
             type="button"
-            onClick={togglePause}
-            aria-label={isPaused ? "Resume auto-scroll" : "Pause auto-scroll"}
-            className="inline-flex h-7 w-7 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C] active:bg-[#E5E7EB] sm:h-6 sm:w-6"
+            onClick={() => setIsPlaying((playing) => !playing)}
+            aria-label={isPlaying ? `Pause ${label} animation` : `Play ${label} animation`}
+            aria-pressed={isPlaying}
+            className="inline-flex h-7 w-7 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C] active:bg-[#E5E7EB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B] sm:h-6 sm:w-6"
           >
-            {isPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
+            {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
           </button>
           <button
             type="button"
@@ -662,7 +877,13 @@ function HorizontalRail({
             })}
           </nav>
         )}
-      </div>
+      </div>}
+
+      {isFetchNextPageError && (
+        <p role="alert" className="mt-2 text-center text-xs text-[#A4462F]">
+          Could not load more students. Try again.
+        </p>
+      )}
     </section>
   );
 }
@@ -685,7 +906,7 @@ function StudentDirectorySkeleton() {
               <div
                 key={card}
                 aria-hidden="true"
-                className="h-[360px] w-[275px] shrink-0 rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] sm:w-[285px]"
+                className="h-[360px] w-[280px] shrink-0 rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] sm:w-[290px]"
               >
                 <div className="flex h-full w-full items-center justify-center">
                   <div className="h-full w-full animate-pulse rounded-[22px] bg-[#18212F]" />
@@ -711,7 +932,7 @@ function TrendingSkeleton() {
           <div
             key={card}
             aria-hidden="true"
-            className="aspect-[3/4] w-[275px] shrink-0 rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] sm:w-[285px]"
+            className="aspect-[3/4] w-[280px] shrink-0 rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] sm:w-[290px]"
           >
             <div className="flex h-full w-full items-center justify-center">
               <div className="h-full w-full animate-pulse rounded-[22px] bg-[#18212F]" />
@@ -730,6 +951,10 @@ function TrendingSkeleton() {
 function SearchFilterBar({
   searchQuery,
   setSearchQuery,
+  onSearch,
+  onClearSearch,
+  isSearchingResults,
+  submittedSearchQuery,
   selectedLocation,
   setSelectedLocation,
   locations,
@@ -738,6 +963,10 @@ function SearchFilterBar({
 }: {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  onSearch: () => void;
+  onClearSearch: () => void;
+  isSearchingResults: boolean;
+  submittedSearchQuery: string;
   selectedLocation: string;
   setSelectedLocation: (id: string) => void;
   locations: TechCenter[];
@@ -842,30 +1071,58 @@ function SearchFilterBar({
       </div>
 
       <div className="border-t border-[#D1D5DB] px-3 py-2 sm:px-4">
-        <div className="relative w-full">
-          <Search
-            className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#6B7280]"
-          />
-          <input
-            type="text"
-            inputMode="search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search student records by name or course unit..."
-            aria-label="Search students"
-            className="h-8 w-full border border-[#D1D5DB] bg-white pl-8 pr-7 text-[12px] font-normal text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:border-[#1A2B4C] focus:outline-none"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              aria-label="Clear search"
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-[#6B7280] hover:text-[#1A2B4C]"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          )}
-        </div>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSearch();
+          }}
+          className="flex items-center gap-2"
+        >
+          <div className="relative min-w-0 flex-1">
+            <Search
+              className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#6B7280]"
+            />
+            <input
+              type="text"
+              inputMode="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search student records by name or course unit..."
+              aria-label="Search students"
+              className="h-8 w-full border border-[#D1D5DB] bg-white pl-8 pr-7 text-[12px] font-normal text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:border-[#1A2B4C] focus:outline-none"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={onClearSearch}
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#6B7280] hover:text-[#1A2B4C]"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+          <button
+            type="submit"
+            className="inline-flex h-8 shrink-0 items-center gap-1.5 bg-[#1A2B4C] px-3 text-[11px] font-bold text-white transition-colors hover:bg-[#23385d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] focus-visible:ring-offset-2"
+          >
+            <Search className="h-3 w-3" />
+            Search
+          </button>
+        </form>
+        {isSearchingResults && submittedSearchQuery && (
+          <p
+            role="status"
+            aria-live="polite"
+            className="mt-2 flex items-center gap-2 text-[11px] text-[#6B7280]"
+          >
+            <span
+              aria-hidden="true"
+              className="h-3 w-3 animate-spin rounded-full border-2 border-[#D1D5DB] border-t-[#1A2B4C]"
+            />
+            Searching students for &ldquo;{submittedSearchQuery}&rdquo;...
+          </p>
+        )}
       </div>
     </section>
   );
@@ -883,8 +1140,6 @@ function CommunityTicker({ students }: { students: Student[] }) {
       typeof student.profileImageUrl === 'string' &&
       student.profileImageUrl.trim().length > 0,
   );
-  const tickerStudents = [...profileStudents, ...profileStudents];
-
   return (
     <div className="border border-[#D1D5DB] bg-white">
       {selectedStudent && (
@@ -955,12 +1210,12 @@ function CommunityTicker({ students }: { students: Student[] }) {
       )}
 
       <div className="flex h-24 items-center overflow-hidden px-2 sm:px-3">
-        <div className="relative min-w-0 flex-1 overflow-hidden">
+        <div className="min-w-0 flex-1 overflow-x-auto">
           {profileStudents.length > 0 ? (
-            <div className="student-avatar-ticker flex w-max items-center gap-2 sm:gap-3">
-              {tickerStudents.map((student, index) => (
+            <div className="flex w-max items-center gap-2 sm:gap-3">
+              {profileStudents.map((student) => (
                 <button
-                  key={`${student.id}-${index}`}
+                  key={student.id}
                   type="button"
                   onClick={() => setSelectedStudent(student)}
                   className="relative h-20 w-20 shrink-0 overflow-hidden bg-white border-2 border-transparent hover:border-[#D4A84B] active:border-[#D4A84B] active:scale-95 transition-all focus:border-[#D4A84B] focus:outline-none touch-manipulation sm:h-20 sm:w-20"
@@ -985,25 +1240,6 @@ function CommunityTicker({ students }: { students: Student[] }) {
         </div>
       </div>
 
-      <style jsx>{`
-        .student-avatar-ticker {
-          animation: studentAvatarTicker 120s linear infinite;
-          will-change: transform;
-        }
-        @keyframes studentAvatarTicker {
-          from {
-            transform: translateX(0);
-          }
-          to {
-            transform: translateX(-50%);
-          }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .student-avatar-ticker {
-            animation: none;
-          }
-        }
-      `}</style>
     </div>
   );
 }
@@ -1021,16 +1257,7 @@ export default function StudentsPage() {
   const [selectedLocation, setSelectedLocation] = useState('all');
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('trending');
-  const [feedScope] = useState<FeedScope>('all');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-
-  useEffect(() => {
-    const timeout = window.setTimeout(
-      () => setDebouncedSearchQuery(searchQuery.trim()),
-      250,
-    );
-    return () => window.clearTimeout(timeout);
-  }, [searchQuery]);
+  const [submittedSearchQuery, setSubmittedSearchQuery] = useState('');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -1042,53 +1269,82 @@ export default function StudentsPage() {
   }, []);
 
   const {
-    data,
+    data: metadata,
     isLoading,
     error,
     refetch: refetchStudents,
-  } = useQuery({
-    queryKey: ['studentDirectory', debouncedSearchQuery, selectedLocation],
+  } = useQuery<{ techCenters: TechCenter[] }>({
+    queryKey: ['studentDirectory', 'metadata'],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (debouncedSearchQuery) params.set('search', debouncedSearchQuery);
-      if (selectedLocation !== 'all') {
-        params.set('techCenterId', selectedLocation);
-      }
-
-      const response = await fetch(`/api/students?${params.toString()}`);
+      const response = await fetch('/api/students?metadata=true');
       if (!response.ok) throw new Error('Failed to fetch students');
-      return response.json() as Promise<{
-        studentsByTechCenter: Record<string, Student[]>;
-        techCenters: TechCenter[];
-      }>;
+      return response.json() as Promise<{ techCenters: TechCenter[] }>;
     },
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+  });
+
+  const searchResultsQuery = useQuery<StudentPageResponse>({
+    queryKey: [
+      'studentDirectory',
+      'search-preview',
+      submittedSearchQuery,
+      selectedLocation,
+      sortBy,
+    ],
+    queryFn: () =>
+      fetchStudentPage({
+        offset: 0,
+        search: submittedSearchQuery,
+        techCenterId: selectedLocation === 'all' ? undefined : selectedLocation,
+        sortBy,
+      }),
+    enabled: submittedSearchQuery.length > 0,
+    placeholderData: (previousData) => previousData,
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
   });
 
-  const studentsByTechCenter = useMemo(
-    () => data?.studentsByTechCenter ?? {},
-    [data?.studentsByTechCenter],
+  const techCenters = useMemo(
+    () => metadata?.techCenters ?? [],
+    [metadata?.techCenters],
   );
-  const techCenters = data?.techCenters ?? [];
-
-  const allStudents = useMemo(
-    () => Object.values(studentsByTechCenter).flat() as Student[],
-    [studentsByTechCenter],
+  const [loadedStudentsByRail, setLoadedStudentsByRail] = useState<
+    Record<string, Student[]>
+  >({});
+  const handleStudentsChange = useCallback(
+    (railId: string, students: Student[]) => {
+      setLoadedStudentsByRail((current) => {
+        const existing = current[railId];
+        if (
+          existing?.length === students.length &&
+          existing.every((student, index) => student === students[index])
+        ) {
+          return current;
+        }
+        return { ...current, [railId]: students };
+      });
+    },
+    [],
   );
-
-  const scopedStudents = useMemo(() => {
-    if (feedScope === 'following') {
-      return allStudents.filter((s) => s.isFollowing);
-    }
-    return allStudents;
-  }, [allStudents, feedScope]);
-
-  const filteredScoped = useMemo(
-    () => scopedStudents,
-    [scopedStudents],
-  );
-  const isSearching = searchQuery.trim().length > 0;
+  const isSearching = submittedSearchQuery.length > 0;
+  const allStudents = useMemo(() => {
+    const tickerRailIds =
+      selectedLocation === 'all'
+        ? ['trending', 'all', ...techCenters.map((center) => `center:${center.id}`)]
+        : [`center:${selectedLocation}`];
+    const seen = new Set<string>();
+    return tickerRailIds.flatMap((railId) =>
+      (loadedStudentsByRail[railId] ?? []).filter((student) => {
+        if (seen.has(student.id)) return false;
+        seen.add(student.id);
+        return true;
+      }),
+    );
+  }, [loadedStudentsByRail, selectedLocation, techCenters]);
+  const searchDataMatchesCurrentQuery =
+    searchResultsQuery.data !== undefined &&
+    !searchResultsQuery.isPlaceholderData;
 
   return (
     <div className="min-h-screen bg-[#F7F6F2] text-[#1A2B4C]">
@@ -1106,6 +1362,13 @@ export default function StudentsPage() {
           <SearchFilterBar
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
+            onSearch={() => setSubmittedSearchQuery(searchQuery.trim())}
+            onClearSearch={() => {
+              setSearchQuery('');
+              setSubmittedSearchQuery('');
+            }}
+            isSearchingResults={searchResultsQuery.isFetching}
+            submittedSearchQuery={submittedSearchQuery}
             selectedLocation={selectedLocation}
             setSelectedLocation={setSelectedLocation}
             locations={techCenters}
@@ -1134,69 +1397,77 @@ export default function StudentsPage() {
               Retry
             </button>
           </div>
-        ) : filteredScoped.length === 0 ? (
-          <div className="border border-dashed border-[#D1D5DB] bg-white p-10 text-center">
-            <Users className="mx-auto h-8 w-8 text-[#6B7280]" />
-            <h3 className="mt-2 text-[13px] font-bold text-[#1A2B4C]">
-              No matching student records found
-            </h3>
-            <p className="mt-1 text-[11px] text-[#6B7280]">
-              Modify your search keywords or campus filter parameters.
-            </p>
-          </div>
         ) : (
           <div>
-            {!isSearching && selectedLocation === 'all' && (
+            {isSearching ? (
+              <HorizontalRail
+                railId="search"
+                onStudentsChange={handleStudentsChange}
+                label="Search results"
+                hue="#1A2B4C"
+                searchQuery={submittedSearchQuery}
+                techCenterId={selectedLocation === 'all' ? undefined : selectedLocation}
+                sortBy={sortBy}
+                initialPage={
+                  searchDataMatchesCurrentQuery
+                    ? searchResultsQuery.data
+                    : undefined
+                }
+                initialPageUpdatedAt={searchResultsQuery.dataUpdatedAt}
+                showEmptyMessage
+                router={router}
+                currentUserId={currentUserId}
+                enableAlphabetNav
+              />
+            ) : (
               <>
-                <HorizontalRail
-                  label="Trending Student Profiles"
-                  hue="#D4A84B"
-                  students={rankStudentsByTrendingCustom(filteredScoped)}
-                  router={router}
-                  currentUserId={currentUserId}
-                  showRank={true}
-                />
+                {selectedLocation === 'all' && (
+                  <>
+                    <HorizontalRail
+                      railId="trending"
+                      onStudentsChange={handleStudentsChange}
+                      label="Trending Student Profiles"
+                      hue="#D4A84B"
+                      category="trending"
+                      sortBy={sortBy}
+                      router={router}
+                      currentUserId={currentUserId}
+                      showRank
+                    />
 
-                <HorizontalRail
-                  label="All Students"
-                  hue="#1A2B4C"
-                  students={sortStudents(filteredScoped, 'trending')}
-                  router={router}
-                  currentUserId={currentUserId}
-                  enableAlphabetNav={true}
-                />
+                    <HorizontalRail
+                      railId="all"
+                      onStudentsChange={handleStudentsChange}
+                      label="All Students"
+                      hue="#1A2B4C"
+                      sortBy={sortBy}
+                      router={router}
+                      currentUserId={currentUserId}
+                      enableAlphabetNav
+                    />
+                  </>
+                )}
+                {techCenters.map((loc) => {
+                  if (selectedLocation !== 'all' && loc.id !== selectedLocation) {
+                    return null;
+                  }
+                  return (
+                    <HorizontalRail
+                      key={loc.id}
+                      railId={`center:${loc.id}`}
+                      onStudentsChange={handleStudentsChange}
+                      label={loc.name}
+                      hue={getTechCenterHue(loc.name)}
+                      techCenterId={loc.id}
+                      sortBy={sortBy}
+                      router={router}
+                      currentUserId={currentUserId}
+                      enableAlphabetNav
+                    />
+                  );
+                })}
               </>
             )}
-
-            {techCenters.map((loc) => {
-              if (selectedLocation !== 'all' && loc.id !== selectedLocation) {
-                return null;
-              }
-
-              const centerStudents = filteredScoped.filter(
-                (s) => s.techCenter?.id === loc.id,
-              );
-              if (
-                isSearching
-                  ? centerStudents.length === 0
-                  : centerCentersCountIsZeroAndShouldHideIfUnfiltered(
-                      selectedLocation,
-                      centerStudents.length,
-                    )
-              )
-                return null;
-              return (
-                <HorizontalRail
-                  key={loc.id}
-                  label={loc.name}
-                  hue={getTechCenterHue(loc.name)}
-                  students={sortStudents(centerStudents, sortBy)}
-                  router={router}
-                  currentUserId={currentUserId}
-                  enableAlphabetNav={true}
-                />
-              );
-            })}
           </div>
         )}
 
@@ -1214,11 +1485,4 @@ export default function StudentsPage() {
       </div>
     </div>
   );
-}
-
-function centerCentersCountIsZeroAndShouldHideIfUnfiltered(
-  selectedLocation: string,
-  len: number,
-) {
-  return selectedLocation === 'all' && len === 0;
 }

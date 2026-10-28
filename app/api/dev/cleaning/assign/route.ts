@@ -8,6 +8,37 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
 
+class AssignmentValidationError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+  }
+}
+
+function hasPrismaCode(error: unknown, code: string): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === code
+  );
+}
+
+async function retryWriteConflict<T>(operation: () => Promise<T>): Promise<T> {
+  const maxAttempts = 3;
+
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (!hasPrismaCode(error, 'P2034') || attempt >= maxAttempts) {
+        throw error;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 100 * 2 ** (attempt - 1)));
+    }
+  }
+}
+
 // POST - Assign student to cleaning day (Dev can assign any student to any day)
 export async function POST(request: NextRequest) {
   try {
@@ -50,14 +81,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if week is active
-    if (!day.week.isActive) {
-      return NextResponse.json(
-        { error: 'Registration is closed for this week' },
-        { status: 400 }
-      );
-    }
-
     // Verify student exists
     const student = await prisma.user.findFirst({
       where: {
@@ -73,86 +96,81 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if already registered for this specific day
-    const existingDayRegistration = await prisma.cleaningRegistration.findFirst({
-      where: {
-        userId: studentUserId,
-        cleaningDayId,
-      },
-    });
-
-    if (existingDayRegistration) {
-      return NextResponse.json(
-        { error: 'Student is already registered for this cleaning day' },
-        { status: 400 }
-      );
-    }
-
-    // Check if student already has 2 registrations (maximum allowed)
-    const existingRegistrations = await prisma.cleaningRegistration.findMany({
-      where: { userId: studentUserId },
-    });
-
-    if (existingRegistrations.length >= 2) {
-      return NextResponse.json(
-        { error: 'Student is already registered for 2 cleaning days (maximum allowed)' },
-        { status: 400 }
-      );
-    }
-
-    // Check capacity
-    if (day.currentRegistrations >= day.capacityLimit) {
-      return NextResponse.json(
-        { error: 'Day is at full capacity' },
-        { status: 400 }
-      );
-    }
-
-    // Use transaction to create registration and update counts
-    const registration = await prisma.$transaction(async (tx) => {
-      const reg = await tx.cleaningRegistration.create({
-        data: {
-          userId: studentUserId,
-          cleaningDayId: cleaningDayId,
-        },
-      });
-
-      // Update currentRegistrations
-      const updatedDay = await tx.cleaningDay.update({
-        where: { id: cleaningDayId },
-        data: {
-          currentRegistrations: {
-            increment: 1,
-          },
-        },
-      });
-
-      // Update status to FULL if capacity reached
-      if (updatedDay.currentRegistrations >= updatedDay.capacityLimit) {
-        await tx.cleaningDay.update({
-          where: { id: cleaningDayId },
-          data: { status: 'FULL' },
+    const registration = await retryWriteConflict(() =>
+      prisma.$transaction(async (tx) => {
+        const existingDayRegistration = await tx.cleaningRegistration.findFirst({
+          where: { userId: studentUserId, cleaningDayId },
         });
-      }
 
-      return reg;
-    });
+        if (existingDayRegistration) {
+          throw new AssignmentValidationError(
+            'Student is already registered for this cleaning day',
+            409
+          );
+        }
 
-    await prisma.activityLog.create({
-      data: {
-        userId: session.user.id,
-        action: 'assign_student_to_cleaning',
-        entityType: 'cleaningRegistration',
-        entityId: registration.id,
-        details: {
-          studentId: studentUserId,
-          studentName: `${student.firstName} ${student.lastName}`,
-          dayId: cleaningDayId,
-          dayOfWeek: day.dayOfWeek,
-        },
-        techCenterId: day.techCenterId,
-      },
-    });
+        const registrationCount = await tx.cleaningRegistration.count({
+          where: { userId: studentUserId },
+        });
+
+        if (registrationCount >= 2) {
+          throw new AssignmentValidationError(
+            'Student is already registered for 2 cleaning days (maximum allowed)',
+            400
+          );
+        }
+
+        const capacityUpdate = await tx.cleaningDay.updateMany({
+          where: {
+            id: cleaningDayId,
+            currentRegistrations: { lt: day.capacityLimit },
+          },
+          data: { currentRegistrations: { increment: 1 } },
+        });
+
+        if (capacityUpdate.count === 0) {
+          throw new AssignmentValidationError('Day is at full capacity', 400);
+        }
+
+        const updatedDay = await tx.cleaningDay.findUnique({
+          where: { id: cleaningDayId },
+          select: { currentRegistrations: true },
+        });
+
+        if (!updatedDay) {
+          throw new AssignmentValidationError('Cleaning day not found', 404);
+        }
+
+        if (updatedDay.currentRegistrations >= day.capacityLimit) {
+          await tx.cleaningDay.update({
+            where: { id: cleaningDayId },
+            data: { status: 'FULL' },
+          });
+        }
+
+        const assignedRegistration = await tx.cleaningRegistration.create({
+          data: { userId: studentUserId, cleaningDayId },
+        });
+
+        await tx.activityLog.create({
+          data: {
+            userId: session.user.id,
+            action: 'assign_student_to_cleaning',
+            entityType: 'cleaningRegistration',
+            entityId: assignedRegistration.id,
+            details: {
+              studentId: studentUserId,
+              studentName: `${student.firstName} ${student.lastName}`,
+              dayId: cleaningDayId,
+              dayOfWeek: day.dayOfWeek,
+            },
+            techCenterId: day.techCenterId,
+          },
+        });
+
+        return assignedRegistration;
+      }, { maxWait: 5000, timeout: 15000 })
+    );
 
     return NextResponse.json(
       {
@@ -163,6 +181,25 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Error assigning student:', error);
+
+    if (error instanceof AssignmentValidationError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
+    if (hasPrismaCode(error, 'P2002')) {
+      return NextResponse.json(
+        { error: 'Student is already registered for this cleaning day' },
+        { status: 409 }
+      );
+    }
+
+    if (hasPrismaCode(error, 'P2034')) {
+      return NextResponse.json(
+        { error: 'Assignment is temporarily busy. Please try again.' },
+        { status: 409 }
+      );
+    }
+
     return NextResponse.json(
       { error: 'Failed to assign student' },
       { status: 500 }

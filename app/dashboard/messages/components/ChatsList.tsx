@@ -69,7 +69,7 @@ export function ChatsList({
           onSupportClick?.();
         }
       }}
-      className="flex w-full items-center gap-3 border-b border-[#E2E8F0] bg-[#FFFCF5] px-4 py-3 text-left transition-colors hover:bg-[#FBF4E5] focus:outline-none focus:ring-2 focus:ring-[#B98A3E] focus:ring-inset"
+      className="flex w-full items-center gap-3 border-b border-[#EEE8DA] bg-[#FFFCF5] px-4 py-3.5 text-left transition-colors hover:bg-[#FBF4E5] focus:outline-none focus:ring-2 focus:ring-[#B98A3E] focus:ring-inset sm:px-6"
       aria-label={`Open chat with Selfless Support, ${supportName}${(supportConversation?.unreadCount ?? 0) > 0 ? `, ${supportConversation?.unreadCount} unread messages` : ''}`}
     >
       {supportContact.image ? (
@@ -120,19 +120,39 @@ export function ChatsList({
     </button>
   );
 
+  const recentChatsHeader = (
+    <div className="flex items-center justify-between border-b border-[#E8ECF2] px-4 py-3 sm:px-6">
+      <span className="text-xs font-semibold uppercase tracking-wide text-[#718096]">
+        Recent chats
+      </span>
+      <button
+        type="button"
+        onClick={onStartNewChat}
+        aria-label="Start a new chat"
+        title="Start a new chat"
+        className="flex h-8 w-8 items-center justify-center rounded-full text-[#1A2B4C] transition-colors hover:bg-[#F0F2F5] hover:text-[#9A7436] focus:outline-none focus:ring-2 focus:ring-[#B98A3E] focus:ring-offset-1"
+      >
+        <Plus className="h-4 w-4" strokeWidth={2.5} />
+      </button>
+    </div>
+  );
+
   if (isLoading) {
     return (
-      <div className="divide-y divide-[#F7F9FC]">
-        {supportRow}
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="flex items-center gap-3 px-4 py-3 animate-pulse">
-            <div className="w-12 h-12 rounded-full bg-[#F7F9FC]" />
-            <div className="flex-1">
-              <div className="h-4 w-32 bg-[#F7F9FC] rounded" />
-              <div className="h-3 w-48 bg-[#F7F9FC] rounded mt-1" />
+      <div>
+        {recentChatsHeader}
+        <div className="divide-y divide-[#EEF1F5]">
+          {supportRow}
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex animate-pulse items-center gap-3 px-4 py-3 sm:px-6">
+              <div className="h-12 w-12 rounded-full bg-[#F0F2F5]" />
+              <div className="flex-1">
+                <div className="h-4 w-32 rounded bg-[#F0F2F5]" />
+                <div className="mt-1 h-3 w-48 rounded bg-[#F0F2F5]" />
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     );
   }
@@ -140,18 +160,22 @@ export function ChatsList({
   if (regularConversations.length === 0 && !supportConversation) {
     return (
       <div>
-        {supportRow}
-        <div className="py-16 text-center">
-        <MessageSquare className="mx-auto w-12 h-12 text-[#A0AEC0]" strokeWidth={1.5} />
-        <p className="mt-3 text-sm text-[#4A5568]">No conversations yet</p>
-        <p className="text-xs text-[#718096] mt-1">Start a new chat to connect with someone</p>
-        <button
-          onClick={onStartNewChat}
-          className="mt-4 px-4 py-2 bg-[#1A365D] text-white text-sm rounded-lg hover:bg-[#153475] transition-colors flex items-center gap-2 mx-auto"
-        >
-          <Plus className="w-4 h-4" />
-          Start New Chat
-        </button>
+        {recentChatsHeader}
+        {supportRow && <div className="border-b border-[#EEF1F5]">{supportRow}</div>}
+        <div className="px-5 py-14 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#F0F2F5]">
+            <MessageSquare className="h-5 w-5 text-[#788397]" strokeWidth={1.8} />
+          </div>
+          <p className="mt-3 text-sm font-semibold text-[#26354D]">No other conversations yet</p>
+          <p className="mt-1 text-xs text-[#8791A1]">Start a chat to connect with someone.</p>
+          <button
+            type="button"
+            onClick={onStartNewChat}
+            className="mx-auto mt-4 inline-flex items-center gap-2 rounded-lg bg-[#1A2B4C] px-4 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-[#263B60] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E]"
+          >
+            <Plus className="h-4 w-4" />
+            Start a chat
+          </button>
         </div>
       </div>
     );
@@ -159,23 +183,10 @@ export function ChatsList({
 
   return (
     <div>
-      {supportRow}
-      <div className="flex items-center justify-between border-b border-[#F7F9FC] px-4 py-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-[#718096]">
-          Recent chats
-        </span>
-        <button
-          type="button"
-          onClick={onStartNewChat}
-          aria-label="Start a new chat"
-          title="Start a new chat"
-          className="flex h-8 w-8 items-center justify-center rounded-full text-[#3182CE] transition-colors hover:bg-[#EBF8FF] hover:text-[#1A365D] focus:outline-none focus:ring-2 focus:ring-[#3182CE] focus:ring-offset-1"
-        >
-          <Plus className="h-4 w-4" strokeWidth={2.5} />
-        </button>
-      </div>
+      {recentChatsHeader}
 
-      <div className="divide-y divide-[#F7F9FC]">
+      <div className="divide-y divide-[#EEF1F5]">
+        {supportRow}
         {regularConversations.map((conversation) => {
         const otherUser = conversation.otherUser;
         const fullName = getDisplayName(otherUser);
@@ -203,7 +214,7 @@ export function ChatsList({
             role="button"
             tabIndex={0}
             aria-label={`Chat with ${fullName}${isUnread ? `, ${conversation.unreadCount} unread messages` : ''}`}
-            className="flex items-center gap-3 px-4 py-3 hover:bg-[#F7FAFC] cursor-pointer transition-colors group focus:outline-none focus:ring-2 focus:ring-[#3182CE] focus:ring-inset"
+            className="flex cursor-pointer items-center gap-3 px-4 py-3.5 transition-colors hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#B98A3E] focus:ring-inset group sm:px-6"
           >
             {/* Avatar */}
             {otherUser?.image ? (
@@ -213,11 +224,11 @@ export function ChatsList({
                 width={48}
                 height={48}
                 unoptimized
-                className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                className="h-12 w-12 shrink-0 rounded-full object-cover ring-2 ring-[#F0F2F5]"
               />
             ) : (
-              <div className="w-12 h-12 flex items-center justify-center bg-[#1A365D] rounded-full flex-shrink-0">
-                <span className="text-white text-sm font-medium">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#1A2B4C]">
+                <span className="text-sm font-semibold text-white">
                   {initials}
                 </span>
               </div>
@@ -226,26 +237,27 @@ export function ChatsList({
             {/* Chat Info */}
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between">
-                <h3 className={`text-sm font-medium truncate ${isUnread ? 'text-[#1A365D] font-semibold' : 'text-[#1A365D]'}`}>
+                <h3 className={`truncate text-sm ${isUnread ? 'font-bold text-[#1A2B4C]' : 'font-semibold text-[#26354D]'}`}>
                   {fullName}
                 </h3>
                 {lastMessage && (
-                  <span className="text-xs text-[#718096] flex-shrink-0">
+                  <span className="shrink-0 text-[11px] text-[#8791A1]">
                     {formatTime(lastMessage.createdAt)}
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2 text-xs text-[#4A5568]">
-                <span className={isOnline ? 'text-[#3F8F5B]' : 'text-[#8A9088]'}>
+              <div className="mt-1 flex items-center gap-2 text-xs text-[#788397]">
+                <span className={`inline-flex items-center gap-1.5 ${isOnline ? 'text-[#3F8F5B]' : 'text-[#8791A1]'}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-[#3F8F5B]' : 'bg-[#AAB2BF]'}`} />
                   {isOnline ? 'Online' : 'Offline'}
                 </span>
-                <MapPin className="w-3 h-3 text-[#3182CE]" strokeWidth={2} />
+                <MapPin className="h-3 w-3 text-[#A0A9B6]" strokeWidth={2} />
                 <span className="truncate">
                   {otherUser?.techCenter?.name || 'No location'}
                 </span>
               </div>
               {lastMessage && (
-                <p className={`text-xs truncate mt-0.5 ${isUnread ? 'text-[#1A365D] font-medium' : 'text-[#718096]'}`}>
+                <p className={`mt-1 truncate text-xs ${isUnread ? 'font-medium text-[#52617A]' : 'text-[#8791A1]'}`}>
                   {lastMessage.senderId === currentUserId ? 'You: ' : ''}
                   {lastMessage.content}
                 </p>
@@ -254,7 +266,7 @@ export function ChatsList({
 
             {/* Unread count badge */}
             {conversation.unreadCount && conversation.unreadCount > 0 ? (
-              <div className="min-w-[20px] h-5 px-1.5 bg-[#3182CE] rounded-full flex items-center justify-center flex-shrink-0 pointer-events-none">
+              <div className="flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full bg-[#1A2B4C] px-1.5 pointer-events-none">
                 <span className="text-white text-[10px] font-semibold">
                   {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
                 </span>

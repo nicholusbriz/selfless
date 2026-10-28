@@ -68,9 +68,9 @@ const focusRing =
   'outline-none focus-visible:ring-2 focus-visible:ring-[var(--brass)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--surface)]';
 
 const panel =
-  'border border-[var(--line)] bg-[var(--surface)]';
+  'rounded-2xl border border-[var(--line)] bg-[var(--surface)] shadow-[0_8px_24px_rgba(18,32,59,0.045)]';
 
-const btnBase = `inline-flex items-center justify-center gap-2 px-3.5 py-2 text-[12.5px] font-mono font-semibold uppercase tracking-[0.08em] transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${focusRing}`;
+const btnBase = `inline-flex items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-[12.5px] font-mono font-semibold uppercase tracking-[0.08em] transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${focusRing}`;
 
 const btnPrimary = `${btnBase} bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)]`;
 
@@ -119,7 +119,8 @@ export default function MyCoursesPage() {
   const [userTakesReligion, setUserTakesReligion] = useState(false);
   const [userTuitionAmount, setUserTuitionAmount] = useState('');
   const [userGeneralCourse, setUserGeneralCourse] = useState('');
-  const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
+  const [isUpdatingAcademicSettings, setIsUpdatingAcademicSettings] = useState(false);
+  const [isUpdatingGeneralCourse, setIsUpdatingGeneralCourse] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const [showGeneralCourseEdit, setShowGeneralCourseEdit] =
@@ -184,7 +185,7 @@ export default function MyCoursesPage() {
     user?.generalCourse?.trim() || userGeneralCourse.trim();
 
   const updateAcademicSettings = async () => {
-    setIsUpdatingSettings(true);
+    setIsUpdatingAcademicSettings(true);
 
     // Optimistically apply the values the user set so the UI reflects
     // the change instantly without waiting for the round-trip.
@@ -224,7 +225,7 @@ export default function MyCoursesPage() {
       setUserTakesReligion(optimisticReligion);
       setUserTuitionAmount(optimisticTuition);
     } finally {
-      setIsUpdatingSettings(false);
+      setIsUpdatingAcademicSettings(false);
     }
   };
 
@@ -233,7 +234,7 @@ export default function MyCoursesPage() {
 
     if (!trimmedCourse) return;
 
-    setIsUpdatingSettings(true);
+    setIsUpdatingGeneralCourse(true);
     setSaveSuccess(false);
 
     // Optimistically apply the new course name and close the edit panel
@@ -277,7 +278,7 @@ export default function MyCoursesPage() {
       setShowGeneralCourseEdit(true);
       alert('Failed to update general course');
     } finally {
-      setIsUpdatingSettings(false);
+      setIsUpdatingGeneralCourse(false);
     }
   };
 
@@ -444,7 +445,7 @@ export default function MyCoursesPage() {
     return (
       <div data-courses-scope className="min-h-screen bg-[var(--surface-2)] text-[var(--ink)] antialiased">
         <style dangerouslySetInnerHTML={{ __html: TOKENS }} />
-        <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="mb-8 space-y-2">
             <div className="h-7 w-40 animate-pulse bg-[var(--surface-3)]" />
             <div className="h-4 w-64 animate-pulse bg-[var(--surface-3)]" />
@@ -472,7 +473,7 @@ export default function MyCoursesPage() {
       <div data-courses-scope className="min-h-screen bg-[var(--surface-2)] text-[var(--ink)] antialiased">
         <style dangerouslySetInnerHTML={{ __html: TOKENS }} />
         <div className="flex min-h-screen items-center justify-center px-4">
-          <div className="w-full max-w-md border border-[var(--line)] bg-[var(--surface)] p-6 text-center">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-6 text-center shadow-lg">
             <AlertCircle className="mx-auto mb-3 h-8 w-8 text-[var(--bad)]" />
 
             <h2 className="text-base font-semibold text-[var(--ink)]">
@@ -501,55 +502,63 @@ export default function MyCoursesPage() {
 
       {/* Header */}
       <header className="border-b border-[var(--line)] bg-[var(--surface)]">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <div className="flex min-h-[72px] flex-col justify-center py-4 sm:min-h-[80px]">
-            <div className="flex items-center gap-3">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="flex min-h-[72px] flex-col justify-center py-5 sm:min-h-[96px]">
+            <nav aria-label="Breadcrumb" className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={() => router.back()}
-                className={`${btnQuiet} px-2.5`}
+                className={`${btnQuiet} rounded-lg px-3 py-1.5 text-[11px]`}
               >
                 Back
               </button>
 
-              <span className="text-[var(--ink-4)]">/</span>
+              <span aria-hidden="true" className="text-[var(--ink-4)]">/</span>
 
               <Link
                 href="/dashboard/students"
-                className="hidden font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--ink-3)] transition-colors hover:text-[var(--ink)] sm:block"
+                className="hidden font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)] transition-colors hover:text-[var(--ink)] sm:block"
               >
                 Students
               </Link>
 
-              <span className="hidden text-[var(--ink-4)] sm:block">
+              <span aria-hidden="true" className="hidden text-[var(--ink-4)] sm:block">
                 /
               </span>
 
               <Link
                 href="/dashboard/cleaning"
-                className="hidden font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--ink-3)] transition-colors hover:text-[var(--ink)] sm:block"
+                className="hidden font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)] transition-colors hover:text-[var(--ink)] sm:block"
               >
                 Cleaning
               </Link>
-            </div>
+            </nav>
 
-            <div className="mt-2 flex items-end justify-between gap-4">
-              <div>
-                <h1 className="text-2xl font-semibold tracking-tight text-[var(--ink)]">
-                  My Courses
-                </h1>
+            <div className="mt-4 flex items-center justify-between gap-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-soft)] text-[var(--brand)]">
+                  <BookOpen className="h-6 w-6" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--brass)]">
+                    Academic record
+                  </p>
+                  <h1 className="text-2xl font-bold tracking-tight text-[var(--ink)] sm:text-[28px]">
+                    My Courses
+                  </h1>
 
-                <p className="mt-0.5 font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
-                  Manage your current course units and academic
-                  information
-                </p>
+                  <p className="mt-0.5 text-sm text-[var(--ink-3)]">
+                    Manage your course units and academic information.
+                  </p>
+                </div>
               </div>
 
-              <div className="hidden shrink-0 text-right sm:block">
-                <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--ink-4)]">
-                  Total Credits
+              <div className="shrink-0 rounded-xl bg-[var(--brand)] px-4 py-2.5 text-right text-white">
+                <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-white/70">
+                  Credits
                 </p>
 
-                <p className="mt-0.5 font-mono text-2xl font-semibold tabular-nums text-[var(--brand)]">
+                <p className="mt-0.5 font-mono text-2xl font-bold tabular-nums">
                   {totalCredits}
                 </p>
               </div>
@@ -559,7 +568,7 @@ export default function MyCoursesPage() {
       </header>
 
       {/* Main */}
-      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <main className="mx-auto max-w-6xl space-y-8 px-4 py-6 sm:px-6 lg:px-8 lg:py-9">
         {/* Profile Completion */}
         {(!user?.profileImageUrl ||
           !user?.generalCourse ||
@@ -567,7 +576,7 @@ export default function MyCoursesPage() {
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6 border border-[var(--line)] bg-[var(--brand-soft)] px-4 py-4 sm:px-5"
+              className="mb-6 rounded-2xl border border-[var(--line)] bg-[var(--brand-soft)] px-4 py-4 sm:px-5"
             >
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -598,18 +607,20 @@ export default function MyCoursesPage() {
           )}
 
         {/* Academic Information */}
-        <section className="mb-8">
-          <div className="mb-3">
-            <h2 className="text-base font-semibold tracking-tight text-[var(--ink)]">
-              Academic Information
-            </h2>
+        <section>
+          <div className="mb-4 flex items-end justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold tracking-tight text-[var(--ink)]">
+                Academic Information
+              </h2>
 
-            <p className="mt-1 font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
-              Keep your academic information up to date.
-            </p>
+              <p className="mt-1 text-sm text-[var(--ink-3)]">
+                Keep your programme and billing details current.
+              </p>
+            </div>
           </div>
 
-          <div className="divide-y divide-[var(--line)] border border-[var(--line)] bg-[var(--surface)]">
+          <div className="divide-y divide-[var(--line)] rounded-2xl border border-[var(--line)] bg-[var(--surface)] shadow-[0_8px_24px_rgba(18,32,59,0.045)]">
             {/* General Degree Course */}
             <div className="p-5 sm:p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -642,7 +653,7 @@ export default function MyCoursesPage() {
 
                 <button
                   onClick={toggleGeneralCourseEdit}
-                  disabled={isUpdatingSettings}
+                  disabled={isUpdatingGeneralCourse}
                   className={btnQuiet}
                 >
                   {showGeneralCourseEdit ? 'Cancel' : 'Edit'}
@@ -662,7 +673,7 @@ export default function MyCoursesPage() {
                       setUserGeneralCourse(e.target.value)
                     }
                     placeholder="e.g. Software Engineering"
-                    disabled={isUpdatingSettings}
+                    disabled={isUpdatingGeneralCourse}
                     className={`w-full border border-[var(--line)] bg-[var(--surface)] px-4 py-3 font-mono text-[14px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-4)] focus:border-[var(--brass)] disabled:cursor-not-allowed disabled:bg-[var(--surface-2)] ${focusRing}`}
                   />
 
@@ -670,12 +681,12 @@ export default function MyCoursesPage() {
                     <button
                       onClick={updateGeneralCourse}
                       disabled={
-                        isUpdatingSettings ||
+                        isUpdatingGeneralCourse ||
                         !userGeneralCourse.trim()
                       }
                       className={btnPrimary}
                     >
-                      {isUpdatingSettings ? (
+                      {isUpdatingGeneralCourse ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin" />
                           Updating...
@@ -689,7 +700,7 @@ export default function MyCoursesPage() {
                       onClick={() =>
                         setShowGeneralCourseEdit(false)
                       }
-                      disabled={isUpdatingSettings}
+                      disabled={isUpdatingGeneralCourse}
                       className={btnQuiet}
                     >
                       Cancel
@@ -738,7 +749,7 @@ export default function MyCoursesPage() {
                       (previous) => !previous
                     )
                   }
-                  disabled={isUpdatingSettings}
+                  disabled={isUpdatingAcademicSettings}
                   className={btnQuiet}
                 >
                   {showReligionEdit ? 'Cancel' : 'Edit'}
@@ -777,10 +788,10 @@ export default function MyCoursesPage() {
 
                   <button
                     onClick={updateAcademicSettings}
-                    disabled={isUpdatingSettings}
+                    disabled={isUpdatingAcademicSettings}
                     className={`${btnPrimary} mt-3 w-full sm:w-auto`}
                   >
-                    {isUpdatingSettings ? (
+                    {isUpdatingAcademicSettings ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
                         Saving...
@@ -834,7 +845,7 @@ export default function MyCoursesPage() {
                       (previous) => !previous
                     )
                   }
-                  disabled={isUpdatingSettings}
+                  disabled={isUpdatingAcademicSettings}
                   className={btnQuiet}
                 >
                   {showTuitionEdit ? 'Cancel' : 'Edit'}
@@ -861,10 +872,10 @@ export default function MyCoursesPage() {
 
                   <button
                     onClick={updateAcademicSettings}
-                    disabled={isUpdatingSettings}
+                    disabled={isUpdatingAcademicSettings}
                     className={`${btnPrimary} mt-3 w-full sm:w-auto`}
                   >
-                    {isUpdatingSettings ? (
+                    {isUpdatingAcademicSettings ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
                         Saving...
@@ -883,23 +894,18 @@ export default function MyCoursesPage() {
         <section>
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-base font-semibold tracking-tight text-[var(--ink)]">
+              <h2 className="text-lg font-bold tracking-tight text-[var(--ink)]">
                 Course Units
               </h2>
 
-              <p className="mt-1 font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
-                Add and manage the course units you are taking.
+              <p className="mt-1 text-sm text-[var(--ink-3)]">
+                Add and manage the course units you are currently taking.
               </p>
             </div>
 
-            <div className="font-mono text-[13px] text-[var(--ink-3)] sm:text-right">
-              <span className="font-semibold text-[var(--ink)]">
-                {submittedCourses.length}
-              </span>{' '}
-              {submittedCourses.length === 1
-                ? 'course unit'
-                : 'course units'}{' '}
-              submitted
+            <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[var(--surface)] px-3.5 py-2 text-xs font-medium text-[var(--ink-3)] shadow-sm ring-1 ring-[var(--line)]">
+              <span className="font-mono font-bold text-[var(--ink)]">{submittedCourses.length}</span>
+              {submittedCourses.length === 1 ? 'course unit submitted' : 'course units submitted'}
             </div>
           </div>
 
@@ -907,8 +913,7 @@ export default function MyCoursesPage() {
           {!showForm && (
             <button
               onClick={() => setShowForm(true)}
-              disabled={isUpdatingSettings}
-              className={`${btnPrimary} mb-5 flex w-full items-center justify-center`}
+              className={`${btnPrimary} mb-5 flex w-full items-center justify-center rounded-xl py-3 sm:w-auto`}
             >
               <Plus className="h-4 w-4" />
               Add Courses
@@ -1345,58 +1350,61 @@ export default function MyCoursesPage() {
                 </div>
               </div>
 
-              <div className="divide-y divide-[var(--line)] border border-[var(--line)] bg-[var(--surface)]">
+              <div className="grid gap-3 sm:grid-cols-2">
                 {submittedCourses.map((course) => (
                   <motion.div
                     key={course.id}
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-4 transition-colors hover:bg-[var(--surface-2)] sm:p-5"
+                    className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[0_4px_14px_rgba(18,32,59,0.035)] transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(18,32,59,0.08)] sm:p-5"
                   >
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                          <span className="font-mono text-[13.5px] font-semibold text-[var(--brand)]">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-soft)] text-[var(--brand)]">
+                          <BookOpen className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="inline-flex rounded-md bg-[var(--brand-soft)] px-2 py-1 font-mono text-[11px] font-bold tracking-wide text-[var(--brand)]">
                             {course.code}
                           </span>
 
-                          <h4 className="font-mono text-[13.5px] font-semibold text-[var(--ink)]">
+                          <h4 className="mt-1.5 break-words text-[15px] font-semibold leading-5 text-[var(--ink)]">
                             {course.courseUnit}
                           </h4>
-                        </div>
 
-                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[12.5px]">
-                          <span className="text-[var(--ink-3)]">
-                            {course.credits}{' '}
-                            {course.credits === 1
-                              ? 'credit'
-                              : 'credits'}
-                          </span>
+                          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                            <span className="rounded-full bg-[var(--surface-2)] px-2.5 py-1 font-medium text-[var(--ink-2)]">
+                              {course.credits}{' '}
+                              {course.credits === 1
+                                ? 'credit'
+                                : 'credits'}
+                            </span>
 
-                          <span className="text-[var(--ink-4)]">
-                            |
-                          </span>
-
-                          <span className="font-semibold text-[var(--ok)]">
-                            Submitted
-                          </span>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--ok-soft)] px-2.5 py-1 font-semibold text-[var(--ok)]">
+                              <Check className="h-3 w-3" />
+                              Submitted
+                            </span>
+                          </div>
                         </div>
                       </div>
 
                       <div className="flex shrink-0 items-center gap-2">
                         <button
+                          type="button"
                           onClick={() => handleEdit(course)}
-                          className={btnQuiet}
+                          className={`${btnQuiet} flex-1 rounded-lg px-3 py-2 sm:flex-none`}
                         >
                           Edit
                         </button>
 
                         <button
+                          type="button"
                           onClick={() =>
                             handleDelete(course.id)
                           }
                           disabled={deleteMutation.isPending}
-                          className={`${btnQuiet} text-[var(--bad)] hover:border-[var(--bad)] hover:bg-[var(--bad-soft)] hover:text-[var(--bad)] disabled:opacity-50`}
+                          aria-label={`Delete ${course.courseUnit}`}
+                          className={`${btnQuiet} flex-1 rounded-lg px-3 py-2 text-[var(--bad)] hover:border-[var(--bad)] hover:bg-[var(--bad-soft)] hover:text-[var(--bad)] disabled:opacity-50 sm:flex-none`}
                         >
                           {deleteMutation.isPending ? (
                             <Loader2 className="h-4 w-4 animate-spin" />

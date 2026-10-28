@@ -340,11 +340,12 @@ export default function StudentProfilePage() {
             TOP NAVIGATION
         ====================================================== */}
 
-        <div className="mb-5 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={() => router.back()}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#E5E7EB] bg-white text-[#4B5646] shadow-sm transition-all hover:border-[#C59B4C] hover:text-[#1A2B4C]"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#E5E7EB] bg-white text-[#4B5646] shadow-sm transition-all hover:border-[#C59B4C] hover:text-[#1A2B4C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C]"
               aria-label="Go back"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -357,7 +358,7 @@ export default function StudentProfilePage() {
               </span>
             </div>
           </div>
-          <div className="hidden font-mono text-[10px] text-[#9CA3AF] sm:block">
+          <div className="hidden rounded-full bg-white px-3 py-1.5 font-mono text-[10px] font-semibold tracking-wide text-[#6B7280] sm:block">
             PROFILE / {student.studentId.slice(0, 8)}
           </div>
         </div>
@@ -366,48 +367,44 @@ export default function StudentProfilePage() {
             HERO PROFILE CARD
         ====================================================== */}
 
-        <section className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-sm">
-          <div className="relative bg-[#1A2B4C]">
-            <div className="relative h-[280px] w-full sm:h-[340px] md:h-[400px]">
+        <section className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_12px_35px_rgba(26,43,76,0.08)]">
+          <div className="grid md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+            <div className="relative min-h-[320px] bg-[#EEF1F5] sm:min-h-[420px] md:min-h-[480px]">
               {student.profileImage ? (
                 <Image
                   src={student.profileImage}
                   alt={`${student.firstName} ${student.lastName}`}
                   fill
                   priority
-                  sizes="(max-width: 768px) 100vw, 1200px"
-                  className="object-cover object-center"
+                  sizes="(max-width: 768px) 100vw, 45vw"
+                  className="object-contain object-center p-3 sm:p-5"
                 />
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#1A2B4C] to-[#2C3E5A]">
-                  <div className="flex h-28 w-28 items-center justify-center rounded-full border-2 border-white/20 bg-white/5">
-                    <span className="font-mono text-3xl font-black text-white/80">
+                <div className="absolute inset-0 flex items-center justify-center bg-[#E8EDF3]">
+                  <div className="flex h-28 w-28 items-center justify-center rounded-full bg-[#1A2B4C] shadow-lg ring-8 ring-white/70">
+                    <span className="font-mono text-3xl font-black text-white">
                       {initials}
                     </span>
                   </div>
                 </div>
               )}
 
-              <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#1A2B4C] via-[#1A2B4C]/60 to-transparent" />
-              <div className="absolute inset-x-0 top-0 h-1 bg-[#C59B4C]" />
-
               {student.profileImage && (
                 <button
                   type="button"
                   onClick={() => setShowFullImage(true)}
-                  className="absolute right-3 top-4 inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-black/40 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-white backdrop-blur-sm transition-colors hover:bg-black/60"
+                  className="absolute bottom-4 right-4 inline-flex items-center gap-2 rounded-lg border border-[#D1D5DB] bg-white/95 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[#1A2B4C] shadow-sm transition-colors hover:border-[#C59B4C] hover:text-[#8A672C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C]"
                 >
                   <Maximize2 className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">View Full Image</span>
-                  <span className="sm:hidden">View</span>
+                  View full image
                 </button>
               )}
 
               <div
-                className={`absolute left-3 top-4 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.1em] backdrop-blur-sm ${
+                className={`absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] shadow-sm ${
                   student.isActive
-                    ? 'bg-[#55705B]/90 text-white'
-                    : 'bg-[#A4462F]/90 text-white'
+                    ? 'bg-white text-[#42604A]'
+                    : 'bg-white text-[#A4462F]'
                 }`}
               >
                 {student.isActive ? (
@@ -419,52 +416,51 @@ export default function StudentProfilePage() {
               </div>
             </div>
 
-            <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6 md:p-7">
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#C59B4C]">
-                Student Profile
+            <div className="flex flex-col justify-center p-5 sm:p-7 md:p-9">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#9A7436]">
+                Public student profile
               </p>
-              <h1 className="mt-1.5 break-words text-2xl font-black leading-tight tracking-tight text-white sm:text-3xl md:text-4xl lg:text-5xl">
+              <h1 className="mt-3 break-words text-3xl font-black leading-tight tracking-tight text-[#1A2B4C] sm:text-4xl lg:text-5xl">
                 {student.firstName} {student.lastName}
               </h1>
-              <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px] text-white/85">
-                <span className="flex min-w-0 items-center gap-1.5">
-                  <Mail className="h-3.5 w-3.5 flex-shrink-0" />
-                  <span className="break-all">{student.email}</span>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-[#F3F4F6] px-3 py-1.5 text-[11px] font-semibold capitalize text-[#34445F]">
+                  {student.role}
                 </span>
+                <span className="rounded-full bg-[#F3F4F6] px-3 py-1.5 font-mono text-[11px] font-semibold text-[#34445F]">
+                  ID {student.studentId}
+                </span>
+              </div>
+
+              <div className="mt-6 space-y-3 border-t border-[#E5E7EB] pt-5 text-[13px] text-[#4B5646]">
+                <div className="flex min-w-0 items-start gap-3">
+                  <Mail className="mt-0.5 h-4 w-4 shrink-0 text-[#9A7436]" />
+                  <span className="break-all">{student.email}</span>
+                </div>
                 {student.techCenter && (
-                  <span className="flex items-center gap-1.5">
-                    <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span className="truncate">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#9A7436]" />
+                    <span>
                       {student.techCenter.name}
                       {student.techCenter.country?.name && `, ${student.techCenter.country.name}`}
                     </span>
-                  </span>
+                  </div>
                 )}
+                <div className="flex min-w-0 items-start gap-3">
+                  <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-[#9A7436]" />
+                  <span>Member since {new Date(student.createdAt).toLocaleDateString()}</span>
+                </div>
               </div>
-            </div>
-          </div>
 
-          <div className="flex flex-col gap-3 border-t border-[#E5E7EB] bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[10px] uppercase tracking-[0.1em] text-[#6B7280]">
-              <span>
-                ID <strong className="font-mono font-semibold text-[#1A2B4C]">{student.studentId}</strong>
-              </span>
-              <span>
-                Role <strong className="font-semibold capitalize text-[#1A2B4C]">{student.role}</strong>
-              </span>
-              <span>
-                Joined <strong className="font-semibold text-[#1A2B4C]">{new Date(student.createdAt).toLocaleDateString()}</strong>
-              </span>
+              <button
+                type="button"
+                onClick={() => router.push(`/dashboard/messages?userId=${encodeURIComponent(student._id)}`)}
+                className="mt-7 inline-flex w-fit items-center justify-center gap-2 rounded-lg bg-[#1A2B4C] px-5 py-3 text-[11px] font-bold text-white shadow-sm transition-colors hover:bg-[#263B60] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C] focus-visible:ring-offset-2"
+              >
+                <MessageSquare className="h-4 w-4" />
+                Message student
+              </button>
             </div>
-
-            <button
-              type="button"
-              onClick={() => router.push(`/dashboard/messages?userId=${encodeURIComponent(student._id)}`)}
-              className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#1A2B4C] px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-white transition-colors hover:bg-[#C59B4C]"
-            >
-              <MessageSquare className="h-3.5 w-3.5" />
-              Message Student
-            </button>
           </div>
         </section>
 

@@ -25,11 +25,9 @@ import {
   Calendar,
   Check,
   CheckCircle,
-  ClipboardCheck,
   Loader2,
   Search,
   User,
-  Users,
   X,
   MapPin,
   Filter,
@@ -37,7 +35,6 @@ import {
   UserCheck,
   UserX,
   Hourglass,
-  Trash2,
   ChevronDown,
 } from 'lucide-react';
 
@@ -52,6 +49,7 @@ import {
   isDayPast,
   type CleaningDay,
   type UnregisteredStudent,
+  type UserAttendance,
   type Week as WeekType,
 } from '@/hooks/useCleaningStudent';
 import { isRecord } from '../response-guards';
@@ -120,8 +118,12 @@ const daysUntil = (iso: string) => {
   return Math.ceil((target - now) / 86_400_000);
 };
 
+const registrationDeadlinePassed = (iso: string) => {
+  return new Date() >= new Date(iso);
+};
+
 const deadlineLabel = (iso: string) => {
-  return daysUntil(iso) < 0
+  return registrationDeadlinePassed(iso)
     ? 'Deadline passed'
     : `Deadline: ${formatDate(iso)}`;
 };
@@ -257,10 +259,6 @@ function MenuItem({
   );
 }
 
-function MenuDivider() {
-  return <div className="my-1.5 h-px bg-slate-100" />;
-}
-
 // =========================================================
 // SWITCH DROPDOWN
 // =========================================================
@@ -270,14 +268,12 @@ function SwitchDropdown({
   activeMenu,
   setActiveMenu,
   registeredDays,
-  weeks,
   onSelect,
 }: {
   menuId: string;
   activeMenu: MenuType;
   setActiveMenu: (menu: MenuType) => void;
   registeredDays: CleaningDay[];
-  weeks: WeekType[];
   onSelect: (oldDayId: string, newDayId: string) => void;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -339,7 +335,6 @@ function SwitchDropdown({
               </p>
             </div>
             {registeredDays.map((day) => {
-              const week = weeks.find((w) => w.days.some((d) => d.id === day.id));
               return (
                 <button
                   key={day.id}
@@ -664,7 +659,7 @@ function YourRegistrationBanner({
 }: {
   days: CleaningDay[];
   weeks: WeekType[];
-  userAttendance: any[];
+  userAttendance: UserAttendance[];
   onUnregisterRequest: (dayId: string) => void;
 }) {
   const getAttendanceStatus = (dayId: string) => {
@@ -678,12 +673,12 @@ function YourRegistrationBanner({
     <motion.section
       initial={{ opacity: 0, y: -4 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mb-4 overflow-hidden rounded-xl border border-[var(--brass)]/40 bg-gradient-to-r from-[var(--brass-soft)] to-[var(--surface)] shadow-[0_2px_8px_rgba(185,138,62,0.08)]"
+      className="mb-4 overflow-hidden border-b border-[var(--line)] bg-transparent"
     >
-      <div className="p-4 sm:p-5">
-        <div className="flex items-center gap-3.5 mb-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[var(--brass)]/15 text-[var(--brass)]">
-            <CheckCircle className="h-6 w-6" />
+      <div className="py-3 sm:py-4">
+        <div className="mb-3 flex items-center gap-3.5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[var(--brass)]/10 text-[var(--brass)]">
+            <CheckCircle className="h-4 w-4" />
           </div>
           <div className="min-w-0">
             <p className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--brass)]">
@@ -693,18 +688,18 @@ function YourRegistrationBanner({
         </div>
 
         <div className="space-y-2">
-          {days.map((day, index) => {
+          {days.map((day) => {
             const week = weeks.find((w) => w.days.some((d) => d.id === day.id));
             const status = getAttendanceStatus(day.id);
 
             return (
               <div
                 key={day.id}
-                className="flex items-center justify-between gap-3 rounded-lg bg-white/50 p-3 border border-[var(--brass)]/20"
+                className="flex items-center justify-between gap-3 border-b border-[var(--line)] bg-transparent py-2.5 last:border-b-0"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-[14px] font-semibold text-[var(--ink)]">
-                    {day.dayOfWeek}, {formatDate(day.cleaningDate)}
+                  <p className="text-[14px] font-semibold leading-5 text-[var(--ink)]">
+                    {formatDate(day.cleaningDate)}
                   </p>
                   <p className="mt-0.5 text-[11.5px] text-[var(--ink-3)]">
                     {week?.weekLabel}
@@ -714,7 +709,7 @@ function YourRegistrationBanner({
                   <Tag tone={status === 'ATTENDED' ? 'ok' : status === 'NO_SHOW' ? 'bad' : 'warn'}>
                     {status.toLowerCase().replace('_', ' ')}
                   </Tag>
-                  {week && daysUntil(week.registrationDeadline) >= 0 && (
+                  {week && !registrationDeadlinePassed(week.registrationDeadline) && (
                     <button
                       type="button"
                       onClick={() => onUnregisterRequest(day.id)}
@@ -805,32 +800,6 @@ function WeekFilterChips({
 }
 
 // =========================================================
-// CAPACITY BAR
-// =========================================================
-
-function CapacityBar({ current, limit }: { current: number; limit: number }) {
-  const pct = limit > 0 ? Math.min(100, (current / limit) * 100) : 0;
-  const color =
-    pct >= 100 ? 'var(--bad)' : pct >= 80 ? 'var(--warn)' : 'var(--ok)';
-
-  return (
-    <div
-      className="h-1.5 w-full overflow-hidden bg-[var(--surface-3)] rounded-full"
-      role="img"
-      aria-label={`${current} of ${limit} places taken`}
-    >
-      <motion.div
-        className="h-full rounded-full"
-        style={{ backgroundColor: color }}
-        initial={false}
-        animate={{ width: `${pct}%` }}
-        transition={{ duration: 0.3, ease: 'easeOut' }}
-      />
-    </div>
-  );
-}
-
-// =========================================================
 // DAY CARD — with week label badge
 // =========================================================
 
@@ -909,22 +878,13 @@ function DayCard({
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className={`group relative flex flex-col overflow-visible rounded-xl border bg-[var(--surface)] transition-all ${isSelf
-        ? 'border-[var(--brass)] shadow-[0_4px_16px_rgba(185,138,62,0.15)]'
-        : 'border-[var(--line)] shadow-[0_1px_2px_rgba(18,32,59,0.03)] hover:border-[var(--brass)]/50 hover:shadow-[0_4px_16px_rgba(18,32,59,0.06)]'
-        }`}
+      className={`group relative flex flex-col overflow-visible rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[0_1px_2px_rgba(18,32,59,0.04)] transition-colors sm:p-5 ${isSelf ? 'bg-[var(--surface-2)]/60' : ''}`}
     >
       {/* HEADER */}
-      <div
-        className={`flex items-start justify-between gap-2 border-b border-[var(--line)] px-4 py-3 ${isSelf ? 'bg-[var(--brass-soft)]' : 'bg-[var(--surface-2)]'
-          }`}
-      >
+      <div className="flex items-start justify-between gap-2 px-0 py-3.5">
         <div className="min-w-0 flex-1">
-          <p className="text-[15px] font-bold tracking-tight text-[var(--ink)]">
-            {day.dayOfWeek}
-          </p>
-          <p className="mt-0.5 text-[11.5px] font-medium text-[var(--ink-3)]">
-            {formatDate(day.cleaningDate)}
+          <p className="text-[15px] font-semibold tracking-tight text-[var(--ink)]">
+        {formatDate(day.cleaningDate)}
           </p>
 
           {/* WEEK LABEL + DEADLINE — same row */}
@@ -949,27 +909,9 @@ function DayCard({
       </div>
 
       {/* BODY */}
-      <div className="flex flex-1 flex-col gap-3 p-4">
-        <div>
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--ink-3)]">
-              Capacity
-            </span>
-            <span className="font-mono text-[13px] font-bold text-[var(--ink)]">
-              {day.currentRegistrations}
-              <span className="text-[var(--ink-4)]">/{day.capacityLimit}</span>
-            </span>
-          </div>
-          <div className="mt-2">
-            <CapacityBar
-              current={day.currentRegistrations}
-              limit={day.capacityLimit}
-            />
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-2)] overflow-visible">
-          <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] px-3 py-2">
+      <div className="flex flex-1 flex-col gap-3 pb-4 pt-0">
+        <div className="overflow-visible bg-transparent">
+          <div className="flex items-center justify-between gap-2 py-2">
             <span className="font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--ink-3)]">
               Participants
               {day.registrations.length > 0 && (
@@ -978,14 +920,25 @@ function DayCard({
                 </span>
               )}
             </span>
+            <span
+              className={`rounded-full px-2.5 py-1 font-mono text-xs font-bold ${
+                isFull
+                  ? 'bg-[var(--bad-soft)] text-[var(--bad)]'
+                  : 'bg-[var(--surface-2)] text-[var(--ink)]'
+              }`}
+              aria-label={`${day.currentRegistrations} of ${day.capacityLimit} places filled`}
+              title={`${day.currentRegistrations} of ${day.capacityLimit} places filled`}
+            >
+              {day.currentRegistrations}/{day.capacityLimit}
+            </span>
           </div>
 
           {day.registrations.length === 0 ? (
-            <div className="px-3 py-3 text-[12px] text-[var(--ink-4)]">
+            <div className="py-3 text-[12px] text-[var(--ink-4)]">
               No participants yet
             </div>
           ) : (
-            <ul className="divide-y divide-[var(--line)] overflow-visible">
+            <ul className="space-y-2 overflow-visible">
               {allParticipants.map((reg) => {
                 const attendance = (
                   day.attendanceRecords as AttendanceRecord[] | undefined
@@ -996,30 +949,30 @@ function DayCard({
                 return (
                   <li
                     key={reg.id}
-                    className="flex items-center gap-2.5 px-3 py-2 overflow-visible"
+                    className="flex items-center gap-3 overflow-visible py-1.5"
                   >
                     <Avatar
                       firstName={reg.user.firstName}
                       lastName={reg.user.lastName}
                       src={reg.user.profileImageUrl}
                       isSelf={isSelf}
-                      size={28}
+                      size={44}
                     />
-                    <div className="min-w-0 flex-1 flex items-center gap-1.5">
-                      <span className="truncate text-[12.5px] font-medium text-[var(--ink)]">
+                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="truncate text-sm font-semibold tracking-[0.01em] text-[var(--ink)]">
                         {reg.user.firstName} {reg.user.lastName}
                       </span>
-                      <span className="shrink-0 text-[10px] font-medium text-[var(--brass)]">
+                      <span className="shrink-0 rounded-full bg-[var(--brass-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--brass)]">
                         ({totalRegistrations}/2)
                       </span>
                       {isSelf && (
-                        <span className="shrink-0 text-[10px] font-medium text-[var(--brass)]">
+                        <span className="shrink-0 rounded-full bg-[var(--ok-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--ok)]">
                           (You)
                         </span>
                       )}
                       {attendance?.status && (
-                        <span className="shrink-0 text-[10px] font-medium text-[var(--ink-3)]">
-                          - {attendance.status.replace('_', ' ')}
+                        <span className="shrink-0 text-[10px] font-medium capitalize text-[var(--ink-3)]">
+                          {attendance.status.replace('_', ' ').toLowerCase()}
                         </span>
                       )}
                     </div>
@@ -1073,9 +1026,14 @@ function DayCard({
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 text-[11.5px] text-[var(--ink-3)]">
-          <MapPin className="h-3 w-3 shrink-0" />
-          <span>Tech Center opens 8:00 AM</span>
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[11.5px] text-[var(--ink-3)]">
+          <span className="inline-flex items-center gap-1.5">
+            <MapPin className="h-3 w-3 shrink-0" />
+            <span>Tech Center opens 8:00 AM</span>
+          </span>
+          <span className={registrationDeadlinePassed(week.registrationDeadline) ? 'font-semibold text-[var(--bad)]' : 'text-[var(--ink-4)]'}>
+            {deadlineLabel(week.registrationDeadline)}
+          </span>
         </div>
 
         <div className="mt-auto pt-2">
@@ -1099,7 +1057,6 @@ function DayCard({
                 activeMenu={activeMenu}
                 setActiveMenu={setActiveMenu}
                 registeredDays={registeredDays}
-                weeks={weeks}
                 onSelect={onSwitchSelect}
               />
             </div>
@@ -1119,7 +1076,6 @@ function DayCard({
                 activeMenu={activeMenu}
                 setActiveMenu={setActiveMenu}
                 registeredDays={registeredDays}
-                weeks={weeks}
                 onSelect={onSwitchSelect}
               />
             </div>
@@ -1673,6 +1629,21 @@ export default function CleaningPage() {
     [weeks, data?.registrations],
   );
 
+  const summaryStats = useMemo(() => {
+    const openDays = allDays.filter((day) => day.status === 'OPEN').length;
+    const fullDays = allDays.filter((day) => day.status === 'FULL').length;
+    const closedDays = allDays.filter((day) => day.status === 'CLOSED').length;
+
+    return {
+      weeks: weeks.length,
+      days: allDays.length,
+      registered: registeredDays.length,
+      open: openDays,
+      full: fullDays,
+      closed: closedDays,
+    };
+  }, [allDays, weeks.length, registeredDays.length]);
+
   const filteredDays = useMemo(() => {
     if (weekFilter.kind === 'all') {
       return weeks.flatMap((week) => week.days.map((day) => ({ day, week })));
@@ -1890,7 +1861,12 @@ export default function CleaningPage() {
     }
   };
 
-  const askUnregister = (day: CleaningDay) =>
+  const askUnregister = (day: CleaningDay) => {
+    const week = weeks.find((item) => item.days.some((itemDay) => itemDay.id === day.id));
+    if (!week || registrationDeadlinePassed(week.registrationDeadline)) {
+      return;
+    }
+
     setConfirm({
       title: `Unregister from ${day.dayOfWeek}?`,
       body: `You will be removed from ${day.dayOfWeek}, ${formatDate(day.cleaningDate)}. This action cannot be undone.`,
@@ -1898,6 +1874,7 @@ export default function CleaningPage() {
       onConfirm: () => runUnregister(day.id),
       immediateClose: true,
     });
+  };
 
   const isAtMinimumThreshold = (day: CleaningDay) =>
     day.currentRegistrations === 4;
@@ -1910,7 +1887,7 @@ export default function CleaningPage() {
     !registeredDays.some((d) => d.id === day.id) &&
     week.isActive &&
     day.status === 'OPEN' &&
-    daysUntil(week.registrationDeadline) >= 0;
+    !registrationDeadlinePassed(week.registrationDeadline);
 
   const canSwitch = (
     day: CleaningDay,
@@ -1930,7 +1907,7 @@ export default function CleaningPage() {
       week.isActive &&
       day.status === 'OPEN' &&
       !currentDayAtMinimum &&
-      daysUntil(week.registrationDeadline) >= 0,
+      !registrationDeadlinePassed(week.registrationDeadline),
     );
   };
 
@@ -1943,7 +1920,7 @@ export default function CleaningPage() {
     if (day.currentRegistrations >= day.capacityLimit) return 'Full';
     if (day.status === 'FULL') return 'Full';
     if (day.status === 'CLOSED') return 'Closed';
-    if (daysUntil(week.registrationDeadline) < 0) return 'Deadline passed';
+    if (registrationDeadlinePassed(week.registrationDeadline)) return 'Deadline passed';
     if (!week.isActive) return 'Week closed';
     if (isDayPast(day.cleaningDate)) return 'Unavailable';
     return 'Unavailable';
@@ -2071,6 +2048,22 @@ export default function CleaningPage() {
           )}
         </AnimatePresence>
 
+        <div className="mb-4 border-b border-[var(--line)] bg-transparent px-0 py-2">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-[#3D4A61]">
+            <span>Weeks: <span className="font-bold text-[#12203B]">{summaryStats.weeks}</span></span>
+            <span className="text-[#DADCD3]">•</span>
+            <span>Days: <span className="font-bold text-[#12203B]">{summaryStats.days}</span></span>
+            <span className="text-[#DADCD3]">•</span>
+            <span>Registered: <span className="font-bold text-[#2F6B45]">{summaryStats.registered}</span></span>
+            <span className="text-[#DADCD3]">•</span>
+            <span>Open: <span className="font-bold text-[#2F6B45]">{summaryStats.open}</span></span>
+            <span className="text-[#DADCD3]">•</span>
+            <span>Full: <span className="font-bold text-[#8B3A24]">{summaryStats.full}</span></span>
+            <span className="text-[#DADCD3]">•</span>
+            <span>Closed: <span className="font-bold text-[#6E5520]">{summaryStats.closed}</span></span>
+          </div>
+        </div>
+
         {registeredDays.length > 0 && (
           <YourRegistrationBanner
             days={registeredDays}
@@ -2138,7 +2131,7 @@ export default function CleaningPage() {
             ) : (
               <div
                 id="cleaning-grid"
-                className="grid gap-3.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 overflow-visible"
+                className="grid grid-cols-1 gap-x-5 gap-y-6 overflow-visible sm:grid-cols-2 lg:grid-cols-3"
               >
                 {filteredDays.map(({ day, week }) => {
                   const isSelf = registeredDays.some((d) => d.id === day.id);

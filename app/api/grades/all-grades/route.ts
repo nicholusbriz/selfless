@@ -21,7 +21,10 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const techCenterId = searchParams.get('techCenterId') || user.techCenterId;
 
-    if (!techCenterId) {
+    // Super admins can view all grades without tech center filter
+    const isSuperAdmin = user.role?.name === 'super_admin';
+
+    if (!techCenterId && !isSuperAdmin) {
       return NextResponse.json({ error: 'Tech center ID required' }, { status: 400 });
     }
 
@@ -35,13 +38,20 @@ export async function GET(request: NextRequest) {
       studentIds = assignedStudents.map(s => s.id);
     }
 
-    // Fetch all grades for the tech center (or assigned students if teacher)
+    // Fetch all grades for the tech center (or all grades if super admin, or assigned students if teacher)
     const grades = await prisma.grade.findMany({
       where: {
-        student: {
-          techCenterId,
-          ...(user.role?.name === 'teacher' && studentIds.length > 0 ? { id: { in: studentIds } } : {})
-        }
+        ...(techCenterId ? {
+          student: {
+            techCenterId,
+            ...(user.role?.name === 'teacher' && studentIds.length > 0 ? { id: { in: studentIds } } : {})
+          }
+        } : {
+          // Super admin: show all grades, but still respect teacher assignments
+          ...(user.role?.name === 'teacher' && studentIds.length > 0 ? {
+            student: { id: { in: studentIds } }
+          } : {})
+        })
       },
       include: {
         studentCourse: true,

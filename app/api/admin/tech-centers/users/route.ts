@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import type { Prisma } from '@prisma/client';
 
 // GET - Fetch users in admin's tech center with filters
 export async function GET(request: NextRequest) {
@@ -33,27 +34,49 @@ export async function GET(request: NextRequest) {
 
     const techCenterId = user.techCenter.id;
     const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const search = searchParams.get('search') || '';
-    const status = searchParams.get('status') || '';
+    const requestedPage = Number(searchParams.get('page') || '1');
+    const requestedLimit = Number(searchParams.get('limit') || '20');
+    const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+    const limit = Number.isSafeInteger(requestedLimit) && requestedLimit > 0
+      ? Math.min(requestedLimit, 1000)
+      : 20;
+    const search = searchParams.get('search')?.trim() || '';
+    const requestedStatus = searchParams.get('status');
+    const status = (['ACTIVE', 'INACTIVE', 'SUSPENDED'] as const)
+      .find((value) => value === requestedStatus);
     const role = searchParams.get('role') || '';
-    const sortBy = searchParams.get('sortBy') || 'createdAt';
-    const sortOrder = searchParams.get('sortOrder') || 'desc';
+    const requestedSortBy = searchParams.get('sortBy');
+    const sortBy = requestedSortBy === 'firstName' ||
+      requestedSortBy === 'lastName' ||
+      requestedSortBy === 'email'
+      ? requestedSortBy
+      : 'createdAt';
+    const sortOrder = searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc';
     const skip = (page - 1) * limit;
 
     // Build where clause - only users in this tech center
-    const where: any = {
+    const where: Prisma.UserWhereInput = {
       techCenterId: techCenterId,
     };
 
     // Search across multiple fields
     if (search) {
-      where.OR = [
+      const searchConditions: Prisma.UserWhereInput[] = [
         { firstName: { contains: search, mode: 'insensitive' } },
         { lastName: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
+        { phoneNumber: { contains: search, mode: 'insensitive' } },
       ];
+      const nameParts = search.split(/\s+/);
+      if (nameParts.length > 1) {
+        searchConditions.push({
+          AND: [
+            { firstName: { contains: nameParts[0], mode: 'insensitive' } },
+            { lastName: { contains: nameParts.slice(1).join(' '), mode: 'insensitive' } },
+          ],
+        });
+      }
+      where.OR = searchConditions;
     }
 
     // Filter by status
@@ -122,9 +145,13 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      orderBy: {
-        [sortBy]: sortOrder,
-      },
+      orderBy: sortBy === 'firstName'
+        ? { firstName: sortOrder }
+        : sortBy === 'lastName'
+          ? { lastName: sortOrder }
+          : sortBy === 'email'
+            ? { email: sortOrder }
+            : { createdAt: sortOrder },
       skip,
       take: limit,
     });

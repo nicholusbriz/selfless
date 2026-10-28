@@ -1,11 +1,18 @@
 // hooks/useSuperAdminUsers.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { adminUsersApi, type User, type UsersResponse, type UpdateUserData } from '@/lib/api/admin-users';
+import {
+  adminUsersApi,
+  type User,
+  type UserFiltersResponse,
+  type UsersResponse,
+  type UpdateUserData,
+} from '@/lib/api/admin-users';
 
 // React Query Hooks
 export const useSuperAdminUsers = (params?: {
   page?: number;
   limit?: number;
+  search?: string;
   techCenterId?: string;
   country?: string;
   role?: string;
@@ -16,8 +23,20 @@ export const useSuperAdminUsers = (params?: {
   return useQuery({
     queryKey: ['superAdminUsers', params],
     queryFn: () => adminUsersApi.getUsers(params),
+    placeholderData: (previousData) => previousData,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+};
+
+export const useSuperAdminUserFilters = () => {
+  return useQuery({
+    queryKey: ['superAdminUserFilters'],
+    queryFn: () => adminUsersApi.getUserFilters(),
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
@@ -97,7 +116,7 @@ export const useUpdateSuperAdminUserRole = () => {
       });
       const previousUser = queryClient.getQueryData(['superAdminUser', userId]) as User;
 
-      const filters = previousUsers.find(([, data]) => data)?.[1]?.filters;
+      const filters = queryClient.getQueryData<UserFiltersResponse>(['superAdminUserFilters'])?.filters;
       const roleInfo = filters?.roles.find(r => r.id === roleId);
 
       previousUsers.forEach(([queryKey]) => {

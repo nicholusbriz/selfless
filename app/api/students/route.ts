@@ -2,7 +2,7 @@
 /**
  * STUDENTS DIRECTORY API ROUTE
  *
- * Returns users grouped by tech center, WITH social counts
+ * Returns a paginated student directory grouped by tech center, WITH social counts
  * (followersCount, followingCount, likesReceivedCount, profileViewsCount)
  * AND the viewer's relationship (isFollowing, isLiked).
  *
@@ -10,7 +10,7 @@
  * from Follow/Like/ProfileView tables, ensuring consistency with the
  * Connections page.
  *
- * One endpoint. One response. No client-side merging.
+ * Pages are requested independently for each directory category.
  */
 
 import { NextResponse } from 'next/server';
@@ -21,12 +21,6 @@ import { getStatsForUsers, EMPTY_STATS } from '@/lib/social/attachStats';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-interface TechCenterWithCountry {
-  id: string;
-  name: string;
-  country: { name: string } | null;
-}
 
 interface GroupedStudent {
   id: string;
@@ -83,6 +77,33 @@ export async function GET(request: Request) {
     const searchParams = new URL(request.url).searchParams;
     const search = searchParams.get('search')?.trim().slice(0, 100) || '';
     const techCenterId = searchParams.get('techCenterId')?.trim() || '';
+    const category = searchParams.get('category') || 'all';
+    const requestedLimit = Number(searchParams.get('limit') ?? '20');
+    const requestedOffset = Number(searchParams.get('offset') ?? '0');
+    const limit = Number.isSafeInteger(requestedLimit) && requestedLimit > 0
+      ? Math.min(requestedLimit, 50)
+      : 20;
+    const offset = Number.isSafeInteger(requestedOffset) && requestedOffset >= 0
+      ? Math.min(requestedOffset, 100_000)
+      : 0;
+    const sortBy = searchParams.get('sortBy') || 'trending';
+    const metadataOnly = searchParams.get('metadata') === 'true';
+
+    if (category !== 'all' && category !== 'trending') {
+      return NextResponse.json({ error: 'Invalid student category' }, { status: 400 });
+    }
+
+    if (metadataOnly) {
+      const techCenters = await prisma.techCenter.findMany({
+        select: {
+          id: true,
+          name: true,
+          country: { select: { name: true } },
+        },
+        orderBy: { name: 'asc' },
+      });
+      return NextResponse.json({ techCenters });
+    }
 
     const filters: Prisma.UserWhereInput[] = [
       {
@@ -116,38 +137,78 @@ export async function GET(request: Request) {
     }
 
     if (search) {
-      filters.push({
-        OR: [
-          { firstName: { contains: search } },
-          { lastName: { contains: search } },
-          { generalCourse: { contains: search } },
-          { techCenter: { is: { name: { contains: search } } } },
-          {
-            submittedCourses: {
-              some: {
-                OR: [
-                  { code: { contains: search } },
-                  { courseUnit: { contains: search } },
-                ],
-              },
+      const nameParts = search.split(/\s+/).filter(Boolean);
+      const searchConditions: Prisma.UserWhereInput[] = [
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { generalCourse: { contains: search, mode: 'insensitive' } },
+        {
+          techCenter: {
+            is: { name: { contains: search, mode: 'insensitive' } },
+          },
+        },
+        {
+          submittedCourses: {
+            some: {
+              OR: [
+                { code: { contains: search, mode: 'insensitive' } },
+                { courseUnit: { contains: search, mode: 'insensitive' } },
+              ],
             },
           },
-        ],
+        },
+      ];
+
+      if (nameParts.length > 1) {
+        searchConditions.push({
+          AND: [
+            {
+              firstName: {
+                contains: nameParts[0],
+                mode: 'insensitive',
+              },
+            },
+            {
+              lastName: {
+                contains: nameParts.slice(1).join(' '),
+                mode: 'insensitive',
+              },
+            },
+          ],
+        });
+      }
+
+      filters.push({
+        OR: searchConditions,
       });
     }
 
-    // -------- 1. Fetch tech centers + candidate users --------
-    const [techCenters, studentCandidates] = await Promise.all([
-      prisma.techCenter.findMany({
-        select: {
-          id: true,
-          name: true,
-          country: { select: { name: true } },
-        },
-        orderBy: { name: 'asc' },
-      }),
-      prisma.user.findMany({
+    if (category === 'trending') {
+      filters.push(
+        { profileImageUrl: { not: null } },
+        { profileImageUrl: { not: '' } },
+        { followersCount: { gte: 5 } },
+      );
+    }
+
+    const orderBy: Prisma.UserOrderByWithRelationInput[] =
+      sortBy === 'newest'
+        ? [{ createdAt: 'desc' }, { id: 'asc' }]
+        : sortBy === 'active'
+          ? [{ isActive: 'desc' }, { lastName: 'asc' }, { firstName: 'asc' }, { id: 'asc' }]
+          : sortBy === 'mostFollowed'
+            ? [{ profileImageUrl: 'desc' }, { followersCount: 'desc' }, { lastName: 'asc' }, { firstName: 'asc' }, { id: 'asc' }]
+            : sortBy === 'mostLiked'
+              ? [{ profileImageUrl: 'desc' }, { likesReceivedCount: 'desc' }, { lastName: 'asc' }, { firstName: 'asc' }, { id: 'asc' }]
+              : sortBy === 'name'
+                ? [{ profileImageUrl: 'desc' }, { firstName: 'asc' }, { lastName: 'asc' }, { id: 'asc' }]
+                : [{ profileImageUrl: 'desc' }, { followersCount: 'desc' }, { likesReceivedCount: 'desc' }, { lastName: 'asc' }, { firstName: 'asc' }, { id: 'asc' }];
+
+    // -------- Fetch metadata and a single student page --------
+    const studentCandidates = await prisma.user.findMany({
         where: { AND: filters },
+        skip: offset,
+        take: limit + 1,
         select: {
           id: true,
           techCenterId: true,
@@ -180,28 +241,45 @@ export async function GET(request: Request) {
             },
           },
         },
-        orderBy: [
-          { lastName: 'asc' },
-          { firstName: 'asc' },
-          { id: 'asc' },
-        ],
-      }),
-    ]);
+        orderBy,
+      });
 
-    const students = studentCandidates;
+    const hasMore = studentCandidates.length > limit;
+    const students = studentCandidates.slice(0, limit);
     const studentIds = students.map((student) => student.id);
+    const previousTechCenterIds = Array.from(
+      new Set(
+        students
+          .filter((student) => student.role?.name === 'super_admin')
+          .map((student) => student.previousTechCenterId)
+            .filter((id): id is string => typeof id === 'string' && id.length > 0),
+      ),
+    );
 
-    // -------- 3. Get live stats using centralized function --------
-    const statsMap = await getStatsForUsers(currentUser.id, studentIds);
+    // -------- Get live stats and previous centers for this page --------
+    const [statsMap, previousTechCenters] = await Promise.all([
+      getStatsForUsers(currentUser.id, studentIds),
+      previousTechCenterIds.length > 0
+        ? prisma.techCenter.findMany({
+            where: { id: { in: previousTechCenterIds } },
+            select: {
+              id: true,
+              name: true,
+              country: { select: { name: true } },
+            },
+          })
+        : Promise.resolve([]),
+    ]);
+    const previousTechCentersById = new Map(
+      previousTechCenters.map((center) => [center.id, center]),
+    );
 
-    // -------- 4. Build flat list with live stats --------
+    // -------- Build flat list with live stats --------
     const rankedStudents: GroupedStudent[] = students
       .map((student) => {
         const previousTechCenter =
           student.role?.name === 'super_admin' && student.previousTechCenterId
-            ? techCenters.find(
-                (center) => center.id === student.previousTechCenterId,
-              ) ?? null
+            ? previousTechCentersById.get(student.previousTechCenterId) ?? null
             : null;
 
         const studentTechCenter = student.techCenter ?? previousTechCenter;
@@ -245,13 +323,12 @@ export async function GET(request: Request) {
       studentsByTechCenter[techCenterName].push(student);
     }
 
-    const orderedTechCenters: TechCenterWithCountry[] = techCenters;
-
     return NextResponse.json(
       {
+        students: rankedStudents,
         studentsByTechCenter,
-        techCenters: orderedTechCenters,
-        totalStudents: rankedStudents.length,
+        hasMore,
+        nextOffset: offset + students.length,
       },
       {
         headers: {

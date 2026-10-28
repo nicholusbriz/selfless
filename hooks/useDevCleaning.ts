@@ -82,7 +82,7 @@ export interface StudentSummary {
 
 export interface DevCleaningData {
   weeks: CleaningWeek[];
-  /** Assignable students: active users with fewer than 2 registrations */
+  /** Active students with fewer than 2 cleaning registrations */
   students: StudentSummary[];
   /** All active students in the tech center (for internal lookups) */
   allStudents: StudentSummary[];

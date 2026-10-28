@@ -211,12 +211,20 @@ const submitGrade = async (grade: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      grades: [grade],
+      grades: [{
+        ...grade,
+        week: String(grade.week), // API expects week as string
+      }],
     }),
   });
 
   if (!response.ok) {
-    throw new Error('Failed to submit grade');
+    const errorData: unknown = await response.json().catch(() => null);
+    const message =
+      isRecord(errorData) && typeof errorData.error === 'string'
+        ? errorData.error
+        : 'Failed to submit grade';
+    throw new Error(message);
   }
 
   return response.json();
