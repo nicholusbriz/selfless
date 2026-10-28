@@ -59,6 +59,10 @@ export async function GET(request: NextRequest) {
       notifications,
       unreadCount,
       total: notifications.length
+    }, {
+      headers: {
+        'Cache-Control': 'private, max-age=15, stale-while-revalidate=30', // 15 sec cache for notifications
+      }
     });
   } catch (error) {
     console.error('Error fetching notifications:', error);

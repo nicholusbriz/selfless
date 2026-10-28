@@ -19,7 +19,7 @@ import { prisma } from '@/lib/prisma/client';
 import { getStatsForUsers, EMPTY_STATS } from '@/lib/social/attachStats';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 60; // Cache for 60 seconds instead of 0
 
 interface TrendingStudent {
   id: string;

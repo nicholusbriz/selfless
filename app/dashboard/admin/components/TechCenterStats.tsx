@@ -52,7 +52,8 @@ export default function TechCenterStats() {
   } = useQuery({
     queryKey: ['adminTechCenterStats'],
     queryFn: adminTechCenterApi.getTechCenterStats,
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: false, // Remove auto-polling, use window focus instead
+    staleTime: 2 * 60 * 1000, // 2 minutes
   });
 
   if (isLoading) {

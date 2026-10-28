@@ -385,7 +385,7 @@ export default function EnglishHubPage() {
       void fetchRegistrations();
     }, 0);
     const refreshInterval = isSelectedToday
-      ? window.setInterval(() => void fetchRegistrations(), 30000)
+      ? window.setInterval(() => void fetchRegistrations(), 120000) // 2 minutes
       : null;
     return () => {
       window.clearTimeout(initialFetch);
@@ -405,7 +405,7 @@ export default function EnglishHubPage() {
     }, 0);
     const interval = window.setInterval(() => {
       void updateRegistrationStatus();
-    }, 60000);
+    }, 300000); // 5 minutes
     return () => {
       window.clearTimeout(initialStatusFetch);
       window.clearInterval(interval);
@@ -416,12 +416,14 @@ export default function EnglishHubPage() {
     if (!registrationClosesAt) {
       return;
     }
-    const initialUpdate = window.setTimeout(() => setCountdownNow(Date.now()), 0);
-    const interval = window.setInterval(() => setCountdownNow(Date.now()), 30000);
-    return () => {
-      window.clearTimeout(initialUpdate);
-      window.clearInterval(interval);
+    // Use requestAnimationFrame for smooth countdown timer instead of setInterval
+    let animationFrameId: number;
+    const updateCountdown = () => {
+      setCountdownNow(Date.now());
+      animationFrameId = requestAnimationFrame(updateCountdown);
     };
+    animationFrameId = requestAnimationFrame(updateCountdown);
+    return () => cancelAnimationFrame(animationFrameId);
   }, [registrationClosesAt]);
 
   useEffect(() => {

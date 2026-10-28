@@ -904,7 +904,7 @@ export default function DevCleaningManagement() {
   useEffect(() => {
     const refreshDeadlineStatus = () => setDeadlineCheckTime(Date.now());
     const timeoutId = window.setTimeout(refreshDeadlineStatus, 0);
-    const intervalId = window.setInterval(refreshDeadlineStatus, 60_000);
+    const intervalId = window.setInterval(refreshDeadlineStatus, 300000); // 5 minutes
 
     return () => {
       window.clearTimeout(timeoutId);

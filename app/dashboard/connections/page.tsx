@@ -425,10 +425,10 @@ export default function ConnectionsPage() {
 
   const sharedQueryOptions = {
     enabled: !!currentUserId,
-    staleTime: 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 30 * 60 * 1000,
-    refetchInterval: 60 * 1000,
-    refetchIntervalInBackground: true,
+    refetchInterval: false, // Remove auto-polling
+    refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     refetchOnMount: false,
@@ -499,9 +499,9 @@ export default function ConnectionsPage() {
     queryKey: ['social', 'trending'],
     queryFn: () => fetchTrending(100),
     enabled: !!currentUserId,
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 5 * 60 * 1000,
-    refetchInterval: 30 * 1000,
+    refetchInterval: false, // Remove auto-polling
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,

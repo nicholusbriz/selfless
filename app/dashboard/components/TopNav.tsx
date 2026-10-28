@@ -22,6 +22,7 @@ import {
   useAnnouncementCount,
 } from '@/hooks/useNotifications';
 import { useUnreadMessageCount } from '@/hooks/useMessages';
+import { PageRefreshButton } from './PageRefreshButton';
 
 // ============================================================
 // CONSTANTS
@@ -384,6 +385,9 @@ export default function TopNav({
 
         {/* RIGHT */}
         <div className="ml-1 flex shrink-0 items-center gap-0.5 sm:ml-2 sm:gap-1.5">
+          {/* REFRESH BUTTON */}
+          <PageRefreshButton variant="icon" />
+
           {/* ANNOUNCEMENTS */}
           <motion.div
             whileHover={{ scale: 1.05 }}

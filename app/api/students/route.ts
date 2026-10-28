@@ -20,7 +20,7 @@ import { prisma } from '@/lib/prisma/client';
 import { getStatsForUsers, EMPTY_STATS } from '@/lib/social/attachStats';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 120; // Cache for 2 minutes
 
 interface GroupedStudent {
   id: string;

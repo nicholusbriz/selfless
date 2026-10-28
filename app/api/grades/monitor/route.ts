@@ -3,7 +3,7 @@ import { getServerAuthUser } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 60; // Cache for 1 minute
 
 export async function GET(request: NextRequest) {
   try {

@@ -1198,8 +1198,8 @@ export default function DashboardPage() {
       return result;
     },
     enabled: !!currentUserId,
-    staleTime: 30 * 1000,
-    refetchInterval: 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: false, // Remove auto-polling
   });
 
   const meStats = socialSummary?.me;

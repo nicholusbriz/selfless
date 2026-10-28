@@ -228,7 +228,8 @@ export const useStudentCleaningData = () => {
   return useQuery({
     queryKey: ['studentCleaningData'],
     queryFn: api.getCleaningData,
-    refetchInterval: 30000,
+    refetchInterval: false, // Remove auto-polling
+    staleTime: 2 * 60 * 1000, // 2 minutes
     // Keep the previous data visible during background refetches so the UI
     // never flickers when the slow endpoint finally returns.
     placeholderData: (prev) => prev,

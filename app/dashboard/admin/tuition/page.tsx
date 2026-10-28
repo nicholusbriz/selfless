@@ -155,8 +155,8 @@ export default function TuitionPage() {
       return response.json();
     },
 
-    staleTime: 30000,
-    refetchInterval: 30000,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchInterval: false, // Remove auto-polling
   });
 
   const allStudents: Student[] = data?.users || [];
