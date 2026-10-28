@@ -22,6 +22,9 @@ const nextConfig = {
     "prisma"
   ],
 
+  // Empty turbopack config to suppress webpack conflict warning
+  turbopack: {},
+
   // Disable source maps in development for faster builds
   productionBrowserSourceMaps: false,
 
