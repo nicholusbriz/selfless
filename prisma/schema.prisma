@@ -116,6 +116,7 @@ model User {
   githubUrl   String?
   projectUrls String[]
   profileImageUrl String?
+  chatTheme String?
   
   // Team Preferences
   preferredTeamType TeamType?

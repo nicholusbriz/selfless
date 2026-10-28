@@ -84,6 +84,7 @@ export async function GET() {
       where: {
         techCenterId: adminUser.techCenterId,
         status: 'ACTIVE',
+        role: { name: 'student' },
       },
       select: {
         id: true,

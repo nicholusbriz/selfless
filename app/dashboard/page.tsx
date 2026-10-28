@@ -19,23 +19,18 @@ import {
   GraduationCap,
   ChevronRight,
   Library,
-  Star,
   MessageCircle,
   MessageSquare,
   Loader2,
   Heart,
   UserPlus,
   TrendingUp,
-  Check,
-  CheckCircle2,
   AlertCircle,
   Sparkles,
   Eye,
-  Crown,
 } from 'lucide-react';
 
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useSession } from 'next-auth/react';
@@ -46,13 +41,12 @@ import {
   useCallback,
   useRef,
 } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { DiscoverStudents, type DiscoverStudent } from './components/DiscoverStudents';
 import { VideoPlayer } from './components/VideoPlayer';
 import type { PageCacheAdapter } from '@/lib/social/cacheKeys';
 import {
   findInStudentsShape,
-  patchStudentsShape,
 } from '@/lib/social/patchHelpers';
 import { SocialActions } from '@/components/social/SocialActions';
 import { compareSuperadminWithImageFirst } from '@/lib/social/ranking';
@@ -66,13 +60,6 @@ interface TechCenter {
   id: string;
   name: string;
   city?: string | null;
-}
-
-interface Director {
-  id: string;
-  firstName: string;
-  lastName: string;
-  profileImageUrl?: string | null;
 }
 
 interface Tutor {
@@ -108,19 +95,6 @@ interface AssignmentData {
   tutor?: Tutor | null;
   studentCount?: number;
   students?: Student[];
-}
-
-interface ActivityItem {
-  id: string;
-  action: string;
-  createdAt: string | Date;
-  details?: Record<string, string | number> | null;
-  user?: {
-    firstName: string;
-    lastName: string;
-    profileImageUrl?: string | null;
-  } | null;
-  techCenter?: { id: string; name: string } | null;
 }
 
 interface QuickLink {
@@ -174,6 +148,7 @@ interface SocialUser {
   firstName: string;
   lastName: string;
   profileImageUrl: string | null;
+  status?: string;
   role?: string | null;
   techCenter: { id: string; name: string } | null;
   previousTechCenter?: { id: string; name: string } | null;
@@ -227,6 +202,7 @@ function isTutor(value: unknown): value is Tutor {
     typeof value.lastName === 'string' &&
     (typeof value.profileImageUrl === 'string' ||
       value.profileImageUrl === null) &&
+    (value.status === undefined || typeof value.status === 'string') &&
     typeof value.email === 'string' &&
     (value.techCenter === undefined ||
       (isRecord(value.techCenter) &&
@@ -245,39 +221,6 @@ function isCenterAdmin(value: unknown): value is CenterAdmin {
     typeof value.lastName === 'string' &&
     (typeof value.profileImageUrl === 'string' ||
       value.profileImageUrl === null)
-  );
-}
-
-function isActivityItem(value: unknown): value is ActivityItem {
-  return (
-    isRecord(value) &&
-    typeof value.id === 'string' &&
-    typeof value.action === 'string' &&
-    (typeof value.createdAt === 'string' || value.createdAt instanceof Date) &&
-    (value.entityId === undefined || typeof value.entityId === 'string') &&
-    (value.userAgent === undefined || typeof value.userAgent === 'string') &&
-    (value.location === undefined || typeof value.location === 'string') &&
-    (value.page === undefined || typeof value.page === 'string') &&
-    (value.method === undefined || typeof value.method === 'string') &&
-    (value.details === undefined ||
-      value.details === null ||
-      (isRecord(value.details) &&
-        Object.values(value.details).every(
-          (item) => typeof item === 'string' || typeof item === 'number',
-        ))) &&
-    (value.user === undefined ||
-      value.user === null ||
-      (isRecord(value.user) &&
-        typeof value.user.firstName === 'string' &&
-        typeof value.user.lastName === 'string' &&
-        (value.user.profileImageUrl === undefined ||
-          typeof value.user.profileImageUrl === 'string' ||
-          value.user.profileImageUrl === null))) &&
-    (value.techCenter === undefined ||
-      value.techCenter === null ||
-      (isRecord(value.techCenter) &&
-        typeof value.techCenter.id === 'string' &&
-        typeof value.techCenter.name === 'string'))
   );
 }
 
@@ -399,7 +342,7 @@ const DASHBOARD_TRENDING_ADAPTERS: PageCacheAdapter[] = [
         ...data,
         trending: {
           ...data.trending,
-          students: data.trending.students.map((s: any) =>
+          students: data.trending.students.map((s) =>
             s.id === targetId ? { ...s, ...patch } : s,
           ),
         },
@@ -410,229 +353,116 @@ const DASHBOARD_TRENDING_ADAPTERS: PageCacheAdapter[] = [
 ];
 
 /* ============================================================
-   STAT ITEM — compact metric display
-============================================================ */
-
-function StatItem({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: number | string;
-  color: string;
-}) {
-  return (
-    <div className="flex min-w-0 flex-col items-start gap-1 sm:flex-row sm:items-baseline sm:gap-2">
-      <p className="truncate font-mono text-[9px] font-semibold uppercase tracking-wider text-white/50 sm:text-[10px]">
-        {label}
-      </p>
-      <p
-        className="font-mono text-sm font-black tabular-nums leading-none sm:text-base"
-        style={{ color }}
-      >
-        {value}
-      </p>
-    </div>
-  );
-}
-
-/* ============================================================
    SECTION HEADER — bold, editorial
 ============================================================ */
 
-/* ============================================================
-   RECENT ANNOUNCEMENTS STRIP — lives inside the hero card
-============================================================ */
-
-function RecentAnnouncementsStrip() {
-  const router = useRouter();
-
-  const { data, isLoading } = useQuery<{ announcements: Array<{ id: string; title: string; createdAt: string; isGlobal: boolean }> }>({
-    queryKey: ['announcements', 'recent-strip'],
-    queryFn: async () => {
-      const res = await fetch('/api/announcements');
-      if (!res.ok) throw new Error('Failed');
-      return res.json();
-    },
-    staleTime: 2 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    select: (data) => ({
-      announcements: data.announcements.slice(0, 3),
-    }),
-  });
-
-  const announcements = data?.announcements ?? [];
+function DirectorsDisplay({
+  trending = [],
+  isLoading,
+}: {
+  trending?: SocialUser[];
+  isLoading?: boolean;
+}) {
+  const directors = trending.filter(
+    (profile) =>
+      profile.role === 'super_admin' &&
+      profile.status === 'ACTIVE' &&
+      Boolean(profile.previousTechCenter),
+  );
 
   return (
-    <div className="border-t border-white/10">
-      {/* Section header */}
-      <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
-        <div className="flex items-center gap-2">
-          <div className="flex h-5 w-5 items-center justify-center rounded bg-[#B98A3E]/15">
-            <AlertCircle className="h-3 w-3 text-[#B98A3E]" />
-          </div>
-          <span className="font-mono text-[9.5px] font-bold uppercase tracking-[0.18em] text-white/50">
-            Announcements
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={() => router.push('/dashboard/announcements')}
-          className="inline-flex items-center gap-1.5 rounded border border-[#B98A3E]/30 bg-[#B98A3E]/10 px-2.5 py-1 font-mono text-[8.5px] font-bold uppercase tracking-[0.14em] text-[#B98A3E] transition-colors hover:border-[#B98A3E]/60 hover:bg-[#B98A3E]/20"
-        >
-          View all
-          <ArrowRight className="h-2.5 w-2.5" />
-        </button>
-      </div>
-
-      {/* List */}
-      <div className="px-4 pb-4 sm:px-6">
-        {isLoading ? (
-          <div className="space-y-2">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-8 animate-pulse rounded-md bg-white/5" />
-            ))}
-          </div>
-        ) : announcements.length === 0 ? (
-          <p className="py-3 text-center font-mono text-[10px] text-white/25">
-            No announcements yet
-          </p>
-        ) : (
-          <ol className="space-y-px">
-            {announcements.map((a, idx) => (
-              <li key={a.id}>
-                <button
-                  type="button"
-                  onClick={() => router.push('/dashboard/announcements')}
-                  className="group flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white/5"
-                >
-                  {/* Number */}
-                  <span className="mt-0.5 shrink-0 font-mono text-[10px] font-black tabular-nums text-[#B98A3E]/50">
-                    {String(idx + 1).padStart(2, '0')}
-                  </span>
-
-                  {/* Title — full wrap, no truncation */}
-                  <span className="flex-1 text-[12.5px] font-semibold leading-snug text-white/75 group-hover:text-white">
-                    {a.title}
-                  </span>
-
-                  {/* Badges + arrow */}
-                  <div className="ml-2 flex shrink-0 items-center gap-1.5 pt-0.5">
-                    {a.isGlobal && (
-                      <span className="rounded border border-[#B98A3E]/25 bg-[#B98A3E]/10 px-1.5 py-0.5 font-mono text-[7.5px] font-bold uppercase tracking-wider text-[#B98A3E]">
-                        Global
-                      </span>
-                    )}
-                    <ChevronRight className="h-3 w-3 text-white/20 transition-colors group-hover:text-[#B98A3E]" />
-                  </div>
-                </button>
-
-                {/* Divider between items */}
-                {idx < announcements.length - 1 && (
-                  <div className="mx-3 h-px bg-white/5" />
-                )}
-              </li>
-            ))}
-          </ol>
-        )}
-      </div>
-    </div>
+    <SuggestedStudents
+      trending={directors}
+      isLoading={isLoading}
+      directorCardLayout
+    />
   );
 }
 
-/* ============================================================
-   DIRECTORS DISPLAY — integrated inline
-============================================================ */
+interface DashboardAnnouncement {
+  id: string;
+  title: string;
+  createdAt: string;
+  isGlobal: boolean;
+}
 
-function DirectorsDisplay() {
-  const { data: directors = [], isLoading } = useQuery<Director[]>({
-    queryKey: ['directors'],
+function AnnouncementsSection() {
+  const router = useRouter();
+  const { data: announcements = [], isLoading, error } = useQuery<DashboardAnnouncement[]>({
+    queryKey: ['announcements', 'dashboard-preview'],
     queryFn: async () => {
-      const response = await fetch('/api/directors');
-      if (!response.ok) throw new Error('Failed to fetch directors');
+      const response = await fetch('/api/announcements');
       const data: unknown = await response.json();
-      if (!isRecord(data) || data.success !== true || !Array.isArray(data.directors)) {
-        throw new Error(getResponseError(data, 'Failed'));
+      if (!response.ok) {
+        throw new Error(getResponseError(data, 'Failed to fetch announcements'));
       }
-      return data.directors.filter((d: unknown) => isRecord(d) && typeof d.id === 'string' && typeof d.firstName === 'string' && typeof d.lastName === 'string');
+      if (!isRecord(data) || !Array.isArray(data.announcements)) {
+        throw new Error('Invalid announcements response');
+      }
+      return data.announcements
+        .filter((announcement): announcement is DashboardAnnouncement =>
+          isRecord(announcement) &&
+          typeof announcement.id === 'string' &&
+          typeof announcement.title === 'string' &&
+          typeof announcement.createdAt === 'string' &&
+          typeof announcement.isGlobal === 'boolean',
+        )
+        .slice(0, 3);
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    refetchInterval: 3 * 60 * 1000,
   });
 
-  if (isLoading) {
-    return (
-      <div className="px-4 pb-4 sm:px-6">
-        <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-3">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="flex items-center gap-2">
-              <div className="h-8 w-8 shrink-0 animate-pulse rounded-full bg-white/10" />
-              <div className="min-w-0 flex-1 space-y-1">
-                <div className="h-2.5 w-24 animate-pulse rounded bg-white/10" />
-                <div className="h-2 w-12 animate-pulse rounded bg-white/10" />
-              </div>
+  return (
+    <section className="bg-white p-5 sm:p-7">
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 text-[#B98A3E]" />
+          <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-[#1A2B4C]">
+            Recent announcements
+          </h2>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-5 py-2">
+          {[0, 1, 2].map((item) => (
+            <div key={item} className="animate-pulse">
+              <div className="mb-2 h-3 w-28 rounded bg-[#E5E7EB]" />
+              <div className="h-5 max-w-2xl rounded bg-[#E5E7EB]" />
             </div>
           ))}
         </div>
-      </div>
-    );
-  }
-
-  if (directors.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="px-4 pb-4 sm:px-6">
-      <div className="mb-3 flex items-center gap-2">
-        <div className="flex h-5 w-5 items-center justify-center rounded bg-[#B98A3E]/15">
-          <Crown className="h-3 w-3 text-[#B98A3E]" />
-        </div>
-        <span className="font-mono text-[9.5px] font-bold uppercase tracking-[0.18em] text-white/50">
-          Selfless Directors
-        </span>
-        <span className="font-mono text-[10px] font-bold tabular-nums text-[#B98A3E]">
-          {directors.length}
-        </span>
-      </div>
-      <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-3">
-        {directors.map((director) => (
-          <div key={director.id} className="flex min-w-0 items-center gap-2">
-            {/* Avatar */}
-            <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-white/10">
-              {director.profileImageUrl ? (
-                <Image
-                  src={director.profileImageUrl}
-                  alt={`${director.firstName} ${director.lastName}`}
-                  fill
-                  sizes="32px"
-                  className="object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center">
-                  <User className="h-4 w-4 text-white/50" />
-                </div>
-              )}
-            </div>
-
-            {/* Name */}
-            <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-semibold leading-tight truncate text-[#F1F1EC]">
-                {`${director.firstName} ${director.lastName}`.trim()}
-              </p>
-              <p className="text-[10px] font-medium leading-tight text-[#E8A33D]">
-                Director
-              </p>
-            </div>
-
-            {/* Crown icon */}
-            <Crown className="h-3.5 w-3.5 shrink-0 text-[#E8A33D]" />
-          </div>
-        ))}
-      </div>
-    </div>
+      ) : error ? (
+        <p role="status" className="text-sm text-red-600">
+          Announcements could not be loaded.
+        </p>
+      ) : announcements.length === 0 ? (
+        <p className="py-4 text-center text-sm text-[#6B7280]">No announcements yet.</p>
+      ) : (
+        <ul className="grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+          {announcements.map((announcement) => (
+            <li key={announcement.id}>
+              <button
+                type="button"
+                onClick={() => router.push('/dashboard/announcements')}
+                className="w-full break-words text-left text-base font-semibold leading-6 text-[#1A2B4C] underline decoration-[#1A2B4C] underline-offset-2 transition-colors hover:text-[#8A642D] hover:decoration-[#8A642D] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B98A3E]"
+              >
+                {announcement.title}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <button
+        type="button"
+        onClick={() => router.push('/dashboard/announcements')}
+        className="mt-4 inline-flex items-center gap-1 py-1 text-xs font-semibold text-[#1A2B4C] transition-colors hover:text-[#8A642D] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B98A3E]"
+      >
+        View all announcements
+        <ChevronRight className="h-4 w-4" />
+      </button>
+    </section>
   );
 }
 
@@ -667,9 +497,6 @@ function SectionHeader({
 ============================================================ */
 
 function MediaLibrary() {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-
   const { data: items = [], isLoading, error } = useQuery<MediaItem[]>({
     queryKey: ['dashboard-media'],
     queryFn: async () => {
@@ -735,8 +562,8 @@ function MediaLibrary() {
   }
 
   return (
-    <div className="overflow-hidden border border-[#1A2B4C] bg-[#0F1923]">
-      <div className="w-full bg-black">
+    <div className="mx-auto w-full max-w-4xl overflow-hidden bg-white">
+      <div className="mx-auto w-full max-w-3xl bg-black">
         {current && (
           <VideoPlayer
             key={`video-${current.id}`}
@@ -751,34 +578,39 @@ function MediaLibrary() {
           />
         )}
       </div>
-    </div>
-  );
-}
+      <ul aria-label="Available videos" className="mx-auto max-h-64 w-full max-w-3xl space-y-1 overflow-y-auto bg-white p-3">
+        {videos.map((video, index) => {
+          const isCurrentVideo = index === currentIndex;
 
-/* ============================================================
-   STAT BLOCK — bold, solid, editorial
-============================================================ */
-
-function StatBlock({
-  value,
-  label,
-  accent,
-}: {
-  value: number | string;
-  label: string;
-  accent?: boolean;
-}) {
-  return (
-    <div className="flex min-w-0 flex-col">
-      <span
-        className={`font-mono text-2xl font-black leading-none tabular-nums sm:text-3xl ${accent ? 'text-[#B98A3E]' : 'text-white'
-          }`}
-      >
-        {value}
-      </span>
-      <span className="mt-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-white/45 sm:text-[10px]">
-        {label}
-      </span>
+          return (
+            <li key={video.id}>
+              <button
+                type="button"
+                aria-current={isCurrentVideo ? 'true' : undefined}
+                onClick={() => {
+                  setRawIndex(index);
+                  window.setTimeout(() => videoPlayerRef.current?.play(), 150);
+                }}
+                className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#B98A3E] ${
+                  isCurrentVideo
+                    ? 'bg-[#F8F9FA] font-semibold text-blue-700'
+                    : 'text-blue-700 hover:bg-[#F8F9FA]'
+                }`}
+              >
+                <Video className="h-4 w-4 shrink-0 text-[#B98A3E]" />
+                <span className="min-w-0 flex-1 break-words underline decoration-1 underline-offset-2">
+                  {video.title}
+                </span>
+                {isCurrentVideo && (
+                  <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-[#8A642D]">
+                    Playing
+                  </span>
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
@@ -848,7 +680,15 @@ function DashboardLoadingSkeleton() {
    SUGGESTED STUDENTS — mobile-first, no borders
 ============================================================ */
 
-function SuggestedStudents({ trending = [], isLoading }: { trending?: SocialUser[]; isLoading?: boolean }) {
+function SuggestedStudents({
+  trending = [],
+  isLoading,
+  directorCardLayout = false,
+}: {
+  trending?: SocialUser[];
+  isLoading?: boolean;
+  directorCardLayout?: boolean;
+}) {
   const router = useRouter();
   const { data: session } = useSession();
   const currentUserId = session?.user?.id;
@@ -896,7 +736,10 @@ function SuggestedStudents({ trending = [], isLoading }: { trending?: SocialUser
           return (
             <article
               key={user.id}
-              className="w-60 shrink-0 overflow-hidden rounded-md border border-[#E5E7EB] bg-white shadow-sm transition-shadow hover:shadow-md"
+              className={`shrink-0 overflow-hidden rounded-[22px] border border-[#E5E7EB] bg-white shadow-sm transition-shadow hover:shadow-md ${
+                directorCardLayout ? '' : 'w-60'
+              }`}
+              style={directorCardLayout ? { width: '245px' } : undefined}
             >
               <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#1A2B4C]">
                 {user.profileImageUrl ? (
@@ -1034,11 +877,9 @@ function SuggestedStudents({ trending = [], isLoading }: { trending?: SocialUser
 
 function RecentSocialActivity({
   likers = [],
-  likedUsers = [],
   followers = [],
 }: {
   likers?: Array<SocialUser & { likedAt?: string }>;
-  likedUsers?: Array<SocialUser & { likedAt?: string }>;
   followers?: Array<SocialUser & { connectedAt?: string }>;
 }) {
   const events = useMemo(() => {
@@ -1082,9 +923,9 @@ function RecentSocialActivity({
       });
     }
 
-    return items
-      .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
-      .slice(0, 10);
+    return items.sort(
+      (a, b) => new Date(b.at).getTime() - new Date(a.at).getTime(),
+    );
   }, [likers, followers]);
 
   if (events.length === 0) {
@@ -1100,14 +941,15 @@ function RecentSocialActivity({
   }
 
   return (
-    <ul className="space-y-2">
+    <ul className="max-h-[328px] space-y-1 overflow-y-auto overscroll-contain pr-2">
       {events.map((event) => {
         const initials = `${event.user.firstName[0] ?? ''}${event.user.lastName[0] ?? ''
           }`.toUpperCase();
         const isLike = event.kind === 'like';
+        const eventKey = `${event.id}-${event.at}`;
 
         return (
-          <li key={event.id} className="flex items-center gap-3 rounded-lg bg-white px-3 py-2.5">
+          <li key={eventKey} className="flex items-center gap-3 rounded-lg bg-white px-3 py-2.5">
             <div className="relative h-9 w-9 shrink-0">
               {event.user.profileImageUrl ? (
                 <Image
@@ -1340,17 +1182,14 @@ export default function DashboardPage() {
   const { user, isLoading } = useAuth();
   const { data: session } = useSession();
   const currentUserId = session?.user?.id;
-  const queryClient = useQueryClient();
-
-  const [techCenter, setTechCenter] = useState<TechCenter | null>(null);
-  const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
-  const [messageIndex, setMessageIndex] = useState(0);
+  const techCenterId = user?.techCenterId;
+  const [, setMessageIndex] = useState(0);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const { data: socialSummary } = useQuery<SocialSummary>({
     queryKey: ['dashboard', 'social-summary'],
     queryFn: async () => {
-      const res = await fetch('/api/dashboard/social-summary?limit=50');
+      const res = await fetch('/api/dashboard/social-summary?limit=100');
       if (!res.ok) throw new Error('Failed to fetch social summary');
       const result: unknown = await res.json();
       if (!isSocialSummary(result)) {
@@ -1364,119 +1203,31 @@ export default function DashboardPage() {
   });
 
   const meStats = socialSummary?.me;
+  const directorProfiles = socialSummary?.trending.students.filter(
+    (profile) =>
+      profile.role === 'super_admin' &&
+      profile.status === 'ACTIVE' &&
+      Boolean(profile.previousTechCenter),
+  ) ?? [];
+  const trendingProfiles = socialSummary?.trending.students.filter(
+    (profile) => profile.role !== 'super_admin',
+  );
 
-  // Prefetch announcement carousel data on page load
-  useEffect(() => {
-    const prefetchCarouselData = async () => {
-      // Prefetch directors
-      queryClient.prefetchQuery({
-        queryKey: ['directors'],
-        queryFn: async () => {
-          const response = await fetch('/api/directors');
-          if (!response.ok) throw new Error('Failed to fetch directors');
-          const data: unknown = await response.json();
-          if (!isRecord(data) || data.success !== true || !Array.isArray(data.directors)) {
-            throw new Error(getResponseError(data, 'Failed'));
-          }
-          return data.directors.filter(isRecord);
-        },
-        staleTime: 5 * 60 * 1000,
-      });
-    };
-
-    prefetchCarouselData();
-  }, [queryClient]);
-
-  const fetchTechCenter = useCallback(async (techCenterId: string) => {
-    try {
+  const { data: techCenter = null } = useQuery<TechCenter | null>({
+    queryKey: ['dashboard-tech-center', techCenterId],
+    queryFn: async () => {
+      if (!techCenterId) {
+        throw new Error('A tech center is required to fetch tech center details');
+      }
       const response = await fetch(`/api/tech-centers/${techCenterId}`);
-      if (response.ok) {
-        const data: unknown = await response.json();
-        if (isTechCenter(data)) setTechCenter(data);
-      }
-    } catch (error) {
-      // Error fetching tech center
-    }
-  }, []);
-
-  const fetchRecentActivity = useCallback(async (techCenterId: string) => {
-    try {
-      const response = await fetch(
-        `/api/tech-centers/${techCenterId}/activity?limit=10`,
-      );
-      if (response.ok) {
-        const data: unknown = await response.json();
-        if (Array.isArray(data)) {
-          setRecentActivity(data.filter(isActivityItem));
-        }
-      }
-    } catch (error) {
-      // Error fetching recent activity
-    }
-  }, []);
-
-  const fetchAllActivity = useCallback(async () => {
-    try {
-      const techCentersResponse = await fetch('/api/admin/tech-centers');
-      if (techCentersResponse.ok) {
-        const techCentersData: unknown = await techCentersResponse.json();
-        const techCenters = Array.isArray(techCentersData)
-          ? techCentersData.filter(isTechCenter)
-          : [];
-
-        const activityPromises = techCenters.map(async (tc) => {
-          try {
-            const activityResponse = await fetch(
-              `/api/tech-centers/${tc.id}/activity?limit=10`,
-            );
-            if (activityResponse.ok) {
-              const activitiesData: unknown = await activityResponse.json();
-              const activities = Array.isArray(activitiesData)
-                ? activitiesData.filter(isActivityItem)
-                : [];
-              return (activities || []).map((activity) => ({
-                ...activity,
-                techCenter: { id: tc.id, name: tc.name },
-              }));
-            }
-            return [];
-          } catch {
-            return [];
-          }
-        });
-
-        const allActivities = await Promise.all(activityPromises);
-        const flattened = allActivities
-          .flat()
-          .sort(
-            (a, b) =>
-              new Date(b.createdAt).getTime() -
-              new Date(a.createdAt).getTime(),
-          );
-        setRecentActivity(flattened);
-      }
-    } catch (error) {
-      // Error fetching all activity
-    }
-  }, []);
-
-  useEffect(() => {
-    const loadData = async () => {
-      if (user?.techCenterId) await fetchTechCenter(user.techCenterId);
-      if (user?.role === 'super_admin') {
-        await fetchAllActivity();
-      } else if (user?.techCenterId) {
-        await fetchRecentActivity(user.techCenterId);
-      }
-    };
-    loadData();
-  }, [
-    user?.techCenterId,
-    user?.role,
-    fetchTechCenter,
-    fetchRecentActivity,
-    fetchAllActivity,
-  ]);
+      if (!response.ok) throw new Error('Failed to fetch tech center');
+      const data: unknown = await response.json();
+      if (!isTechCenter(data)) throw new Error('Invalid tech center response');
+      return data;
+    },
+    enabled: !!techCenterId,
+    staleTime: 10 * 60 * 1000,
+  });
 
   const { data: tutorsData, isLoading: tutorsLoading } = useQuery({
     queryKey: ['tutors', user?.techCenterId],
@@ -1580,38 +1331,6 @@ export default function DashboardPage() {
     }, 1000);
     return () => window.clearInterval(interval);
   }, []);
-
-  const ACTIVITY_META: Record<string, { label: string }> = {
-    course_submission: { label: 'submitted a course' },
-    cleaning_registration: { label: 'registered for cleaning day' },
-    cleaning_day_change: { label: 'changed cleaning day' },
-    cleaning_week_created: { label: 'created cleaning week' },
-    cleaning_day_created: { label: 'created cleaning day' },
-    change_user_role: { label: 'changed user role' },
-    create_user: { label: 'created new user' },
-    delete_user: { label: 'deleted user' },
-    create_tech_center: { label: 'created tech center' },
-    update_tech_center: { label: 'updated tech center' },
-  };
-
-  const getActivityMeta = (action: string): { label: string } =>
-    ACTIVITY_META[action.toLowerCase()] ?? {
-      label: action.replace(/_/g, ' '),
-    };
-
-  const formatTimeAgo = (date: Date | string) => {
-    const timestamp = new Date(date).getTime();
-    if (Number.isNaN(timestamp)) return '';
-    const diffInMs = currentTime.getTime() - timestamp;
-    const mins = Math.floor(diffInMs / 60000);
-    const hours = Math.floor(diffInMs / 3600000);
-    const days = Math.floor(diffInMs / 86400000);
-    if (mins < 1) return 'now';
-    if (mins < 60) return `${mins}m`;
-    if (hours < 24) return `${hours}h`;
-    if (days < 7) return `${days}d`;
-    return new Date(date).toLocaleDateString();
-  };
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -1782,17 +1501,24 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Recent Announcements strip */}
-          <RecentAnnouncementsStrip />
-
-          {/* Directors display */}
-          <DirectorsDisplay />
         </header>
 
         {/* ============================================================
             MAIN CONTENT - Unified layout
         ============================================================ */}
         <div className="mt-10 space-y-12">
+          <AnnouncementsSection />
+
+          {(!socialSummary || directorProfiles.length > 0) && (
+            <section>
+              <SectionHeader label="Organisation Directors" />
+              <DirectorsDisplay
+                trending={directorProfiles}
+                isLoading={!socialSummary}
+              />
+            </section>
+          )}
+
           {/* Discover Students */}
           {discoverStudents.length > 0 && (
             <section>
@@ -1807,7 +1533,7 @@ export default function DashboardPage() {
           {/* Trending Students */}
           <section>
             <SectionHeader
-              label="Trending profiles"
+              label="Trending student profiles"
               action={
                 <button
                   type="button"
@@ -1820,13 +1546,13 @@ export default function DashboardPage() {
               }
             />
             <SuggestedStudents
-              trending={socialSummary?.trending?.students}
+              trending={trendingProfiles}
               isLoading={!socialSummary}
             />
           </section>
 
-          {/* Reels + Recent Activity - Two Column on Desktop */}
-          <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-12">
+          {/* Reels and profile activity remain full-width stacked rows */}
+          <div className="grid grid-cols-1 gap-10">
             {/* Reels */}
             <section>
               <SectionHeader label="Reels" />

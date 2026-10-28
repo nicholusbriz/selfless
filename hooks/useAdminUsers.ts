@@ -15,6 +15,11 @@ export const useAdminUsers = (params?: {
   return useQuery({
     queryKey: ['adminUsers', params],
     queryFn: () => adminTechCenterUsersApi.getUsers(params),
+    placeholderData: (previousData) => previousData,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 };
 

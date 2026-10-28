@@ -82,6 +82,7 @@ export async function GET(request: NextRequest) {
       where: {
         techCenterId,
         status: 'ACTIVE' as const,
+        role: { name: 'student' },
       },
       select: {
         id: true,

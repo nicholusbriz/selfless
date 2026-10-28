@@ -12,6 +12,15 @@ import { logUserAction } from '@/lib/logger';
 import { deleteProfileImage } from '@/lib/azure-storage';
 import { publishUserProfileInvalidation } from '@/lib/partyserver-client';
 
+function isPrismaWriteConflict(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === 'P2034'
+  );
+}
+
 // GET - Fetch single user details
 export async function GET(
   request: NextRequest,
@@ -387,65 +396,69 @@ export async function DELETE(
       }
     }
 
-    // Use a transaction to delete all related records
-    await prisma.$transaction(async (tx) => {
-      // 1. Delete cleaning registrations (one-to-many relation)
-      await tx.cleaningRegistration.deleteMany({
-        where: { userId }
-      });
+    // MongoDB can abort a long transaction when another request updates a
+    // document touched by the deletion (for example, a concurrent heartbeat).
+    const maxAttempts = 3;
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        await prisma.$transaction(async (tx) => {
+          await tx.cleaningRegistration.deleteMany({
+            where: { userId },
+          });
 
-      // 2. Delete attendance records
-      await tx.attendanceRecord.deleteMany({
-        where: { userId }
-      });
+          await tx.attendanceRecord.deleteMany({
+            where: { userId },
+          });
 
-      // 3. Delete grades (both student and teacher)
-      await tx.grade.deleteMany({
-        where: {
-          OR: [
-            { studentId: userId },
-            { assignedBy: userId }
-          ]
+          await tx.grade.deleteMany({
+            where: {
+              OR: [{ studentId: userId }, { assignedBy: userId }],
+            },
+          });
+
+          await tx.studentCourse.deleteMany({
+            where: { studentId: userId },
+          });
+
+          await tx.announcement.deleteMany({
+            where: { authorId: userId },
+          });
+
+          await tx.notification.deleteMany({
+            where: { userId },
+          });
+
+          await tx.activityLog.deleteMany({
+            where: { userId },
+          });
+
+          await tx.session.deleteMany({
+            where: { userId },
+          });
+
+          await tx.account.deleteMany({
+            where: { userId },
+          });
+
+          await tx.user.delete({
+            where: { id: userId },
+          });
+        }, {
+          timeout: 30000,
+        });
+        break;
+      } catch (error) {
+        if (!isPrismaWriteConflict(error) || attempt >= maxAttempts) {
+          throw error;
         }
-      });
 
-      // 4. Delete student courses
-      await tx.studentCourse.deleteMany({
-        where: { studentId: userId }
-      });
-
-      // 5. Delete announcements
-      await tx.announcement.deleteMany({
-        where: { authorId: userId }
-      });
-
-      // 6. Delete notifications
-      await tx.notification.deleteMany({
-        where: { userId }
-      });
-
-      // 7. Delete activity logs
-      await tx.activityLog.deleteMany({
-        where: { userId }
-      });
-
-      // 8. Delete sessions (NextAuth)
-      await tx.session.deleteMany({
-        where: { userId }
-      });
-
-      // 9. Delete accounts (NextAuth)
-      await tx.account.deleteMany({
-        where: { userId }
-      });
-
-      // 10. Finally delete the user
-      await tx.user.delete({
-        where: { id: userId }
-      });
-    }, {
-      timeout: 30000 // Increase timeout to 30 seconds
-    });
+        const delayMs = 100 * 2 ** (attempt - 1) + Math.floor(Math.random() * 100);
+        console.warn(
+          `User deletion transaction write conflict for ${userId}; retrying (${attempt}/${maxAttempts - 1})`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
 
     // Delete the profile image from Supabase storage now that the DB row
     // is gone. This runs outside the transaction because Supabase storage
@@ -486,6 +499,12 @@ export async function DELETE(
     });
   } catch (error) {
     console.error('Error deleting user:', error);
+    if (isPrismaWriteConflict(error)) {
+      return NextResponse.json(
+        { error: 'The user record is being updated. Please retry the deletion.' },
+        { status: 409 },
+      );
+    }
     return NextResponse.json(
       { error: 'Failed to delete user' },
       { status: 500 }

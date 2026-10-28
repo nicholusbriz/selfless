@@ -7,6 +7,8 @@ import {
   AlertCircle,
   ArrowLeft,
   Plus,
+  MoreVertical,
+  Check,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
@@ -19,6 +21,12 @@ import Image from 'next/image';
 import type { User, Conversation, Message, TabType } from '@/types/messaging';
 import { useOnlineUsers } from '@/lib/hooks/useOnlineUsers';
 import { getDisplayName } from '@/lib/messaging/displayName';
+import {
+  CHAT_THEMES,
+  getChatTheme,
+  isChatTheme,
+  type ChatTheme,
+} from '@/lib/messaging/chatThemes';
 import { getApiErrorMessage, isJsonObject } from '@/lib/api-response';
 
 function isMessagingUser(value: unknown): value is User {
@@ -123,6 +131,93 @@ export default function MessagesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [isChatMenuOpen, setIsChatMenuOpen] = useState(false);
+  const chatMenuRef = useRef<HTMLDivElement>(null);
+  const profileImageUrl = session?.user?.profileImageUrl ?? null;
+
+  useEffect(() => {
+    if (!isChatMenuOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !chatMenuRef.current?.contains(event.target)
+      ) {
+        setIsChatMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsChatMenuOpen(false);
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isChatMenuOpen]);
+
+  const {
+    data: chatTheme = 'classic',
+  } = useQuery<ChatTheme>({
+    queryKey: ['user', currentUserId, 'chatTheme'],
+    queryFn: async () => {
+      const response = await fetch('/api/user/chat-theme');
+      const data: unknown = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(getApiErrorMessage(data, 'Failed to load chat theme'));
+      }
+      if (!isJsonObject(data) || !isChatTheme(data.theme)) {
+        throw new Error('Invalid chat theme response');
+      }
+      return data.theme;
+    },
+    enabled: Boolean(currentUserId),
+    staleTime: Infinity,
+  });
+
+  const updateChatThemeMutation = useMutation({
+    mutationFn: async (theme: ChatTheme) => {
+      const response = await fetch('/api/user/chat-theme', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme }),
+      });
+      const data: unknown = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(getApiErrorMessage(data, 'Failed to save chat theme'));
+      }
+      if (!isJsonObject(data) || !isChatTheme(data.theme)) {
+        throw new Error('Invalid chat theme response');
+      }
+      return data.theme;
+    },
+    onMutate: async (theme) => {
+      await queryClient.cancelQueries({
+        queryKey: ['user', currentUserId, 'chatTheme'],
+      });
+      const previousTheme = queryClient.getQueryData<ChatTheme>([
+        'user',
+        currentUserId,
+        'chatTheme',
+      ]);
+      queryClient.setQueryData(['user', currentUserId, 'chatTheme'], theme);
+      return { previousTheme };
+    },
+    onError: (_error, _theme, context) => {
+      if (context?.previousTheme) {
+        queryClient.setQueryData(
+          ['user', currentUserId, 'chatTheme'],
+          context.previousTheme,
+        );
+      }
+    },
+    onSuccess: (theme) => {
+      queryClient.setQueryData(['user', currentUserId, 'chatTheme'], theme);
+    },
+  });
 
   // Fetch users
   const {
@@ -358,16 +453,6 @@ export default function MessagesPage() {
     setSearchQuery('');
   };
 
-  // Get conversation for selected user
-  const getConversationForUser = (userId: string): Conversation | undefined => {
-    return conversations.find(
-      (conv: Conversation) => 
-        conv.participants.includes(currentUserId) && 
-        conv.participants.includes(userId) &&
-        conv.participants.length === 2 // Ensure it's a one-to-one conversation
-    );
-  };
-
   if (!currentUserId) {
     return (
       <div className="min-h-screen bg-[#F7F9FC] flex items-center justify-center px-4">
@@ -399,127 +484,63 @@ export default function MessagesPage() {
     );
   }
 
-  // Show Chat component when a user is selected
-  if (selectedUser && selectedConversation) {
-    const selectedUserIsOnline = onlineUsers.some(
-      (onlineUser) => onlineUser.userId === selectedUser.id
-    );
-    const selectedUserName = getDisplayName(selectedUser);
+  const selectedUserIsOnline = selectedUser
+    ? onlineUsers.some((onlineUser) => onlineUser.userId === selectedUser.id)
+    : false;
+  const selectedUserName = selectedUser ? getDisplayName(selectedUser) : '';
+  const isConversationOpen = Boolean(selectedUser);
 
-    return (
-      <div className="h-screen bg-[#F7F9FC] overflow-hidden">
-        <div className="max-w-4xl mx-auto bg-white h-screen flex flex-col">
-          {/* Chat Header */}
-          <div className="bg-[#1A365D] px-4 py-3 flex items-center justify-between flex-shrink-0">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleBackToList}
-                className="text-white hover:text-[#3182CE] transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-              {selectedUser.image ? (
-                <Image
-                  src={selectedUser.image}
-                  alt={selectedUserName}
-                  width={40}
-                  height={40}
-                  unoptimized
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-              ) : null}
-              <div>
-                <h2 className="text-white font-semibold">
-                  {selectedUserName}
-                </h2>
-                <div className="flex items-center gap-2 text-xs">
-                  <span className={selectedUserIsOnline ? 'text-[#9AE6B4]' : 'text-white/60'}>
-                    {selectedUserIsOnline ? 'Online' : 'Offline'}
-                  </span>
-                  <span className="text-white/70">
-                    {selectedUser.techCenter?.name || 'No location'}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <Link
-              href={`/dashboard/students/${selectedUser.id}`}
-              className="text-white/80 hover:text-white text-sm font-medium transition-colors"
-            >
-              View Profile
-            </Link>
-          </div>
-
-          {/* Chat Component */}
-          <div className="flex-1 overflow-hidden">
-            <Chat 
-              conversationId={selectedConversation.id}
-              currentUserId={currentUserId}
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show main view with tabs
   return (
-    <div className="h-screen bg-[#F7F9FC] overflow-hidden">
-      <div className="max-w-4xl mx-auto bg-white h-screen flex flex-col">
-        {/* Header */}
-        <div className="bg-[#1A365D] px-4 py-3 flex items-center justify-between flex-shrink-0">
-          <h1 className="text-white text-lg font-semibold">Messages</h1>
-          <div className="flex items-center gap-2">
-            <span className="text-white/70 text-sm">
-              {activeTab === 'chats' 
-                ? `${filteredConversations.length} chats`
-                : `${filteredUsers.length} contacts`
-              }
-            </span>
-          </div>
-        </div>
-
+    <div className="mx-auto h-[calc(100dvh-96px)] min-h-[420px] max-w-7xl overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_12px_35px_rgba(26,43,76,0.08)]">
+      <div className="flex h-full min-h-0">
+        <aside
+          className={`${
+            isConversationOpen ? 'hidden' : 'flex'
+          } h-full min-h-0 w-full flex-col bg-white lg:flex lg:w-[340px] lg:shrink-0 lg:border-r lg:border-[#E8ECF2] xl:w-[370px]`}
+        >
         {/* Tabs */}
-        <div className="flex border-b border-[#E2E8F0] bg-white flex-shrink-0">
+        <div className="flex shrink-0 gap-6 border-b border-[#E8ECF2] bg-white px-4 sm:px-6">
           <button
+            type="button"
             onClick={() => {
               setActiveTab('chats');
               setSearchQuery('');
             }}
-            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors relative ${
+            className={`relative py-3 text-sm font-semibold transition-colors ${
               activeTab === 'chats'
-                ? 'text-[#1A365D]'
-                : 'text-[#718096] hover:text-[#1A365D]'
+                ? 'text-[#1A2B4C]'
+                : 'text-[#8791A1] hover:text-[#1A2B4C]'
             }`}
           >
             Chats
             {activeTab === 'chats' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#3182CE]" />
+              <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-[#B98A3E]" />
             )}
           </button>
           <button
+            type="button"
             onClick={() => {
               setActiveTab('users');
               setSearchQuery('');
             }}
-            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors relative ${
+            className={`relative py-3 text-sm font-semibold transition-colors ${
               activeTab === 'users'
-                ? 'text-[#1A365D]'
-                : 'text-[#718096] hover:text-[#1A365D]'
+                ? 'text-[#1A2B4C]'
+                : 'text-[#8791A1] hover:text-[#1A2B4C]'
             }`}
           >
             All Users
             {activeTab === 'users' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#3182CE]" />
+              <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-[#B98A3E]" />
             )}
           </button>
         </div>
 
         {/* Search Bar */}
-        <div className="bg-white px-3 py-2 border-b border-[#E2E8F0] flex-shrink-0">
+        <div className="shrink-0 border-b border-[#E8ECF2] bg-white px-4 py-3 sm:px-6">
           <div className="relative">
             <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#718096] pointer-events-none"
+              className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8791A1]"
               strokeWidth={2}
             />
             <input
@@ -527,22 +548,17 @@ export default function MessagesPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={activeTab === 'chats' ? 'Search conversations...' : 'Search users...'}
-              className="
-                w-full pl-9 pr-9 py-2
-                bg-[#F7F9FC]
-                border-none rounded-lg
-                text-[#1A365D] text-sm
-                placeholder:text-[#718096]
-                focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#3182CE]
-                transition-all
-              "
+              aria-label={activeTab === 'chats' ? 'Search conversations' : 'Search users'}
+              className="h-11 w-full rounded-xl border border-[#E2E7EE] bg-[#F8F9FB] pl-10 pr-10 text-sm text-[#1A2B4C] placeholder:text-[#9AA3B1] outline-none transition focus:border-[#B98A3E] focus:bg-white focus:ring-2 focus:ring-[#B98A3E]/15"
             />
             {searchQuery && (
               <button
+                type="button"
                 onClick={handleClearSearch}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-[#718096] hover:text-[#1A365D]"
+                aria-label="Clear search"
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-[#8791A1] hover:bg-[#EEF1F5] hover:text-[#1A2B4C]"
               >
-                <X className="w-4 h-4" strokeWidth={2.5} />
+                <X className="h-4 w-4" strokeWidth={2} />
               </button>
             )}
           </div>
@@ -551,14 +567,14 @@ export default function MessagesPage() {
         {createConversationMutation.error && (
           <div
             role="alert"
-            className="mx-4 mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+            className="mx-4 mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800"
           >
             {createConversationMutation.error.message}
           </div>
         )}
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-white">
           {activeTab === 'chats' ? (
             <ChatsList
               conversations={filteredConversations}
@@ -579,7 +595,6 @@ export default function MessagesPage() {
               users={filteredUsers}
               isLoading={usersLoading}
               onlineUserIds={new Set(onlineUsers.map((onlineUser) => onlineUser.userId))}
-              getConversationForUser={getConversationForUser}
               onUserClick={handleUserClick}
               searchQuery={searchQuery}
             />
@@ -588,8 +603,8 @@ export default function MessagesPage() {
 
         {/* Footer */}
         {(filteredConversations.length > 0 || filteredUsers.length > 0) && (
-          <div className="bg-white border-t border-[#E2E8F0] px-4 py-2 flex justify-between items-center flex-shrink-0">
-            <span className="text-xs text-[#718096]">
+          <div className="flex shrink-0 items-center justify-between border-t border-[#E8ECF2] bg-white px-4 py-2.5 sm:px-6">
+            <span className="text-xs text-[#8791A1]">
               {activeTab === 'chats' 
                 ? `${filteredConversations.length} conversations`
                 : `${filteredUsers.length} contacts`
@@ -598,19 +613,228 @@ export default function MessagesPage() {
             {activeTab === 'chats' && filteredConversations.length === 0 && !searchQuery && (
               <button
                 onClick={handleStartNewChat}
-                className="text-xs text-[#3182CE] font-medium hover:text-[#1A365D] transition-colors flex items-center gap-1"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-[#1A2B4C] transition-colors hover:text-[#9A7436]"
               >
                 <Plus className="w-3 h-3" />
                 Start New Chat
               </button>
             )}
             {activeTab === 'users' && searchQuery && (
-              <span className="text-xs text-[#718096]">
+              <span className="text-xs text-[#8791A1]">
                 {filteredUsers.length} of {users.length} users
               </span>
             )}
           </div>
         )}
+        </aside>
+
+        <section
+          className={`${
+            isConversationOpen ? 'flex' : 'hidden'
+          } min-h-0 min-w-0 flex-1 flex-col bg-[#F7F8FA] lg:flex`}
+        >
+          {selectedUser && (
+            <>
+              <div className="relative flex shrink-0 items-center justify-between border-b border-[#E8ECF2] bg-white px-3 py-3 sm:px-5">
+                <div className="flex min-w-0 items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleBackToList}
+                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#52617A] transition-colors hover:bg-[#F3F5F8] hover:text-[#1A2B4C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] lg:hidden"
+                    aria-label="Back to conversations"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </button>
+                  {selectedUser.image ? (
+                    <Image
+                      src={selectedUser.image}
+                      alt={selectedUserName}
+                      width={40}
+                      height={40}
+                      unoptimized
+                      className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-[#F0F2F5]"
+                    />
+                  ) : (
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1A2B4C] text-sm font-bold text-white">
+                      {selectedUserName
+                        .split(/\s+/)
+                        .slice(0, 2)
+                        .map((part) => part.charAt(0))
+                        .join('')
+                        .toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <h2 className="truncate text-sm font-semibold text-[#1A2B4C] sm:text-base">
+                      {selectedUserName}
+                    </h2>
+                    <div className="mt-0.5 flex items-center gap-2 text-xs">
+                      <span className={`inline-flex items-center gap-1.5 ${selectedUserIsOnline ? 'text-[#3F8F5B]' : 'text-[#8791A1]'}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${selectedUserIsOnline ? 'bg-[#3F8F5B]' : 'bg-[#AAB2BF]'}`} />
+                        {selectedUserIsOnline ? 'Online' : 'Offline'}
+                      </span>
+                      {selectedUser.techCenter?.name && (
+                        <>
+                          <span className="text-[#C4CAD3]">·</span>
+                          <span className="truncate text-[#788397]">{selectedUser.techCenter.name}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div ref={chatMenuRef} className="relative ml-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsChatMenuOpen((isOpen) => !isOpen)}
+                    aria-label="Chat options"
+                    aria-haspopup="menu"
+                    aria-expanded={isChatMenuOpen}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#52617A] transition-colors hover:bg-[#F3F5F8] hover:text-[#1A2B4C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E]"
+                  >
+                    <MoreVertical className="h-5 w-5" />
+                  </button>
+                  {isChatMenuOpen && (
+                    <div
+                      role="menu"
+                      aria-label="Chat options"
+                      className="absolute right-0 top-11 z-20 w-64 rounded-xl border border-[#E5E7EB] bg-white p-2 shadow-xl"
+                    >
+                      <Link
+                        href={`/dashboard/students/${selectedUser.id}`}
+                        role="menuitem"
+                        onClick={() => setIsChatMenuOpen(false)}
+                        className="block rounded-lg px-3 py-2.5 text-sm font-medium text-[#26354D] transition-colors hover:bg-[#F5F6F8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E]"
+                      >
+                        View profile
+                      </Link>
+                      <div className="my-1 border-t border-[#EEF1F5]" />
+                      <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[#8791A1]">
+                        Chat background
+                      </p>
+                      {CHAT_THEMES.map((theme) => (
+                        <button
+                          key={theme.id}
+                          type="button"
+                          role="menuitemradio"
+                          aria-checked={chatTheme === theme.id}
+                          onClick={() => {
+                            setIsChatMenuOpen(false);
+                            updateChatThemeMutation.mutate(theme.id);
+                          }}
+                          disabled={
+                            updateChatThemeMutation.isPending ||
+                            (theme.id === 'profile-image' && !profileImageUrl)
+                          }
+                          title={
+                            theme.id === 'profile-image' && !profileImageUrl
+                              ? 'Add a profile image to use this background'
+                              : undefined
+                          }
+                          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-[#26354D] transition-colors hover:bg-[#F5F6F8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] disabled:cursor-wait disabled:opacity-60"
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="relative flex h-7 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-black/10"
+                            style={{ backgroundColor: theme.canvasColor }}
+                          >
+                            {theme.id === 'profile-image' && profileImageUrl && (
+                              <Image
+                                src={profileImageUrl}
+                                alt=""
+                                fill
+                                sizes="36px"
+                                unoptimized
+                                className="object-cover"
+                              />
+                            )}
+                            {theme.id !== 'profile-image' && (
+                              <>
+                                <span className="absolute left-1 top-1 h-1.5 w-3 rounded-full bg-white" />
+                                <span
+                                  className="absolute bottom-1 right-1 h-1.5 w-4 rounded-full"
+                                  style={{ backgroundColor: theme.preview }}
+                                />
+                              </>
+                            )}
+                            {chatTheme === theme.id && (
+                              <Check className="relative z-10 h-3 w-3 text-white drop-shadow" />
+                            )}
+                          </span>
+                          <span className="flex-1">
+                            {theme.label}
+                            {theme.id === 'profile-image' && !profileImageUrl && (
+                              <span className="mt-0.5 block text-[10px] text-[#8791A1]">
+                                Add a profile image first
+                              </span>
+                            )}
+                          </span>
+                          {chatTheme === theme.id && (
+                            <span className="text-[10px] font-medium text-[#8791A1]">Selected</span>
+                          )}
+                        </button>
+                      ))}
+                      {updateChatThemeMutation.error && (
+                        <p role="alert" className="px-3 py-2 text-xs text-[#A4462F]">
+                          {updateChatThemeMutation.error.message}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="min-h-0 flex-1 overflow-hidden">
+                {selectedConversation ? (
+                  <Chat
+                    conversationId={selectedConversation.id}
+                    currentUserId={currentUserId}
+                    theme={chatTheme}
+                    profileImageUrl={profileImageUrl}
+                  />
+                ) : (
+                  <div
+                    className="relative flex h-full items-center justify-center overflow-hidden px-6 text-center"
+                    style={{
+                      backgroundColor: getChatTheme(chatTheme).canvasColor,
+                    }}
+                  >
+                    {chatTheme === 'profile-image' && profileImageUrl && (
+                      <>
+                        <Image
+                          src={profileImageUrl}
+                          alt=""
+                          fill
+                          sizes="100vw"
+                          unoptimized
+                          className="object-cover"
+                        />
+                        <div
+                          aria-hidden="true"
+                          className="absolute inset-0 bg-white/25"
+                        />
+                      </>
+                    )}
+                    <p className="relative z-10 text-sm font-medium text-[#788397]">
+                      Conversation is ready. Send a message to begin.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+          {!selectedUser && (
+            <div className="hidden h-full flex-col items-center justify-center px-8 text-center lg:flex">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-[#1A2B4C] shadow-sm">
+                <Search className="h-7 w-7" strokeWidth={1.6} />
+              </div>
+              <h2 className="mt-5 text-base font-semibold text-[#26354D]">
+                Select a conversation
+              </h2>
+              <p className="mt-2 max-w-xs text-sm leading-6 text-[#8791A1]">
+                Choose a chat from the list or start a conversation with someone.
+              </p>
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );

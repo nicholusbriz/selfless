@@ -47,9 +47,16 @@ export interface UsersResponse {
     limit: number;
     totalPages: number;
   };
+  stats: {
+    active: number;
+    inactive: number;
+    suspended: number;
+  };
+}
+
+export interface UserFiltersResponse {
   filters: {
     techCenters: Array<{ id: string; name: string; code: string }>;
-    countries: Array<{ id: string; name: string; code: string }>;
     roles: Array<{ id: string; name: string; displayName: string }>;
     statuses: string[];
   };
@@ -88,6 +95,15 @@ export const adminUsersApi = {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(getApiErrorMessage(error, 'Failed to fetch users'));
+    }
+    return response.json();
+  },
+
+  getUserFilters: async (): Promise<UserFiltersResponse> => {
+    const response = await fetch('/api/admin/users/filters');
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(getApiErrorMessage(error, 'Failed to fetch user filters'));
     }
     return response.json();
   },

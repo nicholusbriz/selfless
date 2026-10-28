@@ -1,15 +1,14 @@
 'use client';
 
-import { Users, MessageSquare } from 'lucide-react';
+import { Users } from 'lucide-react';
 import Image from 'next/image';
 import { MapPin } from 'lucide-react';
-import type { Conversation, User } from '@/types/messaging';
+import type { User } from '@/types/messaging';
 
 interface AllUsersListProps {
   users: User[];
   isLoading: boolean;
   onlineUserIds: Set<string>;
-  getConversationForUser: (userId: string) => Conversation | undefined;
   onUserClick: (user: User) => void;
   searchQuery: string;
 }
@@ -18,13 +17,12 @@ export function AllUsersList({
   users,
   isLoading,
   onlineUserIds,
-  getConversationForUser,
   onUserClick,
   searchQuery,
 }: AllUsersListProps) {
   if (isLoading) {
     return (
-      <div className="divide-y divide-[#F7F9FC]">
+      <div className="divide-y divide-[#EEF1F5]">
         {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="flex items-center gap-3 px-4 py-3 animate-pulse">
             <div className="w-12 h-12 rounded-full bg-[#F7F9FC]" />
@@ -51,7 +49,7 @@ export function AllUsersList({
   }
 
   return (
-    <div className="divide-y divide-[#F7F9FC]">
+    <div className="divide-y divide-[#EEF1F5]">
       {users.map((user) => {
         const fullName = `${user.firstName} ${user.lastName}`.trim() || 'Unknown User';
         const initials = fullName
@@ -60,9 +58,7 @@ export function AllUsersList({
           .map((part) => part.charAt(0))
           .join('')
           .toUpperCase() || '?';
-        const hasConversation = getConversationForUser(user.id);
         const isOnline = onlineUserIds.has(user.id);
-        const isSupport = user.roleName === 'dev';
 
         return (
           <div
@@ -76,8 +72,8 @@ export function AllUsersList({
             }}
             role="button"
             tabIndex={0}
-            aria-label={`Start chat with ${fullName}${hasConversation ? ', conversation exists' : ''}`}
-            className="flex items-center gap-3 px-4 py-3 hover:bg-[#F7FAFC] cursor-pointer transition-colors group focus:outline-none focus:ring-2 focus:ring-[#3182CE] focus:ring-inset"
+            aria-label={`Start chat with ${fullName}`}
+            className="group flex cursor-pointer items-center gap-3 px-4 py-3.5 transition-colors hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#B98A3E] focus:ring-inset sm:px-6"
           >
             {/* Avatar */}
             {user?.image ? (
@@ -87,11 +83,11 @@ export function AllUsersList({
                 width={48}
                 height={48}
                 unoptimized
-                className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                className="h-12 w-12 shrink-0 rounded-full object-cover ring-2 ring-[#F0F2F5]"
               />
             ) : (
-              <div className="w-12 h-12 flex items-center justify-center bg-[#1A365D] rounded-full flex-shrink-0">
-                <span className="text-white text-sm font-medium">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#1A2B4C]">
+                <span className="text-sm font-semibold text-white">
                   {initials}
                 </span>
               </div>
@@ -101,46 +97,23 @@ export function AllUsersList({
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-2">
-                  <h3 className="truncate text-sm font-medium text-[#1A365D]">
+                  <h3 className="truncate text-sm font-semibold text-[#26354D]">
                     {fullName}
                   </h3>
-                  {isSupport && (
-                    <span className="shrink-0 rounded-full bg-[#B98A3E] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
-                      Support
-                    </span>
-                  )}
-                  <span className={`flex shrink-0 items-center gap-1 text-[10px] font-medium ${isOnline ? 'text-[#3F8F5B]' : 'text-[#8A9088]'}`}>
+                  <span className={`flex shrink-0 items-center gap-1 text-[10px] font-medium ${isOnline ? 'text-[#3F8F5B]' : 'text-[#8791A1]'}`}>
                     <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-[#3F8F5B]' : 'bg-[#A0AEC0]'}`} />
                     {isOnline ? 'Online' : 'Offline'}
                   </span>
                 </div>
-                {hasConversation && (
-                  <span className="text-xs text-[#2C5282] bg-[#EBF8FF] px-2 py-0.5 rounded-full">
-                    Chat
-                  </span>
-                )}
               </div>
-              <div className="flex items-center gap-1 text-xs text-[#4A5568]">
-                <MapPin className="w-3 h-3 text-[#3182CE]" strokeWidth={2} />
+              <div className="mt-1 flex items-center gap-1 text-xs text-[#788397]">
+                <MapPin className="h-3 w-3 text-[#A0A9B6]" strokeWidth={2} />
                 <span className="truncate">
                   {user.techCenter?.name || 'No location'}
                 </span>
               </div>
             </div>
 
-            {/* Message button */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onUserClick(user);
-              }}
-              aria-label={`Message ${fullName}`}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-[#1A365D] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#153475]"
-            >
-              <MessageSquare className="w-4 h-4" />
-              <span>Message</span>
-            </button>
           </div>
         );
       })}

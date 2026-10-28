@@ -3,8 +3,9 @@
 
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import Image from 'next/image';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Calendar,
@@ -12,12 +13,8 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  ChevronDown,
-  ChevronUp,
-  Brush,
   Plus,
   Building2,
-  UserMinus,
   Trash2,
   Edit,
   UserPlus,
@@ -50,6 +47,16 @@ import {
   type CleaningRegistration,
   type AttendanceRecord,
 } from '@/hooks/useCleaning';
+
+function ClientPortal({ children }: { children: React.ReactNode }) {
+  const portalTarget = useSyncExternalStore<HTMLElement | null>(
+    () => () => {},
+    () => document.body,
+    () => null,
+  );
+
+  return portalTarget ? createPortal(children, portalTarget) : null;
+}
 
 // =========================================================
 // DESIGN TOKENS (from cleaning rota page)
@@ -592,20 +599,68 @@ function ActionMenu({
   children,
   align = 'right',
 }: ActionMenuProps) {
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [menuPosition, setMenuPosition] = useState<{
+    top: number;
+    left: number;
+    placement: 'above' | 'below';
+  }>({
+    top: 12,
+    left: 12,
+    placement: 'below',
+  });
 
   const isOpen = activeMenu === menuId;
+
+  const positionMenu = useCallback((menuHeight = 280) => {
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const menuWidth = 224;
+    const viewportPadding = 12;
+    const spaceBelow = window.innerHeight - rect.bottom - viewportPadding;
+    const spaceAbove = rect.top - viewportPadding;
+    const placement =
+      spaceBelow >= menuHeight || spaceBelow >= spaceAbove ? 'below' : 'above';
+    const unclampedTop =
+      placement === 'below'
+        ? rect.bottom + 8
+        : rect.top - menuHeight - 8;
+    const unclampedLeft =
+      align === 'right' ? rect.right - menuWidth : rect.left;
+
+    setMenuPosition({
+      top: Math.max(
+        viewportPadding,
+        Math.min(unclampedTop, window.innerHeight - menuHeight - viewportPadding),
+      ),
+      left: Math.max(
+        viewportPadding,
+        Math.min(unclampedLeft, window.innerWidth - menuWidth - viewportPadding),
+      ),
+      placement,
+    });
+  }, [align]);
 
   useEffect(() => {
     if (!isOpen) return;
 
+    const updatePosition = () => positionMenu(menuRef.current?.offsetHeight);
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
     const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node;
       if (
-        menuRef.current &&
-        !menuRef.current.contains(event.target as Node)
+        buttonRef.current?.contains(target) ||
+        menuRef.current?.contains(target)
       ) {
-        setActiveMenu(null);
+        return;
       }
+
+      setActiveMenu(null);
     };
 
     const handleEscape = (event: KeyboardEvent) => {
@@ -618,27 +673,33 @@ function ActionMenu({
     document.addEventListener('keydown', handleEscape);
 
     return () => {
-      document.removeEventListener(
-        'mousedown',
-        handleOutsideClick
-      );
-      document.removeEventListener(
-        'keydown',
-        handleEscape
-      );
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
     };
-  }, [isOpen, setActiveMenu]);
+  }, [isOpen, setActiveMenu, positionMenu]);
+
+  const toggleMenu = () => {
+    if (isOpen) {
+      setActiveMenu(null);
+      return;
+    }
+
+    positionMenu();
+    setActiveMenu(menuId as MenuType);
+  };
 
   return (
-    <div ref={menuRef} className="relative shrink-0">
+    <div className="relative shrink-0">
       <button
+        ref={buttonRef}
         type="button"
-        onClick={() =>
-          setActiveMenu(isOpen ? null : (menuId as MenuType))
-        }
+        onMouseDown={(event) => event.stopPropagation()}
+        onClick={toggleMenu}
         aria-label="Open actions"
         aria-expanded={isOpen}
-        className={`flex h-9 w-9 items-center justify-center rounded-lg border transition ${isOpen
+        className={`relative z-20 flex h-9 w-9 items-center justify-center rounded-lg border transition ${isOpen
             ? 'border-slate-300 bg-slate-100 text-slate-900'
             : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800'
           }`}
@@ -646,12 +707,13 @@ function ActionMenu({
         <MoreVertical className="h-4 w-4" />
       </button>
 
-      <AnimatePresence>
-        {isOpen && (
+      {isOpen &&
+        createPortal(
           <motion.div
+            ref={menuRef}
             initial={{
               opacity: 0,
-              y: -4,
+              y: menuPosition.placement === 'below' ? -4 : 4,
               scale: 0.98,
             }}
             animate={{
@@ -659,23 +721,23 @@ function ActionMenu({
               y: 0,
               scale: 1,
             }}
-            exit={{
-              opacity: 0,
-              y: -4,
-              scale: 0.98,
-            }}
             transition={{
               duration: 0.12,
             }}
-            className={`absolute top-[calc(100%+8px)] z-[9999] w-56 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl ${align === 'right'
-                ? 'right-0'
-                : 'left-0'
-              }`}
+            style={{
+              position: 'fixed',
+              top: menuPosition.top,
+              left: menuPosition.left,
+              zIndex: 9999,
+              width: 224,
+            }}
+            onMouseDown={(event) => event.stopPropagation()}
+            className="overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl"
           >
             {children}
-          </motion.div>
+          </motion.div>,
+          document.body,
         )}
-      </AnimatePresence>
     </div>
   );
 }
@@ -799,9 +861,6 @@ export default function AdminCleaningManagement() {
   const [showCreateWeek, setShowCreateWeek] =
     useState(false);
 
-  const [showAssignModal, setShowAssignModal] =
-    useState(false);
-
   const [showCapacityModal, setShowCapacityModal] =
     useState(false);
 
@@ -809,6 +868,18 @@ export default function AdminCleaningManagement() {
     useState<string | null>(null);
 
   const [newDeadline, setNewDeadline] = useState('');
+  const [deadlineCheckTime, setDeadlineCheckTime] = useState(0);
+
+  useEffect(() => {
+    const refreshDeadlineStatus = () => setDeadlineCheckTime(Date.now());
+    const timeoutId = window.setTimeout(refreshDeadlineStatus, 0);
+    const intervalId = window.setInterval(refreshDeadlineStatus, 60_000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   const [
     selectedDayForAssignment,
@@ -970,7 +1041,6 @@ export default function AdminCleaningManagement() {
           selectedDayForAssignment.id,
       });
 
-      setShowAssignModal(false);
       setSelectedDayForAssignment(null);
       setSelectedStudentForAssignment('');
 
@@ -1250,8 +1320,8 @@ export default function AdminCleaningManagement() {
 
   const openAssignModal = (day: CleaningDay) => {
     setActiveMenu(null);
+    setSelectedStudentForAssignment('');
     setSelectedDayForAssignment(day);
-    setShowAssignModal(true);
   };
 
   const formatDeadline = (dateString: string) =>
@@ -1259,6 +1329,9 @@ export default function AdminCleaningManagement() {
       dateStyle: 'medium',
       timeStyle: 'short',
     });
+
+  const isDeadlinePassed = (dateString: string) =>
+    new Date(dateString).getTime() < deadlineCheckTime;
 
   /* ============================================================
      USER INITIALS
@@ -1304,9 +1377,6 @@ export default function AdminCleaningManagement() {
     registrationDeadline: week.registrationDeadline,
   }));
 
-  // Students with 0 or 1 registrations (from API - already filtered)
-  const assignableStudents = data?.students || [];
-
   // Count registrations per student (max 2 allowed)
   const studentRegistrationCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -1321,17 +1391,11 @@ export default function AdminCleaningManagement() {
     return counts;
   }, [weeks]);
 
-  // Students with 0 registrations (for stats display)
-  const registeredStudentIds = useMemo(() => new Set(
-    weeks.flatMap((week) =>
-      week.days.flatMap((day) =>
-        day.registrations.map((registration) => registration.userId),
-      ),
-    ),
-  ), [weeks]);
-  const availableStudents = useMemo(() => assignableStudents.filter(
-    (student) => !registeredStudentIds.has(student.id),
-  ), [assignableStudents, registeredStudentIds]);
+  // Students with zero or one registration may still be assigned to another day.
+  const availableStudents = [
+    ...(data?.studentsByRegistrationCount.zero || []),
+    ...(data?.studentsByRegistrationCount.one || []),
+  ].sort((a, b) => a.firstName.localeCompare(b.firstName));
 
   // Filter days based on week filter
   const filteredDays = useMemo(() => {
@@ -1541,138 +1605,20 @@ export default function AdminCleaningManagement() {
           STATS
       ======================================================== */}
 
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-7">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
-          >
-            <div className="flex flex-col items-center gap-1">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-purple-50">
-                <Calendar className="h-4 w-4 text-purple-600" />
-              </div>
-              <p className="text-xl font-bold text-slate-900">
-                {stats.totalWeeks || 0}
-              </p>
-              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-                Weeks
-              </p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-            className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
-          >
-            <div className="flex flex-col items-center gap-1">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-indigo-50">
-                <Clock className="h-4 w-4 text-indigo-600" />
-              </div>
-              <p className="text-xl font-bold text-slate-900">
-                {stats.totalDays || 0}
-              </p>
-              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-                Days
-              </p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
-          >
-            <div className="flex flex-col items-center gap-1">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-50">
-                <Users className="h-4 w-4 text-blue-600" />
-              </div>
-              <p className="text-xl font-bold text-slate-900">
-                {stats.totalRegistrations}
-              </p>
-              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-                Registered
-              </p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
-          >
-            <div className="flex flex-col items-center gap-1">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-orange-50">
-                <UserMinus className="h-4 w-4 text-orange-600" />
-              </div>
-              <p className="text-xl font-bold text-slate-900">
-                {stats.totalUnregistered || availableStudents.length}
-              </p>
-              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-                Unregistered
-              </p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
-          >
-            <div className="flex flex-col items-center gap-1">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-emerald-50">
-                <CheckCircle className="h-4 w-4 text-emerald-600" />
-              </div>
-              <p className="text-xl font-bold text-slate-900">
-                {stats.totalAttended}
-              </p>
-              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-                Attended
-              </p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-            className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
-          >
-            <div className="flex flex-col items-center gap-1">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-amber-50">
-                <Clock className="h-4 w-4 text-amber-600" />
-              </div>
-              <p className="text-xl font-bold text-slate-900">
-                {stats.totalPending}
-              </p>
-              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-                Pending
-              </p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
-          >
-            <div className="flex flex-col items-center gap-1">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-red-50">
-                <XCircle className="h-4 w-4 text-red-600" />
-              </div>
-              <p className="text-xl font-bold text-slate-900">
-                {stats.totalNoShow}
-              </p>
-              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-                No Show
-              </p>
-            </div>
-          </motion.div>
+        <div className="flex flex-wrap items-center gap-3 text-sm text-[#3D4A61]">
+          <span>Weeks: <span className="font-bold text-[#12203B]">{stats.totalWeeks || 0}</span></span>
+          <span className="text-[#DADCD3]">•</span>
+          <span>Days: <span className="font-bold text-[#12203B]">{stats.totalDays || 0}</span></span>
+          <span className="text-[#DADCD3]">•</span>
+          <span>Registered: <span className="font-bold text-[#2F6B45]">{stats.totalRegistrations || 0}</span></span>
+          <span className="text-[#DADCD3]">•</span>
+          <span>Unregistered: <span className="font-bold text-[#8B3A24]">{stats.totalUnregistered || availableStudents.length || 0}</span></span>
+          <span className="text-[#DADCD3]">•</span>
+          <span>Attended: <span className="font-bold text-[#2F6B45]">{stats.totalAttended || 0}</span></span>
+          <span className="text-[#DADCD3]">•</span>
+          <span>Pending: <span className="font-bold text-[#6E5520]">{stats.totalPending || 0}</span></span>
+          <span className="text-[#DADCD3]">•</span>
+          <span>No Show: <span className="font-bold text-[#8B3A24]">{stats.totalNoShow || 0}</span></span>
         </div>
 
         {/* ========================================================
@@ -1757,152 +1703,97 @@ export default function AdminCleaningManagement() {
         ) : (
           <div
             id="cleaning-grid"
-            className="grid gap-3.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 overflow-visible"
+            className="grid gap-0 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 overflow-visible"
           >
             {filteredDays.map(({ day, week }) => (
               <div
                 key={day.id}
-                className="relative rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col overflow-visible"
+                className="relative flex flex-col overflow-visible border-b border-slate-200 bg-transparent p-0 pb-3 shadow-none"
               >
-                {/* DAY HEADER */}
-
-                <div className="relative z-20 border-b border-slate-100 p-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h4 className="font-bold text-slate-900">
-                          {day.dayOfWeek}
-                        </h4>
-
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${day.status ===
-                              'OPEN'
-                              ? 'bg-emerald-50 text-emerald-700'
-                              : day.status ===
-                                'FULL'
-                                ? 'bg-amber-50 text-amber-700'
-                                : 'bg-red-50 text-red-700'
-                            }`}
-                        >
-                          {day.status}
-                        </span>
-                      </div>
-
-                      <p className="mt-1 text-xs text-slate-500">
-                        {formatDate(day.cleaningDate)}
-                      </p>
-
-                      {/* WEEK LABEL BADGE */}
-                      <span
-                        className="mt-1.5 inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-[9.5px] font-bold uppercase tracking-[0.08em] text-slate-600"
-                        title={`Part of ${week.weekLabel}`}
-                      >
-                        <Calendar className="h-2.5 w-2.5 text-slate-500" />
-                        {week.weekLabel}
-                      </span>
-                    </div>
-
-                    {/* DAY ACTION AREA */}
-
-                    <div className="flex items-center justify-between gap-3 sm:justify-end">
-                      <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
-                        <Users className="h-3.5 w-3.5" />
-
-                        <span>
-                          {
-                            day.currentRegistrations
-                          }{' '}
-                          /{' '}
-                          {
-                            day.capacityLimit
-                          }
-                        </span>
-                      </div>
-
-                      <ActionMenu
-                        menuId={`day-${day.id}`}
-                        activeMenu={
-                          activeMenu
-                        }
-                        setActiveMenu={
-                          setActiveMenu
-                        }
-                      >
-                        <div className="px-3 py-2">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                            Day actions
-                          </p>
+                <div className="relative z-20 p-0">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-700">
+                          <h4 className="text-base font-semibold text-slate-900">
+                            {day.dayOfWeek}
+                          </h4>
+                          <span className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                            {day.status}
+                          </span>
                         </div>
 
-                        <MenuItem
-                          onClick={() =>
-                            handleToggleDayStatus(
-                              day.id,
-                              day.status
-                            )
-                          }
-                          icon={
-                            day.status ===
-                              'OPEN' ||
-                              day.status ===
-                              'FULL' ? (
-                              <Lock className="h-4 w-4 text-red-600" />
-                            ) : (
-                              <Unlock className="h-4 w-4 text-emerald-600" />
-                            )
-                          }
-                        >
-                          {day.status ===
-                            'OPEN' ||
-                            day.status ===
-                            'FULL'
-                            ? 'Close day'
-                            : 'Open day'}
-                        </MenuItem>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {formatDate(day.cleaningDate)}
+                        </p>
 
-                        <MenuItem
-                          onClick={() =>
-                            openCapacityModal(
-                              day
-                            )
-                          }
-                          icon={
-                            <Edit className="h-4 w-4 text-blue-600" />
-                          }
-                        >
-                          Edit capacity
-                        </MenuItem>
+                        <p className="mt-1 text-[11px] text-slate-500">
+                          {week.weekLabel}
+                        </p>
 
-                        <MenuItem
-                          onClick={() =>
-                            openAssignModal(
-                              day
-                            )
-                          }
-                          icon={
-                            <UserPlus className="h-4 w-4 text-[#1a365d]" />
-                          }
-                        >
-                          Assign student
-                        </MenuItem>
+                        <p className={`mt-1 text-[11px] font-medium ${isDeadlinePassed(week.registrationDeadline) ? 'text-rose-700' : 'text-emerald-700'}`}>
+                          Registration deadline: {formatDeadline(week.registrationDeadline)} · {isDeadlinePassed(week.registrationDeadline) ? 'Passed' : 'Upcoming'}
+                        </p>
+                      </div>
 
-                        <MenuDivider />
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-slate-600">
+                          {day.currentRegistrations}/{day.capacityLimit}
+                        </span>
 
-                        <MenuItem
-                          danger
-                          onClick={() =>
-                            handleDeleteDay(
-                              day.id,
-                              day.dayOfWeek
-                            )
-                          }
-                          icon={
-                            <Trash2 className="h-4 w-4 text-red-600" />
-                          }
+                        <ActionMenu
+                          menuId={`day-${day.id}`}
+                          activeMenu={activeMenu}
+                          setActiveMenu={setActiveMenu}
                         >
-                          Delete day
-                        </MenuItem>
-                      </ActionMenu>
+                          <div className="px-3 py-2">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                              Day actions
+                            </p>
+                          </div>
+
+                          <MenuItem
+                            onClick={() =>
+                              handleToggleDayStatus(day.id, day.status)
+                            }
+                            icon={
+                              day.status === 'OPEN' || day.status === 'FULL' ? (
+                                <Lock className="h-4 w-4 text-red-600" />
+                              ) : (
+                                <Unlock className="h-4 w-4 text-emerald-600" />
+                              )
+                            }
+                          >
+                            {day.status === 'OPEN' || day.status === 'FULL'
+                              ? 'Close day'
+                              : 'Open day'}
+                          </MenuItem>
+
+                          <MenuItem
+                            onClick={() => openCapacityModal(day)}
+                            icon={<Edit className="h-4 w-4 text-blue-600" />}
+                          >
+                            Edit capacity
+                          </MenuItem>
+
+                          <MenuItem
+                            onClick={() => openAssignModal(day)}
+                            icon={<UserPlus className="h-4 w-4 text-[#1a365d]" />}
+                          >
+                            Assign student
+                          </MenuItem>
+
+                          <MenuDivider />
+
+                          <MenuItem
+                            danger
+                            onClick={() => handleDeleteDay(day.id, day.dayOfWeek)}
+                            icon={<Trash2 className="h-4 w-4 text-red-600" />}
+                          >
+                            Delete day
+                          </MenuItem>
+                        </ActionMenu>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1911,28 +1802,21 @@ export default function AdminCleaningManagement() {
                                   REGISTERED STUDENTS
                               ================================================== */}
 
-                <div className="p-4 flex-1 flex flex-col overflow-visible">
+                <div className="mt-2 flex-1 flex flex-col overflow-visible">
                   {day.registrations &&
                     day.registrations
                       .length > 0 ? (
-                    <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-2)] overflow-visible flex-1 flex flex-col">
-                      <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] px-3 py-2">
-                        <span className="font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--ink-3)]">
-                          Participants
-                          {day.registrations.length > 0 && (
-                            <span className="ml-1.5 text-[var(--ink-4)]">
-                              ({day.registrations.length})
-                            </span>
-                          )}
-                        </span>
+                    <div className="flex flex-1 flex-col">
+                      <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                        Participants ({day.registrations.length})
                       </div>
 
                       {day.registrations.length === 0 ? (
-                        <div className="px-3 py-3 text-[12px] text-[var(--ink-4)]">
+                        <div className="text-[12px] text-slate-500">
                           No participants yet
                         </div>
                       ) : (
-                        <ul className="divide-y divide-[var(--line)] flex-1">
+                        <ul className="space-y-2.5">
                           {day.registrations.map(
                             (
                               reg: CleaningRegistration
@@ -1950,7 +1834,7 @@ export default function AdminCleaningManagement() {
                               return (
                                 <li
                                   key={reg.id}
-                                  className="flex items-center gap-2.5 px-3 py-2 overflow-visible"
+                                  className="flex items-center gap-2.5 overflow-visible"
                                 >
                                   <Avatar
                                     firstName={reg.user.firstName}
@@ -2363,16 +2247,17 @@ export default function AdminCleaningManagement() {
           )}
 
           {/* ASSIGN STUDENT MODAL */}
-          {showAssignModal &&
-            selectedDayForAssignment && (
+          <ClientPortal>
+            {selectedDayForAssignment && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
-                onClick={() =>
-                  setShowAssignModal(false)
-                }
+                className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
+                onClick={() => {
+                  setSelectedDayForAssignment(null);
+                  setSelectedStudentForAssignment('');
+                }}
               >
                 <motion.div
                   initial={{
@@ -2390,12 +2275,15 @@ export default function AdminCleaningManagement() {
                     opacity: 0,
                     y: 10,
                   }}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="assign-student-title"
                   className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
                   onClick={(e) =>
                     e.stopPropagation()
                   }
                 >
-                  <h3 className="text-xl font-bold text-slate-900">
+                  <h3 id="assign-student-title" className="text-xl font-bold text-slate-900">
                     Assign Student
                   </h3>
 
@@ -2416,7 +2304,7 @@ export default function AdminCleaningManagement() {
                   <div className="mt-5 space-y-4">
                     <div>
                       <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                        Select Student
+                        Select eligible student ({availableStudents.length} available)
                       </label>
 
                       <select
@@ -2434,36 +2322,26 @@ export default function AdminCleaningManagement() {
                           Choose a student...
                         </option>
 
-                        {assignableStudents.length === 0 ? (
+                        {availableStudents.length === 0 ? (
                           <option value="" disabled>
-                            No students available (all have 2 registrations)
+                            No students with fewer than two cleaning registrations are available
                           </option>
                         ) : (
-                          assignableStudents.map(
-                            (student) => {
-                              const regCount = studentRegistrationCounts.get(student.id) || 0;
-                              return (
-                                <option
-                                  key={student.id}
-                                  value={student.id}
-                                >
-                                  {student.firstName} {student.lastName}
-                                  {regCount > 0 && ` (${regCount}/2)`}
-                                </option>
-                              );
-                            }
-                          )
+                          availableStudents.map((student) => (
+                            <option key={student.id} value={student.id}>
+                              {student.firstName} {student.lastName}
+                            </option>
+                          ))
                         )}
                       </select>
                     </div>
 
                     <div className="flex gap-3">
                       <button
-                        onClick={() =>
-                          setShowAssignModal(
-                            false
-                          )
-                        }
+                        onClick={() => {
+                          setSelectedDayForAssignment(null);
+                          setSelectedStudentForAssignment('');
+                        }}
                         className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                       >
                         Cancel
@@ -2488,6 +2366,7 @@ export default function AdminCleaningManagement() {
                 </motion.div>
               </motion.div>
             )}
+          </ClientPortal>
 
           {/* CAPACITY MODAL */}
           {showCapacityModal &&

@@ -83,8 +83,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (new Date() >= new Date(cleaningDay.week.registrationDeadline)) {
+      return NextResponse.json(
+        { error: 'The registration deadline has passed for this cleaning day.' },
+        { status: 400 }
+      );
+    }
+
     // Use transaction to prevent race conditions
-    const result = await prisma.$transaction(async (tx: any) => {
+    const result = await prisma.$transaction(async (tx) => {
       // Check capacity within transaction
       const currentRegistrations = await tx.cleaningRegistration.count({
         where: { cleaningDayId },
@@ -182,12 +189,24 @@ export async function DELETE(request: NextRequest) {
         userId: user.id,
         cleaningDayId,
       },
+      include: {
+        cleaningDay: {
+          include: { week: true },
+        },
+      },
     });
 
     if (!existingRegistration) {
       return NextResponse.json(
         { error: 'No registration found for this day' },
         { status: 404 }
+      );
+    }
+
+    if (new Date() >= new Date(existingRegistration.cleaningDay.week.registrationDeadline)) {
+      return NextResponse.json(
+        { error: 'The registration deadline has passed, so you can no longer unregister from this day.' },
+        { status: 400 }
       );
     }
 

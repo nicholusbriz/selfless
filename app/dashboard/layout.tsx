@@ -236,6 +236,8 @@ export default function DashboardLayout({
     pathname.startsWith(
       '/dashboard/ai/'
     );
+  const isMessagesPage = pathname === '/dashboard/messages';
+  const isConnectionsPage = pathname === '/dashboard/connections';
 
   const onlineUsers = useOnlineUsers(user);
 
@@ -416,7 +418,9 @@ export default function DashboardLayout({
                 {/* PAGE HEADING */}
                 {pathname !==
                   '/dashboard' &&
-                  !isAiPage && (
+                  !isAiPage &&
+                  !isMessagesPage &&
+                  !isConnectionsPage && (
                     <motion.div
                       key={pathname}
                       initial={{
