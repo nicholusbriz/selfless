@@ -405,7 +405,13 @@ const StudentCard = ({
         {/* Gradient overlay for text readability */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
 
-        <div className="absolute inset-0 flex flex-col justify-end p-3">
+        <Link
+          href={`/dashboard/students/${student.id}`}
+          className="absolute inset-0 z-[1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#D4A84B]"
+          aria-label={`View ${fullName}'s profile`}
+        />
+
+        <div className="pointer-events-none absolute inset-0 flex flex-col justify-end p-3">
           {/* Row 1 — Name + Role */}
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-[16px] font-bold leading-tight text-white">
@@ -487,7 +493,7 @@ const StudentCard = ({
           ) : null}
 
           {/* Row 6 — Actions */}
-          <div className="mt-2 flex items-center justify-end gap-1.5 overflow-hidden">
+          <div className="pointer-events-auto relative z-10 mt-2 flex items-center justify-end gap-1.5 overflow-hidden">
             {!isCurrentUser && (
               <div className="flex items-center gap-1.5 shrink-0">
                 <button
