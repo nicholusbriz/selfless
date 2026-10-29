@@ -31,6 +31,26 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export class MainServer extends Server<Env> {
+  /**
+   * Broadcast that tolerates dead connections.
+   *
+   * Partyserver's `this.broadcast()` calls `.send()` on every connection in
+   * the room. After a page refresh the browser tears down the WebSocket
+   * without a clean close handshake; the DO's connection set can still
+   * contain that connection for a moment. Writing to it throws
+   * "Network connection lost", which — uncaught — aborts the handler and
+   * surfaces in the Worker logs. Guard each send individually.
+   */
+  private safeBroadcast(payload: string): void {
+    for (const conn of this.getConnections()) {
+      try {
+        conn.send(payload);
+      } catch {
+        // Connection is already gone. Skip it.
+      }
+    }
+  }
+
   async onConnect(
     connection: Connection<OnlineUser>,
     context: ConnectionContext,
@@ -86,18 +106,23 @@ export class MainServer extends Server<Env> {
     );
 
     if (!existingUserIds.has(userId)) {
-      this.broadcast(JSON.stringify({ type: "user-joined", userId }));
+      this.safeBroadcast(JSON.stringify({ type: "user-joined", userId }));
     }
 
     console.info("[partyserver] Online-users WebSocket connected.", {
       onlineUserCount: new Set([...existingUserIds, userId]).size,
     });
-    connection.send(
-      JSON.stringify({
-        type: "current-online-users",
-        userIds: Array.from(new Set([...existingUserIds, userId])),
-      }),
-    );
+
+    try {
+      connection.send(
+        JSON.stringify({
+          type: "current-online-users",
+          userIds: Array.from(new Set([...existingUserIds, userId])),
+        }),
+      );
+    } catch {
+      // The joining connection vanished immediately (rare, but possible).
+    }
   }
 
   async onClose(connection: Connection<OnlineUser>): Promise<void> {
@@ -112,7 +137,7 @@ export class MainServer extends Server<Env> {
         existingConnection.state?.userId === userId,
     );
     if (!stillConnected) {
-      this.broadcast(JSON.stringify({ type: "user-left", userId }));
+      this.safeBroadcast(JSON.stringify({ type: "user-left", userId }));
     }
     console.info("[partyserver] Online-users WebSocket closed.", {
       userStillConnected: stillConnected,
@@ -170,7 +195,7 @@ export class MainServer extends Server<Env> {
       return new Response("Invalid event", { status: 400 });
     }
 
-    this.broadcast(JSON.stringify(invalidation));
+    this.safeBroadcast(JSON.stringify(invalidation));
     console.info("[partyserver] Invalidation broadcast.", {
       room: this.name === "online-users" ? "online-users" : "user",
       resource: invalidation.resource,

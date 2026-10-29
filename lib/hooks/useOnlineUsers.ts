@@ -1,8 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { createPublicPresenceSocket } from '@/lib/party-socket';
+import { getPartySocketManager } from '@/lib/party-socket-manager';
+
+// Global singleton to track presence state across components
+let globalPresenceState: {
+  userId: string | null;
+  users: OnlineUser[];
+  socket: any | null;
+  refCount: number;
+} = {
+  userId: null,
+  users: [],
+  socket: null,
+  refCount: 0,
+};
 
 export interface OnlineUser {
   userId: string;
@@ -49,203 +63,93 @@ function getUserId(value: unknown): string | null {
 }
 
 export function useOnlineUsers(user: PresenceUser | null | undefined) {
-  const [presenceState, setPresenceState] = useState<{
-    userId: string;
-    users: OnlineUser[];
-  } | null>(null);
+  const [, forceUpdate] = useState({});
   const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!user?.id) return;
     const currentUserId = user.id;
 
-    const socket = createPublicPresenceSocket(currentUserId);
-    if (!socket) {
-      console.error('PartyServer presence socket could not be created.');
-      return;
-    }
-    console.info('[presence] Connecting to PartyServer online-users room.');
+    // Increment ref count
+    globalPresenceState.refCount++;
 
-    let disposed = false;
-    const onlineUserIds = new Set<string>();
+    // If user changed or no socket, create new connection
+    if (globalPresenceState.userId !== currentUserId || !globalPresenceState.socket) {
+      globalPresenceState.userId = currentUserId;
+      globalPresenceState.users = [];
+      
+      const initSocket = async () => {
+        const socket = await createPublicPresenceSocket(currentUserId);
+        if (!socket) return;
 
-    const fetchPresenceUsers = async (
-      userIds: string[],
-    ): Promise<OnlineUser[]> => {
-      if (userIds.length === 0) return [];
+        const onlineUserIds = new Set<string>();
 
-      console.info('[presence] Requesting online profiles.', {
-        requestedCount: userIds.length,
-      });
-      const response = await fetch(
-        `/api/users/presence?ids=${encodeURIComponent(userIds.join(','))}`,
-        { cache: 'no-store' },
-      );
-      if (!response.ok) {
-        console.error('[presence] Profile request failed.', {
-          status: response.status,
-        });
-        throw new Error(
-          `Presence profile request failed with status ${response.status}`,
-        );
-      }
+        const handleMessage = (event: MessageEvent<string>) => {
+          try {
+            const parsed: unknown = JSON.parse(event.data);
+            if (!parsed || typeof parsed !== 'object') return;
+            const message = parsed as PresenceMessage;
 
-      const data: { users?: PresenceProfile[] } = await response.json();
-      const users = (Array.isArray(data.users) ? data.users : []).map((profile) => ({
-        userId: profile.id,
-        firstName: profile.firstName,
-        lastName: profile.lastName,
-        fullName: `${profile.firstName} ${profile.lastName}`.trim(),
-        image: profile.profileImageUrl,
-        techCenter: profile.techCenter || undefined,
-        connectedAt: new Date().toISOString(),
-      }));
-      console.info('[presence] Online profiles received.', {
-        returnedCount: users.length,
-      });
-      return users;
-    };
-
-    const refreshPresenceUsers = async (userIds: string[]) => {
-      try {
-        const fetchedUsers = await fetchPresenceUsers(userIds);
-        if (disposed) return;
-
-        setPresenceState((previousState) => {
-          const previous =
-            previousState?.userId === currentUserId ? previousState.users : [];
-          const usersById = new Map(
-            previous.map((onlineUser) => [onlineUser.userId, onlineUser]),
-          );
-          for (const onlineUser of fetchedUsers) {
-            if (onlineUserIds.has(onlineUser.userId)) {
-              usersById.set(onlineUser.userId, onlineUser);
+            if (message.type === 'current-online-users') {
+              onlineUserIds.clear();
+              if (Array.isArray(message.userIds)) {
+                message.userIds.forEach(id => {
+                  if (typeof id === 'string') onlineUserIds.add(id);
+                });
+              }
+              fetchProfiles(Array.from(onlineUserIds));
+            } else if (message.type === 'user-joined' && typeof message.userId === 'string') {
+              onlineUserIds.add(message.userId);
+              fetchProfiles([message.userId]);
+            } else if (message.type === 'user-left' && typeof message.userId === 'string') {
+              onlineUserIds.delete(message.userId);
+              globalPresenceState.users = globalPresenceState.users.filter(u => u.userId !== message.userId);
+              forceUpdate({});
             }
+          } catch (error) {
+            console.error('Failed to parse presence message:', error);
           }
-          return {
-            userId: currentUserId,
-            users: Array.from(usersById.values()).filter((onlineUser) =>
-              onlineUserIds.has(onlineUser.userId),
-            ),
-          };
-        });
-      } catch (error) {
-        console.error('Failed to refresh online user profiles:', error);
-      }
-    };
+        };
 
-    const handleMessage = (event: MessageEvent<string>) => {
-      try {
-        const parsed: unknown = JSON.parse(event.data);
-        if (!parsed || typeof parsed !== 'object') return;
-        const message = parsed as PresenceMessage;
-        const messageType =
-          typeof message.type === 'string' ? message.type : 'unknown';
-        const rosterCount = Array.isArray(message.userIds)
-          ? message.userIds.length
-          : Array.isArray(message.users)
-            ? message.users.length
-            : 'not-provided';
-        console.info(
-          `[presence] PartyServer message received: type=${messageType}; rosterCount=${rosterCount}`,
-        );
-
-        if (message.type === 'current-online-users') {
-          onlineUserIds.clear();
-          if (Array.isArray(message.userIds)) {
-            for (const id of message.userIds) {
-              if (typeof id === 'string') onlineUserIds.add(id);
-            }
-          } else if (Array.isArray(message.users)) {
-            for (const listedUser of message.users) {
-              const id = getUserId(listedUser);
-              if (id) onlineUserIds.add(id);
-            }
-          }
-          void refreshPresenceUsers(Array.from(onlineUserIds));
-        } else if (
-          message.type === 'user-joined' &&
-          (typeof message.userId === 'string' || getUserId(message.user))
-        ) {
-          const joinedUserId =
-            typeof message.userId === 'string'
-              ? message.userId
-              : getUserId(message.user);
-          if (joinedUserId) {
-            onlineUserIds.add(joinedUserId);
-            void refreshPresenceUsers([joinedUserId]);
-          }
-        } else if (
-          message.type === 'user-left' &&
-          typeof message.userId === 'string'
-        ) {
-          onlineUserIds.delete(message.userId);
-          setPresenceState((previousState) => ({
-            userId: currentUserId,
-            users: (
-              previousState?.userId === currentUserId
-                ? previousState.users
-                : []
-            ).filter((onlineUser) => onlineUser.userId !== message.userId),
+        const fetchProfiles = async (userIds: string[]) => {
+          if (userIds.length === 0) return;
+          const response = await fetch(`/api/users/presence?ids=${encodeURIComponent(userIds.join(','))}`, { cache: 'no-store' });
+          if (!response.ok) return;
+          const data: { users?: PresenceProfile[] } = await response.json();
+          const users = (Array.isArray(data.users) ? data.users : []).map(profile => ({
+            userId: profile.id,
+            firstName: profile.firstName,
+            lastName: profile.lastName,
+            fullName: `${profile.firstName} ${profile.lastName}`.trim(),
+            image: profile.profileImageUrl,
+            techCenter: profile.techCenter || undefined,
+            connectedAt: new Date().toISOString(),
           }));
-        } else if (
-          message.type === 'invalidate' &&
-          message.resource === 'profile' &&
-          typeof message.userId === 'string' &&
-          onlineUserIds.has(message.userId)
-        ) {
-          void refreshPresenceUsers([message.userId]);
-        } else if (
-          message.type === 'invalidate' &&
-          message.resource === 'approvals' &&
-          ['admin', 'super_admin', 'dev'].includes(user.role || '')
-        ) {
-          void queryClient.invalidateQueries({
-            queryKey: ['super-admin-pending-approvals'],
-          });
-          void queryClient.invalidateQueries({
-            queryKey: ['super-admin-approval-stats'],
-          });
-        }
-      } catch (error) {
-        console.error('Failed to parse presence message:', error);
-      }
-    };
+          globalPresenceState.users = users;
+          forceUpdate({});
+        };
 
-    const handleError = (event: Event) => {
-      console.warn('PartyServer presence connection interrupted.', {
-        eventType: event.type,
-        readyState: socket.readyState,
-      });
-    };
+        socket.addEventListener('message', handleMessage);
+        socket.addEventListener('open', () => socket.send(JSON.stringify({ type: 'request-roster' })));
+        
+        globalPresenceState.socket = socket;
+      };
 
-    const handleOpen = () => {
-      console.info('[presence] PartyServer WebSocket connected.');
-    };
-
-    const handleClose = (event: CloseEvent) => {
-      console.warn('[presence] PartyServer WebSocket closed.', {
-        code: event.code,
-        wasClean: event.wasClean,
-      });
-    };
-
-    socket.addEventListener('message', handleMessage);
-    socket.addEventListener('error', handleError);
-    socket.addEventListener('open', handleOpen);
-    socket.addEventListener('close', handleClose);
+      initSocket();
+    }
 
     return () => {
-      disposed = true;
-      socket.removeEventListener('message', handleMessage);
-      socket.removeEventListener('error', handleError);
-      socket.removeEventListener('open', handleOpen);
-      socket.removeEventListener('close', handleClose);
-      socket.close();
+      globalPresenceState.refCount--;
+      if (globalPresenceState.refCount <= 0) {
+        if (globalPresenceState.socket) {
+          getPartySocketManager().releaseConnection('online-users');
+          globalPresenceState.socket = null;
+        }
+        globalPresenceState.userId = null;
+        globalPresenceState.users = [];
+      }
     };
-  }, [user?.id, user?.role, queryClient]);
+  }, [user?.id]);
 
-  return presenceState && presenceState.userId === user?.id
-    ? presenceState.users
-    : [];
+  return globalPresenceState.userId === user?.id ? globalPresenceState.users : [];
 }

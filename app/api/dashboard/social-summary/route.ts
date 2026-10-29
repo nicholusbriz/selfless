@@ -202,10 +202,24 @@ export async function GET(request: Request) {
           return `${a.firstName} ${a.lastName}`.localeCompare(
             `${b.firstName} ${b.lastName}`,
           );
-        })
-        .slice(0, limit);
+        });
 
-      trendingStudents = ranked.map((u) => ({
+      // Separate into privileged (admins/tutors) and students
+      const privilegedUsers = ranked.filter(u => 
+        u.role?.name === 'super_admin' || 
+        u.role?.name === 'admin' || 
+        u.role?.name === 'teacher'
+      );
+      
+      const studentUsers = ranked.filter(u => u.role?.name === 'student');
+
+      // Take all privileged users, but only top 10 students
+      const filtered = [
+        ...privilegedUsers,
+        ...studentUsers.slice(0, 10)
+      ];
+
+      trendingStudents = filtered.map((u) => ({
         id: u.id,
         firstName: u.firstName,
         lastName: u.lastName,

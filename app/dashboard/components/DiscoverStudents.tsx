@@ -25,22 +25,20 @@ export type DiscoverStudent = {
   firstName: string;
   lastName: string;
   profileImageUrl?: string | null;
-  generalCourse?:
-  | string
-  | null
-  | { id?: string; name?: string };
-  techCenter?:
-  | string
-  | null
-  | { id?: string; name?: string };
+  generalCourse?: string | null | { id?: string; name?: string };
+  techCenter?: string | null | { id?: string; name?: string };
   role?: {
     name?: string;
   };
 };
 
 type DiscoverStudentsProps = {
-  students: DiscoverStudent[];
+  /** Optional: pass students to render directly (e.g. from a server component). */
+  students?: DiscoverStudent[];
+  /** Optional: skip fetching and show skeleton (e.g. SSR loading state). */
   isLoading?: boolean;
+  /** Optional: override the API endpoint used when `students` is not provided. */
+  endpoint?: string;
   autoplay?: boolean;
   interval?: number;
 };
@@ -50,6 +48,7 @@ type DiscoverStudentsProps = {
 ============================================================ */
 
 const DEFAULT_INTERVAL = 5000;
+const DEFAULT_ENDPOINT = "/api/discover-students";
 const SWIPE_THRESHOLD = 40;
 const CARD_ASPECT = 0.76;
 const MAX_CARD_WIDTH = 400;
@@ -225,6 +224,63 @@ function useImagePreloader(urls: string[]) {
 }
 
 /* ============================================================
+   DATA FETCHING (only when `students` prop is absent)
+============================================================ */
+
+function useDiscoverStudents(
+  providedStudents: DiscoverStudent[] | undefined,
+  endpoint: string,
+  externalLoading: boolean,
+) {
+  const hasProvided = providedStudents !== undefined;
+
+  const [fetched, setFetched] = useState<DiscoverStudent[] | undefined>(
+    hasProvided ? undefined : undefined,
+  );
+  const [isFetching, setIsFetching] = useState(!hasProvided);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // If a parent provided students, never fetch.
+    if (hasProvided) {
+      setIsFetching(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsFetching(true);
+    setError(null);
+
+    fetch(endpoint, { cache: "no-store" })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+        return res.json() as Promise<DiscoverStudent[]>;
+      })
+      .then((data) => {
+        if (!cancelled) setFetched(data);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.error("Discover students fetch error:", err);
+          setError(err instanceof Error ? err.message : "Failed to load");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsFetching(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hasProvided, endpoint]);
+
+  const students = hasProvided ? providedStudents! : (fetched ?? []);
+  const isLoading = externalLoading || (!hasProvided && isFetching);
+
+  return { students, isLoading, error };
+}
+
+/* ============================================================
    SUB-COMPONENTS
 ============================================================ */
 
@@ -281,12 +337,19 @@ function NavButton({
 ============================================================ */
 
 export function DiscoverStudents({
-  students,
-  isLoading = false,
+  students: providedStudents,
+  isLoading: externalLoading = false,
+  endpoint = DEFAULT_ENDPOINT,
   autoplay = true,
   interval = DEFAULT_INTERVAL,
 }: DiscoverStudentsProps) {
   const isMobile = useIsMobile();
+
+  const { students, isLoading, error } = useDiscoverStudents(
+    providedStudents,
+    endpoint,
+    externalLoading,
+  );
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -307,7 +370,7 @@ export function DiscoverStudents({
     visibleStudents.length === 0
       ? 0
       : ((currentIndex % visibleStudents.length) + visibleStudents.length) %
-      visibleStudents.length;
+        visibleStudents.length;
 
   const preloadUrls = useMemo(() => {
     if (visibleStudents.length === 0) return [];
@@ -420,7 +483,7 @@ export function DiscoverStudents({
     [visibleStudents.length, move],
   );
 
-  // ---- SKELETON ----
+  // ---- SKELETON / EMPTY ----
   if (isLoading || !currentStudent) {
     return (
       <section className="w-full">
@@ -430,7 +493,18 @@ export function DiscoverStudents({
               className="relative mx-auto flex w-full max-w-[400px] flex-col overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115]"
               style={{ aspectRatio: CARD_ASPECT }}
             >
-              <div className="relative min-h-0 flex-1 animate-pulse overflow-hidden bg-black" />
+              {isLoading ? (
+                <div className="relative min-h-0 flex-1 animate-pulse overflow-hidden bg-black" />
+              ) : (
+                <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
+                  <p className="text-sm font-medium text-white/80">
+                    {error ? "Couldn’t load students" : "No students to show yet"}
+                  </p>
+                  {error && (
+                    <p className="text-xs text-white/50">{error}</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -474,10 +548,6 @@ export function DiscoverStudents({
               marginTop: -cardHeight / 2,
             }}
           >
-            {/*
-              Single static card — data swaps in place via `key`.
-              No AnimatePresence, no motion, no fade gap.
-            */}
             <div
               key={currentStudent.id}
               className="absolute inset-0 flex h-full w-full flex-col overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] shadow-[0_24px_65px_rgba(0,0,0,0.52)]"
@@ -501,43 +571,30 @@ export function DiscoverStudents({
                   </div>
                 )}
 
-                {/* INFO OVERLAY - Plain text on top of image */}
+                {/* INFO OVERLAY */}
                 <div className="absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-black/70 via-black/30 to-transparent">
                   <div className="flex flex-col gap-2">
-                    {/* Row 1 — Name + Role */}
                     <div className="flex items-center justify-between gap-2">
-                      <h3
-                        className="text-[16px] font-bold leading-tight text-white"
-                      >
+                      <h3 className="text-[16px] font-bold leading-tight text-white">
                         {fullName}
                       </h3>
                       {roleLabel && (
-                        <span
-                          className="text-[11px] font-medium text-white/90"
-                        >
+                        <span className="text-[11px] font-medium text-white/90">
                           {roleLabel}
                         </span>
                       )}
                     </div>
 
-                    {/* Row 2 — Course */}
                     {!isSuperAdmin && (
-                      <p
-                        className="text-[13px] font-medium text-white"
-                      >
+                      <p className="text-[13px] font-medium text-white">
                         {courseName || "Student"}
                       </p>
                     )}
 
-                    {/* Row 3 — Tech Center */}
                     {!isSuperAdmin && techCenterName && (
                       <div className="flex items-center gap-1.5">
-                        <MapPin
-                          className="h-[12px] w-[12px] shrink-0 text-[#D4A84B]"
-                        />
-                        <span
-                          className="text-[12px] font-medium text-white/90"
-                        >
+                        <MapPin className="h-[12px] w-[12px] shrink-0 text-[#D4A84B]" />
+                        <span className="text-[12px] font-medium text-white/90">
                           {techCenterName}
                         </span>
                       </div>

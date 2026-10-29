@@ -413,7 +413,7 @@ export default function DashboardLayout({
 
           <div>
             {/* ✅ FULL-WIDTH CONTENT — no max-width cap */}
-            <main className="min-h-screen px-3 xl:px-4 pt-[72px] pb-6">
+            <main className="min-h-screen px-3 xl:px-4 pt-[76px] pb-6">
               <div className="w-full">
                 {/* PAGE HEADING */}
                 {pathname !==
