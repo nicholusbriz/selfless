@@ -22,13 +22,14 @@ import {
   useAnnouncementCount,
 } from '@/hooks/useNotifications';
 import { useUnreadMessageCount } from '@/hooks/useMessages';
+import { useOnlineUsers } from '@/lib/hooks/useOnlineUsers';
 import { PageRefreshButton } from './PageRefreshButton';
 
 // ============================================================
 // CONSTANTS
 // ============================================================
 
-const TOPBAR_HEIGHT = 56;
+const TOPBAR_HEIGHT = 64;
 
 // ============================================================
 // TYPES
@@ -249,6 +250,8 @@ export default function TopNav({
   const { data: unreadMessageCount } =
     useUnreadMessageCount();
 
+  const onlineUsers = useOnlineUsers(user);
+
   const pathname = usePathname();
   const pageInfo = getPageInfo(pathname);
 
@@ -276,7 +279,7 @@ export default function TopNav({
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        'fixed top-0 right-0 z-30 h-14',
+        'fixed top-0 right-0 z-30 h-16',
         'bg-white',
         'transition-all duration-300',
         isMobile

@@ -736,10 +736,7 @@ function SuggestedStudents({
           return (
             <article
               key={user.id}
-              className={`shrink-0 overflow-hidden rounded-[22px] border border-[#E5E7EB] bg-white shadow-sm transition-shadow hover:shadow-md ${
-                directorCardLayout ? '' : 'w-60'
-              }`}
-              style={directorCardLayout ? { width: '245px' } : undefined}
+              className="shrink-0 overflow-hidden rounded-[22px] border border-[#E5E7EB] bg-white shadow-sm transition-shadow hover:shadow-md w-[280px] sm:w-[290px]"
             >
               <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#1A2B4C]">
                 {user.profileImageUrl ? (

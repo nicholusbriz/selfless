@@ -575,7 +575,12 @@ function OnlineUsersInline({
   const remaining = onlineUsers.length - limit;
 
   return (
-    <div className="flex items-center gap-2 min-w-0">
+    <motion.div
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      className="flex items-center gap-2 min-w-0"
+    >
       <span className="relative flex size-2 shrink-0">
         <span className="online-ping absolute inline-flex size-full rounded-full" style={{ backgroundColor: "#4ADE80" }} />
         <span className="relative inline-flex size-2 rounded-full" style={{ backgroundColor: "#22C55E" }} />
@@ -595,14 +600,21 @@ function OnlineUsersInline({
           const name = isSelf ? "You" : `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.fullName || "User";
 
           return (
-            <span key={u.userId || i} className="flex items-center gap-1.5 text-[12px] font-medium whitespace-nowrap shrink-0" style={{ color: isSelf ? COLORS.brassBright : "rgba(255,255,255,0.82)" }}>
+            <motion.span
+              key={u.userId || i}
+              initial={{ opacity: 0, x: -4 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.25, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
+              className="flex items-center gap-1.5 text-[12px] font-medium whitespace-nowrap shrink-0"
+              style={{ color: isSelf ? COLORS.brassBright : "rgba(255,255,255,0.82)" }}
+            >
               {name}
               {i < onlineUsers.length - 1 && <span style={{ color: "rgba(255,255,255,0.25)" }}>·</span>}
-            </span>
+            </motion.span>
           );
         })}
       </div>
-    </div>
+    </motion.div>
   );
 }
 

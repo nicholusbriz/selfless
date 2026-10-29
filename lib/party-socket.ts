@@ -1,15 +1,15 @@
-import PartySocket from 'partysocket';
+import { getPartySocketManager } from './party-socket-manager';
 
 let cachedTicket: { ticket: string; expiresAt: number } | null = null;
 
-async function getPartyTicket(): Promise<string | null> {
+async function getPartyTicket(): Promise<string | undefined> {
   if (cachedTicket && cachedTicket.expiresAt > Date.now() + 10_000) {
     return cachedTicket.ticket;
   }
 
   try {
     const response = await fetch('/api/party-ticket', { cache: 'no-store' });
-    if (!response.ok) return null;
+    if (!response.ok) return undefined;
 
     const ticket = (await response.json()) as {
       ticket?: unknown;
@@ -19,45 +19,26 @@ async function getPartyTicket(): Promise<string | null> {
       typeof ticket.ticket !== 'string' ||
       typeof ticket.expiresAt !== 'number'
     ) {
-      return null;
+      return undefined;
     }
 
     cachedTicket = { ticket: ticket.ticket, expiresAt: ticket.expiresAt };
     return ticket.ticket;
   } catch {
-    return null;
+    return undefined;
   }
 }
 
 export async function createPartyServerSocket(room: string) {
-  const host = process.env.NEXT_PUBLIC_PARTYSERVER_HOST;
-
-  if (!host && process.env.NODE_ENV === 'production') {
-    return null;
-  }
-
-  return new PartySocket({
-    host: host || 'localhost:8787',
-    party: 'main',
-    room,
-    query: async () => {
-      const ticket = await getPartyTicket();
-      return ticket ? { ticket } : {};
-    },
+  const manager = getPartySocketManager();
+  return manager.getOrCreateConnection(room, {
+    ticket: getPartyTicket,
   });
 }
 
-export function createPublicPresenceSocket(userId: string) {
-  const host = process.env.NEXT_PUBLIC_PARTYSERVER_HOST;
-
-  if (!host && process.env.NODE_ENV === 'production') {
-    return null;
-  }
-
-  return new PartySocket({
-    host: host || 'localhost:8787',
-    party: 'main',
-    room: 'online-users',
-    query: { userId },
+export async function createPublicPresenceSocket(userId: string) {
+  const manager = getPartySocketManager();
+  return manager.getOrCreateConnection('online-users', {
+    userId,
   });
 }

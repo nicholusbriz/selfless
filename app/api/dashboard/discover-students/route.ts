@@ -1,20 +1,25 @@
 import { NextResponse } from 'next/server';
-
+import { unstable_cache } from 'next/cache';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
 
-export async function GET() {
-  try {
-    await requireAuth();
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
-    const students = await prisma.user.findMany({
+// DB is hit at most once per 5 minutes (or until revalidateTag is called).
+// The ordered list is cached; the shuffle happens per-request below.
+const getDiscoverStudents = unstable_cache(
+  async () =>
+    prisma.user.findMany({
       where: {
         profileImageUrl: { not: null },
-        role: {
-          name: {
-            not: 'dev',
-          },
-        },
+        role: { is: { name: { not: 'dev' } } },
       },
       select: {
         id: true,
@@ -35,13 +40,21 @@ export async function GET() {
         },
       },
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
-    });
+    }),
+  ['discover-students'],
+  { revalidate: 300, tags: ['discover-students'] },
+);
 
-    return NextResponse.json(students, {
+export async function GET() {
+  try {
+    await requireAuth();
+
+    const students = await getDiscoverStudents();
+
+    // Fresh shuffle on every request — response is never cached.
+    return NextResponse.json(shuffle(students), {
       headers: {
-        // Cache for 5 minutes with stale-while-revalidate
-        // Updated profile images will be picked up within 5 minutes
-        'Cache-Control': 'private, max-age=300, stale-while-revalidate=600',
+        'Cache-Control': 'no-store',
       },
     });
   } catch (error) {

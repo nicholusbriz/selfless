@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import type { Message } from '@/types/messaging';
 import { createPartyServerSocket } from '@/lib/party-socket';
+import { getPartySocketManager } from '@/lib/party-socket-manager';
 
 interface UseMessagesProps {
   conversationId: string;
@@ -230,7 +231,10 @@ export function useUnreadMessageCount() {
       disposed = true;
       socket?.removeEventListener('message', handleMessage);
       socket?.removeEventListener('open', handleOpen);
-      socket?.close();
+      // Release the connection from the manager instead of closing directly
+      if (currentUserId) {
+        getPartySocketManager().releaseConnection(`user:${currentUserId}`);
+      }
     };
   }, [currentUserId, queryClient, update]);
 
