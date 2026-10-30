@@ -36,52 +36,55 @@ export async function GET(
       });
     }
 
-    const [receivedLikes, sentLikes] = await Promise.all([
-      view === 'sent' ? Promise.resolve([]) : prisma.like.findMany({
-        where: { likedUserId: targetUserId },
-        select: {
-          createdAt: true,
-          liker: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              profileImageUrl: true,
-              role: { select: { name: true } },
-              previousTechCenterId: true,
-              generalCourse: true,
-              techCenter: { select: { id: true, name: true } },
+    const receivedLikesPromise = view === 'sent'
+      ? Promise.resolve([])
+      : prisma.like.findMany({
+          where: { likedUserId: targetUserId },
+          select: {
+            createdAt: true,
+            liker: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                profileImageUrl: true,
+                role: { select: { name: true } },
+                previousTechCenterId: true,
+                generalCourse: true,
+                techCenter: { select: { id: true, name: true } },
+              },
             },
           },
-        },
-        orderBy: { createdAt: 'desc' },
-        ...(isPaginated
-          ? { skip: pageOffset, take: pageLimit + 1 }
-          : { take: MAX_RESULTS }),
-      }),
-      view === 'received' ? Promise.resolve([]) : prisma.like.findMany({
-        where: { likerId: targetUserId },
-        select: {
-          createdAt: true,
-          likedUser: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              profileImageUrl: true,
-              role: { select: { name: true } },
-              previousTechCenterId: true,
-              generalCourse: true,
-              techCenter: { select: { id: true, name: true } },
+          orderBy: { createdAt: 'desc' },
+          skip: isPaginated ? pageOffset : 0,
+          take: isPaginated ? pageLimit + 1 : MAX_RESULTS,
+        });
+
+    const sentLikesPromise = view === 'received'
+      ? Promise.resolve([])
+      : prisma.like.findMany({
+          where: { likerId: targetUserId },
+          select: {
+            createdAt: true,
+            likedUser: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                profileImageUrl: true,
+                role: { select: { name: true } },
+                previousTechCenterId: true,
+                generalCourse: true,
+                techCenter: { select: { id: true, name: true } },
+              },
             },
           },
-        },
-        orderBy: { createdAt: 'desc' },
-        ...(isPaginated
-          ? { skip: pageOffset, take: pageLimit + 1 }
-          : { take: MAX_RESULTS }),
-      }),
-    ]);
+          orderBy: { createdAt: 'desc' },
+          skip: isPaginated ? pageOffset : 0,
+          take: isPaginated ? pageLimit + 1 : MAX_RESULTS,
+        });
+
+    const [receivedLikes, sentLikes] = await Promise.all([receivedLikesPromise, sentLikesPromise]);
 
     const receivedHasMore = isPaginated && receivedLikes.length > pageLimit;
     const sentHasMore = isPaginated && sentLikes.length > pageLimit;

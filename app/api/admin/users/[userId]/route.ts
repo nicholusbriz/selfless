@@ -457,8 +457,8 @@ export async function DELETE(
       }
     }
 
-    // Delete the profile image from Supabase storage now that the DB row
-    // is gone. This runs outside the transaction because Supabase storage
+    // Delete the profile image from Azure storage now that the DB row
+    // is gone. This runs outside the transaction because Azure storage
     // is external — a failure here should not roll back the DB deletion.
     if (user.profileImageUrl) {
       try {
