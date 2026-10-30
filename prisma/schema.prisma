@@ -112,6 +112,7 @@ model User {
   takesReligion Boolean @default(false)
   
   // Social
+  bio         String?
   linkedinUrl String?
   githubUrl   String?
   projectUrls String[]

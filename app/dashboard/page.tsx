@@ -1508,7 +1508,7 @@ export default function DashboardPage() {
 
           {(!socialSummary || directorProfiles.length > 0) && (
             <section>
-              <SectionHeader label="Organisation Directors" />
+              <SectionHeader label="Organization Directors" />
               <DirectorsDisplay
                 trending={directorProfiles}
                 isLoading={!socialSummary}
