@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import Header2 from "@/app/components/ui/header-2";
 import Footer from "@/app/components/Footer";
+import { useAuth } from "@/lib/hooks/useAuth";
+import { useOnlineUsers } from "@/lib/hooks/useOnlineUsers";
 
 /* =========================================================
    SLIDE ANIMATIONS
@@ -82,6 +84,8 @@ const staggerFast = {
 };
 
 export default function AboutPage() {
+  const { user } = useAuth();
+  const { users: onlineUsers, isLoading: isLoadingOnlineUsers } = useOnlineUsers(user);
   const shouldReduceMotion = useReducedMotion();
 
   const viewportAnimation = shouldReduceMotion
@@ -97,7 +101,7 @@ export default function AboutPage() {
 
   return (
     <div className="min-h-screen bg-[#071018] text-white">
-      <Header2 />
+      <Header2 onlineUsers={onlineUsers} isLoadingOnlineUsers={isLoadingOnlineUsers} />
 
       <main className="relative overflow-x-hidden">
         {/* =====================================================

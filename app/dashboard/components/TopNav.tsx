@@ -22,8 +22,10 @@ import {
   useAnnouncementCount,
 } from '@/hooks/useNotifications';
 import { useUnreadMessageCount } from '@/hooks/useMessages';
-import { useOnlineUsers } from '@/lib/hooks/useOnlineUsers';
 import { PageRefreshButton } from './PageRefreshButton';
+import { OnlineUsers } from '@/components/OnlineUsers';
+
+
 
 // ============================================================
 // CONSTANTS
@@ -55,6 +57,8 @@ interface TopNavProps {
   onMenuToggle?: () => void;
   user: UserInfo | null;
   userRole: string;
+  onlineUsers?: any[];
+  isLoadingOnlineUsers?: boolean;
 }
 
 // ============================================================
@@ -237,6 +241,8 @@ export default function TopNav({
   onMenuToggle,
   user,
   userRole,
+  onlineUsers = [],
+  isLoadingOnlineUsers = false,
 }: TopNavProps) {
   const [scrolled, setScrolled] =
     useState(false);
@@ -249,8 +255,6 @@ export default function TopNav({
 
   const { data: unreadMessageCount } =
     useUnreadMessageCount();
-
-  const onlineUsers = useOnlineUsers(user);
 
   const pathname = usePathname();
   const pageInfo = getPageInfo(pathname);
@@ -495,6 +499,26 @@ export default function TopNav({
               ) : null}
             </Link>
           </motion.div>
+
+          {/* ONLINE USERS */}
+          {isLoadingOnlineUsers ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="ml-2 flex items-center gap-2 border-l border-[#DADCD3] pl-2 sm:ml-3 sm:pl-3"
+            >
+              <div className="flex items-center gap-2">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-4 h-4 border-2 border-[#B98A3E] border-t-transparent rounded-full"
+                />
+                <span className="text-[10px] font-semibold text-[#5A6472] hidden sm:block">
+                  Loading online users...
+                </span>
+              </div>
+            </motion.div>
+          ) : null}
 
           {/* USER — no border-l */}
           <motion.div

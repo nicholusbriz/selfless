@@ -64,6 +64,7 @@ function getUserId(value: unknown): string | null {
 
 export function useOnlineUsers(user: PresenceUser | null | undefined) {
   const [, forceUpdate] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -77,7 +78,8 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
     if (globalPresenceState.userId !== currentUserId || !globalPresenceState.socket) {
       globalPresenceState.userId = currentUserId;
       globalPresenceState.users = [];
-      
+      setIsLoading(true);
+
       const initSocket = async () => {
         const socket = await createPublicPresenceSocket(currentUserId);
         if (!socket) return;
@@ -126,12 +128,13 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
             connectedAt: new Date().toISOString(),
           }));
           globalPresenceState.users = users;
+          setIsLoading(false);
           forceUpdate({});
         };
 
         socket.addEventListener('message', handleMessage);
         socket.addEventListener('open', () => socket.send(JSON.stringify({ type: 'request-roster' })));
-        
+
         globalPresenceState.socket = socket;
       };
 
@@ -147,9 +150,13 @@ export function useOnlineUsers(user: PresenceUser | null | undefined) {
         }
         globalPresenceState.userId = null;
         globalPresenceState.users = [];
+        setIsLoading(false);
       }
     };
   }, [user?.id]);
 
-  return globalPresenceState.userId === user?.id ? globalPresenceState.users : [];
+  return {
+    users: globalPresenceState.userId === user?.id ? globalPresenceState.users : [],
+    isLoading
+  };
 }

@@ -219,10 +219,11 @@ model User {
   @@index([verifiedById])
   @@index([rejectedById])
   @@index([status])
+  @@index([status, id])
   @@index([country])
   @@index([verificationStatus])
-  @@index([followersCount(sort: Desc)])       
-  @@index([likesReceivedCount(sort: Desc)]) 
+  @@index([followersCount(sort: Desc)])
+  @@index([likesReceivedCount(sort: Desc)])
   @@map("users")
 }
 

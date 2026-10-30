@@ -49,10 +49,7 @@ import {
   useAnnouncementCount,
 } from "@/hooks/useNotifications";
 import { useUnreadMessageCount } from "@/hooks/useMessages";
-import {
-  useOnlineUsers,
-  type OnlineUser,
-} from "@/lib/hooks/useOnlineUsers";
+import { type OnlineUser } from "@/lib/hooks/useOnlineUsers";
 
 /* -------------------------------------------------------------------------- */
 /* COLORS                                                                     */
@@ -622,7 +619,12 @@ function OnlineUsersInline({
 /* HEADER — THREE ROWS                                                        */
 /* -------------------------------------------------------------------------- */
 
-export default function Header2() {
+interface Header2Props {
+  onlineUsers?: OnlineUser[];
+  isLoadingOnlineUsers?: boolean;
+}
+
+export default function Header2({ onlineUsers = [], isLoadingOnlineUsers = false }: Header2Props) {
   const pathname = usePathname();
   const { user, isLoading } = useAuth();
 
@@ -638,7 +640,6 @@ export default function Header2() {
   const { data: announcementCount } = useAnnouncementCount(!!user);
   const { data: unreadMessageCount } = useUnreadMessageCount();
   useActivityTracker(Boolean(user?.id));
-  const onlineUsers = useOnlineUsers(user);
 
   const handleScroll = useCallback(() => {
     setScrolled(window.scrollY > 18);
