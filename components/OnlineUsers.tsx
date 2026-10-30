@@ -83,28 +83,7 @@ export function OnlineUsers({ onlineUsers, currentUserId }: OnlineUsersProps) {
               sm:px-2.5
             "
           >
-            {/* Avatar */}
-            <div className="relative shrink-0">
-              {user.image ? (
-                <Image
-                  src={user.image}
-                  alt={`${user.fullName || `${user.firstName} ${user.lastName}`} profile`}
-                  width={26}
-                  height={26}
-                  unoptimized
-                  className="h-6.5 w-6.5 rounded-full border border-white object-cover shadow-sm"
-                />
-              ) : (
-                <div
-                  className="flex h-6.5 w-6.5 items-center justify-center rounded-full border border-white bg-[#E8E9E3] text-[9px] font-semibold text-[#1A2B4C] shadow-sm"
-                  aria-label={`${user.fullName || `${user.firstName} ${user.lastName}`} profile initials`}
-                >
-                  {(user.firstName?.charAt(0) || '')}{(user.lastName?.charAt(0) || '')}
-                </div>
-              )}
-              {/* Online indicator */}
-              <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full border-2 border-white bg-[#2F6B45]" aria-hidden="true" />
-            </div>
+
 
             {/* User Info */}
             <div className="min-w-0 hidden sm:block">
