@@ -123,7 +123,7 @@ export default function MessagesPage() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const currentUserId = session?.user?.id || '';
-  const onlineUsers = useOnlineUsers(session?.user);
+  const { users: onlineUsers } = useOnlineUsers(session?.user);
   const requestedUserId = searchParams.get('userId');
   const openedRequestedUserRef = useRef<string | null>(null);
 
