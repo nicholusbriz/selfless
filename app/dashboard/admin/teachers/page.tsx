@@ -80,6 +80,16 @@ interface TechCenterData {
 const getInitials = (firstName = '', lastName = '') =>
   `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 
+const compareByName = (
+  a: { firstName: string; lastName: string },
+  b: { firstName: string; lastName: string },
+) =>
+  `${a.firstName} ${a.lastName}`.localeCompare(
+    `${b.firstName} ${b.lastName}`,
+    undefined,
+    { sensitivity: 'base' },
+  );
+
 export default function ManageTeachersPage() {
   const router = useRouter();
   const { isAdmin, isSuperAdmin } = useAuth();
@@ -170,7 +180,7 @@ export default function ManageTeachersPage() {
           user.role?.name !== 'teacher' &&
           user.role?.name !== 'admin' &&
           user.role?.name !== 'super_admin'
-      ),
+      ).sort(compareByName),
     [filteredUsers]
   );
 
@@ -192,7 +202,7 @@ export default function ManageTeachersPage() {
           user.role?.name !== 'admin' &&
           user.role?.name !== 'super_admin' &&
           user.role?.name !== 'teacher'
-      ),
+      ).sort(compareByName),
     [filteredUsers]
   );
 

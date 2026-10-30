@@ -81,6 +81,7 @@ export const authOptions: AuthOptions = {
             town: true,
             street: true,
             generalCourse: true,
+            bio: true,
             linkedinUrl: true,
             githubUrl: true,
             projectUrls: true,
@@ -135,6 +136,7 @@ export const authOptions: AuthOptions = {
           town: user.town,
           street: user.street,
           generalCourse: user.generalCourse,
+          bio: user.bio,
           linkedinUrl: user.linkedinUrl,
           githubUrl: user.githubUrl,
           projectUrls: user.projectUrls,
@@ -177,6 +179,7 @@ export const authOptions: AuthOptions = {
         session.user.town = token.town as string | null;
         session.user.street = token.street as string | null;
         session.user.generalCourse = token.generalCourse as string | null;
+        session.user.bio = token.bio as string | null;
         session.user.linkedinUrl = token.linkedinUrl as string | null;
         session.user.githubUrl = token.githubUrl as string | null;
         session.user.projectUrls = token.projectUrls as string[];
@@ -216,6 +219,7 @@ export const authOptions: AuthOptions = {
         token.town = user.town;
         token.street = user.street;
         token.generalCourse = user.generalCourse;
+        token.bio = user.bio;
         token.linkedinUrl = user.linkedinUrl;
         token.githubUrl = user.githubUrl;
         token.projectUrls = user.projectUrls;
@@ -269,6 +273,7 @@ export const authOptions: AuthOptions = {
           token.town = freshUser.town;
           token.street = freshUser.street;
           token.generalCourse = freshUser.generalCourse;
+          token.bio = freshUser.bio;
           token.linkedinUrl = freshUser.linkedinUrl;
           token.githubUrl = freshUser.githubUrl;
           token.projectUrls = freshUser.projectUrls;
@@ -358,6 +363,7 @@ export const authOptions: AuthOptions = {
             token.town = freshUser.town;
             token.street = freshUser.street;
             token.generalCourse = freshUser.generalCourse;
+            token.bio = freshUser.bio;
             token.linkedinUrl = freshUser.linkedinUrl;
             token.githubUrl = freshUser.githubUrl;
             token.projectUrls = freshUser.projectUrls;

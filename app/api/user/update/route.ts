@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
       town: optional(nullable(isString)),
       street: optional(nullable(isString)),
       generalCourse: optional(nullable(isString)),
+      bio: optional(nullable(isString)),
       linkedinUrl: optional(nullable(isString)),
       githubUrl: optional(nullable(isString)),
       projectUrls: optional(isStringArray),
@@ -59,6 +60,7 @@ export async function POST(req: NextRequest) {
       town,
       street,
       generalCourse,
+      bio,
       linkedinUrl,
       githubUrl,
       projectUrls,
@@ -77,6 +79,10 @@ export async function POST(req: NextRequest) {
     if (town !== undefined) updateData.town = town;
     if (street !== undefined) updateData.street = street;
     if (generalCourse !== undefined) updateData.generalCourse = generalCourse;
+    if (bio !== undefined) {
+      const trimmedBio = bio === null ? null : bio.trim().slice(0, 500);
+      updateData.bio = trimmedBio || null;
+    }
     if (linkedinUrl !== undefined) updateData.linkedinUrl = linkedinUrl;
     if (githubUrl !== undefined) updateData.githubUrl = githubUrl;
     if (projectUrls !== undefined) updateData.projectUrls = projectUrls;
@@ -133,6 +139,7 @@ export async function POST(req: NextRequest) {
           ...(town !== undefined && { town }),
           ...(street !== undefined && { street }),
           ...(generalCourse !== undefined && { generalCourse }),
+          ...(bio !== undefined && { bio }),
           ...(linkedinUrl !== undefined && { linkedinUrl }),
           ...(githubUrl !== undefined && { githubUrl }),
           ...(projectUrls !== undefined && { projectUrls }),
@@ -160,6 +167,7 @@ export async function POST(req: NextRequest) {
         town: updatedUser.town,
         street: updatedUser.street,
         generalCourse: updatedUser.generalCourse,
+        bio: updatedUser.bio,
         linkedinUrl: updatedUser.linkedinUrl,
         githubUrl: updatedUser.githubUrl,
         projectUrls: updatedUser.projectUrls,
