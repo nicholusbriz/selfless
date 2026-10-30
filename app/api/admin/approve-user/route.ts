@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma/client';
 import { requireAuth } from '@/lib/auth/server';
-import { publishApprovalInvalidation } from '@/lib/partyserver-client';
 import { sendAccountVerifiedEmail } from '@/lib/email';
 
 export async function POST(req: NextRequest) {
@@ -120,8 +119,6 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      await publishApprovalInvalidation();
-
       // Send welcome email to the user
       try {
         const emailResult = await sendAccountVerifiedEmail({
@@ -176,8 +173,6 @@ export async function POST(req: NextRequest) {
         prisma.notification.deleteMany({ where: { userId } }),
         prisma.user.delete({ where: { id: userId } }),
       ]);
-
-      await publishApprovalInvalidation();
 
       return NextResponse.json({
         success: true,

@@ -10,7 +10,6 @@ import {
 } from '@/app/api/_lib/request-validation';
 import { logUserAction } from '@/lib/logger';
 import { deleteProfileImage } from '@/lib/azure-storage';
-import { publishUserProfileInvalidation } from '@/lib/partyserver-client';
 
 function isPrismaWriteConflict(error: unknown): boolean {
   return (
@@ -282,8 +281,6 @@ export async function PATCH(
       updatedUser.techCenterId || undefined,
     );
 
-    await publishUserProfileInvalidation(userId);
-
     return NextResponse.json({
       message: 'User updated successfully',
       user: updatedUser,
@@ -460,8 +457,8 @@ export async function DELETE(
       }
     }
 
-    // Delete the profile image from Supabase storage now that the DB row
-    // is gone. This runs outside the transaction because Supabase storage
+    // Delete the profile image from Azure storage now that the DB row
+    // is gone. This runs outside the transaction because Azure storage
     // is external — a failure here should not roll back the DB deletion.
     if (user.profileImageUrl) {
       try {

@@ -655,6 +655,12 @@ export default function ProfilePage() {
                     </span>
                   </p>
 
+                  {formData.bio && (
+                    <p className="mt-2 text-sm text-[#64788A] line-clamp-2">
+                      {formData.bio}
+                    </p>
+                  )}
+
                   <button
                     onClick={handleImageClick}
                     disabled={isLoading}

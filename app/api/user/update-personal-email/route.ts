@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
-import { publishUserProfileInvalidation } from '@/lib/partyserver-client';
 import type { Prisma } from '@prisma/client';
 import {
   invalidJsonBodyResponse,
@@ -95,8 +94,6 @@ export async function POST(req: NextRequest) {
         techCenterId: user.techCenterId,
       },
     });
-
-    await publishUserProfileInvalidation(user.id);
 
     // Return updated user data
     return NextResponse.json({

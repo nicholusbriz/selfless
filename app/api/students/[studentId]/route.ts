@@ -12,7 +12,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
-import { publishSocialInvalidation } from '@/lib/partyserver-client';
 
 export async function GET(
   req: NextRequest,
@@ -119,9 +118,7 @@ export async function GET(
           },
         });
 
-        if (!existingView) {
-          await publishSocialInvalidation([student.id]);
-        }
+
       } catch (viewError) {
         console.error('Failed to record student profile view:', viewError);
       }

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
-import { publishApprovalInvalidation } from '@/lib/partyserver-client';
 
 export async function DELETE() {
   try {
@@ -21,8 +20,6 @@ export async function DELETE() {
         verifiedAt: null,
       },
     });
-
-    await publishApprovalInvalidation();
 
     return NextResponse.json({ clearedCount: result.count });
   } catch (error) {

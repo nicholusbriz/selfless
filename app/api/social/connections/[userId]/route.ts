@@ -15,6 +15,10 @@ export async function GET(
     const { userId: targetUserId } = await params;
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') ?? 'followers';
+    const limitParam = Number(searchParams.get('limit') ?? '20');
+    const offsetParam = Number(searchParams.get('offset') ?? '0');
+    const limit = Math.min(Math.max(Number.isFinite(limitParam) ? limitParam : 20, 1), 100);
+    const offset = Math.max(Number.isFinite(offsetParam) ? Math.floor(offsetParam) : 0, 0);
 
     if (type !== 'followers' && type !== 'following') {
       return NextResponse.json(
@@ -24,12 +28,20 @@ export async function GET(
     }
 
     if (!OBJECT_ID_REGEX.test(targetUserId)) {
-      return NextResponse.json({ connections: [], type, count: 0 });
+      return NextResponse.json({
+        connections: [],
+        type,
+        count: 0,
+        totalCount: 0,
+        hasMore: false,
+        nextOffset: offset,
+      });
     }
 
-    const rows =
+    const [rows, totalCount] =
       type === 'followers'
-        ? await prisma.follow.findMany({
+        ? await Promise.all([
+            prisma.follow.findMany({
             where: { followingId: targetUserId },
             select: {
               createdAt: true,
@@ -47,8 +59,13 @@ export async function GET(
               },
             },
             orderBy: { createdAt: 'desc' },
-          })
-        : await prisma.follow.findMany({
+            skip: offset,
+            take: limit + 1,
+          }),
+            prisma.follow.count({ where: { followingId: targetUserId } }),
+          ])
+        : await Promise.all([
+            prisma.follow.findMany({
             where: { followerId: targetUserId },
             select: {
               createdAt: true,
@@ -66,9 +83,16 @@ export async function GET(
               },
             },
             orderBy: { createdAt: 'desc' },
-          });
+            skip: offset,
+            take: limit + 1,
+          }),
+            prisma.follow.count({ where: { followerId: targetUserId } }),
+          ]);
 
-    const base = rows.map((r) => {
+    const hasMore = rows.length > limit;
+    const pageRows = hasMore ? rows.slice(0, limit) : rows;
+
+    const base = pageRows.map((r) => {
       const u = 'follower' in r ? r.follower : r.following;
       return {
         id: u.id,
@@ -123,6 +147,9 @@ export async function GET(
       connections,
       type,
       count: connections.length,
+      totalCount,
+      hasMore,
+      nextOffset: offset + connections.length,
     });
   } catch (error: unknown) {
     const errorMessage =

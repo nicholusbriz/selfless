@@ -8,12 +8,22 @@ const MAX_RESULTS = 500;
 const OBJECT_ID_REGEX = /^[a-f0-9]{24}$/i;
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ userId: string }> },
 ) {
   try {
     const currentUser = await requireAuth();
     const { userId: targetUserId } = await params;
+    const { searchParams } = new URL(request.url);
+    const view = searchParams.get('view');
+    if (view !== null && view !== 'received' && view !== 'sent') {
+      return NextResponse.json({ error: 'Invalid view parameter' }, { status: 400 });
+    }
+    const limitParam = Number(searchParams.get('limit') ?? '20');
+    const offsetParam = Number(searchParams.get('offset') ?? '0');
+    const pageLimit = Math.min(Math.max(Number.isFinite(limitParam) ? limitParam : 20, 1), 100);
+    const pageOffset = Math.max(Number.isFinite(offsetParam) ? Math.floor(offsetParam) : 0, 0);
+    const isPaginated = view !== null;
 
     if (!OBJECT_ID_REGEX.test(targetUserId)) {
       return NextResponse.json({
@@ -21,53 +31,67 @@ export async function GET(
         totalLikes: 0,
         likedUsers: [],
         totalLikedUsers: 0,
+        hasMore: false,
+        nextOffset: pageOffset,
       });
     }
 
-    const [receivedLikes, sentLikes] = await Promise.all([
-      prisma.like.findMany({
-        where: { likedUserId: targetUserId },
-        select: {
-          createdAt: true,
-          liker: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              profileImageUrl: true,
-              role: { select: { name: true } },
-              previousTechCenterId: true,
-              generalCourse: true,
-              techCenter: { select: { id: true, name: true } },
+    const receivedLikesPromise = view === 'sent'
+      ? Promise.resolve([])
+      : prisma.like.findMany({
+          where: { likedUserId: targetUserId },
+          select: {
+            createdAt: true,
+            liker: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                profileImageUrl: true,
+                role: { select: { name: true } },
+                previousTechCenterId: true,
+                generalCourse: true,
+                techCenter: { select: { id: true, name: true } },
+              },
             },
           },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: MAX_RESULTS,
-      }),
-      prisma.like.findMany({
-        where: { likerId: targetUserId },
-        select: {
-          createdAt: true,
-          likedUser: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              profileImageUrl: true,
-              role: { select: { name: true } },
-              previousTechCenterId: true,
-              generalCourse: true,
-              techCenter: { select: { id: true, name: true } },
-            },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: MAX_RESULTS,
-      }),
-    ]);
+          orderBy: { createdAt: 'desc' },
+          skip: isPaginated ? pageOffset : 0,
+          take: isPaginated ? pageLimit + 1 : MAX_RESULTS,
+        });
 
-    const likersBase = receivedLikes.map((like) => ({
+    const sentLikesPromise = view === 'received'
+      ? Promise.resolve([])
+      : prisma.like.findMany({
+          where: { likerId: targetUserId },
+          select: {
+            createdAt: true,
+            likedUser: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                profileImageUrl: true,
+                role: { select: { name: true } },
+                previousTechCenterId: true,
+                generalCourse: true,
+                techCenter: { select: { id: true, name: true } },
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          skip: isPaginated ? pageOffset : 0,
+          take: isPaginated ? pageLimit + 1 : MAX_RESULTS,
+        });
+
+    const [receivedLikes, sentLikes] = await Promise.all([receivedLikesPromise, sentLikesPromise]);
+
+    const receivedHasMore = isPaginated && receivedLikes.length > pageLimit;
+    const sentHasMore = isPaginated && sentLikes.length > pageLimit;
+    const likersBase = (receivedHasMore
+      ? receivedLikes.slice(0, pageLimit)
+      : receivedLikes
+    ).map((like) => ({
       id: like.liker.id,
       firstName: like.liker.firstName,
       lastName: like.liker.lastName,
@@ -79,7 +103,10 @@ export async function GET(
       likedAt: like.createdAt.toISOString(),
     }));
 
-    const likedUsersBase = sentLikes.map((like) => ({
+    const likedUsersBase = (sentHasMore
+      ? sentLikes.slice(0, pageLimit)
+      : sentLikes
+    ).map((like) => ({
       id: like.likedUser.id,
       firstName: like.likedUser.firstName,
       lastName: like.likedUser.lastName,
@@ -134,12 +161,21 @@ export async function GET(
       isLiked: true, // the viewer liked this user (by definition of this list)
     }));
 
+    const [totalLikes, totalLikedUsers] = await Promise.all([
+      prisma.like.count({ where: { likedUserId: targetUserId } }),
+      prisma.like.count({ where: { likerId: targetUserId } }),
+    ]);
+
     return NextResponse.json(
       {
         likers,
-        totalLikes: likers.length,
+        totalLikes,
         likedUsers,
-        totalLikedUsers: likedUsers.length,
+        totalLikedUsers,
+        hasMore: view === 'sent' ? sentHasMore : view === 'received' ? receivedHasMore : false,
+        nextOffset:
+          pageOffset +
+          (view === 'sent' ? likedUsers.length : view === 'received' ? likers.length : 0),
       },
       {
         headers: {

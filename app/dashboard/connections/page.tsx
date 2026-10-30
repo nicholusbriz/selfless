@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Users,
   Heart,
@@ -29,6 +29,7 @@ import { useSocialActions } from '@/lib/hooks/useSocialActions';
 // ============================================================
 
 const GOLD_DEEP = '#B98A3E';
+const CONNECTION_PAGE_SIZE = 20;
 
 // ============================================================
 // TYPES
@@ -53,14 +54,16 @@ interface ConnectionUser {
   likedAt?: string;
 }
 
-interface LikesData {
-  likers: ConnectionUser[];
-  likedUsers: ConnectionUser[];
+interface ConnectionPage {
+  users: ConnectionUser[];
+  hasMore: boolean;
+  nextOffset: number;
+  totalCount: number;
 }
 
-interface TrendingApiResponse {
-  students: ConnectionUser[];
-  generatedAt: string;
+interface LikesPage extends ConnectionPage {
+  totalLikes: number;
+  totalLikedUsers: number;
 }
 
 interface MeStats {
@@ -81,34 +84,88 @@ type LikesView = 'received' | 'sent';
 async function fetchConnections(
   userId: string,
   type: 'followers' | 'following',
-): Promise<ConnectionUser[]> {
-  const res = await fetch(`/api/social/connections/${userId}?type=${type}`);
+  offset: number,
+): Promise<ConnectionPage> {
+  const params = new URLSearchParams({
+    type,
+    limit: String(CONNECTION_PAGE_SIZE),
+    offset: String(offset),
+  });
+  const res = await fetch(`/api/social/connections/${userId}?${params}`);
   if (!res.ok) throw new Error(`Failed to fetch ${type}`);
-  const data = (await res.json()) as { connections?: ConnectionUser[] };
-  return Array.isArray(data.connections) ? data.connections : [];
+  const data = (await res.json()) as {
+    connections?: ConnectionUser[];
+    hasMore?: boolean;
+    nextOffset?: number;
+    totalCount?: number;
+  };
+  return {
+    users: Array.isArray(data.connections) ? data.connections : [],
+    hasMore: data.hasMore === true,
+    nextOffset: typeof data.nextOffset === 'number' ? data.nextOffset : offset,
+    totalCount: typeof data.totalCount === 'number' ? data.totalCount : 0,
+  };
 }
 
-async function fetchLikes(userId: string): Promise<LikesData> {
-  const res = await fetch(`/api/social/likes/${userId}`);
+async function fetchLikes(
+  userId: string,
+  view: LikesView,
+  offset: number,
+): Promise<LikesPage> {
+  const params = new URLSearchParams({
+    view,
+    limit: String(CONNECTION_PAGE_SIZE),
+    offset: String(offset),
+  });
+  const res = await fetch(`/api/social/likes/${userId}?${params}`);
   if (!res.ok) throw new Error('Failed to fetch likes');
   const data = (await res.json()) as {
     likers?: ConnectionUser[];
     likedUsers?: ConnectionUser[];
+    totalLikes?: number;
+    totalLikedUsers?: number;
+    hasMore?: boolean;
+    nextOffset?: number;
   };
+  const totalLikes = typeof data.totalLikes === 'number' ? data.totalLikes : 0;
+  const totalLikedUsers =
+    typeof data.totalLikedUsers === 'number' ? data.totalLikedUsers : 0;
+  const users =
+    view === 'sent'
+      ? Array.isArray(data.likedUsers) ? data.likedUsers : []
+      : Array.isArray(data.likers) ? data.likers : [];
   return {
-    likers: Array.isArray(data.likers) ? data.likers : [],
-    likedUsers: Array.isArray(data.likedUsers) ? data.likedUsers : [],
+    users,
+    hasMore: data.hasMore === true,
+    nextOffset: typeof data.nextOffset === 'number' ? data.nextOffset : offset,
+    totalCount: view === 'sent' ? totalLikedUsers : totalLikes,
+    totalLikes,
+    totalLikedUsers,
   };
 }
 
-async function fetchTrending(limit = 100): Promise<ConnectionUser[]> {
+async function fetchTrending(offset: number): Promise<ConnectionPage> {
+  const params = new URLSearchParams({
+    limit: String(CONNECTION_PAGE_SIZE),
+    offset: String(offset),
+  });
   const res = await fetch(
-    `/api/social/trending?limit=${limit}&_t=${Date.now()}`,
+    `/api/social/trending?${params}&_t=${Date.now()}`,
     { cache: 'no-store' },
   );
   if (!res.ok) throw new Error('Failed to fetch trending');
-  const data = (await res.json()) as TrendingApiResponse;
-  return Array.isArray(data.students) ? data.students : [];
+  const data = (await res.json()) as {
+    students?: ConnectionUser[];
+    hasMore?: boolean;
+    nextOffset?: number;
+    totalCount?: number;
+  };
+  return {
+    users: Array.isArray(data.students) ? data.students : [],
+    hasMore: data.hasMore === true,
+    nextOffset: typeof data.nextOffset === 'number' ? data.nextOffset : offset,
+    totalCount: typeof data.totalCount === 'number' ? data.totalCount : 0,
+  };
 }
 
 async function fetchMe(): Promise<MeStats | null> {
@@ -439,32 +496,8 @@ export default function ConnectionsPage() {
     if (!currentUserId) return;
 
     queryClient.prefetchQuery({
-      queryKey: ['social', 'trending'],
-      queryFn: () => fetchTrending(100),
-      staleTime: 0,
-    });
-
-    queryClient.prefetchQuery({
       queryKey: ['social', 'me'],
       queryFn: fetchMe,
-      staleTime: sharedQueryOptions.staleTime,
-    });
-
-    queryClient.prefetchQuery({
-      queryKey: ['connections', 'followers', currentUserId],
-      queryFn: () => fetchConnections(currentUserId, 'followers'),
-      staleTime: sharedQueryOptions.staleTime,
-    });
-
-    queryClient.prefetchQuery({
-      queryKey: ['connections', 'following', currentUserId],
-      queryFn: () => fetchConnections(currentUserId, 'following'),
-      staleTime: sharedQueryOptions.staleTime,
-    });
-
-    queryClient.prefetchQuery({
-      queryKey: ['connections', 'likes', currentUserId],
-      queryFn: () => fetchLikes(currentUserId),
       staleTime: sharedQueryOptions.staleTime,
     });
   }, [currentUserId, queryClient, sharedQueryOptions.staleTime]);
@@ -477,28 +510,45 @@ export default function ConnectionsPage() {
     ...sharedQueryOptions,
   });
 
-  const followersQuery = useQuery({
-    queryKey: ['connections', 'followers', currentUserId],
-    queryFn: () => fetchConnections(currentUserId!, 'followers'),
+  const followersQuery = useInfiniteQuery({
+    queryKey: ['connections', 'pages', 'followers', currentUserId],
+    queryFn: ({ pageParam }) =>
+      fetchConnections(currentUserId!, 'followers', pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) =>
+      lastPage.hasMore ? lastPage.nextOffset : undefined,
     ...sharedQueryOptions,
+    enabled: !!currentUserId && activeTab === 'followers',
   });
 
-  const followingQuery = useQuery({
-    queryKey: ['connections', 'following', currentUserId],
-    queryFn: () => fetchConnections(currentUserId!, 'following'),
+  const followingQuery = useInfiniteQuery({
+    queryKey: ['connections', 'pages', 'following', currentUserId],
+    queryFn: ({ pageParam }) =>
+      fetchConnections(currentUserId!, 'following', pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) =>
+      lastPage.hasMore ? lastPage.nextOffset : undefined,
     ...sharedQueryOptions,
+    enabled: !!currentUserId && activeTab === 'following',
   });
 
-  const likesQuery = useQuery({
-    queryKey: ['connections', 'likes', currentUserId],
-    queryFn: () => fetchLikes(currentUserId!),
+  const likesQuery = useInfiniteQuery({
+    queryKey: ['connections', 'pages', 'likes', likesView, currentUserId],
+    queryFn: ({ pageParam }) =>
+      fetchLikes(currentUserId!, likesView, pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) =>
+      lastPage.hasMore ? lastPage.nextOffset : undefined,
     ...sharedQueryOptions,
+    enabled: !!currentUserId && activeTab === 'likes',
   });
 
-  const trendingQuery = useQuery({
-    queryKey: ['social', 'trending'],
-    queryFn: () => fetchTrending(100),
-    enabled: !!currentUserId,
+  const trendingQuery = useInfiniteQuery({
+    queryKey: ['social', 'trending', 'pages'],
+    queryFn: ({ pageParam }) => fetchTrending(pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) =>
+      lastPage.hasMore ? lastPage.nextOffset : undefined,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 5 * 60 * 1000,
     refetchInterval: false, // Remove auto-polling
@@ -506,6 +556,7 @@ export default function ConnectionsPage() {
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     refetchOnMount: 'always',
+    enabled: !!currentUserId && activeTab === 'trending',
   });
 
   const activeQuery = useMemo(() => {
@@ -518,24 +569,22 @@ export default function ConnectionsPage() {
   // ---------- rows for the active tab ----------
   const connections: ConnectionUser[] = useMemo(() => {
     if (activeTab === 'trending') {
-      return trendingQuery.data ?? [];
+      return trendingQuery.data?.pages.flatMap((page) => page.users) ?? [];
     }
 
     if (activeTab === 'likes') {
-      return likesView === 'sent'
-        ? likesQuery.data?.likedUsers ?? []
-        : likesQuery.data?.likers ?? [];
+      return likesQuery.data?.pages.flatMap((page) => page.users) ?? [];
     }
 
     if (activeTab === 'following') {
-      const base = followingQuery.data ?? [];
+      const base =
+        followingQuery.data?.pages.flatMap((page) => page.users) ?? [];
       return base.filter((c) => c.isFollowing !== false);
     }
 
-    return followersQuery.data ?? [];
+    return followersQuery.data?.pages.flatMap((page) => page.users) ?? [];
   }, [
     activeTab,
-    likesView,
     trendingQuery.data,
     likesQuery.data,
     followingQuery.data,
@@ -729,7 +778,7 @@ export default function ConnectionsPage() {
               }`}
             >
               <Heart className="h-3.5 w-3.5" strokeWidth={2.2} />
-              Received ({likesQuery.data?.likers.length ?? 0})
+              Received ({likesQuery.data?.pages[0]?.totalLikes ?? 0})
             </button>
             <button
               type="button"
@@ -743,7 +792,7 @@ export default function ConnectionsPage() {
               }`}
             >
               <Heart className="h-3.5 w-3.5" strokeWidth={2.2} />
-              You liked ({likesQuery.data?.likedUsers.length ?? 0})
+              You liked ({likesQuery.data?.pages[0]?.totalLikedUsers ?? 0})
             </button>
           </div>
         )}
@@ -751,7 +800,7 @@ export default function ConnectionsPage() {
         {/* CONTENT */}
         {showSessionLoading || isFetchingWithoutData ? (
           <GridSkeleton cards={6} />
-        ) : error ? (
+        ) : error && connections.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-[#A4462F]/40 bg-white px-6 py-16 text-center">
             <AlertCircle
               className="mb-3 h-10 w-10 text-[#A4462F]"
@@ -856,6 +905,37 @@ export default function ConnectionsPage() {
                   />
                 );
               })}
+              {activeQuery?.hasNextPage && (
+                <button
+                  type="button"
+                  onClick={() => void activeQuery.fetchNextPage()}
+                  disabled={activeQuery.isFetchingNextPage}
+                  className="flex aspect-[3/4] w-full flex-col items-center justify-center gap-3 rounded-[22px] border border-dashed border-[#1A2B4C]/30 bg-white px-6 text-center text-[#1A2B4C] transition-colors hover:border-[#1A2B4C] hover:bg-[#F7F6F2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B] disabled:cursor-wait disabled:opacity-70"
+                  aria-label={
+                    activeQuery.isFetchNextPageError
+                      ? 'Retry loading more connections'
+                      : 'Load more connections'
+                  }
+                >
+                  {activeQuery.isFetchingNextPage ? (
+                    <Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <UserPlus className="h-6 w-6" aria-hidden="true" />
+                  )}
+                  <span className="text-sm font-bold">
+                    {activeQuery.isFetchingNextPage
+                      ? 'Loading…'
+                      : activeQuery.isFetchNextPageError
+                        ? 'Try loading more'
+                        : 'Load more'}
+                  </span>
+                  <span className="text-xs text-[#6B7280]">
+                    {activeQuery.isFetchingNextPage
+                      ? 'Please wait'
+                      : 'Show the next 20 profiles'}
+                  </span>
+                </button>
+              )}
             </div>
 
             {activeTab === 'trending' && (

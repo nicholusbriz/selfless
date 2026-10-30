@@ -1,10 +1,8 @@
 import { getApiErrorMessage, isJsonObject, readJsonObject } from '@/lib/api-response';
-import { useEffect, useCallback, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import type { Message } from '@/types/messaging';
-import { createPartyServerSocket } from '@/lib/party-socket';
-import { getPartySocketManager } from '@/lib/party-socket-manager';
 
 interface UseMessagesProps {
   conversationId: string;
@@ -122,8 +120,7 @@ export function useMessages({ conversationId, currentUserId }: UseMessagesProps)
 
 // Hook to fetch total unread message count for the current user
 export function useUnreadMessageCount() {
-  const queryClient = useQueryClient();
-  const { data: session, update } = useSession();
+  const { data: session } = useSession();
   const currentUserId = session?.user?.id || '';
 
   const unreadCountQuery = useQuery({
@@ -148,95 +145,10 @@ export function useUnreadMessageCount() {
       }
     },
     enabled: !!currentUserId,
-    staleTime: Infinity,
+    staleTime: 30_000,
     gcTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: false,
+    refetchInterval: 30_000,
   });
-
-  useEffect(() => {
-    if (!currentUserId) return;
-
-    let socket: Awaited<ReturnType<typeof createPartyServerSocket>> = null;
-    let disposed = false;
-
-    const handleMessage = (event: MessageEvent<string>) => {
-      try {
-        const payload = JSON.parse(event.data);
-        if (payload.type !== 'invalidate') return;
-
-        if (payload.resource === 'messages') {
-          void queryClient.invalidateQueries({
-            queryKey: ['messages', 'unread-count', currentUserId],
-          });
-          void queryClient.invalidateQueries({
-            queryKey: ['conversations', currentUserId],
-          });
-          if (typeof payload.conversationId === 'string') {
-            void queryClient.invalidateQueries({
-              queryKey: ['messages', payload.conversationId],
-            });
-          }
-          return;
-        }
-
-        if (
-          payload.resource === 'social' &&
-          payload.userId === currentUserId
-        ) {
-          void queryClient.invalidateQueries({ queryKey: ['students'] });
-          void queryClient.invalidateQueries({ queryKey: ['social'] });
-          void queryClient.invalidateQueries({ queryKey: ['connections'] });
-          void queryClient.invalidateQueries({
-            queryKey: ['currentUserStats', currentUserId],
-          });
-          return;
-        }
-
-        if (
-          payload.resource === 'profile' &&
-          payload.userId === currentUserId
-        ) {
-          void update();
-          void queryClient.invalidateQueries({ queryKey: ['users'] });
-          void queryClient.invalidateQueries({ queryKey: ['students'] });
-          void queryClient.invalidateQueries({ queryKey: ['social'] });
-        }
-      } catch (error) {
-        console.error('Failed to process unread message event:', error);
-      }
-    };
-
-    const handleOpen = () => {
-      void queryClient.invalidateQueries({
-        queryKey: ['messages', 'unread-count', currentUserId],
-      });
-      void queryClient.invalidateQueries({
-        queryKey: ['conversations', currentUserId],
-      });
-      void queryClient.invalidateQueries({ queryKey: ['messages'] });
-    };
-
-    void createPartyServerSocket(`user:${currentUserId}`).then((connectedSocket) => {
-      if (!connectedSocket || disposed) {
-        connectedSocket?.close();
-        return;
-      }
-
-      socket = connectedSocket;
-      socket.addEventListener('message', handleMessage);
-      socket.addEventListener('open', handleOpen);
-    });
-
-    return () => {
-      disposed = true;
-      socket?.removeEventListener('message', handleMessage);
-      socket?.removeEventListener('open', handleOpen);
-      // Release the connection from the manager instead of closing directly
-      if (currentUserId) {
-        getPartySocketManager().releaseConnection(`user:${currentUserId}`);
-      }
-    };
-  }, [currentUserId, queryClient, update]);
 
   return unreadCountQuery;
 }

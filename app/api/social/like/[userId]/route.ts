@@ -16,7 +16,6 @@ import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
 import { createNotificationForUser } from '@/lib/notifications';
-import { publishSocialInvalidation } from '@/lib/partyserver-client';
 
 export async function POST(
   request: Request,
@@ -97,8 +96,6 @@ export async function POST(
       console.error('Failed to notify user about like:', notificationError);
     }
 
-    await publishSocialInvalidation([currentUser.id, targetUserId]);
-
     return NextResponse.json({
       success: true,
       message: 'Successfully liked user'
@@ -158,8 +155,6 @@ export async function DELETE(
         console.warn('[unlike] counter update failed:', err);
       });
     }
-
-    await publishSocialInvalidation([currentUser.id, targetUserId]);
 
     return NextResponse.json({
       success: true,

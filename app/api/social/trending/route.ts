@@ -54,11 +54,13 @@ export async function GET(request: Request) {
     const viewerId = currentUser.id;
 
     const { searchParams } = new URL(request.url);
-    const limitParam = Number(searchParams.get('limit') ?? '10');
+    const limitParam = Number(searchParams.get('limit') ?? '20');
+    const offsetParam = Number(searchParams.get('offset') ?? '0');
     const limit = Math.min(
-      Math.max(Number.isFinite(limitParam) ? limitParam : 10, 1),
+      Math.max(Number.isFinite(limitParam) ? limitParam : 20, 1),
       100,
     );
+    const offset = Math.max(Number.isFinite(offsetParam) ? Math.floor(offsetParam) : 0, 0);
 
     // -------- 1. Find users with activity (followers or likes) --------
     const [followerGroups, likeGroups] = await Promise.all([
@@ -79,7 +81,13 @@ export async function GET(request: Request) {
 
     if (activeIds.size === 0) {
       return NextResponse.json(
-        { students: [], generatedAt: new Date().toISOString() },
+        {
+          students: [],
+          generatedAt: new Date().toISOString(),
+          hasMore: false,
+          nextOffset: offset,
+          totalCount: 0,
+        },
         { headers: { 'Cache-Control': 'no-store, max-age=0' } },
       );
     }
@@ -98,43 +106,23 @@ export async function GET(request: Request) {
       },
     });
 
-    // -------- 3. Get live stats using centralized function --------
-    const userIds = users.map((u) => u.id);
-    const previousTechCenterIds = Array.from(
-      new Set(
-        users
-          .filter((user) => user.role?.name === 'super_admin')
-          .map((user) => user.previousTechCenterId)
-          .filter(
-            (id): id is string => typeof id === 'string' && id.length > 0,
-          )
-      ),
+    const followerCountById = new Map(
+      followerGroups.map((group) => [group.followingId, group._count._all]),
     );
-    const [statsMap, previousTechCenters] = await Promise.all([
-      getStatsForUsers(viewerId, userIds),
-      previousTechCenterIds.length > 0
-        ? prisma.techCenter.findMany({
-            where: { id: { in: previousTechCenterIds } },
-            select: { id: true, name: true },
-          })
-        : Promise.resolve([]),
-    ]);
-    const previousTechCentersById = new Map(
-      previousTechCenters.map((techCenter) => [techCenter.id, techCenter]),
+    const likesCountById = new Map(
+      likeGroups.map((group) => [group.likedUserId, group._count._all]),
     );
 
-    // -------- 4. Rank and filter --------
+    // -------- 3. Rank candidates before loading detailed stats --------
     const ranked = users
-      .map((u) => {
-        const stats = statsMap.get(u.id) ?? EMPTY_STATS;
-        return {
-          ...u,
-          ...stats,
-        };
-      })
-      .filter((u) =>
-        Boolean(u.profileImageUrl?.trim()) &&
-        (u.followersCount || 0) >= 1
+      .map((user) => ({
+        ...user,
+        followersCount: followerCountById.get(user.id) ?? 0,
+        likesReceivedCount: likesCountById.get(user.id) ?? 0,
+      }))
+      .filter(
+        (user) =>
+          Boolean(user.profileImageUrl?.trim()) && user.followersCount >= 1,
       )
       .sort((a, b) => {
         if (b.followersCount !== a.followersCount)
@@ -146,28 +134,57 @@ export async function GET(request: Request) {
         );
       });
 
-    // -------- 5. Build response rows --------
-    const students: TrendingStudent[] = ranked.map((u) => ({
-      id: u.id,
-      firstName: u.firstName,
-      lastName: u.lastName,
-      profileImageUrl: u.profileImageUrl,
-      role: u.role ?? null,
-      techCenter: u.techCenter,
+    const pageUsers = ranked.slice(offset, offset + limit);
+    const pageUserIds = pageUsers.map((user) => user.id);
+    const previousTechCenterIds = Array.from(
+      new Set(
+        pageUsers
+          .filter((user) => user.role?.name === 'super_admin')
+          .map((user) => user.previousTechCenterId)
+          .filter(
+            (id): id is string => typeof id === 'string' && id.length > 0,
+          )
+      ),
+    );
+    const [statsMap, previousTechCenters] = await Promise.all([
+      getStatsForUsers(viewerId, pageUserIds),
+      previousTechCenterIds.length > 0
+        ? prisma.techCenter.findMany({
+            where: { id: { in: previousTechCenterIds } },
+            select: { id: true, name: true },
+          })
+        : Promise.resolve([]),
+    ]);
+    const previousTechCentersById = new Map(
+      previousTechCenters.map((techCenter) => [techCenter.id, techCenter]),
+    );
+
+    // -------- 4. Build response rows --------
+    const students: TrendingStudent[] = pageUsers.map((user) => ({
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      profileImageUrl: user.profileImageUrl,
+      role: user.role ?? null,
+      techCenter: user.techCenter,
       previousTechCenter:
-        u.role?.name === 'super_admin' && u.previousTechCenterId
-          ? previousTechCentersById.get(u.previousTechCenterId) ?? null
+        user.role?.name === 'super_admin' && user.previousTechCenterId
+          ? previousTechCentersById.get(user.previousTechCenterId) ?? null
           : null,
-      followersCount: u.followersCount,
-      followingCount: u.followingCount,
-      likesReceivedCount: u.likesReceivedCount,
-      profileViewsCount: u.profileViewsCount,
-      isFollowing: u.isFollowing,
-      isLiked: u.isLiked,
+      ...EMPTY_STATS,
+      ...(statsMap.get(user.id) ?? EMPTY_STATS),
+      followersCount: user.followersCount,
+      likesReceivedCount: user.likesReceivedCount,
     }));
 
     return NextResponse.json(
-      { students, generatedAt: new Date().toISOString() },
+      {
+        students,
+        generatedAt: new Date().toISOString(),
+        hasMore: offset + students.length < ranked.length,
+        nextOffset: offset + students.length,
+        totalCount: ranked.length,
+      },
       { headers: { 'Cache-Control': 'no-store, max-age=0' } },
     );
   } catch (error: unknown) {
