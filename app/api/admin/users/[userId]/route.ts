@@ -10,7 +10,6 @@ import {
 } from '@/app/api/_lib/request-validation';
 import { logUserAction } from '@/lib/logger';
 import { deleteProfileImage } from '@/lib/azure-storage';
-import { publishUserProfileInvalidation } from '@/lib/partyserver-client';
 
 function isPrismaWriteConflict(error: unknown): boolean {
   return (
@@ -281,8 +280,6 @@ export async function PATCH(
       },
       updatedUser.techCenterId || undefined,
     );
-
-    await publishUserProfileInvalidation(userId);
 
     return NextResponse.json({
       message: 'User updated successfully',

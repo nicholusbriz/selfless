@@ -8,26 +8,13 @@ import type {
   Connection,
   ConnectionContext,
 } from "partyserver";
-import { verifyPartyTicket } from "../lib/party-ticket";
 
 interface OnlineUser {
   userId: string;
 }
 
-interface Invalidation {
-  type: "invalidate";
-  resource: "messages" | "profile" | "social" | "approvals";
-  conversationId?: string;
-  userId?: string;
-}
-
 interface Env extends Cloudflare.Env {
   Main: DurableObjectNamespace<MainServer>;
-  PARTYSERVER_SYNC_SECRET: string;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 export class MainServer extends Server<Env> {
@@ -55,46 +42,24 @@ export class MainServer extends Server<Env> {
     connection: Connection<OnlineUser>,
     context: ConnectionContext,
   ): Promise<void> {
-    const secret = this.env.PARTYSERVER_SYNC_SECRET;
-    const connectionUrl = new URL(context.request.url);
-    const ticket = connectionUrl.searchParams.get("ticket");
-    const publicPresenceUserId =
-      this.name === "online-users"
-        ? connectionUrl.searchParams.get("userId")
-        : null;
-    const userId =
-      publicPresenceUserId && /^[a-f\d]{24}$/i.test(publicPresenceUserId)
-        ? publicPresenceUserId
-        : typeof secret === "string" && ticket
-          ? await verifyPartyTicket(ticket, secret)
-          : null;
+    // Only accept connections to the online-users room
+    if (this.name !== "online-users") {
+      console.warn("[partyserver] Connection rejected: only online-users room is supported");
+      connection.close(1008, "Room not supported");
+      return;
+    }
 
-    if (
-      !userId ||
-      (this.name !== "online-users" && this.name !== `user:${userId}`)
-    ) {
-      console.warn("[partyserver] WebSocket connection rejected.", {
-        room: this.name === "online-users" ? "online-users" : "user",
-        reason:
-          this.name === "online-users" && !publicPresenceUserId
-            ? "missing-user-id"
-            : this.name === "online-users" &&
-                !/^[a-f\d]{24}$/i.test(publicPresenceUserId || "")
-              ? "invalid-user-id"
-              : typeof secret !== "string"
-                ? "missing-secret"
-                : !ticket
-                  ? "missing-ticket"
-                  : !userId
-                    ? "invalid-ticket"
-                    : "room-mismatch",
-      });
-      connection.close(1008, "Unauthorized");
+    const connectionUrl = new URL(context.request.url);
+    const userId = connectionUrl.searchParams.get("userId");
+
+    // Validate userId is a valid MongoDB ObjectId format
+    if (!userId || !/^[a-f\d]{24}$/i.test(userId)) {
+      console.warn("[partyserver] Connection rejected: invalid or missing userId");
+      connection.close(1008, "Invalid userId");
       return;
     }
 
     connection.setState({ userId });
-    if (this.name !== "online-users") return;
 
     const existingUserIds = new Set(
       Array.from(this.getConnections<OnlineUser>())
@@ -126,8 +91,6 @@ export class MainServer extends Server<Env> {
   }
 
   async onClose(connection: Connection<OnlineUser>): Promise<void> {
-    if (this.name !== "online-users") return;
-
     const userId = connection.state?.userId;
     if (!userId) return;
 
@@ -145,62 +108,15 @@ export class MainServer extends Server<Env> {
   }
 
   async onRequest(request: Request): Promise<Response> {
-    if (request.method !== "POST") {
-      return new Response("PartyServer server running", {
+    // Only handle GET requests for health checks
+    if (request.method === "GET") {
+      return new Response("PartyServer online-users running", {
         headers: { "Cache-Control": "no-store" },
       });
     }
 
-    const secret = this.env.PARTYSERVER_SYNC_SECRET;
-    if (
-      typeof secret !== "string" ||
-      request.headers.get("authorization") !== `Bearer ${secret}`
-    ) {
-      return new Response("Unauthorized", { status: 401 });
-    }
-
-    let event: unknown;
-    try {
-      event = await request.json();
-    } catch {
-      return new Response("Invalid event", { status: 400 });
-    }
-    if (!isRecord(event) || event.type !== "invalidate") {
-      console.warn("[partyserver] Invalidation request rejected: invalid event.");
-      return new Response("Invalid event", { status: 400 });
-    }
-
-    let invalidation: Invalidation;
-    if (
-      event.resource === "messages" &&
-      typeof event.conversationId === "string"
-    ) {
-      invalidation = {
-        type: "invalidate",
-        resource: "messages",
-        conversationId: event.conversationId,
-      };
-    } else if (
-      (event.resource === "profile" || event.resource === "social") &&
-      typeof event.userId === "string"
-    ) {
-      invalidation = {
-        type: "invalidate",
-        resource: event.resource,
-        userId: event.userId,
-      };
-    } else if (event.resource === "approvals") {
-      invalidation = { type: "invalidate", resource: "approvals" };
-    } else {
-      return new Response("Invalid event", { status: 400 });
-    }
-
-    this.safeBroadcast(JSON.stringify(invalidation));
-    console.info("[partyserver] Invalidation broadcast.", {
-      room: this.name === "online-users" ? "online-users" : "user",
-      resource: invalidation.resource,
-    });
-    return new Response(null, { status: 204 });
+    // Reject all other requests (no invalidation endpoints)
+    return new Response("Method not allowed", { status: 405 });
   }
 }
 

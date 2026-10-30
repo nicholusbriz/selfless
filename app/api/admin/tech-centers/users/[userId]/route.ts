@@ -8,7 +8,6 @@ import {
   optional,
   parseJsonBody,
 } from '@/app/api/_lib/request-validation';
-import { publishUserProfileInvalidation } from '@/lib/partyserver-client';
 
 // GET - Fetch single user details (only if in same tech center)
 export async function GET(
@@ -272,8 +271,6 @@ export async function PATCH(
         techCenterId: updatedUser.techCenterId,
       }
     });
-
-    await publishUserProfileInvalidation(userId);
 
     return NextResponse.json({
       message: 'User updated successfully',

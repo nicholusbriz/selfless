@@ -10,10 +10,7 @@ class PartySocketManager {
 
   async getOrCreateConnection(
     room: string,
-    options: {
-      userId?: string;
-      ticket?: string | (() => Promise<string | undefined>);
-    } = {},
+    options: { userId: string },
   ): Promise<PartySocket | null> {
     const host = process.env.NEXT_PUBLIC_PARTYSERVER_HOST;
 
@@ -22,8 +19,6 @@ class PartySocketManager {
     }
 
     const connectionKey = room;
-
-    console.info('[socket-manager] Getting connection for room:', room, 'with options:', options);
 
     // Check if we already have a connection to this room
     const existing = this.connections.get(connectionKey);
@@ -46,23 +41,7 @@ class PartySocketManager {
       host: host || 'localhost:8787',
       party: 'main',
       room,
-      query: async () => {
-        if (options.userId) {
-          console.info('[socket-manager] Using userId query param:', options.userId);
-          return { userId: options.userId };
-        }
-        if (typeof options.ticket === 'function') {
-          const ticket = await options.ticket();
-          console.info('[socket-manager] Using ticket query param:', ticket ? 'present' : 'missing');
-          return ticket ? { ticket } : {};
-        }
-        if (options.ticket) {
-          console.info('[socket-manager] Using ticket query param (static):', options.ticket);
-          return { ticket: options.ticket };
-        }
-        console.info('[socket-manager] No auth params provided');
-        return {};
-      },
+      query: { userId: options.userId },
     });
 
     this.connections.set(connectionKey, {
