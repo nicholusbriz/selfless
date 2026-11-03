@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { BlobServiceClient } from '@azure/storage-blob';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
+import { deleteMediaCommentsSafely } from '../_lib/interactions';
 import {
   invalidJsonBodyResponse,
   isString,
@@ -49,10 +50,11 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // Only the uploader may delete their own media
-    if (media.userId !== user.id) {
+    const isMediaAdmin =
+      user.role?.name === 'dev' || user.role?.name === 'super_admin';
+    if (media.userId !== user.id && !isMediaAdmin) {
       return NextResponse.json(
-        { success: false, error: 'You can only delete your own media' },
+        { success: false, error: 'You are not allowed to delete this media' },
         { status: 403 },
       );
     }
@@ -79,6 +81,11 @@ export async function DELETE(request: Request) {
       console.error('Azure delete failed (continuing):', azureError);
     }
 
+    await deleteMediaCommentsSafely(mediaId);
+    await Promise.all([
+      prisma.mediaLike.deleteMany({ where: { mediaId } }),
+      prisma.mediaSave.deleteMany({ where: { mediaId } }),
+    ]);
     await prisma.media.delete({ where: { id: mediaId } });
 
     return NextResponse.json({ success: true });

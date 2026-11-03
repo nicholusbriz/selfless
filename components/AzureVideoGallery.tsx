@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import {
   Trash2,
   Video,
   AlertCircle,
   Loader2,
   RefreshCw,
+  Tag,
 } from 'lucide-react';
 import { getApiErrorMessage, isJsonObject, readJsonObject } from '@/lib/api-response';
 
@@ -19,6 +21,7 @@ interface MediaItem {
   title: string;
   description: string | null;
   category: string | null;
+  approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
   createdAt: string;
 }
 
@@ -33,14 +36,21 @@ function isMediaItem(value: unknown): value is MediaItem {
     typeof value.title === 'string' &&
     (typeof value.description === 'string' || value.description === null) &&
     (typeof value.category === 'string' || value.category === null) &&
+    (value.approvalStatus === 'PENDING' ||
+      value.approvalStatus === 'APPROVED' ||
+      value.approvalStatus === 'REJECTED') &&
     typeof value.createdAt === 'string'
   );
 }
 
 export default function AzureVideoGallery({
   category,
+  approvalStatus,
+  mediaType = 'videos',
 }: {
   category?: string;
+  approvalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  mediaType?: 'videos' | 'all';
 }) {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,9 +67,14 @@ export default function AzureVideoGallery({
       setError(null);
 
       try {
-        const url = category
-          ? `/api/media/list?category=${encodeURIComponent(category)}`
-          : '/api/media/list';
+        const searchParams = new URLSearchParams();
+        if (category) searchParams.set('category', category);
+        if (approvalStatus) {
+          searchParams.set('status', approvalStatus);
+        } else {
+          searchParams.set('includeAll', 'true');
+        }
+        const url = `/api/media/list?${searchParams.toString()}`;
 
         const res = await fetch(url, { signal: controller.signal });
         const data = await readJsonObject(res);
@@ -87,10 +102,10 @@ export default function AzureVideoGallery({
       cancelled = true;
       controller.abort();
     };
-  }, [refreshKey, category]);
+  }, [refreshKey, category, approvalStatus]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this file permanently?')) return;
+    if (!confirm('Delete this post permanently? Its comments and replies will also be deleted.')) return;
 
     setDeletingId(id);
     try {
@@ -139,19 +154,25 @@ export default function AzureVideoGallery({
     );
   }
 
-  const videos = items.filter((item) =>
-    item.contentType.startsWith('video/'),
+  const mediaItems = items.filter((item) =>
+    mediaType === 'all'
+      ? item.contentType.startsWith('video/') || item.contentType.startsWith('image/')
+      : item.contentType.startsWith('video/'),
   );
 
-  if (videos.length === 0) {
+  if (mediaItems.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
         <Video className="mx-auto mb-3 h-8 w-8 text-slate-400" />
         <p className="text-sm font-medium text-slate-700">
-          No videos uploaded yet
+          {approvalStatus
+            ? `No ${approvalStatus.toLowerCase()} ${mediaType === 'all' ? 'posts' : 'videos'} found`
+            : 'No videos uploaded yet'}
         </p>
         <p className="mt-1 text-xs text-slate-500">
-          Use the Azure Media Upload section above to add your first file.
+          {approvalStatus
+            ? `${mediaType === 'all' ? 'Posts' : 'Videos'} with this approval status will appear here.`
+            : 'Use the Azure Media Upload section above to add your first file.'}
         </p>
       </div>
     );
@@ -161,7 +182,7 @@ export default function AzureVideoGallery({
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-          {videos.length} {videos.length === 1 ? 'video' : 'videos'}
+          {mediaItems.length} {mediaItems.length === 1 ? 'post' : 'posts'}
         </p>
         <button
           type="button"
@@ -174,23 +195,63 @@ export default function AzureVideoGallery({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {videos.map((item) => (
+        {mediaItems.map((item) => (
           <div
             key={item.id}
             className="overflow-hidden rounded-lg border border-[#dfe5ec] bg-white shadow-sm"
           >
-            <video
-              src={item.publicUrl}
-              controls
-              playsInline
-              preload="metadata"
-              className="aspect-video w-full bg-black"
-            />
+            {item.contentType.startsWith('video/') ? (
+              <video
+                src={item.publicUrl}
+                controls
+                playsInline
+                preload="metadata"
+                className="aspect-video w-full bg-black"
+              />
+            ) : (
+              <div className="relative aspect-video bg-slate-100">
+                <Image
+                  src={item.publicUrl}
+                  alt={item.title}
+                  fill
+                  unoptimized
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  className="object-contain"
+                />
+              </div>
+            )}
 
             <div className="p-4">
-              <p className="text-sm font-semibold text-[#172033]">
-                {item.title}
-              </p>
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-sm font-semibold text-[#172033]">
+                  {item.title}
+                </p>
+                <div className="flex shrink-0 items-center gap-1">
+                  {approvalStatus && (
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                        approvalStatus === 'REJECTED'
+                          ? 'bg-red-50 text-red-700'
+                          : approvalStatus === 'APPROVED'
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : 'bg-amber-50 text-amber-700'
+                      }`}
+                    >
+                      {approvalStatus === 'REJECTED'
+                        ? 'Rejected'
+                        : approvalStatus === 'APPROVED'
+                          ? 'Approved'
+                          : 'Pending'}
+                    </span>
+                  )}
+                  {item.category && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                    <Tag className="h-2.5 w-2.5" />
+                    {item.category === 'dashboard' ? 'Dashboard' : 'Gallery'}
+                  </span>
+                  )}
+                </div>
+              </div>
 
               {item.description && (
                 <p className="mt-1 line-clamp-2 text-xs text-[#64748b]">

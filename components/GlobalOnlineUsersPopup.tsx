@@ -4,19 +4,15 @@ import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
-import type { OnlineUser } from '@/lib/hooks/useOnlineUsers';
+import { useOnlineUsersContext } from '@/lib/contexts/OnlineUsersContext';
+import { useAuth } from '@/lib/hooks/useAuth';
 
-interface GlobalOnlineUsersPopupProps {
-  onlineUsers: OnlineUser[];
-  currentUserId?: string;
-}
-
-export function GlobalOnlineUsersPopup({
-  onlineUsers,
-  currentUserId,
-}: GlobalOnlineUsersPopupProps) {
+export function GlobalOnlineUsersPopup() {
+  const { onlineUsers } = useOnlineUsersContext();
+  const { user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
   const displayCount = onlineUsers.length;
+  const currentUserId = user?.id;
 
   useEffect(() => {
     if (displayCount === 0) {
@@ -36,19 +32,19 @@ export function GlobalOnlineUsersPopup({
 
   if (displayCount === 0) return null;
 
-  const user = onlineUsers[currentIndex];
-  if (!user) return null;
+  const onlineUser = onlineUsers[currentIndex];
+  if (!onlineUser) return null;
 
   const displayName =
-    user.fullName?.trim() ||
-    `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
+    onlineUser.fullName?.trim() ||
+    `${onlineUser.firstName || ''} ${onlineUser.lastName || ''}`.trim() ||
     'User';
 
   const initials =
-    `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`.toUpperCase();
+    `${onlineUser.firstName?.charAt(0) || ''}${onlineUser.lastName?.charAt(0) || ''}`.toUpperCase();
 
-  const isCurrentUser = user.userId === currentUserId;
-  const hasTechCenter = Boolean(user.techCenter?.name);
+  const isCurrentUser = onlineUser.userId === currentUserId;
+  const hasTechCenter = Boolean(onlineUser.techCenter?.name);
 
   return (
     <div
@@ -62,7 +58,7 @@ export function GlobalOnlineUsersPopup({
     >
       <AnimatePresence mode="wait">
         <motion.div
-          key={user.userId}
+          key={onlineUser.userId}
           initial={{ opacity: 0, x: -8, scale: 0.95 }}
           animate={{ opacity: 1, x: 0, scale: 1 }}
           exit={{ opacity: 0, x: 8, scale: 0.95 }}
@@ -71,9 +67,9 @@ export function GlobalOnlineUsersPopup({
         >
           {/* Avatar */}
           <div className="relative shrink-0 mt-0.5">
-            {user.image ? (
+            {onlineUser.image ? (
               <Image
-                src={user.image}
+                src={onlineUser.image}
                 alt={displayName}
                 width={24}
                 height={24}
@@ -115,7 +111,7 @@ export function GlobalOnlineUsersPopup({
             {/* Row 3: Tech Center (only if exists) */}
             {hasTechCenter && (
               <p className="text-[7px] text-[#8A9088] whitespace-nowrap">
-                {user.techCenter?.name}
+                {onlineUser.techCenter?.name}
               </p>
             )}
           </div>

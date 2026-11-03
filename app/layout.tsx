@@ -6,6 +6,7 @@ import { Providers } from './providers';
 import PWAInstall from '@/components/PWAInstall';
 import { ActivityTracker } from '@/components/ActivityTracker';
 import { SessionValidator } from '@/components/SessionValidator';
+import { OnlineUsersProviderWrapper } from '@/components/OnlineUsersProviderWrapper';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -361,9 +362,11 @@ export default function RootLayout({
             <ActivityTracker />
             <PWAInstall />
             <SessionValidator />
+            <OnlineUsersProviderWrapper>
               <main className="flex-1">
                 {children}
               </main>
+            </OnlineUsersProviderWrapper>
           </Providers>
       </body>
     </html>

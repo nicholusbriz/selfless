@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 /* ============================================================
    DASHBOARD PAGE
    ------------------------------------------------------------
@@ -500,7 +502,7 @@ function MediaLibrary() {
   const { data: items = [], isLoading, error } = useQuery<MediaItem[]>({
     queryKey: ['dashboard-media'],
     queryFn: async () => {
-      const response = await fetch('/api/media/list');
+      const response = await fetch('/api/media/list?category=dashboard');
       if (!response.ok) throw new Error('Failed to fetch media');
       const data: unknown = await response.json();
       if (!isRecord(data) || data.success !== true || !Array.isArray(data.items)) {

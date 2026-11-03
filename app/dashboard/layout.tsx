@@ -1,6 +1,8 @@
 // app/dashboard/layout.tsx
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import {
   useEffect,
   useState,
@@ -27,6 +29,7 @@ const DASHBOARD_FOOTER_LINKS = [
   { label: 'Announcements', href: '/dashboard/announcements' },
   { label: 'Cleaning Rota', href: '/dashboard/cleaning' },
   { label: 'English Hub', href: '/dashboard/english-hub' },
+  { label: 'Posts', href: '/dashboard/gallery' },
 ];
 
 // ============================================================
@@ -144,8 +147,12 @@ function getPageInfo(pathname: string, userRole?: string) {
       section: 'Account',
     },
     '/dashboard/gallery': {
-      title: 'Gallery',
+      title: 'Posts',
       section: 'Media',
+    },
+    '/dashboard/media-approvals': {
+      title: 'Media Approvals',
+      section: 'Administration',
     },
     '/dashboard/super-admin': {
       title: 'System Overview',
@@ -344,7 +351,7 @@ export default function DashboardLayout({
       <PageTracker />
 
       {/* 🎯 Global online users popup */}
-      <GlobalOnlineUsersPopup onlineUsers={onlineUsers || []} currentUserId={user?.id} />
+      <GlobalOnlineUsersPopup />
 
       <div className="min-h-screen bg-white">
         {/* ================================================== */}
@@ -422,7 +429,8 @@ export default function DashboardLayout({
                   '/dashboard' &&
                   !isAiPage &&
                   !isMessagesPage &&
-                  !isConnectionsPage && (
+                  !isConnectionsPage &&
+                  pathname !== '/dashboard/gallery' && (
                     <motion.div
                       key={pathname}
                       initial={{
@@ -439,12 +447,6 @@ export default function DashboardLayout({
                       className="mb-4"
                     >
                       <div className="flex items-center gap-2 font-mono text-[11px] text-[#B98A3E] mb-1.5 uppercase tracking-wide font-bold">
-                        <span>
-                          Dashboard
-                        </span>
-
-                        <ChevronRight className="w-3 h-3 text-[#B98A3E]" />
-
                         <span className="text-[#1A2B4C] font-bold">
                           {pageInfo.section}
                         </span>
