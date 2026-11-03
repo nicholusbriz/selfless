@@ -19,7 +19,7 @@ import { AllUsersList } from './components/AllUsersList';
 import Link from 'next/link';
 import Image from 'next/image';
 import type { User, Conversation, Message, TabType } from '@/types/messaging';
-import { useOnlineUsersContext } from '@/lib/contexts/OnlineUsersContext';
+import { useOnlineUsers } from '@/lib/hooks/useOnlineUsers';
 import { getDisplayName } from '@/lib/messaging/displayName';
 import {
   CHAT_THEMES,

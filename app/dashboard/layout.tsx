@@ -19,7 +19,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 import { GlobalOnlineUsersPopup } from '@/components/GlobalOnlineUsersPopup';
-import { useOnlineUsersContext } from '@/lib/contexts/OnlineUsersContext';
+import { useOnlineUsers } from '@/lib/hooks/useOnlineUsers';
 
 const DASHBOARD_FOOTER_LINKS = [
   { label: 'Dashboard', href: '/dashboard' },
