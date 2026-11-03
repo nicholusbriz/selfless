@@ -704,11 +704,6 @@ function RecentPostsSection() {
                           {post.title}
                         </h3>
                       )}
-                      {post.description && (
-                        <p className={`${post.title ? 'mt-0.5' : ''} line-clamp-2 whitespace-pre-wrap text-[11px] leading-4 text-white/85 drop-shadow`}>
-                          {post.description}
-                        </p>
-                      )}
                       <p className="mt-1.5 text-[9px] font-medium text-white/75">
                         {new Date(post.createdAt).toLocaleDateString('en-US', {
                           month: 'short',
@@ -755,11 +750,6 @@ function RecentPostsSection() {
                         <h3 className="line-clamp-2 text-sm font-bold leading-5 text-[#172033]">
                           {post.title}
                         </h3>
-                      )}
-                      {post.description && (
-                        <p className="line-clamp-2 whitespace-pre-wrap text-xs leading-4 text-[#687386]">
-                          {post.description}
-                        </p>
                       )}
                       <time
                         dateTime={post.createdAt}
@@ -843,11 +833,6 @@ function RecentPostsSection() {
                         <h3 className="line-clamp-2 text-sm font-bold leading-5 drop-shadow">
                           {post.title}
                         </h3>
-                      )}
-                      {post.description && (
-                        <p className={`${post.title ? 'mt-0.5' : ''} line-clamp-2 whitespace-pre-wrap text-[11px] leading-4 text-white/85 drop-shadow`}>
-                          {post.description}
-                        </p>
                       )}
                       <p className="mt-1.5 text-[9px] font-medium text-white/75">
                         {new Date(post.createdAt).toLocaleDateString('en-US', {
