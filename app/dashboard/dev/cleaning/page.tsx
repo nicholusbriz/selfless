@@ -838,12 +838,14 @@ export default function DevCleaningManagement() {
 
   // Only fetch data when a tech center is selected
   const { data, isLoading, error, refetch } =
-    useDevCleaning(selectedTechCenterId || '');
+    useDevCleaning(selectedTechCenterId || undefined);
 
   // Fetch all tech centers on mount to populate dropdown
   const [allTechCenters, setAllTechCenters] = useState<TechCenter[]>([]);
+  const [isLoadingTechCenters, setIsLoadingTechCenters] = useState(false);
 
   useEffect(() => {
+    setIsLoadingTechCenters(true);
     fetch('/api/dev/tech-centers')
       .then((res) => res.json())
       .then((data: unknown) => {
@@ -854,15 +856,9 @@ export default function DevCleaningManagement() {
           setAllTechCenters(data);
         }
       })
-      .catch((err) => console.error('Failed to load tech centers:', err));
+      .catch((err) => console.error('Failed to load tech centers:', err))
+      .finally(() => setIsLoadingTechCenters(false));
   }, []);
-
-  // Set default tech center to first available one
-  useEffect(() => {
-    if (allTechCenters.length > 0 && !selectedTechCenterId) {
-      setSelectedTechCenterId(allTechCenters[0].id);
-    }
-  }, [allTechCenters, selectedTechCenterId]);
 
   const createWeekMutation = useDevCreateWeek(selectedTechCenterId || '');
   const updateWeekMutation = useDevUpdateWeek(selectedTechCenterId || '');
@@ -1522,12 +1518,56 @@ export default function DevCleaningManagement() {
      LOADING - Show loading only if data is being fetched
   ============================================================ */
 
-  if (!selectedTechCenterId) {
+  if (isLoadingTechCenters) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <Building2 className="mx-auto h-12 w-12 text-slate-300" />
           <p className="mt-4 text-sm text-slate-500">Loading tech centers...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!selectedTechCenterId) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="mb-6">
+            <div className="flex items-center gap-3">
+              <ArrowLeft
+                onClick={() => window.history.back()}
+                className="cursor-pointer h-10 w-10 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+              />
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900">Cleaning Management</h1>
+                <p className="text-sm text-slate-500">Manage cleaning rota across all tech centers</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="max-w-md">
+              <label className="mb-2 block text-sm font-medium text-slate-700">
+                Select Tech Center
+              </label>
+              <select
+                value={selectedTechCenterId || ''}
+                onChange={(e) => setSelectedTechCenterId(e.target.value || null)}
+                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              >
+                <option value="">Select a tech center...</option>
+                {techCenters.map((tc) => (
+                  <option key={tc.id} value={tc.id}>
+                    {tc.name} ({tc.code})
+                  </option>
+                ))}
+              </select>
+              <p className="mt-2 text-xs text-slate-500">
+                Select a tech center to view and manage its cleaning schedule
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     );

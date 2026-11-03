@@ -408,6 +408,8 @@ function ConnectionCard({
                   <SocialActions
                     userId={user.id}
                     currentUserId={currentUserId}
+                    isFollowing={user.isFollowing}
+                    isLiked={user.isLiked}
                     size="sm"
                     variant="featured"
                     allowUnfollow={true}
@@ -448,11 +450,17 @@ function ConnectionCard({
                       ))}
 
                     {activeTab === 'following' && (
-                      <UnfollowButton userId={user.id} />
+                      <span className="inline-flex items-center gap-1 rounded-md border border-[#55705B] bg-[#55705B] px-2.5 py-1 text-[10px] font-semibold text-white">
+                        <Check className="h-3 w-3" strokeWidth={2.5} />
+                        Following
+                      </span>
                     )}
 
                     {activeTab === 'likes' && likesView === 'sent' && (
-                      <UnlikeButton userId={user.id} />
+                      <span className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2.5 py-1 text-[10px] font-semibold text-[#A4462F]">
+                        <Heart className="h-3 w-3 fill-red-500 text-red-500" strokeWidth={2} />
+                        Liked
+                      </span>
                     )}
                   </>
                 )}

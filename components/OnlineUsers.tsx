@@ -23,6 +23,8 @@ interface OnlineUsersProps {
 }
 
 export function OnlineUsers({ onlineUsers, currentUserId }: OnlineUsersProps) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
   // Ensure current user is included in the online users list
   const visibleUsers = currentUserId && !onlineUsers.some(u => u.userId === currentUserId)
     ? [
@@ -43,9 +45,25 @@ export function OnlineUsers({ onlineUsers, currentUserId }: OnlineUsersProps) {
     return null;
   }
 
-  // Show up to 3 users at once instead of cycling
-  const displayUsers = visibleUsers.slice(0, 3);
-  const additionalCount = Math.max(0, visibleUsers.length - 3);
+  // Show 1 user at a time when rotating, or all users if there's only 1
+  const displayCount = visibleUsers.length > 1 ? 1 : visibleUsers.length;
+  const displayUsers = visibleUsers.slice(currentIndex, currentIndex + displayCount);
+
+  // If we're at the end, wrap around to the beginning
+  if (displayUsers.length < displayCount && visibleUsers.length > displayCount) {
+    displayUsers.push(...visibleUsers.slice(0, displayCount - displayUsers.length));
+  }
+
+  const additionalCount = Math.max(0, visibleUsers.length - 1);
+
+  // Auto-rotate every 5 seconds if there is more than 1 user
+  useEffect(() => {
+    if (visibleUsers.length <= 1) return;
+    const interval = window.setInterval(() => {
+      setCurrentIndex((previous) => (previous + 1) % visibleUsers.length);
+    }, 5000);
+    return () => window.clearInterval(interval);
+  }, [visibleUsers.length]);
 
   return (
     <div

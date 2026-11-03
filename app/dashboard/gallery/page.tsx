@@ -563,69 +563,68 @@ export default function GalleryPage() {
                     : `${visibleCount} ${visibleCount === 1 ? 'post' : 'posts'} from across the community`}
                 </p>
               </div>
-              <div className="flex items-center justify-between gap-3 sm:justify-end">
-                <div
-                  aria-label="Filter posts"
-                  className="inline-flex rounded-xl border border-[#E5E8ED] bg-white p-1 shadow-sm"
-                  role="group"
-                >
-                  {([
-                    ['all', 'All'],
-                    ['photos', 'Photos'],
-                    ['videos', 'Videos'],
-                    ['mine', 'My posts'],
-                    ['saved', 'Saved'],
-                  ] as const).map(([filter, label]) => (
-                    <button
-                      key={filter}
-                      type="button"
-                      aria-pressed={activeFilter === filter}
-                      onClick={() => setActiveFilter(filter)}
-                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                        activeFilter === filter
-                          ? 'bg-[#1A2B4C] text-white shadow-sm'
-                          : 'text-[#687386] hover:bg-[#F3F5F8] hover:text-[#172033]'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    void (
-                      activeFilter === 'mine'
-                        ? myPostsQuery.refetch()
-                        : activeFilter === 'saved'
-                          ? savedPostsQuery.refetch()
-                          : refetch()
-                    )
-                  }
-                  disabled={
+              <button
+                type="button"
+                onClick={() =>
+                  void (
                     activeFilter === 'mine'
+                      ? myPostsQuery.refetch()
+                      : activeFilter === 'saved'
+                        ? savedPostsQuery.refetch()
+                        : refetch()
+                  )
+                }
+                disabled={
+                  activeFilter === 'mine'
+                    ? myPostsQuery.isFetching
+                    : activeFilter === 'saved'
+                      ? savedPostsQuery.isFetching
+                      : isFetching
+                }
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#E5E8ED] bg-white text-[#526078] shadow-sm transition hover:bg-[#F3F5F8] hover:text-[#172033] disabled:cursor-wait disabled:opacity-60 sm:mr-auto"
+                aria-label="Refresh posts"
+                title="Refresh posts"
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${
+                    (activeFilter === 'mine'
                       ? myPostsQuery.isFetching
                       : activeFilter === 'saved'
                         ? savedPostsQuery.isFetching
-                        : isFetching
-                  }
-                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#E5E8ED] bg-white text-[#526078] shadow-sm transition hover:bg-[#F3F5F8] hover:text-[#172033] disabled:cursor-wait disabled:opacity-60"
-                  aria-label="Refresh posts"
-                  title="Refresh posts"
-                >
-                  <RefreshCw
-                    className={`h-4 w-4 ${
-                      (activeFilter === 'mine'
-                        ? myPostsQuery.isFetching
-                        : activeFilter === 'saved'
-                          ? savedPostsQuery.isFetching
-                          : isFetching)
-                        ? 'animate-spin'
-                        : ''
+                        : isFetching)
+                      ? 'animate-spin'
+                      : ''
                     }`}
-                  />
+                />
+              </button>
+            </div>
+
+            <div
+              aria-label="Filter posts"
+              className="mb-5 inline-flex w-full rounded-xl border border-[#E5E8ED] bg-white p-1 shadow-sm"
+              role="group"
+            >
+              {([
+                ['all', 'All'],
+                ['photos', 'Photos'],
+                ['videos', 'Videos'],
+                ['mine', 'My posts'],
+                ['saved', 'Saved'],
+              ] as const).map(([filter, label]) => (
+                <button
+                  key={filter}
+                  type="button"
+                  aria-pressed={activeFilter === filter}
+                  onClick={() => setActiveFilter(filter)}
+                  className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                    activeFilter === filter
+                      ? 'bg-[#1A2B4C] text-white shadow-sm'
+                      : 'text-[#687386] hover:bg-[#F3F5F8] hover:text-[#172033]'
+                  }`}
+                >
+                  {label}
                 </button>
-              </div>
+              ))}
             </div>
 
             {activeFilter === 'mine' && (
