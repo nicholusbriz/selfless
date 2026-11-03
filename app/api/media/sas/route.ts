@@ -88,9 +88,9 @@ export async function POST(request: Request) {
       accountKey,
     );
 
-    // Token valid for 15 minutes, create + write only
+    // Token valid for 30 minutes (increased for mobile users), create + write only
     const startsOn = new Date();
-    const expiresOn = new Date(startsOn.valueOf() + 15 * 60 * 1000);
+    const expiresOn = new Date(startsOn.valueOf() + 30 * 60 * 1000);
 
     const sasToken = generateBlobSASQueryParameters(
       {

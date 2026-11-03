@@ -907,7 +907,7 @@ export default function GalleryPage() {
                         </div>
                       )}
 
-                      <div className={`relative overflow-hidden bg-[#101827] ${isVideo ? 'aspect-video' : 'aspect-[4/3] sm:aspect-video'}`}>
+                      <div className={`relative overflow-hidden bg-[#101827] aspect-[4/3] sm:aspect-video`}>
                         {isVideo ? (
                           <video
                             ref={(el) => {
