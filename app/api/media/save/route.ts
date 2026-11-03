@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
+import { createNotificationForDevs } from '@/lib/notifications';
 import {
   invalidJsonBodyResponse,
   isString,
@@ -96,6 +97,23 @@ export async function POST(request: Request) {
         approvedById: requiresApproval ? null : user.id,
       },
     });
+
+    // Notify dev users about the new post
+    const userName = `${user.firstName} ${user.lastName}`.trim();
+    try {
+      await createNotificationForDevs({
+        title: 'New post created',
+        message: `${userName} created a new post: "${media.title}"`,
+        type: 'media_created',
+        link: `/dashboard/media-approvals#${media.id}`,
+        generatedBy: user.id,
+        entityType: 'media',
+        entityId: media.id,
+        excludeUserIds: isPrivilegedUser ? [user.id] : [],
+      });
+    } catch (notificationError) {
+      console.error('Failed to notify dev users about new post:', notificationError);
+    }
 
     return NextResponse.json({
       success: true,

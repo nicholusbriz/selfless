@@ -550,26 +550,10 @@ function OnlineUsersInline({
   currentUserId?: string;
   limit?: number;
 }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const scrollContainer = scrollRef.current;
-    if (!scrollContainer) return;
-
-    const handleWheel = (e: WheelEvent) => {
-      if (e.deltaY !== 0) {
-        e.preventDefault();
-        scrollContainer.scrollLeft += e.deltaY;
-      }
-    };
-
-    scrollContainer.addEventListener('wheel', handleWheel, { passive: false });
-    return () => scrollContainer.removeEventListener('wheel', handleWheel);
-  }, []);
-
   if (!onlineUsers || onlineUsers.length === 0) return null;
 
-  const remaining = onlineUsers.length - limit;
+  // Duplicate the array for infinite scroll
+  const displayUsers = [...onlineUsers, ...onlineUsers];
 
   return (
     <motion.div
@@ -587,29 +571,24 @@ function OnlineUsersInline({
         {onlineUsers.length} online
       </span>
 
-      <div
-        ref={scrollRef}
-        className="flex items-center gap-1.5 min-w-0 overflow-x-auto scrollbar-hide scroll-smooth"
-        style={{ scrollbarWidth: 'none' }}
-      >
-        {onlineUsers.map((u, i) => {
-          const isSelf = u.userId === currentUserId;
-          const name = isSelf ? "You" : `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.fullName || "User";
+      <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
+        <div className="selfless-marquee-track">
+          {displayUsers.map((u, i) => {
+            const isSelf = u.userId === currentUserId;
+            const name = isSelf ? "You" : `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.fullName || "User";
 
-          return (
-            <motion.span
-              key={u.userId || i}
-              initial={{ opacity: 0, x: -4 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.25, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
-              className="flex items-center gap-1.5 text-[12px] font-medium whitespace-nowrap shrink-0"
-              style={{ color: isSelf ? COLORS.brassBright : "rgba(255,255,255,0.82)" }}
-            >
-              {name}
-              {i < onlineUsers.length - 1 && <span style={{ color: "rgba(255,255,255,0.25)" }}>·</span>}
-            </motion.span>
-          );
-        })}
+            return (
+              <span
+                key={`${u.userId || i}-${i}`}
+                className="flex items-center gap-1.5 text-[12px] font-medium whitespace-nowrap shrink-0"
+                style={{ color: isSelf ? COLORS.brassBright : "rgba(255,255,255,0.82)" }}
+              >
+                {name}
+                <span style={{ color: "rgba(255,255,255,0.25)" }}>·</span>
+              </span>
+            );
+          })}
+        </div>
       </div>
     </motion.div>
   );

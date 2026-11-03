@@ -82,7 +82,7 @@ export default function EnglishHubMonitorPage() {
       const response = await fetch(
         `/api/dev/english-hub/registrations?techCenterId=${selectedTechCenter}`
       );
-      const data = await response.json();
+      const data = await response.json() as { success: boolean; availableDates?: string[]; error?: string };
       if (response.ok && data.availableDates) {
         setAvailableDates(data.availableDates);
       } else {
@@ -107,7 +107,7 @@ export default function EnglishHubMonitorPage() {
       const response = await fetch(
         `/api/dev/english-hub/registrations?techCenterId=${selectedTechCenter}&date=${selectedDate}`
       );
-      const data = await response.json();
+      const data = await response.json() as { success: boolean; registrations?: EnglishHubRegistration[]; error?: string };
       if (response.ok) {
         setRegistrations(data.registrations || []);
         hasLoadedRegistrations.current = true;

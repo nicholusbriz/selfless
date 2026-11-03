@@ -838,7 +838,7 @@ export default function DevCleaningManagement() {
 
   // Only fetch data when a tech center is selected
   const { data, isLoading, error, refetch } =
-    useDevCleaning(selectedTechCenterId || undefined);
+    useDevCleaning(selectedTechCenterId || '');
 
   // Fetch all tech centers on mount to populate dropdown
   const [allTechCenters, setAllTechCenters] = useState<TechCenter[]>([]);

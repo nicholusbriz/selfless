@@ -167,8 +167,8 @@ export default function MediaApprovalsPage() {
                       </span>
                     </div>
                   )}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
                       <h4 className="text-sm font-semibold text-[#050505]">
                         {item.user.firstName} {item.user.lastName}
                       </h4>
