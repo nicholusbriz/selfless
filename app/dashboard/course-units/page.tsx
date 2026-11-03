@@ -227,7 +227,13 @@ export default function CourseUnitsPage() {
         );
 
         return matchesName || matchesTechCenter || matchesCourse;
-      }),
+      }).sort((a, b) =>
+        `${a.firstName} ${a.lastName}`.localeCompare(
+          `${b.firstName} ${b.lastName}`,
+          undefined,
+          { sensitivity: 'base' },
+        ),
+      ),
     [students, studyLoad, courseEnrollment, searchQuery],
   );
   const totalPages = Math.max(

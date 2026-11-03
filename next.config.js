@@ -32,14 +32,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
 
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "pgmqmtszpzcmlhvwrzjs.supabase.co",
-        port: "",
-        pathname: "/storage/v1/object/public/**",
-      },
-    ],
+    remotePatterns: [],
 
     formats: ["image/webp", "image/avif"],
 

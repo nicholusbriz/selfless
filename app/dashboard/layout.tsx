@@ -244,7 +244,7 @@ export default function DashboardLayout({
   const isMessagesPage = pathname === '/dashboard/messages';
   const isConnectionsPage = pathname === '/dashboard/connections';
 
-  const { onlineUsers } = useOnlineUsersContext();
+  const { users: onlineUsers, isLoading: isLoadingOnlineUsers } = useOnlineUsers(user);
 
   // ----------------------------------------------------------
   // AUTHENTICATION
@@ -390,6 +390,8 @@ export default function DashboardLayout({
           onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
           user={user}
           userRole={userRole}
+          onlineUsers={onlineUsers}
+          isLoadingOnlineUsers={isLoadingOnlineUsers}
         />
 
         {/* ================================================== */}

@@ -201,7 +201,13 @@ export default function TuitionPage() {
         (tuitionFilter === 'without' && !hasTuition);
 
       return matchesSearch && matchesTuition;
-    });
+    }).sort((a, b) =>
+      `${a.firstName} ${a.lastName}`.localeCompare(
+        `${b.firstName} ${b.lastName}`,
+        undefined,
+        { sensitivity: 'base' },
+      ),
+    );
   }, [allStudents, searchTerm, tuitionFilter]);
 
   /* =======================================================

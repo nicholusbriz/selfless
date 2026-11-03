@@ -2,7 +2,6 @@
  * lib/azure-storage.ts
  *
  * Azure Blob Storage helpers for profile images.
- * Drop-in replacement for the equivalent functions in lib/supabase.ts.
  *
  * Environment variables required (server-side only – no NEXT_PUBLIC_ prefix):
  *   AZURE_STORAGE_ACCOUNT_NAME

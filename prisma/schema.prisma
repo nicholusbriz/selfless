@@ -111,9 +111,10 @@ model User {
   takesReligion Boolean @default(false)
 
   // Social
-  linkedinUrl     String?
-  githubUrl       String?
-  projectUrls     String[]
+  bio         String?
+  linkedinUrl String?
+  githubUrl   String?
+  projectUrls String[]
   profileImageUrl String?
   chatTheme       String?
 
@@ -226,6 +227,7 @@ model User {
   @@index([verifiedById])
   @@index([rejectedById])
   @@index([status])
+  @@index([status, id])
   @@index([country])
   @@index([verificationStatus])
   @@index([followersCount(sort: Desc)])

@@ -1439,7 +1439,7 @@ export default function StudentsPage() {
                     <HorizontalRail
                       railId="trending"
                       onStudentsChange={handleStudentsChange}
-                      label="Trending Student Profiles"
+                      label="Trending Profiles"
                       hue="#D4A84B"
                       category="trending"
                       sortBy={sortBy}

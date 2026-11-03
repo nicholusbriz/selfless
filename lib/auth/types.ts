@@ -24,6 +24,7 @@ export type AuthUser = {
   town?: string | null;
   street?: string | null;
   generalCourse?: string | null;
+  bio?: string | null;
   linkedinUrl?: string | null;
   githubUrl?: string | null;
   projectUrls?: string[];
@@ -52,6 +53,7 @@ declare module 'next-auth' {
       town?: string | null;
       street?: string | null;
       generalCourse?: string | null;
+      bio?: string | null;
       linkedinUrl?: string | null;
       githubUrl?: string | null;
       projectUrls?: string[];
@@ -80,6 +82,7 @@ declare module 'next-auth' {
     town?: string | null;
     street?: string | null;
     generalCourse?: string | null;
+    bio?: string | null;
     linkedinUrl?: string | null;
     githubUrl?: string | null;
     projectUrls?: string[];
@@ -110,6 +113,7 @@ declare module 'next-auth/jwt' {
     town?: string | null;
     street?: string | null;
     generalCourse?: string | null;
+    bio?: string | null;
     linkedinUrl?: string | null;
     githubUrl?: string | null;
     projectUrls?: string[];

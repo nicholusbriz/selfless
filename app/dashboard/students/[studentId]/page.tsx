@@ -49,6 +49,7 @@ interface StudentProfile {
   street: string | null;
   generalCourse: string | null;
   takesReligion: boolean | null;
+  bio?: string | null;
   linkedinUrl: string | null;
   githubUrl: string | null;
   projectUrls: string[];
@@ -423,9 +424,20 @@ export default function StudentProfilePage() {
               <h1 className="mt-3 break-words text-3xl font-black leading-tight tracking-tight text-[#1A2B4C] sm:text-4xl lg:text-5xl">
                 {student.firstName} {student.lastName}
               </h1>
+              {student.bio && (
+                <p className="mt-3 whitespace-pre-line break-words text-[14px] leading-relaxed text-[#4B5646]">
+                  {student.bio}
+                </p>
+              )}
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <span className="rounded-full bg-[#F3F4F6] px-3 py-1.5 text-[11px] font-semibold capitalize text-[#34445F]">
-                  {student.role}
+                  {student.role === 'teacher'
+                    ? 'Tutor'
+                    : student.role === 'admin'
+                      ? 'Manager'
+                      : student.role === 'superadmin' || student.role === 'super_admin'
+                        ? 'Director'
+                        : student.role}
                 </span>
                 <span className="rounded-full bg-[#F3F4F6] px-3 py-1.5 font-mono text-[11px] font-semibold text-[#34445F]">
                   ID {student.studentId}

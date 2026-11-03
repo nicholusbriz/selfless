@@ -49,9 +49,10 @@ export default function ProfilePage() {
 
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
-    lastName: user?.lastName || '',
+    lastName: user?.lastName || '',    
     email: user?.email || '',
     phoneNumber: user?.phoneNumber || '',
+    bio: user?.bio || '',
     country: user?.country || '',
     city: user?.city || '',
     town: user?.town || '',
@@ -156,7 +157,7 @@ export default function ProfilePage() {
 
   const handleInputChange = (
     e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >,
   ) => {
     setFormData({
@@ -241,6 +242,7 @@ export default function ProfilePage() {
         lastName: formData.lastName,
         email: formData.email,
         phoneNumber: formData.phoneNumber,
+        bio: formData.bio,
         country: formData.country,
         city: formData.city,
         town: formData.town,
@@ -282,6 +284,7 @@ export default function ProfilePage() {
       lastName: user?.lastName || '',
       email: user?.email || '',
       phoneNumber: user?.phoneNumber || '',
+      bio: user?.bio || '',
       country: user?.country || '',
       city: user?.city || '',
       town: user?.town || '',
@@ -652,6 +655,12 @@ export default function ProfilePage() {
                     </span>
                   </p>
 
+                  {formData.bio && (
+                    <p className="mt-2 text-sm text-[#64788A] line-clamp-2">
+                      {formData.bio}
+                    </p>
+                  )}
+
                   <button
                     onClick={handleImageClick}
                     disabled={isLoading}
@@ -848,6 +857,33 @@ export default function ProfilePage() {
                           Female
                         </option>
                       </select>
+                    </div>
+
+                    {/* Bio */}
+
+                    <div className="md:col-span-2">
+                      <label
+                        htmlFor="bio"
+                        className={labelClass}
+                      >
+                        Bio
+                      </label>
+
+                      <textarea
+                        id="bio"
+                        name="bio"
+                        rows={4}
+                        maxLength={500}
+                        value={formData.bio}
+                        onChange={handleInputChange}
+                        disabled={!isEditing}
+                        placeholder="Tell others a little about yourself"
+                        className={inputClass}
+                      />
+
+                      <p className="mt-1.5 text-xs text-[#94A8BD]">
+                        {formData.bio.length}/500
+                      </p>
                     </div>
                   </div>
                 </section>
@@ -1373,10 +1409,13 @@ export default function ProfilePage() {
                       </p>
 
                       <p className="mt-2 text-sm font-semibold capitalize text-[#0F2440]">
-                        {user?.role?.replace(
-                          '_',
-                          ' ',
-                        ) || 'Student'}
+                        {user?.role === 'teacher'
+                          ? 'Tutor'
+                          : user?.role === 'admin'
+                            ? 'Manager'
+                            : user?.role === 'super_admin' || user?.role === 'superadmin'
+                              ? 'Director'
+                              : user?.role?.replace('_', ' ') || 'Student'}
                       </p>
                     </div>
 
