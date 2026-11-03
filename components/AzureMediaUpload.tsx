@@ -250,29 +250,47 @@ export default function AzureMediaUpload({
           }
           const { uploadUrl, publicUrl, blobName } = tokenData;
 
-          // 2. Upload directly to Azure
-          const xhr = new XMLHttpRequest();
-          xhr.upload.addEventListener('progress', (e) => {
-            if (e.lengthComputable) {
-              const fileProgress = Math.round((e.loaded / e.total) * 100);
-              setUploadProgress((prev) => ({ ...prev, [file.name]: fileProgress }));
-              // Overall progress
-              const overallProgress = Math.round(((completedFiles + fileProgress / 100) / totalFiles) * 100);
-              setProgress(overallProgress);
-            }
-          });
+          // 2. Upload directly to Azure with retry logic for mobile
+          const uploadWithRetry = async (maxRetries = 3): Promise<void> => {
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+              try {
+                const xhr = new XMLHttpRequest();
+                xhr.upload.addEventListener('progress', (e) => {
+                  if (e.lengthComputable) {
+                    const fileProgress = Math.round((e.loaded / e.total) * 100);
+                    setUploadProgress((prev) => ({ ...prev, [file.name]: fileProgress }));
+                    // Overall progress
+                    const overallProgress = Math.round(((completedFiles + fileProgress / 100) / totalFiles) * 100);
+                    setProgress(overallProgress);
+                  }
+                });
 
-          await new Promise<void>((resolve, reject) => {
-            xhr.open('PUT', uploadUrl, true);
-            xhr.setRequestHeader('x-ms-blob-type', 'BlockBlob');
-            xhr.setRequestHeader('Content-Type', file.type);
-            xhr.onload = () => {
-              if (xhr.status >= 200 && xhr.status < 300) resolve();
-              else reject(new Error(`Upload failed with status ${xhr.status}`));
-            };
-            xhr.onerror = () => reject(new Error('Upload failed'));
-            xhr.send(file);
-          });
+                await new Promise<void>((resolve, reject) => {
+                  xhr.open('PUT', uploadUrl, true);
+                  xhr.setRequestHeader('x-ms-blob-type', 'BlockBlob');
+                  xhr.setRequestHeader('Content-Type', file.type);
+                  xhr.timeout = 300000; // 5 minute timeout for mobile
+                  xhr.ontimeout = () => reject(new Error('Upload timed out'));
+                  xhr.onload = () => {
+                    if (xhr.status >= 200 && xhr.status < 300) resolve();
+                    else reject(new Error(`Upload failed with status ${xhr.status}`));
+                  };
+                  xhr.onerror = () => reject(new Error('Upload failed'));
+                  xhr.send(file);
+                });
+                return; // Success
+              } catch (err) {
+                console.error(`Upload attempt ${attempt} failed:`, err);
+                if (attempt === maxRetries) {
+                  throw err;
+                }
+                // Wait before retry (exponential backoff)
+                await new Promise(r => setTimeout(r, attempt * 2000));
+              }
+            }
+          };
+
+          await uploadWithRetry();
 
           // 3. Save metadata to MongoDB
           const saveRes = await fetch('/api/media/save', {
