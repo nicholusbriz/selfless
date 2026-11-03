@@ -6,7 +6,7 @@
     "dev": "concurrently -k -n next,partyserver -c blue,magenta \"npm run dev:next\" \"npm run dev:partyserver\"",
     "dev:next": "set NODE_OPTIONS=--max-old-space-size=8192&& set NODE_NO_WARNINGS=1&& next dev --turbo",
     "dev:partyserver": "wrangler dev",
-    "build": "prisma generate && next build",
+    "build": "set NEXT_BUILD_WORKERS=0&& prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate"
