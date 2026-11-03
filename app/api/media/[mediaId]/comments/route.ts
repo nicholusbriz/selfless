@@ -15,6 +15,7 @@ import {
   isObjectId,
   mediaCommentInclude,
 } from '../../_lib/interactions';
+import { createNotificationForUser } from '@/lib/notifications';
 
 interface RouteContext {
   params: Promise<{ mediaId: string }>;
@@ -115,6 +116,50 @@ export async function POST(
       data: { mediaId, authorId: session.user.id, parentId, content },
       include: mediaCommentInclude,
     });
+
+    // Create notification for the post creator (if not commenting on own post)
+    if (media.userId && media.userId !== session.user.id) {
+      const actorName = `${session.user.firstName} ${session.user.lastName}`.trim();
+      try {
+        await createNotificationForUser({
+          userId: media.userId,
+          title: 'New comment on your post',
+          message: `${actorName} commented: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
+          type: 'media_comment',
+          link: `/dashboard/gallery#${mediaId}`,
+          generatedBy: session.user.id,
+          entityType: 'media',
+          entityId: mediaId,
+        });
+      } catch (notificationError) {
+        console.error('Failed to notify user about comment:', notificationError);
+      }
+    }
+
+    // If this is a reply, also notify the parent comment author
+    if (parentId) {
+      const parentComment = await prisma.mediaComment.findUnique({
+        where: { id: parentId },
+        select: { authorId: true }
+      });
+      if (parentComment && parentComment.authorId !== session.user.id && (!media.userId || parentComment.authorId !== media.userId)) {
+        const actorName = `${session.user.firstName} ${session.user.lastName}`.trim();
+        try {
+          await createNotificationForUser({
+            userId: parentComment.authorId,
+            title: 'New reply to your comment',
+            message: `${actorName} replied to your comment.`,
+            type: 'media_comment_reply',
+            link: `/dashboard/gallery#${mediaId}`,
+            generatedBy: session.user.id,
+            entityType: 'media',
+            entityId: mediaId,
+          });
+        } catch (notificationError) {
+          console.error('Failed to notify user about reply:', notificationError);
+        }
+      }
+    }
 
     return NextResponse.json({ success: true, comment }, { status: 201 });
   } catch (error) {

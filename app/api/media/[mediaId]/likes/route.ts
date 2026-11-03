@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
 import { getApprovedMedia } from '../../_lib/interactions';
+import { createNotificationForUser } from '@/lib/notifications';
 
 interface RouteContext {
   params: Promise<{ mediaId: string }>;
@@ -29,6 +30,25 @@ async function setLike(context: RouteContext, liked: boolean) {
         create: { mediaId, userId: session.user.id },
         update: {},
       });
+
+      // Create notification for the post creator (if not liking own post)
+      if (media.userId && media.userId !== session.user.id) {
+        const actorName = `${session.user.firstName} ${session.user.lastName}`.trim();
+        try {
+          await createNotificationForUser({
+            userId: media.userId,
+            title: 'New like on your post',
+            message: `${actorName} liked your post.`,
+            type: 'media_like',
+            link: `/dashboard/gallery#${mediaId}`,
+            generatedBy: session.user.id,
+            entityType: 'media',
+            entityId: mediaId,
+          });
+        } catch (notificationError) {
+          console.error('Failed to notify user about like:', notificationError);
+        }
+      }
     } else {
       await prisma.mediaLike.deleteMany({
         where: { mediaId, userId: session.user.id },

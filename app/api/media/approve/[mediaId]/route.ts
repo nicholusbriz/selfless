@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
+import { createNotificationForUser } from '@/lib/notifications';
 
 export async function POST(
   request: Request,
@@ -44,6 +45,23 @@ export async function POST(
         approvedById: currentUser.id,
       },
     });
+
+    // Create notification for the post creator
+    const approverName = `${currentUser.firstName} ${currentUser.lastName}`.trim();
+    try {
+      await createNotificationForUser({
+        userId: media.userId,
+        title: 'Your post has been approved',
+        message: `Your post "${media.title}" has been approved by ${approverName}.`,
+        type: 'media_approved',
+        link: `/dashboard/gallery#${mediaId}`,
+        generatedBy: currentUser.id,
+        entityType: 'media',
+        entityId: mediaId,
+      });
+    } catch (notificationError) {
+      console.error('Failed to notify user about approval:', notificationError);
+    }
 
     return NextResponse.json({
       success: true,

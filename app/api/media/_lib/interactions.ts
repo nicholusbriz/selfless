@@ -14,7 +14,7 @@ export async function getApprovedMedia(mediaId: string) {
       isDeleted: false,
       approvalStatus: 'APPROVED',
     },
-    select: { id: true },
+    select: { id: true, userId: true },
   });
 }
 

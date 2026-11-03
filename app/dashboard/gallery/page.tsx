@@ -16,6 +16,7 @@ import {
   Image as ImageIcon,
   Video,
   CheckCircle2,
+  Check,
 } from 'lucide-react';
 import {
   useInfiniteQuery,
@@ -264,11 +265,16 @@ export default function GalleryPage() {
       await Promise.all(
         userIds.map(async (userId) => {
           try {
-            const response = await fetch(`/api/social/connections/${userId}`);
+            // Check if current user is following this user
+            const response = await fetch(`/api/social/connections/${currentUser.id}?type=following&limit=100`);
             if (response.ok) {
               const data: unknown = await response.json();
-              if (isRecord(data) && typeof data.isFollowing === 'boolean') {
-                status[userId] = data.isFollowing;
+              if (isRecord(data) && Array.isArray(data.connections)) {
+                // Check if the target user is in current user's following list
+                const isFollowing = data.connections.some(
+                  (conn: unknown) => isRecord(conn) && conn.id === userId
+                );
+                status[userId] = isFollowing;
               }
             }
           } catch (error) {
@@ -292,21 +298,23 @@ export default function GalleryPage() {
   const handleFollow = async (userId: string) => {
     if (!currentUser || pendingFollowIds.current.has(userId)) return;
 
+    const isCurrentlyFollowing = followStatus[userId];
     pendingFollowIds.current.add(userId);
-    setFollowStatus((previous) => ({ ...previous, [userId]: true }));
     setPendingFollows((previous) => ({ ...previous, [userId]: true }));
     setFollowErrors((previous) => ({ ...previous, [userId]: false }));
     try {
       const response = await fetch(`/api/social/follow/${userId}`, {
-        method: 'POST',
+        method: isCurrentlyFollowing ? 'DELETE' : 'POST',
       });
 
       if (!response.ok) {
-        throw new Error('Could not follow this user');
+        throw new Error(isCurrentlyFollowing ? 'Could not unfollow this user' : 'Could not follow this user');
       }
+
+      // Update local state on success
+      setFollowStatus((previous) => ({ ...previous, [userId]: !isCurrentlyFollowing }));
     } catch (error) {
-      console.error('Failed to follow:', error);
-      setFollowStatus((previous) => ({ ...previous, [userId]: false }));
+      console.error('Failed to toggle follow:', error);
       setFollowErrors((previous) => ({ ...previous, [userId]: true }));
     } finally {
       pendingFollowIds.current.delete(userId);
@@ -548,7 +556,7 @@ export default function GalleryPage() {
 
         <div className="mt-7 grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_300px]">
           <div className="min-w-0">
-            <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="mb-5 flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold tracking-tight text-[#172033]">
                   {activeFilter === 'mine'
@@ -563,69 +571,68 @@ export default function GalleryPage() {
                     : `${visibleCount} ${visibleCount === 1 ? 'post' : 'posts'} from across the community`}
                 </p>
               </div>
-              <div className="flex items-center justify-between gap-3 sm:justify-end">
-                <div
-                  aria-label="Filter posts"
-                  className="inline-flex rounded-xl border border-[#E5E8ED] bg-white p-1 shadow-sm"
-                  role="group"
-                >
-                  {([
-                    ['all', 'All'],
-                    ['photos', 'Photos'],
-                    ['videos', 'Videos'],
-                    ['mine', 'My posts'],
-                    ['saved', 'Saved'],
-                  ] as const).map(([filter, label]) => (
-                    <button
-                      key={filter}
-                      type="button"
-                      aria-pressed={activeFilter === filter}
-                      onClick={() => setActiveFilter(filter)}
-                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                        activeFilter === filter
-                          ? 'bg-[#1A2B4C] text-white shadow-sm'
-                          : 'text-[#687386] hover:bg-[#F3F5F8] hover:text-[#172033]'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    void (
-                      activeFilter === 'mine'
-                        ? myPostsQuery.refetch()
-                        : activeFilter === 'saved'
-                          ? savedPostsQuery.refetch()
-                          : refetch()
-                    )
-                  }
-                  disabled={
+              <button
+                type="button"
+                onClick={() =>
+                  void (
                     activeFilter === 'mine'
+                      ? myPostsQuery.refetch()
+                      : activeFilter === 'saved'
+                        ? savedPostsQuery.refetch()
+                        : refetch()
+                  )
+                }
+                disabled={
+                  activeFilter === 'mine'
+                    ? myPostsQuery.isFetching
+                    : activeFilter === 'saved'
+                      ? savedPostsQuery.isFetching
+                      : isFetching
+                }
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#E5E8ED] bg-white text-[#526078] shadow-sm transition hover:bg-[#F3F5F8] hover:text-[#172033] disabled:cursor-wait disabled:opacity-60"
+                aria-label="Refresh posts"
+                title="Refresh posts"
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${
+                    (activeFilter === 'mine'
                       ? myPostsQuery.isFetching
                       : activeFilter === 'saved'
                         ? savedPostsQuery.isFetching
-                        : isFetching
-                  }
-                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#E5E8ED] bg-white text-[#526078] shadow-sm transition hover:bg-[#F3F5F8] hover:text-[#172033] disabled:cursor-wait disabled:opacity-60"
-                  aria-label="Refresh posts"
-                  title="Refresh posts"
-                >
-                  <RefreshCw
-                    className={`h-4 w-4 ${
-                      (activeFilter === 'mine'
-                        ? myPostsQuery.isFetching
-                        : activeFilter === 'saved'
-                          ? savedPostsQuery.isFetching
-                          : isFetching)
-                        ? 'animate-spin'
-                        : ''
+                        : isFetching)
+                      ? 'animate-spin'
+                      : ''
                     }`}
-                  />
+                />
+              </button>
+            </div>
+
+            <div
+              aria-label="Filter posts"
+              className="mb-5 inline-flex w-full rounded-xl border border-[#E5E8ED] bg-white p-1 shadow-sm"
+              role="group"
+            >
+              {([
+                ['all', 'All'],
+                ['photos', 'Photos'],
+                ['videos', 'Videos'],
+                ['mine', 'My posts'],
+                ['saved', 'Saved'],
+              ] as const).map(([filter, label]) => (
+                <button
+                  key={filter}
+                  type="button"
+                  aria-pressed={activeFilter === filter}
+                  onClick={() => setActiveFilter(filter)}
+                  className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                    activeFilter === filter
+                      ? 'bg-[#1A2B4C] text-white shadow-sm'
+                      : 'text-[#687386] hover:bg-[#F3F5F8] hover:text-[#172033]'
+                  }`}
+                >
+                  {label}
                 </button>
-              </div>
+              ))}
             </div>
 
             {activeFilter === 'mine' && (
@@ -767,33 +774,51 @@ export default function GalleryPage() {
                     >
                       <div className="flex items-center gap-3 px-5 py-4">
                         {item.user?.id ? (
-                          <Link
-                            href={`/dashboard/students/${item.user.id}`}
-                            aria-label={`View ${item.user.firstName} ${item.user.lastName}'s profile`}
-                            title={`View ${item.user.firstName} ${item.user.lastName}'s profile`}
-                            className="shrink-0 rounded-full transition hover:ring-2 hover:ring-[#C59B4C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C]"
-                          >
-                            {item.user.profileImageUrl ? (
-                              <Image
-                                src={item.user.profileImageUrl}
-                                alt={`${item.user.firstName} ${item.user.lastName}`}
-                                width={44}
-                                height={44}
-                                className="h-11 w-11 rounded-full object-cover ring-2 ring-[#F1F3F6]"
-                              />
-                            ) : (
-                              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#E8ECF3] text-sm font-bold text-[#1A2B4C] ring-2 ring-[#F1F3F6]">
-                                {item.user.firstName[0]}{item.user.lastName[0]}
-                              </div>
+                          <div className="relative shrink-0">
+                            <div className="rounded-full">
+                              {item.user.profileImageUrl ? (
+                                <Image
+                                  src={item.user.profileImageUrl}
+                                  alt={`${item.user.firstName} ${item.user.lastName}`}
+                                  width={44}
+                                  height={44}
+                                  className="h-11 w-11 rounded-full object-cover ring-2 ring-[#F1F3F6]"
+                                />
+                              ) : (
+                                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#E8ECF3] text-sm font-bold text-[#1A2B4C] ring-2 ring-[#F1F3F6]">
+                                  {item.user.firstName[0]}{item.user.lastName[0]}
+                                </div>
+                              )}
+                            </div>
+                            {currentUser && authorId && authorId !== currentUser.id && (
+                              <button
+                                type="button"
+                                onClick={() => handleFollow(authorId)}
+                                disabled={pendingFollows[authorId]}
+                                title={
+                                  followStatus[authorId]
+                                    ? 'Unfollow'
+                                    : followErrors[authorId]
+                                      ? 'Follow failed. Click to try again.'
+                                      : 'Follow'
+                                }
+                                className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#1A2B4C] text-white transition hover:bg-[#263D66] disabled:cursor-wait disabled:opacity-60"
+                              >
+                                {followStatus[authorId] ? (
+                                  <Check className="h-3 w-3" />
+                                ) : (
+                                  <Plus className="h-3 w-3" />
+                                )}
+                              </button>
                             )}
-                          </Link>
+                          </div>
                         ) : (
                           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#E8ECF3] text-sm font-bold text-[#1A2B4C] ring-2 ring-[#F1F3F6]">
                             S
                           </div>
                         )}
                         <div className="min-w-0 flex-1">
-                          <h3 className="truncate text-sm font-semibold text-[#172033]">
+                          <h3 className="text-sm font-semibold text-[#172033]">
                             {item.user?.id ? (
                               <Link
                                 href={`/dashboard/students/${item.user.id}`}
@@ -806,7 +831,7 @@ export default function GalleryPage() {
                             )}
                           </h3>
                           {item.user?.techCenter?.name && (
-                            <p className="mt-0.5 truncate text-xs text-[#7A8495]" title={item.user.techCenter.name}>
+                            <p className="mt-0.5 text-xs text-[#7A8495]">
                               {item.user.techCenter.name}
                             </p>
                           )}
@@ -824,32 +849,6 @@ export default function GalleryPage() {
                               ' · Approved'}
                           </p>
                         </div>
-                        {currentUser && authorId && authorId !== currentUser.id && (
-                          followStatus[authorId] ? (
-                            <button
-                              type="button"
-                              disabled={pendingFollows[authorId]}
-                              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[#F0F2F5] px-3 py-2 text-xs font-semibold text-[#526078] disabled:cursor-wait"
-                            >
-                              <UserCheck className="h-3.5 w-3.5" />
-                              {pendingFollows[authorId] ? 'Following…' : 'Following'}
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleFollow(authorId)}
-                              title={
-                                followErrors[authorId]
-                                  ? 'Follow failed. Click to try again.'
-                                  : undefined
-                              }
-                              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[#1A2B4C] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#263D66]"
-                            >
-                              <UserPlus className="h-3.5 w-3.5" />
-                              {followErrors[authorId] ? 'Try again' : 'Follow'}
-                            </button>
-                          )
-                        )}
                         {activeFilter === 'mine' &&
                           currentUser &&
                           authorId === currentUser.id && (

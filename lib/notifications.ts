@@ -205,3 +205,69 @@ export async function getUnreadNotificationCount(userId: string): Promise<number
     return 0;
   }
 }
+
+/**
+ * Create notification for all dev users
+ */
+export async function createNotificationForDevs(params: {
+  title: string;
+  message: string;
+  type: string;
+  link?: string;
+  generatedBy?: string;
+  entityType?: string;
+  entityId?: string;
+  excludeUserIds?: string[];
+}) {
+  const {
+    title,
+    message,
+    type,
+    link,
+    generatedBy,
+    entityType,
+    entityId,
+    excludeUserIds = []
+  } = params;
+
+  try {
+    // Get all dev users
+    const devUsers = await prisma.user.findMany({
+      where: {
+        role: {
+          name: 'dev'
+        },
+        id: {
+          notIn: excludeUserIds
+        }
+      },
+      select: {
+        id: true
+      }
+    });
+
+    const userIds = devUsers.map(user => user.id);
+
+    if (userIds.length === 0) {
+      console.log('No dev users to notify');
+      return { created: 0 };
+    }
+
+    const result = await createNotifications({
+      userIds,
+      title,
+      message,
+      type,
+      link,
+      generatedBy,
+      entityType,
+      entityId
+    });
+
+    console.log('Dev notifications created:', result);
+    return result;
+  } catch (error) {
+    console.error('Error creating dev notifications:', error);
+    throw error;
+  }
+}

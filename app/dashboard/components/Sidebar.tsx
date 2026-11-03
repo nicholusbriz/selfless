@@ -455,6 +455,13 @@ const superAdminNavigation: NavSection = {
       roles: ['super_admin'],
     },
     {
+      id: 'english-class',
+      label: 'English Class',
+      path: '/dashboard/dev/english-hub',
+      icon: <BookOpen className={iconClass} />,
+      roles: ['dev', 'super_admin'],
+    },
+    {
       id: 'cleaning-management',
       label: 'Cleaning Management',
       path: '/dashboard/dev/cleaning',
