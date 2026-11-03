@@ -52,6 +52,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (description && description.length > 200) {
+      return NextResponse.json(
+        { success: false, error: 'Description must be 200 characters or fewer' },
+        { status: 400 },
+      );
+    }
+
     // Safety: only allow saving blobs that belong to this user
     if (!blobName.startsWith(`${user.id}/`)) {
       return NextResponse.json(
@@ -61,6 +68,16 @@ export async function POST(request: Request) {
     }
 
     const ext = fileName?.split('.').pop()?.toLowerCase() ?? null;
+
+    const roleName = user.role?.name;
+    const isPrivilegedUser = roleName === 'dev' || roleName === 'super_admin';
+    const finalCategory =
+      roleName === 'dev' && category && ['dashboard', 'gallery'].includes(category)
+        ? category
+        : 'gallery';
+
+    // Non-dev posts require approval
+    const requiresApproval = !isPrivilegedUser;
 
     const media = await prisma.media.create({
       data: {
@@ -73,11 +90,20 @@ export async function POST(request: Request) {
         fileExtension: ext,
         title: String(title).slice(0, 120),
         description: description ? String(description).slice(0, 500) : null,
-        category: category ? String(category) : 'gallery',
+        category: finalCategory,
+        approvalStatus: requiresApproval ? 'PENDING' : 'APPROVED',
+        approvedAt: requiresApproval ? null : new Date(),
+        approvedById: requiresApproval ? null : user.id,
       },
     });
 
-    return NextResponse.json({ success: true, media });
+    return NextResponse.json({
+      success: true,
+      media,
+      message: requiresApproval
+        ? 'Your post has been created and will be published after review'
+        : 'Post created successfully',
+    });
   } catch (error) {
     console.error('Save media failed:', error);
     return NextResponse.json(

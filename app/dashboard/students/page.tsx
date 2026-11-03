@@ -618,8 +618,8 @@ function HorizontalRail({
 
   const students = useMemo(
     () =>
-      data?.pages.flatMap((page) => sortStudents(page.students, sortBy)) ?? [],
-    [data?.pages, sortBy],
+      data?.pages.flatMap((page) => page.students) ?? [],
+    [data?.pages],
   );
 
   useEffect(() => {

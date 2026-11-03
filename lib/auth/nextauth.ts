@@ -52,7 +52,6 @@ export const authOptions: AuthOptions = {
           select: {
             id: true,
             email: true,
-            eduEmail: true,
             firstName: true,
             lastName: true,
             password: true,
@@ -119,7 +118,6 @@ export const authOptions: AuthOptions = {
         return {
           id: user.id,
           email: user.email,
-          eduEmail: user.eduEmail,
           name: `${user.firstName} ${user.lastName}`,
           firstName: user.firstName,
           lastName: user.lastName,
@@ -162,7 +160,6 @@ export const authOptions: AuthOptions = {
       if (token) {
         session.user.id = token.sub as string;
         session.user.email = token.email as string;
-        session.user.eduEmail = token.eduEmail as string | null;
         session.user.role = token.role as string;
         session.user.firstName = token.firstName as string;
         session.user.lastName = token.lastName as string;
@@ -201,7 +198,6 @@ export const authOptions: AuthOptions = {
       // Initial sign in
       if (user) {
         token.email = user.email;
-        token.eduEmail = user.eduEmail;
         token.role = user.role;
         token.firstName = user.firstName;
         token.lastName = user.lastName;

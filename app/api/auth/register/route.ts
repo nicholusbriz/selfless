@@ -35,6 +35,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+    const emailDomain = normalizedEmail.split('@')[1];
+    if (
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) ||
+      emailDomain !== 'gmail.com'
+    ) {
+      return NextResponse.json(
+        { error: 'Please use a Gmail address (@gmail.com)' },
+        { status: 400 },
+      );
+    }
+
     // Validate password strength
     if (password.length < 6) {
       return NextResponse.json(
@@ -47,7 +59,7 @@ export async function POST(req: NextRequest) {
     const result = await registerUser({
       firstName,
       lastName,
-      email,
+      email: normalizedEmail,
       password,
       phoneNumber,
       techCenterId,

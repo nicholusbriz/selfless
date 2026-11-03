@@ -46,7 +46,6 @@ export async function getUserById(userId: string) {
     select: {
       id: true,
       email: true,
-      eduEmail: true,
       firstName: true,
       lastName: true,
       password: true,
@@ -95,7 +94,6 @@ export async function getUserByEmail(email: string) {
     select: {
       id: true,
       email: true,
-      eduEmail: true,
       firstName: true,
       lastName: true,
       password: true,

@@ -49,6 +49,7 @@ import {
   Settings,
   Mail,
   Bell,
+  Check,
 } from 'lucide-react';
 
 import {
@@ -230,10 +231,17 @@ const sharedNavigation: NavSection[] = [
       },
       {
         id: 'gallery',
-        label: 'Selfless Gallery',
+        label: 'Posts',
         path: '/dashboard/gallery',
         icon: <Images className={iconClass} />,
         roles: ALL_ROLES,
+      },
+      {
+        id: 'media-approvals',
+        label: 'Media Approvals',
+        path: '/dashboard/media-approvals',
+        icon: <Check className={iconClass} />,
+        roles: ['dev', 'super_admin'],
       },
     ],
   },

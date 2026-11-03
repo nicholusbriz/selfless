@@ -19,7 +19,7 @@ import { AllUsersList } from './components/AllUsersList';
 import Link from 'next/link';
 import Image from 'next/image';
 import type { User, Conversation, Message, TabType } from '@/types/messaging';
-import { useOnlineUsers } from '@/lib/hooks/useOnlineUsers';
+import { useOnlineUsersContext } from '@/lib/contexts/OnlineUsersContext';
 import { getDisplayName } from '@/lib/messaging/displayName';
 import {
   CHAT_THEMES,
@@ -123,7 +123,7 @@ export default function MessagesPage() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const currentUserId = session?.user?.id || '';
-  const onlineUsers = useOnlineUsers(session?.user);
+  const { onlineUsers } = useOnlineUsersContext();
   const requestedUserId = searchParams.get('userId');
   const openedRequestedUserRef = useRef<string | null>(null);
 

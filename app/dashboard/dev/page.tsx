@@ -84,6 +84,10 @@ export default function DevDashboardPage() {
   const handleAzureUploadComplete = (media: UploadedMedia) => {
     setLastAzureUpload(media);
     setAzureMessage(`Uploaded: ${media.fileName}`);
+  };
+
+  const handleAllUploadsComplete = (count: number) => {
+    setAzureMessage(`Successfully uploaded ${count} file${count !== 1 ? 's' : ''}`);
     // Bump the gallery key so it re-fetches the newest file list
     setGalleryRefreshKey((key) => key + 1);
   };
@@ -266,10 +270,12 @@ export default function DevDashboardPage() {
 
           <div className="p-5 sm:p-7">
             <AzureMediaUpload
-              label="Drop a file here, or click to browse"
+              label="Drop files here, or click to browse"
               accept="image/*,audio/*,video/*"
+              defaultCategory="dashboard"
               onUploadComplete={handleAzureUploadComplete}
               onUploadError={handleAzureUploadError}
+              onAllUploadsComplete={handleAllUploadsComplete}
             />
 
             {azureMessage && (
@@ -334,17 +340,70 @@ export default function DevDashboardPage() {
             </div>
             <div>
               <h2 className="text-lg font-bold text-[#172033]">
-                Your Azure Videos
+                Dashboard Videos
               </h2>
               <p className="text-sm text-[#64748b]">
-                Videos you have uploaded to Azure Blob Storage.
+                Videos categorized for the dashboard.
               </p>
             </div>
           </div>
           <div className="p-5 sm:p-7">
-            <AzureVideoGallery key={galleryRefreshKey} />
+            <AzureVideoGallery key={galleryRefreshKey} category="dashboard" />
           </div>
         </section>
+
+        {/* ==========================================================
+            Approved gallery posts — includes community photos and videos
+        ========================================================== */}
+        <section className="mt-6 overflow-hidden rounded-xl border border-[#dfe5ec] bg-white shadow-sm">
+          <div className="flex items-center gap-3 border-b border-[#dfe5ec] px-5 py-5 sm:px-7">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#edf7f2] text-[#17734b]">
+              <Video className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-[#172033]">
+                Approved Gallery Posts
+              </h2>
+              <p className="text-sm text-[#64748b]">
+                Approved photos and videos from gallery posts. Deleting a post also removes its comments and replies.
+              </p>
+            </div>
+          </div>
+          <div className="p-5 sm:p-7">
+            <AzureVideoGallery
+              key={`approved-${galleryRefreshKey}`}
+              category="gallery"
+              approvalStatus="APPROVED"
+              mediaType="all"
+            />
+          </div>
+        </section>
+
+        {/* ==========================================================
+            Rejected videos — includes gallery submissions
+        ========================================================== */}
+        <section className="mt-6 overflow-hidden rounded-xl border border-[#f1d5d5] bg-white shadow-sm">
+          <div className="flex items-center gap-3 border-b border-[#f1d5d5] px-5 py-5 sm:px-7">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#fdf0f0] text-[#a52121]">
+              <Video className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-[#172033]">
+                Rejected Videos
+              </h2>
+              <p className="text-sm text-[#64748b]">
+                Videos rejected from Media Approvals, including community posts.
+              </p>
+            </div>
+          </div>
+          <div className="p-5 sm:p-7">
+            <AzureVideoGallery
+              key={`rejected-${galleryRefreshKey}`}
+              approvalStatus="REJECTED"
+            />
+          </div>
+        </section>
+
       </div>
     </main>
   );

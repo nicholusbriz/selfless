@@ -18,8 +18,14 @@ import {
   parseJsonBody,
 } from '@/app/api/_lib/request-validation';
 import { createPasswordResetRequest } from '@/lib/auth/server';
+import { claimPasswordResetRequest } from '@/lib/auth/password-reset-rate-limit';
 import { sendPasswordResetEmail } from '@/lib/email';
 import { logPasswordResetRequest, extractIpAddress, extractUserAgent } from '@/lib/logger';
+
+const GENERIC_RESPONSE = {
+  success: true,
+  message: 'If your email is registered, you will receive a reset code within 24 hours. Please contact your administrator for assistance.',
+};
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,16 +41,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const requestAllowed = await claimPasswordResetRequest(email);
+    if (!requestAllowed) {
+      return NextResponse.json(GENERIC_RESPONSE);
+    }
+
     // Create password reset request
     const result = await createPasswordResetRequest(email);
 
     if (result.error) {
       // For security, still return success message even if user doesn't exist
       // This prevents email enumeration attacks
-      return NextResponse.json({
-        success: true,
-        message: 'If your email is registered, you will receive a reset code within 24 hours. Please contact your administrator for assistance.',
-      });
+      return NextResponse.json(GENERIC_RESPONSE);
     }
 
     // Log the password reset request using the existing logger
@@ -82,10 +90,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'If your email is registered, you will receive a reset code within 24 hours. Please contact your administrator for assistance.',
-    });
+    return NextResponse.json(GENERIC_RESPONSE);
   } catch (error) {
     console.error('Forgot password API error:', error);
     return NextResponse.json(

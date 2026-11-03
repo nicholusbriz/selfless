@@ -62,142 +62,150 @@ enum TeamRole {
 
 // MAIN USER - Updated for NextAuth
 model User {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  firstName   String
-  lastName    String
-  email       String   @unique
-  eduEmail    String?  // Original .edu email for users who switched to Gmail
-  password    String?  // Optional for OAuth users
-  phoneNumber String?
-  pageVisitEvents    PageVisitEvent[] 
-  
+  id              String           @id @default(auto()) @map("_id") @db.ObjectId
+  firstName       String
+  lastName        String
+  email           String           @unique
+  password        String? // Optional for OAuth users
+  phoneNumber     String?
+  pageVisitEvents PageVisitEvent[]
+
   // OAuth Fields (NextAuth)
   emailVerified DateTime?
-  
+
   // Role & Status - One Role Field
-  roleId      String?  @db.ObjectId
-  role        Role?    @relation(fields: [roleId], references: [id])
-  status      UserStatus @default(ACTIVE)
-  isActive    Boolean  @default(true)
-  media Media[] @relation("UserMedia")
-  
+  roleId   String?    @db.ObjectId
+  role     Role?      @relation(fields: [roleId], references: [id])
+  status   UserStatus @default(ACTIVE)
+  isActive Boolean    @default(true)
+  media    Media[]    @relation("UserMedia")
+
   // Account Verification - For admin approval workflow
-  isVerified Boolean @default(true) // Default to true for existing users compatibility
-  verificationStatus String @default("APPROVED") // "PENDING", "APPROVED", "REJECTED"
-  verifiedAt DateTime?
-  verifiedById String? @db.ObjectId // Admin who verified
-  verifiedByAdmin User? @relation("VerifiedUsers", fields: [verifiedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  verifiedUsers User[] @relation("VerifiedUsers")
-  
+  isVerified         Boolean   @default(true) // Default to true for existing users compatibility
+  verificationStatus String    @default("APPROVED") // "PENDING", "APPROVED", "REJECTED"
+  verifiedAt         DateTime?
+  verifiedById       String?   @db.ObjectId // Admin who verified
+  verifiedByAdmin    User?     @relation("VerifiedUsers", fields: [verifiedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  verifiedUsers      User[]    @relation("VerifiedUsers")
+
   // Rejection tracking (NEW)
   rejectedAt    DateTime?
-  rejectedById  String?  @db.ObjectId
-  rejectedBy    User?    @relation("RejectedUsers", fields: [rejectedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rejectedUsers User[]   @relation("RejectedUsers")
-  
+  rejectedById  String?   @db.ObjectId
+  rejectedBy    User?     @relation("RejectedUsers", fields: [rejectedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  rejectedUsers User[]    @relation("RejectedUsers")
+
   // Tech Center Association
-  techCenterId String? @db.ObjectId
-  techCenter   TechCenter? @relation("UserTechCenter", fields: [techCenterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  previousTechCenterId String? @db.ObjectId // Stores previous tech center before super_admin promotion for restoration
-  
+  techCenterId         String?     @db.ObjectId
+  techCenter           TechCenter? @relation("UserTechCenter", fields: [techCenterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  previousTechCenterId String?     @db.ObjectId // Stores previous tech center before super_admin promotion for restoration
+
   // Location - Not in registration, set by default
-  country     String?  @default("Uganda")
-  city        String?
-  town        String?
-  street      String?
-  
+  country String? @default("Uganda")
+  city    String?
+  town    String?
+  street  String?
+
   // Academic
   generalCourse String?
   tuitionAmount Float?
   takesReligion Boolean @default(false)
-  
+
   // Social
-  linkedinUrl String?
-  githubUrl   String?
-  projectUrls String[]
+  linkedinUrl     String?
+  githubUrl       String?
+  projectUrls     String[]
   profileImageUrl String?
-  chatTheme String?
-  
+  chatTheme       String?
+
   // Team Preferences
   preferredTeamType TeamType?
   preferredTeamRole TeamRole?
-  gender String? // "male", "female", "other"
-  
+  gender            String? // "male", "female", "other"
+
   // Password Reset
-  resetToken     String?
-  resetTokenExpiry DateTime?
-  
+  resetToken              String?
+  resetTokenExpiry        DateTime?
+  passwordResetRequest1At DateTime?
+  passwordResetRequest2At DateTime?
+  passwordResetRequest3At DateTime?
+
   // Tracking
-  lastLoginAt  DateTime?
-  lastActiveAt DateTime?
+  lastLoginAt      DateTime?
+  lastActiveAt     DateTime?
   currentSessionId String?
-  roleUpdatedAt DateTime? // Tracks when role was last changed for token refresh
-  tokenVersion  Int       @default(0) // Bump to invalidate all active sessions/tokens
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  roleUpdatedAt    DateTime? // Tracks when role was last changed for token refresh
+  tokenVersion     Int       @default(0) // Bump to invalidate all active sessions/tokens
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   // Promotion ownership — tracks who assigned this user their current role.
   // super_admin and admin can only manage users they personally promoted.
   // dev can manage anyone regardless of this field.
-  promotedById String?  @db.ObjectId
-  promotedBy   User?    @relation("PromotedUsers", fields: [promotedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  promotedById  String? @db.ObjectId
+  promotedBy    User?   @relation("PromotedUsers", fields: [promotedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
   promotedUsers User[]  @relation("PromotedUsers")
 
   // English Hub - who marked attendance
   markedAttendance EnglishHubRegistration[] @relation("AttendanceMarkedBy")
-  
+
   // Teacher-Student Assignment
-  teacherId    String?  @db.ObjectId
-  teacher      User?    @relation("TeacherStudents", fields: [teacherId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  assignedStudents User[] @relation("TeacherStudents")
-  
+  teacherId        String? @db.ObjectId
+  teacher          User?   @relation("TeacherStudents", fields: [teacherId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  assignedStudents User[]  @relation("TeacherStudents")
+
   // Courses
   submittedCourses StudentCourse[]
-  grades    Grade[] @relation("StudentGrades")
-  gradesGiven      Grade[] @relation("GradesGiven")
-  
+  grades           Grade[]         @relation("StudentGrades")
+  gradesGiven      Grade[]         @relation("GradesGiven")
+
   // Cleaning
   cleaningRegistrations CleaningRegistration[]
-  attendanceRecords    AttendanceRecord[]
-  
+  attendanceRecords     AttendanceRecord[]
+
   // Communication
-  authoredAnnouncements Announcement[] @relation("AnnouncementAuthor")
+  authoredAnnouncements Announcement[]        @relation("AnnouncementAuthor")
   announcementComments  AnnouncementComment[] @relation("AnnouncementCommentAuthor")
+  mediaLikes            MediaLike[]           @relation("MediaLikeUser")
+  mediaComments         MediaComment[]         @relation("MediaCommentAuthor")
+  mediaSaves            MediaSave[]            @relation("MediaSaveUser")
   notifications         Notification[]
   activityLogs          ActivityLog[]
   pageVisitCounts       UserPageVisitCount[]
-  
+
   // Simple tracking fields
   createdTechCenterIds String[]
   updatedTechCenterIds String[]
-  
+
   // Social counters
-  followersCount Int @default(0)
-  followingCount Int @default(0)
+  followersCount     Int @default(0)
+  followingCount     Int @default(0)
   likesReceivedCount Int @default(0)
-  
+
   // Social Relations
-  followers Follow[] @relation("UserFollowers")
-  following Follow[] @relation("UserFollowing")
-  likesReceived Like[] @relation("UserLikesReceived")
-  likesGiven Like[] @relation("UserLikesGiven")
-  profileViewsMade ProfileView[] @relation("ProfileViewViewer")
+  followers            Follow[]      @relation("UserFollowers")
+  following            Follow[]      @relation("UserFollowing")
+  likesReceived        Like[]        @relation("UserLikesReceived")
+  likesGiven           Like[]        @relation("UserLikesGiven")
+  profileViewsMade     ProfileView[] @relation("ProfileViewViewer")
   profileViewsReceived ProfileView[] @relation("ProfileViewProfile")
-  
+
   // NextAuth Relations
   accounts Account[]
   sessions Session[]
-  
+
   // Football Team Relations
   footballTeam FootballTeam[]
-  
+
   // General Team Relations
   teamMemberships TeamMembership[]
-  
+
   // Temple Trip Relations
-  createdTempleTrips TempleTrip[] @relation("TempleTripCreator")
+  createdTempleTrips      TempleTrip[]             @relation("TempleTripCreator")
   templeTripRegistrations TempleTripRegistration[] @relation("TempleTripRegistrations")
-  
+
+  // Media Approvals
+  approvedMedia Media[] @relation("MediaApprovals")
+
   // AI Assistant Relations
 
   // ============================================
@@ -209,7 +217,7 @@ model User {
 
   // English Hub Registrations
   englishHubRegistrations EnglishHubRegistration[] @relation("EnglishHubRegistrations")
-  
+
   @@index([techCenterId])
   @@index([previousTechCenterId])
   @@index([roleId])
@@ -220,35 +228,35 @@ model User {
   @@index([status])
   @@index([country])
   @@index([verificationStatus])
-  @@index([followersCount(sort: Desc)])       
-  @@index([likesReceivedCount(sort: Desc)]) 
+  @@index([followersCount(sort: Desc)])
+  @@index([likesReceivedCount(sort: Desc)])
   @@map("users")
 }
 
 // ROLES
 model Role {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  name        String   @unique  // "super_admin", "admin", "teacher", "student"
+  name        String   @unique // "super_admin", "admin", "teacher", "student"
   displayName String
   description String?
   permissions String[]
-  
-  users       User[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+
+  users     User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("roles")
 }
 
 // COUNTRIES
 model Country {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  name        String   @unique
-  code        String   @unique
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String   @unique
+  code      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   techCenters TechCenter[]
 
   @@map("countries")
@@ -267,29 +275,29 @@ model TechCenter {
   phone       String?
   email       String?
   isActive    Boolean  @default(true)
-  
+
   // Simple tracking fields (no relations)
-  createdById String?  @db.ObjectId
-  updatedById String?  @db.ObjectId
-  
+  createdById String? @db.ObjectId
+  updatedById String? @db.ObjectId
+
   // Relationships - all with NoAction
-  users       User[]   @relation("UserTechCenter")
-  studentCourses StudentCourse[]
-  weeks       Week[]
-  cleaningDays CleaningDay[]
-  announcements Announcement[]
-  activityLogs ActivityLog[]
-  footballTeam FootballTeam[]
-  teamMemberships TeamMembership[]
+  users                   User[]                   @relation("UserTechCenter")
+  studentCourses          StudentCourse[]
+  weeks                   Week[]
+  cleaningDays            CleaningDay[]
+  announcements           Announcement[]
+  activityLogs            ActivityLog[]
+  footballTeam            FootballTeam[]
+  teamMemberships         TeamMembership[]
   englishHubRegistrations EnglishHubRegistration[] @relation("EnglishHubRegistrations")
-  templeTrips TempleTrip[] @relation("TempleTripTechCenter")
-  
+  templeTrips             TempleTrip[]             @relation("TempleTripTechCenter")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([countryId])
   @@index([isActive])
   @@map("tech_centers")
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 }
 
 // ============================================
@@ -298,18 +306,18 @@ model TechCenter {
 
 // ACCOUNT - For OAuth providers (GitHub, Google)
 model Account {
-  id                String  @id @default(auto()) @map("_id") @db.ObjectId
-  userId            String  @db.ObjectId
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.String
-  access_token      String? @db.String
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.String
-  session_state     String?
+  id                       String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId                   String  @db.ObjectId
+  type                     String
+  provider                 String
+  providerAccountId        String
+  refresh_token            String? @db.String
+  access_token             String? @db.String
+  expires_at               Int?
+  token_type               String?
+  scope                    String?
+  id_token                 String? @db.String
+  session_state            String?
   refresh_token_expires_in Int?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -346,30 +354,30 @@ model VerificationToken {
 
 // STUDENT COURSE
 model StudentCourse {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  name        String
-  code        String
-  courseUnit  String
-  credits     Int      @default(3)
+  id            String  @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  code          String
+  courseUnit    String
+  credits       Int     @default(3)
   takesReligion Boolean @default(false)
-  tuition     Float?
-  
+  tuition       Float?
+
   // Relationships with NoAction
-  studentId   String   @db.ObjectId
-  student     User     @relation(fields: [studentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  
-  techCenterId String   @db.ObjectId
+  studentId String @db.ObjectId
+  student   User   @relation(fields: [studentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  techCenterId String     @db.ObjectId
   techCenter   TechCenter @relation(fields: [techCenterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  
+
   // Status
   status      EnrollmentStatus @default(ACTIVE)
-  submittedAt DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  submittedAt DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
   dropDate    DateTime?
-  
+
   // Grades - One-to-Many relation
-  grades      Grade[]
-  
+  grades Grade[]
+
   @@unique([studentId, code])
   @@index([studentId])
   @@index([techCenterId])
@@ -379,19 +387,19 @@ model StudentCourse {
 
 // GRADES
 model Grade {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
   // Link to student course
-  studentCourseId String @db.ObjectId
+  studentCourseId String        @db.ObjectId
   studentCourse   StudentCourse @relation(fields: [studentCourseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  
+
   // Student and teacher relations
-  studentId   String   @db.ObjectId
-  student     User     @relation("StudentGrades", fields: [studentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  
-  assignedBy  String   @db.ObjectId
-  teacher     User     @relation("GradesGiven", fields: [assignedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  
+  studentId String @db.ObjectId
+  student   User   @relation("StudentGrades", fields: [studentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  assignedBy String @db.ObjectId
+  teacher    User   @relation("GradesGiven", fields: [assignedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
   // Grade details
   gradeLetter String
   gradePoints Float
@@ -400,13 +408,13 @@ model Grade {
   assignedAt  DateTime @default(now())
   updatedAt   DateTime @updatedAt
   notes       String?
-  
+
+  @@unique([studentCourseId, studentId, week])
   @@index([studentCourseId])
   @@index([studentId])
   @@index([assignedBy])
   @@index([gradeLetter])
   @@index([week])
-  @@unique([studentCourseId, studentId, week])
   @@map("grades")
 }
 
@@ -431,24 +439,24 @@ model GradeScale {
 
 // WEEKS
 model Week {
-  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
-  weekLabel             String
-  startDate             DateTime
-  endDate               DateTime
-  isActive              Boolean  @default(true)
-  registrationDeadline  DateTime
-  
-  techCenterId String   @db.ObjectId
+  id                   String   @id @default(auto()) @map("_id") @db.ObjectId
+  weekLabel            String
+  startDate            DateTime
+  endDate              DateTime
+  isActive             Boolean  @default(true)
+  registrationDeadline DateTime
+
+  techCenterId String     @db.ObjectId
   techCenter   TechCenter @relation(fields: [techCenterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  
-  createdById String?   @db.ObjectId
-  updatedById String?   @db.ObjectId
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  days        CleaningDay[]
-  
+
+  createdById String? @db.ObjectId
+  updatedById String? @db.ObjectId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  days CleaningDay[]
+
   @@index([isActive])
   @@index([techCenterId])
   @@index([registrationDeadline])
@@ -457,24 +465,24 @@ model Week {
 
 // CLEANING DAYS
 model CleaningDay {
-  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
-  weekId              String   @db.ObjectId
-  week                Week     @relation(fields: [weekId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  dayOfWeek           String
-  cleaningDate        DateTime
-  capacityLimit       Int      @default(0)
-  currentRegistrations Int     @default(0)
-  status              CleaningDayStatus @default(OPEN)
-  
-  techCenterId String   @db.ObjectId
+  id                   String            @id @default(auto()) @map("_id") @db.ObjectId
+  weekId               String            @db.ObjectId
+  week                 Week              @relation(fields: [weekId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  dayOfWeek            String
+  cleaningDate         DateTime
+  capacityLimit        Int               @default(0)
+  currentRegistrations Int               @default(0)
+  status               CleaningDayStatus @default(OPEN)
+
+  techCenterId String     @db.ObjectId
   techCenter   TechCenter @relation(fields: [techCenterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  registrations       CleaningRegistration[]
-  attendanceRecords   AttendanceRecord[]
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  registrations     CleaningRegistration[]
+  attendanceRecords AttendanceRecord[]
+
   @@index([cleaningDate])
   @@index([techCenterId])
   @@index([status])
@@ -483,14 +491,14 @@ model CleaningDay {
 
 // CLEANING REGISTRATION
 model CleaningRegistration {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId        String   @db.ObjectId
-  user          User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  cleaningDayId String   @db.ObjectId
+  id            String      @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String      @db.ObjectId
+  user          User        @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cleaningDayId String      @db.ObjectId
   cleaningDay   CleaningDay @relation(fields: [cleaningDayId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  registeredAt  DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
+  registeredAt  DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
   @@unique([userId, cleaningDayId])
   @@index([cleaningDayId])
   @@index([userId])
@@ -499,18 +507,18 @@ model CleaningRegistration {
 
 // ATTENDANCE RECORD
 model AttendanceRecord {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId        String   @db.ObjectId
-  user          User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  cleaningDayId String   @db.ObjectId
-  cleaningDay   CleaningDay @relation(fields: [cleaningDayId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id            String           @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String           @db.ObjectId
+  user          User             @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cleaningDayId String           @db.ObjectId
+  cleaningDay   CleaningDay      @relation(fields: [cleaningDayId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   status        AttendanceStatus @default(PENDING)
-  markedBy      String?  @db.ObjectId
-  markedAt      DateTime @default(now())
+  markedBy      String?          @db.ObjectId
+  markedAt      DateTime         @default(now())
   notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
   @@unique([userId, cleaningDayId])
   @@index([cleaningDayId])
   @@index([status])
@@ -523,27 +531,27 @@ model AttendanceRecord {
 
 // ANNOUNCEMENTS
 model Announcement {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  title       String
-  content     String
-  deadline    DateTime?
-  
-  authorId    String   @db.ObjectId
-  author      User     @relation("AnnouncementAuthor", fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  comments    AnnouncementComment[]
-  
-  isGlobal    Boolean  @default(false)
-  techCenterId String? @db.ObjectId
+  id       String    @id @default(auto()) @map("_id") @db.ObjectId
+  title    String
+  content  String
+  deadline DateTime?
+
+  authorId String                @db.ObjectId
+  author   User                  @relation("AnnouncementAuthor", fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  comments AnnouncementComment[]
+
+  isGlobal     Boolean     @default(false)
+  techCenterId String?     @db.ObjectId
   techCenter   TechCenter? @relation(fields: [techCenterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  
+
   scheduledPublishDate DateTime?
-  publishedAt  DateTime @default(now())
-  expiryDate   DateTime?
-  isActive     Boolean  @default(true)
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  publishedAt          DateTime  @default(now())
+  expiryDate           DateTime?
+  isActive             Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([authorId])
   @@index([techCenterId])
   @@index([isGlobal])
@@ -553,17 +561,17 @@ model Announcement {
 }
 
 model AnnouncementComment {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  announcementId String   @db.ObjectId
-  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
-  authorId       String   @db.ObjectId
-  author         User     @relation("AnnouncementCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-  parentId       String?  @db.ObjectId
-  parent         AnnouncementComment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id             String                @id @default(auto()) @map("_id") @db.ObjectId
+  announcementId String                @db.ObjectId
+  announcement   Announcement          @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  authorId       String                @db.ObjectId
+  author         User                  @relation("AnnouncementCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  parentId       String?               @db.ObjectId
+  parent         AnnouncementComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   replies        AnnouncementComment[] @relation("CommentReplies")
   content        String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
 
   @@index([announcementId])
   @@index([parentId])
@@ -587,24 +595,24 @@ model SupportResource {
 
 // NOTIFICATIONS
 model Notification {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String   @db.ObjectId
-  user        User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  
-  title       String
-  message     String
-  type        String
-  isRead      Boolean  @default(false)
-  link        String?
-  readAt      DateTime?
-  
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  title   String
+  message String
+  type    String
+  isRead  Boolean   @default(false)
+  link    String?
+  readAt  DateTime?
+
   generatedBy String?
   entityType  String?
   entityId    String?
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
   @@index([isRead])
   @@index([createdAt])
@@ -616,25 +624,25 @@ model Notification {
 // ============================================
 
 model ActivityLog {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String?  @db.ObjectId
-  user        User?    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id     String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId String? @db.ObjectId
+  user   User?   @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  action      String
-  entityType  String
-  entityId    String?
-  details     Json?
-  ipAddress   String?
-  userAgent   String?
-  location    String?
-  sessionId   String?
-  page        String?
-  method      String?
+  action     String
+  entityType String
+  entityId   String?
+  details    Json?
+  ipAddress  String?
+  userAgent  String?
+  location   String?
+  sessionId  String?
+  page       String?
+  method     String?
 
-  techCenterId String? @db.ObjectId
+  techCenterId String?     @db.ObjectId
   techCenter   TechCenter? @relation(fields: [techCenterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([techCenterId])
@@ -649,12 +657,12 @@ model ActivityLog {
 // ============================================
 
 model PageVisitCount {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  pagePath  String   @unique  // e.g., "/dashboard", "/login", etc.
-  count     Int      @default(0)
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  pagePath    String   @unique // e.g., "/dashboard", "/login", etc.
+  count       Int      @default(0)
   lastVisitAt DateTime @updatedAt
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([count])
   @@index([lastVisitAt])
@@ -684,24 +692,24 @@ model UserPageVisitCount {
 // ============================================
 
 model FootballTeam {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
   // User and Tech Center relations
-  userId      String   @db.ObjectId
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  techCenterId String  @db.ObjectId
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  techCenterId String     @db.ObjectId
   techCenter   TechCenter @relation(fields: [techCenterId], references: [id], onDelete: Cascade)
-  
+
   // Player details
   jerseyNumber Int?
-  position     String?  // e.g., "Goalkeeper", "Forward", "Midfielder", "Defender"
-  
+  position     String? // e.g., "Goalkeeper", "Forward", "Midfielder", "Defender"
+
   // Status
-  isActive     Boolean  @default(true)
-  joinedAt     DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  
+  isActive  Boolean  @default(true)
+  joinedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@unique([userId, techCenterId])
   @@index([techCenterId])
   @@map("football_teams")
@@ -712,30 +720,30 @@ model FootballTeam {
 // ============================================
 
 model TeamMembership {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
   // User and Tech Center relations
-  userId      String   @db.ObjectId
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  techCenterId String  @db.ObjectId
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  techCenterId String     @db.ObjectId
   techCenter   TechCenter @relation(fields: [techCenterId], references: [id], onDelete: Cascade)
-  
+
   // Team type and role
-  teamType    TeamType
-  teamRole    TeamRole
-  
+  teamType TeamType
+  teamRole TeamRole
+
   // Additional details
   jerseyNumber Int?
-  position     String?  // specific position for players
-  experience   String?  // experience level
+  position     String? // specific position for players
+  experience   String? // experience level
   notes        String?
-  
+
   // Status
-  isActive     Boolean  @default(true)
-  joinedAt     DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  
+  isActive  Boolean  @default(true)
+  joinedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([techCenterId])
   @@index([teamType])
   @@index([teamRole])
@@ -748,41 +756,41 @@ model TeamMembership {
 // ============================================
 
 model TempleTrip {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
   // Trip details
-  title       String
-  description String
+  title           String
+  description     String
   coordinatorName String // Name of person who created the trip (e.g., "Kiwanuka Tonny")
-  dateRange   String? // e.g., "15th – 18th December 2026"
-  location    String? // e.g., "Nairobi Kenya Temple"
-  flag        String? @default("🇺🇬") // Country flag emoji
-  
+  dateRange       String? // e.g., "15th – 18th December 2026"
+  location        String? // e.g., "Nairobi Kenya Temple"
+  flag            String? @default("🇺🇬") // Country flag emoji
+
   // Requirements
   requirements String[] @default([]) // Array of requirement strings
-  
+
   // Trip metadata
   subtitle    String? // e.g., "December 2026"
   closingText String? // Closing message
-  
+
   // Creator
-  createdById String   @db.ObjectId
-  createdBy   User     @relation("TempleTripCreator", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  
+  createdById String @db.ObjectId
+  createdBy   User   @relation("TempleTripCreator", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
   // Tech center
-  techCenterId String? @db.ObjectId
+  techCenterId String?     @db.ObjectId
   techCenter   TechCenter? @relation("TempleTripTechCenter", fields: [techCenterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  
+
   // Status
-  isActive    Boolean  @default(true)
-  
+  isActive Boolean @default(true)
+
   // Timestamps
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
   registrations TempleTripRegistration[]
-  
+
   @@index([createdById])
   @@index([techCenterId])
   @@index([isActive])
@@ -790,22 +798,22 @@ model TempleTrip {
 }
 
 model TempleTripRegistration {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
   // User and Trip relations
-  userId      String   @db.ObjectId
-  user        User     @relation("TempleTripRegistrations", fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  
-  tripId      String   @db.ObjectId
-  trip        TempleTrip @relation(fields: [tripId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  
+  userId String @db.ObjectId
+  user   User   @relation("TempleTripRegistrations", fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  tripId String     @db.ObjectId
+  trip   TempleTrip @relation(fields: [tripId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
   // Registration details
   registeredAt DateTime @default(now())
-  notes       String?
-  
+  notes        String?
+
   // Tech center (for quick lookup)
   techCenterId String? @db.ObjectId
-  
+
   @@unique([userId, tripId], name: "userId_tripId")
   @@index([tripId])
   @@index([userId])
@@ -819,28 +827,28 @@ model TempleTripRegistration {
 
 // CONVERSATIONS - Tracks chat threads between users
 model Conversation {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
   // Participants - array of user IDs
   participantIds String[] // Store user IDs directly
-  participantKey String @unique // Sorted pair key to prevent duplicate direct conversations
-  
+  participantKey String   @unique // Sorted pair key to prevent duplicate direct conversations
+
   // Last message preview for conversation list
-  lastMessage    String?  // Preview text
-  lastMessageAt  DateTime? // When last message was sent
-  lastMessageId  String?  @db.ObjectId // Reference to last message
-  
+  lastMessage   String? // Preview text
+  lastMessageAt DateTime? // When last message was sent
+  lastMessageId String?   @db.ObjectId // Reference to last message
+
   // Status
-  isActive      Boolean  @default(true)
-  isArchived    Boolean  @default(false)
-  
+  isActive   Boolean @default(true)
+  isArchived Boolean @default(false)
+
   // Tracking
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  messages      Message[] // All messages in this conversation
-  
+  messages Message[] // All messages in this conversation
+
   @@index([participantIds])
   @@index([lastMessageAt])
   @@index([isActive])
@@ -850,31 +858,31 @@ model Conversation {
 
 // MESSAGES - Individual messages in conversations
 model Message {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
   // Conversation reference
-  conversationId String @db.ObjectId
+  conversationId String       @db.ObjectId
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  
+
   // Sender
-  senderId    String   @db.ObjectId
-  sender      User     @relation("SenderMessages", fields: [senderId], references: [id], onDelete: Cascade)
-  
+  senderId String @db.ObjectId
+  sender   User   @relation("SenderMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
   // Message content
   content     String
   attachments String[]
-  
+
   // Read status
-  isRead      Boolean  @default(false)
-  readAt      DateTime?
-  
+  isRead Boolean   @default(false)
+  readAt DateTime?
+
   // Message status
-  isDeleted   Boolean  @default(false) // Soft delete for sender
-  
+  isDeleted Boolean @default(false) // Soft delete for sender
+
   // Tracking
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([conversationId])
   @@index([senderId])
   @@index([createdAt])
@@ -889,45 +897,103 @@ model Message {
 // ============================================
 
 model Media {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  id String @id @default(auto()) @map("_id") @db.ObjectId
 
   // Owner
-  userId        String   @db.ObjectId
-  user          User     @relation("UserMedia", fields: [userId], references: [id], onDelete: Cascade)
+  userId String @db.ObjectId
+  user   User   @relation("UserMedia", fields: [userId], references: [id], onDelete: Cascade)
+  likes  MediaLike[]
+  comments MediaComment[]
+  saves  MediaSave[]
 
   // Azure Blob Storage info
-  blobName      String   // e.g. "6a9814.../7a42dba3-...mp4"
-  publicUrl     String   // full Azure URL
-  containerName String   @default("media")
-  contentType   String   // "video/mp4", "image/png", etc.
-  size          Int      // bytes
-  fileExtension String?  // "mp4", "png", etc.
+  blobName      String // e.g. "6a9814.../7a42dba3-...mp4"
+  publicUrl     String // full Azure URL
+  containerName String  @default("media")
+  contentType   String // "video/mp4", "image/png", etc.
+  size          Int // bytes
+  fileExtension String? // "mp4", "png", etc.
 
   // User-provided metadata
-  title         String
-  description   String?
+  title       String
+  description String?
 
   // Optional categorization (extend later if you want)
-  category      String?  // "gallery", "project", "cleaning", "profile"
-  tags          String[] // searchable tags
+  category String? // "gallery", "project", "cleaning", "profile"
+  tags     String[] // searchable tags
+
+  // Approval workflow
+  approvalStatus String    @default("PENDING") // "PENDING", "APPROVED", "REJECTED"
+  approvedAt     DateTime?
+  approvedById   String?   @db.ObjectId
+  approvedBy     User?     @relation("MediaApprovals", fields: [approvedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   // Status
-  isActive      Boolean  @default(true)
-  isDeleted     Boolean  @default(false)
+  isActive  Boolean @default(true)
+  isDeleted Boolean @default(false)
 
   // Usage tracking
-  viewCount     Int      @default(0)
+  viewCount Int @default(0)
 
   // Timestamps
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([category])
   @@index([contentType])
   @@index([createdAt])
   @@index([isActive])
+  @@index([approvalStatus])
+  @@index([approvedById])
   @@map("media")
+}
+
+model MediaLike {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  mediaId   String   @db.ObjectId
+  media     Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  userId    String   @db.ObjectId
+  user      User     @relation("MediaLikeUser", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([mediaId, userId], name: "mediaId_userId")
+  @@index([userId])
+  @@index([createdAt])
+  @@map("media_likes")
+}
+
+model MediaSave {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  mediaId   String   @db.ObjectId
+  media     Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  userId    String   @db.ObjectId
+  user      User     @relation("MediaSaveUser", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([mediaId, userId], name: "mediaId_userId")
+  @@index([userId])
+  @@index([createdAt])
+  @@map("media_saves")
+}
+
+model MediaComment {
+  id        String          @id @default(auto()) @map("_id") @db.ObjectId
+  mediaId   String          @db.ObjectId
+  media     Media           @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  authorId  String          @db.ObjectId
+  author    User            @relation("MediaCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  parentId  String?         @db.ObjectId
+  parent    MediaComment?   @relation("MediaCommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies   MediaComment[]  @relation("MediaCommentReplies")
+  content   String
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([mediaId, createdAt])
+  @@index([parentId])
+  @@index([authorId])
+  @@map("media_comments")
 }
 
 // ============================================
@@ -935,14 +1001,14 @@ model Media {
 // ============================================
 
 model EnglishHubRegistration {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  id String @id @default(auto()) @map("_id") @db.ObjectId
 
   // User who registered
-  userId      String   @db.ObjectId
-  user        User     @relation("EnglishHubRegistrations", fields: [userId], references: [id], onDelete: Cascade)
+  userId String @db.ObjectId
+  user   User   @relation("EnglishHubRegistrations", fields: [userId], references: [id], onDelete: Cascade)
 
   // Tech center - for isolation
-  techCenterId String   @db.ObjectId
+  techCenterId String     @db.ObjectId
   techCenter   TechCenter @relation("EnglishHubRegistrations", fields: [techCenterId], references: [id], onDelete: Cascade)
 
   // Session date (for daily records)
@@ -953,19 +1019,19 @@ model EnglishHubRegistration {
 
   // Who marked attendance (for teachers/admins)
   markedByUserId String? @db.ObjectId
-  markedBy User? @relation("AttendanceMarkedBy", fields: [markedByUserId], references: [id], onDelete: NoAction)
+  markedBy       User?   @relation("AttendanceMarkedBy", fields: [markedByUserId], references: [id], onDelete: NoAction)
 
   // Manual override by teacher/admin
-  manuallyOpened Boolean @default(false) // If true, registration opened manually
-  manuallyClosed Boolean @default(false) // If true, registration closed manually
-  manualOverrideBy String? @db.ObjectId // Who made the override
+  manuallyOpened   Boolean   @default(false) // If true, registration opened manually
+  manuallyClosed   Boolean   @default(false) // If true, registration closed manually
+  manualOverrideBy String?   @db.ObjectId // Who made the override
   manualOverrideAt DateTime?
 
   // Timestamps
-  registeredAt DateTime @default(now())
+  registeredAt DateTime  @default(now())
   markedAt     DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@unique([userId, sessionDate]) // One registration per user per day
   @@index([techCenterId])
@@ -980,19 +1046,19 @@ model EnglishHubRegistration {
 
 // FOLLOW - User follows another user
 model Follow {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
   // User who is following
-  followerId  String   @db.ObjectId
-  follower    User     @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
-  
+  followerId String @db.ObjectId
+  follower   User   @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+
   // User being followed
-  followingId String   @db.ObjectId
-  following   User     @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
-  
+  followingId String @db.ObjectId
+  following   User   @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
   // Timestamp
-  createdAt   DateTime @default(now())
-  
+  createdAt DateTime @default(now())
+
   @@unique([followerId, followingId], name: "followerId_followingId")
   @@index([followerId])
   @@index([followingId])
@@ -1002,19 +1068,19 @@ model Follow {
 
 // LIKE - User likes another user's profile
 model Like {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
   // User who is liking
-  likerId     String   @db.ObjectId
-  liker       User     @relation("UserLikesGiven", fields: [likerId], references: [id], onDelete: Cascade)
-  
+  likerId String @db.ObjectId
+  liker   User   @relation("UserLikesGiven", fields: [likerId], references: [id], onDelete: Cascade)
+
   // User being liked
-  likedUserId String   @db.ObjectId
-  likedUser   User     @relation("UserLikesReceived", fields: [likedUserId], references: [id], onDelete: Cascade)
-  
+  likedUserId String @db.ObjectId
+  likedUser   User   @relation("UserLikesReceived", fields: [likedUserId], references: [id], onDelete: Cascade)
+
   // Timestamp
-  createdAt   DateTime @default(now())
-  
+  createdAt DateTime @default(now())
+
   @@unique([likerId, likedUserId], name: "likerId_likedUserId")
   @@index([likerId])
   @@index([likedUserId])
@@ -1049,23 +1115,23 @@ model ProfileView {
 // in Atlas (Prisma can't declare it — see Step 3).
 
 model PageVisitEvent {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  id String @id @default(auto()) @map("_id") @db.ObjectId
 
-  userId      String   @db.ObjectId
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  pagePath    String
+  pagePath String
 
   // Timestamps
-  visitedAt   DateTime @default(now())
+  visitedAt DateTime @default(now())
 
   // TTL anchor — MongoDB deletes the doc when `expiresAt` < now.
   // Set to `visitedAt + 24h` at insert time.
-  expiresAt   DateTime
+  expiresAt DateTime
 
   // Optional metadata
-  ipAddress   String?
-  userAgent   String?
+  ipAddress String?
+  userAgent String?
 
   @@index([userId, pagePath, visitedAt])
   @@index([pagePath, visitedAt])
@@ -1079,20 +1145,20 @@ model PageVisitEvent {
 // ============================================
 
 model EmailLog {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  id String @id @default(auto()) @map("_id") @db.ObjectId
 
   // Email details
-  to          String   // Recipient email
-  subject     String
-  provider    String   // "resend" or "mailjet"
-  type        String   // "password_reset", "notification", "other"
+  to       String // Recipient email
+  subject  String
+  provider String // "resend" or "mailjet"
+  type     String // "password_reset", "notification", "other"
 
   // Status
-  status      String   @default("sent") // "sent", "failed"
+  status String @default("sent") // "sent", "failed"
 
   // Timestamps
-  sentAt      DateTime @default(now())
-  createdAt   DateTime @default(now())
+  sentAt    DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([provider])
   @@index([type])

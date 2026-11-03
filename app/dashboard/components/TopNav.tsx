@@ -22,7 +22,6 @@ import {
   useAnnouncementCount,
 } from '@/hooks/useNotifications';
 import { useUnreadMessageCount } from '@/hooks/useMessages';
-import { useOnlineUsers } from '@/lib/hooks/useOnlineUsers';
 import { PageRefreshButton } from './PageRefreshButton';
 
 // ============================================================
@@ -249,8 +248,6 @@ export default function TopNav({
 
   const { data: unreadMessageCount } =
     useUnreadMessageCount();
-
-  const onlineUsers = useOnlineUsers(user);
 
   const pathname = usePathname();
   const pageInfo = getPageInfo(pathname);

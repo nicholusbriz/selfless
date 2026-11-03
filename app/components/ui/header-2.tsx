@@ -49,10 +49,8 @@ import {
   useAnnouncementCount,
 } from "@/hooks/useNotifications";
 import { useUnreadMessageCount } from "@/hooks/useMessages";
-import {
-  useOnlineUsers,
-  type OnlineUser,
-} from "@/lib/hooks/useOnlineUsers";
+import { useOnlineUsersContext } from "@/lib/contexts/OnlineUsersContext";
+import type { OnlineUser } from "@/lib/contexts/OnlineUsersContext";
 
 /* -------------------------------------------------------------------------- */
 /* COLORS                                                                     */
@@ -638,7 +636,7 @@ export default function Header2() {
   const { data: announcementCount } = useAnnouncementCount(!!user);
   const { data: unreadMessageCount } = useUnreadMessageCount();
   useActivityTracker(Boolean(user?.id));
-  const onlineUsers = useOnlineUsers(user);
+  const { onlineUsers } = useOnlineUsersContext();
 
   const handleScroll = useCallback(() => {
     setScrolled(window.scrollY > 18);

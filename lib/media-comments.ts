@@ -1,0 +1,1 @@
+export const MAX_MEDIA_COMMENT_LENGTH = 200;
