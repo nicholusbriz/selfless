@@ -51,10 +51,10 @@ const DEFAULT_INTERVAL = 5000;
 const DEFAULT_ENDPOINT = "/api/discover-students";
 const SWIPE_THRESHOLD = 40;
 const CARD_ASPECT = 0.76;
-const MAX_CARD_WIDTH = 400;
+const MAX_CARD_WIDTH = 460;
 const MIN_CARD_WIDTH = 270;
 const MOBILE_HORIZONTAL_PADDING = 12;
-const DESKTOP_HORIZONTAL_PADDING = 80;
+const DESKTOP_HORIZONTAL_PADDING = 32;
 const MOBILE_RESERVED_VERTICAL = 120;
 const DESKTOP_RESERVED_VERTICAL = 165;
 const MOBILE_MAX = 639;
@@ -486,11 +486,11 @@ export function DiscoverStudents({
   // ---- SKELETON / EMPTY ----
   if (isLoading || !currentStudent) {
     return (
-      <section className="w-full">
-        <div className="overflow-hidden rounded-2xl bg-black">
-          <div className="relative mx-auto mt-3 w-full px-3">
+      <section className="mx-auto w-full max-w-[520px]">
+        <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0F1115] shadow-[0_16px_45px_rgba(15,17,21,0.18)]">
+          <div className="relative mx-auto mt-2 w-full px-2 sm:px-3">
             <div
-              className="relative mx-auto flex w-full max-w-[400px] flex-col overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115]"
+              className="relative mx-auto flex w-full max-w-[460px] flex-col overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115]"
               style={{ aspectRatio: CARD_ASPECT }}
             >
               {isLoading ? (
@@ -513,7 +513,7 @@ export function DiscoverStudents({
   }
 
   // ---- DERIVED VALUES ----
-  const { width: cardWidth, height: cardHeight, infoHeight } = size;
+  const { width: cardWidth, height: cardHeight } = size;
   const firstName = currentStudent.firstName?.trim() || "Student";
   const lastName = currentStudent.lastName?.trim() || "";
   const fullName = `${firstName} ${lastName}`.trim();
@@ -527,16 +527,16 @@ export function DiscoverStudents({
   const roleLabel = formatRole(currentStudent.role?.name);
 
   return (
-    <section className="w-full">
+    <section className="mx-auto w-full max-w-[520px]">
       <div
-        className="overflow-hidden rounded-2xl bg-black"
+        className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0F1115] shadow-[0_16px_45px_rgba(15,17,21,0.18)]"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
         {/* STAGE */}
         <div
           ref={stageContainerRef}
-          className="relative mx-auto w-full px-3 pt-2"
+          className="relative mx-auto w-full px-2 pt-2 sm:px-3"
           style={{ height: `${cardHeight + 16}px` }}
         >
           <div
@@ -550,7 +550,7 @@ export function DiscoverStudents({
           >
             <div
               key={currentStudent.id}
-              className="absolute inset-0 flex h-full w-full flex-col overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] shadow-[0_24px_65px_rgba(0,0,0,0.52)]"
+              className="absolute inset-0 flex h-full w-full flex-col overflow-hidden rounded-[24px] border border-[#C8A24A]/50 bg-[#0F1115] shadow-[0_24px_65px_rgba(0,0,0,0.52)]"
             >
               {/* IMAGE */}
               <div className="relative h-full w-full overflow-hidden bg-black">
@@ -561,7 +561,7 @@ export function DiscoverStudents({
                     alt={fullName}
                     fill
                     sizes={`${cardWidth}px`}
-                    className="h-full w-full object-cover object-center"
+                    className="h-full w-full object-cover object-[center_40%]"
                     quality={95}
                     priority
                   />
@@ -572,21 +572,21 @@ export function DiscoverStudents({
                 )}
 
                 {/* INFO OVERLAY */}
-                <div className="absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-black/70 via-black/30 to-transparent">
-                  <div className="flex flex-col gap-2">
+                <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/85 via-black/25 to-transparent p-5 sm:p-6">
+                  <div className="flex flex-col gap-2.5">
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-[16px] font-bold leading-tight text-white">
+                      <h3 className="text-lg font-bold leading-tight text-white drop-shadow sm:text-xl">
                         {fullName}
                       </h3>
                       {roleLabel && (
-                        <span className="text-[11px] font-medium text-white/90">
+                        <span className="rounded-full border border-white/25 bg-black/25 px-2.5 py-1 text-[10px] font-semibold text-white/95 backdrop-blur-sm">
                           {roleLabel}
                         </span>
                       )}
                     </div>
 
                     {!isSuperAdmin && (
-                      <p className="text-[13px] font-medium text-white">
+                      <p className="text-sm font-medium text-white/95">
                         {courseName || "Student"}
                       </p>
                     )}
@@ -594,7 +594,7 @@ export function DiscoverStudents({
                     {!isSuperAdmin && techCenterName && (
                       <div className="flex items-center gap-1.5">
                         <MapPin className="h-[12px] w-[12px] shrink-0 text-[#D4A84B]" />
-                        <span className="text-[12px] font-medium text-white/90">
+                        <span className="text-xs font-medium text-white/90">
                           {techCenterName}
                         </span>
                       </div>
@@ -607,7 +607,7 @@ export function DiscoverStudents({
         </div>
 
         {/* FOOTER CONTROLS */}
-        <div className="mx-auto flex w-full max-w-[820px] items-center justify-between border-t border-white/[0.07] px-4 py-3 sm:px-7 sm:py-4">
+        <div className="mx-auto flex w-full items-center justify-between border-t border-white/[0.07] px-4 py-3 sm:px-6 sm:py-4">
           <span
             className="text-xs font-medium tracking-wide"
             style={{ color: WHITE_70 }}

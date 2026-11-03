@@ -10,14 +10,15 @@ import {
 import { usePathname, useRouter } from 'next/navigation';
 import Head from 'next/head';
 import { motion } from 'framer-motion';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { getApiErrorMessage, isJsonObject } from '@/lib/api-response';
 import { PageTracker } from './components/PageTracker';
 import Sidebar from './components/Sidebar';
 import TopNav from './components/TopNav';
 
-import { ChevronRight } from 'lucide-react';
-import Image from 'next/image';
+import { Images, Radio } from 'lucide-react';
 import Link from 'next/link';
 
 import { GlobalOnlineUsersPopup } from '@/components/GlobalOnlineUsersPopup';
@@ -216,6 +217,7 @@ export default function DashboardLayout({
 
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   // Initialize sidebar state based on screen size
   useEffect(() => {
@@ -247,6 +249,40 @@ export default function DashboardLayout({
   const isConnectionsPage = pathname === '/dashboard/connections';
 
   const { users: onlineUsers, isLoading: isLoadingOnlineUsers } = useOnlineUsers(user);
+  const {
+    data: postCount,
+    isPending: isPostCountPending,
+    isError: isPostCountError,
+  } = useQuery<number>({
+    queryKey: ['gallery-post-count'],
+    queryFn: async () => {
+      const response = await fetch('/api/media/list?category=gallery&countOnly=true');
+      const data: unknown = await response.json();
+      if (
+        !response.ok ||
+        !isJsonObject(data) ||
+        data.success !== true ||
+        typeof data.totalCount !== 'number'
+      ) {
+        throw new Error(getApiErrorMessage(data, 'Could not load post count'));
+      }
+      return data.totalCount;
+    },
+    enabled: isAuthenticated && !!user,
+  });
+
+  useEffect(() => {
+    const refreshPostCount = () => {
+      void queryClient.invalidateQueries({
+        queryKey: ['gallery-post-count'],
+      });
+    };
+
+    window.addEventListener('selfless:gallery-posts-changed', refreshPostCount);
+    return () => {
+      window.removeEventListener('selfless:gallery-posts-changed', refreshPostCount);
+    };
+  }, [queryClient]);
 
   // ----------------------------------------------------------
   // AUTHENTICATION
@@ -283,7 +319,7 @@ export default function DashboardLayout({
 
   if (isLoading) {
     return (
-      <div className="h-screen w-screen bg-[#F8F9FA] flex items-center justify-center">
+      <div className="min-h-dvh w-full bg-[#F8F9FA] flex items-center justify-center">
         <motion.div
           initial={{
             opacity: 0,
@@ -353,7 +389,7 @@ export default function DashboardLayout({
       {/* 🎯 Global online users popup */}
       <GlobalOnlineUsersPopup />
 
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen w-full min-w-0 overflow-x-clip bg-white">
         {/* ================================================== */}
         {/* MOBILE OVERLAY */}
         {/* ================================================== */}
@@ -420,10 +456,10 @@ export default function DashboardLayout({
           {/* MAIN CONTENT */}
           {/* ================================================= */}
 
-          <div>
+          <div className="w-full min-w-0">
             {/* ✅ FULL-WIDTH CONTENT — no max-width cap */}
-            <main className="min-h-screen px-3 xl:px-4 pt-[76px] pb-6">
-              <div className="w-full">
+            <main className="min-h-screen w-full min-w-0 px-2 sm:px-3 lg:px-4 pt-[72px] pb-6">
+              <div className="w-full min-w-0">
                 {/* PAGE HEADING */}
                 {pathname !==
                   '/dashboard' &&
@@ -484,13 +520,13 @@ export default function DashboardLayout({
 
             {/* DESKTOP FOOTER — full width */}
             <footer className="bg-transparent">
-              <div className="w-full px-3 xl:px-4 py-3">
+              <div className="w-full min-w-0 px-2 sm:px-3 lg:px-4 py-3">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-2">
                   <p className="font-mono text-xs text-[#8A9088]">
                     Selfless Portal - Learn, connect, grow.
                   </p>
 
-                  <div className="flex items-center gap-5 text-xs text-[#8A9088]">
+                  <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-xs text-[#8A9088] md:justify-end">
                     {DASHBOARD_FOOTER_LINKS.map((link) => (
                       <Link
                         key={link.href}
@@ -526,63 +562,48 @@ export default function DashboardLayout({
                 duration: 0.35,
                 delay: 0.25,
               }}
-              className="fixed bottom-4 right-4 z-40"
+              className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2"
             >
               <Link
-                href="/dashboard/ai"
-                aria-label="Open Atbriz AI"
+                href="/dashboard/live-streaming"
+                aria-label="Go Live"
                 className={cn(
                   'group flex items-center gap-2',
-                  'bg-white',
+                  'rounded-lg bg-[#A4462F] px-3 py-2 text-white',
+                  'shadow-[0_4px_12px_rgba(18,32,59,0.12)]',
+                  'transition-all duration-200 hover:bg-[#873923] hover:shadow-[0_7px_20px_rgba(18,32,59,0.16)]',
+                  'focus:outline-none focus:ring-2 focus:ring-[#A4462F]/40 focus:ring-offset-2'
+                )}
+              >
+                <Radio aria-hidden="true" className="h-4 w-4" />
+                <span className="text-xs font-semibold">Go Live</span>
+              </Link>
+
+              <Link
+                href="/dashboard/gallery"
+                aria-label="Open Posts"
+                className={cn(
+                  'group flex items-center gap-2',
+                  'bg-[#1A2B4C] text-white',
                   'px-3 py-2 rounded-lg',
                   'shadow-[0_4px_12px_rgba(18,32,59,0.10)]',
-                  'hover:shadow-[0_7px_20px_rgba(18,32,59,0.14)]',
+                  'hover:bg-[#B98A3E] hover:shadow-[0_7px_20px_rgba(18,32,59,0.14)]',
                   'transition-all duration-200'
                 )}
               >
-                <div className="relative flex-shrink-0">
-                  <motion.div
-                    whileHover={{
-                      scale: 1.05,
-                    }}
-                    whileTap={{
-                      scale: 0.95,
-                    }}
-                  >
-                    <Image
-                      src="/atbriz.png"
-                      alt="Atbriz AI"
-                      width={30}
-                      height={30}
-                      className="w-[30px] h-[30px] object-cover border border-[#E5E7EB] rounded"
-                    />
-                  </motion.div>
-
-                  <motion.span
-                    animate={{
-                      opacity: [
-                        0.55,
-                        1,
-                        0.55,
-                      ],
-                    }}
-                    transition={{
-                      duration: 2.2,
-                      repeat: Infinity,
-                    }}
-                    className="absolute -right-0.5 -top-0.5 w-2 h-2 rounded-full bg-[#55705B] border-2 border-white"
-                  />
-                </div>
-
-                <div className="hidden sm:block leading-tight">
-                  <p className="text-[11px] font-semibold text-[#1A2B4C]">
-                    Atbriz AI
-                  </p>
-
-                  <p className="text-[9px] font-mono text-[#8A9088] uppercase tracking-wide">
-                    Assistant
-                  </p>
-                </div>
+                <Images aria-hidden="true" className="h-4 w-4" />
+                <span className="text-xs font-semibold">Posts</span>
+                <span
+                  aria-live="polite"
+                  className="min-w-5 rounded-full bg-white/15 px-1.5 py-0.5 text-center text-[10px] font-semibold tabular-nums"
+                  title={
+                    isPostCountError
+                      ? 'Post count unavailable'
+                      : `${postCount ?? 0} posts`
+                  }
+                >
+                  {isPostCountPending ? '…' : isPostCountError ? '!' : postCount}
+                </span>
               </Link>
             </motion.div>
           )}

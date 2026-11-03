@@ -4,6 +4,7 @@ interface ConnectionInfo {
   socket: PartySocket;
   refCount: number;
   persistent: boolean;
+  userId: string;
 }
 
 class PartySocketManager {
@@ -23,15 +24,20 @@ class PartySocketManager {
 
     // Check if we already have a connection to this room
     const existing = this.connections.get(connectionKey);
-    if (existing && existing.socket.readyState === WebSocket.OPEN) {
+    if (
+      existing &&
+      existing.userId === options.userId &&
+      existing.socket.readyState !== WebSocket.CLOSING &&
+      existing.socket.readyState !== WebSocket.CLOSED
+    ) {
       console.info('[socket-manager] Reusing existing connection for room:', room);
       existing.refCount++;
       return existing.socket;
     }
 
-    // Clean up closed connections
-    if (existing && existing.socket.readyState !== WebSocket.OPEN) {
-      console.info('[socket-manager] Cleaning up closed connection for room:', room);
+    // Replace stale, closed, or differently-authenticated connections.
+    if (existing) {
+      console.info('[socket-manager] Replacing stale connection for room:', room);
       existing.socket.close();
       this.connections.delete(connectionKey);
     }
@@ -49,6 +55,7 @@ class PartySocketManager {
       socket,
       refCount: 1,
       persistent: options.persistent || false,
+      userId: options.userId,
     });
 
     return socket;

@@ -75,9 +75,11 @@ function isMediaComment(value: unknown): value is MediaComment {
 export default function MediaPostInteractions({
   mediaId,
   currentUser,
+  showCommentInput = false,
 }: {
   mediaId: string;
   currentUser: MediaComment['author'];
+  showCommentInput?: boolean;
 }) {
   const queryClient = useQueryClient();
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -454,56 +456,58 @@ export default function MediaPostInteractions({
   const interactions = interactionsQuery.data;
 
   return (
-    <div className="border-t border-[#EEF0F4]">
-      <div className="flex items-center gap-5 px-5 py-3">
-        <button
-          type="button"
-          onClick={() => likeMutation.mutate(!interactions?.isLiked)}
-          disabled={!interactions || likeMutation.isPending}
-          aria-pressed={interactions?.isLiked ?? false}
-          className={`inline-flex items-center gap-2 text-sm font-semibold transition disabled:cursor-wait disabled:opacity-60 ${
-            interactions?.isLiked ? 'text-rose-600' : 'text-[#687386] hover:text-rose-600'
-          }`}
-        >
-          {likeMutation.isPending ? (
-            <Loader2 className="h-[18px] w-[18px] animate-spin" />
-          ) : (
-            <Heart className={`h-[18px] w-[18px] ${interactions?.isLiked ? 'fill-current' : ''}`} />
-          )}
-          {interactions?.likeCount ?? '—'}
-          <span className="sr-only">likes</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setCommentsOpen((open) => !open)}
-          aria-expanded={commentsOpen}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-[#687386] transition hover:text-[#1A2B4C]"
-        >
-          <MessageCircle className="h-[18px] w-[18px]" />
-          {interactions?.commentCount ?? (commentsOpen ? comments.length : '—')}
-          <span>Comments</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => saveMutation.mutate(!interactions?.isSaved)}
-          disabled={!interactions || saveMutation.isPending}
-          aria-pressed={interactions?.isSaved ?? false}
-          className={`ml-auto inline-flex items-center gap-2 text-sm font-semibold transition disabled:cursor-wait disabled:opacity-60 ${
-            interactions?.isSaved
-              ? 'text-[#1A2B4C]'
-              : 'text-[#687386] hover:text-[#1A2B4C]'
-          }`}
-        >
-          {saveMutation.isPending ? (
-            <Loader2 className="h-[18px] w-[18px] animate-spin" />
-          ) : (
-            <Bookmark className={`h-[18px] w-[18px] ${interactions?.isSaved ? 'fill-current' : ''}`} />
-          )}
-          {interactions?.isSaved ? 'Saved' : 'Save'}
-        </button>
-      </div>
+    <div className={showCommentInput ? '' : 'border-t border-[#EEF0F4]'}>
+      {!showCommentInput && (
+        <div className="flex items-center gap-5 px-5 py-3">
+          <button
+            type="button"
+            onClick={() => likeMutation.mutate(!interactions?.isLiked)}
+            disabled={!interactions || likeMutation.isPending}
+            aria-pressed={interactions?.isLiked ?? false}
+            className={`inline-flex items-center gap-2 text-sm font-semibold transition disabled:cursor-wait disabled:opacity-60 ${
+              interactions?.isLiked ? 'text-rose-600' : 'text-[#687386] hover:text-rose-600'
+            }`}
+          >
+            {likeMutation.isPending ? (
+              <Loader2 className="h-[18px] w-[18px] animate-spin" />
+            ) : (
+              <Heart className={`h-[18px] w-[18px] ${interactions?.isLiked ? 'fill-current' : ''}`} />
+            )}
+            {interactions?.likeCount ?? '—'}
+            <span className="sr-only">likes</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setCommentsOpen((open) => !open)}
+            aria-expanded={commentsOpen}
+            className="inline-flex items-center gap-2 text-sm font-semibold text-[#687386] transition hover:text-[#1A2B4C]"
+          >
+            <MessageCircle className="h-[18px] w-[18px]" />
+            {interactions?.commentCount ?? (commentsOpen ? comments.length : '—')}
+            <span>Comments</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => saveMutation.mutate(!interactions?.isSaved)}
+            disabled={!interactions || saveMutation.isPending}
+            aria-pressed={interactions?.isSaved ?? false}
+            className={`ml-auto inline-flex items-center gap-2 text-sm font-semibold transition disabled:cursor-wait disabled:opacity-60 ${
+              interactions?.isSaved
+                ? 'text-[#1A2B4C]'
+                : 'text-[#687386] hover:text-[#1A2B4C]'
+            }`}
+          >
+            {saveMutation.isPending ? (
+              <Loader2 className="h-[18px] w-[18px] animate-spin" />
+            ) : (
+              <Bookmark className={`h-[18px] w-[18px] ${interactions?.isSaved ? 'fill-current' : ''}`} />
+            )}
+            {interactions?.isSaved ? 'Saved' : 'Save'}
+          </button>
+        </div>
+      )}
 
-      {(interactionsQuery.error || likeMutation.error || saveMutation.error || deleteMutation.error) && (
+      {!showCommentInput && (interactionsQuery.error || likeMutation.error || saveMutation.error || deleteMutation.error) && (
         <p className="mx-5 mb-3 flex items-center gap-1.5 text-xs text-red-600">
           <AlertCircle className="h-3.5 w-3.5 shrink-0" />
           {interactionsQuery.error?.message ??
@@ -513,28 +517,34 @@ export default function MediaPostInteractions({
         </p>
       )}
 
-      {commentsOpen && (
-        <div className="space-y-4 border-t border-[#EEF0F4] bg-[#FAFBFC] px-5 py-4">
-          {commentsQuery.isLoading ? (
-            <div className="flex items-center gap-2 py-2 text-xs text-[#687386]">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading comments...
-            </div>
-          ) : comments.length ? (
-            <div className="max-h-[420px] space-y-4 overflow-y-auto">
-              {(commentsByParent.get(null) ?? []).map((comment) => renderComment(comment))}
-            </div>
-          ) : commentsQuery.error ? (
-            <p className="text-xs text-red-600">{commentsQuery.error.message}</p>
-          ) : (
-            <p className="text-xs text-[#8A93A2]">Be the first to comment.</p>
+      {(commentsOpen || showCommentInput) && (
+        <div className={`${showCommentInput ? 'bg-gradient-to-t from-black/75 via-black/55 to-transparent px-2 pb-2 pt-5' : 'border-t border-[#EEF0F4] bg-[#FAFBFC] px-3 py-3'} space-y-4`}>
+          {commentsOpen && !showCommentInput && (
+            <>
+              {commentsQuery.isLoading ? (
+                <div className="flex items-center gap-2 py-2 text-xs text-[#687386]">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading comments...
+                </div>
+              ) : comments.length ? (
+                <div className="max-h-[420px] space-y-4 overflow-y-auto">
+                  {(commentsByParent.get(null) ?? []).map((comment) => renderComment(comment))}
+                </div>
+              ) : commentsQuery.error ? (
+                <p className="text-xs text-red-600">{commentsQuery.error.message}</p>
+              ) : (
+                <p className="text-xs text-[#8A93A2]">Be the first to comment.</p>
+              )}
+            </>
           )}
-          {commentsQuery.error && comments.length > 0 && (
+          {commentsOpen && !showCommentInput && commentsQuery.error && comments.length > 0 && (
             <p className="text-xs text-red-600">{commentsQuery.error.message}</p>
           )}
 
           {commentMutation.error && (
-            <p className="text-xs text-red-600">{commentMutation.error.message}</p>
+            <p className={`text-xs ${showCommentInput ? 'text-red-200' : 'text-red-600'}`}>
+              {commentMutation.error.message}
+            </p>
           )}
 
           <form
@@ -580,13 +590,21 @@ export default function MediaPostInteractions({
                 rows={1}
                 placeholder={replyingTo ? 'Write a reply...' : 'Add a comment...'}
                 aria-describedby={`media-comment-count-${mediaId}`}
-                className="max-h-28 min-h-10 flex-1 resize-y rounded-xl border border-[#E1E5EB] bg-white px-3 py-2.5 text-sm text-[#172033] outline-none transition placeholder:text-[#9AA3B1] focus:border-[#A9B6C8] focus:ring-2 focus:ring-[#1A2B4C]/10"
+                className={`max-h-28 min-h-10 flex-1 resize-y rounded-xl border px-3 py-2.5 text-sm outline-none transition focus:ring-2 ${
+                  showCommentInput
+                    ? 'border-white/30 bg-black/35 text-white placeholder:text-white/70 focus:border-white/60 focus:ring-white/20'
+                    : 'border-[#E1E5EB] bg-white text-[#172033] placeholder:text-[#9AA3B1] focus:border-[#A9B6C8] focus:ring-[#1A2B4C]/10'
+                }`}
               />
               <button
                 type="submit"
                 disabled={!content.trim() || commentIsOverLimit || commentMutation.isPending}
                 aria-label={replyingTo ? 'Send reply' : 'Send comment'}
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#1A2B4C] text-white transition hover:bg-[#263D66] disabled:cursor-not-allowed disabled:opacity-50"
+                className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                  showCommentInput
+                    ? 'bg-[#B98A3E] hover:bg-[#A7792E]'
+                    : 'bg-[#1A2B4C] hover:bg-[#263D66]'
+                }`}
               >
                 {commentMutation.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -598,8 +616,8 @@ export default function MediaPostInteractions({
             <p
               id={`media-comment-count-${mediaId}`}
               aria-live="polite"
-              className={`text-right text-xs ${
-                commentIsOverLimit ? 'text-red-600' : 'text-[#8A93A2]'
+              className={`${showCommentInput ? 'sr-only' : 'text-right text-xs'} ${
+                commentIsOverLimit ? 'text-red-300' : 'text-[#8A93A2]'
               }`}
             >
               {content.length}/{MAX_MEDIA_COMMENT_LENGTH}

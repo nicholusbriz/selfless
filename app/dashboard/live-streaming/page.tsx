@@ -19,6 +19,7 @@ import {
   Eye,
   GraduationCap,
   Loader2,
+  Music2,
   Play,
   Search,
   Volume2,
@@ -27,7 +28,7 @@ import {
 } from "lucide-react";
 import {
   useEnglishLearningVideos,
-  // useMusicVideos,
+  useMusicVideos,
 } from "@/hooks/useYouTube";
 
 type VideoItem = {
@@ -40,8 +41,7 @@ type VideoItem = {
   viewCount?: string | number;
 };
 
-type TabType = "english";
-// type TabType = "english" | "music";
+type TabType = "english" | "music";
 
 type Category = {
   id: string;
@@ -74,7 +74,7 @@ type YouTubePlayerConstructor = new (
   element: HTMLElement,
   options: {
     videoId?: string;
-    playerVars?: Record<string, number>;
+    playerVars?: Record<string, string | number>;
     events?: {
       onReady?: () => void;
       onStateChange?: (event: { data: number }) => void;
@@ -165,51 +165,22 @@ const ENGLISH_CATEGORIES: Category[] = [
   },
 ];
 
-// Music categories are intentionally kept commented out.
-// They can be enabled later without changing the English implementation.
-//
-// const MUSIC_CATEGORIES: Category[] = [
-//   {
-//     id: "trending",
-//     label: "Trending",
-//     query: "trending music videos 2026",
-//   },
-//   {
-//     id: "rnb",
-//     label: "R&B",
-//     query: "R&B music",
-//   },
-//   {
-//     id: "hiphop",
-//     label: "Hip Hop",
-//     query: "hip hop music",
-//   },
-//   {
-//     id: "gospel",
-//     label: "Gospel",
-//     query: "gospel music",
-//   },
-//   {
-//     id: "pop",
-//     label: "Pop",
-//     query: "pop music",
-//   },
-//   {
-//     id: "afrobeats",
-//     label: "Afrobeats",
-//     query: "Afrobeats music",
-//   },
-//   {
-//     id: "reggae",
-//     label: "Reggae",
-//     query: "reggae music",
-//   },
-//   {
-//     id: "classic",
-//     label: "Classic",
-//     query: "classic music",
-//   },
-// ];
+const MUSIC_CATEGORIES: Category[] = [
+  { id: "trending", label: "Trending", query: "trending music videos lyrics" },
+  { id: "popular", label: "Popular", query: "popular music videos lyrics" },
+  { id: "gospel", label: "Gospel", query: "gospel music video lyrics" },
+  { id: "old-school", label: "Old School", query: "old school hits music video lyrics" },
+  { id: "rnb", label: "R&B", query: "R&B music video lyrics" },
+  { id: "hiphop", label: "Hip Hop", query: "hip hop music video lyrics" },
+  { id: "afrobeats", label: "Afrobeats", query: "Afrobeats music video lyrics" },
+  { id: "pop", label: "Pop", query: "pop music video lyrics" },
+  { id: "reggae", label: "Reggae", query: "reggae music video lyrics" },
+  { id: "classic", label: "Classics", query: "classic hits music video lyrics" },
+  { id: "rock", label: "Rock", query: "rock music video lyrics" },
+  { id: "jazz", label: "Jazz", query: "jazz music video lyrics" },
+  { id: "country", label: "Country", query: "country music video lyrics" },
+  { id: "electronic", label: "Electronic", query: "electronic dance music videos lyrics" },
+];
 
 function safeText(value: unknown, fallback = "") {
   if (typeof value !== "string") return fallback;
@@ -298,16 +269,16 @@ function VideoCard({
       type="button"
       onClick={onClick}
       className={[
-        "group w-full overflow-hidden rounded-xl border bg-white text-left",
+        "group flex h-full w-full flex-col overflow-hidden rounded-2xl border bg-white text-left shadow-sm",
         "transition duration-200",
-        "hover:-translate-y-0.5 hover:shadow-md",
+        "hover:-translate-y-1 hover:shadow-lg",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a365d]/30",
         selected
-          ? "border-[#1a365d] shadow-sm ring-1 ring-[#1a365d]/10"
+          ? "border-[#1a365d] shadow-md ring-2 ring-[#1a365d]/10"
           : "border-[#e2e6ec]",
       ].join(" ")}
     >
-      <div className="relative aspect-video w-full overflow-hidden bg-[#eef1f5]">
+      <div className="relative aspect-video w-full shrink-0 overflow-hidden bg-[#eef1f5]">
         {video.thumbnail ? (
           <img
             src={video.thumbnail}
@@ -335,26 +306,23 @@ function VideoCard({
         )}
       </div>
 
-      <div className="p-4 sm:p-3.5">
-        <h3 className="min-h-0 line-clamp-2 text-[15px] font-semibold leading-5 text-[#10192b] sm:text-[14px]">
+      <div className="flex flex-1 flex-col p-4 sm:p-5">
+        <h3 className="break-words text-base font-semibold leading-6 text-[#10192b] sm:text-[17px]">
           {safeText(video.title, "Untitled video")}
         </h3>
 
-        <div className="mt-2 flex min-w-0 items-center gap-2 text-xs text-[#6b7789]">
+        <div className="mt-3 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 border-t border-[#eef1f5] pt-3 text-sm text-[#6b7789]">
           {video.channelTitle && (
-            <span className="min-w-0 truncate">
+            <span className="min-w-0 break-words font-medium text-[#3d4a61]">
               {safeText(video.channelTitle)}
             </span>
           )}
 
           {video.viewCount !== undefined && (
-            <>
-              <span className="shrink-0 text-[#cfd6e0]">•</span>
-              <span className="flex shrink-0 items-center gap-1">
+            <span className="flex shrink-0 items-center gap-1.5">
                 <Eye className="h-3 w-3" />
                 {formatViews(video.viewCount)}
-              </span>
-            </>
+            </span>
           )}
         </div>
       </div>
@@ -364,15 +332,21 @@ function VideoCard({
 
 function VideoPlayer({
   video,
+  contentLabel,
   hasUserStartedRef,
+  playVideoRef,
   shouldAutoplay,
   onStarted,
+  onEnded,
   onPlayingStateChange,
 }: {
   video: VideoItem | null;
+  contentLabel: string;
   hasUserStartedRef: MutableRefObject<boolean>;
+  playVideoRef: MutableRefObject<(videoId: string) => void>;
   shouldAutoplay: boolean;
   onStarted: () => void;
+  onEnded: () => void;
   onPlayingStateChange: (playing: boolean) => void;
 }) {
   const playerRef = useRef<YouTubePlayer | null>(null);
@@ -388,20 +362,38 @@ function VideoPlayer({
   const [playerHasStarted, setPlayerHasStarted] = useState(false);
   const [playerIsPlaying, setPlayerIsPlaying] = useState(false);
   const [playerError, setPlayerError] = useState(false);
-
-  const handleStarted = useCallback(() => {
-    hasUserStartedRef.current = true;
-    setPlayerHasStarted(true);
-    onStarted();
-  }, [hasUserStartedRef, onStarted]);
+  const playerIsPlayingRef = useRef(false);
+  const onEndedRef = useRef(onEnded);
 
   const handlePlayingStateChange = useCallback(
     (playing: boolean) => {
+      playerIsPlayingRef.current = playing;
       setPlayerIsPlaying(playing);
       onPlayingStateChange(playing);
     },
     [onPlayingStateChange]
   );
+
+  useEffect(() => {
+    onEndedRef.current = onEnded;
+  }, [onEnded]);
+
+  useEffect(() => {
+    playVideoRef.current = (videoId) => {
+      latestVideoIdRef.current = videoId;
+      latestAutoplayRef.current = true;
+      loadedVideoIdRef.current = videoId;
+      setPlayerError(false);
+
+      if (readyRef.current && playerRef.current) {
+        playerRef.current.loadVideoById(videoId);
+      }
+    };
+
+    return () => {
+      playVideoRef.current = () => {};
+    };
+  }, [playVideoRef]);
 
   useEffect(() => {
     latestVideoIdRef.current = video?.id ?? null;
@@ -423,10 +415,7 @@ function VideoPlayer({
           return;
         }
 
-        const initialVideoId = video?.id ?? undefined;
-
         playerRef.current = new window.YT.Player(playerHostRef.current, {
-          videoId: initialVideoId,
           playerVars: {
             autoplay: 0,
             controls: 1,
@@ -434,6 +423,8 @@ function VideoPlayer({
             modestbranding: 1,
             iv_load_policy: 3,
             playsinline: 1,
+            cc_load_policy: 1,
+            cc_lang_pref: "en",
           },
           events: {
             onReady: () => {
@@ -449,10 +440,7 @@ function VideoPlayer({
 
               loadedVideoIdRef.current = currentVideoId;
 
-              if (
-                latestAutoplayRef.current &&
-                hasUserStartedRef.current
-              ) {
+              if (latestAutoplayRef.current || playerIsPlayingRef.current) {
                 playerRef.current.loadVideoById(currentVideoId);
               } else {
                 playerRef.current.cueVideoById(currentVideoId);
@@ -474,9 +462,14 @@ function VideoPlayer({
                 handlePlayingStateChange(true);
               }
 
+              if (state === window.YT.PlayerState.ENDED) {
+                handlePlayingStateChange(false);
+                onEndedRef.current();
+                return;
+              }
+
               if (
                 state === window.YT.PlayerState.PAUSED ||
-                state === window.YT.PlayerState.ENDED ||
                 state === window.YT.PlayerState.CUED
               ) {
                 handlePlayingStateChange(false);
@@ -504,7 +497,6 @@ function VideoPlayer({
   }, [
     handlePlayingStateChange,
     onStarted,
-    video?.id,
     hasUserStartedRef,
   ]);
 
@@ -522,7 +514,7 @@ function VideoPlayer({
     loadedVideoIdRef.current = nextVideoId;
     setPlayerError(false);
 
-    if (shouldAutoplay && hasUserStartedRef.current) {
+    if (shouldAutoplay || playerIsPlayingRef.current) {
       playerRef.current.loadVideoById(nextVideoId);
     } else {
       playerRef.current.cueVideoById(nextVideoId);
@@ -536,23 +528,6 @@ function VideoPlayer({
       readyRef.current = false;
     };
   }, []);
-
-  if (!video) {
-    return (
-      <section className="overflow-hidden rounded-xl border border-[#e2e6ec] bg-white">
-        <div className="flex aspect-video items-center justify-center bg-[#f7f8fa]">
-          <div className="text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#eef2f8]">
-              <Play className="h-5 w-5 text-[#1a365d]" />
-            </div>
-            <p className="mt-3 text-sm font-medium text-[#3d4a61]">
-              Select a video to start learning
-            </p>
-          </div>
-        </div>
-      </section>
-    );
-  }
 
   return (
     <section className="overflow-hidden rounded-xl border border-[#e2e6ec] bg-white shadow-sm">
@@ -585,37 +560,52 @@ function VideoPlayer({
             </div>
           </div>
         )}
+
+        {!video && !playerError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-[#f7f8fa]">
+            <div className="text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#eef2f8]">
+                <Play className="h-5 w-5 text-[#1a365d]" />
+              </div>
+              <p className="mt-3 text-sm font-medium text-[#3d4a61]">
+                Select a video to start watching
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="border-t border-[#e2e6ec] px-4 py-4 sm:px-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="mb-1 flex items-center gap-2 text-xs font-medium text-[#1a365d]">
-              <BookOpen className="h-3.5 w-3.5" />
-              English Learning
+      {video && (
+        <div className="border-t border-[#e2e6ec] px-4 py-4 sm:px-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="mb-1 flex items-center gap-2 text-xs font-medium text-[#1a365d]">
+                <BookOpen className="h-3.5 w-3.5" />
+                {contentLabel}
+              </div>
+
+              <h2 className="line-clamp-2 text-base font-semibold leading-6 text-[#10192b] sm:text-lg">
+                {safeText(video.title, "Untitled video")}
+              </h2>
+
+              {video.channelTitle && (
+                <p className="mt-1 truncate text-xs text-[#6b7789]">
+                  {safeText(video.channelTitle)}
+                </p>
+              )}
             </div>
 
-            <h2 className="line-clamp-2 text-base font-semibold leading-6 text-[#10192b] sm:text-lg">
-              {safeText(video.title, "Untitled video")}
-            </h2>
-
-            {video.channelTitle && (
-              <p className="mt-1 truncate text-xs text-[#6b7789]">
-                {safeText(video.channelTitle)}
-              </p>
-            )}
-          </div>
-
-          <div className="hidden shrink-0 items-center gap-1.5 rounded-md bg-[#f7f8fa] px-2.5 py-1.5 text-xs text-[#6b7789] sm:flex">
-            <Play className="h-3.5 w-3.5" />
-            {playerIsPlaying
-              ? "Playing"
-              : playerHasStarted
-                ? "Paused"
-                : "Ready"}
+            <div className="hidden shrink-0 items-center gap-1.5 rounded-md bg-[#f7f8fa] px-2.5 py-1.5 text-xs text-[#6b7789] sm:flex">
+              <Play className="h-3.5 w-3.5" />
+              {playerIsPlaying
+                ? "Playing"
+                : playerHasStarted
+                  ? "Paused"
+                  : "Ready"}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </section>
   );
 }
@@ -690,7 +680,7 @@ function CategoryNavigation({
 
 function LoadingGrid() {
   return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
       {Array.from({ length: 10 }).map((_, index) => (
         <div
           key={index}
@@ -712,11 +702,14 @@ function LoadingGrid() {
 export default function StreamingPage() {
   const router = useRouter();
 
-  const [activeTab] = useState<TabType>("english");
+  const [activeTab, setActiveTab] = useState<TabType>("english");
   const [activeCategory, setActiveCategory] = useState("all");
+  const [activeMusicCategory, setActiveMusicCategory] = useState("gospel");
   const [searchInput, setSearchInput] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
+  const playVideoRef = useRef<(videoId: string) => void>(() => {});
 
   const [shouldAutoplaySelected, setShouldAutoplaySelected] =
     useState(false);
@@ -736,17 +729,13 @@ export default function StreamingPage() {
     [activeCategory]
   );
 
-  /*
-   * MUSIC FUNCTIONALITY — COMMENTED OUT
-   *
-   * const musicCategory = useMemo(
-   *   () =>
-   *     MUSIC_CATEGORIES.find(
-   *       (category) => category.id === activeCategory
-   *     ) ?? MUSIC_CATEGORIES[0],
-   *   [activeCategory]
-   * );
-   */
+  const musicCategory = useMemo(
+    () =>
+      MUSIC_CATEGORIES.find(
+        (category) => category.id === activeMusicCategory
+      ) ?? MUSIC_CATEGORIES[0],
+    [activeMusicCategory]
+  );
 
   const query = useMemo(() => {
     if (searchInput.trim()) {
@@ -763,52 +752,36 @@ export default function StreamingPage() {
     refetch: refetchEnglish,
   } = useEnglishLearningVideos(query, 12);
 
-  /*
-   * MUSIC DATA — COMMENTED OUT
-   *
-   * const {
-   *   data: musicData,
-   *   isLoading: musicLoading,
-   *   error: musicError,
-   *   refetch: refetchMusic,
-   * } = useMusicVideos(
-   *   searchInput.trim()
-   *     ? searchInput.trim()
-   *     : musicCategory.query,
-   *   12
-   * );
-   */
+  const musicQuery = searchInput.trim()
+    ? `${searchInput.trim()} music video lyrics`
+    : musicCategory.query;
+  const {
+    data: musicData,
+    isLoading: musicLoading,
+    error: musicError,
+    refetch: refetchMusic,
+  } = useMusicVideos(
+    musicQuery,
+    12,
+    activeTab === "music",
+    searchInput.trim() ? undefined : musicCategory.id
+  );
 
   const videos = useMemo(() => {
-    return (englishData?.videos ?? []) as VideoItem[];
-  }, [englishData]);
+    return ((activeTab === "english"
+      ? englishData?.videos
+      : musicData?.videos) ?? []) as VideoItem[];
+  }, [activeTab, englishData, musicData]);
 
-  /*
-   * When music is enabled again, this can become:
-   *
-   * const videos =
-   *   activeTab === "english"
-   *     ? ((englishData?.videos ?? []) as VideoItem[])
-   *     : ((musicData?.videos ?? []) as VideoItem[]);
-   */
-
-  const isLoading = englishLoading;
-
-  /*
-   * MUSIC LOADING — COMMENTED OUT
-   *
-   * const isLoading =
-   *   activeTab === "english" ? englishLoading : musicLoading;
-   */
-
-  const error = englishError;
-
-  /*
-   * MUSIC ERROR — COMMENTED OUT
-   *
-   * const error =
-   *   activeTab === "english" ? englishError : musicError;
-   */
+  const isLoading = activeTab === "english" ? englishLoading : musicLoading;
+  const error = activeTab === "english" ? englishError : musicError;
+  const activeCategoryLabel =
+    activeTab === "english" ? englishCategory.label : musicCategory.label;
+  const contentLabel = activeTab === "english" ? "English Learning" : "Music";
+  const activeVideo =
+    activeTab === "music"
+      ? selectedVideo ?? musicData?.randomVideo ?? null
+      : selectedVideo ?? englishData?.videos[0] ?? null;
 
   const handleStarted = useCallback(() => {
     hasUserStartedRef.current = true;
@@ -840,23 +813,67 @@ export default function StreamingPage() {
         return;
       }
 
+      playVideoRef.current(video.id);
       setSelectedVideo(video);
 
-      /*
-       * Important playback behavior:
-       * - Before the user has played anything: cue the selected video.
-       * - After the user has started playback: autoplay newly selected videos.
-       */
-      setShouldAutoplaySelected(hasUserStartedRef.current);
+      setShouldAutoplaySelected(true);
     },
     [selectedVideo?.id]
   );
 
+  const handleVideoEnded = useCallback(() => {
+    const currentIndex = videos.findIndex(
+      (video) => video.id === activeVideo?.id
+    );
+    const nextVideo = currentIndex >= 0 ? videos[currentIndex + 1] : undefined;
+
+    if (nextVideo) {
+      playVideoRef.current(nextVideo.id);
+      setSelectedVideo(nextVideo);
+      setShouldAutoplaySelected(true);
+      return;
+    }
+
+    const categories =
+      activeTab === "music" ? MUSIC_CATEGORIES : ENGLISH_CATEGORIES;
+    const currentCategoryId =
+      activeTab === "music" ? activeMusicCategory : activeCategory;
+    const currentCategoryIndex = categories.findIndex(
+      (category) => category.id === currentCategoryId
+    );
+    const nextCategory =
+      categories[(currentCategoryIndex + 1 + categories.length) % categories.length];
+
+    if (activeTab === "music") {
+      setActiveMusicCategory(nextCategory.id);
+    } else {
+      setActiveCategory(nextCategory.id);
+    }
+
+    setSearchInput("");
+    setSelectedVideo(null);
+    setShouldAutoplaySelected(true);
+  }, [
+    activeCategory,
+    activeMusicCategory,
+    activeTab,
+    activeVideo?.id,
+    videos,
+  ]);
+
   const handleCategorySelect = useCallback((category: Category) => {
-    setActiveCategory(category.id);
+    if (activeVideo) {
+      setSelectedVideo(activeVideo);
+    }
+
+    if (activeTab === "english") {
+      setActiveCategory(category.id);
+    } else {
+      setActiveMusicCategory(category.id);
+    }
     setSearchInput("");
     setShouldAutoplaySelected(false);
-  }, []);
+  }, [activeTab, activeVideo]);
 
   const handleSearch = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
@@ -865,45 +882,49 @@ export default function StreamingPage() {
       const value = searchInput.trim();
 
       if (!value) {
-        setActiveCategory("all");
+        if (activeTab === "english") setActiveCategory("all");
         setShouldAutoplaySelected(false);
-        await refetchEnglish();
+        await (activeTab === "english" ? refetchEnglish() : refetchMusic());
         return;
       }
 
       setShouldAutoplaySelected(false);
-      await refetchEnglish();
+      await (activeTab === "english" ? refetchEnglish() : refetchMusic());
     },
-    [searchInput, refetchEnglish]
+    [activeTab, searchInput, refetchEnglish, refetchMusic]
   );
 
   const clearSearch = useCallback(() => {
     setSearchInput("");
-    setActiveCategory("all");
+    if (activeTab === "english") setActiveCategory("all");
     setShouldAutoplaySelected(false);
-  }, []);
+  }, [activeTab]);
 
-  /*
-   * MUSIC TAB HANDLER — COMMENTED OUT
-   *
-   * const handleTabChange = useCallback(
-   *   (tab: TabType) => {
-   *     if (tab === activeTab) return;
-   *
-   *     setActiveTab(tab);
-   *     setActiveCategory(tab === "english" ? "all" : "trending");
-   *     setSearchInput("");
-   *     setShouldAutoplaySelected(false);
-   *   },
-   *   [activeTab]
-   * );
-   */
+  const handleTabChange = useCallback(
+    (tab: TabType) => {
+      if (tab === activeTab) return;
+
+      if (tab === "music" && activeTab !== "music") {
+        setActiveMusicCategory("gospel");
+      }
+
+      if (activeVideo) {
+        setSelectedVideo(activeVideo);
+      }
+
+      setActiveTab(tab);
+      setSearchInput("");
+      setSearchOpen(false);
+      setShouldAutoplaySelected(false);
+    },
+    [activeTab, activeVideo]
+  );
 
   const displayedVideos = useMemo(() => {
-    if (!selectedVideo) return videos;
+    if (!activeVideo) return videos;
 
-    return videos.filter((video) => video.id !== selectedVideo.id);
-  }, [videos, selectedVideo]);
+    return videos.filter((video) => video.id !== activeVideo.id);
+  }, [videos, activeVideo]);
 
   return (
     <>
@@ -929,96 +950,153 @@ export default function StreamingPage() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#1a365d] text-white">
-                      <GraduationCap className="h-4 w-4" />
+                      {activeTab === "english" ? (
+                        <GraduationCap className="h-4 w-4" />
+                      ) : (
+                        <Music2 className="h-4 w-4" />
+                      )}
                     </div>
 
                     <h1 className="truncate text-xl font-semibold tracking-tight text-[#10192b] sm:text-2xl">
-                      English Learning
+                      {contentLabel}
                     </h1>
                   </div>
 
                   <p className="mt-1 text-sm text-[#6b7789]">
-                    Improve your grammar, vocabulary, pronunciation and
-                    everyday English.
+                    {activeTab === "english"
+                      ? "Improve your grammar, vocabulary, pronunciation and everyday English."
+                      : "Stream music videos with captions when available."}
                   </p>
                 </div>
               </div>
             </div>
           </header>
 
-          {/* Search */}
-          <section className="mb-5">
-            <form onSubmit={handleSearch} className="relative">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98a2b3]" />
-
-              <input
-                type="search"
-                value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="Search academic English skills..."
-                className="h-11 w-full rounded-xl border border-[#e2e6ec] bg-white pl-10 pr-24 text-sm text-[#10192b] outline-none transition placeholder:text-[#98a2b3] focus:border-[#1a365d] focus:ring-2 focus:ring-[#1a365d]/10"
-              />
-
-              {searchInput && (
+          <section
+            aria-label="Streaming sections"
+            className="mb-5 flex items-center justify-between gap-3"
+          >
+            <div className="flex min-w-0 gap-2">
+              {(["english", "music"] as const).map((tab) => (
                 <button
+                  key={tab}
                   type="button"
-                  onClick={clearSearch}
-                  aria-label="Clear search"
-                  className="absolute right-16 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-[#6b7789] hover:bg-[#f7f8fa]"
+                  onClick={() => handleTabChange(tab)}
+                  aria-pressed={activeTab === tab}
+                  className={[
+                    "inline-flex h-10 items-center gap-2 rounded-lg border px-4 text-sm font-semibold transition",
+                    activeTab === tab
+                      ? "border-[#1a365d] bg-[#1a365d] text-white"
+                      : "border-[#e2e6ec] bg-white text-[#3d4a61] hover:bg-[#f7f8fa]",
+                  ].join(" ")}
                 >
-                  <X className="h-4 w-4" />
+                  {tab === "english" ? (
+                    <GraduationCap className="h-4 w-4" />
+                  ) : (
+                    <Music2 className="h-4 w-4" />
+                  )}
+                  {tab === "english" ? "English" : "Music"}
                 </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setSearchOpen((open) => !open)}
+              aria-label={searchOpen ? "Close search" : "Open search"}
+              aria-expanded={searchOpen}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#e2e6ec] bg-white text-[#3d4a61] transition hover:bg-[#f7f8fa] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a365d]/30"
+            >
+              {searchOpen ? (
+                <X className="h-4 w-4" />
+              ) : (
+                <Search className="h-4 w-4" />
               )}
-
-              <button
-                type="submit"
-                className="absolute right-1.5 top-1/2 flex h-8 -translate-y-1/2 items-center gap-1.5 rounded-lg bg-[#1a365d] px-3 text-xs font-semibold text-white transition hover:bg-[#14294a]"
-              >
-                <Search className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Search</span>
-              </button>
-            </form>
+            </button>
           </section>
 
-          {/* English category navigation */}
+          {/* Expandable search */}
+          <section
+            aria-hidden={!searchOpen}
+            className={[
+              "grid transition-[grid-template-rows,opacity,margin] duration-300 ease-in-out",
+              searchOpen
+                ? "mb-5 grid-rows-[1fr] opacity-100"
+                : "mb-0 grid-rows-[0fr] opacity-0",
+            ].join(" ")}
+          >
+            <div className="min-h-0 overflow-hidden">
+              <form onSubmit={handleSearch} className="relative">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98a2b3]" />
+
+                <input
+                  type="search"
+                  value={searchInput}
+                  onChange={(event) => setSearchInput(event.target.value)}
+                  placeholder={
+                    activeTab === "english"
+                      ? "Search academic English skills..."
+                      : "Search music videos and lyrics..."
+                  }
+                  className="h-11 w-full rounded-xl border border-[#e2e6ec] bg-white pl-10 pr-24 text-sm text-[#10192b] outline-none transition placeholder:text-[#98a2b3] focus:border-[#1a365d] focus:ring-2 focus:ring-[#1a365d]/10"
+                />
+
+                {searchInput && (
+                  <button
+                    type="button"
+                    onClick={clearSearch}
+                    aria-label="Clear search"
+                    className="absolute right-16 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-[#6b7789] hover:bg-[#f7f8fa]"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+
+                <button
+                  type="submit"
+                  className="absolute right-1.5 top-1/2 flex h-8 -translate-y-1/2 items-center gap-1.5 rounded-lg bg-[#1a365d] px-3 text-xs font-semibold text-white transition hover:bg-[#14294a]"
+                >
+                  <Search className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Search</span>
+                </button>
+              </form>
+            </div>
+          </section>
+
+          {/* Category navigation */}
           <section className="mb-6">
             <CategoryNavigation
-              categories={ENGLISH_CATEGORIES}
-              activeCategory={activeCategory}
+              categories={
+                activeTab === "english"
+                  ? ENGLISH_CATEGORIES
+                  : MUSIC_CATEGORIES
+              }
+              activeCategory={
+                activeTab === "english"
+                  ? activeCategory
+                  : activeMusicCategory
+              }
               onSelect={handleCategorySelect}
             />
           </section>
 
-          {/* MUSIC TAB / NAVIGATION — COMMENTED OUT */}
-          {/*
-          <section className="mb-6">
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => handleTabChange("english")}
-              >
-                English
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleTabChange("music")}
-              >
-                Music
-              </button>
-            </div>
-          </section>
-          */}
-
           {/* Player */}
           <section className="mb-7">
             <VideoPlayer
-              video={selectedVideo}
+              video={activeVideo}
+              contentLabel={contentLabel}
               hasUserStartedRef={hasUserStartedRef}
+              playVideoRef={playVideoRef}
               shouldAutoplay={shouldAutoplaySelected}
               onStarted={handleStarted}
+              onEnded={handleVideoEnded}
               onPlayingStateChange={handlePlayingStateChange}
             />
+            {activeTab === "music" && (
+              <p className="mt-2 text-xs text-[#6b7789]">
+                Use the YouTube CC control for captions when the video
+                provides them. Lyrics are not available for every video.
+              </p>
+            )}
           </section>
 
           {/* Current category heading */}
@@ -1026,11 +1104,15 @@ export default function StreamingPage() {
             <div className="flex items-end justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <BookOpen className="h-4 w-4 text-[#1a365d]" />
+                  {activeTab === "english" ? (
+                    <BookOpen className="h-4 w-4 text-[#1a365d]" />
+                  ) : (
+                    <Music2 className="h-4 w-4 text-[#1a365d]" />
+                  )}
                   <h2 className="text-base font-semibold text-[#10192b]">
                     {searchInput.trim()
                       ? `Search results for "${searchInput.trim()}"`
-                      : englishCategory.label}
+                      : activeCategoryLabel}
                   </h2>
                 </div>
 
@@ -1064,13 +1146,16 @@ export default function StreamingPage() {
               </h3>
 
               <p className="mx-auto mt-1 max-w-md text-xs leading-5 text-[#6b7789]">
-                There was a problem loading the English learning videos.
-                Please try again.
+                There was a problem loading these videos. Please try again.
               </p>
 
               <button
                 type="button"
-                onClick={() => refetchEnglish()}
+                onClick={() =>
+                  activeTab === "english"
+                    ? refetchEnglish()
+                    : refetchMusic()
+                }
                 className="mt-4 inline-flex h-9 items-center gap-2 rounded-lg bg-[#1a365d] px-4 text-xs font-semibold text-white hover:bg-[#14294a]"
               >
                 Try again
@@ -1090,8 +1175,7 @@ export default function StreamingPage() {
               </h3>
 
               <p className="mx-auto mt-1 max-w-md text-xs leading-5 text-[#6b7789]">
-                Try a different search term or choose another English
-                learning category.
+                Try a different search term or choose another category.
               </p>
             </div>
           )}
@@ -1099,12 +1183,12 @@ export default function StreamingPage() {
           {/* Video grid */}
           {!isLoading && !error && displayedVideos.length > 0 && (
             <section>
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              <div className="grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                 {displayedVideos.map((video) => (
                   <VideoCard
                     key={video.id}
                     video={video}
-                    selected={selectedVideo?.id === video.id}
+                    selected={activeVideo?.id === video.id}
                     onClick={() => handleVideoClick(video)}
                   />
                 ))}
@@ -1117,7 +1201,9 @@ export default function StreamingPage() {
             <div className="mt-8 flex items-center justify-center gap-2 text-xs text-[#98a2b3]">
               <Clock3 className="h-3.5 w-3.5" />
               <span>
-                Choose a lesson and continue learning at your own pace.
+                {activeTab === "english"
+                  ? "Choose a lesson and continue learning at your own pace."
+                  : "Choose a video to watch; captions depend on the video."}
               </span>
             </div>
           )}

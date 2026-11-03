@@ -21,12 +21,10 @@ import {
   Users,
 } from "lucide-react";
 
-import Header2 from "@/app/components/ui/header-2";
 import Footer from "@/app/components/Footer";
 import LoadingScreen from "@/app/components/LoadingScreen";
 import AuthModal from "@/components/auth/AuthModal";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { useOnlineUsers } from "@/lib/hooks/useOnlineUsers";
 
 const COLORS = {
   page: "#F8F7F4",
@@ -199,8 +197,6 @@ const staggerFast = {
 
 export default function HomePage() {
   const { user, isLoading: authLoading } = useAuth();
-  const { users: onlineUsers, isLoading: isLoadingOnlineUsers } = useOnlineUsers(user);
-
   const [currentHero, setCurrentHero] = useState(0);
   const [direction, setDirection] = useState(1);
 
@@ -379,9 +375,8 @@ export default function HomePage() {
       )}
 
       <div className="min-h-screen flex flex-col bg-[#F8F7F4]">
-        <Header2 onlineUsers={onlineUsers} isLoadingOnlineUsers={isLoadingOnlineUsers} />
 
-        <main className="flex-1 pt-[120px] sm:pt-[130px] lg:pt-[140px]">
+        <main className="flex-1">
 
           {/* =====================================================
               HERO

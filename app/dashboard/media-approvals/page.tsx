@@ -82,6 +82,7 @@ export default function MediaApprovalsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-media'] });
+      queryClient.invalidateQueries({ queryKey: ['gallery-post-count'] });
     },
   });
 

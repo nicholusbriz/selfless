@@ -8,13 +8,9 @@ import {
   ArrowRight,
   BookOpen,
   CheckCircle2,
-  MessageCircle,
   Users,
 } from "lucide-react";
-import Header2 from "@/app/components/ui/header-2";
 import Footer from "@/app/components/Footer";
-import { useAuth } from "@/lib/hooks/useAuth";
-import { useOnlineUsers } from "@/lib/hooks/useOnlineUsers";
 
 /* =========================================================
    SLIDE ANIMATIONS
@@ -56,17 +52,6 @@ const slideInUp = {
   },
 };
 
-const fadeIn = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      duration: 0.6,
-      ease: [0.22, 1, 0.36, 1] as const,
-    },
-  },
-};
-
 const stagger = {
   hidden: {},
   visible: {
@@ -86,8 +71,6 @@ const staggerFast = {
 };
 
 export default function AboutPage() {
-  const { user } = useAuth();
-  const { users: onlineUsers, isLoading: isLoadingOnlineUsers } = useOnlineUsers(user);
   const shouldReduceMotion = useReducedMotion();
 
   const viewportAnimation = shouldReduceMotion
@@ -103,8 +86,6 @@ export default function AboutPage() {
 
   return (
     <div className="min-h-screen bg-[#071018] text-white">
-      <Header2 onlineUsers={onlineUsers} isLoadingOnlineUsers={isLoadingOnlineUsers} />
-
       <main className="relative overflow-x-hidden">
         {/* =====================================================
             PAGE VIDEO BACKGROUND
@@ -132,7 +113,7 @@ export default function AboutPage() {
           {/* =====================================================
               HERO
           ====================================================== */}
-          <section className="flex min-h-[calc(100vh-76px)] items-center px-5 pt-[140px] pb-14 sm:px-8 sm:pt-[150px] lg:px-12 lg:pt-[160px]">
+          <section className="flex min-h-[calc(100vh-76px)] items-center px-5 pt-8 pb-14 sm:px-8 sm:pt-10 lg:px-12 lg:pt-12">
             <div className="mx-auto w-full max-w-7xl">
               <motion.div
                 initial={shouldReduceMotion ? false : "hidden"}
@@ -399,7 +380,7 @@ export default function AboutPage() {
                       href="/features"
                       className="group inline-flex items-center gap-2 text-sm font-bold text-[#E8A33D] drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] transition-colors hover:text-white"
                     >
-                      See what's inside
+                      See what&apos;s inside
                       <ArrowRight
                         size={15}
                         className="transition-transform group-hover:translate-x-1"
@@ -456,7 +437,7 @@ export default function AboutPage() {
                 </p>
 
                 <p className="mt-4 max-w-md text-xl font-bold leading-8 text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)] sm:text-2xl">
-                  "Learn with purpose. Stay connected. Build your future."
+                  &quot;Learn with purpose. Stay connected. Build your future.&quot;
                 </p>
 
                 <Link

@@ -5,7 +5,6 @@ import { useState, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
-  User,
   Camera,
   Mail,
   Lock,
@@ -360,26 +359,27 @@ export default function ProfilePage() {
   `;
 
   return (
-    <div className="min-h-screen bg-[#F6F8FB]">
-      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#F3F6FA]">
+      <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
 
         {/* ======================================================
             HEADER
         ====================================================== */}
 
-        <div className="mb-6">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="mb-5">
+          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[#E1E8F0] bg-white/80 p-2 shadow-sm">
 
             <button
               onClick={() => router.back()}
               className="
                 flex h-10 w-10 items-center justify-center
-                rounded-lg border border-[#D9E2EC]
+                rounded-xl border border-[#D9E2EC]
                 bg-white text-[#64788A]
                 transition-all duration-200
                 hover:border-[#1A365D]
                 hover:bg-[#F4F7FA]
                 hover:text-[#1A365D]
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3182CE]
               "
               aria-label="Go back"
             >
@@ -390,12 +390,13 @@ export default function ProfilePage() {
               href="/dashboard"
               className="
                 flex h-10 w-10 items-center justify-center
-                rounded-lg border border-[#D9E2EC]
+                rounded-xl border border-[#D9E2EC]
                 bg-white text-[#64788A]
                 transition-all duration-200
                 hover:border-[#1A365D]
                 hover:bg-[#F4F7FA]
                 hover:text-[#1A365D]
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3182CE]
               "
               aria-label="Go to dashboard"
             >
@@ -406,12 +407,13 @@ export default function ProfilePage() {
               href="/dashboard/courses"
               className="
                 flex h-10 w-10 items-center justify-center
-                rounded-lg border border-[#D9E2EC]
+                rounded-xl border border-[#D9E2EC]
                 bg-white text-[#64788A]
                 transition-all duration-200
                 hover:border-[#1A365D]
                 hover:bg-[#F4F7FA]
                 hover:text-[#1A365D]
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3182CE]
               "
               aria-label="Go to courses"
             >
@@ -422,12 +424,13 @@ export default function ProfilePage() {
               href="/dashboard/cleaning"
               className="
                 flex h-10 w-10 items-center justify-center
-                rounded-lg border border-[#D9E2EC]
+                rounded-xl border border-[#D9E2EC]
                 bg-white text-[#64788A]
                 transition-all duration-200
                 hover:border-[#1A365D]
                 hover:bg-[#F4F7FA]
                 hover:text-[#1A365D]
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3182CE]
               "
               aria-label="Go to cleaning schedule"
             >
@@ -438,12 +441,13 @@ export default function ProfilePage() {
               href="/dashboard/students"
               className="
                 flex h-10 w-10 items-center justify-center
-                rounded-lg border border-[#D9E2EC]
+                rounded-xl border border-[#D9E2EC]
                 bg-white text-[#64788A]
                 transition-all duration-200
                 hover:border-[#1A365D]
                 hover:bg-[#F4F7FA]
                 hover:text-[#1A365D]
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3182CE]
               "
               aria-label="Go to students"
             >
@@ -451,33 +455,6 @@ export default function ProfilePage() {
             </Link>
           </div>
 
-          <div className="mt-6 flex items-start gap-4">
-            <div
-              className="
-                flex h-12 w-12 shrink-0 items-center
-                justify-center rounded-xl
-                border border-[#D9E2EC]
-                bg-white text-[#1A365D]
-                shadow-sm
-              "
-            >
-              <User className="h-6 w-6" />
-            </div>
-
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#64788A]">
-                Account
-              </p>
-
-              <h1 className="mt-1 text-2xl font-bold tracking-tight text-[#0F2440] sm:text-3xl">
-                My Profile
-              </h1>
-
-              <p className="mt-1 text-sm text-[#64788A]">
-                View and manage your personal information.
-              </p>
-            </div>
-          </div>
         </div>
 
         {/* ======================================================
@@ -540,7 +517,7 @@ export default function ProfilePage() {
           className="
             overflow-hidden rounded-2xl
             border border-[#D9E2EC]
-            bg-white shadow-sm
+            bg-white shadow-[0_12px_36px_rgba(15,36,64,0.07)]
           "
         >
           {/* Navy profile banner */}
@@ -549,11 +526,11 @@ export default function ProfilePage() {
             <div
               className="
                 border-b border-[#E7EDF3]
-                bg-[#F8FAFC]
-                px-5 py-6 sm:px-8
+                bg-[linear-gradient(120deg,#F8FAFC_0%,#FFFFFF_72%)]
+                px-5 py-6 sm:px-8 sm:py-7
               "
             >
-              <div className="flex flex-col items-center gap-5 sm:flex-row">
+              <div className="flex flex-col items-center gap-5 sm:flex-row sm:gap-6">
 
                 {/* Profile Image */}
 
@@ -565,8 +542,8 @@ export default function ProfilePage() {
                       overflow-hidden rounded-full
                       border-4 border-white
                       bg-[#EEF5FB]
-                      shadow-md
-                      ring-1 ring-[#D9E2EC]
+                      shadow-lg
+                      ring-4 ring-white
                       sm:h-32 sm:w-32
                     "
                   >
@@ -690,28 +667,52 @@ export default function ProfilePage() {
 
                 {/* Edit */}
 
-                {!isEditing && (
-                  <button
-                    onClick={() => {
-                      setIsEditing(true);
-                      setError('');
-                      setSuccess('');
-                    }}
-                    className="
-                      inline-flex shrink-0 items-center
-                      justify-center gap-2
-                      rounded-lg
-                      bg-[#1A365D]
-                      px-4 py-2.5
-                      text-sm font-semibold text-white
-                      transition-all duration-200
-                      hover:bg-[#153475]
-                    "
-                  >
-                    <Edit2 className="h-4 w-4" />
-                    Edit Profile
-                  </button>
-                )}
+                <div className="flex shrink-0 flex-wrap items-center justify-center gap-2">
+                  {user?.id && (
+                    <Link
+                      href={`/dashboard/students/${user.id}`}
+                      className="
+                        inline-flex items-center justify-center gap-2
+                        rounded-xl border border-[#C9D5E1]
+                        bg-white px-4 py-2.5
+                        text-sm font-semibold text-[#1A365D]
+                        transition-all duration-200
+                        hover:border-[#1A365D]
+                        hover:bg-[#F4F7FA]
+                        hover:shadow-sm
+                        focus-visible:outline-none
+                        focus-visible:ring-2 focus-visible:ring-[#3182CE]
+                      "
+                    >
+                      <Eye className="h-4 w-4" />
+                      Public Profile
+                    </Link>
+                  )}
+
+                  {!isEditing && (
+                    <button
+                      onClick={() => {
+                        setIsEditing(true);
+                        setError('');
+                        setSuccess('');
+                      }}
+                      className="
+                        inline-flex items-center
+                        justify-center gap-2
+                        rounded-xl
+                        bg-[#1A365D]
+                        px-4 py-2.5
+                        text-sm font-semibold text-white
+                        transition-all duration-200
+                        hover:bg-[#153475]
+                        hover:shadow-md
+                      "
+                    >
+                      <Edit2 className="h-4 w-4" />
+                      Edit Profile
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -719,14 +720,14 @@ export default function ProfilePage() {
                 FORM
             ================================================== */}
 
-            <div className="p-5 sm:p-8">
-              <div className="space-y-8">
+            <div className="p-5 sm:p-8 lg:p-10">
+              <div className="space-y-10">
 
                 {/* PERSONAL INFORMATION */}
 
                 <section>
-                  <div className="mb-5">
-                    <h3 className="text-base font-bold text-[#0F2440]">
+                  <div className="mb-6 border-b border-[#E7EDF3] pb-4">
+                    <h3 className="text-lg font-bold tracking-tight text-[#0F2440]">
                       Personal Information
                     </h3>
 
@@ -735,7 +736,7 @@ export default function ProfilePage() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
 
                     {/* First Name */}
 

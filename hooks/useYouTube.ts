@@ -17,6 +17,7 @@ interface YouTubeVideo {
 
 interface YouTubeSearchResult {
   videos: YouTubeVideo[];
+  randomVideo?: YouTubeVideo;
   nextPageToken?: string;
   prevPageToken?: string;
 }
@@ -43,21 +44,42 @@ export function useEnglishLearningVideos(query: string = 'advanced English commu
  * Hook for fetching music videos with pagination
  * This is what your music tab will call
  */
-export function useMusicVideos(query: string = 'trending music videos', maxResults: number = 12) {
+export function useMusicVideos(
+  query: string = 'trending music videos',
+  maxResults: number = 12,
+  enabled = true,
+  category?: string
+) {
   return useQuery({
-    queryKey: ['youtube', 'music', 'search', query, maxResults],
+    queryKey: ['youtube', 'music', 'search', category, query, maxResults],
     queryFn: async () => {
-      // Adding videoCategoryId=10 for music content
-      const response = await fetch(
-        `/api/youtube/search?query=${encodeURIComponent(query)}&maxResults=${maxResults}&videoCategoryId=10`
-      );
+      const params = new URLSearchParams({
+        query,
+        maxResults: String(maxResults),
+      });
+
+      if (category) {
+        if (['trending', 'popular', 'new'].includes(category)) {
+          params.set('category', category);
+        } else {
+          params.set('genre', category);
+        }
+      } else {
+        params.set('withLyrics', 'true');
+      }
+
+      const response = await fetch(`/api/youtube/music?${params.toString()}`);
       if (!response.ok) {
         throw new Error('Failed to fetch music videos');
       }
-      return response.json() as Promise<YouTubeSearchResult>;
+      const result = await response.json() as YouTubeSearchResult;
+      const randomVideo =
+        result.videos[Math.floor(Math.random() * result.videos.length)];
+      return { ...result, randomVideo };
     },
     staleTime: 2 * 60 * 1000, // 2 minutes - data remains fresh for 2 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes - garbage collection time
+    enabled,
   });
 }
 

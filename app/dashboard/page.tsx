@@ -27,13 +27,20 @@ import {
   Heart,
   UserPlus,
   TrendingUp,
-  AlertCircle,
   Sparkles,
   Eye,
+  X,
+  ChevronLeft,
+  Maximize2,
+  Music2,
+  Pause,
+  Play,
+  Plus,
 } from 'lucide-react';
 
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useSession } from 'next-auth/react';
 import {
@@ -53,6 +60,7 @@ import {
 import { SocialActions } from '@/components/social/SocialActions';
 import { compareSuperadminWithImageFirst } from '@/lib/social/ranking';
 import { getResponseError, isRecord } from './response-guards';
+import MediaPostInteractions from './gallery/components/MediaPostInteractions';
 
 /* ============================================================
    TYPES
@@ -115,6 +123,7 @@ interface MediaItem {
   title: string;
   description: string | null;
   category: string | null;
+  approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
   createdAt: string;
   user?: {
     id: string;
@@ -173,6 +182,9 @@ function isMediaItem(value: unknown): value is MediaItem {
     typeof value.title === 'string' &&
     (typeof value.description === 'string' || value.description === null) &&
     (typeof value.category === 'string' || value.category === null) &&
+    (value.approvalStatus === 'PENDING' ||
+      value.approvalStatus === 'APPROVED' ||
+      value.approvalStatus === 'REJECTED') &&
     typeof value.createdAt === 'string' &&
     (value.user === undefined ||
       value.user === null ||
@@ -376,7 +388,6 @@ function DirectorsDisplay({
     <SuggestedStudents
       trending={directors}
       isLoading={isLoading}
-      directorCardLayout
     />
   );
 }
@@ -388,8 +399,7 @@ interface DashboardAnnouncement {
   isGlobal: boolean;
 }
 
-function AnnouncementsSection() {
-  const router = useRouter();
+function RecentAnnouncementsPanel() {
   const { data: announcements = [], isLoading, error } = useQuery<DashboardAnnouncement[]>({
     queryKey: ['announcements', 'dashboard-preview'],
     queryFn: async () => {
@@ -409,61 +419,549 @@ function AnnouncementsSection() {
           typeof announcement.createdAt === 'string' &&
           typeof announcement.isGlobal === 'boolean',
         )
-        .slice(0, 3);
+        .slice(0, 5);
     },
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
 
   return (
-    <section className="bg-white p-5 sm:p-7">
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2">
-          <AlertCircle className="h-4 w-4 text-[#B98A3E]" />
-          <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-[#1A2B4C]">
-            Recent announcements
-          </h2>
+    <aside className="min-w-0 rounded-xl border border-white/10 bg-white/[0.06] p-3 sm:p-4">
+      <Link
+        href="/dashboard/announcements"
+        className="mb-2 flex items-center justify-between gap-2 text-white transition hover:text-[#E2BD75] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E]"
+      >
+        <span className="flex items-center gap-2">
+          <MessageSquare className="h-4 w-4 shrink-0 text-[#B98A3E]" />
+          <span className="text-xs font-bold tracking-wide">Recent announcements</span>
+        </span>
+        <ChevronRight className="h-4 w-4 shrink-0 text-white/60" />
+      </Link>
+
+      {isLoading ? (
+        <div className="space-y-2" aria-label="Loading announcements">
+          {[0, 1, 2].map((item) => (
+            <div key={item} className="h-4 animate-pulse rounded bg-white/10" />
+          ))}
         </div>
+      ) : error ? (
+        <p role="status" className="text-xs text-red-200">
+          Announcements could not be loaded.
+        </p>
+      ) : announcements.length === 0 ? (
+        <p className="text-xs text-white/60">No announcements yet.</p>
+      ) : (
+        <ul className="max-h-28 space-y-1.5 overflow-y-auto pr-1">
+          {announcements.map((announcement) => (
+            <li
+              key={announcement.id}
+              className="flex min-w-0 items-start gap-2 border-t border-white/10 pt-1.5 first:border-0 first:pt-0"
+            >
+              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#B98A3E]" />
+              <Link
+                href="/dashboard/announcements"
+                title={announcement.title}
+                className="min-w-0 flex-1 truncate text-left text-[11px] leading-4 text-white/85 transition hover:text-white hover:underline"
+              >
+                {announcement.title}
+              </Link>
+              <time
+                dateTime={announcement.createdAt}
+                className="shrink-0 pt-0.5 font-mono text-[9px] text-white/45"
+              >
+                {new Date(announcement.createdAt).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                })}
+              </time>
+            </li>
+          ))}
+        </ul>
+      )}
+    </aside>
+  );
+}
+
+function RecentPostsSection() {
+  const router = useRouter();
+  const { user } = useAuth();
+  const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
+  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
+  const [videoActionErrorId, setVideoActionErrorId] = useState<string | null>(null);
+  const postsCarouselRef = useRef<HTMLDivElement>(null);
+  const { data: posts = [], isLoading, error } = useQuery<MediaItem[]>({
+    queryKey: ['dashboard-recent-posts'],
+    queryFn: async () => {
+      const response = await fetch('/api/media/list?category=gallery&limit=10');
+      if (!response.ok) throw new Error('Failed to fetch posts');
+      const data: unknown = await response.json();
+      if (!isRecord(data) || data.success !== true || !Array.isArray(data.items)) {
+        throw new Error('Invalid posts response');
+      }
+      return data.items
+        .filter(isMediaItem)
+        .filter(
+          (item) =>
+            item.approvalStatus === 'APPROVED' &&
+            (item.contentType.startsWith('image/') ||
+              item.contentType.startsWith('video/') ||
+              item.contentType.startsWith('audio/')),
+        )
+        .slice(0, 10);
+    },
+    staleTime: 1 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
+
+  useEffect(() => {
+    if (!selectedMedia) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSelectedMedia(null);
+    };
+
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedMedia]);
+
+  return (
+    <section className="py-2">
+      <div className="mb-3 flex items-end justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-black tracking-tight text-[#1A2B4C] sm:text-xl">
+            Recent posts
+          </h2>
+          <p className="mt-0.5 text-xs text-[#687386]">
+            Watch videos, listen to audio, or open photos fullscreen.
+          </p>
+        </div>
+        <span className="shrink-0 text-xs font-medium text-[#687386]">
+          {posts.length} {posts.length === 1 ? 'recent post' : 'recent posts'}
+        </span>
       </div>
 
       {isLoading ? (
-        <div className="space-y-5 py-2">
-          {[0, 1, 2].map((item) => (
-            <div key={item} className="animate-pulse">
-              <div className="mb-2 h-3 w-28 rounded bg-[#E5E7EB]" />
-              <div className="h-5 max-w-2xl rounded bg-[#E5E7EB]" />
+        <div className="flex snap-x gap-3 overflow-x-auto pb-1">
+          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((item) => (
+            <div key={item} className="w-[280px] shrink-0 animate-pulse sm:w-[290px]">
+              <div className="aspect-[3/4] w-full rounded-2xl bg-[#E5E7EB]" />
             </div>
           ))}
         </div>
       ) : error ? (
         <p role="status" className="text-sm text-red-600">
-          Announcements could not be loaded.
+          Reels could not be loaded.
         </p>
-      ) : announcements.length === 0 ? (
-        <p className="py-4 text-center text-sm text-[#6B7280]">No announcements yet.</p>
+      ) : posts.length === 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 py-3">
+          <p className="text-sm text-[#6B7280]">
+            No recent posts yet.
+          </p>
+        </div>
       ) : (
-        <ul className="grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
-          {announcements.map((announcement) => (
-            <li key={announcement.id}>
-              <button
-                type="button"
-                onClick={() => router.push('/dashboard/announcements')}
-                className="w-full break-words text-left text-base font-semibold leading-6 text-[#1A2B4C] underline decoration-[#1A2B4C] underline-offset-2 transition-colors hover:text-[#8A642D] hover:decoration-[#8A642D] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B98A3E]"
+        <div
+          ref={postsCarouselRef}
+          aria-label="Recent posts"
+          className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 scroll-smooth"
+        >
+          {posts.map((post) => {
+            const isVideo = post.contentType.startsWith('video/');
+            const isAudio = post.contentType.startsWith('audio/');
+
+            return (
+              <article
+                key={post.id}
+                className={`w-[280px] shrink-0 snap-start overflow-hidden rounded-2xl bg-white shadow-sm sm:w-[290px] ${
+                  isVideo || isAudio ? 'border border-[#E5E7EB]' : ''
+                }`}
               >
-                {announcement.title}
-              </button>
-            </li>
-          ))}
-        </ul>
+                {isVideo ? (
+                  <div
+                    data-recent-video-card
+                    className="group relative aspect-[3/4] overflow-hidden bg-black"
+                  >
+                    <video
+                      src={post.publicUrl}
+                      playsInline
+                      preload="metadata"
+                      aria-label={post.title || 'Community video'}
+                      className="absolute inset-0 h-full w-full object-cover"
+                      onPlay={(event) => {
+                        const currentVideo = event.currentTarget;
+                        currentVideo
+                          .closest('section')
+                          ?.querySelectorAll('video')
+                          .forEach((video) => {
+                            if (video !== currentVideo) video.pause();
+                          });
+                        setPlayingVideoId(post.id);
+                        setVideoActionErrorId(null);
+                      }}
+                      onPause={() => {
+                        setPlayingVideoId((current) =>
+                          current === post.id ? null : current,
+                        );
+                      }}
+                      onEnded={() => {
+                        setPlayingVideoId((current) =>
+                          current === post.id ? null : current,
+                        );
+                      }}
+                    />
+                    <span className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-black/75 opacity-90 transition-opacity group-hover:opacity-100" />
+
+                    <div className="pointer-events-none absolute inset-x-2 top-2 flex items-center justify-between gap-2">
+                      {post.user?.id ? (
+                        <Link
+                          href={`/dashboard/students/${post.user.id}`}
+                          aria-label={`View ${post.user.firstName} ${post.user.lastName}'s profile`}
+                          className="pointer-events-auto flex min-w-0 items-center gap-1.5 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                        >
+                          {post.user.profileImageUrl ? (
+                            <Image
+                              src={post.user.profileImageUrl}
+                              alt=""
+                              width={28}
+                              height={28}
+                              className="h-7 w-7 shrink-0 rounded-full object-cover ring-1 ring-white/70"
+                            />
+                          ) : (
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/20 text-[10px] font-bold">
+                              {post.user.firstName[0]}{post.user.lastName[0]}
+                            </span>
+                          )}
+                          <span className="truncate text-[11px] font-semibold drop-shadow">
+                            {post.user.firstName} {post.user.lastName}
+                          </span>
+                        </Link>
+                      ) : (
+                        <span className="min-w-0 truncate text-[11px] font-semibold text-white drop-shadow">
+                          Selfless community
+                        </span>
+                      )}
+                      <div className="pointer-events-auto flex shrink-0 items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            const video = event.currentTarget
+                              .closest('[data-recent-video-card]')
+                              ?.querySelector('video');
+                            if (!video) return;
+                            if (video.paused) {
+                              void video.play().catch(() => {
+                                setVideoActionErrorId(post.id);
+                              });
+                            } else {
+                              video.pause();
+                            }
+                          }}
+                          aria-label={playingVideoId === post.id ? 'Pause video' : 'Play video'}
+                          title={playingVideoId === post.id ? 'Pause' : 'Play'}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/50 bg-black/45 text-white shadow-sm backdrop-blur-sm transition hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                        >
+                          {playingVideoId === post.id ? (
+                            <Pause className="h-4 w-4" />
+                          ) : (
+                            <Play className="h-4 w-4 fill-current" />
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            const card = event.currentTarget.closest(
+                              '[data-recent-video-card]',
+                            );
+                            if (!card) return;
+                            card.querySelector('video')?.pause();
+                            setSelectedMedia(post);
+                          }}
+                          aria-label={`Watch ${post.title || 'video'} fullscreen`}
+                          title="Expand video"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/50 bg-black/45 text-white shadow-sm backdrop-blur-sm transition hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                        >
+                          <Maximize2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {videoActionErrorId === post.id && (
+                      <p
+                        role="status"
+                        className="absolute inset-x-3 top-12 rounded-md bg-black/70 px-2 py-1 text-[11px] text-white"
+                      >
+                        Video playback or fullscreen is unavailable.
+                      </p>
+                    )}
+
+                    <div className={`pointer-events-none absolute inset-x-3 ${user ? 'bottom-16' : 'bottom-3'} text-white`}>
+                      {post.title && (
+                        <h3 className="line-clamp-2 text-sm font-bold leading-5 drop-shadow">
+                          {post.title}
+                        </h3>
+                      )}
+                      {post.description && (
+                        <p className={`${post.title ? 'mt-0.5' : ''} line-clamp-2 whitespace-pre-wrap text-[11px] leading-4 text-white/85 drop-shadow`}>
+                          {post.description}
+                        </p>
+                      )}
+                      <p className="mt-1.5 text-[9px] font-medium text-white/75">
+                        {new Date(post.createdAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </p>
+                    </div>
+
+                    {user && (
+                      <div className="absolute inset-x-0 bottom-0 z-10">
+                        <MediaPostInteractions
+                          mediaId={post.id}
+                          showCommentInput
+                          currentUser={{
+                            id: user.id,
+                            firstName: user.firstName,
+                            lastName: user.lastName,
+                            profileImageUrl: user.profileImageUrl ?? null,
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : isAudio ? (
+                  <>
+                    <div className="flex aspect-video flex-col items-center justify-center gap-4 bg-gradient-to-br from-[#1A2B4C] to-[#334B72] p-4 text-white">
+                      <Music2 className="h-12 w-12 text-white/85" />
+                      <audio
+                        src={post.publicUrl}
+                        controls
+                        preload="metadata"
+                        aria-label={post.title || 'Community audio'}
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="space-y-2 p-3">
+                      {post.user && (
+                        <p className="truncate text-xs font-semibold text-[#1A2B4C]">
+                          {post.user.firstName} {post.user.lastName}
+                        </p>
+                      )}
+                      {post.title && (
+                        <h3 className="line-clamp-2 text-sm font-bold leading-5 text-[#172033]">
+                          {post.title}
+                        </h3>
+                      )}
+                      {post.description && (
+                        <p className="line-clamp-2 whitespace-pre-wrap text-xs leading-4 text-[#687386]">
+                          {post.description}
+                        </p>
+                      )}
+                      <time
+                        dateTime={post.createdAt}
+                        className="block text-[10px] text-[#8791A1]"
+                      >
+                        {new Date(post.createdAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </time>
+                    </div>
+                    {user && (
+                      <MediaPostInteractions
+                        mediaId={post.id}
+                        showCommentInput
+                        currentUser={{
+                          id: user.id,
+                          firstName: user.firstName,
+                          lastName: user.lastName,
+                          profileImageUrl: user.profileImageUrl ?? null,
+                        }}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <div className="group relative aspect-[3/4] overflow-hidden bg-[#E9EDF3]">
+                    <div className="absolute inset-0">
+                      <Image
+                        src={post.publicUrl}
+                        alt={post.title || 'Community photo'}
+                        fill
+                        sizes="(max-width: 640px) 280px, 290px"
+                        className="object-cover transition duration-300 group-hover:scale-105"
+                      />
+                      <span className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/65 opacity-80 transition-opacity group-hover:opacity-100" />
+                    </div>
+
+                    <div className="pointer-events-none absolute inset-x-2 top-2 flex items-center justify-between gap-2">
+                      {post.user?.id ? (
+                        <Link
+                          href={`/dashboard/students/${post.user.id}`}
+                          aria-label={`View ${post.user.firstName} ${post.user.lastName}'s profile`}
+                          className="pointer-events-auto flex min-w-0 items-center gap-1.5 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                        >
+                          {post.user.profileImageUrl ? (
+                            <Image
+                              src={post.user.profileImageUrl}
+                              alt=""
+                              width={28}
+                              height={28}
+                              className="h-7 w-7 shrink-0 rounded-full object-cover ring-1 ring-white/70"
+                            />
+                          ) : (
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/20 text-[10px] font-bold">
+                              {post.user.firstName[0]}{post.user.lastName[0]}
+                            </span>
+                          )}
+                          <span className="truncate text-[11px] font-semibold drop-shadow">
+                            {post.user.firstName} {post.user.lastName}
+                          </span>
+                        </Link>
+                      ) : (
+                        <span className="min-w-0 truncate text-[11px] font-semibold text-white drop-shadow">
+                          Selfless community
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedMedia(post)}
+                        aria-label={`View ${post.title || 'photo'} fullscreen`}
+                        title="View fullscreen"
+                        className="pointer-events-auto inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/50 bg-black/35 text-white shadow-sm backdrop-blur-sm transition hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                      >
+                        <Maximize2 className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <div className={`pointer-events-none absolute inset-x-3 ${user ? 'bottom-16' : 'bottom-3'} text-white`}>
+                      {post.title && (
+                        <h3 className="line-clamp-2 text-sm font-bold leading-5 drop-shadow">
+                          {post.title}
+                        </h3>
+                      )}
+                      {post.description && (
+                        <p className={`${post.title ? 'mt-0.5' : ''} line-clamp-2 whitespace-pre-wrap text-[11px] leading-4 text-white/85 drop-shadow`}>
+                          {post.description}
+                        </p>
+                      )}
+                      <p className="mt-1.5 text-[9px] font-medium text-white/75">
+                        {new Date(post.createdAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </p>
+                    </div>
+
+                    {user && (
+                      <div className="absolute inset-x-0 bottom-0 z-10">
+                        <MediaPostInteractions
+                          mediaId={post.id}
+                          showCommentInput
+                          currentUser={{
+                            id: user.id,
+                            firstName: user.firstName,
+                            lastName: user.lastName,
+                            profileImageUrl: user.profileImageUrl ?? null,
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </article>
+            );
+          })}
+        </div>
       )}
-      <button
-        type="button"
-        onClick={() => router.push('/dashboard/announcements')}
-        className="mt-4 inline-flex items-center gap-1 py-1 text-xs font-semibold text-[#1A2B4C] transition-colors hover:text-[#8A642D] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B98A3E]"
-      >
-        View all announcements
-        <ChevronRight className="h-4 w-4" />
-      </button>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Link
+            href="/dashboard/gallery"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-[#1A2B4C] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#B98A3E] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B98A3E]"
+          >
+            <Plus className="h-4 w-4" />
+            Create post
+          </Link>
+          {posts.length > 1 && (
+            <button
+              type="button"
+              onClick={() => postsCarouselRef.current?.scrollBy({ left: -306, behavior: 'smooth' })}
+              aria-label="Show previous posts"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#1A2B4C] transition hover:bg-[#F3F5F8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B98A3E]"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          )}
+          {posts.length > 1 && (
+            <button
+              type="button"
+              onClick={() => postsCarouselRef.current?.scrollBy({ left: 306, behavior: 'smooth' })}
+              aria-label="Show next posts"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#1A2B4C] transition hover:bg-[#F3F5F8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B98A3E]"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => router.push('/dashboard/gallery')}
+          className="inline-flex items-center gap-1 py-1 text-xs font-semibold text-[#1A2B4C] transition-colors hover:text-[#8A642D] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B98A3E]"
+        >
+          View all posts
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+
+      {selectedMedia && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={selectedMedia.title || 'Fullscreen community media'}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-3 sm:p-6"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setSelectedMedia(null);
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setSelectedMedia(null)}
+            aria-label="Close fullscreen media"
+            className="absolute right-4 top-4 z-20 inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/65 text-white transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            <X className="h-6 w-6" />
+          </button>
+          {selectedMedia.contentType.startsWith('video/') ? (
+            <video
+              key={selectedMedia.id}
+              src={selectedMedia.publicUrl}
+              autoPlay
+              controls
+              playsInline
+              preload="auto"
+              aria-label={selectedMedia.title || 'Community video'}
+              className="h-full w-full object-contain"
+            />
+          ) : (
+            <div className="relative h-full w-full">
+              <Image
+                src={selectedMedia.publicUrl}
+                alt={selectedMedia.title || 'Community photo'}
+                fill
+                priority
+                sizes="100vw"
+                className="object-contain"
+              />
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 }
@@ -624,7 +1122,7 @@ function DashboardLoadingSkeleton() {
       aria-label="Loading dashboard"
       aria-busy="true"
     >
-      <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-8 lg:px-10">
+      <div className="w-full min-w-0 py-3 sm:py-5">
         <header className="bg-[#1A2B4C] px-5 py-6 text-white sm:px-8 sm:py-8">
           <div className="flex items-start justify-between gap-6">
             <div className="min-w-0 flex-1 space-y-3">
@@ -685,11 +1183,9 @@ function DashboardLoadingSkeleton() {
 function SuggestedStudents({
   trending = [],
   isLoading,
-  directorCardLayout = false,
 }: {
   trending?: SocialUser[];
   isLoading?: boolean;
-  directorCardLayout?: boolean;
 }) {
   const router = useRouter();
   const { data: session } = useSession();
@@ -1391,8 +1887,8 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] text-[#1A2B4C]">
-      <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
+    <div className="min-h-screen w-full min-w-0 bg-[#F8F9FA] text-[#1A2B4C]">
+      <div className="w-full min-w-0 py-3 sm:py-5">
         {/* ============================================================
             HERO — greeting + stats + announcements + directors (unified)
         ============================================================ */}
@@ -1425,78 +1921,83 @@ export default function DashboardPage() {
 
           {/* Profile + Stats */}
           <div className="px-4 py-5 sm:px-6 sm:py-6">
-            <div className="flex items-start gap-4">
-              {/* Avatar */}
-              <div className="relative shrink-0">
-                <div className="relative h-14 w-14 overflow-hidden rounded-xl border-2 border-[#B98A3E]/40 sm:h-16 sm:w-16">
-                  {user?.profileImageUrl ? (
-                    <Image
-                      src={user.profileImageUrl}
-                      alt={userName}
-                      fill
-                      sizes="64px"
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-[#B98A3E]/10">
-                      <span className="font-mono text-xl font-black text-[#B98A3E]">
-                        {firstName?.charAt(0) ?? <User className="h-5 w-5" />}
+            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(16rem,0.8fr)] md:items-center md:gap-6">
+              <div className="min-w-0">
+                <div className="flex items-start gap-4">
+                  {/* Avatar */}
+                  <div className="relative shrink-0">
+                    <div className="relative h-14 w-14 overflow-hidden rounded-xl border-2 border-[#B98A3E]/40 sm:h-16 sm:w-16">
+                      {user?.profileImageUrl ? (
+                        <Image
+                          src={user.profileImageUrl}
+                          alt={userName}
+                          fill
+                          sizes="64px"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-[#B98A3E]/10">
+                          <span className="font-mono text-xl font-black text-[#B98A3E]">
+                            {firstName?.charAt(0) ?? <User className="h-5 w-5" />}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    {/* Online dot on avatar */}
+                    <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#1A2B4C] bg-[#55705B]" />
+                  </div>
+
+                  {/* Name + badges */}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-[#B98A3E]">
+                      {greeting}
+                    </p>
+                    <h1 className="mt-0.5 text-2xl font-black leading-tight tracking-tight sm:text-3xl">
+                      {firstName}<span className="text-[#B98A3E]">.</span>
+                    </h1>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[9.5px]">
+                      <span className="inline-flex items-center gap-1 text-[#B98A3E]">
+                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#B98A3E]" />
+                        <span className="uppercase tracking-wider">Active</span>
+                      </span>
+                      {user?.role && (
+                        <span className="uppercase tracking-wider text-white/75">
+                          {getRoleLabel(user.role)}
+                        </span>
+                      )}
+                      {techCenter && (
+                        <span className="inline-flex items-center gap-1 text-white/75">
+                          <MapPin className="h-2.5 w-2.5 text-[#B98A3E]" />
+                          <span>{techCenter.name}</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="mt-5 grid grid-cols-4 gap-2 sm:gap-3">
+                  {[
+                    { icon: <Users className="h-3 w-3" />, label: 'Followers', value: meStats?.followersCount ?? 0 },
+                    { icon: <UserPlus className="h-3 w-3" />, label: 'Following', value: meStats?.followingCount ?? 0 },
+                    { icon: <Eye className="h-3 w-3" />, label: 'Views', value: meStats?.profileViewsCount ?? 0 },
+                    { icon: <Heart className="h-3 w-3" />, label: 'Likes', value: meStats?.likesReceivedCount ?? 0 },
+                  ].map(({ icon, label, value }) => (
+                    <div key={label} className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-1.5 text-[#B98A3E]">
+                        {icon}
+                        <span className="font-mono text-[8px] font-bold uppercase tracking-wider text-white/75">
+                          {label}
+                        </span>
+                      </div>
+                      <span className="font-mono text-lg font-black tabular-nums text-[#B98A3E] sm:text-xl">
+                        {value}
                       </span>
                     </div>
-                  )}
-                </div>
-                {/* Online dot on avatar */}
-                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#1A2B4C] bg-[#55705B]" />
-              </div>
-
-              {/* Name + badges */}
-              <div className="min-w-0 flex-1">
-                <p className="font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-[#B98A3E]">
-                  {greeting}
-                </p>
-                <h1 className="mt-0.5 text-2xl font-black leading-tight tracking-tight sm:text-3xl">
-                  {firstName}<span className="text-[#B98A3E]">.</span>
-                </h1>
-                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[9.5px]">
-                  <span className="inline-flex items-center gap-1 text-[#B98A3E]">
-                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#B98A3E]" />
-                    <span className="uppercase tracking-wider">Active</span>
-                  </span>
-                  {user?.role && (
-                    <span className="uppercase tracking-wider text-white/75">
-                      {getRoleLabel(user.role)}
-                    </span>
-                  )}
-                  {techCenter && (
-                    <span className="inline-flex items-center gap-1 text-white/75">
-                      <MapPin className="h-2.5 w-2.5 text-[#B98A3E]" />
-                      <span>{techCenter.name}</span>
-                    </span>
-                  )}
+                  ))}
                 </div>
               </div>
-            </div>
-
-            {/* Stats Grid */}
-            <div className="mt-5 grid grid-cols-4 gap-2 sm:gap-3">
-              {[
-                { icon: <Users className="h-3 w-3" />, label: 'Followers', value: meStats?.followersCount ?? 0 },
-                { icon: <UserPlus className="h-3 w-3" />, label: 'Following', value: meStats?.followingCount ?? 0 },
-                { icon: <Eye className="h-3 w-3" />, label: 'Views', value: meStats?.profileViewsCount ?? 0 },
-                { icon: <Heart className="h-3 w-3" />, label: 'Likes', value: meStats?.likesReceivedCount ?? 0 },
-              ].map(({ icon, label, value }) => (
-                <div key={label} className="flex flex-col gap-0.5">
-                  <div className="flex items-center gap-1.5 text-[#B98A3E]">
-                    {icon}
-                    <span className="font-mono text-[8px] font-bold uppercase tracking-wider text-white/75">
-                      {label}
-                    </span>
-                  </div>
-                  <span className="font-mono text-lg font-black tabular-nums text-[#B98A3E] sm:text-xl">
-                    {value}
-                  </span>
-                </div>
-              ))}
+              <RecentAnnouncementsPanel />
             </div>
           </div>
 
@@ -1506,7 +2007,7 @@ export default function DashboardPage() {
             MAIN CONTENT - Unified layout
         ============================================================ */}
         <div className="mt-10 space-y-12">
-          <AnnouncementsSection />
+          <RecentPostsSection />
 
           {(!socialSummary || directorProfiles.length > 0) && (
             <section>

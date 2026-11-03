@@ -24,7 +24,6 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import Link from 'next/link';
 
 import { useAuth } from '@/lib/hooks/useAuth';
 import { getResponseError } from '../../response-guards';
