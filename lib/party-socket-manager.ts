@@ -3,6 +3,7 @@ import PartySocket from 'partysocket';
 interface ConnectionInfo {
   socket: PartySocket;
   refCount: number;
+  persistent: boolean;
 }
 
 class PartySocketManager {
@@ -10,7 +11,7 @@ class PartySocketManager {
 
   async getOrCreateConnection(
     room: string,
-    options: { userId: string },
+    options: { userId: string; persistent?: boolean },
   ): Promise<PartySocket | null> {
     const host = process.env.NEXT_PUBLIC_PARTYSERVER_HOST;
 
@@ -47,6 +48,7 @@ class PartySocketManager {
     this.connections.set(connectionKey, {
       socket,
       refCount: 1,
+      persistent: options.persistent || false,
     });
 
     return socket;
@@ -57,6 +59,12 @@ class PartySocketManager {
     if (!connection) return;
 
     connection.refCount--;
+
+    // Don't close persistent connections
+    if (connection.persistent) {
+      console.info('[socket-manager] Persistent connection, not closing:', room);
+      return;
+    }
 
     if (connection.refCount <= 0) {
       connection.socket.close();

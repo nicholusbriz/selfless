@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { createPublicPresenceSocket } from '@/lib/party-socket';
 import { getPartySocketManager } from '@/lib/party-socket-manager';
 
@@ -90,6 +90,7 @@ export function OnlineUsersProvider({ children, userId }: OnlineUsersProviderPro
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>(() => loadFromCache());
   const [isLoading, setIsLoading] = useState(false);
   const [socket, setSocket] = useState<any | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!userId) {
@@ -111,12 +112,12 @@ export function OnlineUsersProvider({ children, userId }: OnlineUsersProviderPro
 
       const fetchProfiles = async (userIds: string[]) => {
         if (userIds.length === 0) return;
-        
+
         // Debounce rapid successive calls
         if (fetchTimeout) {
           clearTimeout(fetchTimeout);
         }
-        
+
         fetchTimeout = setTimeout(async () => {
           try {
             const response = await fetch(
@@ -124,7 +125,7 @@ export function OnlineUsersProvider({ children, userId }: OnlineUsersProviderPro
               { cache: 'no-store' }
             );
             if (!response.ok) return;
-            
+
             const data: { users?: PresenceProfile[] } = await response.json();
             const users = (Array.isArray(data.users) ? data.users : []).map(profile => ({
               userId: profile.id,
@@ -135,7 +136,7 @@ export function OnlineUsersProvider({ children, userId }: OnlineUsersProviderPro
               techCenter: profile.techCenter || undefined,
               connectedAt: new Date().toISOString(),
             }));
-            
+
             setOnlineUsers(users);
             saveToCache(users);
           } catch (error) {
@@ -171,11 +172,28 @@ export function OnlineUsersProvider({ children, userId }: OnlineUsersProviderPro
         }
       };
 
-      newSocket.addEventListener('message', handleMessage);
-      newSocket.addEventListener('open', () => {
+      const handleOpen = () => {
+        console.log('[online-users] Socket connected');
         newSocket.send(JSON.stringify({ type: 'request-roster' }));
         setIsLoading(false);
-      });
+      };
+
+      const handleClose = () => {
+        console.log('[online-users] Socket disconnected, attempting reconnect...');
+        setIsLoading(false);
+        // Attempt to reconnect after 3 seconds
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+        }
+        reconnectTimeoutRef.current = setTimeout(() => {
+          console.log('[online-users] Reconnecting...');
+          initSocket();
+        }, 3000);
+      };
+
+      newSocket.addEventListener('message', handleMessage);
+      newSocket.addEventListener('open', handleOpen);
+      newSocket.addEventListener('close', handleClose);
 
       setSocket(newSocket);
     };
@@ -183,10 +201,11 @@ export function OnlineUsersProvider({ children, userId }: OnlineUsersProviderPro
     initSocket();
 
     return () => {
-      if (socket) {
-        getPartySocketManager().releaseConnection('online-users');
-        setSocket(null);
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
       }
+      // Don't release the connection on unmount - keep it alive
+      // Only release if explicitly needed
     };
   }, [userId]);
 
