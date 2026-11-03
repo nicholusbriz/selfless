@@ -342,6 +342,9 @@ export default function AzureMediaUpload({
       }
 
       // Report completion
+      if (uploadCategory === 'gallery' && completedFiles > 0) {
+        window.dispatchEvent(new Event('selfless:gallery-posts-changed'));
+      }
       onAllUploadsComplete?.(completedFiles);
       setUploaded(firstUploaded);
       setFiles([]);

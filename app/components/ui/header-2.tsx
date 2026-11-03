@@ -17,8 +17,6 @@ import {
   ArrowUpRight,
   GraduationCap,
   LogIn,
-  Menu,
-  X,
   Bell,
   MessageSquare,
   Users,
@@ -39,6 +37,16 @@ import {
   BarChart3,
   Radio,
   FileText,
+  UserCog,
+  School,
+  Shield,
+  Award,
+  DollarSign,
+  Settings,
+  Key,
+  Database,
+  Check,
+  Mail,
 } from "lucide-react";
 
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -91,31 +99,61 @@ const navItems = [
 /* -------------------------------------------------------------------------- */
 
 const dashboardQuickLinks = [
-  { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard className="w-4 h-4" />, group: "Workspace" },
-  { label: "Students", href: "/dashboard/students", icon: <Users className="w-4 h-4" />, group: "Workspace" },
-  { label: "Atbriz AI", href: "/dashboard/ai", icon: <Code className="w-4 h-4" />, group: "Workspace" },
-  { label: "English Hub", href: "/dashboard/english-hub", icon: <BookOpen className="w-4 h-4" />, group: "Workspace" },
-  { label: "Courses", href: "/dashboard/courses", icon: <BookMarked className="w-4 h-4" />, group: "Academics" },
-  { label: "Grades", href: "/dashboard/grades", icon: <BarChart3 className="w-4 h-4" />, group: "Academics" },
-  { label: "Internships", href: "/dashboard/internships", icon: <Briefcase className="w-4 h-4" />, group: "Academics" },
-  { label: "Live Streaming", href: "/dashboard/live-streaming", icon: <Radio className="w-4 h-4" />, group: "Community" },
-  { label: "Gallery", href: "/dashboard/gallery", icon: <Images className="w-4 h-4" />, group: "Community" },
-  { label: "Support Groups", href: "/dashboard/support-groups", icon: <HeartHandshake className="w-4 h-4" />, group: "Community" },
-  { label: "Temple Trips", href: "/dashboard/temple-trips", icon: <Building2 className="w-4 h-4" />, group: "Community" },
-  { label: "Football Team", href: "/dashboard/football-team", icon: <Trophy className="w-4 h-4" />, group: "Community" },
-  { label: "Cleaning Rota", href: "/dashboard/cleaning", icon: <Calendar className="w-4 h-4" />, group: "Community" },
-  { label: "Chat", href: "/dashboard/messages", icon: <MessageSquare className="w-4 h-4" />, group: "Communication" },
-  { label: "Announcements", href: "/dashboard/announcements", icon: <Megaphone className="w-4 h-4" />, group: "Communication" },
-  { label: "Policies", href: "/dashboard/policies", icon: <FileText className="w-4 h-4" />, group: "Communication" },
-  { label: "IT Support", href: "/dashboard/support", icon: <LifeBuoy className="w-4 h-4" />, group: "Communication" },
-  { label: "My Profile", href: "/dashboard/profile", icon: <User className="w-4 h-4" />, group: "Account" },
+  { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" />, group: "Workspace", roles: ["student", "teacher", "admin", "dev", "super_admin"] },
+  { label: "Students", href: "/dashboard/students", icon: <Users className="w-5 h-5" />, group: "Workspace", roles: ["student", "teacher", "admin", "dev", "super_admin"] },
+  { label: "Connections", href: "/dashboard/connections", icon: <User className="w-5 h-5" />, group: "Workspace", roles: ["student", "teacher", "admin", "dev", "super_admin"] },
+  { label: "Atbriz AI", href: "/dashboard/ai", icon: <Code className="w-5 h-5" />, group: "Workspace", roles: ["student", "teacher", "admin", "dev", "super_admin"] },
+  { label: "English Hub", href: "/dashboard/english-hub", icon: <BookOpen className="w-5 h-5" />, group: "Workspace", roles: ["student", "teacher", "admin", "dev", "super_admin"] },
+  { label: "Courses", href: "/dashboard/courses", icon: <BookMarked className="w-5 h-5" />, group: "Academics", roles: ["student", "teacher", "admin", "dev"] },
+  { label: "Course Units", href: "/dashboard/course-units", icon: <BookMarked className="w-5 h-5" />, group: "Academics", roles: ["student", "teacher", "admin", "dev", "super_admin"] },
+  { label: "My Grades", href: "/dashboard/grades", icon: <BarChart3 className="w-5 h-5" />, group: "Academics", roles: ["student", "teacher", "admin", "dev"] },
+  { label: "Tutors", href: "/dashboard/admin/teachers", icon: <GraduationCap className="w-5 h-5" />, group: "Academics", roles: ["student", "teacher", "admin"] },
+  { label: "Internships", href: "/dashboard/internships", icon: <Briefcase className="w-5 h-5" />, group: "Opportunities", roles: ["student", "teacher", "admin", "dev", "super_admin"] },
+  { label: "Live Streaming", href: "/dashboard/live-streaming", icon: <Radio className="w-5 h-5" />, group: "Media", roles: ["student", "teacher", "admin", "dev", "super_admin"] },
+  { label: "Posts", href: "/dashboard/gallery", icon: <Images className="w-5 h-5" />, group: "Media", roles: ["student", "teacher", "admin", "dev", "super_admin"] },
+  { label: "Media Approvals", href: "/dashboard/media-approvals", icon: <Check className="w-5 h-5" />, group: "Media", roles: ["dev", "super_admin"] },
+  { label: "Support Groups", href: "/dashboard/support-groups", icon: <HeartHandshake className="w-5 h-5" />, group: "Community", roles: ["student", "teacher", "admin", "dev", "super_admin"] },
+  { label: "Temple Trips", href: "/dashboard/temple-trips", icon: <Building2 className="w-5 h-5" />, group: "Community", roles: ["student", "teacher", "admin", "dev", "super_admin"] },
+  { label: "Sports", href: "/dashboard/football-team", icon: <Trophy className="w-5 h-5" />, group: "Community", roles: ["student", "teacher", "admin", "dev", "super_admin"] },
+  { label: "Cleaning Rota", href: "/dashboard/cleaning", icon: <Calendar className="w-5 h-5" />, group: "Campus", roles: ["student", "teacher", "admin"] },
+  { label: "Chat", href: "/dashboard/messages", icon: <MessageSquare className="w-5 h-5" />, group: "Communication", roles: ["student", "teacher", "admin", "dev", "super_admin"] },
+  { label: "Announcements", href: "/dashboard/announcements", icon: <Megaphone className="w-5 h-5" />, group: "Communication", roles: ["student", "teacher", "admin", "dev", "super_admin"] },
+  { label: "Notifications", href: "/dashboard/notifications", icon: <Bell className="w-5 h-5" />, group: "Communication", roles: ["student", "teacher", "admin", "dev", "super_admin"] },
+  { label: "Policy Book", href: "/dashboard/policies", icon: <FileText className="w-5 h-5" />, group: "Information", roles: ["student", "teacher", "admin", "dev", "super_admin"] },
+  { label: "IT Support", href: "/dashboard/support", icon: <LifeBuoy className="w-5 h-5" />, group: "Information", roles: ["student", "teacher", "admin", "dev", "super_admin"] },
+  { label: "My Profile", href: "/dashboard/profile", icon: <User className="w-5 h-5" />, group: "Account", roles: ["student", "teacher", "admin", "dev", "super_admin"] },
+  { label: "Admin Dashboard", href: "/dashboard/admin", icon: <Shield className="w-5 h-5" />, group: "Administration", roles: ["admin"] },
+  { label: "Manage Users", href: "/dashboard/admin/users", icon: <Users className="w-5 h-5" />, group: "Administration", roles: ["admin"] },
+  { label: "Manage Tutors", href: "/dashboard/admin/teachers", icon: <UserCog className="w-5 h-5" />, group: "Administration", roles: ["admin"] },
+  { label: "Assign Grades", href: "/dashboard/teacher/grades", icon: <Award className="w-5 h-5" />, group: "Administration", roles: ["admin", "teacher"] },
+  { label: "Tuition", href: "/dashboard/admin/tuition", icon: <DollarSign className="w-5 h-5" />, group: "Administration", roles: ["admin"] },
+  { label: "Tech Center", href: "/dashboard/admin/tech-centers", icon: <School className="w-5 h-5" />, group: "Administration", roles: ["admin"] },
+  { label: "Cleaning Management", href: "/dashboard/admin/cleaning", icon: <Settings className="w-5 h-5" />, group: "Administration", roles: ["admin"] },
+  { label: "Manage Grades", href: "/dashboard/manage-grades", icon: <Award className="w-5 h-5" />, group: "System", roles: ["dev", "super_admin"] },
+  { label: "System Overview", href: "/dashboard/super-admin", icon: <Shield className="w-5 h-5" />, group: "System", roles: ["dev", "super_admin"] },
+  { label: "All Tech Centers", href: "/dashboard/super-admin/centers", icon: <School className="w-5 h-5" />, group: "System", roles: ["dev", "super_admin"] },
+  { label: "All Users", href: "/dashboard/super-admin/users", icon: <Users className="w-5 h-5" />, group: "System", roles: ["dev", "super_admin"] },
+  { label: "Send Emails", href: "/dashboard/super-admin/email", icon: <Mail className="w-5 h-5" />, group: "System", roles: ["dev", "super_admin"] },
+  { label: "Dev Dashboard", href: "/dashboard/dev", icon: <Code className="w-5 h-5" />, group: "Developers", roles: ["dev"] },
+  { label: "Cleaning Management", href: "/dashboard/dev/cleaning", icon: <Settings className="w-5 h-5" />, group: "Developers", roles: ["dev", "super_admin"] },
+  { label: "English Class", href: "/dashboard/dev/english-hub", icon: <BookOpen className="w-5 h-5" />, group: "Developers", roles: ["dev", "super_admin"] },
+  { label: "Password Resets", href: "/dashboard/dev/password-resets", icon: <Key className="w-5 h-5" />, group: "Developers", roles: ["dev"] },
+  { label: "Knowledge Base", href: "/dashboard/dev/knowledge-base", icon: <Database className="w-5 h-5" />, group: "Developers", roles: ["dev"] },
+  { label: "Activity Logs", href: "/dashboard/dev/logs", icon: <FileText className="w-5 h-5" />, group: "Developers", roles: ["dev"] },
 ];
 
 const dashboardGroups = [
   "Workspace",
   "Academics",
+  "Opportunities",
+  "Media",
   "Community",
+  "Campus",
   "Communication",
+  "Information",
+  "Administration",
+  "System",
+  "Developers",
   "Account",
 ];
 
@@ -145,15 +183,6 @@ const navMotion = {
   },
 };
 
-const mobileItemMotion = {
-  hidden: { opacity: 0, x: 14 },
-  visible: (index: number) => ({
-    opacity: 1,
-    x: 0,
-    transition: { delay: index * 0.045, duration: 0.3, ease: [0.22, 1, 0.36, 1] as const },
-  }),
-};
-
 /* -------------------------------------------------------------------------- */
 /* MARQUEE STYLES                                                             */
 /* -------------------------------------------------------------------------- */
@@ -173,8 +202,21 @@ function MarqueeStyles() {
         will-change: transform;
       }
       .selfless-marquee-track:hover { animation-play-state: paused; }
+      @keyframes selflessOnlineMarquee {
+        from { transform: translateX(100%); }
+        to { transform: translateX(-100%); }
+      }
+      .selfless-online-marquee {
+        display: inline-flex;
+        align-items: center;
+        white-space: nowrap;
+        animation: selflessOnlineMarquee 32s linear infinite;
+        will-change: transform;
+      }
+      .selfless-online-marquee:hover { animation-play-state: paused; }
       @media (prefers-reduced-motion: reduce) {
-        .selfless-marquee-track { animation: none !important; }
+        .selfless-marquee-track,
+        .selfless-online-marquee { animation: none !important; }
       }
       .header-scroll-area {
         scrollbar-width: thin;
@@ -193,13 +235,11 @@ function MarqueeStyles() {
       .scrollbar-hide::-webkit-scrollbar {
         display: none;
       }
-      @keyframes onlinePing {
-        0% { transform: scale(1); opacity: 0.6; }
-        75%, 100% { transform: scale(2.4); opacity: 0; }
+      .header-nav-scroll {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
       }
-      .online-ping {
-        animation: onlinePing 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
-      }
+      .header-nav-scroll::-webkit-scrollbar { display: none; }
     `}</style>
   );
 }
@@ -208,9 +248,28 @@ function MarqueeStyles() {
 /* TICKER STRIP                                                               */
 /* -------------------------------------------------------------------------- */
 
-function TickerStrip() {
-  const repeated = [...tickerPhrases, ...tickerPhrases];
-
+function TickerStrip({
+  onlineUsers = [],
+  isLoggedIn = false,
+}: {
+  onlineUsers?: OnlineUser[];
+  isLoggedIn?: boolean;
+}) {
+  const uniqueUsers = Array.from(
+    new Map(onlineUsers.map((onlineUser) => [onlineUser.userId, onlineUser])).values(),
+  );
+  const onlineNames = uniqueUsers.map(
+    (onlineUser) =>
+      `${onlineUser.firstName || ""} ${onlineUser.lastName || ""}`.trim() ||
+      onlineUser.fullName ||
+      "User",
+  );
+  const tickerItems =
+    onlineNames.length > 0
+      ? onlineNames
+      : isLoggedIn
+        ? ["Connecting to online users..."]
+        : tickerPhrases;
   return (
     <div className="relative overflow-hidden" style={{ backgroundColor: COLORS.navyDeep }}>
       <div className="flex min-h-8 items-stretch sm:min-h-9">
@@ -222,17 +281,24 @@ function TickerStrip() {
             borderRight: `1px solid ${COLORS.brassLight}`,
           }}
         >
-          <span className="size-1.5 rounded-full" style={{ backgroundColor: COLORS.brassLight, boxShadow: `0 0 8px ${COLORS.brassLight}` }} />
+          <span className="size-1.5 rounded-full" style={{ backgroundColor: isLoggedIn && onlineNames.length > 0 ? "#22C55E" : COLORS.brassLight, boxShadow: `0 0 8px ${isLoggedIn && onlineNames.length > 0 ? "#22C55E" : COLORS.brassLight}` }} />
           <span className="font-mono text-[9px] uppercase tracking-[0.14em] sm:text-[10px] sm:tracking-[0.2em]" style={{ color: COLORS.brassLight }}>
-            SELFLESS
+            {isLoggedIn ? `ONLINE · ${uniqueUsers.length}` : "SELFLESS"}
           </span>
         </div>
 
         <div className="relative flex-1 overflow-hidden">
-          <div className="selfless-marquee-track">
-            {repeated.map((phrase, index) => (
-              <span key={`${phrase}-${index}`} className="flex items-center text-[11px] sm:text-[12.5px]" style={{ color: "rgba(255,255,255,0.78)" }}>
-                <span className="px-4 sm:px-8">{phrase}</span>
+          <div
+            className={
+              isLoggedIn && onlineNames.length > 0
+                ? "selfless-online-marquee"
+                : "selfless-marquee-track"
+            }
+            aria-label={isLoggedIn ? `Online users: ${onlineNames.join(", ")}` : undefined}
+          >
+            {tickerItems.map((item, index) => (
+              <span key={`${item}-${index}`} className="flex items-center text-[11px] sm:text-[12.5px]" style={{ color: "rgba(255,255,255,0.78)" }}>
+                <span className="px-4 sm:px-8">{item}</span>
                 <span style={{ color: "rgba(232,163,61,0.6)" }}>·</span>
               </span>
             ))}
@@ -252,7 +318,7 @@ function NavLink({ item, active }: { item: { label: string; href: string }; acti
     <Link
       href={item.href}
       aria-current={active ? "page" : undefined}
-      className="group relative whitespace-nowrap px-4 py-2.5 text-[14px] font-semibold outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-[#E8A33D] motion-reduce:transition-none"
+      className="group relative shrink-0 whitespace-nowrap px-2.5 py-1.5 text-[12.5px] font-semibold outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-[#E8A33D] motion-reduce:transition-none lg:py-2.5 xl:px-4 xl:text-[14px]"
       style={{ color: active ? COLORS.brassLight : "rgba(255,255,255,0.78)" }}
     >
       <span className="relative group-hover:text-white group-hover:transition-colors">{item.label}</span>
@@ -372,6 +438,13 @@ function StatusIcons({
 function DashboardDropdown({ user, variant = "desktop" }: { user: any; variant?: "desktop" | "mobile" }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const userRole =
+    typeof user?.role === "string"
+      ? user.role.toLowerCase().replace(/[\s-]+/g, "_")
+      : "student";
+  const roleLinks = dashboardQuickLinks.filter((link) =>
+    link.roles.includes(userRole)
+  );
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -397,6 +470,7 @@ function DashboardDropdown({ user, variant = "desktop" }: { user: any; variant?:
           className="group inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-[12.5px] font-bold transition-all duration-200"
           style={{ backgroundColor: COLORS.brassLight, color: COLORS.navy, boxShadow: "0 2px 8px rgba(232,163,61,0.25)" }}
         >
+          <LayoutDashboard size={15} strokeWidth={2.4} />
           <span className="whitespace-nowrap">Dashboard</span>
           <ChevronDown size={14} strokeWidth={2.6} className={`transition-transform duration-200 flex-shrink-0 ${isOpen ? "rotate-180" : ""}`} />
         </button>
@@ -423,16 +497,16 @@ function DashboardDropdown({ user, variant = "desktop" }: { user: any; variant?:
 
               <div className="flex-1 min-h-0 overflow-y-auto header-scroll-area p-3.5 space-y-4">
                 {dashboardGroups.map((groupName) => {
-                  const groupLinks = dashboardQuickLinks.filter((l) => l.group === groupName);
+                  const groupLinks = roleLinks.filter((l) => l.group === groupName);
                   if (groupLinks.length === 0) return null;
                   return (
                     <div key={groupName}>
                       <p className="text-[10px] font-mono uppercase tracking-[0.16em] mb-2 px-1" style={{ color: COLORS.subtle }}>{groupName}</p>
-                      <div className="grid grid-cols-2 gap-1">
+                      <div className="grid grid-cols-2 gap-2">
                         {groupLinks.map((link) => (
-                          <Link key={link.href} href={link.href} onClick={() => setIsOpen(false)} className="flex items-center gap-2.5 min-h-11 px-2.5 rounded-xl text-[13px] font-medium transition-colors hover:bg-white" style={{ color: COLORS.navy }}>
-                            <span className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg" style={{ color: COLORS.brass, backgroundColor: "rgba(185,138,62,0.10)" }}>{link.icon}</span>
-                            <span className="truncate">{link.label}</span>
+                          <Link key={`${link.href}-${link.group}`} href={link.href} onClick={() => setIsOpen(false)} className="group/link flex min-h-[82px] flex-col items-start justify-between rounded-xl border p-3 text-left text-[12px] font-semibold transition-all hover:-translate-y-0.5 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E]" style={{ color: COLORS.navy, borderColor: COLORS.border, backgroundColor: "rgba(255,255,255,0.62)" }}>
+                            <span className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors group-hover/link:bg-[#12203B] group-hover/link:text-white" style={{ color: COLORS.brass, backgroundColor: "rgba(185,138,62,0.10)" }}>{link.icon}</span>
+                            <span className="w-full truncate">{link.label}</span>
                           </Link>
                         ))}
                       </div>
@@ -463,6 +537,7 @@ function DashboardDropdown({ user, variant = "desktop" }: { user: any; variant?:
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
+        aria-label="Open dashboard navigation"
         className="group inline-flex h-10 items-center gap-2 px-4 text-[13.5px] font-bold rounded-xl transition-all duration-200 hover:-translate-y-px motion-reduce:transition-none border"
         style={{
           backgroundColor: "rgba(232, 163, 61, 0.1)",
@@ -470,6 +545,7 @@ function DashboardDropdown({ user, variant = "desktop" }: { user: any; variant?:
           borderColor: "rgba(232, 163, 61, 0.3)",
         }}
       >
+        <LayoutDashboard size={16} strokeWidth={2.3} />
         <span>Dashboard</span>
         <ChevronDown size={15} strokeWidth={2.4} className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
       </button>
@@ -505,16 +581,16 @@ function DashboardDropdown({ user, variant = "desktop" }: { user: any; variant?:
             <div className="flex-1 min-h-0 overflow-y-auto header-scroll-area px-4 pb-2">
               <div className="space-y-4">
                 {dashboardGroups.map((groupName) => {
-                  const groupLinks = dashboardQuickLinks.filter((l) => l.group === groupName);
+                  const groupLinks = roleLinks.filter((l) => l.group === groupName);
                   if (groupLinks.length === 0) return null;
                   return (
                     <div key={groupName}>
                       <p className="text-[10px] font-mono uppercase tracking-[0.16em] mb-2 px-1" style={{ color: COLORS.subtle }}>{groupName}</p>
-                      <div className="grid grid-cols-2 gap-1">
+                      <div className="grid grid-cols-3 gap-2">
                         {groupLinks.map((link) => (
-                          <Link key={link.href} href={link.href} onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] font-medium transition-colors hover:bg-white" style={{ color: COLORS.navy }}>
-                            <span className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg" style={{ color: COLORS.brass, backgroundColor: "rgba(185,138,62,0.10)" }}>{link.icon}</span>
-                            <span className="truncate">{link.label}</span>
+                          <Link key={`${link.href}-${link.group}`} href={link.href} onClick={() => setIsOpen(false)} className="group/link flex min-h-[88px] flex-col items-start justify-between rounded-xl border p-3 text-left text-[12px] font-semibold transition-all hover:-translate-y-0.5 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E]" style={{ color: COLORS.navy, borderColor: COLORS.border, backgroundColor: "rgba(255,255,255,0.62)" }}>
+                            <span className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors group-hover/link:bg-[#12203B] group-hover/link:text-white" style={{ color: COLORS.brass, backgroundColor: "rgba(185,138,62,0.10)" }}>{link.icon}</span>
+                            <span className="w-full truncate">{link.label}</span>
                           </Link>
                         ))}
                       </div>
@@ -538,63 +614,6 @@ function DashboardDropdown({ user, variant = "desktop" }: { user: any; variant?:
 }
 
 /* -------------------------------------------------------------------------- */
-/* ONLINE USERS INLINE                                                        */
-/* -------------------------------------------------------------------------- */
-
-function OnlineUsersInline({
-  onlineUsers,
-  currentUserId,
-  limit = 6,
-}: {
-  onlineUsers: OnlineUser[];
-  currentUserId?: string;
-  limit?: number;
-}) {
-  if (!onlineUsers || onlineUsers.length === 0) return null;
-
-  // Duplicate the array for infinite scroll
-  const displayUsers = [...onlineUsers, ...onlineUsers];
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className="flex items-center gap-2 min-w-0"
-    >
-      <span className="relative flex size-2 shrink-0">
-        <span className="online-ping absolute inline-flex size-full rounded-full" style={{ backgroundColor: "#4ADE80" }} />
-        <span className="relative inline-flex size-2 rounded-full" style={{ backgroundColor: "#22C55E" }} />
-      </span>
-
-      <span className="font-mono text-[10px] uppercase tracking-[0.14em] whitespace-nowrap shrink-0" style={{ color: "rgba(255,255,255,0.6)" }}>
-        {onlineUsers.length} online
-      </span>
-
-      <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
-        <div className="selfless-marquee-track">
-          {displayUsers.map((u, i) => {
-            const isSelf = u.userId === currentUserId;
-            const name = isSelf ? "You" : `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.fullName || "User";
-
-            return (
-              <span
-                key={`${u.userId || i}-${i}`}
-                className="flex items-center gap-1.5 text-[12px] font-medium whitespace-nowrap shrink-0"
-                style={{ color: isSelf ? COLORS.brassBright : "rgba(255,255,255,0.82)" }}
-              >
-                {name}
-                <span style={{ color: "rgba(255,255,255,0.25)" }}>·</span>
-              </span>
-            );
-          })}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
 /* HEADER — THREE ROWS                                                        */
 /* -------------------------------------------------------------------------- */
 
@@ -610,10 +629,8 @@ export default function Header2({ onlineUsers = [], isLoadingOnlineUsers = false
   const [scrolled, setScrolled] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalType, setAuthModalType] = useState<"login" | "register">("login");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const headerRef = useRef<HTMLElement | null>(null);
-  const openPathname = mobileMenuOpen ? pathname : null;
 
   const { data: unreadCount } = useUnreadNotificationCount(!!user);
   const { data: announcementCount } = useAnnouncementCount(!!user);
@@ -630,35 +647,10 @@ export default function Header2({ onlineUsers = [], isLoadingOnlineUsers = false
     return () => window.removeEventListener("scroll", handleScroll);
   }, [handleScroll]);
 
-  useEffect(() => {
-    setMobileMenuOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    if (!mobileMenuOpen) {
-      document.body.style.overflow = "";
-      return;
-    }
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = ""; };
-  }, [mobileMenuOpen]);
-
-  useEffect(() => {
-    if (!mobileMenuOpen) return;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setMobileMenuOpen(false);
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [mobileMenuOpen]);
-
   const openAuth = (type: "login" | "register") => {
     setAuthModalType(type);
     setShowAuthModal(true);
-    setMobileMenuOpen(false);
   };
-
-  const closeMobileMenu = () => setMobileMenuOpen(false);
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
@@ -678,8 +670,19 @@ export default function Header2({ onlineUsers = [], isLoadingOnlineUsers = false
         }}
       >
         {/* ROW 1 — TICKER */}
-        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${scrolled ? "max-h-0 opacity-0 -translate-y-full" : "max-h-12 opacity-100 translate-y-0"}`}>
-          <TickerStrip />
+        <div className="overflow-hidden">
+          <TickerStrip onlineUsers={user ? onlineUsers : []} isLoggedIn={Boolean(user?.id)} />
+        </div>
+
+        {/* IDENTITY STRIP — ABOVE THE NAVIGATION LINKS */}
+        <div style={{ backgroundColor: COLORS.navy }}>
+          <div className="mx-auto flex min-h-9 max-w-[1440px] items-center justify-between gap-3 px-4 py-1.5 sm:px-6 lg:px-8">
+            <p className="font-serif text-[13px] italic sm:text-[15px]" style={{ color: "rgba(247,246,242,0.9)" }}>Student Self Service Portal</p>
+            <div className="flex items-center gap-2">
+              <span className="hidden h-px w-6 bg-[#E8A33D]/50 sm:block" />
+              <p className="font-serif text-[12px] italic sm:text-[14px]" style={{ color: "rgba(232,163,61,0.95)" }}>Nurturing resilient minds</p>
+            </div>
+          </div>
         </div>
 
         {/* ROW 2 — MAIN NAVIGATION BAR */}
@@ -736,7 +739,7 @@ export default function Header2({ onlineUsers = [], isLoadingOnlineUsers = false
             </div>
 
             {/* ---------- MOBILE / TABLET (up to lg) ---------- */}
-            <div className={`flex items-center justify-between gap-2 transition-all duration-300 lg:hidden ${scrolled ? "h-[64px]" : "h-[74px]"}`}>
+            <div className={`flex items-center justify-between gap-2 transition-all duration-300 lg:hidden ${scrolled ? "h-[50px]" : "h-[54px]"}`}>
               {/* Enhanced Mobile Logo */}
               <Link href="/" aria-label="SELFLESS home" className="group flex min-w-0 shrink items-center relative pl-2">
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full" style={{ backgroundColor: COLORS.brassLight, boxShadow: `0 0 4px ${COLORS.brassLight}` }} />
@@ -745,7 +748,7 @@ export default function Header2({ onlineUsers = [], isLoadingOnlineUsers = false
                 </div>
               </Link>
 
-              <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+              <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
                 {isLoading ? (
                   <div aria-hidden="true" className="h-9 w-9 animate-pulse rounded-lg" style={{ backgroundColor: "rgba(255,255,255,0.08)" }} />
                 ) : user ? (
@@ -761,146 +764,22 @@ export default function Header2({ onlineUsers = [], isLoadingOnlineUsers = false
                     <LogIn size={15} strokeWidth={2} /> Login
                   </button>
                 )}
-
-                <button
-                  type="button"
-                  onClick={() => setMobileMenuOpen((current) => !current)}
-                  aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
-                  aria-expanded={mobileMenuOpen}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-200"
-                  style={{ color: COLORS.white, backgroundColor: mobileMenuOpen ? "rgba(232,163,61,0.24)" : "rgba(255,255,255,0.08)" }}
-                >
-                  <AnimatePresence mode="wait" initial={false}>
-                    {mobileMenuOpen ? (
-                      <motion.span key="close" initial={{ opacity: 0, rotate: -45 }} animate={{ opacity: 1, rotate: 0 }} exit={{ opacity: 0, rotate: 45 }} transition={{ duration: 0.18 }} className="flex">
-                        <X size={19} strokeWidth={2.2} />
-                      </motion.span>
-                    ) : (
-                      <motion.span key="menu" initial={{ opacity: 0, rotate: 45 }} animate={{ opacity: 1, rotate: 0 }} exit={{ opacity: 0, rotate: -45 }} transition={{ duration: 0.18 }} className="flex">
-                        <Menu size={21} strokeWidth={2.2} />
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </button>
               </div>
             </div>
+
+            <nav aria-label="Primary navigation" className="header-nav-scroll flex min-w-0 items-center overflow-x-auto whitespace-nowrap py-0 lg:hidden">
+              <div className="mx-auto flex min-w-max items-center">
+                {navItems.map((item) => (
+                  <NavLink key={item.href} item={item} active={isActive(item.href)} />
+                ))}
+              </div>
+            </nav>
           </div>
         </div>
 
-        {/* ROW 3 — IDENTITY STRIP */}
-        <div style={{ backgroundColor: COLORS.navy }}>
-          <div className="mx-auto flex min-h-10 max-w-[1440px] items-center justify-between gap-3 px-4 py-2.5 sm:px-6 lg:px-8">
-            <p className="font-serif text-[13px] italic sm:text-[15px]" style={{ color: "rgba(247,246,242,0.9)" }}>Student Self Service Portal</p>
-            <div className="flex items-center gap-2">
-              <span className="hidden h-px w-6 bg-[#E8A33D]/50 sm:block" />
-              <p className="font-serif text-[12px] italic sm:text-[14px]" style={{ color: "rgba(232,163,61,0.95)" }}>Nurturing resilient minds</p>
-            </div>
-          </div>
-        </div>
-
-
-
-        {/* ROW 4 — ONLINE USERS STRIP */}
-        {user && onlineUsers.length > 0 && (
-          <div style={{ backgroundColor: COLORS.navyDeep, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)" }}>
-            <div className="mx-auto flex min-h-9 max-w-[1440px] items-center px-4 py-1.5 sm:px-6 lg:px-8 overflow-hidden">
-              <OnlineUsersInline onlineUsers={onlineUsers} currentUserId={user?.id} limit={8} />
-            </div>
-          </div>
-        )}
-
-        {/* Mobile drawer */}
-        <AnimatePresence>
-          {openPathname === pathname && (
-            <>
-              <motion.button
-                type="button"
-                aria-label="Close navigation"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={closeMobileMenu}
-                className="fixed inset-0 top-[64px] z-40 lg:hidden"
-                style={{ backgroundColor: "rgba(13,24,44,0.48)" }}
-              />
-              <motion.div
-                initial={{ opacity: 0, y: -10, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.98 }}
-                transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] as const }}
-                className="absolute inset-x-3 top-full z-50 overflow-hidden rounded-2xl shadow-[0_22px_55px_rgba(13,24,44,0.3)] lg:hidden"
-                style={{ backgroundColor: COLORS.surface }}
-              >
-                <nav aria-label="Mobile navigation" className="p-3">
-                  {navItems.map((item, index) => {
-                    const active = isActive(item.href);
-                    return (
-                      <motion.div key={item.href} custom={index} initial="hidden" animate="visible" variants={mobileItemMotion}>
-                        <Link
-                          href={item.href}
-                          onClick={closeMobileMenu}
-                          className="group flex min-h-12 items-center justify-between rounded-xl px-4 text-[14.5px] font-semibold transition-colors"
-                          style={{ backgroundColor: active ? "white" : "transparent", color: active ? COLORS.navy : "#4B564C", boxShadow: active ? "0 2px 10px rgba(18,32,59,0.06)" : "none" }}
-                        >
-                          <span className="flex items-center gap-3">
-                            {active && <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: COLORS.brass }} />}
-                            <span>{item.label}</span>
-                          </span>
-                          <ArrowUpRight size={16} strokeWidth={1.8} className={`transition-all duration-200 ${active ? "opacity-100" : "opacity-0 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-70"}`} style={{ color: active ? COLORS.brass : COLORS.subtle }} />
-                        </Link>
-                      </motion.div>
-                    );
-                  })}
-
-                  <div className="h-3" />
-
-                  {user ? (
-                    <>
-                      <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl" style={{ backgroundColor: "white", boxShadow: "0 2px 10px rgba(18,32,59,0.06)" }}>
-                        <UserAvatar user={user} size={46} />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[15px] font-semibold truncate" style={{ color: COLORS.navy }}>{user?.firstName} {user?.lastName}</p>
-                          <p className="text-[11px] font-mono uppercase tracking-wide truncate mt-0.5" style={{ color: COLORS.muted }}>
-                            {user?.role || "Student"}{user?.techCenter && ` • ${user.techCenter.name}`}
-                          </p>
-                        </div>
-                        <Link href="/dashboard/profile" onClick={closeMobileMenu} aria-label="Open profile" className="flex items-center justify-center w-9 h-9 rounded-lg transition-colors hover:bg-[#F1F1EC]" style={{ color: COLORS.brass }}>
-                          <ArrowUpRight size={16} strokeWidth={2.2} />
-                        </Link>
-                      </div>
-
-                      <div className="mt-3 px-3 py-3 rounded-xl text-center" style={{ backgroundColor: "rgba(185,138,62,0.12)" }}>
-                        <p className="text-[10.5px] font-mono uppercase tracking-[0.14em]" style={{ color: COLORS.brass }}>Tap the Dashboard button above to access your portal</p>
-                      </div>
-
-                      <div className="mt-4 flex items-center justify-center gap-2 pt-3 text-[10px] font-medium uppercase tracking-[0.15em]" style={{ color: COLORS.subtle, boxShadow: "inset 0 1px 0 rgba(18,32,59,0.06)" }}>
-                        <GraduationCap size={14} strokeWidth={1.7} style={{ color: COLORS.brass }} />
-                        <span>SELFLESS Student Portal</span>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button type="button" onClick={() => openAuth("login")} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white px-4 text-[14px] font-semibold transition-colors hover:bg-[#F1F1EC]" style={{ color: COLORS.navy, boxShadow: "0 2px 10px rgba(18,32,59,0.06)" }}>
-                          <LogIn size={16} /> Login
-                        </button>
-                        <button type="button" onClick={() => openAuth("register")} className="flex min-h-12 items-center justify-center gap-2 rounded-xl px-4 text-[14px] font-bold transition-transform hover:-translate-y-px" style={{ backgroundColor: COLORS.brassLight, color: COLORS.navy, boxShadow: "0 2px 10px rgba(232,163,61,0.28)" }}>
-                          Get Started <ArrowUpRight size={16} />
-                        </button>
-                      </div>
-
-                      <div className="mt-4 flex items-center justify-center gap-2 pt-3 text-[10px] font-medium uppercase tracking-[0.15em]" style={{ color: COLORS.subtle, boxShadow: "inset 0 1px 0 rgba(18,32,59,0.06)" }}>
-                        <GraduationCap size={14} strokeWidth={1.7} style={{ color: COLORS.brass }} />
-                        <span>SELFLESS Student Portal</span>
-                      </div>
-                    </>
-                  )}
-                </nav>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
       </header>
+
+      <div aria-hidden="true" className="h-[152px] sm:h-[156px] lg:h-[146px]" />
 
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} defaultType={authModalType} />
     </>

@@ -6,17 +6,18 @@ import {
   Loader2,
   AlertCircle,
   X,
-  ChevronLeft,
-  ChevronRight,
-  UserPlus,
-  UserCheck,
   Plus,
   RefreshCw,
   Trash2,
   Image as ImageIcon,
-  Video,
+  Maximize2,
   CheckCircle2,
   Check,
+  Pause,
+  Play,
+  Volume2,
+  VolumeX,
+  MoreVertical,
 } from 'lucide-react';
 import {
   useInfiniteQuery,
@@ -28,7 +29,7 @@ import { isRecord } from '@/app/dashboard/response-guards';
 import { getApiErrorMessage, readJsonObject } from '@/lib/api-response';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import AzureMediaUpload from '@/components/AzureMediaUpload';
 import MediaPostInteractions from './components/MediaPostInteractions';
@@ -55,6 +56,20 @@ interface MediaItem {
       name: string;
     } | null;
   } | null;
+}
+
+interface VideoControlsState {
+  currentTime: number;
+  duration: number;
+  isMuted: boolean;
+  isPlaying: boolean;
+}
+
+function formatVideoTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
 interface MediaPage {
@@ -165,6 +180,7 @@ export default function GalleryPage() {
   const [activeFilter, setActiveFilter] = useState<'all' | 'photos' | 'videos' | 'mine' | 'saved'>('all');
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [deletePostError, setDeletePostError] = useState<{ id: string; message: string } | null>(null);
+  const [openPostMenuId, setOpenPostMenuId] = useState<string | null>(null);
   const { data: items = [], isLoading, isFetching, error, refetch } = useQuery<MediaItem[]>({
     queryKey: ['gallery-media'],
     queryFn: async () => {
@@ -361,8 +377,12 @@ export default function GalleryPage() {
         ['gallery-saved-posts', currentUser?.id],
         removePost,
       );
-      setLightboxItems((previous) => previous.filter((item) => item.id !== mediaId));
-      setLightboxOpen(false);
+      setFullscreenMedia((previous) =>
+        previous?.id === mediaId ? null : previous,
+      );
+      void queryClient.invalidateQueries({
+        queryKey: ['gallery-post-count'],
+      });
       void queryClient.invalidateQueries({
         queryKey: ['gallery-my-posts', currentUser?.id],
       });
@@ -420,64 +440,103 @@ export default function GalleryPage() {
     },
     { APPROVED: 0, PENDING: 0, REJECTED: 0 },
   );
+  const communityGrowth = useMemo(() => {
+    const today = new Date();
+    const startOfToday = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
+    const days = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(startOfToday);
+      date.setDate(startOfToday.getDate() - (6 - index));
+      return {
+        key: `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`,
+        label: date.toLocaleDateString('en-US', { weekday: 'short' }),
+        count: 0,
+      };
+    });
 
-  // Lightbox state
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxIndex, setLightboxIndex] = useState(0);
-  const [lightboxItems, setLightboxItems] = useState<MediaItem[]>([]);
+    for (const item of items) {
+      const createdAt = new Date(item.createdAt);
+      if (!Number.isFinite(createdAt.getTime())) continue;
+      const key = `${createdAt.getFullYear()}-${createdAt.getMonth()}-${createdAt.getDate()}`;
+      const day = days.find((entry) => entry.key === key);
+      if (day) day.count += 1;
+    }
 
-  // Open lightbox with specific item (photos only)
-  const openLightbox = useCallback((item: MediaItem, allItems: MediaItem[]) => {
-    // Only open lightbox for images, not videos
-    if (item.contentType.startsWith('video/')) return;
-    setLightboxItems(allItems);
-    const index = allItems.findIndex((i) => i.id === item.id);
-    setLightboxIndex(index >= 0 ? index : 0);
-    setLightboxOpen(true);
+    let total = 0;
+    const points = days.map((day) => {
+      total += day.count;
+      return { ...day, cumulative: total };
+    });
+
+    return {
+      points,
+      maximumDaily: Math.max(1, ...points.map((point) => point.count)),
+      maximumCumulative: Math.max(1, total),
+    };
+  }, [items]);
+
+  const [fullscreenMedia, setFullscreenMedia] = useState<MediaItem | null>(null);
+  const [videoControls, setVideoControls] = useState<Record<string, VideoControlsState>>({});
+
+  const updateVideoControls = useCallback(
+    (videoId: string, patch: Partial<VideoControlsState>) => {
+      setVideoControls((current) => ({
+        ...current,
+        [videoId]: {
+          ...(current[videoId] ?? {
+            currentTime: 0,
+            duration: 0,
+            isMuted: false,
+            isPlaying: false,
+          }),
+          ...patch,
+        },
+      }));
+    },
+    [],
+  );
+
+  const toggleVideoMute = useCallback(
+    (videoId: string) => {
+      const video = videoRefs.current[videoId];
+      if (!video) return;
+      video.muted = !video.muted;
+      updateVideoControls(videoId, { isMuted: video.muted });
+    },
+    [updateVideoControls],
+  );
+
+  const openFullscreenMedia = useCallback((item: MediaItem) => {
+    Object.values(videoRefs.current).forEach((video) => video?.pause());
+    setFullscreenMedia(item);
   }, []);
 
-  // Close lightbox
-  const closeLightbox = useCallback(() => {
-    setLightboxOpen(false);
+  const closeFullscreenMedia = useCallback(() => {
+    setFullscreenMedia(null);
   }, []);
 
-  // Navigate to next item
-  const nextItem = useCallback(() => {
-    setLightboxIndex((prev) => (prev + 1) % lightboxItems.length);
-  }, [lightboxItems.length]);
-
-  // Navigate to previous item
-  const prevItem = useCallback(() => {
-    setLightboxIndex((prev) => (prev - 1 + lightboxItems.length) % lightboxItems.length);
-  }, [lightboxItems.length]);
-
-  // Keyboard navigation
   useEffect(() => {
-    if (!lightboxOpen) return;
+    if (!fullscreenMedia) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeLightbox();
-      if (e.key === 'ArrowRight') nextItem();
-      if (e.key === 'ArrowLeft') prevItem();
+      if (e.key === 'Escape') closeFullscreenMedia();
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [lightboxOpen, closeLightbox, nextItem, prevItem]);
+  }, [fullscreenMedia, closeFullscreenMedia]);
 
-  // Prevent body scroll when lightbox is open
   useEffect(() => {
-    if (lightboxOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    if (!fullscreenMedia) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = previousOverflow;
     };
-  }, [lightboxOpen]);
-
-  const currentItem = lightboxItems[lightboxIndex];
+  }, [fullscreenMedia]);
 
   // Store video refs to control playback
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({});
@@ -499,8 +558,8 @@ export default function GalleryPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-[#F6F7F9]">
-      <section className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-10">
+    <main className="min-h-screen bg-[linear-gradient(180deg,#f8f9fb_0%,#f2f4f7_100%)]">
+      <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:py-8">
         <div className="relative isolate min-h-[230px] overflow-hidden rounded-3xl bg-[#101827] text-white shadow-lg sm:min-h-[260px]">
           <Image
             src="/camera.jpg"
@@ -554,18 +613,21 @@ export default function GalleryPage() {
           </div>
         )}
 
-        <div className="mt-7 grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="mt-7 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_280px] xl:gap-8">
           <div className="min-w-0">
-            <div className="mb-5 flex items-center justify-between gap-4">
+            <div className="mx-auto mb-4 flex max-w-[640px] items-center justify-between gap-4">
               <div>
-                <h2 className="text-xl font-bold tracking-tight text-[#172033]">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#92713A]">
+                  Selfless community
+                </p>
+                <h2 className="mt-1 text-xl font-bold tracking-tight text-[#172033]">
                   {activeFilter === 'mine'
                     ? 'My posts'
                     : activeFilter === 'saved'
                       ? 'Saved posts'
                       : 'Community feed'}
                 </h2>
-                <p className="mt-1 text-sm text-[#687386]">
+                <p className="mt-1 text-xs text-[#687386]">
                   {activeFilter === 'mine'
                     ? `${visibleCount} ${visibleCount === 1 ? 'post' : 'posts'} shared by you`
                     : `${visibleCount} ${visibleCount === 1 ? 'post' : 'posts'} from across the community`}
@@ -589,7 +651,7 @@ export default function GalleryPage() {
                       ? savedPostsQuery.isFetching
                       : isFetching
                 }
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#E5E8ED] bg-white text-[#526078] shadow-sm transition hover:bg-[#F3F5F8] hover:text-[#172033] disabled:cursor-wait disabled:opacity-60"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#E1E5EB] bg-white text-[#526078] shadow-sm transition hover:border-[#C8D0DB] hover:bg-[#F3F5F8] hover:text-[#172033] disabled:cursor-wait disabled:opacity-60"
                 aria-label="Refresh posts"
                 title="Refresh posts"
               >
@@ -609,7 +671,7 @@ export default function GalleryPage() {
 
             <div
               aria-label="Filter posts"
-              className="mb-5 inline-flex w-full rounded-xl border border-[#E5E8ED] bg-white p-1 shadow-sm"
+              className="mx-auto mb-5 grid w-full max-w-[640px] grid-cols-3 gap-1 rounded-2xl border border-[#E5E8ED] bg-white p-1 shadow-sm sm:flex sm:rounded-full"
               role="group"
             >
               {([
@@ -624,7 +686,7 @@ export default function GalleryPage() {
                   type="button"
                   aria-pressed={activeFilter === filter}
                   onClick={() => setActiveFilter(filter)}
-                  className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  className={`min-w-0 rounded-xl px-2 py-2 text-xs font-semibold transition sm:flex-1 sm:rounded-full sm:px-3.5 ${
                     activeFilter === filter
                       ? 'bg-[#1A2B4C] text-white shadow-sm'
                       : 'text-[#687386] hover:bg-[#F3F5F8] hover:text-[#172033]'
@@ -665,7 +727,7 @@ export default function GalleryPage() {
                 ].map((stat) => (
                   <div
                     key={stat.label}
-                    className={`rounded-xl border border-[#E7EAF0] px-4 py-3 shadow-sm ${stat.surface}`}
+                    className={`rounded-2xl border border-[#E7EAF0] px-4 py-3 shadow-sm ${stat.surface}`}
                   >
                     <p className="text-xs font-medium text-[#687386]">{stat.label}</p>
                     <p className={`mt-1 text-2xl font-bold ${stat.color}`}>
@@ -756,7 +818,7 @@ export default function GalleryPage() {
                 )}
               </div>
             ) : (
-              <div className="space-y-5">
+              <div className="space-y-6">
                 {visibleItems.map((item) => {
                   const isVideo = item.contentType.startsWith('video/');
                   const authorId = item.user?.id;
@@ -770,9 +832,9 @@ export default function GalleryPage() {
                   return (
                     <article
                       key={item.id}
-                      className="overflow-hidden rounded-2xl border border-[#E7EAF0] bg-white shadow-sm transition-shadow hover:shadow-md"
+                      className="mx-auto max-w-[640px] overflow-hidden rounded-3xl border border-[#E4E8EF] bg-white shadow-[0_8px_28px_rgba(16,24,40,0.06)] transition-shadow hover:shadow-[0_12px_34px_rgba(16,24,40,0.10)]"
                     >
-                      <div className="flex items-center gap-3 px-5 py-4">
+                      <div className="flex items-center gap-3 border-b border-[#F0F2F5] px-4 py-3.5 sm:px-5">
                         {item.user?.id ? (
                           <div className="relative shrink-0">
                             <div className="rounded-full">
@@ -852,20 +914,47 @@ export default function GalleryPage() {
                         {activeFilter === 'mine' &&
                           currentUser &&
                           authorId === currentUser.id && (
-                          <button
-                            type="button"
-                            onClick={() => void handleDeletePost(item.id)}
-                            disabled={deletingPostId === item.id}
-                            aria-label="Delete your post"
-                            title="Delete your post"
-                            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-red-100 bg-white text-red-600 transition hover:border-red-200 hover:bg-red-50 disabled:cursor-wait disabled:opacity-60"
-                          >
-                            {deletingPostId === item.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
+                          <div className="relative shrink-0">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setOpenPostMenuId((openId) =>
+                                  openId === item.id ? null : item.id,
+                                )
+                              }
+                              aria-label="Post options"
+                              aria-haspopup="menu"
+                              aria-expanded={openPostMenuId === item.id}
+                              title="Post options"
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#687386] transition hover:bg-[#F1F3F6] hover:text-[#172033] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C]"
+                            >
+                              <MoreVertical className="h-5 w-5" />
+                            </button>
+                            {openPostMenuId === item.id && (
+                              <div
+                                role="menu"
+                                className="absolute right-0 top-full z-20 mt-1 min-w-40 rounded-xl border border-[#E1E5EB] bg-white p-1 shadow-lg"
+                              >
+                                <button
+                                  type="button"
+                                  role="menuitem"
+                                  onClick={() => {
+                                    setOpenPostMenuId(null);
+                                    void handleDeletePost(item.id);
+                                  }}
+                                  disabled={deletingPostId === item.id}
+                                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-wait disabled:opacity-60"
+                                >
+                                  {deletingPostId === item.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
+                                  Delete post
+                                </button>
+                              </div>
                             )}
-                          </button>
+                          </div>
                         )}
                         {activeFilter === 'mine' && (
                           <span
@@ -893,9 +982,9 @@ export default function GalleryPage() {
                       )}
 
                       {(item.title || item.description) && (
-                        <div className="px-5 pb-4">
+                        <div className="px-4 pb-4 pt-3 sm:px-5">
                           {item.title && (
-                            <h4 className="text-base font-semibold leading-6 text-[#172033]">
+                            <h4 className="text-[15px] font-bold leading-6 text-[#172033]">
                               {item.title}
                             </h4>
                           )}
@@ -907,34 +996,123 @@ export default function GalleryPage() {
                         </div>
                       )}
 
-                      <div className={`relative overflow-hidden bg-[#101827] aspect-[4/3] sm:aspect-video`}>
+                      <div className="relative mx-auto aspect-[3/4] w-full max-w-[290px] overflow-hidden rounded-2xl bg-[#101827] shadow-sm">
                         {isVideo ? (
-                          <video
-                            ref={(el) => {
-                              if (el) videoRefs.current[item.id] = el;
-                            }}
-                            src={item.publicUrl}
-                            controls
-                            preload="metadata"
-                            className="h-full w-full object-contain"
-                            onPlay={() => handleVideoPlay(item.id)}
-                          />
+                          <div className="relative h-full w-full">
+                            <video
+                              ref={(el) => {
+                                if (el) videoRefs.current[item.id] = el;
+                              }}
+                              src={item.publicUrl}
+                              playsInline
+                              preload="metadata"
+                              className="h-full w-full object-cover"
+                              onLoadedMetadata={(event) =>
+                                updateVideoControls(item.id, {
+                                  duration: event.currentTarget.duration,
+                                  isMuted: event.currentTarget.muted,
+                                })
+                              }
+                              onTimeUpdate={(event) =>
+                                updateVideoControls(item.id, {
+                                  currentTime: event.currentTarget.currentTime,
+                                })
+                              }
+                              onVolumeChange={(event) =>
+                                updateVideoControls(item.id, {
+                                  isMuted: event.currentTarget.muted,
+                                })
+                              }
+                              onPlay={() => {
+                                handleVideoPlay(item.id);
+                                updateVideoControls(item.id, { isPlaying: true });
+                              }}
+                              onPause={() =>
+                                updateVideoControls(item.id, { isPlaying: false })
+                              }
+                            />
+                            <button
+                              type="button"
+                              onClick={() => openFullscreenMedia(item)}
+                              aria-label={`View ${item.title || 'video'} fullscreen`}
+                              title="View fullscreen"
+                              className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/60 bg-black/55 text-white shadow-sm backdrop-blur-sm transition hover:scale-105 hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                            >
+                              <Maximize2 className="h-4 w-4" />
+                            </button>
+                            {(() => {
+                              const state = videoControls[item.id] ?? {
+                                currentTime: 0,
+                                duration: 0,
+                                isMuted: false,
+                                isPlaying: false,
+                              };
+                              return (
+                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-3 pb-3 pt-10">
+                                  <div className="flex items-center gap-2.5 text-white">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const video = videoRefs.current[item.id];
+                                        if (!video) return;
+                                        if (video.paused) {
+                                          void video.play().catch(() => {
+                                            updateVideoControls(item.id, { isPlaying: false });
+                                          });
+                                        } else {
+                                          video.pause();
+                                        }
+                                      }}
+                                      aria-label={state.isPlaying ? 'Pause video' : 'Play video'}
+                                      title={state.isPlaying ? 'Pause' : 'Play'}
+                                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                                    >
+                                      {state.isPlaying ? (
+                                        <Pause className="h-4 w-4" />
+                                      ) : (
+                                        <Play className="h-4 w-4 fill-current" />
+                                      )}
+                                    </button>
+                                    <span className="min-w-0 flex-1 whitespace-nowrap text-[11px] font-medium tabular-nums text-white/90">
+                                      {formatVideoTime(state.currentTime)} / {formatVideoTime(state.duration)}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleVideoMute(item.id)}
+                                      aria-label={state.isMuted ? 'Unmute video' : 'Mute video'}
+                                      title={state.isMuted ? 'Unmute' : 'Mute'}
+                                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                                    >
+                                      {state.isMuted ? (
+                                        <VolumeX className="h-4 w-4" />
+                                      ) : (
+                                        <Volume2 className="h-4 w-4" />
+                                      )}
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
                         ) : (
-                          <button
-                            type="button"
-                            onClick={() => openLightbox(item, photos)}
-                            className="group relative block h-full w-full cursor-zoom-in"
-                            aria-label={`View ${item.title} image`}
-                          >
+                          <div className="group relative h-full w-full">
                             <Image
                               src={item.publicUrl}
                               alt={item.title}
-                              width={1200}
-                              height={675}
+                              fill
                               sizes="(max-width: 1024px) 100vw, 700px"
-                              className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]"
+                              className="object-cover transition duration-500 group-hover:scale-[1.02]"
                             />
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => openFullscreenMedia(item)}
+                              aria-label={`View ${item.title || 'photo'} fullscreen`}
+                              title="View fullscreen"
+                              className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/60 bg-black/55 text-white shadow-sm backdrop-blur-sm transition hover:scale-105 hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                            >
+                              <Maximize2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         )}
                       </div>
 
@@ -984,32 +1162,131 @@ export default function GalleryPage() {
           </div>
 
           <aside className="space-y-4 lg:sticky lg:top-6">
-            <div className="rounded-2xl border border-[#E7EAF0] bg-white p-5 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8A6A2F]">
-                At a glance
-              </p>
-              <h2 className="mt-2 text-lg font-bold text-[#172033]">Community moments</h2>
-              <p className="mt-1 text-sm leading-5 text-[#687386]">
-                A snapshot of what&apos;s being shared.
-              </p>
-              <div className="mt-5 divide-y divide-[#EEF0F4]">
-                <div className="flex items-center justify-between py-3 first:pt-0">
-                  <span className="text-sm text-[#526078]">All posts</span>
-                  <span className="text-sm font-bold text-[#172033]">{items.length}</span>
+            <div className="overflow-hidden rounded-2xl border border-[#E7EAF0] bg-white p-5 shadow-sm">
+              <h2 className="text-lg font-bold tracking-tight text-[#172033]">
+                Community growth
+              </h2>
+
+              <div
+                className="mt-4"
+                role="img"
+                aria-label={`Community post growth over the last seven days. ${communityGrowth.points.map((point) => `${point.label}: ${point.count} posts`).join(', ')}`}
+              >
+                <svg
+                  viewBox="0 0 280 128"
+                  className="h-32 w-full overflow-visible"
+                  aria-hidden="true"
+                >
+                  <defs>
+                    <linearGradient id="community-growth-fill" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stopColor="#C59B4C" stopOpacity="0.22" />
+                      <stop offset="100%" stopColor="#C59B4C" stopOpacity="0.01" />
+                    </linearGradient>
+                  </defs>
+                  {[0, 1, 2].map((line) => (
+                    <line
+                      key={line}
+                      x1="10"
+                      x2="270"
+                      y1={14 + line * 38}
+                      y2={14 + line * 38}
+                      stroke="#E9EDF2"
+                      strokeDasharray="3 5"
+                    />
+                  ))}
+                  {communityGrowth.points.map((point, index) => {
+                    const x = 14 + index * (252 / 6);
+                    const barHeight = (point.count / communityGrowth.maximumDaily) * 62;
+                    return (
+                      <rect
+                        key={point.key}
+                        x={x - 7}
+                        y={90 - barHeight}
+                        width="14"
+                        height={barHeight}
+                        rx="5"
+                        fill="#DCE3ED"
+                      />
+                    );
+                  })}
+                  <polygon
+                    points={[
+                      '14,90',
+                      ...communityGrowth.points.map((point, index) => {
+                        const x = 14 + index * (252 / 6);
+                        const y = 12 + 62 * (1 - point.cumulative / communityGrowth.maximumCumulative);
+                        return `${x},${y}`;
+                      }),
+                      '266,90',
+                    ].join(' ')}
+                    fill="url(#community-growth-fill)"
+                  />
+                  <polyline
+                    points={communityGrowth.points
+                      .map((point, index) => {
+                        const x = 14 + index * (252 / 6);
+                        const y = 12 + 62 * (1 - point.cumulative / communityGrowth.maximumCumulative);
+                        return `${x},${y}`;
+                      })
+                      .join(' ')}
+                    fill="none"
+                    stroke="#B98A3E"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2.5"
+                  />
+                  {communityGrowth.points.map((point, index) => {
+                    const x = 14 + index * (252 / 6);
+                    const y = 12 + 62 * (1 - point.cumulative / communityGrowth.maximumCumulative);
+                    return (
+                      <circle
+                        key={point.key}
+                        cx={x}
+                        cy={y}
+                        r="3"
+                        fill="white"
+                        stroke="#B98A3E"
+                        strokeWidth="2"
+                      />
+                    );
+                  })}
+                  {communityGrowth.points.map((point, index) => (
+                    <text
+                      key={point.key}
+                      x={14 + index * (252 / 6)}
+                      y="115"
+                      textAnchor="middle"
+                      className="fill-[#8791A1] text-[9px] font-medium"
+                    >
+                      {point.label}
+                    </text>
+                  ))}
+                </svg>
+              </div>
+
+              <div className="mt-3 flex items-center gap-4 text-[10px] font-medium text-[#687386]">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-sm bg-[#DCE3ED]" />
+                  Daily posts
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-0.5 w-3 rounded bg-[#B98A3E]" />
+                  Growth
+                </span>
+              </div>
+
+              <div className="mt-5 grid grid-cols-3 gap-2 border-t border-[#EEF0F4] pt-4">
+                <div>
+                  <p className="text-[10px] font-medium text-[#7A8495]">Posts</p>
+                  <p className="mt-0.5 text-xl font-bold tabular-nums text-[#172033]">{items.length}</p>
                 </div>
-                <div className="flex items-center justify-between py-3">
-                  <span className="inline-flex items-center gap-2 text-sm text-[#526078]">
-                    <ImageIcon className="h-4 w-4 text-[#8A6A2F]" />
-                    Photos
-                  </span>
-                  <span className="text-sm font-bold text-[#172033]">{photos.length}</span>
+                <div>
+                  <p className="text-[10px] font-medium text-[#7A8495]">Photos</p>
+                  <p className="mt-0.5 text-xl font-bold tabular-nums text-[#172033]">{photos.length}</p>
                 </div>
-                <div className="flex items-center justify-between py-3 last:pb-0">
-                  <span className="inline-flex items-center gap-2 text-sm text-[#526078]">
-                    <Video className="h-4 w-4 text-[#8A6A2F]" />
-                    Videos
-                  </span>
-                  <span className="text-sm font-bold text-[#172033]">{videos.length}</span>
+                <div>
+                  <p className="text-[10px] font-medium text-[#7A8495]">Videos</p>
+                  <p className="mt-0.5 text-xl font-bold tabular-nums text-[#172033]">{videos.length}</p>
                 </div>
               </div>
             </div>
@@ -1018,62 +1295,48 @@ export default function GalleryPage() {
         </div>
       </section>
 
-      {/* Lightbox */}
-      {lightboxOpen && currentItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4 sm:p-8">
-          {/* Close button */}
-          <button
-            onClick={closeLightbox}
-            className="absolute top-4 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
-            aria-label="Close lightbox"
+      {/* Fullscreen media viewer */}
+      {fullscreenMedia && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={fullscreenMedia.title || 'Fullscreen community media'}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-3 sm:p-6"
+            onClick={(event) => {
+              if (event.target === event.currentTarget) closeFullscreenMedia();
+            }}
           >
-            <X className="h-6 w-6" />
-          </button>
-
-          {/* Previous button */}
-          {lightboxItems.length > 1 && (
             <button
-              onClick={prevItem}
-              className="absolute left-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
-              aria-label="Previous item"
+              type="button"
+              onClick={closeFullscreenMedia}
+              className="absolute right-4 top-4 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-black/65 text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              aria-label="Close fullscreen media"
             >
-              <ChevronLeft className="h-6 w-6" />
+              <X className="h-6 w-6" />
             </button>
-          )}
 
-          {/* Next button */}
-          {lightboxItems.length > 1 && (
-            <button
-              onClick={nextItem}
-              className="absolute right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
-              aria-label="Next item"
-            >
-              <ChevronRight className="h-6 w-6" />
-            </button>
-          )}
-
-          {/* Content */}
-          <div className="relative max-h-[90vh] max-w-[95vw]">
-            <div className="relative max-h-[85vh] max-w-[95vw]">
+            {fullscreenMedia.contentType.startsWith('video/') ? (
+              <video
+                key={fullscreenMedia.id}
+                src={fullscreenMedia.publicUrl}
+                autoPlay
+                controls
+                playsInline
+                preload="auto"
+                aria-label={fullscreenMedia.title || 'Community video'}
+                className="h-full w-full object-contain"
+              />
+            ) : (
               <Image
-                src={currentItem.publicUrl}
-                alt={currentItem.title}
-                width={1920}
-                height={1080}
-                className="max-h-[85vh] w-auto object-contain rounded-lg"
+                src={fullscreenMedia.publicUrl}
+                alt={fullscreenMedia.title || 'Community photo'}
+                fill
+                sizes="100vw"
+                className="object-contain"
                 priority
               />
-            </div>
-
-            {/* Info panel */}
-            <div className="mt-4 max-w-2xl text-center">
-              <h3 className="text-xl font-semibold text-white">{currentItem.title}</h3>
-              {currentItem.description && (
-                <p className="mt-2 text-sm text-gray-300">{currentItem.description}</p>
-              )}
-            </div>
+            )}
           </div>
-        </div>
       )}
 
       {/* Create Post Modal */}

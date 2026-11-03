@@ -24,6 +24,7 @@ export async function GET(request: Request) {
     const includeAll = searchParams.get('includeAll') === 'true';
     const mine = searchParams.get('mine') === 'true';
     const saved = searchParams.get('saved') === 'true';
+    const countOnly = searchParams.get('countOnly') === 'true';
     const paginationRequested = mine && (
       searchParams.has('limit') || searchParams.has('offset')
     );
@@ -31,6 +32,20 @@ export async function GET(request: Request) {
     const requestedOffset = Number(searchParams.get('offset') ?? '0');
     const canReview =
       user.role?.name === 'dev' || user.role?.name === 'super_admin';
+
+    if (
+      countOnly &&
+      (category !== 'gallery' ||
+        mine ||
+        saved ||
+        requestedStatus ||
+        includeAll)
+    ) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid media count request' },
+        { status: 400 },
+      );
+    }
 
     if (
       paginationRequested &&
@@ -97,6 +112,11 @@ export async function GET(request: Request) {
             ? {}
             : { approvalStatus: 'APPROVED' }),
       };
+
+    if (countOnly) {
+      const totalCount = await prisma.media.count({ where });
+      return NextResponse.json({ success: true, totalCount });
+    }
 
     const itemsQuery = prisma.media.findMany({
       where,

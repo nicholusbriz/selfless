@@ -215,17 +215,20 @@ export class YouTubeService {
       hiphop: 'hip hop music videos lyrics',
       gospel: 'gospel music videos lyrics',
       pop: 'pop music videos lyrics',
-      afrobeats: 'afrobeats music videos',
+      afrobeats: 'afrobeats music videos lyrics',
+      'old-school': 'old school hits music videos lyrics',
+      kpop: 'K-pop music videos lyrics',
       reggae: 'reggae music videos lyrics',
       classic: 'classic music videos lyrics',
-      trending: 'trending music videos 2026',
-      rock: 'rock music videos',
-      jazz: 'jazz music videos',
-      country: 'country music videos',
-      electronic: 'electronic dance music videos',
+      trending: 'trending music videos lyrics',
+      rock: 'rock music videos lyrics',
+      jazz: 'jazz music videos lyrics',
+      country: 'country music videos lyrics',
+      electronic: 'electronic dance music videos lyrics',
     };
 
-    const query = genreQueries[genre.toLowerCase()] || `${genre} music videos`;
+    const query =
+      genreQueries[genre.toLowerCase()] || `${genre} music videos lyrics`;
     return this.searchMusicVideos(query, maxResults, pageToken);
   }
 
@@ -248,7 +251,11 @@ export class YouTubeService {
     maxResults: number = 12,
     pageToken?: string
   ): Promise<{ videos: YouTubeVideo[]; nextPageToken?: string; prevPageToken?: string }> {
-    return this.searchMusicVideos('trending music videos 2026', maxResults, pageToken);
+    return this.searchMusicVideos(
+      'trending music videos lyrics 2026',
+      maxResults,
+      pageToken
+    );
   }
 
   /**
@@ -261,7 +268,7 @@ export class YouTubeService {
     try {
       const url = new URL(`${BASE_URL}/search`);
       url.searchParams.append('part', 'snippet');
-      url.searchParams.append('q', 'most viewed music videos');
+      url.searchParams.append('q', 'most viewed music videos lyrics');
       url.searchParams.append('maxResults', maxResults.toString());
       url.searchParams.append('type', 'video');
       url.searchParams.append('videoCategoryId', CATEGORIES.MUSIC);
@@ -313,7 +320,7 @@ export class YouTubeService {
     try {
       const url = new URL(`${BASE_URL}/search`);
       url.searchParams.append('part', 'snippet');
-      url.searchParams.append('q', 'new music releases 2026');
+      url.searchParams.append('q', 'new music releases lyrics 2026');
       url.searchParams.append('maxResults', maxResults.toString());
       url.searchParams.append('type', 'video');
       url.searchParams.append('videoCategoryId', CATEGORIES.MUSIC);

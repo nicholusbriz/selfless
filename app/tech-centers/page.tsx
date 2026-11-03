@@ -13,10 +13,7 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
-import Header2 from "@/app/components/ui/header-2";
 import Footer from "@/app/components/Footer";
-import { useAuth } from "@/lib/hooks/useAuth";
-import { useOnlineUsers } from "@/lib/hooks/useOnlineUsers";
 
 const centers = [
   { name: "Freedom City Tech Center", location: "Kampala" },
@@ -111,8 +108,6 @@ const staggerFast = {
 };
 
 export default function TechCentersPage() {
-  const { user } = useAuth();
-  const { users: onlineUsers, isLoading: isLoadingOnlineUsers } = useOnlineUsers(user);
   const shouldReduceMotion = useReducedMotion();
 
   const viewportAnimation = shouldReduceMotion
@@ -128,8 +123,6 @@ export default function TechCentersPage() {
 
   return (
     <div className="min-h-screen bg-[#071018]">
-      <Header2 onlineUsers={onlineUsers} isLoadingOnlineUsers={isLoadingOnlineUsers} />
-
       <main className="relative isolate overflow-hidden">
         {/* =====================================================
             FULL PAGE VIDEO BACKGROUND
@@ -156,7 +149,7 @@ export default function TechCentersPage() {
         {/* =====================================================
             HERO
         ====================================================== */}
-        <section className="relative flex min-h-[72vh] items-end px-5 pb-14 pt-[140px] sm:px-8 sm:pb-16 sm:pt-[150px] lg:min-h-[76vh] lg:px-12 lg:pb-20 lg:pt-[160px]">
+        <section className="relative flex min-h-[72vh] items-end px-5 pb-14 pt-8 sm:px-8 sm:pb-16 sm:pt-10 lg:min-h-[76vh] lg:px-12 lg:pb-20 lg:pt-12">
           <div className="mx-auto w-full max-w-7xl">
             <motion.div
               initial={shouldReduceMotion ? false : "hidden"}
@@ -515,7 +508,7 @@ export default function TechCentersPage() {
                 </h2>
 
                 <p className="mt-5 max-w-2xl text-sm leading-7 text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] sm:text-base sm:leading-8">
-                  Your experience doesn't stop when you leave. Check
+                  Your experience doesn&apos;t stop when you leave. Check
                   academics, communication, opportunities, and services
                   whenever you need them.
                 </p>
