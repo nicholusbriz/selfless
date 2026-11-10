@@ -52,6 +52,7 @@ import {
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useActivityTracker } from "@/lib/hooks/useActivityTracker";
 import AuthModal from "@/components/auth/AuthModal";
+import GiftIcon from "@/components/GiftIcon";
 import {
   useUnreadNotificationCount,
   useAnnouncementCount,
@@ -754,6 +755,7 @@ export default function Header2({ onlineUsers = [], isLoadingOnlineUsers = false
                 ) : user ? (
                   <>
                     <StatusIcons unreadCount={unreadCount} unreadMessageCount={unreadMessageCount} announcementCount={announcementCount} compact />
+                    {pathname.startsWith('/dashboard') && <GiftIcon />}
                     <Link href="/dashboard/profile" aria-label="Open profile" className="flex items-center justify-center rounded-xl transition-colors hover:bg-white/10">
                       <UserAvatar user={user} size={34} />
                     </Link>

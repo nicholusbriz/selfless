@@ -36,6 +36,7 @@ import {
   Pause,
   Play,
   Plus,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 import { useRouter } from 'next/navigation';
@@ -426,22 +427,18 @@ function RecentAnnouncementsPanel() {
   });
 
   return (
-    <aside className="min-w-0 rounded-xl border border-white/10 bg-white/[0.06] p-3 sm:p-4">
+    <div className="space-y-2">
       <Link
         href="/dashboard/announcements"
-        className="mb-2 flex items-center justify-between gap-2 text-white transition hover:text-[#E2BD75] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E]"
+        className="mb-2 text-xs font-bold tracking-wide text-white transition hover:text-[#E2BD75] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E]"
       >
-        <span className="flex items-center gap-2">
-          <MessageSquare className="h-4 w-4 shrink-0 text-[#B98A3E]" />
-          <span className="text-xs font-bold tracking-wide">Recent announcements</span>
-        </span>
-        <ChevronRight className="h-4 w-4 shrink-0 text-white/60" />
+        Recent announcements
       </Link>
 
       {isLoading ? (
-        <div className="space-y-2" aria-label="Loading announcements">
+        <div className="space-y-1" aria-label="Loading announcements">
           {[0, 1, 2].map((item) => (
-            <div key={item} className="h-4 animate-pulse rounded bg-white/10" />
+            <div key={item} className="h-3 animate-pulse bg-white/10" />
           ))}
         </div>
       ) : error ? (
@@ -451,23 +448,19 @@ function RecentAnnouncementsPanel() {
       ) : announcements.length === 0 ? (
         <p className="text-xs text-white/60">No announcements yet.</p>
       ) : (
-        <ul className="max-h-28 space-y-1.5 overflow-y-auto pr-1">
+        <ul className="max-h-28 space-y-1 overflow-y-auto pr-1">
           {announcements.map((announcement) => (
-            <li
-              key={announcement.id}
-              className="flex min-w-0 items-start gap-2 border-t border-white/10 pt-1.5 first:border-0 first:pt-0"
-            >
-              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#B98A3E]" />
+            <li key={announcement.id}>
               <Link
                 href="/dashboard/announcements"
                 title={announcement.title}
-                className="min-w-0 flex-1 truncate text-left text-[11px] leading-4 text-white/85 transition hover:text-white hover:underline"
+                className="block truncate text-left text-[11px] leading-4 text-white/85 transition hover:text-white hover:underline"
               >
                 {announcement.title}
               </Link>
               <time
                 dateTime={announcement.createdAt}
-                className="shrink-0 pt-0.5 font-mono text-[9px] text-white/45"
+                className="block pt-0.5 font-mono text-[9px] text-white/45"
               >
                 {new Date(announcement.createdAt).toLocaleDateString('en-US', {
                   month: 'short',
@@ -478,7 +471,7 @@ function RecentAnnouncementsPanel() {
           ))}
         </ul>
       )}
-    </aside>
+    </div>
   );
 }
 
@@ -531,43 +524,51 @@ function RecentPostsSection() {
 
   return (
     <section className="py-2">
-      <div className="mb-3 flex items-end justify-between gap-3">
+      <div className="mb-4 flex items-end justify-between gap-3">
         <div>
           <h2 className="text-lg font-black tracking-tight text-[#1A2B4C] sm:text-xl">
             Recent posts
           </h2>
           <p className="mt-0.5 text-xs text-[#687386]">
-            Watch videos, listen to audio, or open photos fullscreen.
+            Discover community stories, videos, and updates
           </p>
         </div>
-        <span className="shrink-0 text-xs font-medium text-[#687386]">
-          {posts.length} {posts.length === 1 ? 'recent post' : 'recent posts'}
+        <span className="shrink-0 rounded-full bg-[#F3F5F8] px-3 py-1 text-xs font-semibold text-[#1A2B4C]">
+          {posts.length} {posts.length === 1 ? 'post' : 'posts'}
         </span>
       </div>
 
       {isLoading ? (
-        <div className="flex snap-x gap-3 overflow-x-auto pb-1">
+        <div className="flex snap-x gap-4 overflow-x-auto pb-2">
           {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((item) => (
             <div key={item} className="w-[280px] shrink-0 animate-pulse sm:w-[290px]">
-              <div className="aspect-[3/4] w-full rounded-2xl bg-[#E5E7EB]" />
+              <div className="aspect-[3/4] w-full rounded-2xl bg-gradient-to-br from-[#E5E7EB] to-[#D1D5DB]" />
             </div>
           ))}
         </div>
       ) : error ? (
-        <p role="status" className="text-sm text-red-600">
-          Reels could not be loaded.
-        </p>
+        <div className="rounded-2xl border border-[#FECACA] bg-[#FEF2F2] p-4 text-center">
+          <p role="status" className="text-sm font-medium text-[#DC2626]">
+            Posts could not be loaded. Please try again.
+          </p>
+        </div>
       ) : posts.length === 0 ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 py-3">
-          <p className="text-sm text-[#6B7280]">
-            No recent posts yet.
+        <div className="rounded-2xl border-2 border-dashed border-[#D1D5DB] bg-[#F9FAFB] p-8 text-center">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#E5E7EB]">
+            <ImageIcon className="h-6 w-6 text-[#6B7280]" />
+          </div>
+          <p className="text-sm font-semibold text-[#1A2B4C]">
+            No recent posts yet
+          </p>
+          <p className="mt-1 text-xs text-[#6B7280]">
+            Be the first to share with the community
           </p>
         </div>
       ) : (
         <div
           ref={postsCarouselRef}
           aria-label="Recent posts"
-          className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 scroll-smooth"
+          className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 scroll-smooth scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent"
         >
           {posts.map((post) => {
             const isVideo = post.contentType.startsWith('video/');
@@ -576,7 +577,7 @@ function RecentPostsSection() {
             return (
               <article
                 key={post.id}
-                className={`w-[280px] shrink-0 snap-start overflow-hidden rounded-2xl bg-white shadow-sm sm:w-[290px] ${
+                className={`w-[280px] shrink-0 snap-start overflow-hidden rounded-2xl bg-white shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1 sm:w-[290px] ${
                   isVideo || isAudio ? 'border border-[#E5E7EB]' : ''
                 }`}
               >
@@ -613,7 +614,7 @@ function RecentPostsSection() {
                         );
                       }}
                     />
-                    <span className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-black/75 opacity-90 transition-opacity group-hover:opacity-100" />
+                    <span className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/80 opacity-90 transition-opacity group-hover:opacity-100" />
 
                     <div className="pointer-events-none absolute inset-x-2 top-2 flex items-center justify-between gap-2">
                       {post.user?.id ? (
@@ -704,13 +705,28 @@ function RecentPostsSection() {
                           {post.title}
                         </h3>
                       )}
-                      <p className="mt-1.5 text-[9px] font-medium text-white/75">
-                        {new Date(post.createdAt).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}
-                      </p>
+                      {post.description && (
+                        <p className="mt-1.5 line-clamp-2 text-[10px] leading-4 text-white/90 drop-shadow">
+                          {post.description}
+                        </p>
+                      )}
+                      <div className="mt-2 flex items-center gap-1.5">
+                        <p className="text-[9px] font-medium text-white/80">
+                          {new Date(post.createdAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </p>
+                        {post.category && (
+                          <>
+                            <span className="h-0.5 w-0.5 rounded-full bg-white/50" />
+                            <span className="text-[9px] font-medium text-white/80 capitalize">
+                              {post.category}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
 
                     {user && (
@@ -740,27 +756,52 @@ function RecentPostsSection() {
                         className="w-full"
                       />
                     </div>
-                    <div className="space-y-2 p-3">
+                    <div className="space-y-2.5 p-4">
                       {post.user && (
-                        <p className="truncate text-xs font-semibold text-[#1A2B4C]">
-                          {post.user.firstName} {post.user.lastName}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          {post.user.profileImageUrl ? (
+                            <Image
+                              src={post.user.profileImageUrl}
+                              alt=""
+                              width={24}
+                              height={24}
+                              className="h-6 w-6 shrink-0 rounded-full object-cover ring-1 ring-[#E5E7EB]"
+                            />
+                          ) : (
+                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#E5E7EB] text-[10px] font-bold text-[#1A2B4C]">
+                              {post.user.firstName[0]}{post.user.lastName[0]}
+                            </span>
+                          )}
+                          <p className="truncate text-xs font-semibold text-[#1A2B4C]">
+                            {post.user.firstName} {post.user.lastName}
+                          </p>
+                        </div>
                       )}
                       {post.title && (
                         <h3 className="line-clamp-2 text-sm font-bold leading-5 text-[#172033]">
                           {post.title}
                         </h3>
                       )}
-                      <time
-                        dateTime={post.createdAt}
-                        className="block text-[10px] text-[#8791A1]"
-                      >
-                        {new Date(post.createdAt).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}
-                      </time>
+                      {post.description && (
+                        <p className="line-clamp-2 text-xs leading-4 text-[#526078]">
+                          {post.description}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-1.5 text-[10px] text-[#8791A1]">
+                        <time dateTime={post.createdAt}>
+                          {new Date(post.createdAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </time>
+                        {post.category && (
+                          <>
+                            <span className="h-0.5 w-0.5 rounded-full bg-[#D1D5DB]" />
+                            <span className="capitalize">{post.category}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                     {user && (
                       <MediaPostInteractions
@@ -785,7 +826,7 @@ function RecentPostsSection() {
                         sizes="(max-width: 640px) 280px, 290px"
                         className="object-cover transition duration-300 group-hover:scale-105"
                       />
-                      <span className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/65 opacity-80 transition-opacity group-hover:opacity-100" />
+                      <span className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/70 opacity-85 transition-opacity group-hover:opacity-100" />
                     </div>
 
                     <div className="pointer-events-none absolute inset-x-2 top-2 flex items-center justify-between gap-2">
@@ -834,13 +875,28 @@ function RecentPostsSection() {
                           {post.title}
                         </h3>
                       )}
-                      <p className="mt-1.5 text-[9px] font-medium text-white/75">
-                        {new Date(post.createdAt).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}
-                      </p>
+                      {post.description && (
+                        <p className="mt-1.5 line-clamp-2 text-[10px] leading-4 text-white/90 drop-shadow">
+                          {post.description}
+                        </p>
+                      )}
+                      <div className="mt-2 flex items-center gap-1.5">
+                        <p className="text-[9px] font-medium text-white/80">
+                          {new Date(post.createdAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </p>
+                        {post.category && (
+                          <>
+                            <span className="h-0.5 w-0.5 rounded-full bg-white/50" />
+                            <span className="text-[9px] font-medium text-white/80 capitalize">
+                              {post.category}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
 
                     {user && (
@@ -864,11 +920,11 @@ function RecentPostsSection() {
           })}
         </div>
       )}
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Link
             href="/dashboard/gallery"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[#1A2B4C] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#B98A3E] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B98A3E]"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#1A2B4C] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-all duration-200 hover:bg-[#263D66] hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B98A3E]"
           >
             <Plus className="h-4 w-4" />
             Create post
@@ -878,7 +934,7 @@ function RecentPostsSection() {
               type="button"
               onClick={() => postsCarouselRef.current?.scrollBy({ left: -306, behavior: 'smooth' })}
               aria-label="Show previous posts"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#1A2B4C] transition hover:bg-[#F3F5F8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B98A3E]"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#1A2B4C] shadow-sm transition-all duration-200 hover:border-[#C8D0DB] hover:bg-[#F3F5F8] hover:shadow focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B98A3E]"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -888,7 +944,7 @@ function RecentPostsSection() {
               type="button"
               onClick={() => postsCarouselRef.current?.scrollBy({ left: 306, behavior: 'smooth' })}
               aria-label="Show next posts"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#1A2B4C] transition hover:bg-[#F3F5F8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B98A3E]"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#1A2B4C] shadow-sm transition-all duration-200 hover:border-[#C8D0DB] hover:bg-[#F3F5F8] hover:shadow focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B98A3E]"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -897,7 +953,7 @@ function RecentPostsSection() {
         <button
           type="button"
           onClick={() => router.push('/dashboard/gallery')}
-          className="inline-flex items-center gap-1 py-1 text-xs font-semibold text-[#1A2B4C] transition-colors hover:text-[#8A642D] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B98A3E]"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-xs font-semibold text-[#1A2B4C] shadow-sm transition-all duration-200 hover:border-[#C8D0DB] hover:bg-[#F3F5F8] hover:shadow focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B98A3E]"
         >
           View all posts
           <ChevronRight className="h-4 w-4" />
@@ -1877,37 +1933,52 @@ export default function DashboardPage() {
         {/* ============================================================
             HERO — greeting + stats + announcements + directors (unified)
         ============================================================ */}
-        <header className="overflow-hidden bg-[#1A2B4C] text-white">
-          {/* Status Bar */}
-          <div className="border-b border-white/10 px-4 py-1.5 sm:px-6">
-            <div className="flex items-center justify-between font-mono text-[9px] text-white/70">
-              <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1.5">
-                  <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#B98A3E]" />
-                  <span className="uppercase tracking-wider text-[#B98A3E]">Live</span>
-                </span>
-                <span className="text-white/20">•</span>
-                <span className="uppercase tracking-wider">
-                  {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                </span>
-                <span className="text-white/20">•</span>
-                <span className="uppercase tracking-wider">
-                  {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
-              <div className="hidden items-center gap-1 sm:flex">
-                <span className="inline-flex items-center gap-1.5 font-mono text-[8px] font-bold uppercase tracking-wider text-[#B98A3E]">
-                  <span className="inline-block h-1 w-1 animate-pulse rounded-full bg-[#B98A3E]" />
-                  Online
-                </span>
+        <header className="relative overflow-hidden bg-[#1A2B4C] text-white">
+          {/* Video Background */}
+          <video
+            src="/uganda video.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 h-full w-full object-cover opacity-40"
+            aria-hidden="true"
+          />
+          {/* Dark Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#1A2B4C]/85 via-[#1A2B4C]/75 to-[#1A2B4C]/90" />
+
+          {/* Content */}
+          <div className="relative z-10">
+            {/* Status Bar */}
+            <div className="border-b border-white/10 px-4 py-1.5 sm:px-6">
+              <div className="flex items-center justify-between font-mono text-[9px] text-white/70">
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1.5">
+                    <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#B98A3E]" />
+                    <span className="uppercase tracking-wider text-[#B98A3E]">Live</span>
+                  </span>
+                  <span className="text-white/20">•</span>
+                  <span className="uppercase tracking-wider">
+                    {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </span>
+                  <span className="text-white/20">•</span>
+                  <span className="uppercase tracking-wider">
+                    {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+                <div className="hidden items-center gap-1 sm:flex">
+                  <span className="inline-flex items-center gap-1.5 font-mono text-[8px] font-bold uppercase tracking-wider text-[#B98A3E]">
+                    <span className="inline-block h-1 w-1 animate-pulse rounded-full bg-[#B98A3E]" />
+                    Online
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Profile + Stats */}
-          <div className="px-4 py-5 sm:px-6 sm:py-6">
-            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(16rem,0.8fr)] md:items-center md:gap-6">
-              <div className="min-w-0">
+            {/* Profile + Stats */}
+            <div className="px-4 py-5 sm:px-6 sm:py-6">
+              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(16rem,0.8fr)] md:items-center md:gap-6">
+                <div className="min-w-0">
                 <div className="flex items-start gap-4">
                   {/* Avatar */}
                   <div className="relative shrink-0">
@@ -1984,6 +2055,7 @@ export default function DashboardPage() {
               </div>
               <RecentAnnouncementsPanel />
             </div>
+          </div>
           </div>
 
         </header>

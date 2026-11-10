@@ -182,6 +182,9 @@ model User {
   followingCount     Int @default(0)
   likesReceivedCount Int @default(0)
 
+  // Trivia game points
+  triviaPoints Int @default(0)
+
   // Social Relations
   followers            Follow[]      @relation("UserFollowers")
   following            Follow[]      @relation("UserFollowing")

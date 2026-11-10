@@ -75,13 +75,13 @@ function formatRole(roleName?: string | null) {
    THEME
 ============================================================ */
 
-const GOLD = "#C8A24A";
-const GOLD_BRIGHT = "#D9B563";
+const GOLD = "#B98A3E";
+const GOLD_BRIGHT = "#C59B4C";
 const WHITE = "#FFFFFF";
 const WHITE_85 = "rgba(255, 255, 255, 0.85)";
 const WHITE_70 = "rgba(255, 255, 255, 0.70)";
-const PANEL_BG = "#0F1115";
-const PANEL_BORDER = "rgba(200, 162, 74, 0.22)";
+const PANEL_BG = "#1A2B4C";
+const PANEL_BORDER = "rgba(185, 138, 62, 0.30)";
 
 /* ============================================================
    HOOKS
@@ -227,57 +227,77 @@ function useImagePreloader(urls: string[]) {
    DATA FETCHING (only when `students` prop is absent)
 ============================================================ */
 
+const BATCH_SIZE = 50;
+const PREFETCH_THRESHOLD = 5; // Fetch more when within 5 of the end
+
 function useDiscoverStudents(
   providedStudents: DiscoverStudent[] | undefined,
   endpoint: string,
   externalLoading: boolean,
+  currentIndex: number,
 ) {
   const hasProvided = providedStudents !== undefined;
 
-  const [fetched, setFetched] = useState<DiscoverStudent[] | undefined>(
-    hasProvided ? undefined : undefined,
-  );
+  const [fetched, setFetched] = useState<DiscoverStudent[]>([]);
   const [isFetching, setIsFetching] = useState(!hasProvided);
   const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
 
+  const fetchBatch = useCallback(
+    async (newOffset: number) => {
+      setIsFetching(true);
+      setError(null);
+
+      const url = new URL(endpoint, window.location.origin);
+      url.searchParams.set('limit', String(BATCH_SIZE));
+      url.searchParams.set('offset', String(newOffset));
+
+      try {
+        const res = await fetch(url.toString(), { cache: "no-store" });
+        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+        const data: DiscoverStudent[] = await res.json();
+
+        if (data.length < BATCH_SIZE) {
+          setHasMore(false);
+        }
+        setFetched((prev) => [...prev, ...data]);
+        setOffset(newOffset + BATCH_SIZE);
+      } catch (err) {
+        console.error("Discover students fetch error:", err);
+        setError(err instanceof Error ? err.message : "Failed to load");
+      } finally {
+        setIsFetching(false);
+      }
+    },
+    [endpoint],
+  );
+
+  // Initial fetch
   useEffect(() => {
-    // If a parent provided students, never fetch.
     if (hasProvided) {
       setIsFetching(false);
       return;
     }
 
-    let cancelled = false;
-    setIsFetching(true);
-    setError(null);
+    fetchBatch(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasProvided]);
 
-    fetch(endpoint, { cache: "no-store" })
-      .then((res) => {
-        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
-        return res.json() as Promise<DiscoverStudent[]>;
-      })
-      .then((data) => {
-        if (!cancelled) setFetched(data);
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          console.error("Discover students fetch error:", err);
-          setError(err instanceof Error ? err.message : "Failed to load");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setIsFetching(false);
-      });
+  // Auto-fetch when approaching the end
+  useEffect(() => {
+    if (hasProvided || !hasMore || isFetching) return;
 
-    return () => {
-      cancelled = true;
-    };
-  }, [hasProvided, endpoint]);
+    const threshold = fetched.length - PREFETCH_THRESHOLD;
+    if (currentIndex >= threshold && currentIndex >= 0) {
+      fetchBatch(offset);
+    }
+  }, [currentIndex, fetched.length, hasMore, isFetching, hasProvided, offset, fetchBatch]);
 
-  const students = hasProvided ? providedStudents! : (fetched ?? []);
+  const students = hasProvided ? providedStudents! : fetched;
   const isLoading = externalLoading || (!hasProvided && isFetching);
 
-  return { students, isLoading, error };
+  return { students, isLoading, error, hasMore };
 }
 
 /* ============================================================
@@ -298,7 +318,7 @@ function PauseButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/80 transition-all hover:bg-white/[0.1] hover:text-white disabled:opacity-40"
+      className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#E5E7EB] bg-white text-[#1A2B4C] shadow-sm transition-all hover:border-[#C8D0DB] hover:bg-[#F3F5F8] disabled:opacity-40"
       aria-label={isPaused ? "Play autoplay" : "Pause autoplay"}
     >
       {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
@@ -320,7 +340,7 @@ function NavButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/80 transition-all hover:bg-white/[0.1] hover:text-white disabled:opacity-40"
+      className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#E5E7EB] bg-white text-[#1A2B4C] shadow-sm transition-all hover:border-[#C8D0DB] hover:bg-[#F3F5F8] disabled:opacity-40"
       aria-label={direction === "up" ? "Previous student" : "Next student"}
     >
       {direction === "up" ? (
@@ -345,13 +365,14 @@ export function DiscoverStudents({
 }: DiscoverStudentsProps) {
   const isMobile = useIsMobile();
 
-  const { students, isLoading, error } = useDiscoverStudents(
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const { students, isLoading, error, hasMore } = useDiscoverStudents(
     providedStudents,
     endpoint,
     externalLoading,
+    currentIndex,
   );
-
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
   const autoplayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -487,21 +508,21 @@ export function DiscoverStudents({
   if (isLoading || !currentStudent) {
     return (
       <section className="mx-auto w-full max-w-[520px]">
-        <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0F1115] shadow-[0_16px_45px_rgba(15,17,21,0.18)]">
+        <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-md">
           <div className="relative mx-auto mt-2 w-full px-2 sm:px-3">
             <div
-              className="relative mx-auto flex w-full max-w-[460px] flex-col overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115]"
+              className="relative mx-auto flex w-full max-w-[460px] flex-col overflow-hidden rounded-2xl border border-[#E5E7EB] bg-[#F8F9FA]"
               style={{ aspectRatio: CARD_ASPECT }}
             >
               {isLoading ? (
-                <div className="relative min-h-0 flex-1 animate-pulse overflow-hidden bg-black" />
+                <div className="relative min-h-0 flex-1 animate-pulse overflow-hidden bg-gradient-to-br from-[#E5E7EB] to-[#D1D5DB]" />
               ) : (
                 <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
-                  <p className="text-sm font-medium text-white/80">
+                  <p className="text-sm font-medium text-[#1A2B4C]">
                     {error ? "Couldn’t load students" : "No students to show yet"}
                   </p>
                   {error && (
-                    <p className="text-xs text-white/50">{error}</p>
+                    <p className="text-xs text-[#6B7280]">{error}</p>
                   )}
                 </div>
               )}
@@ -529,7 +550,7 @@ export function DiscoverStudents({
   return (
     <section className="mx-auto w-full max-w-[520px]">
       <div
-        className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0F1115] shadow-[0_16px_45px_rgba(15,17,21,0.18)]"
+        className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-md"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -550,10 +571,10 @@ export function DiscoverStudents({
           >
             <div
               key={currentStudent.id}
-              className="absolute inset-0 flex h-full w-full flex-col overflow-hidden rounded-[24px] border border-[#C8A24A]/50 bg-[#0F1115] shadow-[0_24px_65px_rgba(0,0,0,0.52)]"
+              className="absolute inset-0 flex h-full w-full flex-col overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-lg"
             >
               {/* IMAGE */}
-              <div className="relative h-full w-full overflow-hidden bg-black">
+              <div className="relative h-full w-full overflow-hidden bg-[#E9EDF3]">
                 {imageSrc ? (
                   <Image
                     key={imageSrc}
@@ -566,20 +587,20 @@ export function DiscoverStudents({
                     priority
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-[#18212F] text-4xl font-semibold text-white/70">
+                  <div className="flex h-full w-full items-center justify-center bg-[#1A2B4C] text-4xl font-semibold text-white/70">
                     {initials}
                   </div>
                 )}
 
                 {/* INFO OVERLAY */}
-                <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/85 via-black/25 to-transparent p-5 sm:p-6">
+                <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/30 to-transparent p-5 sm:p-6">
                   <div className="flex flex-col gap-2.5">
                     <div className="flex items-center justify-between gap-2">
                       <h3 className="text-lg font-bold leading-tight text-white drop-shadow sm:text-xl">
                         {fullName}
                       </h3>
                       {roleLabel && (
-                        <span className="rounded-full border border-white/25 bg-black/25 px-2.5 py-1 text-[10px] font-semibold text-white/95 backdrop-blur-sm">
+                        <span className="rounded-full border border-white/30 bg-black/40 px-2.5 py-1 text-[10px] font-semibold text-white/95 backdrop-blur-sm">
                           {roleLabel}
                         </span>
                       )}
@@ -593,7 +614,7 @@ export function DiscoverStudents({
 
                     {!isSuperAdmin && techCenterName && (
                       <div className="flex items-center gap-1.5">
-                        <MapPin className="h-[12px] w-[12px] shrink-0 text-[#D4A84B]" />
+                        <MapPin className="h-[12px] w-[12px] shrink-0 text-[#B98A3E]" />
                         <span className="text-xs font-medium text-white/90">
                           {techCenterName}
                         </span>
@@ -607,13 +628,10 @@ export function DiscoverStudents({
         </div>
 
         {/* FOOTER CONTROLS */}
-        <div className="mx-auto flex w-full items-center justify-between border-t border-white/[0.07] px-4 py-3 sm:px-6 sm:py-4">
-          <span
-            className="text-xs font-medium tracking-wide"
-            style={{ color: WHITE_70 }}
-          >
+        <div className="mx-auto flex w-full items-center justify-between border-t border-[#E5E7EB] bg-[#F8F9FA] px-4 py-3 sm:px-6 sm:py-4">
+          <span className="text-xs font-medium tracking-wide text-[#687386]">
             {normalizedCurrentIndex + 1}{" "}
-            <span style={{ color: GOLD }}>/</span> {visibleStudents.length}
+            <span className="text-[#B98A3E]">/</span> {visibleStudents.length}
           </span>
 
           <div className="flex items-center gap-2">

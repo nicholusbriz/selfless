@@ -23,6 +23,7 @@ import Link from 'next/link';
 
 import { GlobalOnlineUsersPopup } from '@/components/GlobalOnlineUsersPopup';
 import { useOnlineUsers } from '@/lib/hooks/useOnlineUsers';
+import GiftIcon from '@/components/GiftIcon';
 
 const DASHBOARD_FOOTER_LINKS = [
   { label: 'Dashboard', href: '/dashboard' },
@@ -543,7 +544,33 @@ export default function DashboardLayout({
           </div>
 
           {/* ================================================== */}
-          {/* ATBRIZ AI QUICK ACCESS */}
+          {/* GIFT ICON - Top Right */}
+          {/* ================================================== */}
+
+          {!isAiPage && (
+            <motion.div
+              initial={{
+                opacity: 0,
+                scale: 0.9,
+                y: 8,
+              }}
+              animate={{
+                opacity: 1,
+                scale: 1,
+                y: 0,
+              }}
+              transition={{
+                duration: 0.35,
+                delay: 0.25,
+              }}
+              className="fixed top-20 right-4 z-40"
+            >
+              <GiftIcon />
+            </motion.div>
+          )}
+
+          {/* ================================================== */}
+          {/* QUICK ACCESS - Bottom Right */}
           {/* ================================================== */}
 
           {!isAiPage && (
@@ -569,14 +596,14 @@ export default function DashboardLayout({
                 aria-label="Go Live"
                 className={cn(
                   'group flex items-center gap-2',
-                  'rounded-lg bg-[#A4462F] px-3 py-2 text-white',
-                  'shadow-[0_4px_12px_rgba(18,32,59,0.12)]',
-                  'transition-all duration-200 hover:bg-[#873923] hover:shadow-[0_7px_20px_rgba(18,32,59,0.16)]',
-                  'focus:outline-none focus:ring-2 focus:ring-[#A4462F]/40 focus:ring-offset-2'
+                  'rounded-lg bg-gradient-to-r from-red-600 to-red-700 px-3 py-1.5 text-white',
+                  'shadow-[0_4px_16px_rgba(220,38,38,0.25)]',
+                  'transition-all duration-300 hover:scale-105 hover:shadow-[0_8px_24px_rgba(220,38,38,0.35)] hover:from-red-700 hover:to-red-800',
+                  'focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-offset-2'
                 )}
               >
-                <Radio aria-hidden="true" className="h-4 w-4" />
-                <span className="text-xs font-semibold">Go Live</span>
+                <Radio aria-hidden="true" className="h-3.5 w-3.5" />
+                <span className="text-[11px] font-semibold tracking-wide">Go Live</span>
               </Link>
 
               <Link
@@ -584,18 +611,18 @@ export default function DashboardLayout({
                 aria-label="Open Posts"
                 className={cn(
                   'group flex items-center gap-2',
-                  'bg-[#1A2B4C] text-white',
-                  'px-3 py-2 rounded-lg',
-                  'shadow-[0_4px_12px_rgba(18,32,59,0.10)]',
-                  'hover:bg-[#B98A3E] hover:shadow-[0_7px_20px_rgba(18,32,59,0.14)]',
-                  'transition-all duration-200'
+                  'bg-gradient-to-r from-slate-800 to-slate-900 text-white',
+                  'px-3 py-1.5 rounded-lg',
+                  'shadow-[0_4px_16px_rgba(15,23,42,0.25)]',
+                  'hover:scale-105 hover:shadow-[0_8px_24px_rgba(15,23,42,0.35)] hover:from-slate-900 hover:to-slate-950',
+                  'transition-all duration-300'
                 )}
               >
-                <Images aria-hidden="true" className="h-4 w-4" />
-                <span className="text-xs font-semibold">Posts</span>
+                <Images aria-hidden="true" className="h-3.5 w-3.5" />
+                <span className="text-[11px] font-semibold tracking-wide">Posts</span>
                 <span
                   aria-live="polite"
-                  className="min-w-5 rounded-full bg-white/15 px-1.5 py-0.5 text-center text-[10px] font-semibold tabular-nums"
+                  className="min-w-4 rounded-full bg-white/20 px-1 py-0.5 text-center text-[9px] font-semibold tabular-nums backdrop-blur-sm"
                   title={
                     isPostCountError
                       ? 'Post count unavailable'
