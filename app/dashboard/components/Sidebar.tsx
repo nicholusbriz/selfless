@@ -455,6 +455,13 @@ const superAdminNavigation: NavSection = {
       roles: ['super_admin'],
     },
     {
+      id: 'trivia-tracking',
+      label: 'Trivia Tracking',
+      path: '/dashboard/admin/trivia',
+      icon: <Trophy className={iconClass} />,
+      roles: ['dev', 'super_admin'],
+    },
+    {
       id: 'english-class',
       label: 'English Class',
       path: '/dashboard/dev/english-hub',
@@ -516,6 +523,13 @@ const devNavigation: NavSection = {
       path: '/dashboard/super-admin',
       icon: <Shield className={iconClass} />,
       roles: ['dev'],
+    },
+    {
+      id: 'trivia-tracking',
+      label: 'Trivia Tracking',
+      path: '/dashboard/admin/trivia',
+      icon: <Trophy className={iconClass} />,
+      roles: ['dev', 'super_admin'],
     },
     {
       id: 'email-settings',
