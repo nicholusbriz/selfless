@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 import {
-  X, Clock, CheckCircle2, XCircle, Star, Trophy,
+  X, Clock, CheckCircle2, XCircle, Star, Trophy, Flame,
   SkipForward, Heart, ArrowRight, Gamepad2, ArrowLeft, Crown,
 } from 'lucide-react';
 
@@ -455,12 +456,22 @@ export default function TriviaModal({
         >
           <div className="flex items-center justify-between border-b border-slate-100/80 px-4 py-3">
             <h2 className="text-sm font-semibold text-slate-900">Results</h2>
-            <button
-              onClick={onClose}
-              className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/dashboard/trivia/leaderboard"
+                onClick={onClose}
+                className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+              >
+                <Trophy className="h-3.5 w-3.5" />
+                Leaderboard
+              </Link>
+              <button
+                onClick={onClose}
+                className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
 
           <div className="p-5 space-y-5">
@@ -573,16 +584,16 @@ export default function TriviaModal({
 
   // ─── GAMEPLAY SCREEN ──────────────────────────────────────────
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-md">
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 8 }}
-        className="relative w-full max-w-md overflow-hidden rounded-xl bg-white shadow-2xl border border-slate-200/50 flex flex-col"
+        className="relative flex w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
       >
-        <div className="absolute inset-x-0 top-0 z-10 h-0.5 bg-slate-100">
+        <div className="absolute inset-x-0 top-0 z-10 h-1 bg-indigo-50">
           <motion.div
-            className="h-full bg-gradient-to-r from-slate-900 to-slate-700"
+            className="h-full bg-indigo-600"
             animate={{
               width: `${((gameState.currentQuestionIndex + 1) / totalQuestions) * 100}%`,
             }}
@@ -590,15 +601,18 @@ export default function TriviaModal({
           />
         </div>
 
-        <div className="flex items-center justify-between border-b border-slate-100/80 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-bold text-slate-900 tracking-tight">Trivia</h2>
+        <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
+          <div className="min-w-0">
+            <h2 className="text-base font-bold tracking-tight text-slate-900">Trivia</h2>
+            <p className="mt-0.5 text-xs font-medium italic text-indigo-600">
+              New day, new challenge!
+            </p>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            <div className="relative flex items-center gap-1.5 rounded-md bg-slate-900 px-2 py-1">
-              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-              <span className="text-[11px] font-bold text-white">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <div className="relative flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-amber-700">
+              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
+              <span className="text-xs font-bold tabular-nums">
                 {userTotalPoints + gameState.points}
               </span>
               <AnimatePresence>
@@ -608,7 +622,7 @@ export default function TriviaModal({
                     animate={{ opacity: 1, y: -16, scale: 1 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.6, ease: 'easeOut' }}
-                    className="pointer-events-none absolute -top-1 right-0 text-[10px] font-bold text-emerald-400"
+                    className="pointer-events-none absolute -top-1 right-0 text-[10px] font-bold text-emerald-600"
                   >
                     +{gameState.lastPointsEarned}
                   </motion.span>
@@ -617,17 +631,18 @@ export default function TriviaModal({
             </div>
 
             <div
-              className={`flex items-center gap-1 text-[11px] font-semibold ${
-                isUrgent ? 'text-rose-600' : 'text-slate-600'
+              className={`flex items-center gap-1.5 text-xs font-semibold ${
+                isUrgent ? 'text-rose-600' : 'text-slate-500'
               }`}
             >
-              <Clock className="h-3 w-3" />
+              <Clock className="h-3.5 w-3.5" />
               <span>{gameState.timeLeft}s</span>
             </div>
 
             <button
               onClick={onClose}
-              className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
+              aria-label="Close trivia"
+              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -651,11 +666,11 @@ export default function TriviaModal({
           )}
         </AnimatePresence>
 
-        <div className="bg-slate-900/5 border-b border-slate-200/60 px-4 py-2 flex items-center justify-between text-[11px] font-semibold text-slate-700">
-          <div className="flex items-center gap-1.5">
-            <span className="text-slate-500">{gameState.currentQuestionIndex + 1}</span>
-            <span className="text-slate-300 font-light">/</span>
-            <span className="text-slate-500">{totalQuestions}</span>
+        <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/60 px-5 py-3 text-xs font-semibold sm:px-6">
+          <div className="flex items-center gap-1.5 text-slate-500">
+            <span>Question</span>
+            <span className="font-bold text-slate-700">{gameState.currentQuestionIndex + 1}</span>
+            <span className="font-normal text-slate-400">/ {totalQuestions}</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -675,14 +690,14 @@ export default function TriviaModal({
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               key={gameState.currentQuestionIndex}
-              className="rounded-sm bg-slate-900 px-2 py-0.5 text-[10px] font-bold text-white tracking-wide"
+              className="rounded-lg bg-indigo-50 px-2.5 py-1 text-[11px] font-bold text-indigo-700"
             >
-              L{currentLevel}
+              Level {currentLevel}
             </motion.div>
           </div>
         </div>
 
-        <div className="relative p-4 space-y-3 min-h-[280px] flex-1">
+        <div className="relative min-h-[300px] flex-1 space-y-4 px-5 py-5 sm:px-6">
           <AnimatePresence mode="wait">
             {gameState.showMoreGames ? (
               <motion.div
@@ -731,20 +746,20 @@ export default function TriviaModal({
                   }
                   transition={{ duration: 0.3 }}
                 >
-                  <h3 className="text-sm font-semibold leading-snug text-slate-900">
+                  <h3 className="text-base font-semibold leading-snug text-slate-900">
                     {currentQuestion?.question}
                   </h3>
                 </motion.div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {currentQuestion?.options.map((option, index) => {
                     let buttonStyle =
-                      'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50';
+                      'border-slate-200 bg-white text-slate-700 hover:border-indigo-200 hover:bg-slate-50';
 
                     if (gameState.isAnswered || gameState.showExplanation) {
                       if (index === currentQuestion.correctAnswer) {
                         buttonStyle =
-                          'border-emerald-500 bg-emerald-50/50 text-emerald-900 font-medium';
+                          'border-emerald-400 bg-emerald-50/70 text-emerald-900 font-medium';
                       } else if (
                         index === gameState.selectedAnswer &&
                         index !== currentQuestion.correctAnswer
@@ -757,7 +772,7 @@ export default function TriviaModal({
                       }
                     } else if (index === gameState.selectedAnswer) {
                       buttonStyle =
-                        'border-indigo-500 bg-indigo-50/50 text-indigo-900';
+                        'border-indigo-400 bg-indigo-50/70 text-indigo-900';
                     }
 
                     const showCorrectIcon =
@@ -770,17 +785,17 @@ export default function TriviaModal({
                         whileTap={{ scale: 0.99 }}
                         onClick={() => handleAnswer(index)}
                         disabled={gameState.isAnswered || gameState.showExplanation}
-                        className={`flex w-full items-start justify-between rounded-lg border px-3 py-2.5 text-left text-[13px] transition-all min-h-[3rem] ${
+                        className={`flex w-full min-h-[3.5rem] items-center justify-between rounded-xl border px-4 py-3 text-left text-sm transition-all ${
                           gameState.isAnswered || gameState.showExplanation
                             ? 'cursor-default'
                             : 'cursor-pointer'
                         } ${buttonStyle}`}
                       >
-                        <div className="flex items-start gap-2.5 flex-1">
-                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-current text-[10px] font-semibold mt-0.5">
+                        <div className="flex min-w-0 flex-1 items-center gap-3">
+                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-current text-xs font-semibold">
                             {String.fromCharCode(65 + index)}
                           </span>
-                          <span className="leading-relaxed break-words whitespace-normal flex-1">
+                          <span className="flex-1 break-words leading-relaxed">
                             {option}
                           </span>
                         </div>
@@ -836,56 +851,100 @@ export default function TriviaModal({
           </AnimatePresence>
         </div>
 
-        <div className="flex items-center justify-between border-t border-slate-100/80 px-4 py-2.5 bg-slate-50/30">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={toggleMoreGames}
-              className={`flex items-center gap-1 text-[11px] font-semibold transition ${
-                gameState.showMoreGames
-                  ? 'text-slate-900'
-                  : 'text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              <Gamepad2 className="h-3.5 w-3.5" />
-              <span>Games</span>
-            </button>
+        <div className="border-t border-slate-100 bg-slate-50/60 px-5 py-3 sm:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={toggleMoreGames}
+                className={`flex items-center gap-1.5 text-xs font-semibold transition ${
+                  gameState.showMoreGames
+                    ? 'text-indigo-700'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <Gamepad2 className="h-4 w-4" />
+                <span>More Games</span>
+              </button>
+              <Link
+                href="/dashboard/trivia/leaderboard"
+                onClick={onClose}
+                className="flex items-center gap-1 text-xs font-semibold text-slate-500 transition hover:text-slate-900"
+              >
+                <Trophy className="h-4 w-4" />
+                <span>Leaderboard</span>
+              </Link>
+
+              <motion.div
+                key={gameState.streak}
+                initial={{ scale: 0.92, opacity: 0.7 }}
+                animate={{ scale: 1, opacity: 1 }}
+                aria-live="polite"
+                aria-label={
+                  gameState.streak > 0
+                    ? `${gameState.streak} correct answers in a row`
+                    : 'No active streak'
+                }
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ${
+                  gameState.streak > 0
+                    ? 'bg-orange-50 text-orange-700'
+                    : 'bg-slate-100 text-slate-500'
+                }`}
+              >
+                <Flame
+                  className={`h-4 w-4 ${
+                    gameState.streak > 0
+                      ? 'fill-orange-400 text-orange-500'
+                      : 'text-slate-400'
+                  }`}
+                />
+                <span>
+                  {gameState.streak > 0
+                    ? `${gameState.streak} streak active`
+                    : 'Build a streak'}
+                </span>
+              </motion.div>
+            </div>
+
+            <div className="ml-auto flex items-center gap-2">
+              {!gameState.showMoreGames &&
+                !gameState.isAnswered &&
+                !gameState.showExplanation && (
+                  <button
+                    onClick={handleSkip}
+                    className="flex items-center gap-1 rounded-lg px-2 py-2 text-xs font-semibold text-slate-500 transition hover:bg-white hover:text-slate-900"
+                  >
+                    <SkipForward className="h-3 w-3" />
+                    Skip
+                  </button>
+                )}
+
+              {!gameState.showMoreGames &&
+                (gameState.isAnswered || gameState.showExplanation) && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    onClick={handleNext}
+                    className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-indigo-700"
+                  >
+                    {isLastQuestion ? (
+                      <>
+                        <Trophy className="h-3 w-3" />
+                        Finish
+                      </>
+                    ) : (
+                      <>
+                        Next
+                        <ArrowRight className="h-3 w-3" />
+                      </>
+                    )}
+                  </motion.button>
+                )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {!gameState.showMoreGames &&
-              !gameState.isAnswered &&
-              !gameState.showExplanation && (
-                <button
-                  onClick={handleSkip}
-                  className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-slate-900 px-2 py-1"
-                >
-                  <SkipForward className="h-3 w-3" />
-                  Skip
-                </button>
-              )}
-
-            {!gameState.showMoreGames &&
-              (gameState.isAnswered || gameState.showExplanation) && (
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  onClick={handleNext}
-                  className="flex items-center gap-1.5 rounded-md bg-slate-900 px-3 py-1.5 text-[11px] font-semibold text-white shadow-sm transition hover:bg-slate-800"
-                >
-                  {isLastQuestion ? (
-                    <>
-                      <Trophy className="h-3 w-3" />
-                      Finish
-                    </>
-                  ) : (
-                    <>
-                      Next
-                      <ArrowRight className="h-3 w-3" />
-                    </>
-                  )}
-                </motion.button>
-              )}
-          </div>
+          <p className="mt-3 text-center text-[9px] font-semibold tracking-[0.18em] text-slate-400">
+            POWERED BY ENGLISH HUB
+          </p>
         </div>
       </motion.div>
     </div>
