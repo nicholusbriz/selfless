@@ -185,6 +185,12 @@ model User {
   // Trivia game points
   triviaPoints Int @default(0)
 
+  // Trivia game level progression
+  currentLevel Int @default(1)
+
+  // Trivia game sessions
+  triviaGameSessions TriviaGameSession[]
+
   // Social Relations
   followers            Follow[]      @relation("UserFollowers")
   following            Follow[]      @relation("UserFollowing")
@@ -1170,4 +1176,103 @@ model EmailLog {
   @@index([sentAt])
   @@index([provider, sentAt])
   @@map("email_logs")
+}
+
+// ============================================
+// TRIVIA GAME SESSIONS
+// ============================================
+
+model TriviaGameSession {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  // User who played
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Game results
+  correct     Int    // Number of correct answers
+  total       Int    // Total questions
+  points      Int    // Points earned in this session
+  streak      Int    // Maximum streak achieved
+  accuracy    Float  // Calculated accuracy percentage
+  level       Int    @default(1) // Level played in this session
+
+  // Detailed answers - track which questions were answered
+  answers TriviaGameAnswer[]
+
+  // Timestamps
+  playedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([playedAt])
+  @@index([points])
+  @@index([level])
+  @@map("trivia_game_sessions")
+}
+
+// ============================================
+// TRIVIA QUESTIONS
+// ============================================
+
+model TriviaQuestion {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  // Reference ID for backward compatibility with old question IDs
+  referenceId String? @unique // Old ID like "g1", "v1", etc.
+
+  // Question content
+  question      String   // The question text
+  options       String[] // Array of 4 options
+  correctAnswer Int      // Index of correct answer (0-3)
+  category      String   // 'grammar', 'vocabulary', 'reading', 'idioms', 'common-mistakes'
+  difficulty    String   // 'beginner', 'intermediate', 'advanced'
+  explanation   String?  // Explanation for the correct answer
+
+  // Analytics - track performance
+  timesAsked    Int    @default(0) // How many times this question was shown
+  timesCorrect  Int    @default(0) // How many times answered correctly
+  difficultyRating Float? @default(0.0) // Calculated difficulty based on performance (0-1, higher = harder)
+
+  // Metadata
+  isActive    Boolean   @default(true) // Soft delete / retire old questions
+  createdBy   String?   @db.ObjectId // Admin who created this question
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  answers TriviaGameAnswer[]
+
+  @@index([category])
+  @@index([difficulty])
+  @@index([isActive])
+  @@index([difficultyRating])
+  @@map("trivia_questions")
+}
+
+// ============================================
+// TRIVIA GAME ANSWERS
+// ============================================
+
+model TriviaGameAnswer {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  // Session and question references
+  sessionId    String          @db.ObjectId
+  session      TriviaGameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  questionId   String          @db.ObjectId
+  question     TriviaQuestion  @relation(fields: [questionId], references: [id], onDelete: NoAction)
+
+  // Answer details
+  userAnswer   Int    // Index of the option the user selected
+  isCorrect    Boolean // Whether the answer was correct
+  timeTaken    Int?   // Time taken to answer in seconds (optional)
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([questionId])
+  @@index([isCorrect])
+  @@map("trivia_game_answers")
 }
