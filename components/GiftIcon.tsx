@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Gift } from 'lucide-react';
 import TriviaModal from './TriviaModal';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { isJsonObject } from '@/lib/api-response';
+import { getApiErrorMessage, isJsonObject } from '@/lib/api-response';
 import type { TriviaQuestion } from './TriviaModal';
 
 const MAX_LEVEL = 10;
@@ -14,63 +14,110 @@ export default function GiftIcon() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [questions, setQuestions] = useState<TriviaQuestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [questionLoadError, setQuestionLoadError] = useState<string | null>(null);
   const [userTotalPoints, setUserTotalPoints] = useState(0);
   const [currentLevel, setCurrentLevel] = useState(1);
   const [levelUnlocked, setLevelUnlocked] = useState(false);
   const [newLevel, setNewLevel] = useState(1);
+  const [triviaLockedUntil, setTriviaLockedUntil] = useState<string | null>(null);
+  const [dailyHeartsRemaining, setDailyHeartsRemaining] = useState(3);
 
   const fetchQuestions = useCallback(async (level: number) => {
     setIsLoading(true);
+    setQuestionLoadError(null);
     try {
       const response = await fetch(`/api/trivia/questions?count=10&level=${level}`);
       const data: unknown = await response.json();
 
       if (
+        response.ok &&
         isJsonObject(data) &&
         data.success === true &&
         Array.isArray(data.questions)
       ) {
         setQuestions(data.questions as TriviaQuestion[]);
+        if (typeof data.dailyHeartsRemaining === 'number') {
+          setDailyHeartsRemaining(data.dailyHeartsRemaining);
+        }
+        if (data.questions.length === 0) {
+          setQuestionLoadError(`No questions are currently available for Level ${level}.`);
+        }
       } else {
+        if (
+          response.status === 423 &&
+          isJsonObject(data) &&
+          typeof data.triviaLockedUntil === 'string'
+        ) {
+          setTriviaLockedUntil(data.triviaLockedUntil);
+          setDailyHeartsRemaining(0);
+        }
         setQuestions([]);
+        setQuestionLoadError(
+          getApiErrorMessage(data, 'Could not load trivia questions.'),
+        );
       }
     } catch (error) {
       console.error('Error fetching trivia questions:', error);
       setQuestions([]);
+      setQuestionLoadError(
+        error instanceof Error
+          ? error.message
+          : 'Could not load trivia questions. Check your connection and try again.',
+      );
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  const fetchUserPoints = useCallback(async (): Promise<number | null> => {
+  const fetchUserPoints = useCallback(async (): Promise<{
+    level: number | null;
+    lockedUntil: string | null;
+    heartsRemaining: number;
+  }> => {
     try {
       const response = await fetch('/api/user/trivia-points');
       const data: unknown = await response.json();
 
       if (!isJsonObject(data) || data.success !== true) {
-        return null;
+        return { level: null, lockedUntil: null, heartsRemaining: 3 };
       }
 
       if (typeof data.triviaPoints === 'number') {
         setUserTotalPoints(data.triviaPoints);
       }
 
+      const lockedUntil =
+        typeof data.triviaLockedUntil === 'string' &&
+        Date.parse(data.triviaLockedUntil) > Date.now()
+          ? data.triviaLockedUntil
+          : null;
+      setTriviaLockedUntil(lockedUntil);
+      const heartsRemaining =
+        typeof data.dailyHeartsRemaining === 'number'
+          ? data.dailyHeartsRemaining
+          : 3;
+      setDailyHeartsRemaining(heartsRemaining);
+
       if (typeof data.currentLevel === 'number') {
         setCurrentLevel(data.currentLevel);
-        return data.currentLevel;
+        return { level: data.currentLevel, lockedUntil, heartsRemaining };
       }
 
-      return null;
+      return { level: null, lockedUntil, heartsRemaining };
     } catch (error) {
       console.error('Error fetching user trivia points:', error);
-      return null;
+      return { level: null, lockedUntil: null, heartsRemaining: 3 };
     }
   }, []);
 
   useEffect(() => {
     (async () => {
-      const level = (await fetchUserPoints()) ?? 1;
-      await fetchQuestions(level);
+      const status = await fetchUserPoints();
+      if (!status.lockedUntil) {
+        await fetchQuestions(status.level ?? 1);
+      } else {
+        setIsLoading(false);
+      }
     })();
   }, [fetchUserPoints, fetchQuestions]);
 
@@ -78,9 +125,15 @@ export default function GiftIcon() {
     setLevelUnlocked(false);
     setIsModalOpen(true);
     setQuestions([]);
+    setQuestionLoadError(null);
+    setIsLoading(true);
 
-    const level = (await fetchUserPoints()) ?? currentLevel;
-    await fetchQuestions(level);
+    const status = await fetchUserPoints();
+    if (!status.lockedUntil) {
+      await fetchQuestions(status.level ?? currentLevel);
+    } else {
+      setIsLoading(false);
+    }
   };
 
   const handleClose = () => {
@@ -95,37 +148,62 @@ export default function GiftIcon() {
     streak: number;
     answers?: Array<{ questionId: string; userAnswer: number; isCorrect: boolean }>;
   }) => {
-    try {
-      const response = await fetch('/api/trivia/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(result),
-      });
+    const response = await fetch('/api/trivia/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(result),
+    });
+    const data: unknown = await response.json();
 
-      if (!response.ok) {
-        console.error('Failed to submit trivia results');
-        return;
+    if (!response.ok || !isJsonObject(data) || data.success !== true) {
+      if (
+        isJsonObject(data) &&
+        typeof data.triviaLockedUntil === 'string'
+      ) {
+        setTriviaLockedUntil(data.triviaLockedUntil);
       }
-
-      const data: unknown = await response.json();
-
-      if (isJsonObject(data) && data.success === true) {
-        if (data.levelUnlocked === true) {
-          setLevelUnlocked(true);
-          setNewLevel(
-            typeof data.newLevel === 'number' ? data.newLevel : currentLevel + 1,
-          );
-        } else {
-          setLevelUnlocked(false);
-          setNewLevel(currentLevel);
-        }
-      }
-
-      await fetchUserPoints();
-    } catch (error) {
-      console.error('Error submitting trivia results:', error);
+      throw new Error(getApiErrorMessage(data, 'Failed to save trivia results'));
     }
+
+    if (data.levelUnlocked === true) {
+      setLevelUnlocked(true);
+      setNewLevel(
+        typeof data.newLevel === 'number' ? data.newLevel : currentLevel + 1,
+      );
+    } else {
+      setLevelUnlocked(false);
+      setNewLevel(currentLevel);
+    }
+
+    await fetchUserPoints();
   };
+
+  const handleQuestionFailed = useCallback(async (questionId: string, failureId: string) => {
+    const response = await fetch('/api/trivia/daily-lock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ questionId, failureId }),
+    });
+    const data: unknown = await response.json();
+
+    if (
+      !response.ok ||
+      !isJsonObject(data) ||
+      data.success !== true ||
+      typeof data.dailyHeartsRemaining !== 'number'
+    ) {
+      throw new Error(getApiErrorMessage(data, 'Failed to record failed question'));
+    }
+
+    setDailyHeartsRemaining(data.dailyHeartsRemaining);
+    const lockedUntil =
+      typeof data.triviaLockedUntil === 'string' ? data.triviaLockedUntil : null;
+    setTriviaLockedUntil(lockedUntil);
+    return {
+      heartsRemaining: data.dailyHeartsRemaining,
+      lockedUntil,
+    };
+  }, []);
 
   const handleContinueToNextLevel = async () => {
     const nextLevel = newLevel;
@@ -171,12 +249,17 @@ export default function GiftIcon() {
         onContinue={handleContinueToNextLevel}
         questions={questions}
         isLoading={isLoading}
+        questionLoadError={questionLoadError}
+        onRetryQuestions={() => fetchQuestions(currentLevel)}
         userTotalPoints={userTotalPoints}
         currentLevel={currentLevel}
         levelUnlocked={levelUnlocked}
         newLevel={newLevel}
         isMaxLevel={isMaxLevel}
         onComplete={handleGameComplete}
+        dailyLockedUntil={triviaLockedUntil}
+        dailyHeartsRemaining={dailyHeartsRemaining}
+        onQuestionFailed={handleQuestionFailed}
       />
     </>
   );

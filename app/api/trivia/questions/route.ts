@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
+import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
+import {
+  getActiveTriviaLock,
+  getNextUtcTriviaReset,
+  isCurrentUtcTriviaDay,
+} from '@/lib/trivia/daily-lock';
 
 // Map levels to difficulty
 function getDifficultyForLevel(level: number): 'beginner' | 'intermediate' | 'advanced' {
@@ -10,6 +17,34 @@ function getDifficultyForLevel(level: number): 'beginner' | 'intermediate' | 'ad
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await requireAuth();
+    const account = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        triviaLockedUntil: true,
+        triviaHeartsRemaining: true,
+        triviaHeartsDate: true,
+      },
+    });
+    const heartsRemaining = isCurrentUtcTriviaDay(account?.triviaHeartsDate ?? null)
+      ? account?.triviaHeartsRemaining ?? 3
+      : 3;
+    const triviaLockedUntil =
+      getActiveTriviaLock(account?.triviaLockedUntil ?? null) ??
+      (heartsRemaining === 0 ? getNextUtcTriviaReset() : null);
+
+    if (triviaLockedUntil) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'You have used all three hearts for today.',
+          triviaLockedUntil: triviaLockedUntil.toISOString(),
+          dailyHeartsRemaining: 0,
+        },
+        { status: 423 },
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const count = parseInt(searchParams.get('count') || '10', 10);
     const level = parseInt(searchParams.get('level') || '1', 10);
@@ -19,7 +54,7 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(Math.max(count, 1), 20); // Limit to 1-20 questions
 
     // Build where clause
-    const where: any = {
+    const where: Prisma.TriviaQuestionWhereInput = {
       isActive: true,
     };
 
@@ -72,9 +107,16 @@ export async function GET(request: NextRequest) {
       count: questions.length,
       level,
       difficulty: targetDifficulty,
+      dailyHeartsRemaining: heartsRemaining,
     });
   } catch (error) {
     console.error('Error fetching trivia questions:', error);
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 },
+      );
+    }
     return NextResponse.json(
       {
         success: false,

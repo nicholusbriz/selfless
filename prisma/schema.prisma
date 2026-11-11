@@ -187,6 +187,10 @@ model User {
 
   // Trivia game level progression
   currentLevel Int @default(1)
+  triviaLockedUntil DateTime?
+  triviaHeartsRemaining Int @default(3)
+  triviaHeartsDate DateTime?
+  triviaFailureIds String[] @default([])
 
   // Trivia game sessions
   triviaGameSessions TriviaGameSession[]

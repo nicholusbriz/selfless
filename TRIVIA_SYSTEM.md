@@ -125,6 +125,14 @@ The leaderboard link is available in the trivia game and results screens. Its da
 from `GET /api/trivia/leaderboard`, which ranks users by the sum of their recorded trivia
 session points.
 
+Players start at Level 1 with three hearts per UTC day. Skipping a question, timing out,
+or using all three attempts incorrectly costs one heart. When all hearts are lost, trivia
+is locked until the next UTC midnight. The count and lock are stored on the user account
+and enforced by the question and score-submission APIs, so they persist across reloads.
+Completing a level with at least one heart still requires the existing 70% accuracy to
+unlock the next level. Existing trivia points and session history are retained when levels
+are reset.
+
 ## Backward Compatibility
 
 - The old `lib/trivia-questions.ts` file still exists but is no longer used by the API
