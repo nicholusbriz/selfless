@@ -1,8 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
+import {
+  getActiveTriviaLock,
+  getNextUtcTriviaReset,
+  isCurrentUtcTriviaDay,
+} from '@/lib/trivia/daily-lock';
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     // Get authenticated user
     const user = await requireAuth();
@@ -26,15 +31,27 @@ export async function GET(req: NextRequest) {
       where: { id: user.id },
       select: {
         currentLevel: true,
+        triviaLockedUntil: true,
+        triviaHeartsRemaining: true,
+        triviaHeartsDate: true,
       },
     });
 
     const currentLevel = userData?.currentLevel || 1;
+    const storedLock = getActiveTriviaLock(userData?.triviaLockedUntil ?? null);
+    const dailyHeartsRemaining = isCurrentUtcTriviaDay(userData?.triviaHeartsDate ?? null)
+      ? userData?.triviaHeartsRemaining ?? 3
+      : 3;
+    const triviaLockedUntil =
+      storedLock ??
+      (dailyHeartsRemaining === 0 ? getNextUtcTriviaReset() : null);
 
     return NextResponse.json({
       success: true,
       triviaPoints: totalPoints,
       currentLevel,
+      triviaLockedUntil: triviaLockedUntil?.toISOString() ?? null,
+      dailyHeartsRemaining: triviaLockedUntil ? 0 : dailyHeartsRemaining,
     });
   } catch (error) {
     console.error('Error fetching trivia points:', error);

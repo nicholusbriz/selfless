@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth/nextauth';
 import { getApiErrorMessage, isJsonObject } from '@/lib/api-response';
 import { prisma } from '@/lib/prisma/client';
+import {
+  getActiveTriviaLock,
+  getNextUtcTriviaReset,
+  isCurrentUtcTriviaDay,
+} from '@/lib/trivia/daily-lock';
 
 const MAX_LEVEL = 10;
 const MIN_ACCURACY_TO_LEVEL_UP = 70;
@@ -56,27 +63,10 @@ export async function POST(request: NextRequest) {
     }
 
     // --- Session / user ---
-    const sessionResponse = await fetch(
-      `${process.env.NEXTAUTH_URL}/api/auth/session`,
-      { headers: { cookie: request.headers.get('cookie') ?? '' } },
-    );
-
-    if (!sessionResponse.ok) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
-        { status: 401 },
-      );
-    }
-
-    const session: unknown = await sessionResponse.json();
-
-    if (
-      !isJsonObject(session) ||
-      !isJsonObject(session.user) ||
-      typeof session.user.id !== 'string'
-    ) {
-      return NextResponse.json(
-        { success: false, error: 'User not authenticated' },
         { status: 401 },
       );
     }
@@ -86,8 +76,31 @@ export async function POST(request: NextRequest) {
     // --- Load user's current level ---
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { currentLevel: true },
+      select: {
+        currentLevel: true,
+        triviaLockedUntil: true,
+        triviaHeartsRemaining: true,
+        triviaHeartsDate: true,
+      },
     });
+
+    const storedLock = getActiveTriviaLock(user?.triviaLockedUntil ?? null);
+    const triviaLockedUntil =
+      storedLock ??
+      (isCurrentUtcTriviaDay(user?.triviaHeartsDate ?? null) &&
+      user?.triviaHeartsRemaining === 0
+        ? getNextUtcTriviaReset()
+        : null);
+    if (triviaLockedUntil) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'You have used all three hearts for today.',
+          triviaLockedUntil: triviaLockedUntil.toISOString(),
+        },
+        { status: 423 },
+      );
+    }
 
     const currentLevel = user?.currentLevel ?? 1;
 

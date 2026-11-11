@@ -25,18 +25,26 @@ interface TriviaModalProps {
   onContinue?: () => void;
   questions: TriviaQuestion[];
   isLoading?: boolean;
+  questionLoadError?: string | null;
+  onRetryQuestions: () => void;
   userTotalPoints: number;
   currentLevel: number;
   levelUnlocked?: boolean;
   newLevel?: number;
   isMaxLevel?: boolean;
+  dailyLockedUntil?: string | null;
+  dailyHeartsRemaining: number;
+  onQuestionFailed: (questionId: string, failureId: string) => Promise<{
+    heartsRemaining: number;
+    lockedUntil: string | null;
+  }>;
   onComplete: (result: {
     correct: number;
     total: number;
     points: number;
     streak: number;
     answers: Array<{ questionId: string; userAnswer: number; isCorrect: boolean }>;
-  }) => void;
+  }) => Promise<void>;
 }
 
 interface GameState {
@@ -59,13 +67,21 @@ interface GameState {
   shakeKey: number;
   answers: Array<{ questionId: string; userAnswer: number; isCorrect: boolean }>;
   showPointsPopup: boolean;
+  isSubmitting: boolean;
+  submissionError: string | null;
+  isDailyLockout: boolean;
+  isRecordingFailure: boolean;
+  failureError: string | null;
+  failedQuestionId: string | null;
+  failureId: string | null;
+  dailyHeartsRemaining: number;
 }
 
 const MAX_ATTEMPTS = 3;
 const TIME_PER_QUESTION = 30;
 const MAX_LEVEL = 10;
 
-const makeInitialState = (): GameState => ({
+const makeInitialState = (dailyHeartsRemaining = 3): GameState => ({
   currentQuestionIndex: 0,
   selectedAnswer: null,
   isAnswered: false,
@@ -85,6 +101,14 @@ const makeInitialState = (): GameState => ({
   shakeKey: 0,
   answers: [],
   showPointsPopup: false,
+  isSubmitting: false,
+  submissionError: null,
+  isDailyLockout: false,
+  isRecordingFailure: false,
+  failureError: null,
+  failedQuestionId: null,
+  failureId: null,
+  dailyHeartsRemaining,
 });
 
 export default function TriviaModal({
@@ -93,17 +117,28 @@ export default function TriviaModal({
   onContinue,
   questions,
   isLoading = false,
+  questionLoadError = null,
+  onRetryQuestions,
   userTotalPoints,
   currentLevel,
   levelUnlocked = false,
   newLevel,
   isMaxLevel = false,
+  dailyLockedUntil = null,
+  dailyHeartsRemaining,
+  onQuestionFailed,
   onComplete,
 }: TriviaModalProps) {
-  const [gameState, setGameState] = useState<GameState>(makeInitialState());
+  const [gameState, setGameState] = useState<GameState>(() =>
+    makeInitialState(dailyHeartsRemaining),
+  );
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const isOpenRef = useRef(isOpen);
+  const gameStateRef = useRef(gameState);
+  const dailyHeartsRef = useRef(dailyHeartsRemaining);
+  gameStateRef.current = gameState;
+  dailyHeartsRef.current = dailyHeartsRemaining;
 
   const currentQuestion = questions[gameState.currentQuestionIndex];
   const totalQuestions = questions.length;
@@ -116,48 +151,121 @@ export default function TriviaModal({
     isOpenRef.current = isOpen;
   }, [isOpen]);
 
+  const handleQuestionFailure = useCallback(async (
+    questionId: string,
+    failureId = crypto.randomUUID(),
+  ) => {
+    setGameState((prev) => ({
+      ...prev,
+      isRecordingFailure: true,
+      failureError: null,
+      failedQuestionId: questionId,
+      failureId,
+    }));
+
+    try {
+      const result = await onQuestionFailed(questionId, failureId);
+      setGameState((prev) => ({
+        ...prev,
+        isRecordingFailure: false,
+        dailyHeartsRemaining: result.heartsRemaining,
+        isDailyLockout: result.heartsRemaining === 0,
+      }));
+    } catch (error) {
+      console.error('Failed to record failed trivia question:', error);
+      setGameState((prev) => ({
+        ...prev,
+        isRecordingFailure: false,
+        failureError:
+          error instanceof Error
+            ? error.message
+            : 'Could not record this failed question. Please retry.',
+      }));
+    }
+  }, [onQuestionFailed]);
+
   // ─── Timer ─────────────────────────────────────────────────────
   useEffect(() => {
     timerRef.current = setInterval(() => {
-      setGameState((prev) => {
-        if (
-          !isOpenRef.current ||
-          prev.isAnswered ||
-          prev.showResult ||
-          prev.showExplanation ||
-          prev.showMoreGames
-        ) {
-          return prev;
-        }
+      const current = gameStateRef.current;
+      if (
+        !isOpenRef.current ||
+        current.isAnswered ||
+        current.showResult ||
+        current.showExplanation ||
+        current.showMoreGames
+      ) {
+        return;
+      }
 
-        if (prev.timeLeft <= 1) {
-          return {
+      if (current.timeLeft <= 1) {
+        setGameState((prev) => {
+          if (
+            prev.isAnswered ||
+            prev.showResult ||
+            prev.showExplanation ||
+            prev.showMoreGames
+          ) {
+            return prev;
+          }
+
+          if (prev.timeLeft <= 1) {
+            return {
+              ...prev,
+              timeLeft: 0,
+              isAnswered: true,
+              showExplanation: true,
+              selectedAnswer: null,
+              streak: 0,
+              attempts: MAX_ATTEMPTS,
+              feedback: 'Time expired!',
+              feedbackType: 'error',
+            };
+          }
+          return prev;
+        });
+        if (currentQuestion) {
+          setGameState((prev) => ({
             ...prev,
-            timeLeft: 0,
-            isAnswered: true,
-            showExplanation: true,
-            selectedAnswer: null,
-            streak: 0,
-            attempts: MAX_ATTEMPTS,
-            feedback: 'Time expired!',
-            feedbackType: 'error',
-          };
+            answers: [
+              ...prev.answers,
+              {
+                questionId: currentQuestion.id,
+                userAnswer: -1,
+                isCorrect: false,
+              },
+            ],
+          }));
+          void handleQuestionFailure(currentQuestion.id);
         }
-        return { ...prev, timeLeft: prev.timeLeft - 1 };
-      });
+      } else {
+        setGameState((prev) =>
+          prev.isAnswered || prev.showResult || prev.showExplanation
+            ? prev
+            : { ...prev, timeLeft: prev.timeLeft - 1 },
+        );
+      }
     }, 1000);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, []);
+  }, [currentQuestion, handleQuestionFailure]);
 
   // ─── Reset when questions change or modal opens ────────────────
   useEffect(() => {
     if (isOpen) {
-      setGameState(makeInitialState());
+      setGameState(makeInitialState(dailyHeartsRef.current));
     }
   }, [isOpen, questions]); // Reset when new questions arrive
+
+  useEffect(() => {
+    setGameState((prev) =>
+      prev.dailyHeartsRemaining === dailyHeartsRemaining
+        ? prev
+        : { ...prev, dailyHeartsRemaining },
+    );
+  }, [dailyHeartsRemaining]);
 
   // ─── Escape to close ───────────────────────────────────────────
   useEffect(() => {
@@ -230,6 +338,7 @@ export default function TriviaModal({
           shakeKey: prev.shakeKey + 1,
           answers: [...prev.answers, newAnswer],
         }));
+        void handleQuestionFailure(currentQuestion.id);
       } else {
         setGameState((prev) => ({
           ...prev,
@@ -263,6 +372,7 @@ export default function TriviaModal({
       gameState.streak,
       gameState.correct,
       gameState.maxStreak,
+      handleQuestionFailure,
     ],
   );
 
@@ -285,24 +395,47 @@ export default function TriviaModal({
       feedbackType: 'error',
       answers: [...prev.answers, newAnswer],
     }));
-  }, [currentQuestion]);
+    void handleQuestionFailure(currentQuestion.id);
+  }, [currentQuestion, handleQuestionFailure]);
 
-  const handleNext = useCallback(() => {
+  const handleNext = useCallback(async () => {
     if (isLastQuestion) {
       const basePoints = gameState.correct * 10;
       const streakBonus = gameState.maxStreak * 2;
       const skipPenalty = gameState.skipped * 2;
       const totalPoints = Math.max(0, basePoints + streakBonus - skipPenalty);
 
-      onComplete({
-        correct: gameState.correct,
-        total: totalQuestions,
-        points: totalPoints,
-        streak: gameState.maxStreak,
-        answers: gameState.answers,
-      });
+      setGameState((prev) => ({
+        ...prev,
+        isSubmitting: true,
+        submissionError: null,
+      }));
 
-      setGameState((prev) => ({ ...prev, showResult: true }));
+      try {
+        await onComplete({
+          correct: gameState.correct,
+          total: totalQuestions,
+          points: totalPoints,
+          streak: gameState.maxStreak,
+          answers: gameState.answers,
+        });
+
+        setGameState((prev) => ({
+          ...prev,
+          isSubmitting: false,
+          showResult: true,
+        }));
+      } catch (error) {
+        console.error('Failed to save trivia results:', error);
+        setGameState((prev) => ({
+          ...prev,
+          isSubmitting: false,
+          submissionError:
+            error instanceof Error
+              ? error.message
+              : 'Failed to save your score. Please try again.',
+        }));
+      }
     } else {
       setGameState((prev) => ({
         ...prev,
@@ -340,6 +473,52 @@ export default function TriviaModal({
 
   if (!isOpen) return null;
 
+  if (dailyLockedUntil) {
+    const resetTime = new Intl.DateTimeFormat('en-US', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+      timeZone: 'UTC',
+    }).format(new Date(dailyLockedUntil));
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96, y: 8 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          className="w-full max-w-md overflow-hidden rounded-xl border border-slate-200/50 bg-white shadow-2xl"
+        >
+          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+            <h2 className="text-sm font-bold text-slate-900">Trivia</h2>
+            <button
+              onClick={onClose}
+              className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
+              aria-label="Close trivia"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="p-6 text-center">
+            <Heart className="mx-auto h-10 w-10 fill-rose-500 text-rose-500" />
+            <h3 className="mt-3 text-lg font-bold text-slate-900">Out of hearts</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              You failed three questions today and used all your hearts. You
+              can play again after the daily reset.
+            </p>
+            <p className="mt-3 text-xs font-semibold text-slate-500">
+              Resets {resetTime} UTC
+            </p>
+            <button
+              onClick={onClose}
+              className="mt-5 w-full rounded-lg bg-slate-900 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+            >
+              Close
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   // ─── SKELETON / EMPTY STATE ────────────────────────────────────
   if (totalQuestions === 0) {
     if (!isLoading) {
@@ -360,16 +539,26 @@ export default function TriviaModal({
               </button>
             </div>
             <div className="p-6 text-center">
-              <p className="text-sm font-semibold text-slate-700">No questions available</p>
-              <p className="mt-1 text-xs text-slate-500">
-                Try again in a moment — new questions are on the way.
+              <p className="text-sm font-semibold text-slate-700">
+                {questionLoadError ? 'Could not load trivia' : 'No questions available'}
+              </p>
+              <p className="mt-1 text-xs text-slate-500" role={questionLoadError ? 'alert' : undefined}>
+                {questionLoadError ?? 'Try again in a moment — new questions are on the way.'}
               </p>
               <button
-                onClick={onClose}
+                onClick={questionLoadError ? onRetryQuestions : onClose}
                 className="mt-4 w-full rounded-lg bg-slate-900 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
-                Close
+                {questionLoadError ? 'Retry' : 'Close'}
               </button>
+              {questionLoadError && (
+                <button
+                  onClick={onClose}
+                  className="mt-2 w-full rounded-lg border border-slate-200 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                >
+                  Close
+                </button>
+              )}
             </div>
           </motion.div>
         </div>
@@ -549,6 +738,10 @@ export default function TriviaModal({
                 <p className="text-[10px] font-medium text-slate-500 mt-0.5">Streak</p>
               </div>
             </div>
+            <p className="text-center text-xs font-semibold text-rose-600">
+              {gameState.dailyHeartsRemaining} daily{' '}
+              {gameState.dailyHeartsRemaining === 1 ? 'heart' : 'hearts'} remaining
+            </p>
 
             <div className="flex flex-col gap-2">
               {levelUnlocked && onContinue ? (
@@ -631,6 +824,23 @@ export default function TriviaModal({
             </div>
 
             <div
+              className="flex items-center gap-0.5 rounded-full bg-rose-50 px-2.5 py-1.5"
+              aria-label={`${gameState.dailyHeartsRemaining} daily hearts remaining`}
+              title={`${gameState.dailyHeartsRemaining} daily hearts remaining`}
+            >
+              {[0, 1, 2].map((heart) => (
+                <Heart
+                  key={heart}
+                  className={`h-3.5 w-3.5 ${
+                    heart < gameState.dailyHeartsRemaining
+                      ? 'fill-rose-500 text-rose-500'
+                      : 'text-rose-200'
+                  }`}
+                />
+              ))}
+            </div>
+
+            <div
               className={`flex items-center gap-1.5 text-xs font-semibold ${
                 isUrgent ? 'text-rose-600' : 'text-slate-500'
               }`}
@@ -675,16 +885,9 @@ export default function TriviaModal({
 
           <div className="flex items-center gap-2">
             {!gameState.isAnswered && !gameState.showExplanation && !gameState.showMoreGames && (
-              <div className="flex items-center gap-0.5">
-                {[...Array(MAX_ATTEMPTS)].map((_, i) => (
-                  <Heart
-                    key={i}
-                    className={`h-2.5 w-2.5 transition-colors ${
-                      i < attemptsLeft ? 'fill-rose-500 text-rose-500' : 'text-slate-200'
-                    }`}
-                  />
-                ))}
-              </div>
+              <span className="text-[10px] font-medium text-slate-500">
+                {attemptsLeft} {attemptsLeft === 1 ? 'try' : 'tries'} left
+              </span>
             )}
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
@@ -846,6 +1049,15 @@ export default function TriviaModal({
                     )}
                   </AnimatePresence>
                 </div>
+                {gameState.submissionError && (
+                  <p
+                    role="alert"
+                    className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700"
+                  >
+                    {gameState.submissionError} Your answers are still here; select
+                    Retry to submit them again.
+                  </p>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -907,7 +1119,9 @@ export default function TriviaModal({
 
             <div className="ml-auto flex items-center gap-2">
               {!gameState.showMoreGames &&
-                !gameState.isAnswered &&
+                !gameState.isDailyLockout &&
+              !gameState.isRecordingFailure &&
+              !gameState.isAnswered &&
                 !gameState.showExplanation && (
                   <button
                     onClick={handleSkip}
@@ -919,17 +1133,25 @@ export default function TriviaModal({
                 )}
 
               {!gameState.showMoreGames &&
+                !gameState.isDailyLockout &&
                 (gameState.isAnswered || gameState.showExplanation) && (
                   <motion.button
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     onClick={handleNext}
-                    className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-indigo-700"
+                    disabled={gameState.isSubmitting || gameState.isRecordingFailure || Boolean(gameState.failureError)}
+                    className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-70"
                   >
-                    {isLastQuestion ? (
+                    {gameState.isSubmitting ? (
+                      <>Saving score...</>
+                    ) : gameState.isRecordingFailure ? (
+                      <>Saving heart...</>
+                    ) : gameState.failureError ? (
+                      <>Retry heart</>
+                    ) : isLastQuestion ? (
                       <>
                         <Trophy className="h-3 w-3" />
-                        Finish
+                        {gameState.submissionError ? 'Retry' : 'Finish'}
                       </>
                     ) : (
                       <>
@@ -939,6 +1161,29 @@ export default function TriviaModal({
                     )}
                   </motion.button>
                 )}
+              {gameState.failureError &&
+                gameState.failedQuestionId &&
+                gameState.failureId && (
+                <div className="flex items-center gap-2">
+                  <span role="alert" className="max-w-48 text-xs text-rose-600">
+                    {gameState.failureError}
+                  </span>
+                  <button
+                    onClick={() => {
+                      if (gameState.failedQuestionId) {
+                        void handleQuestionFailure(
+                          gameState.failedQuestionId,
+                          gameState.failureId ?? undefined,
+                        );
+                      }
+                    }}
+                    disabled={gameState.isRecordingFailure}
+                    className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-rose-700 disabled:opacity-70"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
