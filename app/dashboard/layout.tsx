@@ -59,6 +59,10 @@ function getPageInfo(pathname: string, userRole?: string) {
       title: 'English Hub',
       section: 'Workspace',
     },
+    '/dashboard/trivia/leaderboard': {
+      title: 'Trivia Leaderboard',
+      section: 'Community',
+    },
     '/dashboard/courses': {
       title: 'Courses',
       section: 'Academics',

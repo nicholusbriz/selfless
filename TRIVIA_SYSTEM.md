@@ -118,6 +118,13 @@ To fully utilize the new system, update your frontend to:
 3. **Use category filter** (optional)
    - Request specific categories: `?category=grammar&difficulty=intermediate`
 
+## Trivia Leaderboard
+
+Authenticated users can view the top 10 trivia players at `/dashboard/trivia/leaderboard`.
+The leaderboard link is available in the trivia game and results screens. Its data comes
+from `GET /api/trivia/leaderboard`, which ranks users by the sum of their recorded trivia
+session points.
+
 ## Backward Compatibility
 
 - The old `lib/trivia-questions.ts` file still exists but is no longer used by the API
