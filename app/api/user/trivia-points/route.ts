@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
+import { getDailyTriviaGames } from '@/lib/trivia/daily-games-server';
 import {
   getActiveTriviaLock,
   getNextUtcTriviaReset,
@@ -45,6 +46,7 @@ export async function GET() {
     const triviaLockedUntil =
       storedLock ??
       (dailyHeartsRemaining === 0 ? getNextUtcTriviaReset() : null);
+    const dailyGames = await getDailyTriviaGames(user.id);
 
     return NextResponse.json({
       success: true,
@@ -52,6 +54,7 @@ export async function GET() {
       currentLevel,
       triviaLockedUntil: triviaLockedUntil?.toISOString() ?? null,
       dailyHeartsRemaining: triviaLockedUntil ? 0 : dailyHeartsRemaining,
+      dailyGames,
     });
   } catch (error) {
     console.error('Error fetching trivia points:', error);

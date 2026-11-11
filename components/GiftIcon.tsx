@@ -9,6 +9,28 @@ import type { TriviaQuestion } from './TriviaModal';
 
 const MAX_LEVEL = 10;
 
+interface DailyGames {
+  completed: number;
+  limit: number;
+  resetAt: string;
+}
+
+function readDailyGames(value: unknown): DailyGames | null {
+  if (
+    isJsonObject(value) &&
+    typeof value.completed === 'number' &&
+    typeof value.limit === 'number' &&
+    typeof value.resetAt === 'string'
+  ) {
+    return {
+      completed: value.completed,
+      limit: value.limit,
+      resetAt: value.resetAt,
+    };
+  }
+  return null;
+}
+
 export default function GiftIcon() {
   const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -21,6 +43,7 @@ export default function GiftIcon() {
   const [newLevel, setNewLevel] = useState(1);
   const [triviaLockedUntil, setTriviaLockedUntil] = useState<string | null>(null);
   const [dailyHeartsRemaining, setDailyHeartsRemaining] = useState(3);
+  const [dailyGames, setDailyGames] = useState<DailyGames | null>(null);
 
   const fetchQuestions = useCallback(async (level: number) => {
     setIsLoading(true);
@@ -28,6 +51,11 @@ export default function GiftIcon() {
     try {
       const response = await fetch(`/api/trivia/questions?count=10&level=${level}`);
       const data: unknown = await response.json();
+
+      if (isJsonObject(data)) {
+        const status = readDailyGames(data.dailyGames);
+        if (status) setDailyGames(status);
+      }
 
       if (
         response.ok &&
@@ -73,13 +101,14 @@ export default function GiftIcon() {
     level: number | null;
     lockedUntil: string | null;
     heartsRemaining: number;
+    gamesLimited: boolean;
   }> => {
     try {
       const response = await fetch('/api/user/trivia-points');
       const data: unknown = await response.json();
 
       if (!isJsonObject(data) || data.success !== true) {
-        return { level: null, lockedUntil: null, heartsRemaining: 3 };
+        return { level: null, lockedUntil: null, heartsRemaining: 3, gamesLimited: false };
       }
 
       if (typeof data.triviaPoints === 'number') {
@@ -97,23 +126,26 @@ export default function GiftIcon() {
           ? data.dailyHeartsRemaining
           : 3;
       setDailyHeartsRemaining(heartsRemaining);
+      const games = readDailyGames(data.dailyGames);
+      if (games) setDailyGames(games);
+      const gamesLimited = games !== null && games.completed >= games.limit;
 
       if (typeof data.currentLevel === 'number') {
         setCurrentLevel(data.currentLevel);
-        return { level: data.currentLevel, lockedUntil, heartsRemaining };
+        return { level: data.currentLevel, lockedUntil, heartsRemaining, gamesLimited };
       }
 
-      return { level: null, lockedUntil, heartsRemaining };
+      return { level: null, lockedUntil, heartsRemaining, gamesLimited };
     } catch (error) {
       console.error('Error fetching user trivia points:', error);
-      return { level: null, lockedUntil: null, heartsRemaining: 3 };
+      return { level: null, lockedUntil: null, heartsRemaining: 3, gamesLimited: false };
     }
   }, []);
 
   useEffect(() => {
     (async () => {
       const status = await fetchUserPoints();
-      if (!status.lockedUntil) {
+      if (!status.lockedUntil && !status.gamesLimited) {
         await fetchQuestions(status.level ?? 1);
       } else {
         setIsLoading(false);
@@ -129,7 +161,7 @@ export default function GiftIcon() {
     setIsLoading(true);
 
     const status = await fetchUserPoints();
-    if (!status.lockedUntil) {
+    if (!status.lockedUntil && !status.gamesLimited) {
       await fetchQuestions(status.level ?? currentLevel);
     } else {
       setIsLoading(false);
@@ -146,6 +178,7 @@ export default function GiftIcon() {
     total: number;
     points: number;
     streak: number;
+    submissionId: string;
     answers?: Array<{ questionId: string; userAnswer: number; isCorrect: boolean }>;
   }) => {
     const response = await fetch('/api/trivia/submit', {
@@ -162,6 +195,13 @@ export default function GiftIcon() {
       ) {
         setTriviaLockedUntil(data.triviaLockedUntil);
       }
+      if (
+        isJsonObject(data) &&
+        data.code === 'DAILY_GAME_LIMIT' &&
+        typeof data.dailyGamesResetAt === 'string'
+      ) {
+        setDailyGames({ completed: 10, limit: 10, resetAt: data.dailyGamesResetAt });
+      }
       throw new Error(getApiErrorMessage(data, 'Failed to save trivia results'));
     }
 
@@ -175,6 +215,8 @@ export default function GiftIcon() {
       setNewLevel(currentLevel);
     }
 
+    const games = readDailyGames(data.dailyGames);
+    if (games) setDailyGames(games);
     await fetchUserPoints();
   };
 
@@ -259,6 +301,7 @@ export default function GiftIcon() {
         onComplete={handleGameComplete}
         dailyLockedUntil={triviaLockedUntil}
         dailyHeartsRemaining={dailyHeartsRemaining}
+        dailyGames={dailyGames}
         onQuestionFailed={handleQuestionFailed}
       />
     </>
