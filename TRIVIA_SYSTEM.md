@@ -52,13 +52,15 @@ Now fetches questions from database instead of TypeScript file
 
 #### POST /api/trivia/submit
 Enhanced to track per-question performance
-- New optional body field: `answers` array
+- The `answers` array must contain one entry for every question, and `submissionId`
+  must be a UUID that remains the same when retrying the same game.
   ```typescript
   {
     correct: number,
     total: number,
     points: number,
     streak: number,
+    submissionId: string,
     answers: [
       {
         questionId: string,
@@ -97,10 +99,11 @@ To fully utilize the new system, update your frontend to:
    fetch('/api/trivia/submit', {
      method: 'POST',
      body: JSON.stringify({
-       correct: 8,
-       total: 10,
-       points: 160,
-       streak: 5,
+       correct: 1,
+       total: 2,
+       points: 10,
+       streak: 1,
+       submissionId: crypto.randomUUID(),
        answers: [
          { questionId: '...', userAnswer: 2, isCorrect: true },
          { questionId: '...', userAnswer: 1, isCorrect: false },
@@ -132,6 +135,10 @@ and enforced by the question and score-submission APIs, so they persist across r
 Completing a level with at least one heart still requires the existing 70% accuracy to
 unlock the next level. Existing trivia points and session history are retained when levels
 are reset.
+
+Players may complete up to 10 level games per East Africa Time day (UTC+3). A game counts
+when its results are saved, including replays; abandoned games do not count. The limit
+resets at midnight EAT. The separate heart reset remains midnight UTC.
 
 ## Backward Compatibility
 

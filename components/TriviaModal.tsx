@@ -34,6 +34,7 @@ interface TriviaModalProps {
   isMaxLevel?: boolean;
   dailyLockedUntil?: string | null;
   dailyHeartsRemaining: number;
+  dailyGames: { completed: number; limit: number; resetAt: string } | null;
   onQuestionFailed: (questionId: string, failureId: string) => Promise<{
     heartsRemaining: number;
     lockedUntil: string | null;
@@ -43,6 +44,7 @@ interface TriviaModalProps {
     total: number;
     points: number;
     streak: number;
+    submissionId: string;
     answers: Array<{ questionId: string; userAnswer: number; isCorrect: boolean }>;
   }) => Promise<void>;
 }
@@ -126,6 +128,7 @@ export default function TriviaModal({
   isMaxLevel = false,
   dailyLockedUntil = null,
   dailyHeartsRemaining,
+  dailyGames,
   onQuestionFailed,
   onComplete,
 }: TriviaModalProps) {
@@ -137,6 +140,7 @@ export default function TriviaModal({
   const isOpenRef = useRef(isOpen);
   const gameStateRef = useRef(gameState);
   const dailyHeartsRef = useRef(dailyHeartsRemaining);
+  const submissionIdRef = useRef<string | null>(null);
   gameStateRef.current = gameState;
   dailyHeartsRef.current = dailyHeartsRemaining;
 
@@ -256,6 +260,7 @@ export default function TriviaModal({
   useEffect(() => {
     if (isOpen) {
       setGameState(makeInitialState(dailyHeartsRef.current));
+      submissionIdRef.current = crypto.randomUUID();
     }
   }, [isOpen, questions]); // Reset when new questions arrive
 
@@ -417,6 +422,7 @@ export default function TriviaModal({
           total: totalQuestions,
           points: totalPoints,
           streak: gameState.maxStreak,
+          submissionId: submissionIdRef.current ?? crypto.randomUUID(),
           answers: gameState.answers,
         });
 
@@ -473,6 +479,52 @@ export default function TriviaModal({
 
   if (!isOpen) return null;
 
+  const reachedGameLimit = dailyGames !== null &&
+    dailyGames.completed >= dailyGames.limit &&
+    Date.parse(dailyGames.resetAt) > Date.now();
+
+  if (reachedGameLimit && !gameState.showResult && !gameState.isSubmitting && dailyGames) {
+    const resetTime = new Intl.DateTimeFormat('en-US', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+      timeZone: 'Africa/Nairobi',
+    }).format(new Date(dailyGames.resetAt));
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96, y: 8 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          className="w-full max-w-md overflow-hidden rounded-xl border border-slate-200/50 bg-white shadow-2xl"
+        >
+          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+            <h2 className="text-sm font-bold text-slate-900">Trivia</h2>
+            <button onClick={onClose} aria-label="Close trivia" className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="p-6 text-center">
+            <Clock className="mx-auto h-10 w-10 text-indigo-600" />
+            <h3 className="mt-3 text-lg font-bold text-slate-900">Daily game limit reached</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              You have completed {dailyGames.limit} trivia games today. Come back after the daily reset.
+            </p>
+            <p className="mt-3 text-xs font-semibold text-slate-500">
+              Resets {resetTime} East Africa Time
+            </p>
+            <Link href="/dashboard/trivia/leaderboard" onClick={onClose} className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700">
+              <Trophy className="h-4 w-4" />
+              View leaderboard
+            </Link>
+            <button onClick={onClose} className="mt-2 w-full rounded-lg bg-slate-900 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">
+              Close
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   if (dailyLockedUntil) {
     const resetTime = new Intl.DateTimeFormat('en-US', {
       dateStyle: 'full',
@@ -507,9 +559,17 @@ export default function TriviaModal({
             <p className="mt-3 text-xs font-semibold text-slate-500">
               Resets {resetTime} UTC
             </p>
+            <Link
+              href="/dashboard/trivia/leaderboard"
+              onClick={onClose}
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700"
+            >
+              <Trophy className="h-4 w-4" />
+              View leaderboard
+            </Link>
             <button
               onClick={onClose}
-              className="mt-5 w-full rounded-lg bg-slate-900 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+              className="mt-2 w-full rounded-lg bg-slate-900 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               Close
             </button>
@@ -742,9 +802,15 @@ export default function TriviaModal({
               {gameState.dailyHeartsRemaining} daily{' '}
               {gameState.dailyHeartsRemaining === 1 ? 'heart' : 'hearts'} remaining
             </p>
+            {dailyGames && (
+              <p className="text-center text-xs font-semibold text-slate-500">
+                {dailyGames.completed} of {dailyGames.limit} games completed today
+                {reachedGameLimit ? ' — resets at midnight East Africa Time.' : ''}
+              </p>
+            )}
 
             <div className="flex flex-col gap-2">
-              {levelUnlocked && onContinue ? (
+              {levelUnlocked && onContinue && !reachedGameLimit ? (
                 <button
                   onClick={onContinue}
                   className="w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
@@ -760,7 +826,7 @@ export default function TriviaModal({
                 </button>
               )}
               
-              {levelUnlocked && onContinue && (
+              {levelUnlocked && onContinue && !reachedGameLimit && (
                 <button
                   onClick={onClose}
                   className="w-full py-1 text-xs font-semibold text-slate-500 hover:text-slate-800 transition"

@@ -191,6 +191,7 @@ model User {
   triviaHeartsRemaining Int @default(3)
   triviaHeartsDate DateTime?
   triviaFailureIds String[] @default([])
+  triviaSubmissionToken String?
 
   // Trivia game sessions
   triviaGameSessions TriviaGameSession[]
@@ -1200,6 +1201,7 @@ model TriviaGameSession {
   streak      Int    // Maximum streak achieved
   accuracy    Float  // Calculated accuracy percentage
   level       Int    @default(1) // Level played in this session
+  submissionId String?
 
   // Detailed answers - track which questions were answered
   answers TriviaGameAnswer[]

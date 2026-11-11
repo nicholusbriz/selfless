@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
+import { getDailyTriviaGames } from '@/lib/trivia/daily-games-server';
+import { hasReachedDailyGameLimit } from '@/lib/trivia/daily-games';
 import {
   getActiveTriviaLock,
   getNextUtcTriviaReset,
@@ -40,6 +42,19 @@ export async function GET(request: NextRequest) {
           error: 'You have used all three hearts for today.',
           triviaLockedUntil: triviaLockedUntil.toISOString(),
           dailyHeartsRemaining: 0,
+        },
+        { status: 423 },
+      );
+    }
+
+    const dailyGames = await getDailyTriviaGames(user.id);
+    if (hasReachedDailyGameLimit(dailyGames.completed)) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: 'DAILY_GAME_LIMIT',
+          error: 'You have completed 10 trivia games today.',
+          dailyGames,
         },
         { status: 423 },
       );
@@ -108,6 +123,7 @@ export async function GET(request: NextRequest) {
       level,
       difficulty: targetDifficulty,
       dailyHeartsRemaining: heartsRemaining,
+      dailyGames,
     });
   } catch (error) {
     console.error('Error fetching trivia questions:', error);

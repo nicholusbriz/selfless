@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'node:crypto';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { getApiErrorMessage, isJsonObject } from '@/lib/api-response';
 import { prisma } from '@/lib/prisma/client';
+import {
+  getEatTriviaDay,
+  hasReachedDailyGameLimit,
+  MAX_DAILY_TRIVIA_GAMES,
+} from '@/lib/trivia/daily-games';
 import {
   getActiveTriviaLock,
   getNextUtcTriviaReset,
@@ -15,6 +21,18 @@ const POINTS_PER_CORRECT = 10;
 const STREAK_BONUS_PER_POINT = 2;
 const SKIP_PENALTY = 2;
 
+class DailyTriviaLimitError extends Error {
+  constructor(readonly reset: Date) {
+    super('You have completed 10 trivia games today.');
+  }
+}
+
+class TriviaHeartsExhaustedError extends Error {
+  constructor(readonly reset: Date) {
+    super('You have used all three hearts for today.');
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body: unknown = await request.json();
@@ -26,7 +44,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { correct, total, streak, answers } = body;
+    const { correct, total, streak, answers, submissionId } = body;
 
     // --- Validate scalars ---
     if (
@@ -40,7 +58,9 @@ export async function POST(request: NextRequest) {
       correct < 0 ||
       correct > total ||
       streak < 0 ||
-      streak > total
+      streak > total ||
+      typeof submissionId !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(submissionId)
     ) {
       return NextResponse.json(
         { success: false, error: 'Invalid parameters' },
@@ -61,6 +81,17 @@ export async function POST(request: NextRequest) {
         )
         .map((a) => ({ questionId: a.questionId, userAnswer: a.userAnswer }));
     }
+    if (
+      !Array.isArray(answers) ||
+      rawAnswers.length !== total ||
+      new Set(rawAnswers.map((a) => a.questionId)).size !== total ||
+      rawAnswers.some((a) => a.userAnswer < -1 || a.userAnswer > 3)
+    ) {
+      return NextResponse.json(
+        { success: false, error: 'All questions must be answered before submitting.' },
+        { status: 400 },
+      );
+    }
 
     // --- Session / user ---
     const session = await getServerSession(authOptions);
@@ -72,37 +103,6 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = session.user.id;
-
-    // --- Load user's current level ---
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        currentLevel: true,
-        triviaLockedUntil: true,
-        triviaHeartsRemaining: true,
-        triviaHeartsDate: true,
-      },
-    });
-
-    const storedLock = getActiveTriviaLock(user?.triviaLockedUntil ?? null);
-    const triviaLockedUntil =
-      storedLock ??
-      (isCurrentUtcTriviaDay(user?.triviaHeartsDate ?? null) &&
-      user?.triviaHeartsRemaining === 0
-        ? getNextUtcTriviaReset()
-        : null);
-    if (triviaLockedUntil) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'You have used all three hearts for today.',
-          triviaLockedUntil: triviaLockedUntil.toISOString(),
-        },
-        { status: 423 },
-      );
-    }
-
-    const currentLevel = user?.currentLevel ?? 1;
 
     // --- Recompute correctness server-side ---
     let serverAnswers: Array<{
@@ -129,7 +129,13 @@ export async function POST(request: NextRequest) {
         }));
     }
 
-    const serverTotal = serverAnswers.length > 0 ? serverAnswers.length : total;
+    if (serverAnswers.length !== total) {
+      return NextResponse.json(
+        { success: false, error: 'Some trivia questions could not be found.' },
+        { status: 400 },
+      );
+    }
+    const serverTotal = serverAnswers.length;
     const serverCorrect = serverAnswers.filter((a) => a.isCorrect).length;
     const accuracy = serverTotal > 0 ? (serverCorrect / serverTotal) * 100 : 0;
 
@@ -140,80 +146,116 @@ export async function POST(request: NextRequest) {
     const skipPenalty = skipped * SKIP_PENALTY;
     const points = Math.max(0, basePoints + streakBonus - skipPenalty);
 
-    // --- Level progression (hard stop at MAX_LEVEL) ---
-    const atMaxLevel = currentLevel >= MAX_LEVEL;
-    const shouldLevelUp =
-      !atMaxLevel && accuracy >= MIN_ACCURACY_TO_LEVEL_UP;
-
-    const levelUnlocked = shouldLevelUp;
-    const newLevel = shouldLevelUp ? currentLevel + 1 : currentLevel;
-
-    // --- Persist session ---
-    const gameSession = await prisma.triviaGameSession.create({
-      data: {
-        userId,
-        correct: serverCorrect,
-        total: serverTotal,
-        points,
-        streak,
-        accuracy,
-        level: currentLevel,
-      },
-    });
-
-    // --- Persist answers + analytics ---
-    if (serverAnswers.length > 0) {
-      await prisma.triviaGameAnswer.createMany({
-        data: serverAnswers.map((a) => ({
-          sessionId: gameSession.id,
-          questionId: a.questionId,
-          userAnswer: a.userAnswer,
-          isCorrect: a.isCorrect,
-        })),
-      });
-
-      for (const a of serverAnswers) {
-        if (a.isCorrect) {
-          await prisma.triviaQuestion.update({
-            where: { id: a.questionId },
-            data: { timesCorrect: { increment: 1 } },
-          });
-        }
-      }
-
-      const affectedIds = [...new Set(serverAnswers.map((a) => a.questionId))];
-      const refreshed = await prisma.triviaQuestion.findMany({
-        where: { id: { in: affectedIds } },
-        select: { id: true, timesAsked: true, timesCorrect: true },
-      });
-
-      for (const q of refreshed) {
-        if (q.timesAsked > 0) {
-          await prisma.triviaQuestion.update({
-            where: { id: q.id },
-            data: { difficultyRating: 1 - q.timesCorrect / q.timesAsked },
-          });
-        }
-      }
-    }
-
-    // --- Apply level-up ---
-    if (levelUnlocked) {
-      await prisma.user.update({
+    // The user write serializes concurrent submissions before counting sessions.
+    const saved = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.update({
         where: { id: userId },
-        data: { currentLevel: newLevel },
+        data: { triviaSubmissionToken: randomUUID() },
+        select: {
+          currentLevel: true,
+          triviaLockedUntil: true,
+          triviaHeartsRemaining: true,
+          triviaHeartsDate: true,
+        },
       });
-    }
 
-    const finished = atMaxLevel && !levelUnlocked;
+      const existing = await tx.triviaGameSession.findFirst({
+        where: { userId, submissionId },
+      });
+      const now = new Date();
+      const { start, reset } = getEatTriviaDay(now);
+      const completedToday = await tx.triviaGameSession.count({
+        where: { userId, playedAt: { gte: start, lt: reset } },
+      });
+      if (existing) {
+        return { session: existing, completedToday, reset };
+      }
+
+      const storedLock = getActiveTriviaLock(user.triviaLockedUntil, now);
+      const triviaLockedUntil =
+        storedLock ??
+        (isCurrentUtcTriviaDay(user.triviaHeartsDate, now) &&
+        user.triviaHeartsRemaining === 0
+          ? getNextUtcTriviaReset(now)
+          : null);
+      if (triviaLockedUntil) throw new TriviaHeartsExhaustedError(triviaLockedUntil);
+
+      if (hasReachedDailyGameLimit(completedToday)) {
+        throw new DailyTriviaLimitError(reset);
+      }
+
+      const currentLevel = user.currentLevel;
+      const levelUnlocked =
+        currentLevel < MAX_LEVEL && accuracy >= MIN_ACCURACY_TO_LEVEL_UP;
+      const gameSession = await tx.triviaGameSession.create({
+        data: {
+          userId, correct: serverCorrect, total: serverTotal, points, streak,
+          accuracy, level: currentLevel, submissionId, playedAt: now,
+        },
+      });
+
+      if (serverAnswers.length > 0) {
+        await tx.triviaGameAnswer.createMany({
+          data: serverAnswers.map((a) => ({
+            sessionId: gameSession.id,
+            questionId: a.questionId,
+            userAnswer: a.userAnswer,
+            isCorrect: a.isCorrect,
+          })),
+        });
+
+        for (const a of serverAnswers) {
+          if (a.isCorrect) {
+            await tx.triviaQuestion.update({
+              where: { id: a.questionId },
+              data: { timesCorrect: { increment: 1 } },
+            });
+          }
+        }
+
+        const affectedIds = [...new Set(serverAnswers.map((a) => a.questionId))];
+        const refreshed = await tx.triviaQuestion.findMany({
+          where: { id: { in: affectedIds } },
+          select: { id: true, timesAsked: true, timesCorrect: true },
+        });
+
+        for (const q of refreshed) {
+          if (q.timesAsked > 0) {
+            await tx.triviaQuestion.update({
+              where: { id: q.id },
+              data: { difficultyRating: 1 - q.timesCorrect / q.timesAsked },
+            });
+          }
+        }
+      }
+
+      if (levelUnlocked) {
+        await tx.user.update({
+          where: { id: userId },
+          data: { currentLevel: currentLevel + 1 },
+        });
+      }
+      return { session: gameSession, completedToday: completedToday + 1, reset };
+    }, { timeout: 60000, maxWait: 10000 });
+
+    const currentLevel = saved.session.level;
+    const levelUnlocked =
+      currentLevel < MAX_LEVEL && saved.session.accuracy >= MIN_ACCURACY_TO_LEVEL_UP;
+    const newLevel = levelUnlocked ? currentLevel + 1 : currentLevel;
+    const finished = currentLevel >= MAX_LEVEL;
 
     return NextResponse.json({
       success: true,
-      points,
-      correct: serverCorrect,
-      total: serverTotal,
-      streak,
-      accuracy,
+      points: saved.session.points,
+      correct: saved.session.correct,
+      total: saved.session.total,
+      streak: saved.session.streak,
+      accuracy: saved.session.accuracy,
+      dailyGames: {
+        completed: saved.completedToday,
+        limit: MAX_DAILY_TRIVIA_GAMES,
+        resetAt: saved.reset.toISOString(),
+      },
       currentLevel,
       newLevel,
       levelUnlocked,
@@ -222,9 +264,21 @@ export async function POST(request: NextRequest) {
         ? `Congratulations! You've unlocked Level ${newLevel}!`
         : finished
           ? `You've completed all ${MAX_LEVEL} levels!`
-          : `You earned ${points} points!`,
+          : `You earned ${saved.session.points} points!`,
     });
   } catch (error) {
+    if (error instanceof DailyTriviaLimitError) {
+      return NextResponse.json(
+        { success: false, code: 'DAILY_GAME_LIMIT', error: error.message, dailyGamesResetAt: error.reset.toISOString() },
+        { status: 423 },
+      );
+    }
+    if (error instanceof TriviaHeartsExhaustedError) {
+      return NextResponse.json(
+        { success: false, error: error.message, triviaLockedUntil: error.reset.toISOString() },
+        { status: 423 },
+      );
+    }
     console.error('Error submitting trivia results:', error);
     return NextResponse.json(
       {
