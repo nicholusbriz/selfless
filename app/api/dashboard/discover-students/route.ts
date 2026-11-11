@@ -45,14 +45,21 @@ const getDiscoverStudents = unstable_cache(
   { revalidate: 300, tags: ['discover-students'] },
 );
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await requireAuth();
 
-    const students = await getDiscoverStudents();
+    const { searchParams } = new URL(request.url);
+    const limit = parseInt(searchParams.get('limit') || '50', 10);
+    const offset = parseInt(searchParams.get('offset') || '0', 10);
+
+    const allStudents = await getDiscoverStudents();
+
+    // Apply pagination
+    const paginatedStudents = allStudents.slice(offset, offset + limit);
 
     // Fresh shuffle on every request — response is never cached.
-    return NextResponse.json(shuffle(students), {
+    return NextResponse.json(shuffle(paginatedStudents), {
       headers: {
         'Cache-Control': 'no-store',
       },

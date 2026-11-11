@@ -12,7 +12,6 @@ import {
   Image as ImageIcon,
   Maximize2,
   CheckCircle2,
-  Check,
   Pause,
   Play,
   Volume2,
@@ -174,6 +173,19 @@ function PostDescription({ description }: { description: string }) {
   );
 }
 
+// ✅ Skeleton card for loading state
+function GallerySkeleton() {
+  return (
+    <div className="animate-pulse overflow-hidden rounded-2xl border border-[#E4E8EF] bg-white">
+      <div className="aspect-square w-full bg-[#EEF0F4]" />
+      <div className="space-y-2 border-t border-[#F0F2F5] p-3">
+        <div className="h-3 w-3/4 rounded bg-[#EEF0F4]" />
+        <div className="h-2.5 w-1/2 rounded bg-[#EEF0F4]" />
+      </div>
+    </div>
+  );
+}
+
 export default function GalleryPage() {
   const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
@@ -181,6 +193,12 @@ export default function GalleryPage() {
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [deletePostError, setDeletePostError] = useState<{ id: string; message: string } | null>(null);
   const [openPostMenuId, setOpenPostMenuId] = useState<string | null>(null);
+  // ✅ Proper confirmation dialog instead of window.confirm
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; title: string } | null>(null);
+  // ✅ fullscreen state declared ABOVE handleDeletePost (fixes reference-error risk)
+  const [fullscreenMedia, setFullscreenMedia] = useState<MediaItem | null>(null);
+  const [videoControls, setVideoControls] = useState<Record<string, VideoControlsState>>({});
+
   const { data: items = [], isLoading, isFetching, error, refetch } = useQuery<MediaItem[]>({
     queryKey: ['gallery-media'],
     queryFn: async () => {
@@ -195,6 +213,7 @@ export default function GalleryPage() {
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
+
   const myPostsQuery = useInfiniteQuery<MediaPage>({
     queryKey: ['gallery-my-posts', currentUser?.id],
     initialPageParam: 0,
@@ -241,6 +260,7 @@ export default function GalleryPage() {
     staleTime: 30 * 1000,
     gcTime: 10 * 60 * 1000,
   });
+
   const savedPostsQuery = useQuery<MediaItem[]>({
     queryKey: ['gallery-saved-posts', currentUser?.id],
     queryFn: async () => {
@@ -264,7 +284,7 @@ export default function GalleryPage() {
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
   const [postUploadNotice, setPostUploadNotice] = useState<string | null>(null);
 
-  // Check follow status for all users in the feed
+  // ✅ ONE request for the whole feed instead of N per-author requests
   useEffect(() => {
     if (!currentUser || items.length === 0) return;
 
@@ -276,39 +296,36 @@ export default function GalleryPage() {
             .filter((userId): userId is string => Boolean(userId)),
         ),
       ];
-      const status: FollowStatus = {};
+      if (userIds.length === 0) return;
 
-      await Promise.all(
-        userIds.map(async (userId) => {
-          try {
-            // Check if current user is following this user
-            const response = await fetch(`/api/social/connections/${currentUser.id}?type=following&limit=100`);
-            if (response.ok) {
-              const data: unknown = await response.json();
-              if (isRecord(data) && Array.isArray(data.connections)) {
-                // Check if the target user is in current user's following list
-                const isFollowing = data.connections.some(
-                  (conn: unknown) => isRecord(conn) && conn.id === userId
-                );
-                status[userId] = isFollowing;
-              }
-            }
-          } catch (error) {
-            console.error('Failed to check follow status:', error);
-          }
-        })
-      );
+      try {
+        const response = await fetch(
+          `/api/social/connections/${currentUser.id}?type=following&limit=500`,
+        );
+        if (!response.ok) return;
+        const data: unknown = await response.json();
+        if (!isRecord(data) || !Array.isArray(data.connections)) return;
 
-      setFollowStatus((previous) => {
-        const merged = { ...status, ...previous };
-        for (const userId of pendingFollowIds.current) {
-          merged[userId] = true;
-        }
-        return merged;
-      });
+        const followingSet = new Set(
+          data.connections
+            .filter(isRecord)
+            .map((conn) => conn.id)
+            .filter((id): id is string => typeof id === 'string'),
+        );
+        const status: FollowStatus = {};
+        for (const userId of userIds) status[userId] = followingSet.has(userId);
+
+        setFollowStatus((previous) => {
+          const merged = { ...previous, ...status };
+          for (const userId of pendingFollowIds.current) merged[userId] = true;
+          return merged;
+        });
+      } catch (followError) {
+        console.error('Failed to check follow status:', followError);
+      }
     };
 
-    checkFollowStatus();
+    void checkFollowStatus();
   }, [currentUser, items]);
 
   const handleFollow = async (userId: string) => {
@@ -324,13 +341,19 @@ export default function GalleryPage() {
       });
 
       if (!response.ok) {
-        throw new Error(isCurrentlyFollowing ? 'Could not unfollow this user' : 'Could not follow this user');
+        throw new Error(
+          isCurrentlyFollowing
+            ? 'Could not unfollow this user'
+            : 'Could not follow this user',
+        );
       }
 
-      // Update local state on success
-      setFollowStatus((previous) => ({ ...previous, [userId]: !isCurrentlyFollowing }));
-    } catch (error) {
-      console.error('Failed to toggle follow:', error);
+      setFollowStatus((previous) => ({
+        ...previous,
+        [userId]: !isCurrentlyFollowing,
+      }));
+    } catch (followError) {
+      console.error('Failed to toggle follow:', followError);
       setFollowErrors((previous) => ({ ...previous, [userId]: true }));
     } finally {
       pendingFollowIds.current.delete(userId);
@@ -339,10 +362,6 @@ export default function GalleryPage() {
   };
 
   const handleDeletePost = async (mediaId: string) => {
-    if (!window.confirm('Delete this post? Its comments and replies will also be deleted.')) {
-      return;
-    }
-
     setDeletingPostId(mediaId);
     setDeletePostError(null);
     try {
@@ -380,16 +399,17 @@ export default function GalleryPage() {
       setFullscreenMedia((previous) =>
         previous?.id === mediaId ? null : previous,
       );
-      void queryClient.invalidateQueries({
-        queryKey: ['gallery-post-count'],
-      });
+      void queryClient.invalidateQueries({ queryKey: ['gallery-post-count'] });
       void queryClient.invalidateQueries({
         queryKey: ['gallery-my-posts', currentUser?.id],
       });
-    } catch (error) {
+    } catch (deleteError) {
       setDeletePostError({
         id: mediaId,
-        message: error instanceof Error ? error.message : 'Could not delete post',
+        message:
+          deleteError instanceof Error
+            ? deleteError.message
+            : 'Could not delete post',
       });
     } finally {
       setDeletingPostId(null);
@@ -418,28 +438,31 @@ export default function GalleryPage() {
       ? myPosts
       : activeFilter === 'saved'
         ? savedPostsQuery.data ?? []
-      : activeFilter === 'photos'
-      ? photos
-      : activeFilter === 'videos'
-        ? videos
-        : items;
+        : activeFilter === 'photos'
+          ? photos
+          : activeFilter === 'videos'
+            ? videos
+            : items;
   const visibleCount =
     activeFilter === 'mine'
       ? myPostsQuery.data?.pages[0]?.totalCount ?? myPosts.length
       : activeFilter === 'saved'
         ? savedPostsQuery.data?.length ?? 0
-      : activeFilter === 'photos'
-        ? photos.length
-        : activeFilter === 'videos'
-          ? videos.length
-          : items.length;
-  const myPostStats = myPostsQuery.data?.pages[0]?.statusCounts ?? myPosts.reduce(
-    (stats, item) => {
-      stats[item.approvalStatus] += 1;
-      return stats;
-    },
-    { APPROVED: 0, PENDING: 0, REJECTED: 0 },
-  );
+        : activeFilter === 'photos'
+          ? photos.length
+          : activeFilter === 'videos'
+            ? videos.length
+            : items.length;
+  const myPostStats =
+    myPostsQuery.data?.pages[0]?.statusCounts ??
+    myPosts.reduce(
+      (stats, item) => {
+        stats[item.approvalStatus] += 1;
+        return stats;
+      },
+      { APPROVED: 0, PENDING: 0, REJECTED: 0 },
+    );
+
   const communityGrowth = useMemo(() => {
     const today = new Date();
     const startOfToday = new Date(
@@ -478,8 +501,25 @@ export default function GalleryPage() {
     };
   }, [items]);
 
-  const [fullscreenMedia, setFullscreenMedia] = useState<MediaItem | null>(null);
-  const [videoControls, setVideoControls] = useState<Record<string, VideoControlsState>>({});
+  // ✅ Outside-click + Escape close for post menu
+  useEffect(() => {
+    if (!openPostMenuId) return;
+    const handleMouseDown = (event: MouseEvent) => {
+      const target = event.target as Element | null;
+      if (target && !target.closest('[data-post-menu]')) {
+        setOpenPostMenuId(null);
+      }
+    };
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenPostMenuId(null);
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [openPostMenuId]);
 
   const updateVideoControls = useCallback(
     (videoId: string, patch: Partial<VideoControlsState>) => {
@@ -520,11 +560,9 @@ export default function GalleryPage() {
 
   useEffect(() => {
     if (!fullscreenMedia) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeFullscreenMedia();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeFullscreenMedia();
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [fullscreenMedia, closeFullscreenMedia]);
@@ -538,10 +576,8 @@ export default function GalleryPage() {
     };
   }, [fullscreenMedia]);
 
-  // Store video refs to control playback
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({});
 
-  // Handle video play - pause all other videos
   const handleVideoPlay = (videoId: string) => {
     Object.entries(videoRefs.current).forEach(([id, video]) => {
       if (id !== videoId && video) {
@@ -550,17 +586,56 @@ export default function GalleryPage() {
     });
   };
 
-  // Cleanup video refs on unmount
   useEffect(() => {
     return () => {
       videoRefs.current = {};
     };
   }, []);
 
+  const isRefreshing =
+    activeFilter === 'mine'
+      ? myPostsQuery.isFetching
+      : activeFilter === 'saved'
+        ? savedPostsQuery.isFetching
+        : isFetching;
+
+  const isInitialLoading =
+    activeFilter === 'mine'
+      ? myPostsQuery.isLoading
+      : activeFilter === 'saved'
+        ? savedPostsQuery.isLoading
+        : isLoading;
+
+  const activeError =
+    activeFilter === 'mine'
+      ? myPostsQuery.error && !myPostsQuery.isFetchNextPageError
+        ? myPostsQuery.error
+        : null
+      : activeFilter === 'saved'
+        ? savedPostsQuery.error
+        : error;
+
+  const handleRefresh = () => {
+    void (activeFilter === 'mine'
+      ? myPostsQuery.refetch()
+      : activeFilter === 'saved'
+        ? savedPostsQuery.refetch()
+        : refetch());
+  };
+
+  const handleTryAgain = () => {
+    void (activeFilter === 'mine'
+      ? myPostsQuery.refetch()
+      : activeFilter === 'saved'
+        ? savedPostsQuery.refetch()
+        : refetch());
+  };
+
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#f8f9fb_0%,#f2f4f7_100%)]">
       <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:py-8">
-        <div className="relative isolate min-h-[230px] overflow-hidden rounded-3xl bg-[#101827] text-white shadow-lg sm:min-h-[260px]">
+        {/* ✅ Hero — university-specific copy + stat strip */}
+        <div className="relative isolate min-h-[230px] overflow-hidden rounded-3xl bg-[#101827] text-white shadow-lg sm:min-h-[280px]">
           <Image
             src="/camera.jpg"
             alt=""
@@ -572,17 +647,41 @@ export default function GalleryPage() {
           <div className="absolute inset-0 bg-gradient-to-r from-[#101827]/95 via-[#101827]/75 to-[#101827]/15" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#101827]/70 via-transparent to-[#101827]/10" />
           <div className="pointer-events-none absolute inset-3 rounded-[1.35rem] border border-white/10 sm:inset-4" />
-          <div className="relative flex min-h-[230px] flex-col justify-end gap-5 px-6 py-6 sm:min-h-[260px] sm:flex-row sm:items-end sm:justify-between sm:px-9 sm:py-8">
+          <div className="relative flex min-h-[230px] flex-col justify-end gap-5 px-6 py-6 sm:min-h-[280px] sm:flex-row sm:items-end sm:justify-between sm:px-9 sm:py-8">
             <div className="max-w-2xl">
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#E6C779]">
-                Selfless · Community stories
+                {currentUser?.techCenter?.name ?? 'University'} · Community Gallery
               </p>
               <h1 className="max-w-xl text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
-                Your space to <span className="text-[#E6C779]">share.</span>
+                Where our community{' '}
+                <span className="text-[#E6C779]">shines.</span>
               </h1>
               <p className="mt-2 max-w-lg text-sm leading-5 text-white/80">
-                Showcase your business, share your ideas, post videos, or tell the community what you’re working on.
+                Share research, events, projects, and campus moments. Approved
+                posts appear in the university-wide feed.
               </p>
+              {!isInitialLoading && items.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-5 text-sm">
+                  <div>
+                    <span className="text-2xl font-bold tabular-nums text-white">
+                      {items.length}
+                    </span>{' '}
+                    <span className="text-white/70">posts</span>
+                  </div>
+                  <div>
+                    <span className="text-2xl font-bold tabular-nums text-white">
+                      {photos.length}
+                    </span>{' '}
+                    <span className="text-white/70">photos</span>
+                  </div>
+                  <div>
+                    <span className="text-2xl font-bold tabular-nums text-white">
+                      {videos.length}
+                    </span>{' '}
+                    <span className="text-white/70">videos</span>
+                  </div>
+                </div>
+              )}
             </div>
             <button
               type="button"
@@ -613,9 +712,9 @@ export default function GalleryPage() {
           </div>
         )}
 
-        <div className="mt-7 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_280px] xl:gap-8">
-          <div className="min-w-0">
-            <div className="mx-auto mb-4 flex max-w-[640px] items-center justify-between gap-4">
+        <div className="mt-7 min-w-0">
+          <div>
+            <div className="mb-4 flex items-center justify-between gap-4">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#92713A]">
                   Selfless community
@@ -635,58 +734,40 @@ export default function GalleryPage() {
               </div>
               <button
                 type="button"
-                onClick={() =>
-                  void (
-                    activeFilter === 'mine'
-                      ? myPostsQuery.refetch()
-                      : activeFilter === 'saved'
-                        ? savedPostsQuery.refetch()
-                        : refetch()
-                  )
-                }
-                disabled={
-                  activeFilter === 'mine'
-                    ? myPostsQuery.isFetching
-                    : activeFilter === 'saved'
-                      ? savedPostsQuery.isFetching
-                      : isFetching
-                }
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                aria-busy={isRefreshing}
                 className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#E1E5EB] bg-white text-[#526078] shadow-sm transition hover:border-[#C8D0DB] hover:bg-[#F3F5F8] hover:text-[#172033] disabled:cursor-wait disabled:opacity-60"
                 aria-label="Refresh posts"
                 title="Refresh posts"
               >
                 <RefreshCw
-                  className={`h-4 w-4 ${
-                    (activeFilter === 'mine'
-                      ? myPostsQuery.isFetching
-                      : activeFilter === 'saved'
-                        ? savedPostsQuery.isFetching
-                        : isFetching)
-                      ? 'animate-spin'
-                      : ''
-                    }`}
+                  className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
                 />
               </button>
             </div>
 
+            {/* ✅ Filter pills — horizontal scroll on mobile instead of 3-col wrap */}
             <div
               aria-label="Filter posts"
-              className="mx-auto mb-5 grid w-full max-w-[640px] grid-cols-3 gap-1 rounded-2xl border border-[#E5E8ED] bg-white p-1 shadow-sm sm:flex sm:rounded-full"
+              className="mb-5 flex w-full gap-1 overflow-x-auto rounded-2xl border border-[#E5E8ED] bg-white p-1 shadow-sm sm:rounded-full"
               role="group"
             >
-              {([
-                ['all', 'All'],
-                ['photos', 'Photos'],
-                ['videos', 'Videos'],
-                ['mine', 'My posts'],
-                ['saved', 'Saved'],
-              ] as const).map(([filter, label]) => (
+              {(
+                [
+                  ['all', 'All'],
+                  ['photos', 'Photos'],
+                  ['videos', 'Videos'],
+                  ['mine', 'My posts'],
+                  ['saved', 'Saved'],
+                ] as const
+              ).map(([filter, label]) => (
                 <button
                   key={filter}
                   type="button"
                   aria-pressed={activeFilter === filter}
                   onClick={() => setActiveFilter(filter)}
-                  className={`min-w-0 rounded-xl px-2 py-2 text-xs font-semibold transition sm:flex-1 sm:rounded-full sm:px-3.5 ${
+                  className={`shrink-0 rounded-xl px-4 py-2 text-xs font-semibold transition sm:flex-1 sm:rounded-full ${
                     activeFilter === filter
                       ? 'bg-[#1A2B4C] text-white shadow-sm'
                       : 'text-[#687386] hover:bg-[#F3F5F8] hover:text-[#172033]'
@@ -729,7 +810,9 @@ export default function GalleryPage() {
                     key={stat.label}
                     className={`rounded-2xl border border-[#E7EAF0] px-4 py-3 shadow-sm ${stat.surface}`}
                   >
-                    <p className="text-xs font-medium text-[#687386]">{stat.label}</p>
+                    <p className="text-xs font-medium text-[#687386]">
+                      {stat.label}
+                    </p>
                     <p className={`mt-1 text-2xl font-bold ${stat.color}`}>
                       {myPostsQuery.isLoading ? '—' : stat.count}
                     </p>
@@ -738,45 +821,27 @@ export default function GalleryPage() {
               </div>
             )}
 
-            {(activeFilter === 'mine'
-              ? myPostsQuery.isLoading
-              : activeFilter === 'saved'
-                ? savedPostsQuery.isLoading
-                : isLoading) ? (
-              <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-[#E5E8ED] bg-white">
-                <div className="flex items-center gap-3 text-[#687386]">
-                  <Loader2 className="h-5 w-5 animate-spin text-[#1A2B4C]" />
-                  <span className="text-sm font-medium">
-                    {activeFilter === 'mine'
-                      ? 'Loading your posts...'
-                      : activeFilter === 'saved'
-                        ? 'Loading your saved posts...'
-                        : 'Loading your community feed...'}
-                  </span>
-                </div>
+            {/* ✅ Skeleton grid on initial load */}
+            {isInitialLoading ? (
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {Array.from({ length: 8 }).map((_, index) => (
+                  <GallerySkeleton key={index} />
+                ))}
               </div>
-            ) : (activeFilter === 'mine'
-              ? myPostsQuery.error && !myPostsQuery.isFetchNextPageError
-              : activeFilter === 'saved'
-                ? savedPostsQuery.error
-                : error) ? (
+            ) : activeError ? (
               <div className="flex min-h-[320px] flex-col items-center justify-center rounded-2xl border border-[#F1D5D5] bg-white px-6 text-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#FFF1F1] text-[#C53030]">
                   <AlertCircle className="h-5 w-5" />
                 </div>
-                <h3 className="mt-4 font-semibold text-[#172033]">We couldn&apos;t load the feed</h3>
-                <p className="mt-1 text-sm text-[#687386]">Please try again in a moment.</p>
+                <h3 className="mt-4 font-semibold text-[#172033]">
+                  We couldn&apos;t load the feed
+                </h3>
+                <p className="mt-1 text-sm text-[#687386]">
+                  Please try again in a moment.
+                </p>
                 <button
                   type="button"
-                  onClick={() =>
-                    void (
-                      activeFilter === 'mine'
-                        ? myPostsQuery.refetch()
-                        : activeFilter === 'saved'
-                          ? savedPostsQuery.refetch()
-                          : refetch()
-                    )
-                  }
+                  onClick={handleTryAgain}
                   className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#1A2B4C] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#263D66]"
                 >
                   <RefreshCw className="h-4 w-4" />
@@ -790,21 +855,21 @@ export default function GalleryPage() {
                 </div>
                 <h3 className="mt-5 text-lg font-semibold text-[#172033]">
                   {activeFilter === 'mine'
-                    ? 'You haven’t shared any posts yet'
+                    ? 'You haven\u2019t shared any posts yet'
                     : activeFilter === 'saved'
                       ? 'No saved posts yet'
-                    : activeFilter === 'all'
-                      ? 'Your feed starts here'
-                      : `No ${activeFilter} to show`}
+                      : activeFilter === 'all'
+                        ? 'Your feed starts here'
+                        : `No ${activeFilter} to show`}
                 </h3>
                 <p className="mt-2 max-w-sm text-sm leading-6 text-[#687386]">
                   {activeFilter === 'mine'
                     ? 'Posts you share will appear here with their review status.'
                     : activeFilter === 'saved'
                       ? 'Posts you save will be collected here for easy access.'
-                    : activeFilter === 'all'
-                      ? 'Share a photo or video to bring the latest moments from your community to life.'
-                      : 'Try another feed filter to see more posts.'}
+                      : activeFilter === 'all'
+                        ? 'Share a photo or video to bring the latest moments from your community to life.'
+                        : 'Try another feed filter to see more posts.'}
                 </p>
                 {(activeFilter === 'mine' || activeFilter === 'all') && (
                   <button
@@ -816,322 +881,322 @@ export default function GalleryPage() {
                     Create a post
                   </button>
                 )}
+                {activeFilter !== 'all' && activeFilter !== 'mine' && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveFilter('all')}
+                    className="mt-4 text-sm font-semibold text-[#1A2B4C] hover:underline"
+                  >
+                    Show all posts
+                  </button>
+                )}
               </div>
             ) : (
-              <div className="space-y-6">
-                {visibleItems.map((item) => {
-                  const isVideo = item.contentType.startsWith('video/');
-                  const authorId = item.user?.id;
-                  const displayDate =
-                    activeFilter === 'mine' &&
-                    item.approvalStatus === 'APPROVED' &&
-                    item.approvedAt
-                      ? item.approvedAt
-                      : item.createdAt;
+              <>
+                {/* ✅ 1 column on small screens, 2 columns on larger screens */}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                  {visibleItems.map((item) => {
+                    const isVideo = item.contentType.startsWith('video/');
+                    const authorId = item.user?.id;
+                    const isOwnPost =
+                      Boolean(currentUser) && authorId === currentUser?.id;
+                    const displayDate =
+                      activeFilter === 'mine' &&
+                      item.approvalStatus === 'APPROVED' &&
+                      item.approvedAt
+                        ? item.approvedAt
+                        : item.createdAt;
 
-                  return (
-                    <article
-                      key={item.id}
-                      className="mx-auto max-w-[640px] overflow-hidden rounded-3xl border border-[#E4E8EF] bg-white shadow-[0_8px_28px_rgba(16,24,40,0.06)] transition-shadow hover:shadow-[0_12px_34px_rgba(16,24,40,0.10)]"
-                    >
-                      <div className="flex items-center gap-3 border-b border-[#F0F2F5] px-4 py-3.5 sm:px-5">
-                        {item.user?.id ? (
-                          <div className="relative shrink-0">
-                            <div className="rounded-full">
-                              {item.user.profileImageUrl ? (
-                                <Image
-                                  src={item.user.profileImageUrl}
-                                  alt={`${item.user.firstName} ${item.user.lastName}`}
-                                  width={44}
-                                  height={44}
-                                  className="h-11 w-11 rounded-full object-cover ring-2 ring-[#F1F3F6]"
-                                />
+                    return (
+                      <article
+                        key={item.id}
+                        className="overflow-hidden rounded-2xl border border-[#E4E8EF] bg-white shadow-[0_4px_16px_rgba(16,24,40,0.06)]"
+                      >
+                        <div className="relative aspect-square w-full overflow-hidden bg-[#101827]">
+                          {isVideo ? (
+                            <div className="relative h-full w-full">
+                              <video
+                                ref={(el) => {
+                                  if (el) videoRefs.current[item.id] = el;
+                                }}
+                                src={item.publicUrl}
+                                playsInline
+                                preload="metadata"
+                                className="h-full w-full object-cover"
+                                onLoadedMetadata={(event) =>
+                                  updateVideoControls(item.id, {
+                                    duration: event.currentTarget.duration,
+                                    isMuted: event.currentTarget.muted,
+                                  })
+                                }
+                                onTimeUpdate={(event) =>
+                                  updateVideoControls(item.id, {
+                                    currentTime: event.currentTarget.currentTime,
+                                  })
+                                }
+                                onVolumeChange={(event) =>
+                                  updateVideoControls(item.id, {
+                                    isMuted: event.currentTarget.muted,
+                                  })
+                                }
+                                onPlay={() => {
+                                  handleVideoPlay(item.id);
+                                  updateVideoControls(item.id, { isPlaying: true });
+                                }}
+                                onPause={() =>
+                                  updateVideoControls(item.id, { isPlaying: false })
+                                }
+                              />
+                              {/* ✅ Video badge */}
+                              <span className="pointer-events-none absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[9px] font-semibold text-white backdrop-blur">
+                                <Play className="h-2.5 w-2.5 fill-current" /> Video
+                              </span>
+                              {item.description && (
+                                <div className="absolute inset-x-0 bottom-0 p-3 pt-16">
+                                  <p className="line-clamp-3 text-xs leading-5 text-white drop-shadow-md">
+                                    {item.description}
+                                  </p>
+                                </div>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => openFullscreenMedia(item)}
+                                aria-label={`View ${item.title || 'video'} fullscreen`}
+                                title="View fullscreen"
+                                className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/60 bg-black/55 text-white shadow-sm backdrop-blur-sm transition hover:scale-105 hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                              >
+                                <Maximize2 className="h-3.5 w-3.5" />
+                              </button>
+                              {(() => {
+                                const state = videoControls[item.id] ?? {
+                                  currentTime: 0,
+                                  duration: 0,
+                                  isMuted: false,
+                                  isPlaying: false,
+                                };
+                                return (
+                                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-2 pb-2 pt-8">
+                                    <div className="flex items-center gap-2 text-white">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const video = videoRefs.current[item.id];
+                                          if (!video) return;
+                                          if (video.paused) {
+                                            void video.play().catch(() => {
+                                              updateVideoControls(item.id, {
+                                                isPlaying: false,
+                                              });
+                                            });
+                                          } else {
+                                            video.pause();
+                                          }
+                                        }}
+                                        aria-label={
+                                          state.isPlaying ? 'Pause video' : 'Play video'
+                                        }
+                                        title={state.isPlaying ? 'Pause' : 'Play'}
+                                        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/15 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                                      >
+                                        {state.isPlaying ? (
+                                          <Pause className="h-3 w-3" />
+                                        ) : (
+                                          <Play className="h-3 w-3 fill-current" />
+                                        )}
+                                      </button>
+                                      <span className="min-w-0 flex-1 whitespace-nowrap text-[10px] font-medium tabular-nums text-white/90">
+                                        {formatVideoTime(state.currentTime)} /{' '}
+                                        {formatVideoTime(state.duration)}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleVideoMute(item.id)}
+                                        aria-label={
+                                          state.isMuted ? 'Unmute video' : 'Mute video'
+                                        }
+                                        title={state.isMuted ? 'Unmute' : 'Mute'}
+                                        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/15 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                                      >
+                                        {state.isMuted ? (
+                                          <VolumeX className="h-3 w-3" />
+                                        ) : (
+                                          <Volume2 className="h-3 w-3" />
+                                        )}
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          ) : (
+                            <div className="relative h-full w-full">
+                              <Image
+                                src={item.publicUrl}
+                                alt={item.title}
+                                fill
+                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                                className="object-cover"
+                              />
+                              {item.description && (
+                                <div className="absolute inset-x-0 bottom-0 p-3">
+                                  <p className="line-clamp-3 text-xs leading-5 text-white drop-shadow-md">
+                                    {item.description}
+                                  </p>
+                                </div>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => openFullscreenMedia(item)}
+                                aria-label={`View ${item.title || 'photo'} fullscreen`}
+                                title="View fullscreen"
+                                className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/60 bg-black/55 text-white shadow-sm backdrop-blur-sm transition hover:scale-105 hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                              >
+                                <Maximize2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 border-t border-[#F0F2F5] px-2.5 py-1.5">
+                          {item.user?.id ? (
+                            <div className="relative shrink-0">
+                              <div className="rounded-full">
+                                {item.user.profileImageUrl ? (
+                                  <Image
+                                    src={item.user.profileImageUrl}
+                                    alt={`${item.user.firstName} ${item.user.lastName}`}
+                                    width={28}
+                                    height={28}
+                                    className="h-7 w-7 rounded-full object-cover ring-1 ring-[#F1F3F6]"
+                                  />
+                                ) : (
+                                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#E8ECF3] text-xs font-bold text-[#1A2B4C] ring-1 ring-[#F1F3F6]">
+                                    {item.user.firstName[0]}
+                                    {item.user.lastName[0]}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#E8ECF3] text-xs font-bold text-[#1A2B4C] ring-1 ring-[#F1F3F6]">
+                              U
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <h3 className="truncate text-xs font-semibold text-[#172033]">
+                              {item.user?.id ? (
+                                <Link
+                                  href={`/dashboard/students/${item.user.id}`}
+                                  className="rounded-sm transition hover:text-[#1A2B4C] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C]"
+                                >
+                                  {item.user.firstName} {item.user.lastName}
+                                </Link>
                               ) : (
-                                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#E8ECF3] text-sm font-bold text-[#1A2B4C] ring-2 ring-[#F1F3F6]">
-                                  {item.user.firstName[0]}{item.user.lastName[0]}
+                                'Selfless community'
+                              )}
+                            </h3>
+                            <p className="truncate text-[10px] text-[#7A8495]">
+                              {item.user?.techCenter?.name} ·{' '}
+                              {new Date(displayDate).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                              })}
+                            </p>
+                          </div>
+                          {isOwnPost && item.approvalStatus !== 'APPROVED' && (
+                            <span
+                              className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold ${
+                                item.approvalStatus === 'REJECTED'
+                                  ? 'bg-red-50 text-red-700'
+                                  : 'bg-amber-50 text-amber-700'
+                              }`}
+                            >
+                              {item.approvalStatus === 'REJECTED'
+                                ? 'Rejected'
+                                : 'Pending'}
+                            </span>
+                          )}
+                          {activeFilter === 'mine' && isOwnPost && (
+                            <div className="relative shrink-0" data-post-menu>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setOpenPostMenuId((openId) =>
+                                    openId === item.id ? null : item.id,
+                                  )
+                                }
+                                aria-label="Post options"
+                                aria-haspopup="menu"
+                                aria-expanded={openPostMenuId === item.id}
+                                title="Post options"
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[#687386] transition hover:bg-[#F1F3F6] hover:text-[#172033] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C]"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </button>
+                              {openPostMenuId === item.id && (
+                                <div
+                                  role="menu"
+                                  className="absolute right-0 top-full z-20 mt-1 min-w-32 rounded-xl border border-[#E1E5EB] bg-white p-1 shadow-lg"
+                                >
+                                  <button
+                                    type="button"
+                                    role="menuitem"
+                                    onClick={() => {
+                                      setOpenPostMenuId(null);
+                                      setConfirmDelete({
+                                        id: item.id,
+                                        title: item.title,
+                                      });
+                                    }}
+                                    disabled={deletingPostId === item.id}
+                                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-wait disabled:opacity-60"
+                                  >
+                                    {deletingPostId === item.id ? (
+                                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    )}
+                                    Delete
+                                  </button>
                                 </div>
                               )}
                             </div>
-                            {currentUser && authorId && authorId !== currentUser.id && (
-                              <button
-                                type="button"
-                                onClick={() => handleFollow(authorId)}
-                                disabled={pendingFollows[authorId]}
-                                title={
-                                  followStatus[authorId]
-                                    ? 'Unfollow'
-                                    : followErrors[authorId]
-                                      ? 'Follow failed. Click to try again.'
-                                      : 'Follow'
-                                }
-                                className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#1A2B4C] text-white transition hover:bg-[#263D66] disabled:cursor-wait disabled:opacity-60"
-                              >
-                                {followStatus[authorId] ? (
-                                  <Check className="h-3 w-3" />
-                                ) : (
-                                  <Plus className="h-3 w-3" />
-                                )}
-                              </button>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#E8ECF3] text-sm font-bold text-[#1A2B4C] ring-2 ring-[#F1F3F6]">
-                            S
-                          </div>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <h3 className="text-sm font-semibold text-[#172033]">
-                            {item.user?.id ? (
-                              <Link
-                                href={`/dashboard/students/${item.user.id}`}
-                                className="rounded-sm transition hover:text-[#1A2B4C] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C]"
-                              >
-                                {item.user.firstName} {item.user.lastName}
-                              </Link>
-                            ) : (
-                              'Selfless community'
-                            )}
-                          </h3>
-                          {item.user?.techCenter?.name && (
-                            <p className="mt-0.5 text-xs text-[#7A8495]">
-                              {item.user.techCenter.name}
-                            </p>
                           )}
-                          <p className="mt-0.5 flex flex-wrap items-center gap-x-1 text-xs leading-5 text-[#7A8495]">
-                            {new Date(displayDate).toLocaleString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                              hour: 'numeric',
-                              minute: '2-digit',
-                            })}
-                            {activeFilter === 'mine' &&
-                              item.approvalStatus === 'APPROVED' &&
-                              item.approvedAt &&
-                              ' · Approved'}
-                          </p>
                         </div>
-                        {activeFilter === 'mine' &&
-                          currentUser &&
-                          authorId === currentUser.id && (
-                          <div className="relative shrink-0">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setOpenPostMenuId((openId) =>
-                                  openId === item.id ? null : item.id,
-                                )
-                              }
-                              aria-label="Post options"
-                              aria-haspopup="menu"
-                              aria-expanded={openPostMenuId === item.id}
-                              title="Post options"
-                              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#687386] transition hover:bg-[#F1F3F6] hover:text-[#172033] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C]"
-                            >
-                              <MoreVertical className="h-5 w-5" />
-                            </button>
-                            {openPostMenuId === item.id && (
-                              <div
-                                role="menu"
-                                className="absolute right-0 top-full z-20 mt-1 min-w-40 rounded-xl border border-[#E1E5EB] bg-white p-1 shadow-lg"
-                              >
-                                <button
-                                  type="button"
-                                  role="menuitem"
-                                  onClick={() => {
-                                    setOpenPostMenuId(null);
-                                    void handleDeletePost(item.id);
-                                  }}
-                                  disabled={deletingPostId === item.id}
-                                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-wait disabled:opacity-60"
-                                >
-                                  {deletingPostId === item.id ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <Trash2 className="h-4 w-4" />
-                                  )}
-                                  Delete post
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        {activeFilter === 'mine' && (
-                          <span
-                            className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                              item.approvalStatus === 'APPROVED'
-                                ? 'bg-emerald-50 text-emerald-700'
-                                : item.approvalStatus === 'REJECTED'
-                                  ? 'bg-red-50 text-red-700'
-                                  : 'bg-amber-50 text-amber-700'
-                            }`}
-                          >
-                            {item.approvalStatus === 'APPROVED'
-                              ? 'Approved'
-                              : item.approvalStatus === 'REJECTED'
-                                ? 'Rejected'
-                                : 'Pending review'}
-                          </span>
-                        )}
-                      </div>
 
-                      {deletePostError?.id === item.id && (
-                        <p role="alert" className="px-5 pb-3 text-xs text-red-600">
-                          {deletePostError.message}
-                        </p>
-                      )}
+                        {deletePostError?.id === item.id && (
+                          <p role="alert" className="px-3 pb-2 text-[10px] text-red-600">
+                            {deletePostError.message}
+                          </p>
+                        )}
 
-                      {(item.title || item.description) && (
-                        <div className="px-4 pb-4 pt-3 sm:px-5">
-                          {item.title && (
-                            <h4 className="text-[15px] font-bold leading-6 text-[#172033]">
+                        {item.title && (
+                          <div className="px-2.5 pb-1">
+                            <h4 className="line-clamp-2 text-sm font-bold leading-snug text-[#172033]">
                               {item.title}
                             </h4>
-                          )}
-                          {item.description && (
-                            <div className={item.title ? 'mt-1' : ''}>
-                              <PostDescription description={item.description} />
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="relative mx-auto aspect-[3/4] w-full max-w-[290px] overflow-hidden rounded-2xl bg-[#101827] shadow-sm">
-                        {isVideo ? (
-                          <div className="relative h-full w-full">
-                            <video
-                              ref={(el) => {
-                                if (el) videoRefs.current[item.id] = el;
-                              }}
-                              src={item.publicUrl}
-                              playsInline
-                              preload="metadata"
-                              className="h-full w-full object-cover"
-                              onLoadedMetadata={(event) =>
-                                updateVideoControls(item.id, {
-                                  duration: event.currentTarget.duration,
-                                  isMuted: event.currentTarget.muted,
-                                })
-                              }
-                              onTimeUpdate={(event) =>
-                                updateVideoControls(item.id, {
-                                  currentTime: event.currentTarget.currentTime,
-                                })
-                              }
-                              onVolumeChange={(event) =>
-                                updateVideoControls(item.id, {
-                                  isMuted: event.currentTarget.muted,
-                                })
-                              }
-                              onPlay={() => {
-                                handleVideoPlay(item.id);
-                                updateVideoControls(item.id, { isPlaying: true });
-                              }}
-                              onPause={() =>
-                                updateVideoControls(item.id, { isPlaying: false })
-                              }
-                            />
-                            <button
-                              type="button"
-                              onClick={() => openFullscreenMedia(item)}
-                              aria-label={`View ${item.title || 'video'} fullscreen`}
-                              title="View fullscreen"
-                              className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/60 bg-black/55 text-white shadow-sm backdrop-blur-sm transition hover:scale-105 hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                            >
-                              <Maximize2 className="h-4 w-4" />
-                            </button>
-                            {(() => {
-                              const state = videoControls[item.id] ?? {
-                                currentTime: 0,
-                                duration: 0,
-                                isMuted: false,
-                                isPlaying: false,
-                              };
-                              return (
-                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-3 pb-3 pt-10">
-                                  <div className="flex items-center gap-2.5 text-white">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const video = videoRefs.current[item.id];
-                                        if (!video) return;
-                                        if (video.paused) {
-                                          void video.play().catch(() => {
-                                            updateVideoControls(item.id, { isPlaying: false });
-                                          });
-                                        } else {
-                                          video.pause();
-                                        }
-                                      }}
-                                      aria-label={state.isPlaying ? 'Pause video' : 'Play video'}
-                                      title={state.isPlaying ? 'Pause' : 'Play'}
-                                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                                    >
-                                      {state.isPlaying ? (
-                                        <Pause className="h-4 w-4" />
-                                      ) : (
-                                        <Play className="h-4 w-4 fill-current" />
-                                      )}
-                                    </button>
-                                    <span className="min-w-0 flex-1 whitespace-nowrap text-[11px] font-medium tabular-nums text-white/90">
-                                      {formatVideoTime(state.currentTime)} / {formatVideoTime(state.duration)}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => toggleVideoMute(item.id)}
-                                      aria-label={state.isMuted ? 'Unmute video' : 'Mute video'}
-                                      title={state.isMuted ? 'Unmute' : 'Mute'}
-                                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                                    >
-                                      {state.isMuted ? (
-                                        <VolumeX className="h-4 w-4" />
-                                      ) : (
-                                        <Volume2 className="h-4 w-4" />
-                                      )}
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })()}
-                          </div>
-                        ) : (
-                          <div className="group relative h-full w-full">
-                            <Image
-                              src={item.publicUrl}
-                              alt={item.title}
-                              fill
-                              sizes="(max-width: 1024px) 100vw, 700px"
-                              className="object-cover transition duration-500 group-hover:scale-[1.02]"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => openFullscreenMedia(item)}
-                              aria-label={`View ${item.title || 'photo'} fullscreen`}
-                              title="View fullscreen"
-                              className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/60 bg-black/55 text-white shadow-sm backdrop-blur-sm transition hover:scale-105 hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                            >
-                              <Maximize2 className="h-4 w-4" />
-                            </button>
                           </div>
                         )}
-                      </div>
 
-                      {currentUser && item.approvalStatus === 'APPROVED' && (
-                        <MediaPostInteractions
-                          mediaId={item.id}
-                          currentUser={{
-                            id: currentUser.id,
-                            firstName: currentUser.firstName,
-                            lastName: currentUser.lastName,
-                            profileImageUrl: currentUser.profileImageUrl,
-                          }}
-                        />
-                      )}
-                    </article>
-                  );
-                })}
+                        {currentUser && item.approvalStatus === 'APPROVED' && (
+                          <MediaPostInteractions
+                            mediaId={item.id}
+                            currentUser={{
+                              id: currentUser.id,
+                              firstName: currentUser.firstName,
+                              lastName: currentUser.lastName,
+                              profileImageUrl: currentUser.profileImageUrl,
+                            }}
+                          />
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+
+                {/* ✅ Pagination moved OUTSIDE the grid */}
                 {activeFilter === 'mine' && myPostsQuery.hasNextPage && (
-                  <div className="flex flex-col items-center gap-2 pt-2">
+                  <div className="mt-6 flex flex-col items-center gap-2">
                     <p className="text-xs text-[#8A93A2]">
                       Showing {myPosts.length} of {visibleCount} posts
                     </p>
@@ -1157,11 +1222,11 @@ export default function GalleryPage() {
                     )}
                   </div>
                 )}
-              </div>
+              </>
             )}
           </div>
 
-          <aside className="space-y-4 lg:sticky lg:top-6">
+          <aside className="mt-8 lg:hidden">
             <div className="overflow-hidden rounded-2xl border border-[#E7EAF0] bg-white p-5 shadow-sm">
               <h2 className="text-lg font-bold tracking-tight text-[#172033]">
                 Community growth
@@ -1170,7 +1235,9 @@ export default function GalleryPage() {
               <div
                 className="mt-4"
                 role="img"
-                aria-label={`Community post growth over the last seven days. ${communityGrowth.points.map((point) => `${point.label}: ${point.count} posts`).join(', ')}`}
+                aria-label={`Community post growth over the last seven days. ${communityGrowth.points
+                  .map((point) => `${point.label}: ${point.count} posts`)
+                  .join(', ')}`}
               >
                 <svg
                   viewBox="0 0 280 128"
@@ -1178,7 +1245,13 @@ export default function GalleryPage() {
                   aria-hidden="true"
                 >
                   <defs>
-                    <linearGradient id="community-growth-fill" x1="0" x2="0" y1="0" y2="1">
+                    <linearGradient
+                      id="community-growth-fill"
+                      x1="0"
+                      x2="0"
+                      y1="0"
+                      y2="1"
+                    >
                       <stop offset="0%" stopColor="#C59B4C" stopOpacity="0.22" />
                       <stop offset="100%" stopColor="#C59B4C" stopOpacity="0.01" />
                     </linearGradient>
@@ -1196,7 +1269,8 @@ export default function GalleryPage() {
                   ))}
                   {communityGrowth.points.map((point, index) => {
                     const x = 14 + index * (252 / 6);
-                    const barHeight = (point.count / communityGrowth.maximumDaily) * 62;
+                    const barHeight =
+                      (point.count / communityGrowth.maximumDaily) * 62;
                     return (
                       <rect
                         key={point.key}
@@ -1214,7 +1288,12 @@ export default function GalleryPage() {
                       '14,90',
                       ...communityGrowth.points.map((point, index) => {
                         const x = 14 + index * (252 / 6);
-                        const y = 12 + 62 * (1 - point.cumulative / communityGrowth.maximumCumulative);
+                        const y =
+                          12 +
+                          62 *
+                            (1 -
+                              point.cumulative /
+                                communityGrowth.maximumCumulative);
                         return `${x},${y}`;
                       }),
                       '266,90',
@@ -1225,7 +1304,12 @@ export default function GalleryPage() {
                     points={communityGrowth.points
                       .map((point, index) => {
                         const x = 14 + index * (252 / 6);
-                        const y = 12 + 62 * (1 - point.cumulative / communityGrowth.maximumCumulative);
+                        const y =
+                          12 +
+                          62 *
+                            (1 -
+                              point.cumulative /
+                                communityGrowth.maximumCumulative);
                         return `${x},${y}`;
                       })
                       .join(' ')}
@@ -1237,7 +1321,10 @@ export default function GalleryPage() {
                   />
                   {communityGrowth.points.map((point, index) => {
                     const x = 14 + index * (252 / 6);
-                    const y = 12 + 62 * (1 - point.cumulative / communityGrowth.maximumCumulative);
+                    const y =
+                      12 +
+                      62 *
+                        (1 - point.cumulative / communityGrowth.maximumCumulative);
                     return (
                       <circle
                         key={point.key}
@@ -1278,55 +1365,108 @@ export default function GalleryPage() {
               <div className="mt-5 grid grid-cols-3 gap-2 border-t border-[#EEF0F4] pt-4">
                 <div>
                   <p className="text-[10px] font-medium text-[#7A8495]">Posts</p>
-                  <p className="mt-0.5 text-xl font-bold tabular-nums text-[#172033]">{items.length}</p>
+                  <p className="mt-0.5 text-xl font-bold tabular-nums text-[#172033]">
+                    {items.length}
+                  </p>
                 </div>
                 <div>
                   <p className="text-[10px] font-medium text-[#7A8495]">Photos</p>
-                  <p className="mt-0.5 text-xl font-bold tabular-nums text-[#172033]">{photos.length}</p>
+                  <p className="mt-0.5 text-xl font-bold tabular-nums text-[#172033]">
+                    {photos.length}
+                  </p>
                 </div>
                 <div>
                   <p className="text-[10px] font-medium text-[#7A8495]">Videos</p>
-                  <p className="mt-0.5 text-xl font-bold tabular-nums text-[#172033]">{videos.length}</p>
+                  <p className="mt-0.5 text-xl font-bold tabular-nums text-[#172033]">
+                    {videos.length}
+                  </p>
                 </div>
               </div>
             </div>
-
           </aside>
         </div>
       </section>
 
-      {/* Fullscreen media viewer */}
-      {fullscreenMedia && (
+      {/* ✅ Confirmation dialog replaces window.confirm */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4">
           <div
             role="dialog"
             aria-modal="true"
-            aria-label={fullscreenMedia.title || 'Fullscreen community media'}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-3 sm:p-6"
-            onClick={(event) => {
-              if (event.target === event.currentTarget) closeFullscreenMedia();
-            }}
+            aria-labelledby="confirm-delete-title"
+            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
           >
-            <button
-              type="button"
-              onClick={closeFullscreenMedia}
-              className="absolute right-4 top-4 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-black/65 text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              aria-label="Close fullscreen media"
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600">
+              <Trash2 className="h-5 w-5" />
+            </div>
+            <h3
+              id="confirm-delete-title"
+              className="mt-4 text-lg font-semibold text-[#172033]"
             >
-              <X className="h-6 w-6" />
-            </button>
+              Delete this post?
+            </h3>
+            <p className="mt-1 text-sm leading-6 text-[#687386]">
+              &ldquo;{confirmDelete.title || 'Untitled post'}&rdquo; and all of
+              its comments and replies will be permanently deleted. This cannot
+              be undone.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(null)}
+                className="flex-1 rounded-xl border border-[#D9E0EA] bg-white px-4 py-2.5 text-sm font-semibold text-[#1A2B4C] transition hover:bg-[#F7F9FC]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const id = confirmDelete.id;
+                  setConfirmDelete(null);
+                  void handleDeletePost(id);
+                }}
+                className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-            {fullscreenMedia.contentType.startsWith('video/') ? (
-              <video
-                key={fullscreenMedia.id}
-                src={fullscreenMedia.publicUrl}
-                autoPlay
-                controls
-                playsInline
-                preload="auto"
-                aria-label={fullscreenMedia.title || 'Community video'}
-                className="h-full w-full object-contain"
-              />
-            ) : (
+      {/* Fullscreen media viewer */}
+      {fullscreenMedia && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={fullscreenMedia.title || 'Fullscreen community media'}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-3 sm:p-6"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) closeFullscreenMedia();
+          }}
+        >
+          <button
+            type="button"
+            onClick={closeFullscreenMedia}
+            className="absolute right-4 top-4 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-black/65 text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            aria-label="Close fullscreen media"
+          >
+            <X className="h-6 w-6" />
+          </button>
+
+          {fullscreenMedia.contentType.startsWith('video/') ? (
+            <video
+              key={fullscreenMedia.id}
+              src={fullscreenMedia.publicUrl}
+              autoPlay
+              controls
+              playsInline
+              preload="auto"
+              aria-label={fullscreenMedia.title || 'Community video'}
+              className="h-full w-full object-contain"
+            />
+          ) : (
+            <div className="relative h-full w-full">
               <Image
                 src={fullscreenMedia.publicUrl}
                 alt={fullscreenMedia.title || 'Community photo'}
@@ -1335,21 +1475,35 @@ export default function GalleryPage() {
                 className="object-contain"
                 priority
               />
-            )}
-          </div>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Create Post Modal */}
       {isCreatePostModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b border-[#E4E6EB]">
-              <h3 className="text-lg font-semibold text-[#1C1E21]">Create Post</h3>
-              <button
-                onClick={() => setIsCreatePostModalOpen(false)}
-                className="text-[#65676B] hover:text-[#1C1E21]"
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-post-title"
+            className="w-full max-w-2xl overflow-y-auto rounded-lg bg-white shadow-xl"
+            style={{ maxHeight: '90vh' }}
+          >
+            <div className="flex items-center justify-between border-b border-[#E4E6EB] p-4">
+              <h3
+                id="create-post-title"
+                className="text-lg font-semibold text-[#1C1E21]"
               >
-                <X className="w-5 h-5" />
+                Create Post
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsCreatePostModalOpen(false)}
+                aria-label="Close create post dialog"
+                className="rounded p-1 text-[#65676B] transition hover:bg-[#F1F3F6] hover:text-[#1C1E21]"
+              >
+                <X className="h-5 w-5" />
               </button>
             </div>
             <div className="p-4">
