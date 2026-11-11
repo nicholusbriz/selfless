@@ -349,7 +349,6 @@ export default function TriviaModal({
           ...prev,
           selectedAnswer: answerIndex,
           attempts: newAttempts,
-          streak: 0,
           feedback:
             attemptsLeftNow === 1
               ? 'Incorrect! 1 chance remaining'
