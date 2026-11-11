@@ -135,6 +135,8 @@ and enforced by the question and score-submission APIs, so they persist across r
 Completing a level with at least one heart still requires the existing 70% accuracy to
 unlock the next level. Existing trivia points and session history are retained when levels
 are reset.
+The correct-answer streak continues when a player answers a question correctly after an
+earlier wrong attempt, and resets when a question is failed, skipped, or times out.
 
 Players may complete up to 10 level games per East Africa Time day (UTC+3). A game counts
 when its results are saved, including replays; abandoned games do not count. The limit
