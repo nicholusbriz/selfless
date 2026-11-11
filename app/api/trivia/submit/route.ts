@@ -2,71 +2,88 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getApiErrorMessage, isJsonObject } from '@/lib/api-response';
 import { prisma } from '@/lib/prisma/client';
 
-interface SubmitTriviaRequest {
-  correct: number;
-  total: number;
-  points: number;
-  streak: number;
-}
-
 export async function POST(request: NextRequest) {
   try {
     const body: unknown = await request.json();
 
     if (!isJsonObject(body)) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Invalid request body',
-        },
+        { success: false, error: 'Invalid request body' },
         { status: 400 }
       );
     }
 
-    const { correct, total, points, streak } = body as SubmitTriviaRequest;
+    // ✅ No cast — destructure straight from Record<string, unknown>
+    const { correct, total, points, streak } = body;
 
-    if (typeof correct !== 'number' || typeof total !== 'number' || typeof points !== 'number') {
+    if (
+      typeof correct !== 'number' ||
+      typeof total !== 'number' ||
+      typeof points !== 'number' ||
+      typeof streak !== 'number'
+    ) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Invalid parameters',
-        },
+        { success: false, error: 'Invalid parameters' },
+        { status: 400 }
+      );
+    }
+
+    // ✅ Basic sanity checks so a hacked client can't send points: 999999
+    if (
+      correct < 0 ||
+      total <= 0 ||
+      correct > total ||
+      points < 0 ||
+      points > total * 20 || // hard ceiling: max ~20 pts/question
+      streak < 0 ||
+      streak > total ||
+      !Number.isInteger(correct) ||
+      !Number.isInteger(total) ||
+      !Number.isInteger(points) ||
+      !Number.isInteger(streak)
+    ) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid parameters' },
         { status: 400 }
       );
     }
 
     // Get the session to identify the user
-    const sessionResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/session`, {
-      headers: {
-        cookie: request.headers.get('cookie') || '',
-      },
-    });
+    const sessionResponse = await fetch(
+      `${process.env.NEXTAUTH_URL}/api/auth/session`,
+      {
+        headers: {
+          cookie: request.headers.get('cookie') || '',
+        },
+      }
+    );
 
     if (!sessionResponse.ok) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Authentication required',
-        },
+        { success: false, error: 'Authentication required' },
         { status: 401 }
       );
     }
 
-    const session = await sessionResponse.json();
+    const session: unknown = await sessionResponse.json();
 
-    if (!session?.user?.id) {
+    // ✅ Type-safe session access instead of `session?.user?.id`
+    if (
+      !isJsonObject(session) ||
+      !isJsonObject(session.user) ||
+      typeof session.user.id !== 'string'
+    ) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'User not authenticated',
-        },
+        { success: false, error: 'User not authenticated' },
         { status: 401 }
       );
     }
+
+    const userId = session.user.id;
 
     // Update user's trivia points in database
     await prisma.user.update({
-      where: { id: session.user.id },
+      where: { id: userId },
       data: {
         triviaPoints: {
           increment: points,
