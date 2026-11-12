@@ -6,6 +6,7 @@ import {
 export const MAX_DAILY_HEARTS = 3;
 // A giver always keeps at least one heart so sharing never locks them out.
 export const MIN_HEARTS_TO_GIVE = 2;
+export const MAX_DAILY_HEART_REQUESTS = 3;
 
 export interface HeartAccount {
   triviaHeartsDate: Date | null;

@@ -6,6 +6,7 @@ import {
   canRequestHeart,
   getEffectiveHearts,
   MAX_DAILY_HEARTS,
+  MAX_DAILY_HEART_REQUESTS,
   MIN_HEARTS_TO_GIVE,
 } from './heart-sharing';
 
@@ -63,6 +64,11 @@ export async function getHeartSharingState(userId: string, now = new Date()) {
       : [];
   });
 
+  const requestsSent = await prisma.triviaHeartRequest.count({
+    where: { requesterId: userId, dayStart },
+  });
+  const requestsRemaining = Math.max(0, MAX_DAILY_HEART_REQUESTS - requestsSent);
+
   let donors: Array<{
     id: string;
     name: string;
@@ -70,7 +76,7 @@ export async function getHeartSharingState(userId: string, now = new Date()) {
     requested: boolean;
   }> = [];
 
-  if (canRequestHeart(me, now)) {
+  if (canRequestHeart(me, now) && requestsRemaining > 0) {
     const [follows, outgoing] = await Promise.all([
       prisma.follow.findMany({
         where: { followerId: userId },
@@ -95,7 +101,13 @@ export async function getHeartSharingState(userId: string, now = new Date()) {
       }));
   }
 
-  return { heartsRemaining, incoming, donors };
+  return {
+    heartsRemaining,
+    incoming,
+    donors,
+    requestsRemaining,
+    requestLimit: MAX_DAILY_HEART_REQUESTS,
+  };
 }
 
 export async function createHeartRequest(
@@ -137,9 +149,31 @@ export async function createHeartRequest(
     throw new HeartShareError('You already asked this player today.', 409);
   }
 
+  const limitMessage = `You can only request ${MAX_DAILY_HEART_REQUESTS} hearts per day.`;
+  const sentToday = await prisma.triviaHeartRequest.count({
+    where: { requesterId, dayStart },
+  });
+  if (sentToday >= MAX_DAILY_HEART_REQUESTS) {
+    throw new HeartShareError(limitMessage, 429);
+  }
+
   const request = await prisma.triviaHeartRequest.create({
     data: { requesterId, donorId, dayStart },
   });
+
+  // Concurrent requests can all pass the check above, so recount and undo any overflow.
+  const afterCreate = await prisma.triviaHeartRequest.findMany({
+    where: { requesterId, dayStart },
+    orderBy: { createdAt: 'asc' },
+    select: { id: true },
+  });
+  if (
+    afterCreate.length > MAX_DAILY_HEART_REQUESTS &&
+    !afterCreate.slice(0, MAX_DAILY_HEART_REQUESTS).some((r) => r.id === request.id)
+  ) {
+    await prisma.triviaHeartRequest.deleteMany({ where: { id: request.id } });
+    throw new HeartShareError(limitMessage, 429);
+  }
 
   try {
     await createNotificationForUser({

@@ -4,6 +4,7 @@ import {
   canGiveHeart,
   canRequestHeart,
   getEffectiveHearts,
+  MAX_DAILY_HEART_REQUESTS,
   MIN_HEARTS_TO_GIVE,
 } from './heart-sharing';
 
@@ -46,4 +47,8 @@ test('only players who are out of hearts can request one', () => {
   assert.equal(canRequestHeart(account(0), now), true);
   assert.equal(canRequestHeart(account(1), now), false);
   assert.equal(canRequestHeart(account(0, yesterday), now), false);
+});
+
+test('players can send three heart requests per day', () => {
+  assert.equal(MAX_DAILY_HEART_REQUESTS, 3);
 });
