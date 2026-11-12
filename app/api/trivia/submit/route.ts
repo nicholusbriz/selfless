@@ -5,6 +5,10 @@ import { authOptions } from '@/lib/auth/nextauth';
 import { getApiErrorMessage, isJsonObject } from '@/lib/api-response';
 import { prisma } from '@/lib/prisma/client';
 import {
+  MAX_TRIVIA_LEVEL,
+  MIN_ACCURACY_TO_LEVEL_UP,
+} from '@/lib/trivia/levels';
+import {
   getEatTriviaDay,
   hasReachedDailyGameLimit,
   MAX_DAILY_TRIVIA_GAMES,
@@ -15,8 +19,6 @@ import {
   isCurrentUtcTriviaDay,
 } from '@/lib/trivia/daily-lock';
 
-const MAX_LEVEL = 10;
-const MIN_ACCURACY_TO_LEVEL_UP = 70;
 const POINTS_PER_CORRECT = 10;
 const STREAK_BONUS_PER_POINT = 2;
 const SKIP_PENALTY = 2;
@@ -186,7 +188,7 @@ export async function POST(request: NextRequest) {
 
       const currentLevel = user.currentLevel;
       const levelUnlocked =
-        currentLevel < MAX_LEVEL && accuracy >= MIN_ACCURACY_TO_LEVEL_UP;
+        currentLevel < MAX_TRIVIA_LEVEL && accuracy >= MIN_ACCURACY_TO_LEVEL_UP;
       const gameSession = await tx.triviaGameSession.create({
         data: {
           userId, correct: serverCorrect, total: serverTotal, points, streak,
@@ -240,9 +242,10 @@ export async function POST(request: NextRequest) {
 
     const currentLevel = saved.session.level;
     const levelUnlocked =
-      currentLevel < MAX_LEVEL && saved.session.accuracy >= MIN_ACCURACY_TO_LEVEL_UP;
+      currentLevel < MAX_TRIVIA_LEVEL &&
+      saved.session.accuracy >= MIN_ACCURACY_TO_LEVEL_UP;
     const newLevel = levelUnlocked ? currentLevel + 1 : currentLevel;
-    const finished = currentLevel >= MAX_LEVEL;
+    const finished = currentLevel >= MAX_TRIVIA_LEVEL;
 
     return NextResponse.json({
       success: true,
@@ -263,7 +266,7 @@ export async function POST(request: NextRequest) {
       message: levelUnlocked
         ? `Congratulations! You've unlocked Level ${newLevel}!`
         : finished
-          ? `You've completed all ${MAX_LEVEL} levels!`
+          ? `You've completed all ${MAX_TRIVIA_LEVEL} levels!`
           : `You earned ${saved.session.points} points!`,
     });
   } catch (error) {

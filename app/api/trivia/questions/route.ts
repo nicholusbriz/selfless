@@ -3,23 +3,23 @@ import { Prisma } from '@prisma/client';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
 import { getDailyTriviaGames } from '@/lib/trivia/daily-games-server';
-import { hasReachedDailyGameLimit } from '@/lib/trivia/daily-games';
+import { getEatTriviaDay, hasReachedDailyGameLimit } from '@/lib/trivia/daily-games';
+import { getCurrentTriviaLevel } from '@/lib/trivia/current-level-server';
+import { getDifficultyForLevel } from '@/lib/trivia/levels';
+import {
+  randomizeTriviaOptions,
+  selectTriviaQuestions,
+} from '@/lib/trivia/questions';
 import {
   getActiveTriviaLock,
   getNextUtcTriviaReset,
   isCurrentUtcTriviaDay,
 } from '@/lib/trivia/daily-lock';
 
-// Map levels to difficulty
-function getDifficultyForLevel(level: number): 'beginner' | 'intermediate' | 'advanced' {
-  if (level <= 3) return 'beginner';
-  if (level <= 6) return 'intermediate';
-  return 'advanced';
-}
-
 export async function GET(request: NextRequest) {
   try {
     const user = await requireAuth();
+    const now = new Date();
     const account = await prisma.user.findUnique({
       where: { id: user.id },
       select: {
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const dailyGames = await getDailyTriviaGames(user.id);
+    const dailyGames = await getDailyTriviaGames(user.id, now);
     if (hasReachedDailyGameLimit(dailyGames.completed)) {
       return NextResponse.json(
         {
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const count = parseInt(searchParams.get('count') || '10', 10);
-    const level = parseInt(searchParams.get('level') || '1', 10);
+    const level = await getCurrentTriviaLevel(user.id, now);
     const difficulty = searchParams.get('difficulty') as 'beginner' | 'intermediate' | 'advanced' | undefined;
     const category = searchParams.get('category') as 'grammar' | 'vocabulary' | 'reading' | 'idioms' | 'common-mistakes' | undefined;
 
@@ -96,9 +96,38 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Shuffle and pick random questions
-    const shuffled = allQuestions.sort(() => Math.random() - 0.5);
-    const questions = shuffled.slice(0, Math.min(limit, shuffled.length));
+    const { reset: currentDayReset } = getEatTriviaDay(now);
+    const latestSession = await prisma.triviaGameSession.findFirst({
+      where: { userId: user.id, playedAt: { lt: currentDayReset } },
+      orderBy: { playedAt: 'desc' },
+      select: { playedAt: true },
+    });
+    const recentlyUsedQuestionIds = new Set<string>();
+    if (latestSession) {
+      const { start, reset } = getEatTriviaDay(latestSession.playedAt);
+      const sessions = await prisma.triviaGameSession.findMany({
+        where: {
+          userId: user.id,
+          playedAt: { gte: start, lt: reset },
+        },
+        select: { answers: { select: { questionId: true } } },
+      });
+      for (const session of sessions) {
+        for (const answer of session.answers) {
+          recentlyUsedQuestionIds.add(answer.questionId);
+        }
+      }
+    }
+
+    const selectedQuestions = selectTriviaQuestions(
+      allQuestions,
+      recentlyUsedQuestionIds,
+      limit,
+    );
+    const questions = selectedQuestions.map((question) => ({
+      ...question,
+      ...randomizeTriviaOptions(question.options, question.correctAnswer),
+    }));
 
     // Increment timesAsked for each selected question
     if (questions.length > 0) {
