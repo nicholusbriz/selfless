@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Gift } from 'lucide-react';
 import TriviaModal from './TriviaModal';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -292,26 +293,29 @@ export default function GiftIcon() {
         </span>
       </button>
 
-      <TriviaModal
-        isOpen={isModalOpen}
-        onClose={handleClose}
-        onContinue={handleContinueToNextLevel}
-        questions={questions}
-        isLoading={isLoading}
-        questionLoadError={questionLoadError}
-        onRetryQuestions={() => fetchQuestions(currentLevel)}
-        userTotalPoints={userTotalPoints}
-        currentLevel={currentLevel}
-        levelUnlocked={levelUnlocked}
-        newLevel={newLevel}
-        isMaxLevel={isMaxLevel}
-        onComplete={handleGameComplete}
-        dailyLockedUntil={triviaLockedUntil}
-        dailyHeartsRemaining={dailyHeartsRemaining}
-        onHeartsChanged={handleHeartsChanged}
-        dailyGames={dailyGames}
-        onQuestionFailed={handleQuestionFailed}
-      />
+      {typeof document !== 'undefined' && createPortal(
+        <TriviaModal
+          isOpen={isModalOpen}
+          onClose={handleClose}
+          onContinue={handleContinueToNextLevel}
+          questions={questions}
+          isLoading={isLoading}
+          questionLoadError={questionLoadError}
+          onRetryQuestions={() => fetchQuestions(currentLevel)}
+          userTotalPoints={userTotalPoints}
+          currentLevel={currentLevel}
+          levelUnlocked={levelUnlocked}
+          newLevel={newLevel}
+          isMaxLevel={isMaxLevel}
+          onComplete={handleGameComplete}
+          dailyLockedUntil={triviaLockedUntil}
+          dailyHeartsRemaining={dailyHeartsRemaining}
+          onHeartsChanged={handleHeartsChanged}
+          dailyGames={dailyGames}
+          onQuestionFailed={handleQuestionFailed}
+        />,
+        document.body,
+      )}
     </>
   );
 }
