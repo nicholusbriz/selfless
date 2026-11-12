@@ -494,7 +494,7 @@ export default function TriviaModal({
     }).format(new Date(dailyGames.resetAt));
 
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md">
+      <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md">
         <motion.div
           initial={{ opacity: 0, scale: 0.96, y: 8 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -537,7 +537,7 @@ export default function TriviaModal({
     }).format(new Date(dailyLockedUntil));
 
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md">
+      <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md">
         <motion.div
           initial={{ opacity: 0, scale: 0.96, y: 8 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -588,7 +588,7 @@ export default function TriviaModal({
   if (totalQuestions === 0) {
     if (!isLoading) {
       return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md">
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -631,7 +631,7 @@ export default function TriviaModal({
     }
 
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md">
+      <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md">
         <motion.div
           initial={{ opacity: 0, scale: 0.96, y: 8 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -701,7 +701,7 @@ export default function TriviaModal({
     const completedAllLevels = isMaxLevel && !levelUnlocked;
 
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4">
+      <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.96, y: 8 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -848,12 +848,12 @@ export default function TriviaModal({
 
   // ─── GAMEPLAY SCREEN ──────────────────────────────────────────
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-md">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-md">
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 8 }}
-        className="relative flex w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+        className="relative flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
       >
         <div className="absolute inset-x-0 top-0 z-10 h-1 bg-indigo-50">
           <motion.div
@@ -865,7 +865,7 @@ export default function TriviaModal({
           />
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
           <div className="min-w-0">
             <h2 className="text-base font-bold tracking-tight text-slate-900">Trivia</h2>
             <p className="mt-0.5 text-xs font-medium italic text-indigo-600">
@@ -949,7 +949,7 @@ export default function TriviaModal({
           )}
         </AnimatePresence>
 
-        <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/60 px-5 py-3 text-xs font-semibold sm:px-6">
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-100 bg-slate-50/60 px-5 py-3 text-xs font-semibold sm:px-6">
           <div className="flex items-center gap-1.5 text-slate-500">
             <span>Question</span>
             <span className="font-bold text-slate-700">{gameState.currentQuestionIndex + 1}</span>
@@ -973,7 +973,7 @@ export default function TriviaModal({
           </div>
         </div>
 
-        <div className="relative min-h-[300px] flex-1 space-y-4 px-5 py-5 sm:px-6">
+        <div className="relative min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5 sm:px-6">
           <AnimatePresence mode="wait">
             {gameState.showMoreGames ? (
               <motion.div
@@ -1136,9 +1136,9 @@ export default function TriviaModal({
           </AnimatePresence>
         </div>
 
-        <div className="border-t border-slate-100 bg-slate-50/60 px-5 py-3 sm:px-6">
+        <div className="shrink-0 border-t border-slate-100 bg-slate-50/60 px-5 py-3 sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 onClick={toggleMoreGames}
                 className={`flex items-center gap-1.5 text-xs font-semibold transition ${
