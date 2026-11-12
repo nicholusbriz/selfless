@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import HeartSharingPanel from './HeartSharingPanel';
 import {
   X, Clock, CheckCircle2, XCircle, Star, Trophy, Flame,
   SkipForward, Heart, ArrowRight, Gamepad2, ArrowLeft, Crown,
@@ -35,6 +36,7 @@ interface TriviaModalProps {
   isMaxLevel?: boolean;
   dailyLockedUntil?: string | null;
   dailyHeartsRemaining: number;
+  onHeartsChanged: () => void;
   dailyGames: { completed: number; limit: number; resetAt: string } | null;
   onQuestionFailed: (questionId: string, failureId: string) => Promise<{
     heartsRemaining: number;
@@ -129,6 +131,7 @@ export default function TriviaModal({
   isMaxLevel = false,
   dailyLockedUntil = null,
   dailyHeartsRemaining,
+  onHeartsChanged,
   dailyGames,
   onQuestionFailed,
   onComplete,
@@ -503,6 +506,7 @@ export default function TriviaModal({
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
+          <HeartSharingPanel mode="incoming" />
           <div className="p-6 text-center">
             <Clock className="mx-auto h-10 w-10 text-indigo-600" />
             <h3 className="mt-3 text-lg font-bold text-slate-900">Daily game limit reached</h3>
@@ -553,12 +557,13 @@ export default function TriviaModal({
             <Heart className="mx-auto h-10 w-10 fill-rose-500 text-rose-500" />
             <h3 className="mt-3 text-lg font-bold text-slate-900">Out of hearts</h3>
             <p className="mt-2 text-sm text-slate-600">
-              You failed three questions today and used all your hearts. You
-              can play again after the daily reset.
+              You failed three questions today and used all your hearts. Ask a
+              friend for a heart, or play again after the daily reset.
             </p>
             <p className="mt-3 text-xs font-semibold text-slate-500">
               Resets {resetTime} UTC
             </p>
+            <HeartSharingPanel mode="request" onHeartsChanged={onHeartsChanged} />
             <Link
               href="/dashboard/trivia/leaderboard"
               onClick={onClose}
@@ -924,6 +929,8 @@ export default function TriviaModal({
             </button>
           </div>
         </div>
+
+        <HeartSharingPanel mode="incoming" />
 
         <AnimatePresence>
           {gameState.showPointsPopup && gameState.lastPointsEarned > 0 && (

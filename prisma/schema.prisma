@@ -1257,6 +1257,27 @@ model TriviaQuestion {
 }
 
 // ============================================
+// TRIVIA HEART REQUESTS
+// ============================================
+
+// A player who is out of hearts asks someone they follow to share one.
+// Requests are scoped to a UTC trivia day because hearts reset at UTC midnight.
+model TriviaHeartRequest {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  requesterId String @db.ObjectId
+  donorId     String @db.ObjectId
+  dayStart    DateTime
+  status      String   @default("pending") // "pending", "accepted", "declined"
+  respondedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([requesterId, dayStart])
+  @@index([donorId, dayStart, status])
+  @@map("trivia_heart_requests")
+}
+
+// ============================================
 // TRIVIA GAME ANSWERS
 // ============================================
 

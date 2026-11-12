@@ -247,6 +247,13 @@ export default function GiftIcon() {
     };
   }, []);
 
+  const handleHeartsChanged = useCallback(async () => {
+    const status = await fetchUserPoints();
+    if (!status.lockedUntil && !status.gamesLimited) {
+      await fetchQuestions(status.level ?? 1);
+    }
+  }, [fetchUserPoints, fetchQuestions]);
+
   const handleContinueToNextLevel = async () => {
     const nextLevel = newLevel;
     
@@ -301,6 +308,7 @@ export default function GiftIcon() {
         onComplete={handleGameComplete}
         dailyLockedUntil={triviaLockedUntil}
         dailyHeartsRemaining={dailyHeartsRemaining}
+        onHeartsChanged={handleHeartsChanged}
         dailyGames={dailyGames}
         onQuestionFailed={handleQuestionFailed}
       />
