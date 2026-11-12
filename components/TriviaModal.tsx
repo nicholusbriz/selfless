@@ -14,6 +14,7 @@ export interface TriviaQuestion {
   question: string;
   options: string[];
   correctAnswer: number;
+  optionIndexes: number[];
   category: 'grammar' | 'vocabulary' | 'reading' | 'idioms' | 'common-mistakes';
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   explanation?: string;
@@ -300,7 +301,7 @@ export default function TriviaModal({
 
         const newAnswer = {
           questionId: currentQuestion.id,
-          userAnswer: answerIndex,
+          userAnswer: currentQuestion.optionIndexes[answerIndex],
           isCorrect: true,
         };
 
@@ -327,7 +328,7 @@ export default function TriviaModal({
       } else if (newAttempts >= MAX_ATTEMPTS) {
         const newAnswer = {
           questionId: currentQuestion.id,
-          userAnswer: answerIndex,
+          userAnswer: currentQuestion.optionIndexes[answerIndex],
           isCorrect: false,
         };
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
 import { getDailyTriviaGames } from '@/lib/trivia/daily-games-server';
+import { getCurrentTriviaLevel } from '@/lib/trivia/current-level-server';
 import {
   getActiveTriviaLock,
   getNextUtcTriviaReset,
@@ -38,7 +39,9 @@ export async function GET() {
       },
     });
 
-    const currentLevel = userData?.currentLevel || 1;
+    const currentLevel = userData
+      ? await getCurrentTriviaLevel(user.id)
+      : 1;
     const storedLock = getActiveTriviaLock(userData?.triviaLockedUntil ?? null);
     const dailyHeartsRemaining = isCurrentUtcTriviaDay(userData?.triviaHeartsDate ?? null)
       ? userData?.triviaHeartsRemaining ?? 3
