@@ -146,7 +146,7 @@ hearts are offered, so a giver always keeps one. The giver gets a notification a
 in the trivia modal, and accepts or declines via
 `POST /api/trivia/heart-requests/[requestId]`. Accepting moves one heart from the giver to
 the requester in a single transaction and unlocks the requester. Each player can ask a given
-person once per UTC day, and requests expire at the UTC heart reset. Run
+person once per UTC day and send at most 3 requests in total per UTC day, and requests expire at the UTC heart reset. Run
 `npx prisma db push` after pulling to create the `trivia_heart_requests` collection indexes.
 
 Players may complete up to 10 level games per East Africa Time day (UTC+3). A game counts

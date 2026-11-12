@@ -17,6 +17,8 @@ interface IncomingRequest {
 
 interface HeartState {
   heartsRemaining: number;
+  requestsRemaining: number;
+  requestLimit: number;
   donors: Donor[];
   incoming: IncomingRequest[];
 }
@@ -35,6 +37,8 @@ function readState(data: unknown): HeartState | null {
     !isJsonObject(data) ||
     data.success !== true ||
     typeof data.heartsRemaining !== 'number' ||
+    typeof data.requestsRemaining !== 'number' ||
+    typeof data.requestLimit !== 'number' ||
     !Array.isArray(data.donors) ||
     !Array.isArray(data.incoming)
   ) {
@@ -42,6 +46,8 @@ function readState(data: unknown): HeartState | null {
   }
   return {
     heartsRemaining: data.heartsRemaining,
+    requestsRemaining: data.requestsRemaining,
+    requestLimit: data.requestLimit,
     donors: data.donors as Donor[],
     incoming: data.incoming as IncomingRequest[],
   };
@@ -206,7 +212,13 @@ export default function HeartSharingPanel({ mode, onHeartsChanged }: HeartSharin
         <div className="mt-3 flex justify-center py-3">
           <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
         </div>
+      ) : state && state.requestsRemaining === 0 ? (
+        <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-slate-500">
+          You have used all {state.requestLimit} heart requests for today. Hearts
+          reset at midnight UTC.
+        </p>
       ) : state && state.donors.length > 0 ? (
+        <>
         <div className="mt-3 flex items-center gap-2">
           <select
             value={selectedDonor ? selectedDonor.id : ''}
@@ -238,6 +250,10 @@ export default function HeartSharingPanel({ mode, onHeartsChanged }: HeartSharin
             Request
           </button>
         </div>
+        <p className="mt-1.5 text-[11px] text-slate-400">
+          {state.requestsRemaining} of {state.requestLimit} requests left today
+        </p>
+        </>
       ) : (
         <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-slate-500">
           None of the people you follow have a spare heart right now. Follow more
