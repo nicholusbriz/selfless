@@ -82,7 +82,7 @@ interface GameState {
   dailyHeartsRemaining: number;
 }
 
-const MAX_ATTEMPTS = 3;
+const MAX_ATTEMPTS = 2;
 const TIME_PER_QUESTION = 30;
 const MAX_LEVEL = 10;
 

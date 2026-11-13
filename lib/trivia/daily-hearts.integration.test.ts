@@ -21,10 +21,10 @@ test('daily hearts initialize for legacy users, charge once, lock and reset', as
           select: { id: true },
         });
         assert.equal(await tx.user.count({
-          where: { id: user.id, triviaHeartsDate: { isSet: false } },
+          where: { id: user.id, triviaHeartsDate: null },
         }), 1);
         assert.equal(await tx.user.count({
-          where: { id: user.id, triviaLockedUntil: { isSet: false } },
+          where: { id: user.id, triviaLockedUntil: null },
         }), 1);
 
         const firstId = randomUUID();
