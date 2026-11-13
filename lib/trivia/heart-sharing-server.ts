@@ -245,7 +245,6 @@ export async function respondToHeartRequest(
         id: donorId,
         OR: [
           { triviaHeartsDate: null },
-          { triviaHeartsDate: { isSet: false } },
           { triviaHeartsDate: { lt: dayStart } },
         ],
       },
@@ -263,7 +262,6 @@ export async function respondToHeartRequest(
         triviaHeartsRemaining: { gte: MIN_HEARTS_TO_GIVE },
         OR: [
           { triviaLockedUntil: null },
-          { triviaLockedUntil: { isSet: false } },
           { triviaLockedUntil: { lte: now } },
         ],
       },

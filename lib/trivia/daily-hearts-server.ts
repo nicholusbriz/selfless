@@ -23,46 +23,35 @@ export async function recordFailedTriviaQuestion(
 ) {
   const dayStart = getUtcTriviaDayStart(now);
 
-  await db.user.updateMany({
-    where: {
-      id: userId,
-      OR: [
-        { triviaHeartsDate: null },
-        { triviaHeartsDate: { isSet: false } },
-        { triviaHeartsDate: { lt: dayStart } },
-      ],
-    },
-    data: {
-      triviaHeartsDate: dayStart,
-      triviaHeartsRemaining: 3,
-      triviaFailureIds: [],
-    },
+  // First, ensure the user has initialized hearts for today
+  const user = await db.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: heartSelection,
   });
+
+  if (!isCurrentUtcTriviaDay(user.triviaHeartsDate, now)) {
+    // Initialize hearts for today if not already done
+    await db.user.update({
+      where: { id: userId },
+      data: {
+        triviaHeartsDate: dayStart,
+        triviaHeartsRemaining: 3,
+        triviaFailureIds: [],
+      },
+    });
+  }
 
   let account = await db.user.findUniqueOrThrow({
     where: { id: userId },
     select: heartSelection,
   });
-  if (!isCurrentUtcTriviaDay(account.triviaHeartsDate, now)) {
-    throw new Error('Could not initialize daily trivia hearts');
-  }
 
   let lockedUntil = getActiveTriviaLock(account.triviaLockedUntil, now);
   if (account.triviaHeartsRemaining === 0) {
     lockedUntil ??= getNextUtcTriviaReset(now);
   } else if (!lockedUntil && !account.triviaFailureIds.includes(failureId)) {
-    await db.user.updateMany({
-      where: {
-        id: userId,
-        triviaHeartsDate: dayStart,
-        triviaHeartsRemaining: { gt: 0 },
-        NOT: { triviaFailureIds: { has: failureId } },
-        OR: [
-          { triviaLockedUntil: null },
-          { triviaLockedUntil: { isSet: false } },
-          { triviaLockedUntil: { lte: now } },
-        ],
-      },
+    await db.user.update({
+      where: { id: userId },
       data: {
         triviaHeartsRemaining: { decrement: 1 },
         triviaFailureIds: { push: failureId },
@@ -76,17 +65,8 @@ export async function recordFailedTriviaQuestion(
     lockedUntil = getActiveTriviaLock(account.triviaLockedUntil, now);
     if (account.triviaHeartsRemaining === 0) {
       lockedUntil ??= getNextUtcTriviaReset(now);
-      await db.user.updateMany({
-        where: {
-          id: userId,
-          triviaHeartsDate: dayStart,
-          triviaHeartsRemaining: 0,
-          OR: [
-            { triviaLockedUntil: null },
-            { triviaLockedUntil: { isSet: false } },
-            { triviaLockedUntil: { lte: now } },
-          ],
-        },
+      await db.user.update({
+        where: { id: userId },
         data: { triviaLockedUntil: lockedUntil },
       });
     } else if (!lockedUntil && !account.triviaFailureIds.includes(failureId)) {
