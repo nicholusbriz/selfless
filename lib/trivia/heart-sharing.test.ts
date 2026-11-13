@@ -24,6 +24,7 @@ const account = (
 
 test('stale heart records count as a full set of hearts', () => {
   assert.equal(getEffectiveHearts(account(0, yesterday), now), 3);
+  assert.equal(getEffectiveHearts(account(0, new Date('2026-11-13T00:00:00.000Z')), now), 3);
   assert.equal(getEffectiveHearts(account(1, null), now), 3);
   assert.equal(getEffectiveHearts(account(1), now), 1);
 });

@@ -243,10 +243,7 @@ export async function respondToHeartRequest(
     await tx.user.updateMany({
       where: {
         id: donorId,
-        OR: [
-          { triviaHeartsDate: null },
-          { triviaHeartsDate: { lt: dayStart } },
-        ],
+        OR: [{ triviaHeartsDate: null }, { triviaHeartsDate: { not: dayStart } }],
       },
       data: {
         triviaHeartsDate: dayStart,
