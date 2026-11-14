@@ -13,33 +13,17 @@ import {
 } from "framer-motion";
 import {
   ArrowRight,
-  BookOpen,
   ChevronLeft,
   ChevronRight,
-  MessageSquare,
-  Network,
-  Users,
 } from "lucide-react";
 
 import Footer from "@/app/components/Footer";
 import LoadingScreen from "@/app/components/LoadingScreen";
 import AuthModal from "@/components/auth/AuthModal";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { siteTheme } from "@/lib/site-theme";
 
-const COLORS = {
-  page: "#F8F7F4",
-  surface: "#FFFFFF",
-  soft: "#F5F4F0",
-  border: "#E8E6E0",
-  ink: "#0F172A",
-  body: "#374151",
-  muted: "#6B7280",
-  subtle: "#9CA3AF",
-  brass: "#D4A53E",
-  brassLight: "#E8B04D",
-  brassDark: "#B8932E",
-  moss: "#4A6741",
-};
+const COLORS = siteTheme;
 
 type HeroImage = {
   src: string;
@@ -48,93 +32,58 @@ type HeroImage = {
   description: string;
 };
 
-const features = [
-  {
-    number: "01",
-    icon: BookOpen,
-    title: "Academic progress",
-    description:
-      "Keep your studies, courses, grades, and academic journey organized.",
-    href: "/dashboard",
-  },
-  {
-    number: "02",
-    icon: Users,
-    title: "Student community",
-    description:
-      "Connect with students beyond your own tech center and build meaningful relationships.",
-    href: "/dashboard",
-  },
-  {
-    number: "03",
-    icon: Network,
-    title: "Tech-center network",
-    description:
-      "Stay connected to the wider Selfless community across different centers.",
-    href: "/tech-centers",
-  },
-  {
-    number: "04",
-    icon: MessageSquare,
-    title: "Communication",
-    description:
-      "Receive updates, communicate with your center, and stay informed.",
-    href: "/dashboard",
-  },
-];
-
 const heroImages: HeroImage[] = [
   {
     src: "/ce1.jpeg",
     eyebrow: "SELFLESS STUDENT PORTAL",
-    title: "Your education, connected.",
+    title: "Your Education, Connected.",
     description:
-      "A central place for students studying online through BYU-Idaho with Selfless.",
+      "One portal for your courses, grades, community, and everything that moves you forward.",
   },
   {
     src: "/ce2.jpeg",
     eyebrow: "ACADEMIC TOOLS",
-    title: "Stay focused on your studies.",
+    title: "Stay Focused on Your Studies.",
     description:
-      "Keep your academic activities, courses, grades, and learning journey organized.",
+      "Courses, grades, and progress — organized in one place so you can focus on what matters.",
   },
   {
     src: "/ce3.jpeg",
     eyebrow: "ACADEMIC PROGRESS",
-    title: "Know where you are in your journey.",
+    title: "Know Where You Are in Your Journey.",
     description:
-      "Access the information you need to stay aware of your academic progress.",
+      "Track your progress, celebrate your wins, and always see what's next.",
   },
   {
     src: "/ce4.jpeg",
     eyebrow: "STUDENT SERVICES",
-    title: "Learn, connect, and move forward.",
+    title: "Learn, Connect, and Move Forward.",
     description:
-      "Access a connected student experience built around your studies and community.",
+      "Students, tutors, and tech centers — one community built around your growth.",
   },
 ];
 
 const heroImageVariants: Variants = {
-  enter: (direction: number) => ({
+  enter: () => ({
     opacity: 0,
-    x: direction > 0 ? 28 : -28,
+    scale: 1.08,
   }),
   center: {
     opacity: 1,
-    x: 0,
+    scale: 1,
     transition: {
-      duration: 0.65,
+      duration: 1.6,
       ease: [0.22, 1, 0.36, 1],
     },
   },
-  exit: (direction: number) => ({
+  exit: {
     opacity: 0,
-    x: direction > 0 ? -28 : 28,
+    scale: 0.98,
     transition: {
-      duration: 0.45,
+      duration: 1.6,
       ease: [0.22, 1, 0.36, 1],
     },
-  }),
+  },
 };
 
 /* =========================================================
@@ -153,30 +102,6 @@ const slideInLeft = {
   },
 };
 
-const slideInRight = {
-  hidden: { opacity: 0, x: 28 },
-  visible: {
-    opacity: 1,
-    x: 0,
-    transition: {
-      duration: 0.65,
-      ease: [0.22, 1, 0.36, 1] as const,
-    },
-  },
-};
-
-const slideInUp = {
-  hidden: { opacity: 0, y: 22 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.6,
-      ease: [0.22, 1, 0.36, 1] as const,
-    },
-  },
-};
-
 const stagger = {
   hidden: {},
   visible: {
@@ -186,23 +111,8 @@ const stagger = {
   },
 };
 
-const staggerFast = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.05,
-    },
-  },
-};
-
 export default function HomePage() {
-  const { user, isLoading: authLoading } = useAuth();
-  const [currentHero, setCurrentHero] = useState(0);
-  const [direction, setDirection] = useState(1);
-
-  const [failedImages, setFailedImages] = useState<Set<string>>(
-    () => new Set()
-  );
+  const { user } = useAuth();
 
   const [showAuthModal, setShowAuthModal] = useState(false);
 
@@ -215,6 +125,13 @@ export default function HomePage() {
   const shouldReduceMotion = useReducedMotion();
 
   const preloadRef = useRef<Set<string>>(new Set());
+
+  const [currentHero, setCurrentHero] = useState(0);
+  const [direction, setDirection] = useState(1);
+
+  const [failedImages, setFailedImages] = useState<Set<string>>(
+    () => new Set()
+  );
 
   const activeHero = heroImages[currentHero];
 
@@ -356,15 +273,6 @@ export default function HomePage() {
     setShowAuthModal(false);
   }, []);
 
-  /* Animation props helper for viewport-based animation */
-  const viewportAnimation = shouldReduceMotion
-    ? {}
-    : {
-        initial: "hidden",
-        whileInView: "visible",
-        viewport: { once: true, amount: 0.12 },
-      };
-
   return (
     <>
       {loadingScreen && (
@@ -374,7 +282,7 @@ export default function HomePage() {
         />
       )}
 
-      <div className="min-h-screen flex flex-col bg-[#F8F7F4]">
+      <div className="min-h-screen flex flex-col bg-[#F7F6F2]">
 
         <main className="flex-1">
 
@@ -382,654 +290,202 @@ export default function HomePage() {
               HERO
           ====================================================== */}
 
-          <section
-            className="relative z-20 overflow-hidden"
-            style={{
-              backgroundColor: "#0F172A",
-            }}
-          >
-            <div className="mx-auto max-w-[1500px]">
-              <div className="grid lg:min-h-[620px] lg:grid-cols-[43%_57%]">
+          <section className="relative overflow-hidden bg-[#12203B]">
+            {/* BACKGROUND SLIDESHOW */}
+            <div aria-hidden="true" className="absolute inset-0">
+              <AnimatePresence
+                initial={false}
+                custom={direction}
+                mode="sync"
+              >
+                <motion.div
+                  key={activeHero.src}
+                  custom={direction}
+                  variants={heroImageVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  className="absolute inset-0"
+                >
+                  <Image
+                    src={activeHero.src}
+                    alt={activeHero.title}
+                    fill
+                    priority={currentHero === 0}
+                    sizes="100vw"
+                    className="object-cover"
+                    onError={() => handleImageError(activeHero.src)}
+                  />
+                </motion.div>
+              </AnimatePresence>
 
-                {/* HERO COPY */}
+              <div className="absolute inset-0 bg-[#0D182C]/50" />
+              <div className="absolute inset-0 bg-gradient-to-b from-[#0D182C]/45 via-[#0D182C]/30 to-[#0D182C]/60" />
+              <div
+                aria-hidden="true"
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "radial-gradient(ellipse 55% 45% at 50% 42%, rgba(13,24,44,0.6), rgba(13,24,44,0.25) 55%, transparent 75%)",
+                }}
+              />
+            </div>
 
-                <div
-                  className="relative order-2 flex items-center px-5 py-10 sm:px-8 sm:py-14 lg:order-1 lg:px-12 lg:py-16 xl:px-16"
+            {/* HERO CONTENT */}
+            <div className="relative z-10 mx-auto flex min-h-[100dvh] max-w-[1200px] flex-col justify-center px-5 pb-24 pt-36 sm:px-8 sm:pt-40 lg:px-10">
+              <motion.div
+                initial={shouldReduceMotion ? false : "hidden"}
+                animate="visible"
+                variants={stagger}
+                className="mx-auto max-w-[640px] text-center"
+              >
+                <motion.div
+                  variants={slideInLeft}
+                  className="mb-4 sm:mb-6"
+                >
+                  <span
+                    className="text-[10px] font-semibold uppercase tracking-[0.22em] sm:text-[11px]"
+                    style={{
+                      color: COLORS.brassLight,
+                    }}
+                  >
+                    {activeHero.eyebrow}
+                  </span>
+                </motion.div>
+
+                <motion.h1
+                  variants={slideInLeft}
+                  className="text-[clamp(2.5rem,5.5vw,4.6rem)] font-semibold leading-[1.02] tracking-[-0.04em] text-white"
+                >
+                  {activeHero.title}
+                </motion.h1>
+
+                <motion.p
+                  variants={slideInLeft}
+                  className="mx-auto mt-5 max-w-[500px] text-[15px] leading-[1.75] sm:mt-6 sm:text-[16px] font-normal"
                   style={{
-                    backgroundColor: "#0F172A",
+                    color: "rgba(255,255,255,0.88)",
                   }}
                 >
-                  <motion.div
-                    initial={shouldReduceMotion ? false : "hidden"}
-                    animate="visible"
-                    variants={stagger}
-                    className="relative z-10 max-w-[570px]"
-                  >
-                    <motion.div
-                      variants={slideInLeft}
-                      className="mb-4 sm:mb-6"
-                    >
-                      <span
-                        className="text-[10px] font-semibold uppercase tracking-[0.22em] sm:text-[11px]"
-                        style={{
-                          color: COLORS.brassLight,
-                        }}
-                      >
-                        {activeHero.eyebrow}
-                      </span>
-                    </motion.div>
+                  {activeHero.description}
+                </motion.p>
 
-                    <motion.h1
-                      variants={slideInLeft}
-                      className="max-w-[540px] text-[clamp(2.7rem,6vw,5.2rem)] font-semibold leading-[0.96] tracking-[-0.05em] text-white"
-                    >
-                      {activeHero.title}
-                    </motion.h1>
-
-                    <motion.p
-                      variants={slideInLeft}
-                      className="mt-5 max-w-[480px] text-[15px] leading-[1.75] sm:mt-6 sm:text-[16px] font-normal"
+                <motion.div
+                  variants={slideInLeft}
+                  className="mt-8 flex flex-wrap items-center justify-center gap-4 sm:mt-9"
+                >
+                  {user ? (
+                    <Link
+                      href="/dashboard"
+                      className="group inline-flex items-center gap-2.5 rounded-lg px-6 py-3.5 text-[14px] font-semibold transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
                       style={{
-                        color: "rgba(255,255,255,0.85)",
+                        backgroundColor: COLORS.brassLight,
+                        color: COLORS.ink,
                       }}
                     >
-                      {activeHero.description}
-                    </motion.p>
-
-                    <motion.div
-                      variants={slideInLeft}
-                      className="mt-8 flex flex-wrap items-center gap-4 sm:mt-9"
-                    >
-                      {user ? (
-                        <Link
-                          href="/dashboard"
-                          className="group inline-flex items-center gap-2.5 rounded-lg px-6 py-3.5 text-[14px] font-semibold transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
-                          style={{
-                            backgroundColor: COLORS.brassLight,
-                            color: COLORS.ink,
-                          }}
-                        >
-                          Go to dashboard
-
-                          <ArrowRight
-                            size={16}
-                            className="transition-transform duration-300 group-hover:translate-x-1"
-                          />
-                        </Link>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => openAuth("register")}
-                          className="group inline-flex items-center gap-2.5 rounded-lg px-6 py-3.5 text-[14px] font-semibold transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg motion-reduce:transition-none"
-                          style={{
-                            backgroundColor: COLORS.brassLight,
-                            color: COLORS.ink,
-                          }}
-                        >
-                          Get started
-
-                          <ArrowRight
-                            size={16}
-                            className="transition-transform duration-300 group-hover:translate-x-1"
-                          />
-                        </button>
-                      )}
-
-                      <Link
-                        href="/about"
-                        className="group inline-flex items-center gap-2.5 text-[14px] font-medium sm:text-[15px] transition-colors duration-300"
-                        style={{
-                          color: "rgba(255,255,255,0.90)",
-                        }}
-                      >
-                        About the portal
-
-                        <ArrowRight
-                          size={15}
-                          className="transition-transform duration-300 group-hover:translate-x-1"
-                        />
-                      </Link>
-                    </motion.div>
-
-                    <motion.div
-                      variants={slideInLeft}
-                      className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4 pt-5 sm:mt-11"
-                    >
-                      <div>
-                        <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/40">
-                          Experience
-                        </p>
-
-                        <p className="mt-1.5 text-[12px] font-medium text-white/70">
-                          Student-centered
-                        </p>
-                      </div>
-
-                      <div className="hidden h-8 w-px bg-white/10 sm:block" />
-
-                      <div>
-                        <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/40">
-                          Community
-                        </p>
-
-                        <p className="mt-1.5 text-[12px] font-medium text-white/70">
-                          Connected
-                        </p>
-                      </div>
-
-                      <div className="hidden h-8 w-px bg-white/10 sm:block" />
-
-                      <div>
-                        <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/40">
-                          Focus
-                        </p>
-
-                        <p className="mt-1.5 text-[12px] font-medium text-white/70">
-                          Your education
-                        </p>
-                      </div>
-                    </motion.div>
-                  </motion.div>
-                </div>
-
-                {/* HERO IMAGE */}
-
-                <div
-                  className="relative order-1 min-h-[320px] overflow-hidden sm:min-h-[420px] lg:order-2 lg:min-h-[620px]"
-                  style={{
-                    clipPath: "polygon(7% 0, 100% 0, 100% 100%, 0 100%)",
-                  }}
-                >
-                  <AnimatePresence
-                    initial={false}
-                    custom={direction}
-                    mode="sync"
-                  >
-                    <motion.div
-                      key={activeHero.src}
-                      custom={direction}
-                      variants={heroImageVariants}
-                      initial="enter"
-                      animate="center"
-                      exit="exit"
-                      className="absolute inset-0"
-                    >
-                      <Image
-                        src={activeHero.src}
-                        alt={activeHero.title}
-                        fill
-                        priority={currentHero === 0}
-                        sizes="(max-width: 1024px) 100vw, 57vw"
-                        className="object-cover"
-                        onError={() => handleImageError(activeHero.src)}
-                      />
-
-                      <div
-                        className="absolute inset-0"
-                        style={{
-                          backgroundColor: "rgba(15, 23, 42, 0.08)",
-                        }}
-                      />
-                    </motion.div>
-                  </AnimatePresence>
-
-                  <div
-                    className="absolute inset-y-0 left-0 z-10 hidden w-24 lg:block"
-                    style={{
-                      backgroundColor: "#0F172A",
-                      clipPath: "polygon(0 0, 100% 0, 0 100%)",
-                    }}
-                  />
-
-                  <div
-                    className="absolute inset-x-0 bottom-0 z-20 h-12 lg:hidden"
-                    style={{
-                      backgroundColor: "#0F172A",
-                      clipPath: "polygon(0 100%, 100% 35%, 100% 100%)",
-                    }}
-                  />
-
-                  <div className="absolute right-5 top-5 z-30 sm:right-7 sm:top-7">
-                    <div className="bg-[#0F172A]/60 px-4 py-2.5 backdrop-blur-sm rounded-lg">
-                      <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/90">
-                        Student experience
-                      </p>
-                    </div>
-                  </div>
-
-                  {availableHeroIndexes.length > 1 && (
-                    <div className="absolute bottom-5 left-5 right-5 z-30 flex items-center justify-between sm:bottom-7 sm:left-7 sm:right-7 lg:bottom-9 lg:left-12 lg:right-10">
-                      <div className="flex items-center gap-2">
-                        {heroImages.map((image, index) => {
-                          if (failedImages.has(image.src)) {
-                            return null;
-                          }
-
-                          return (
-                            <button
-                              key={image.src}
-                              type="button"
-                              aria-label={`Show slide ${index + 1}`}
-                              aria-current={index === currentHero}
-                              onClick={() => selectHero(index)}
-                              className="h-1.5 rounded-full transition-all duration-300"
-                              style={{
-                                width: index === currentHero ? 32 : 8,
-                                backgroundColor:
-                                  index === currentHero
-                                    ? COLORS.brassLight
-                                    : "rgba(255,255,255,0.60)",
-                              }}
-                            />
-                          );
-                        })}
-                      </div>
-
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={previousHero}
-                          aria-label="Previous image"
-                          className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-white/10"
-                          style={{
-                            color: "#FFFFFF",
-                            backgroundColor: "rgba(15,23,42,0.60)",
-                          }}
-                        >
-                          <ChevronLeft size={16} strokeWidth={1.8} />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={nextHero}
-                          aria-label="Next image"
-                          className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-white/10"
-                          style={{
-                            color: "#FFFFFF",
-                            backgroundColor: "rgba(15,23,42,0.60)",
-                          }}
-                        >
-                          <ChevronRight size={16} strokeWidth={1.8} />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* =====================================================
-              FIXED VIDEO EXPERIENCE
-          ====================================================== */}
-
-          <section className="relative isolate overflow-hidden bg-[#0F172A]">
-
-            {/* FIXED VIDEO LAYER — no gradients, flat overlay */}
-
-            <div
-              aria-hidden="true"
-              className="pointer-events-none fixed inset-0 z-[-20] overflow-hidden"
-            >
-              <video
-                className="absolute inset-0 h-full w-full object-cover"
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="metadata"
-                poster="/ce1.jpeg"
-              >
-                <source src="/graduate.mp4" type="video/mp4" />
-              </video>
-
-              <div className="absolute inset-0 bg-[#0F172A]/60" />
-            </div>
-
-            {/* =================================================
-                VIDEO INTRO
-            ================================================== */}
-
-            <section className="relative z-10 px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24">
-              <div className="mx-auto max-w-7xl">
-                <motion.div
-                  {...viewportAnimation}
-                  variants={stagger}
-                  className="grid items-end gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-20"
-                >
-                  <motion.div variants={slideInLeft}>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#E8B04D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)]">
-                      About Selfless
-                    </p>
-
-                    <h2 className="mt-6 max-w-xl text-[clamp(2.6rem,5.5vw,4.8rem)] font-semibold leading-[0.96] tracking-[-0.04em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
-                      One place for
-                      <br />
-                      <span className="text-[#E8B04D] drop-shadow-[0_2px_12px_rgba(0,0,0,0.7)]">
-                        your journey.
-                      </span>
-                    </h2>
-                  </motion.div>
-
-                  <motion.div variants={slideInRight} className="max-w-2xl">
-                    <p className="text-[17px] leading-[1.8] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.75)] sm:text-[18px] sm:leading-[1.75] font-normal">
-                      Selfless brings students, tech centers, academic
-                      support, and community into one connected experience.
-                    </p>
-
-                    <p className="mt-5 max-w-xl text-[15px] leading-[1.75] text-white/95 drop-shadow-[0_1px_6px_rgba(0,0,0,0.7)] sm:text-[16px] sm:leading-[1.8] font-normal">
-                      Instead of moving between disconnected information and
-                      services, students have one place to stay informed,
-                      connected, and focused on their education.
-                    </p>
-
-                    <Link
-                      href="/about"
-                      className="group mt-8 inline-flex items-center gap-2.5 text-[15px] font-semibold text-[#E8B04D] drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)] transition-colors duration-300 hover:text-white"
-                    >
-                      Learn about Selfless
+                      Go to dashboard
 
                       <ArrowRight
                         size={16}
                         className="transition-transform duration-300 group-hover:translate-x-1"
                       />
                     </Link>
-                  </motion.div>
-                </motion.div>
-              </div>
-            </section>
-
-            {/* =================================================
-                JOURNEY — compact, no borders, sliding in
-            ================================================== */}
-
-            <section className="relative z-10 px-5 py-14 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
-              <div className="mx-auto max-w-7xl">
-                <motion.div
-                  {...viewportAnimation}
-                  variants={stagger}
-                  className="grid gap-10 sm:grid-cols-3 sm:gap-10 lg:gap-14"
-                >
-                  <motion.div variants={slideInUp}>
-                    <VideoJourneyItem
-                      number="01"
-                      title="Learn"
-                      text="Keep your academic journey organized and stay focused on the work that matters."
-                    />
-                  </motion.div>
-
-                  <motion.div variants={slideInUp}>
-                    <VideoJourneyItem
-                      number="02"
-                      title="Connect"
-                      text="Build relationships with students, tutors, tech centers, and the wider community."
-                    />
-                  </motion.div>
-
-                  <motion.div variants={slideInUp}>
-                    <VideoJourneyItem
-                      number="03"
-                      title="Progress"
-                      text="Find support, information, and opportunities as you continue your education."
-                    />
-                  </motion.div>
-                </motion.div>
-              </div>
-            </section>
-
-            {/* =================================================
-                PORTAL STATEMENT — compact, sliding columns
-            ================================================== */}
-
-            <section className="relative z-10 px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24">
-              <div className="mx-auto max-w-7xl">
-                <motion.div
-                  {...viewportAnimation}
-                  variants={stagger}
-                  className="grid gap-12 lg:grid-cols-[1fr_280px] lg:items-start lg:gap-20"
-                >
-                  <motion.div variants={slideInLeft} className="max-w-4xl">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#E8B04D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
-                      The Student Portal
-                    </p>
-
-                    <h2 className="mt-6 text-[clamp(2.4rem,5.5vw,4.7rem)] font-semibold leading-[0.97] tracking-[-0.04em] text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.75)]">
-                      Everything important,
-                      <br />
-                      <span className="text-[#E8B04D] drop-shadow-[0_2px_14px_rgba(0,0,0,0.85)]">
-                        easier to find.
-                      </span>
-                    </h2>
-
-                    <p className="mt-7 max-w-2xl text-[16px] leading-[1.8] tracking-[0.005em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)] sm:text-[17px] sm:leading-[1.75] font-normal">
-                      Your studies and student services are brought together
-                      in one place, with the tools you need throughout your
-                      time with Selfless.
-                    </p>
-                  </motion.div>
-
-                  <motion.div variants={slideInRight} className="pt-1">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#E8B04D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
-                      Designed For
-                    </p>
-
-                    <div className="mt-6 space-y-3.5">
-                      {[
-                        "Students",
-                        "Tech centers",
-                        "Academic support",
-                        "Community",
-                      ].map((item) => (
-                        <p
-                          key={item}
-                          className="text-[16px] font-semibold tracking-[-0.01em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)]"
-                        >
-                          {item}
-                        </p>
-                      ))}
-                    </div>
-
-                    <Link
-                      href="/features"
-                      className="group mt-8 inline-flex items-center gap-2.5 text-[15px] font-semibold tracking-[0.005em] text-[#E8B04D] drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] transition-colors duration-300 hover:text-white"
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => openAuth("register")}
+                      className="group inline-flex items-center gap-2.5 rounded-lg px-6 py-3.5 text-[14px] font-semibold transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg motion-reduce:transition-none"
+                      style={{
+                        backgroundColor: COLORS.brassLight,
+                        color: COLORS.ink,
+                      }}
                     >
-                      Explore features
+                      Get started
 
                       <ArrowRight
-                        size={15}
+                        size={16}
                         className="transition-transform duration-300 group-hover:translate-x-1"
                       />
-                    </Link>
-                  </motion.div>
+                    </button>
+                  )}
+
+                  <Link
+                    href="/about"
+                    className="group inline-flex items-center gap-2.5 rounded-lg border px-6 py-3.5 text-[14px] font-semibold transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/10"
+                    style={{
+                      color: "rgba(255,255,255,0.92)",
+                      borderColor: "rgba(255,255,255,0.35)",
+                    }}
+                  >
+                    About the portal
+
+                    <ArrowRight
+                      size={15}
+                      className="transition-transform duration-300 group-hover:translate-x-1"
+                    />
+                  </Link>
                 </motion.div>
-              </div>
-            </section>
+              </motion.div>
+            </div>
 
-            {/* =================================================
-                FEATURES — compact grid, sliding cards
-            ================================================== */}
-
-            <section className="relative z-10 px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24">
-              <div className="mx-auto max-w-7xl">
-                <motion.div {...viewportAnimation} variants={stagger}>
-                  <motion.div
-                    variants={slideInLeft}
-                    className="mb-12 flex flex-col gap-5 sm:mb-14 sm:flex-row sm:items-end sm:justify-between"
-                  >
-                    <div>
-                      <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#E8B04D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
-                        What You Can Do
-                      </p>
-
-                      <h2 className="mt-5 text-3xl font-semibold leading-[1.02] tracking-[-0.04em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)] sm:text-4xl lg:text-5xl">
-                        Built around{" "}
-                        <span className="text-[#E8B04D] drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
-                          student needs.
-                        </span>
-                      </h2>
-                    </div>
-
-                    <Link
-                      href="/features"
-                      className="group inline-flex items-center gap-2.5 text-[15px] font-semibold tracking-[0.005em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] transition-colors duration-300 hover:text-[#E8B04D]"
-                    >
-                      Explore all features
-
-                      <ArrowRight
-                        size={15}
-                        className="transition-transform duration-300 group-hover:translate-x-1"
-                      />
-                    </Link>
-                  </motion.div>
-
-                  <motion.div
-                    variants={staggerFast}
-                    className="grid gap-x-10 gap-y-12 sm:grid-cols-2 sm:gap-x-12 sm:gap-y-14 lg:grid-cols-4 lg:gap-x-10"
-                  >
-                    {features.map((feature) => {
-                      const Icon = feature.icon;
+            {/* SLIDER CONTROLS */}
+            {availableHeroIndexes.length > 1 && (
+              <div className="absolute inset-x-0 bottom-0 z-20">
+                <div className="mx-auto flex max-w-[1200px] items-center justify-between gap-3 px-5 pb-6 sm:px-8 lg:px-10">
+                  <div className="flex items-center gap-1.5">
+                    {heroImages.map((image, index) => {
+                      if (failedImages.has(image.src)) {
+                        return null;
+                      }
 
                       return (
-                        <motion.div
-                          key={feature.number}
-                          variants={slideInUp}
-                        >
-                          <Link
-                            href={feature.href}
-                            className="group block"
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.08] text-[#E8B04D] backdrop-blur-sm transition-all duration-300 group-hover:bg-[#E8B04D]/20">
-                                <Icon size={19} strokeWidth={1.7} />
-                              </div>
-
-                              <span className="font-mono text-[10px] font-bold tracking-[0.2em] text-[#E8B04D] drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)]">
-                                {feature.number}
-                              </span>
-                            </div>
-
-                            <h3 className="mt-7 text-[18px] font-bold leading-snug tracking-[-0.015em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)] transition-colors duration-300 group-hover:text-[#E8B04D]">
-                              {feature.title}
-                            </h3>
-
-                            <p className="mt-3 max-w-[280px] text-[14px] leading-[1.75] tracking-[0.005em] text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)] font-normal">
-                              {feature.description}
-                            </p>
-
-                            <span className="mt-6 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[#E8B04D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)] transition-colors duration-300 group-hover:text-white">
-                              Open
-
-                              <ArrowRight
-                                size={13}
-                                className="transition-transform duration-300 group-hover:translate-x-1"
-                              />
-                            </span>
-                          </Link>
-                        </motion.div>
+                        <button
+                          key={image.src}
+                          type="button"
+                          aria-label={`Show slide ${index + 1}`}
+                          aria-current={index === currentHero}
+                          onClick={() => selectHero(index)}
+                          className="h-1.5 rounded-full transition-all duration-300"
+                          style={{
+                            width: index === currentHero ? 28 : 8,
+                            backgroundColor:
+                              index === currentHero
+                                ? COLORS.brassLight
+                                : "rgba(255,255,255,0.55)",
+                          }}
+                        />
                       );
                     })}
-                  </motion.div>
-                </motion.div>
-              </div>
-            </section>
+                  </div>
 
-            {/* =================================================
-                FINAL CTA — compact, sliding
-            ================================================== */}
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[10px] tracking-[0.15em] text-white/70">
+                      {String(availableHeroIndexes.indexOf(currentHero) + 1).padStart(2, "0")}
+                      {" / "}
+                      {String(availableHeroIndexes.length).padStart(2, "0")}
+                    </span>
 
-            <section className="relative z-10 px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24">
-              <div className="mx-auto max-w-7xl">
-                <motion.div
-                  {...viewportAnimation}
-                  variants={stagger}
-                  className="grid gap-10 lg:grid-cols-[1fr_auto] lg:items-end lg:gap-16"
-                >
-                  <motion.div variants={slideInLeft} className="max-w-3xl">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#E8B04D] drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
-                      SELFLESS
-                    </p>
-
-                    <h2 className="mt-6 text-[clamp(2.5rem,5.5vw,4.7rem)] font-semibold leading-[0.95] tracking-[-0.04em] text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.75)]">
-                      Focus on your{" "}
-                      <span className="text-[#E8B04D] drop-shadow-[0_2px_14px_rgba(0,0,0,0.85)]">
-                        education.
-                      </span>
-                      <br />
-                      We help connect the rest.
-                    </h2>
-
-                    <p className="mt-7 max-w-2xl text-[15px] leading-[1.8] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)] sm:text-[16px] sm:leading-[1.75] font-normal">
-                      Connect with tutors, students, tech-center teams, and the
-                      wider Selfless community whenever you need support.
-                    </p>
-                  </motion.div>
-
-                  <motion.div
-                    variants={slideInRight}
-                    className="flex flex-wrap items-center gap-4 lg:max-w-[360px] lg:justify-end"
-                  >
-                    {user ? (
-                      <Link
-                        href="/dashboard"
-                        className="group inline-flex items-center gap-2.5 rounded-lg px-6 py-3.5 text-[14px] font-semibold transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
-                        style={{
-                          backgroundColor: COLORS.brassLight,
-                          color: COLORS.ink,
-                        }}
-                      >
-                        Open dashboard
-
-                        <ArrowRight
-                          size={16}
-                          className="transition-transform duration-300 group-hover:translate-x-1"
-                        />
-                      </Link>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => openAuth("register")}
-                          className="group inline-flex items-center gap-2.5 rounded-lg px-6 py-3.5 text-[14px] font-semibold transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg motion-reduce:transition-none"
-                          style={{
-                            backgroundColor: COLORS.brassLight,
-                            color: COLORS.ink,
-                          }}
-                        >
-                          Get started
-
-                          <ArrowRight
-                            size={16}
-                            className="transition-transform duration-300 group-hover:translate-x-1"
-                          />
-                        </button>
-
-                        {!authLoading && (
-                          <button
-                            type="button"
-                            onClick={() => openAuth("login")}
-                            className="inline-flex items-center gap-2.5 rounded-lg px-6 py-3.5 text-[14px] font-semibold text-white transition-colors duration-300 hover:bg-white/10"
-                          >
-                            Sign in
-                          </button>
-                        )}
-                      </>
-                    )}
-
-                    <Link
-                      href="/help"
-                      className="group inline-flex items-center gap-2.5 px-2 py-3.5 text-[14px] font-medium text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)] transition-colors duration-300 hover:text-[#E8B04D]"
+                    <button
+                      type="button"
+                      onClick={previousHero}
+                      aria-label="Previous image"
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
                     >
-                      Visit support
+                      <ChevronLeft size={15} strokeWidth={2} />
+                    </button>
 
-                      <ArrowRight
-                        size={15}
-                        className="transition-transform duration-300 group-hover:translate-x-1"
-                      />
-                    </Link>
-                  </motion.div>
-                </motion.div>
+                    <button
+                      type="button"
+                      onClick={nextHero}
+                      aria-label="Next image"
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+                    >
+                      <ChevronRight size={15} strokeWidth={2} />
+                    </button>
+                  </div>
+                </div>
               </div>
-            </section>
+            )}
           </section>
         </main>
 
@@ -1044,35 +500,5 @@ export default function HomePage() {
         />
       </div>
     </>
-  );
-}
-
-/* =========================================================
-   VIDEO JOURNEY ITEM — compact
-========================================================= */
-
-function VideoJourneyItem({
-  number,
-  title,
-  text,
-}: {
-  number: string;
-  title: string;
-  text: string;
-}) {
-  return (
-    <div>
-      <span className="font-mono text-[10px] font-bold tracking-[0.2em] text-[#E8B04D] drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]">
-        {number}
-      </span>
-
-      <h3 className="mt-4 text-[21px] font-bold leading-tight tracking-[-0.02em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.9)] sm:text-[22px]">
-        {title}
-      </h3>
-
-      <p className="mt-4 max-w-[300px] text-[15px] leading-[1.75] text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)] font-normal">
-        {text}
-      </p>
-    </div>
   );
 }

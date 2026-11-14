@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,6 +15,7 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  MoreVertical,
 } from 'lucide-react';
 import {
   useQuery,
@@ -617,8 +618,12 @@ export default function AnnouncementsPage() {
               </div>
 
               <div className="min-w-0">
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#B98A3E]">
+                  Communication
+                </p>
+
                 <h1
-                  className="truncate text-xl font-bold text-[#1A365D] sm:text-2xl"
+                  className="mt-0.5 truncate text-xl font-bold text-[#1A365D] sm:text-2xl"
                   style={{
                     fontFamily: 'var(--font-display)',
                   }}
@@ -643,49 +648,25 @@ export default function AnnouncementsPage() {
       ====================================================== */}
 
       <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        {/* Page intro */}
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#3182CE]">
-              Communication
-            </p>
-
-            <h2 className="mt-1 text-xl font-bold text-[#1E293B] sm:text-2xl">
-              Stay informed
-            </h2>
-
-            <p className="mt-1 max-w-2xl text-sm text-[#64748B]">
-              Important updates, deadlines and information
-              from your tech center.
-            </p>
-          </div>
-
-          <div className="hidden rounded-xl border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm text-[#64748B] shadow-sm sm:block">
-            <span className="font-semibold text-[#1A365D]">
-              {announcements.length}
-            </span>{' '}
-            active announcements
-          </div>
-        </div>
-
-        {/* =================================================
-            CREATE BUTTON
-        ================================================== */}
-
-        <button
-          onClick={() => {
-            setShowCreateForm(!showCreateForm);
-            setShowEditForm(false);
-            setEditingAnnouncement(null);
-            setFormData(INITIAL_FORM);
-          }}
-          className="mb-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#1A365D] px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#153475] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#3182CE]/30 focus:ring-offset-2"
-        >
-          <Plus className="h-5 w-5" />
-          {showCreateForm
-            ? 'Close Announcement Form'
-            : 'Create Announcement'}
-        </button>
+        {/* Create controls — admins only */}
+        {currentUser?.isAdmin && (
+          <>
+            <button
+              onClick={() => {
+                setShowCreateForm(!showCreateForm);
+                setShowEditForm(false);
+                setEditingAnnouncement(null);
+                setFormData(INITIAL_FORM);
+              }}
+              className="mb-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#1A365D] px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#153475] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#3182CE]/30 focus:ring-offset-2"
+            >
+              <Plus className="h-5 w-5" />
+              {showCreateForm
+                ? 'Close Announcement Form'
+                : 'Create Announcement'}
+            </button>
+          </>
+        )}
 
         {/* =================================================
             CREATE FORM
@@ -922,39 +903,14 @@ export default function AnnouncementsPage() {
                           )}
                         </button>
 
-                        {isOwner(announcement) && (
-                          <button
-                            onClick={() =>
-                              handleEditAnnouncement(
-                                announcement
-                              )
-                            }
-                            aria-label="Edit announcement"
-                            className="flex h-9 w-9 items-center justify-center rounded-lg text-[#3182CE] transition-colors hover:bg-blue-50"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                        )}
-
-                        {canDelete(announcement) && (
-                          <button
-                            onClick={() =>
-                              handleDeleteAnnouncement(
-                                announcement.id
-                              )
-                            }
-                            disabled={
-                              deleteMutation.isPending
-                            }
-                            aria-label="Delete announcement"
-                            className="flex h-9 w-9 items-center justify-center rounded-lg text-red-500 transition-colors hover:bg-red-50 disabled:opacity-50"
-                          >
-                            {deleteMutation.isPending ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
-                            )}
-                          </button>
+                        {(isOwner(announcement) || canDelete(announcement)) && (
+                          <AnnouncementMenu
+                            canEdit={isOwner(announcement)}
+                            canDelete={Boolean(canDelete(announcement))}
+                            isDeleting={deleteMutation.isPending}
+                            onEdit={() => handleEditAnnouncement(announcement)}
+                            onDelete={() => handleDeleteAnnouncement(announcement.id)}
+                          />
                         )}
                       </div>
                     </div>
@@ -1229,6 +1185,106 @@ function AnnouncementForm({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+/* =========================================================
+   ANNOUNCEMENT ACTIONS MENU (3-dot dropdown)
+========================================================= */
+
+function AnnouncementMenu({
+  canEdit,
+  canDelete,
+  isDeleting,
+  onEdit,
+  onDelete,
+}: {
+  canEdit: boolean;
+  canDelete: boolean;
+  isDeleting: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpen(false);
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isOpen]);
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        aria-label="Announcement options"
+        aria-expanded={isOpen}
+        className="flex h-9 w-9 items-center justify-center rounded-lg text-[#64748B] transition-colors hover:bg-[#F1F5F9] hover:text-[#1A365D]"
+      >
+        <MoreVertical className="h-4 w-4" />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.97 }}
+            transition={{ duration: 0.15 }}
+            className="absolute right-0 top-full z-30 mt-1 w-36 overflow-hidden rounded-xl border border-[#E2E8F0] bg-white py-1 shadow-lg"
+          >
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  onEdit();
+                }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] font-medium text-[#1E293B] transition-colors hover:bg-[#F1F5F9]"
+              >
+                <Edit className="h-3.5 w-3.5 text-[#3182CE]" />
+                Edit
+              </button>
+            )}
+
+            {canDelete && (
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => {
+                  setIsOpen(false);
+                  onDelete();
+                }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
+                Delete
+              </button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

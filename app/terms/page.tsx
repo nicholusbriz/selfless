@@ -1,5 +1,14 @@
-import PublicPageHero from "@/app/components/PublicPageHero";
-import PublicPageShell from "@/app/components/PublicPageShell";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import Footer from "@/app/components/Footer";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Terms of Use | Selfless Student Portal",
+  description:
+    "Terms and guidelines for using the Selfless Student Portal responsibly and securely.",
+  alternates: { canonical: "/terms" },
+};
 
 const sections = [
   {
@@ -28,40 +37,108 @@ const sections = [
   },
 ];
 
+const INK = "#111827";
+const BODY = "#111827";
+
 export default function TermsPage() {
   return (
-    <PublicPageShell>
-      <PublicPageHero
-        eyebrow="Legal"
-        title="Terms for using the student portal."
-        description="These guidelines help keep the Selfless CE Student Portal useful, respectful, and secure for students and the teams supporting them."
-      />
+    <div className="min-h-screen bg-[#F7F6F2] text-[#111827]">
+      <main>
+        {/* =====================================================
+            SINGLE SECTION
+        ====================================================== */}
+        <section className="px-5 pb-16 pt-10 sm:px-8 sm:pb-20 sm:pt-14 lg:px-12 lg:pb-24">
+          <div className="mx-auto w-full max-w-4xl">
+            {/* Header */}
+            <div className="flex items-center gap-3">
+              <span className="h-px w-8" style={{ backgroundColor: INK }} />
+              <p
+                className="text-[10px] font-bold uppercase tracking-[0.22em]"
+                style={{ color: INK }}
+              >
+                Legal — Terms
+              </p>
+            </div>
 
-      <main className="bg-[#F1F1EC] px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-28">
-        <div className="mx-auto max-w-4xl">
-          <p className="text-sm leading-7 text-[#5F685F]">
-            By using the portal, you agree to use it responsibly and to follow
-            the requirements that apply to your role within the Selfless CE
-            network.
-          </p>
+            <h1
+              className="mt-6 max-w-4xl text-5xl font-bold leading-[0.98] tracking-[-0.045em] sm:text-6xl lg:text-[4.2rem]"
+              style={{ color: INK }}
+            >
+              Terms for using the student portal.
+            </h1>
 
-          <div className="mt-10 divide-y divide-[#DADCD3] border-y border-[#DADCD3]">
-            {sections.map((section) => (
-              <section key={section.title} className="py-7 sm:py-8">
-                <h2 className="text-xl font-semibold text-[#12203B]">{section.title}</h2>
-                <p className="mt-3 text-sm leading-7 text-[#626A62]">{section.body}</p>
-              </section>
-            ))}
+            <p
+              className="mt-6 max-w-2xl text-base leading-7 sm:text-lg sm:leading-8"
+              style={{ color: BODY }}
+            >
+              These guidelines help keep the Selfless CE Student Portal
+              useful, respectful, and secure for students and the teams
+              supporting them.
+            </p>
+
+            <p className="mt-8 max-w-2xl text-sm leading-7" style={{ color: BODY }}>
+              By using the portal, you agree to use it responsibly and to
+              follow the requirements that apply to your role within the
+              Selfless CE network.
+            </p>
+
+            {/* Terms sections */}
+            <div
+              className="mt-10 divide-y"
+              style={{ borderColor: "rgba(17,24,39,0.12)" }}
+            >
+              {sections.map((section) => (
+                <section
+                  key={section.title}
+                  className="border-t py-7 first:border-t-0 sm:py-8"
+                  style={{ borderColor: "rgba(17,24,39,0.12)" }}
+                >
+                  <h2
+                    className="text-xl font-bold tracking-[-0.02em]"
+                    style={{ color: INK }}
+                  >
+                    {section.title}
+                  </h2>
+                  <p className="mt-3 text-sm leading-7" style={{ color: BODY }}>
+                    {section.body}
+                  </p>
+                </section>
+              ))}
+            </div>
+
+            {/* Support note */}
+            <div className="mt-12 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between sm:gap-10">
+              <p className="max-w-2xl text-[13px] leading-6.5" style={{ color: "#111827" }}>
+                Questions about your account, access, or use of the portal
+                can be directed to the support team through the Help page.
+              </p>
+
+              <Link
+                href="/help"
+                className="group inline-flex w-fit shrink-0 items-center gap-2 rounded-lg px-5 py-3 text-[13px] font-bold transition-opacity hover:opacity-80"
+                style={{ backgroundColor: INK, color: "#F7F6F2" }}
+              >
+                Visit Help
+
+                <ArrowRight
+                  size={15}
+                  strokeWidth={1.9}
+                  className="transition-transform duration-200 group-hover:translate-x-1"
+                />
+              </Link>
+            </div>
+
+            <p className="mt-8 text-xs leading-6" style={{ color: "#111827" }}>
+              These terms describe the current intended use of the portal and
+              may be updated as services and responsibilities change.
+              Continued use of the portal after an update means you should
+              review the revised information.
+            </p>
           </div>
-
-          <p className="mt-8 text-xs leading-6 text-[#7A8179]">
-            These terms describe the current intended use of the portal and may
-            be updated as services and responsibilities change. Continued use
-            of the portal after an update means you should review the revised
-            information.
-          </p>
-        </div>
+        </section>
       </main>
-    </PublicPageShell>
+
+      <Footer />
+    </div>
   );
 }

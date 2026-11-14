@@ -11,9 +11,7 @@ import {
   Phone,
 } from "lucide-react";
 import Link from "next/link";
-
-import PublicPageHero from "@/app/components/PublicPageHero";
-import PublicPageShell from "@/app/components/PublicPageShell";
+import Footer from "@/app/components/Footer";
 
 const supportOptions = [
   {
@@ -58,61 +56,140 @@ const helpTopics = [
   "Tech center information",
 ];
 
+/* =========================================================
+   SLIDE ANIMATIONS
+========================================================= */
+
+const slideInLeft = {
+  hidden: { opacity: 0, x: -28 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] as const },
+  },
+};
+
+const slideInRight = {
+  hidden: { opacity: 0, x: 28 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] as const },
+  },
+};
+
+const slideInUp = {
+  hidden: { opacity: 0, y: 22 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const },
+  },
+};
+
+const stagger = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.07 } },
+};
+
+const staggerFast = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.05 } },
+};
+
+const INK = "#111827";
+const BODY = "#111827";
+
 export default function HelpPage() {
   const shouldReduceMotion = useReducedMotion();
 
-  const reveal = {
-    initial: {
-      opacity: 0,
-      y: shouldReduceMotion ? 0 : 14,
-    },
-    whileInView: {
-      opacity: 1,
-      y: 0,
-    },
-    viewport: {
-      once: true,
-      amount: 0.12,
-    },
-    transition: {
-      duration: shouldReduceMotion ? 0 : 0.45,
-      ease: "easeOut" as const,
-    },
-  };
-
   return (
-    <PublicPageShell>
-      <PublicPageHero
-        eyebrow="Support center"
-        title="Need a hand? Start here."
-        description="Find answers to common questions or contact the Selfless team for help with your account, courses, and portal access."
-        actionHref="#support"
-        actionLabel="Contact support"
-      />
-
-      {/* INTRODUCTION */}
-      <section className="bg-[#F1F1EC] px-5 py-12 sm:px-8 sm:py-16 lg:px-12 lg:py-18">
-        <div className="mx-auto max-w-7xl">
+    <div className="min-h-screen bg-[#F7F6F2] text-[#111827]">
+      <main>
+        {/* =====================================================
+            SINGLE SECTION
+        ====================================================== */}
+        <section className="px-5 pb-16 pt-10 sm:px-8 sm:pb-20 sm:pt-14 lg:px-12 lg:pb-24">
           <motion.div
-            {...reveal}
-            className="grid gap-8 lg:grid-cols-[0.75fr_1.25fr] lg:gap-20"
+            initial={shouldReduceMotion ? false : "hidden"}
+            animate="visible"
+            variants={stagger}
+            className="mx-auto w-full max-w-7xl"
           >
-            <div>
-              <div className="flex items-center gap-3">
-                <span className="h-px w-8 bg-[#B98A3E]" />
+            <motion.div variants={slideInLeft}>
+              <SectionLabel label="Support Center" />
+            </motion.div>
 
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#B98A3E]">
-                  How we can help
+            <div className="mt-6 grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-end lg:gap-14">
+              <motion.h1
+                variants={slideInLeft}
+                className="max-w-4xl text-5xl font-bold leading-[0.98] tracking-[-0.045em] sm:text-6xl lg:text-[4.2rem]"
+                style={{ color: INK }}
+              >
+                Need a hand? Start here.
+              </motion.h1>
+
+              <motion.div variants={slideInRight} className="max-w-xl lg:pb-2">
+                <p
+                  className="text-base leading-7 sm:text-lg sm:leading-8"
+                  style={{ color: BODY }}
+                >
+                  Find answers to common questions or contact the Selfless
+                  team for help with your account, courses, and portal
+                  access.
                 </p>
-              </div>
 
-              <h2 className="mt-4 max-w-lg text-3xl font-semibold leading-[1.08] tracking-[-0.04em] text-[#12203B] sm:text-4xl lg:text-[2.75rem]">
-                Get the right help without searching everywhere.
-              </h2>
+                <div className="mt-6 flex flex-wrap items-center gap-x-7 gap-y-4">
+                  <a
+                    href="#support"
+                    className="group inline-flex items-center gap-2 text-sm font-bold transition-opacity hover:opacity-70"
+                    style={{ color: INK }}
+                  >
+                    <span
+                      className=""
+                      
+                    >
+                      Contact support
+                    </span>
+
+                    <ArrowRight
+                      size={16}
+                      className="transition-transform duration-300 group-hover:translate-x-1"
+                      style={{ color: INK }}
+                    />
+                  </a>
+
+                  <Link
+                    href="/about"
+                    className="text-sm font-semibold transition-opacity hover:opacity-70"
+                    style={{ color: "#111827" }}
+                  >
+                    About Selfless
+                  </Link>
+                </div>
+              </motion.div>
             </div>
 
-            <div className="max-w-2xl lg:pt-7">
-              <p className="text-[15px] leading-7 text-[#5F685F]">
+            {/* What we can help with */}
+            <motion.div
+              variants={slideInLeft}
+              className="mt-14 max-w-3xl"
+            >
+              <p
+                className="text-[11px] font-bold uppercase tracking-[0.2em]"
+                style={{ color: "#111827" }}
+              >
+                How we can help
+              </p>
+
+              <h2
+                className="mt-3 text-2xl font-bold tracking-[-0.03em] sm:text-3xl"
+                style={{ color: INK }}
+              >
+                Get the right help without searching everywhere.
+              </h2>
+
+              <p className="mt-3 text-sm leading-7 sm:text-base" style={{ color: BODY }}>
                 Whether you are having trouble accessing the portal, need
                 clarification about your studies, or are unsure where to go
                 next, Selfless provides several straightforward ways to get
@@ -125,187 +202,143 @@ export default function HelpPage() {
                     <CheckCircle2
                       size={16}
                       strokeWidth={1.8}
-                      className="mt-0.5 shrink-0 text-[#55705B]"
+                      className="mt-0.5 shrink-0"
+                      style={{ color: INK }}
                     />
 
-                    <span className="text-sm font-medium leading-5 text-[#4F594F]">
+                    <span className="text-sm font-medium leading-5" style={{ color: BODY }}>
                       {topic}
                     </span>
                   </div>
                 ))}
               </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
+            </motion.div>
 
-      {/* SUPPORT OPTIONS */}
-      <section
-        id="support"
-        className="scroll-mt-20 bg-white px-5 py-12 sm:px-8 sm:py-16 lg:px-12 lg:py-18"
-      >
-        <div className="mx-auto max-w-7xl">
-          <motion.div
-            {...reveal}
-            className="flex flex-col gap-5 border-b border-[#DADCD3] pb-6 lg:flex-row lg:items-end lg:justify-between"
-          >
-            <div>
-              <div className="flex items-center gap-3">
-                <span className="h-px w-8 bg-[#B98A3E]" />
-
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#B98A3E]">
+            {/* Contact options */}
+            <div id="support" className="mt-16 scroll-mt-24">
+              <motion.div variants={slideInLeft}>
+                <p
+                  className="text-[11px] font-bold uppercase tracking-[0.2em]"
+                  style={{ color: "#111827" }}
+                >
                   Contact support
                 </p>
-              </div>
 
-              <h2 className="mt-3 text-3xl font-semibold tracking-[-0.035em] text-[#12203B] sm:text-4xl">
-                Choose how you want to reach us.
-              </h2>
+                <h2
+                  className="mt-3 text-2xl font-bold tracking-[-0.03em] sm:text-3xl"
+                  style={{ color: INK }}
+                >
+                  Choose how you want to reach us.
+                </h2>
+
+                <p className="mt-3 max-w-2xl text-sm leading-7" style={{ color: BODY }}>
+                  Choose the channel that matches the type of help you need.
+                  WhatsApp and phone support are suitable for quicker
+                  questions, while email works well for detailed enquiries.
+                </p>
+              </motion.div>
+
+              <motion.div
+                variants={staggerFast}
+                className="mt-8 grid gap-5 md:grid-cols-3"
+              >
+                {supportOptions.map((option) => {
+                  const Icon = option.icon;
+                  const isEmail = option.href.startsWith("mailto:");
+
+                  const content = (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <span
+                          className="font-mono text-[10px] font-bold tracking-[0.18em]"
+                          style={{ color: "#111827" }}
+                        >
+                          {option.number}
+                        </span>
+                        <Icon size={18} strokeWidth={1.8} style={{ color: INK }} />
+                      </div>
+
+                      <h3
+                        className="mt-4 text-[16px] font-bold tracking-[-0.015em]"
+                        style={{ color: INK }}
+                      >
+                        {option.title}
+                      </h3>
+
+                      <p
+                        className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em]"
+                        style={{ color: "#111827" }}
+                      >
+                        {option.label}
+                      </p>
+
+                      <p className="mt-3 text-[13px] leading-6" style={{ color: BODY }}>
+                        {option.description}
+                      </p>
+
+                      <span
+                        className="mt-5 inline-flex items-center gap-2 text-[13px] font-bold"
+                        style={{ color: INK }}
+                      >
+                        {option.action}
+                        <ArrowRight size={15} className="transition-transform duration-300 group-hover:translate-x-1" />
+                      </span>
+                    </>
+                  );
+
+                  const cardClass =
+                    "group block rounded-2xl p-6 transition-all duration-300 hover:-translate-y-0.5";
+                  const cardStyle = {
+                    backgroundColor: "rgba(255,255,255,0.6)",
+                  } as const;
+
+                  return isEmail ? (
+                    <a
+                      key={option.title}
+                      href={option.href}
+                      className={cardClass}
+                      style={cardStyle}
+                    >
+                      {content}
+                    </a>
+                  ) : (
+                    <a
+                      key={option.title}
+                      href={option.href}
+                      target={option.external ? "_blank" : undefined}
+                      rel={option.external ? "noopener noreferrer" : undefined}
+                      className={cardClass}
+                      style={cardStyle}
+                    >
+                      {content}
+                    </a>
+                  );
+                })}
+              </motion.div>
             </div>
-
-            <p className="max-w-md text-sm leading-6 text-[#697169] lg:text-right">
-              Choose the channel that matches the type of help you need.
-              WhatsApp and phone support are suitable for quicker questions,
-              while email works well for detailed enquiries.
-            </p>
           </motion.div>
+        </section>
+      </main>
 
-          <div className="mt-7 divide-y divide-[#DADCD3] border-y border-[#DADCD3]">
-            {supportOptions.map((option, index) => {
-              const Icon = option.icon;
-              const isEmail = option.href.startsWith('mailto:');
+      <Footer />
+    </div>
+  );
+}
 
-              return (
-                isEmail ? (
-                  <a
-                    key={option.title}
-                    href={option.href}
-                    className="group grid gap-5 py-6 transition-colors duration-200 hover:bg-[#F7F6F2] sm:grid-cols-[56px_48px_1fr_auto] sm:items-center sm:gap-5 sm:px-4 lg:grid-cols-[64px_48px_1fr_auto] lg:py-7"
-                  >
-                    <span className="text-xs font-semibold tabular-nums text-[#8A9088]">
-                      {option.number}
-                    </span>
+/* =========================================================
+   SECTION LABEL
+========================================================= */
 
-                    <div className="flex h-11 w-11 items-center justify-center border border-[#DADCD3] bg-[#F7F6F2] text-[#55705B] transition-colors duration-200 group-hover:border-[#B98A3E]/40 group-hover:bg-white group-hover:text-[#B98A3E]">
-                      <Icon size={20} strokeWidth={1.8} />
-                    </div>
+function SectionLabel({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3">
 
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                        <h3 className="text-lg font-semibold tracking-[-0.02em] text-[#12203B]">
-                          {option.title}
-                        </h3>
-
-                        <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8A9088]">
-                          {option.label}
-                        </span>
-                      </div>
-
-                      <p className="mt-1.5 max-w-2xl text-sm leading-6 text-[#697169]">
-                        {option.description}
-                      </p>
-                    </div>
-
-                    <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#55705B] sm:justify-self-end">
-                      {option.action}
-
-                      <ArrowRight
-                        size={16}
-                        strokeWidth={1.8}
-                        className="transition-transform duration-200 group-hover:translate-x-1"
-                      />
-                    </span>
-                  </a>
-                ) : (
-                  <motion.a
-                    key={option.title}
-                    {...reveal}
-                    href={option.href}
-                    target={option.external ? "_blank" : undefined}
-                    rel={option.external ? "noopener noreferrer" : undefined}
-                    className="group grid gap-5 py-6 transition-colors duration-200 hover:bg-[#F7F6F2] sm:grid-cols-[56px_48px_1fr_auto] sm:items-center sm:gap-5 sm:px-4 lg:grid-cols-[64px_48px_1fr_auto] lg:py-7"
-                  >
-                    <span className="text-xs font-semibold tabular-nums text-[#8A9088]">
-                      {option.number}
-                    </span>
-
-                    <div className="flex h-11 w-11 items-center justify-center border border-[#DADCD3] bg-[#F7F6F2] text-[#55705B] transition-colors duration-200 group-hover:border-[#B98A3E]/40 group-hover:bg-white group-hover:text-[#B98A3E]">
-                      <Icon size={20} strokeWidth={1.8} />
-                    </div>
-
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                        <h3 className="text-lg font-semibold tracking-[-0.02em] text-[#12203B]">
-                          {option.title}
-                        </h3>
-
-                        <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8A9088]">
-                          {option.label}
-                        </span>
-                      </div>
-
-                      <p className="mt-1.5 max-w-2xl text-sm leading-6 text-[#697169]">
-                        {option.description}
-                      </p>
-                    </div>
-
-                    <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#55705B] sm:justify-self-end">
-                      {option.action}
-
-                      <ArrowRight
-                        size={16}
-                        strokeWidth={1.8}
-                        className="transition-transform duration-200 group-hover:translate-x-1"
-                      />
-                    </span>
-                  </motion.a>
-                )
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* FINAL CTA */}
-      <section className="bg-[#12203B] px-5 py-12 sm:px-8 sm:py-16 lg:px-12 lg:py-18">
-        <motion.div
-          {...reveal}
-          className="mx-auto flex max-w-7xl flex-col gap-7 lg:flex-row lg:items-center lg:justify-between"
-        >
-          <div>
-            <div className="flex items-center gap-3">
-              <span className="h-px w-8 bg-[#E8A33D]" />
-
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#E8A33D]">
-                Still need help?
-              </p>
-            </div>
-
-            <h2 className="mt-3 max-w-2xl text-3xl font-semibold leading-tight tracking-[-0.035em] text-white sm:text-4xl">
-              We can help you find the next step.
-            </h2>
-
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-[#C5CBD1]">
-              Contact the Selfless support team if you cannot find the
-              information you need in the FAQ or need help with your portal
-              access.
-            </p>
-          </div>
-
-          <Link
-            href="#support"
-            className="group inline-flex w-fit shrink-0 items-center gap-2 bg-[#E8A33D] px-6 py-3.5 text-sm font-semibold text-[#12203B] transition-colors duration-200 hover:bg-white"
-          >
-            Contact support
-
-            <ArrowRight
-              size={17}
-              strokeWidth={1.8}
-              className="transition-transform duration-200 group-hover:translate-x-1"
-            />
-          </Link>
-        </motion.div>
-      </section>
-    </PublicPageShell>
+      <p
+        className="text-[10px] font-bold uppercase tracking-[0.22em]"
+        style={{ color: INK }}
+      >
+        {label}
+      </p>
+    </div>
   );
 }
