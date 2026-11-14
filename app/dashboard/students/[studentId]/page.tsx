@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
   User,
   MapPin,
   Calendar,
@@ -34,6 +36,11 @@ interface StudentProfile {
   email: string;
   phoneNumber: string | null;
   profileImage: string | null;
+  profileGallery: Array<{
+    id: string;
+    publicUrl: string;
+    title: string;
+  }>;
   role: string;
   studentId: string;
   techCenter: {
@@ -77,6 +84,14 @@ function isStudentProfile(value: unknown): value is StudentProfile {
     typeof value.email === 'string' &&
     (typeof value.phoneNumber === 'string' || value.phoneNumber === null) &&
     (typeof value.profileImage === 'string' || value.profileImage === null) &&
+    Array.isArray(value.profileGallery) &&
+    value.profileGallery.every(
+      (image) =>
+        isRecord(image) &&
+        typeof image.id === 'string' &&
+        typeof image.publicUrl === 'string' &&
+        typeof image.title === 'string',
+    ) &&
     typeof value.role === 'string' &&
     typeof value.studentId === 'string' &&
     (value.techCenter === null ||
@@ -213,7 +228,18 @@ export default function StudentProfilePage() {
   const [student, setStudent] = useState<StudentProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showFullImage, setShowFullImage] = useState(false);
+  const [fullImageIndex, setFullImageIndex] = useState<number | null>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const closeImageRef = useRef<HTMLButtonElement>(null);
+  const images = [
+    ...(student?.profileImage
+      ? [{ publicUrl: student.profileImage, title: `${student.firstName} ${student.lastName}` }]
+      : []),
+    ...(student?.profileGallery ?? []),
+  ];
+  const imageCount = images.length;
+  const fullImage = fullImageIndex === null ? undefined : images[fullImageIndex];
+  const imageViewerOpen = fullImageIndex !== null;
 
   useEffect(() => {
     const fetchStudent = async () => {
@@ -242,6 +268,57 @@ export default function StudentProfilePage() {
 
     if (params.studentId) fetchStudent();
   }, [params.studentId]);
+
+  useEffect(() => {
+    if (!imageViewerOpen) return;
+
+    const previousFocus = document.activeElement;
+    closeImageRef.current?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setFullImageIndex(null);
+      } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        const direction = event.key === 'ArrowLeft' ? -1 : 1;
+        setFullImageIndex((index) =>
+          index === null ? null : Math.max(0, Math.min(imageCount - 1, index + direction)),
+        );
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      if (previousFocus instanceof HTMLElement) previousFocus.focus();
+    };
+  }, [imageViewerOpen, imageCount]);
+
+  const handleImageTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (event.touches.length !== 1) {
+      touchStartRef.current = null;
+      return;
+    }
+    touchStartRef.current = {
+      x: event.touches[0].clientX,
+      y: event.touches[0].clientY,
+    };
+  };
+
+  const handleImageTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+    if (!start || event.touches.length !== 0 || !event.changedTouches[0]) return;
+
+    const deltaX = event.changedTouches[0].clientX - start.x;
+    const deltaY = event.changedTouches[0].clientY - start.y;
+    if (Math.abs(deltaX) < 50 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+
+    setFullImageIndex((index) =>
+      index === null
+        ? null
+        : Math.max(0, Math.min(imageCount - 1, index + (deltaX < 0 ? 1 : -1))),
+    );
+  };
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -393,7 +470,7 @@ export default function StudentProfilePage() {
               {student.profileImage && (
                 <button
                   type="button"
-                  onClick={() => setShowFullImage(true)}
+                  onClick={() => setFullImageIndex(0)}
                   className="absolute bottom-4 right-4 inline-flex items-center gap-2 rounded-lg border border-[#D1D5DB] bg-white/95 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[#1A2B4C] shadow-sm transition-colors hover:border-[#C59B4C] hover:text-[#8A672C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C]"
                 >
                   <Maximize2 className="h-3.5 w-3.5" />
@@ -701,34 +778,57 @@ export default function StudentProfilePage() {
           </section>
 
           {/* GALLERY — Full unzoomed image display */}
-          {student.profileImage && (
+          {(student.profileImage || student.profileGallery.length > 0) && (
             <section className="mb-8">
               <SectionHeading number="06" title="Gallery" icon={<ImageIcon className="h-4 w-4" />} />
               <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-sm md:p-5">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {/* Profile Image Tile — shows full image, unzoomed */}
-                  <button
-                    type="button"
-                    onClick={() => setShowFullImage(true)}
-                    className="group relative aspect-video w-full overflow-hidden rounded-lg border border-[#E5E7EB] bg-[#F8F9FA] transition-all hover:border-[#C59B4C] hover:shadow-md"
-                  >
-                    <Image
-                      src={student.profileImage}
-                      alt={`${student.firstName} ${student.lastName}`}
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="object-contain p-2"
-                    />
-                    <div className="pointer-events-none absolute inset-0 flex items-end justify-between bg-gradient-to-t from-black/50 via-transparent to-transparent p-3 opacity-0 transition-opacity group-hover:opacity-100">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-white">
-                        Profile Photo
-                      </span>
-                      <Maximize2 className="h-4 w-4 text-white" />
-                    </div>
-                  </button>
+                  {student.profileImage && (
+                    <button
+                      type="button"
+                      onClick={() => setFullImageIndex(0)}
+                      className="group relative aspect-video w-full overflow-hidden rounded-lg border border-[#E5E7EB] bg-[#F8F9FA] transition-all hover:border-[#C59B4C] hover:shadow-md"
+                    >
+                      <Image
+                        src={student.profileImage}
+                        alt={`${student.firstName} ${student.lastName}`}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        className="object-contain p-2"
+                      />
+                      <div className="pointer-events-none absolute inset-0 flex items-end justify-between bg-gradient-to-t from-black/50 via-transparent to-transparent p-3 opacity-0 transition-opacity group-hover:opacity-100">
+                        <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-white">
+                          Profile Photo
+                        </span>
+                        <Maximize2 className="h-4 w-4 text-white" />
+                      </div>
+                    </button>
+                  )}
+                  {student.profileGallery.map((image, index) => (
+                    <button
+                      key={image.id}
+                      type="button"
+                      onClick={() => setFullImageIndex(index + (student.profileImage ? 1 : 0))}
+                      className="group relative aspect-video w-full overflow-hidden rounded-lg border border-[#E5E7EB] bg-[#F8F9FA] transition-all hover:border-[#C59B4C] hover:shadow-md"
+                    >
+                      <Image
+                        src={image.publicUrl}
+                        alt={image.title}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        className="object-contain p-2"
+                      />
+                      <div className="pointer-events-none absolute inset-0 flex items-end justify-between bg-gradient-to-t from-black/50 via-transparent to-transparent p-3 opacity-0 transition-opacity group-hover:opacity-100">
+                        <span className="line-clamp-1 text-left text-[10px] font-bold uppercase tracking-[0.1em] text-white">
+                          {image.title}
+                        </span>
+                        <Maximize2 className="h-4 w-4 shrink-0 text-white" />
+                      </div>
+                    </button>
+                  ))}
                 </div>
                 <p className="mt-3 text-[11px] text-[#6B7280]">
-                  Click any image to view it in full size.
+                  Click any image to view it in full size{imageCount > 1 ? ' and swipe through the gallery' : ''}.
                 </p>
               </div>
             </section>
@@ -736,7 +836,7 @@ export default function StudentProfilePage() {
 
           {/* ACCOUNT */}
           <section className="mb-8">
-            <SectionHeading number={student.profileImage ? "07" : "06"} title="Account Information" icon={<Calendar className="h-4 w-4" />} />
+            <SectionHeading number={student.profileImage || student.profileGallery.length > 0 ? "07" : "06"} title="Account Information" icon={<Calendar className="h-4 w-4" />} />
             <div className="rounded-xl border border-[#E5E7EB] bg-white px-4 shadow-sm md:px-6">
               <div className="grid grid-cols-1 gap-x-8 md:grid-cols-3">
                 <InfoRow label="Joined" value={new Date(student.createdAt).toLocaleDateString()} icon={<Calendar className="h-4 w-4" />} />
@@ -762,28 +862,62 @@ export default function StudentProfilePage() {
             FULL IMAGE MODAL
         ====================================================== */}
 
-        {showFullImage && student.profileImage && (
+        {fullImageIndex !== null && fullImage && (
           <div
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-3 sm:p-6"
             role="dialog"
             aria-modal="true"
-            aria-label="Full student profile image"
-            onClick={() => setShowFullImage(false)}
+            aria-label="Full profile gallery image"
+            onClick={() => setFullImageIndex(null)}
           >
             <div
               className="relative flex h-full w-full max-w-6xl items-center justify-center"
+              style={{ touchAction: 'pan-y pinch-zoom' }}
               onClick={(event) => event.stopPropagation()}
+              onTouchStart={handleImageTouchStart}
+              onTouchMove={(event) => {
+                if (event.touches.length !== 1) touchStartRef.current = null;
+              }}
+              onTouchEnd={handleImageTouchEnd}
+              onTouchCancel={() => { touchStartRef.current = null; }}
             >
               <Image
-                src={student.profileImage}
-                alt={`${student.firstName} ${student.lastName}`}
+                src={fullImage.publicUrl}
+                alt={fullImage.title}
                 fill
                 sizes="100vw"
                 className="object-contain"
+                draggable={false}
               />
+              {imageCount > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setFullImageIndex((index) => index === null ? null : Math.max(0, index - 1))}
+                    disabled={fullImageIndex === 0}
+                    className="absolute left-2 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#1A2B4C] shadow-lg transition-colors hover:bg-white disabled:opacity-40"
+                    aria-label="Previous image"
+                  >
+                    <ChevronLeft className="h-6 w-6" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFullImageIndex((index) => index === null ? null : Math.min(imageCount - 1, index + 1))}
+                    disabled={fullImageIndex === imageCount - 1}
+                    className="absolute right-2 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#1A2B4C] shadow-lg transition-colors hover:bg-white disabled:opacity-40"
+                    aria-label="Next image"
+                  >
+                    <ChevronRight className="h-6 w-6" />
+                  </button>
+                  <p aria-live="polite" className="absolute bottom-4 rounded-full bg-black/70 px-3 py-1 text-sm font-semibold text-white">
+                    {fullImageIndex + 1} / {imageCount}
+                  </p>
+                </>
+              )}
               <button
+                ref={closeImageRef}
                 type="button"
-                onClick={() => setShowFullImage(false)}
+                onClick={() => setFullImageIndex(null)}
                 className="absolute right-2 top-2 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#1A2B4C] shadow-lg transition-colors hover:bg-[#F3F4F6]"
                 aria-label="Close full image"
               >

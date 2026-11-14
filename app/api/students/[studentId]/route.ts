@@ -92,6 +92,23 @@ export async function GET(
       );
     }
 
+    const profileGallery = await prisma.media.findMany({
+      where: {
+        userId: student.id,
+        category: 'profile',
+        contentType: { startsWith: 'image/' },
+        approvalStatus: 'APPROVED',
+        isActive: true,
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        publicUrl: true,
+        title: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
     if (viewer.id !== student.id) {
       try {
         const existingView = await prisma.profileView.findUnique({
@@ -133,6 +150,7 @@ export async function GET(
         email: student.email, // Email included for profile page
         phoneNumber: student.phoneNumber,
         profileImage: student.profileImageUrl,
+        profileGallery,
         role: student.role?.name || 'student',
         studentId: student.id,
         techCenter: student.techCenter,

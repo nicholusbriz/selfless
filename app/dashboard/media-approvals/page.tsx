@@ -13,6 +13,7 @@ interface MediaItem {
   id: string;
   publicUrl: string;
   contentType: string;
+  category: string | null;
   title: string;
   description: string | null;
   createdAt: string;
@@ -33,6 +34,7 @@ function isMediaItem(value: unknown): value is MediaItem {
     typeof value.id !== 'string' ||
     typeof value.publicUrl !== 'string' ||
     typeof value.contentType !== 'string' ||
+    (typeof value.category !== 'string' && value.category !== null) ||
     typeof value.title !== 'string' ||
     (typeof value.description !== 'string' && value.description !== null) ||
     typeof value.createdAt !== 'string' ||
@@ -116,7 +118,7 @@ export default function MediaApprovalsPage() {
       <section className="max-w-[680px] mx-auto px-4 py-8">
         <div className="mb-8">
           <p className="mt-2 text-sm text-[#65676B]">
-            Review and approve or reject pending posts
+            Review and approve or reject pending posts and profile photos
           </p>
         </div>
 
@@ -141,7 +143,7 @@ export default function MediaApprovalsPage() {
               All caught up!
             </h3>
             <p className="mt-2 text-sm text-[#65676B]">
-              No pending posts to review.
+              No pending posts or profile photos to review.
             </p>
           </div>
         ) : (
@@ -180,6 +182,7 @@ export default function MediaApprovalsPage() {
                       )}
                     </div>
                     <p className="text-xs text-[#65676B]">
+                      {item.category === 'profile' && 'Profile photo · '}
                       {new Date(item.createdAt).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
