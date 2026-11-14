@@ -34,25 +34,18 @@ type HeroImage = {
 
 const heroImages: HeroImage[] = [
   {
-    src: "/ce1.jpeg",
+    src: "/ce11.jpeg",
     eyebrow: "SELFLESS STUDENT PORTAL",
     title: "Your Education, Connected.",
     description:
       "One portal for your courses, grades, community, and everything that moves you forward.",
   },
   {
-    src: "/ce2.jpeg",
+    src: "/ce3.jpeg",
     eyebrow: "ACADEMIC TOOLS",
     title: "Stay Focused on Your Studies.",
     description:
       "Courses, grades, and progress — organized in one place so you can focus on what matters.",
-  },
-  {
-    src: "/ce3.jpeg",
-    eyebrow: "ACADEMIC PROGRESS",
-    title: "Know Where You Are in Your Journey.",
-    description:
-      "Track your progress, celebrate your wins, and always see what's next.",
   },
   {
     src: "/ce4.jpeg",
@@ -60,6 +53,27 @@ const heroImages: HeroImage[] = [
     title: "Learn, Connect, and Move Forward.",
     description:
       "Students, tutors, and tech centers — one community built around your growth.",
+  },
+  {
+    src: "/ce5.jpeg",
+    eyebrow: "EVERYTHING IN ONE PLACE",
+    title: "Your Whole Journey, Simplified.",
+    description:
+      "Courses, communication, community, and support — finally organized in one place.",
+  },
+  {
+    src: "/ce6.jpeg",
+    eyebrow: "BUILT FOR STUDENTS",
+    title: "Designed Around How You Learn.",
+    description:
+      "A portal that fits your academic life, from first day to graduation.",
+  },
+  {
+    src: "/ce7.jpeg",
+    eyebrow: "ONE COMMUNITY",
+    title: "Grow Together, Achieve Together.",
+    description:
+      "Connect with peers and tutors who share your goals and your journey.",
   },
 ];
 
@@ -319,14 +333,14 @@ export default function HomePage() {
                 </motion.div>
               </AnimatePresence>
 
-              <div className="absolute inset-0 bg-[#0D182C]/25" />
-              <div className="absolute inset-0 bg-gradient-to-b from-[#0D182C]/20 via-[#0D182C]/15 to-[#0D182C]/35" />
+              <div className="absolute inset-0 bg-[#0D182C]/30" />
+              <div className="absolute inset-0 bg-gradient-to-b from-[#0D182C]/20 via-[#0D182C]/10 to-[#0D182C]/35" />
               <div
                 aria-hidden="true"
                 className="absolute inset-0"
                 style={{
                   background:
-                    "radial-gradient(ellipse 70% 60% at 50% 50%, rgba(13,24,44,0.15), rgba(13,24,44,0.35) 70%, rgba(13,24,44,0.55) 100%)",
+                    "radial-gradient(ellipse 65% 55% at 50% 45%, rgba(13,24,44,0.3), transparent 75%)",
                 }}
               />
             </div>
@@ -345,10 +359,7 @@ export default function HomePage() {
                 >
                   <span
                     className="text-[10px] font-semibold uppercase tracking-[0.22em] sm:text-[11px]"
-                    style={{
-                      color: COLORS.brassLight,
-                      textShadow: "0 2px 12px rgba(0,0,0,0.8), 0 1px 6px rgba(0,0,0,0.6), 0 0 0 2px rgba(0,0,0,0.3)",
-                    }}
+                    style={{ color: COLORS.brassLight }}
                   >
                     {activeHero.eyebrow}
                   </span>
@@ -357,9 +368,7 @@ export default function HomePage() {
                 <motion.h1
                   variants={slideInLeft}
                   className="text-[clamp(2.5rem,5.5vw,4.6rem)] font-semibold leading-[1.02] tracking-[-0.04em] text-white"
-                  style={{
-                    textShadow: "0 4px 20px rgba(0,0,0,0.9), 0 2px 10px rgba(0,0,0,0.7), 0 0 0 3px rgba(0,0,0,0.4)",
-                  }}
+                  style={{ textShadow: "0 2px 14px rgba(0,0,0,0.6), 0 1px 6px rgba(0,0,0,0.4)" }}
                 >
                   {activeHero.title}
                 </motion.h1>
@@ -369,7 +378,7 @@ export default function HomePage() {
                   className="mx-auto mt-5 max-w-[500px] text-[15px] leading-[1.75] sm:mt-6 sm:text-[16px] font-normal"
                   style={{
                     color: "rgba(255,255,255,0.95)",
-                    textShadow: "0 2px 12px rgba(0,0,0,0.8), 0 1px 6px rgba(0,0,0,0.6), 0 0 0 2px rgba(0,0,0,0.3)",
+                    textShadow: "0 1px 10px rgba(0,0,0,0.6)",
                   }}
                 >
                   {activeHero.description}

@@ -553,7 +553,7 @@ export default function TopNav({
 
               <div className="hidden sm:block min-w-0">
                 <p className="text-[#1A2B4C] text-sm font-semibold leading-tight truncate max-w-[150px]">
-                  {user?.firstName} {user?.lastName}
+                  {user?.firstName}
                 </p>
 
                 <p className="text-[#B98A3E] text-[11px] font-mono font-semibold leading-tight mt-0.5 uppercase tracking-wide">

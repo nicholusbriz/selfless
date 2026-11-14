@@ -30,7 +30,7 @@ import {
   Calendar,
   GraduationCap,
   ArrowUpRight,
-  CircleDot,
+
   Radio,
   BookMarked,
   BookOpen,
@@ -763,7 +763,7 @@ function NavigationItem({
           onClick={handleClick}
           className={cn(
             'relative group flex items-center justify-center',
-            'w-full h-12 rounded-xl',
+            'w-full h-12 rounded-lg',
             'transition-all duration-200',
             active
               ? 'bg-[#FFF8E7] text-[#B98A3E]'
@@ -797,7 +797,7 @@ function NavigationItem({
             <motion.span
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="absolute top-1 right-1 min-w-[14px] h-[14px] px-0.5 rounded-full bg-[#A4462F] text-white text-[8px] font-mono font-semibold flex items-center justify-center border border-white"
+              className="absolute top-1 right-1 min-w-[14px] h-[14px] px-0.5 rounded-full bg-[#1A2B4C] text-white text-[8px] font-mono font-semibold flex items-center justify-center border border-white"
             >
               {badge > 9 ? '9+' : badge}
             </motion.span>
@@ -836,7 +836,7 @@ function NavigationItem({
         onClick={handleClick}
         className={cn(
           'relative group flex items-center gap-3',
-          'w-full min-h-12 px-3 rounded-xl',
+          'w-full min-h-12 px-3 rounded-lg',
           'text-[14px]',
           'transition-all duration-200',
           active
@@ -876,12 +876,6 @@ function NavigationItem({
           {item.label}
         </span>
 
-        {item.id === 'tutors' && (
-          <span className="ml-auto flex items-center gap-1 text-[9px] font-mono uppercase tracking-wide text-[#B98A3E] opacity-80">
-            <CircleDot className="w-2.5 h-2.5" />
-          </span>
-        )}
-
         {badge && badge > 0 ? (
           <motion.span
             initial={{
@@ -896,9 +890,7 @@ function NavigationItem({
               'ml-auto min-w-[20px] h-5 px-1.5 rounded-full',
               'flex items-center justify-center',
               'text-[10px] font-mono font-semibold text-white',
-              item.id === 'notifications'
-                ? 'bg-[#A4462F]'
-                : 'bg-[#3E5C76]'
+              'bg-[#1A2B4C]'
             )}
           >
             {badge > 99 ? '99+' : badge}
@@ -1191,7 +1183,7 @@ export default function Sidebar({
                   placeholder="Search navigation..."
                   aria-label="Search navigation"
                   className={cn(
-                    'w-full h-10 pl-10 pr-9 rounded-xl',
+                    'w-full h-10 pl-10 pr-9 rounded-lg',
                     'bg-[#F7F6F2]',
                     'text-[13px] text-[#1A2B4C] font-semibold',
                     'placeholder:text-[#8A9088]',

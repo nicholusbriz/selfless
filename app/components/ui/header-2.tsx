@@ -288,12 +288,12 @@ function TickerStrip({
 
 
   return (
-    <div className={`relative overflow-hidden ${overlay ? "backdrop-blur-sm" : ""}`} style={{ backgroundColor: overlay ? "rgba(13,24,44,0.25)" : COLORS.navyDeep }}>
+    <div className={`relative overflow-hidden ${overlay ? "backdrop-blur-md" : ""}`} style={{ backgroundColor: overlay ? "rgba(13,24,44,0.55)" : COLORS.navyDeep }}>
       <div className="flex min-h-9 items-stretch sm:min-h-10">
         <div
           className="flex shrink-0 items-center gap-2.5 px-3 sm:gap-3 sm:px-5"
           style={{
-            backgroundColor: overlay ? "rgba(13,24,44,0.35)" : COLORS.navyDeep,
+            backgroundColor: overlay ? "rgba(13,24,44,0.7)" : COLORS.navyDeep,
             boxShadow: "inset -1px 0 0 rgba(232,163,61,0.18)",
             borderRight: `1px solid ${COLORS.brassLight}`,
           }}
@@ -311,7 +311,7 @@ function TickerStrip({
               style={{ backgroundColor: showOnline ? "#22C55E" : COLORS.brassLight, boxShadow: `0 0 8px ${showOnline ? "#22C55E" : COLORS.brassLight}` }}
             />
           </span>
-          <span className="font-mono text-[9px] uppercase tracking-[0.14em] sm:text-[10px] sm:tracking-[0.2em]" style={{ color: COLORS.brassLight, textShadow: overlay ? "0 2px 8px rgba(0,0,0,0.8), 0 1px 4px rgba(0,0,0,0.6)" : "0 1px 3px rgba(0,0,0,0.4)" }}>
+          <span className="font-mono text-[9px] uppercase tracking-[0.14em] sm:text-[10px] sm:tracking-[0.2em]" style={{ color: COLORS.brassLight }}>
             SELFLESS
           </span>
         </div>
@@ -379,17 +379,17 @@ function TickerStrip({
                       </span>
 
                       <span className="flex min-w-0 flex-col leading-tight">
-                        <span className="truncate text-[11px] font-bold sm:text-[12px]" style={{ color: COLORS.brassLight, textShadow: overlay ? "0 2px 8px rgba(0,0,0,0.8), 0 1px 4px rgba(0,0,0,0.6)" : "0 1px 3px rgba(0,0,0,0.4)" }}>
+                        <span className="truncate text-[11px] font-bold sm:text-[12px]" style={{ color: COLORS.brassLight }}>
                           {name}
                         </span>
                         <span className="flex items-center gap-1.5 text-[9px] sm:text-[10px]">
-                          <span className="font-semibold" style={{ color: "#22C55E", textShadow: overlay ? "0 2px 6px rgba(0,0,0,0.7)" : "0 1px 2px rgba(0,0,0,0.3)" }}>
+                          <span className="font-semibold" style={{ color: "#22C55E" }}>
                             Online
                           </span>
                           {onlineUser.techCenter?.name && (
                             <>
                               <span style={{ color: "rgba(255,255,255,0.3)" }}>·</span>
-                              <span className="truncate" style={{ color: "rgba(255,255,255,0.65)", textShadow: overlay ? "0 2px 6px rgba(0,0,0,0.7)" : "0 1px 2px rgba(0,0,0,0.3)" }}>
+                              <span className="truncate" style={{ color: "rgba(255,255,255,0.65)" }}>
                                 {onlineUser.techCenter.name}
                               </span>
                             </>
@@ -402,9 +402,9 @@ function TickerStrip({
               </AnimatePresence>
             ) : (
               tickerItems.map((item, index) => (
-                <span key={`${item}-${index}`} className="flex items-center text-[11px] sm:text-[12.5px]" style={{ color: "rgba(255,255,255,0.85)", textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}>
+                <span key={`${item}-${index}`} className="flex items-center text-[11px] sm:text-[12.5px]" style={{ color: "rgba(255,255,255,0.78)" }}>
                   <span className="px-4 sm:px-8">{item}</span>
-                  <span style={{ color: "rgba(232,163,61,0.7)", textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}>·</span>
+                  <span style={{ color: "rgba(232,163,61,0.6)" }}>·</span>
                 </span>
               ))
             )}
@@ -439,7 +439,7 @@ function NavLink({ item, active }: { item: { label: string; href: string }; acti
       href={item.href}
       aria-current={active ? "page" : undefined}
       className="group relative shrink-0 whitespace-nowrap px-2.5 py-1.5 text-[12.5px] font-semibold outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-[#E8A33D] motion-reduce:transition-none lg:py-2.5 xl:px-4 xl:text-[14px]"
-      style={{ color: active ? COLORS.brassLight : "rgba(255,255,255,0.95)", textShadow: "0 2px 8px rgba(0,0,0,0.6), 0 1px 4px rgba(0,0,0,0.4)" }}
+      style={{ color: active ? COLORS.brassLight : "rgba(255,255,255,0.95)" }}
     >
       <span className="relative group-hover:text-white group-hover:transition-colors">{item.label}</span>
       <span
@@ -529,7 +529,7 @@ function StatusIcons({
         href="/dashboard/notifications"
         aria-label="Notifications"
         className={`relative flex items-center justify-center ${buttonSize} rounded-xl transition-all duration-200 hover:bg-white/10 hover:scale-105 active:scale-95`}
-        style={{ color: "rgba(255,255,255,0.85)", textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}
+        style={{ color: "rgba(255,255,255,0.78)" }}
       >
         <Bell size={size} strokeWidth={2.2} />
         {renderBadge(unreadCount || 0, "#A4462F")}
@@ -540,7 +540,7 @@ function StatusIcons({
         href="/dashboard/messages"
         aria-label="Messages"
         className={`relative flex items-center justify-center ${buttonSize} rounded-xl transition-all duration-200 hover:bg-white/10 hover:scale-105 active:scale-95`}
-        style={{ color: "rgba(255,255,255,0.85)", textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}
+        style={{ color: "rgba(255,255,255,0.78)" }}
       >
         <MessageSquare size={size} strokeWidth={2.2} />
         {renderBadge(unreadMessageCount || 0, "#55705B")}
@@ -551,7 +551,7 @@ function StatusIcons({
         href="/dashboard/announcements"
         aria-label="Announcements"
         className={`relative flex items-center justify-center ${buttonSize} rounded-xl transition-all duration-200 hover:bg-white/10 hover:scale-105 active:scale-95`}
-        style={{ color: "rgba(255,255,255,0.85)", textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}
+        style={{ color: "rgba(255,255,255,0.78)" }}
       >
         <Megaphone size={size} strokeWidth={2.2} />
         {renderBadge(announcementCount || 0, "#3E5C76")}
@@ -784,19 +784,37 @@ export default function Header2({ onlineUsers = [], isLoadingOnlineUsers = false
 
       <header
         ref={headerRef}
-        className={`${isOverlayPage ? "fixed inset-x-0 top-0" : "sticky top-0"} z-50 transition-all duration-300 ${!overlayHeader ? "backdrop-blur-md" : ""}`}
+        className={`${isOverlayPage ? "fixed inset-x-0 top-0" : "sticky top-0"} z-50 transition-all duration-300 ${overlayHeader ? "backdrop-blur-md" : ""}`}
         style={{
           backgroundColor: overlayHeader ? "transparent" : COLORS.navy,
-          boxShadow: scrolled ? "0 12px 36px rgba(13,24,44,0.28)" : "0 6px 22px rgba(13,24,44,0.16)",
+          boxShadow: overlayHeader ? "none" : scrolled ? "0 12px 36px rgba(13,24,44,0.28)" : "0 6px 22px rgba(13,24,44,0.16)",
         }}
       >
+        {/* Gradient scrim — keeps header readable over hero images */}
+        {overlayHeader && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-0 h-40"
+            style={{
+              background:
+                "linear-gradient(to bottom, rgba(13,24,44,0.35) 0%, rgba(13,24,44,0.18) 55%, transparent 100%)",
+            }}
+          />
+        )}
+
         {/* ROW 1 — TICKER */}
-        <div className="overflow-hidden">
+        <div className="relative overflow-hidden">
           <TickerStrip onlineUsers={user ? onlineUsers : []} isLoggedIn={Boolean(user?.id)} overlay={overlayHeader} />
         </div>
 
         {/* ROW 2 — MAIN NAVIGATION BAR */}
-        <div style={{ backgroundColor: overlayHeader ? "transparent" : COLORS.navy }}>
+        <div
+          className={overlayHeader ? "relative backdrop-blur-md" : ""}
+          style={{
+            backgroundColor: overlayHeader ? "transparent" : COLORS.navy,
+            borderBottom: overlayHeader ? "1px solid rgba(255,255,255,0.10)" : undefined,
+          }}
+        >
           <div className="mx-auto w-full max-w-[1440px] px-3 sm:px-5 lg:px-8">
             {/* ---------- DESKTOP (lg+) ---------- */}
             <div className={`hidden items-center justify-between gap-4 transition-all duration-300 lg:flex ${scrolled ? "h-[64px]" : "h-[74px]"}`}>
