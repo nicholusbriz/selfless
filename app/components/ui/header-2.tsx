@@ -288,12 +288,12 @@ function TickerStrip({
 
 
   return (
-    <div className={`relative overflow-hidden ${overlay ? "backdrop-blur-md" : ""}`} style={{ backgroundColor: overlay ? "rgba(13,24,44,0.55)" : COLORS.navyDeep }}>
+    <div className={`relative overflow-hidden ${overlay ? "backdrop-blur-sm" : ""}`} style={{ backgroundColor: overlay ? "rgba(13,24,44,0.25)" : COLORS.navyDeep }}>
       <div className="flex min-h-9 items-stretch sm:min-h-10">
         <div
           className="flex shrink-0 items-center gap-2.5 px-3 sm:gap-3 sm:px-5"
           style={{
-            backgroundColor: overlay ? "rgba(13,24,44,0.7)" : COLORS.navyDeep,
+            backgroundColor: overlay ? "rgba(13,24,44,0.35)" : COLORS.navyDeep,
             boxShadow: "inset -1px 0 0 rgba(232,163,61,0.18)",
             borderRight: `1px solid ${COLORS.brassLight}`,
           }}
@@ -311,7 +311,7 @@ function TickerStrip({
               style={{ backgroundColor: showOnline ? "#22C55E" : COLORS.brassLight, boxShadow: `0 0 8px ${showOnline ? "#22C55E" : COLORS.brassLight}` }}
             />
           </span>
-          <span className="font-mono text-[9px] uppercase tracking-[0.14em] sm:text-[10px] sm:tracking-[0.2em]" style={{ color: COLORS.brassLight }}>
+          <span className="font-mono text-[9px] uppercase tracking-[0.14em] sm:text-[10px] sm:tracking-[0.2em]" style={{ color: COLORS.brassLight, textShadow: overlay ? "0 2px 8px rgba(0,0,0,0.8), 0 1px 4px rgba(0,0,0,0.6)" : "0 1px 3px rgba(0,0,0,0.4)" }}>
             SELFLESS
           </span>
         </div>
@@ -379,17 +379,17 @@ function TickerStrip({
                       </span>
 
                       <span className="flex min-w-0 flex-col leading-tight">
-                        <span className="truncate text-[11px] font-bold sm:text-[12px]" style={{ color: COLORS.brassLight }}>
+                        <span className="truncate text-[11px] font-bold sm:text-[12px]" style={{ color: COLORS.brassLight, textShadow: overlay ? "0 2px 8px rgba(0,0,0,0.8), 0 1px 4px rgba(0,0,0,0.6)" : "0 1px 3px rgba(0,0,0,0.4)" }}>
                           {name}
                         </span>
                         <span className="flex items-center gap-1.5 text-[9px] sm:text-[10px]">
-                          <span className="font-semibold" style={{ color: "#22C55E" }}>
+                          <span className="font-semibold" style={{ color: "#22C55E", textShadow: overlay ? "0 2px 6px rgba(0,0,0,0.7)" : "0 1px 2px rgba(0,0,0,0.3)" }}>
                             Online
                           </span>
                           {onlineUser.techCenter?.name && (
                             <>
                               <span style={{ color: "rgba(255,255,255,0.3)" }}>·</span>
-                              <span className="truncate" style={{ color: "rgba(255,255,255,0.55)" }}>
+                              <span className="truncate" style={{ color: "rgba(255,255,255,0.65)", textShadow: overlay ? "0 2px 6px rgba(0,0,0,0.7)" : "0 1px 2px rgba(0,0,0,0.3)" }}>
                                 {onlineUser.techCenter.name}
                               </span>
                             </>
@@ -402,9 +402,9 @@ function TickerStrip({
               </AnimatePresence>
             ) : (
               tickerItems.map((item, index) => (
-                <span key={`${item}-${index}`} className="flex items-center text-[11px] sm:text-[12.5px]" style={{ color: "rgba(255,255,255,0.78)" }}>
+                <span key={`${item}-${index}`} className="flex items-center text-[11px] sm:text-[12.5px]" style={{ color: "rgba(255,255,255,0.85)", textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}>
                   <span className="px-4 sm:px-8">{item}</span>
-                  <span style={{ color: "rgba(232,163,61,0.6)" }}>·</span>
+                  <span style={{ color: "rgba(232,163,61,0.7)", textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}>·</span>
                 </span>
               ))
             )}
@@ -439,7 +439,7 @@ function NavLink({ item, active }: { item: { label: string; href: string }; acti
       href={item.href}
       aria-current={active ? "page" : undefined}
       className="group relative shrink-0 whitespace-nowrap px-2.5 py-1.5 text-[12.5px] font-semibold outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-[#E8A33D] motion-reduce:transition-none lg:py-2.5 xl:px-4 xl:text-[14px]"
-      style={{ color: active ? COLORS.brassLight : "rgba(255,255,255,0.95)" }}
+      style={{ color: active ? COLORS.brassLight : "rgba(255,255,255,0.95)", textShadow: "0 2px 8px rgba(0,0,0,0.6), 0 1px 4px rgba(0,0,0,0.4)" }}
     >
       <span className="relative group-hover:text-white group-hover:transition-colors">{item.label}</span>
       <span
@@ -529,7 +529,7 @@ function StatusIcons({
         href="/dashboard/notifications"
         aria-label="Notifications"
         className={`relative flex items-center justify-center ${buttonSize} rounded-xl transition-all duration-200 hover:bg-white/10 hover:scale-105 active:scale-95`}
-        style={{ color: "rgba(255,255,255,0.85)" }}
+        style={{ color: "rgba(255,255,255,0.85)", textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}
       >
         <Bell size={size} strokeWidth={2.2} />
         {renderBadge(unreadCount || 0, "#A4462F")}
@@ -540,7 +540,7 @@ function StatusIcons({
         href="/dashboard/messages"
         aria-label="Messages"
         className={`relative flex items-center justify-center ${buttonSize} rounded-xl transition-all duration-200 hover:bg-white/10 hover:scale-105 active:scale-95`}
-        style={{ color: "rgba(255,255,255,0.85)" }}
+        style={{ color: "rgba(255,255,255,0.85)", textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}
       >
         <MessageSquare size={size} strokeWidth={2.2} />
         {renderBadge(unreadMessageCount || 0, "#55705B")}
@@ -551,7 +551,7 @@ function StatusIcons({
         href="/dashboard/announcements"
         aria-label="Announcements"
         className={`relative flex items-center justify-center ${buttonSize} rounded-xl transition-all duration-200 hover:bg-white/10 hover:scale-105 active:scale-95`}
-        style={{ color: "rgba(255,255,255,0.85)" }}
+        style={{ color: "rgba(255,255,255,0.85)", textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}
       >
         <Megaphone size={size} strokeWidth={2.2} />
         {renderBadge(announcementCount || 0, "#3E5C76")}
@@ -784,7 +784,7 @@ export default function Header2({ onlineUsers = [], isLoadingOnlineUsers = false
 
       <header
         ref={headerRef}
-        className={`${isOverlayPage ? "fixed inset-x-0 top-0" : "sticky top-0"} z-50 transition-all duration-300 ${overlayHeader ? "backdrop-blur-md" : ""}`}
+        className={`${isOverlayPage ? "fixed inset-x-0 top-0" : "sticky top-0"} z-50 transition-all duration-300 ${!overlayHeader ? "backdrop-blur-md" : ""}`}
         style={{
           backgroundColor: overlayHeader ? "transparent" : COLORS.navy,
           boxShadow: scrolled ? "0 12px 36px rgba(13,24,44,0.28)" : "0 6px 22px rgba(13,24,44,0.16)",
@@ -796,7 +796,7 @@ export default function Header2({ onlineUsers = [], isLoadingOnlineUsers = false
         </div>
 
         {/* ROW 2 — MAIN NAVIGATION BAR */}
-        <div style={{ backgroundColor: overlayHeader ? "rgba(18,32,59,0.45)" : COLORS.navy }}>
+        <div style={{ backgroundColor: overlayHeader ? "transparent" : COLORS.navy }}>
           <div className="mx-auto w-full max-w-[1440px] px-3 sm:px-5 lg:px-8">
             {/* ---------- DESKTOP (lg+) ---------- */}
             <div className={`hidden items-center justify-between gap-4 transition-all duration-300 lg:flex ${scrolled ? "h-[64px]" : "h-[74px]"}`}>
@@ -807,11 +807,11 @@ export default function Header2({ onlineUsers = [], isLoadingOnlineUsers = false
                   <div className="relative h-10 w-[130px] lg:h-11 lg:w-[150px]">
                     <Image src="/freedom.png" alt="SELFLESS" fill priority className="object-contain object-left transition-transform duration-300 group-hover:scale-[1.02]" />
                   </div>
-                  <span className="mt-0.5 block text-[8px] font-bold uppercase tracking-[0.24em] text-white/50 sm:text-[9px]">
+                  <span className="mt-0.5 block text-[8px] font-bold uppercase tracking-[0.24em] text-white/50 sm:text-[9px]" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}>
                     Student Portal
                   </span>
                 </div>
-                <span className="ml-4 hidden border-l border-white/15 pl-4 font-serif text-[13px] italic text-white/70 2xl:block">
+                <span className="ml-4 hidden border-l border-white/15 pl-4 font-serif text-[13px] italic text-white/70 2xl:block" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}>
                   Nurturing resilient minds
                 </span>
               </Link>
@@ -839,7 +839,7 @@ export default function Header2({ onlineUsers = [], isLoadingOnlineUsers = false
                   </>
                 ) : (
                   <>
-                    <button type="button" onClick={() => openAuth("login")} className="inline-flex h-10 items-center gap-2 px-4 text-[13.5px] font-semibold rounded-xl transition-colors duration-200 hover:bg-white/10 motion-reduce:transition-none" style={{ color: "rgba(255,255,255,0.92)", backgroundColor: "rgba(255,255,255,0.06)" }}>
+                    <button type="button" onClick={() => openAuth("login")} className="inline-flex h-10 items-center gap-2 px-4 text-[13.5px] font-semibold rounded-xl transition-colors duration-200 hover:bg-white/10 motion-reduce:transition-none" style={{ color: "rgba(255,255,255,0.92)", backgroundColor: "rgba(255,255,255,0.06)", textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}>
                       <LogIn size={16} strokeWidth={2} /> Login
                     </button>
                     <button type="button" onClick={() => openAuth("register")} className="group inline-flex h-10 items-center gap-2 px-4 text-[13.5px] font-bold rounded-xl transition-all duration-200 hover:-translate-y-px motion-reduce:transition-none" style={{ backgroundColor: COLORS.brassLight, color: COLORS.navy, boxShadow: "0 2px 10px rgba(232,163,61,0.28)" }}>
@@ -859,7 +859,7 @@ export default function Header2({ onlineUsers = [], isLoadingOnlineUsers = false
                   <div className="relative h-9 w-[100px] sm:h-10 sm:w-[120px]">
                     <Image src="/freedom.png" alt="SELFLESS" fill priority className="object-contain object-left transition-transform duration-300 group-hover:scale-[1.02]" />
                   </div>
-                  <span className="mt-0.5 block text-[7px] font-bold uppercase tracking-[0.22em] text-white/50 sm:text-[8px]">
+                  <span className="mt-0.5 block text-[7px] font-bold uppercase tracking-[0.22em] text-white/50 sm:text-[8px]" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}>
                     Student Portal
                   </span>
                 </div>

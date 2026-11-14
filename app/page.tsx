@@ -319,14 +319,14 @@ export default function HomePage() {
                 </motion.div>
               </AnimatePresence>
 
-              <div className="absolute inset-0 bg-[#0D182C]/50" />
-              <div className="absolute inset-0 bg-gradient-to-b from-[#0D182C]/45 via-[#0D182C]/30 to-[#0D182C]/60" />
+              <div className="absolute inset-0 bg-[#0D182C]/25" />
+              <div className="absolute inset-0 bg-gradient-to-b from-[#0D182C]/20 via-[#0D182C]/15 to-[#0D182C]/35" />
               <div
                 aria-hidden="true"
                 className="absolute inset-0"
                 style={{
                   background:
-                    "radial-gradient(ellipse 55% 45% at 50% 42%, rgba(13,24,44,0.6), rgba(13,24,44,0.25) 55%, transparent 75%)",
+                    "radial-gradient(ellipse 70% 60% at 50% 50%, rgba(13,24,44,0.15), rgba(13,24,44,0.35) 70%, rgba(13,24,44,0.55) 100%)",
                 }}
               />
             </div>
@@ -347,6 +347,7 @@ export default function HomePage() {
                     className="text-[10px] font-semibold uppercase tracking-[0.22em] sm:text-[11px]"
                     style={{
                       color: COLORS.brassLight,
+                      textShadow: "0 2px 12px rgba(0,0,0,0.8), 0 1px 6px rgba(0,0,0,0.6), 0 0 0 2px rgba(0,0,0,0.3)",
                     }}
                   >
                     {activeHero.eyebrow}
@@ -356,6 +357,9 @@ export default function HomePage() {
                 <motion.h1
                   variants={slideInLeft}
                   className="text-[clamp(2.5rem,5.5vw,4.6rem)] font-semibold leading-[1.02] tracking-[-0.04em] text-white"
+                  style={{
+                    textShadow: "0 4px 20px rgba(0,0,0,0.9), 0 2px 10px rgba(0,0,0,0.7), 0 0 0 3px rgba(0,0,0,0.4)",
+                  }}
                 >
                   {activeHero.title}
                 </motion.h1>
@@ -364,7 +368,8 @@ export default function HomePage() {
                   variants={slideInLeft}
                   className="mx-auto mt-5 max-w-[500px] text-[15px] leading-[1.75] sm:mt-6 sm:text-[16px] font-normal"
                   style={{
-                    color: "rgba(255,255,255,0.88)",
+                    color: "rgba(255,255,255,0.95)",
+                    textShadow: "0 2px 12px rgba(0,0,0,0.8), 0 1px 6px rgba(0,0,0,0.6), 0 0 0 2px rgba(0,0,0,0.3)",
                   }}
                 >
                   {activeHero.description}
@@ -381,6 +386,7 @@ export default function HomePage() {
                       style={{
                         backgroundColor: COLORS.brassLight,
                         color: COLORS.ink,
+                        boxShadow: "0 4px 20px rgba(232,163,61,0.4), 0 2px 10px rgba(0,0,0,0.3)",
                       }}
                     >
                       Go to dashboard
@@ -398,6 +404,7 @@ export default function HomePage() {
                       style={{
                         backgroundColor: COLORS.brassLight,
                         color: COLORS.ink,
+                        boxShadow: "0 4px 20px rgba(232,163,61,0.4), 0 2px 10px rgba(0,0,0,0.3)",
                       }}
                     >
                       Get started
@@ -413,8 +420,11 @@ export default function HomePage() {
                     href="/about"
                     className="group inline-flex items-center gap-2.5 rounded-lg border px-6 py-3.5 text-[14px] font-semibold transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/10"
                     style={{
-                      color: "rgba(255,255,255,0.92)",
-                      borderColor: "rgba(255,255,255,0.35)",
+                      color: "rgba(255,255,255,0.95)",
+                      borderColor: "rgba(255,255,255,0.5)",
+                      backgroundColor: "rgba(0,0,0,0.2)",
+                      backdropFilter: "blur(10px)",
+                      boxShadow: "0 2px 12px rgba(0,0,0,0.4)",
                     }}
                   >
                     About the portal
@@ -459,7 +469,7 @@ export default function HomePage() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-[10px] tracking-[0.15em] text-white/70">
+                    <span className="font-mono text-[10px] tracking-[0.15em] text-white/95" style={{ textShadow: "0 2px 10px rgba(0,0,0,0.8), 0 1px 5px rgba(0,0,0,0.6)" }}>
                       {String(availableHeroIndexes.indexOf(currentHero) + 1).padStart(2, "0")}
                       {" / "}
                       {String(availableHeroIndexes.length).padStart(2, "0")}
@@ -469,7 +479,8 @@ export default function HomePage() {
                       type="button"
                       onClick={previousHero}
                       aria-label="Previous image"
-                      className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-md transition-colors hover:bg-white/25"
+                      style={{ boxShadow: "0 2px 10px rgba(0,0,0,0.4)" }}
                     >
                       <ChevronLeft size={15} strokeWidth={2} />
                     </button>
@@ -478,7 +489,8 @@ export default function HomePage() {
                       type="button"
                       onClick={nextHero}
                       aria-label="Next image"
-                      className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-md transition-colors hover:bg-white/25"
+                      style={{ boxShadow: "0 2px 10px rgba(0,0,0,0.4)" }}
                     >
                       <ChevronRight size={15} strokeWidth={2} />
                     </button>
