@@ -5,6 +5,12 @@ import { requireAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/prisma/client';
 import { deleteMediaCommentsSafely } from '../_lib/interactions';
 import {
+  ARCHIVED_PROFILE_IMAGE_TAG,
+  EXTERNAL_PROFILE_IMAGE_TAG,
+  deleteProfileImage,
+  getOwnedProfileImageBlobName,
+} from '@/lib/azure-storage';
+import {
   invalidJsonBodyResponse,
   isString,
   parseJsonBody,
@@ -59,26 +65,48 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const accountName = getRequiredEnv('AZURE_STORAGE_ACCOUNT_NAME');
-    const accountKey = getRequiredEnv('AZURE_STORAGE_ACCOUNT_KEY');
-    const containerName = getRequiredEnv('AZURE_STORAGE_CONTAINER_NAME');
+    if (media.tags.includes(ARCHIVED_PROFILE_IMAGE_TAG)) {
+      if (!media.tags.includes(EXTERNAL_PROFILE_IMAGE_TAG)) {
+        const ownedBlobName = getOwnedProfileImageBlobName(media.publicUrl, media.userId);
+        if (!ownedBlobName || ownedBlobName !== media.blobName) {
+          throw new Error('Archived profile image storage location is invalid');
+        }
+        const [currentAvatar, otherMedia] = await Promise.all([
+          prisma.user.findFirst({
+            where: { profileImageUrl: media.publicUrl },
+            select: { id: true },
+          }),
+          prisma.media.findFirst({
+            where: { publicUrl: media.publicUrl, id: { not: media.id } },
+            select: { id: true },
+          }),
+        ]);
+        if (!currentAvatar && !otherMedia) {
+          await deleteProfileImage(media.publicUrl);
+        }
+      }
+    } else {
+      const accountName = getRequiredEnv('AZURE_STORAGE_ACCOUNT_NAME');
+      const accountKey = getRequiredEnv('AZURE_STORAGE_ACCOUNT_KEY');
+      const containerName = getRequiredEnv('AZURE_STORAGE_CONTAINER_NAME');
 
-    const serviceClient = new BlobServiceClient(
-      `https://${accountName}.blob.core.windows.net`,
-      new (await import('@azure/storage-blob')).StorageSharedKeyCredential(
-        accountName,
-        accountKey,
-      ),
-    );
+      const serviceClient = new BlobServiceClient(
+        `https://${accountName}.blob.core.windows.net`,
+        new (await import('@azure/storage-blob')).StorageSharedKeyCredential(
+          accountName,
+          accountKey,
+        ),
+      );
 
-    const containerClient = serviceClient.getContainerClient(containerName);
-    const blobClient = containerClient.getBlockBlobClient(media.blobName);
+      const containerClient = serviceClient.getContainerClient(containerName);
+      const blobClient = containerClient.getBlockBlobClient(media.blobName);
 
-    try {
-      await blobClient.deleteIfExists();
-    } catch (azureError) {
-      // Log but continue — we still want to remove the DB record
-      console.error('Azure delete failed (continuing):', azureError);
+      try {
+        await blobClient.deleteIfExists();
+      } catch (azureError) {
+        // Log but continue — we still want to remove the DB record
+        console.error('Azure delete failed (continuing):', azureError);
+      }
     }
 
     await deleteMediaCommentsSafely(mediaId);

@@ -9,7 +9,7 @@ import {
   parseJsonBody,
 } from '@/app/api/_lib/request-validation';
 import { logUserAction } from '@/lib/logger';
-import { deleteProfileImage } from '@/lib/azure-storage';
+import { deleteAllProfileImagesForUser } from '@/lib/azure-storage';
 
 function isPrismaWriteConflict(error: unknown): boolean {
   return (
@@ -457,19 +457,14 @@ export async function DELETE(
       }
     }
 
-    // Delete the profile image from Azure storage now that the DB row
-    // is gone. This runs outside the transaction because Azure storage
-    // is external — a failure here should not roll back the DB deletion.
-    if (user.profileImageUrl) {
-      try {
-        await deleteProfileImage(user.profileImageUrl);
-      } catch (imageErr) {
-        // Non-fatal: log the failure but do not fail the whole request.
-        console.error(
-          `Failed to delete profile image for user ${userId}:`,
-          imageErr,
-        );
-      }
+    // Azure cleanup cannot participate in the database transaction.
+    try {
+      await deleteAllProfileImagesForUser(userId);
+    } catch (imageErr) {
+      console.error(
+        `Failed to delete profile images for user ${userId}:`,
+        imageErr,
+      );
     }
 
     // Log the user deletion activity

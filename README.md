@@ -11,3 +11,4 @@ The Selfless Student Portal is a centralized multi-tenant platform for students 
 Media is uploaded directly from the browser to Azure Blob Storage. Configure Blob service CORS for each application origin (including `http://localhost:3000` for local development), allowing `PUT` and the `content-type` and `x-ms-blob-type` request headers. Keep existing CORS rules for other origins. A rejected preflight can prevent uploads even when Azure credentials are valid.
 
 Photos uploaded from profile settings are kept in the user's profile gallery, not the community feed. They use the existing media review process. Existing community posts are not moved automatically.
+When a user replaces their profile photo, the previous publicly visible photo is retained in their profile gallery without another review. Externally hosted photos remain subject to the availability of their original URLs.

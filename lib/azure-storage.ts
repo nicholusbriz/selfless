@@ -21,8 +21,11 @@ const ACCOUNT_NAME = process.env.AZURE_STORAGE_ACCOUNT_NAME!;
 const ACCOUNT_KEY  = process.env.AZURE_STORAGE_ACCOUNT_KEY!;
 
 /** Container used exclusively for profile images. */
-const PROFILE_IMAGES_CONTAINER =
+export const PROFILE_IMAGES_CONTAINER =
   process.env.AZURE_PROFILE_IMAGES_CONTAINER_NAME ?? 'profile-images';
+export const ARCHIVED_PROFILE_IMAGE_TAG = 'archived-profile-image';
+export const EXTERNAL_PROFILE_IMAGE_TAG = 'external-profile-image';
+export const EXTERNAL_PROFILE_IMAGE_CONTAINER = 'external-profile-image';
 
 // ─── Client factory ───────────────────────────────────────────────────────────
 
@@ -59,6 +62,24 @@ function blobNameFromUrl(imageUrl: string): string {
   return decodeURIComponent(withoutContainer);
 }
 
+export function getOwnedProfileImageBlobName(imageUrl: string, userId: string): string | null {
+  try {
+    const url = new URL(imageUrl);
+    if (
+      url.protocol !== 'https:' ||
+      url.hostname !== `${ACCOUNT_NAME}.blob.core.windows.net` ||
+      url.pathname.split('/')[1] !== PROFILE_IMAGES_CONTAINER
+    ) {
+      return null;
+    }
+
+    const blobName = blobNameFromUrl(imageUrl);
+    return blobName.startsWith(`${userId}/`) ? blobName : null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
@@ -73,9 +94,7 @@ export async function uploadProfileImage(
   userId: string,
 ): Promise<string> {
   const ext      = file.name.split('.').pop() ?? 'jpg';
-  // Include a timestamp so browsers don't serve a stale cached version
-  // after the user replaces their avatar.
-  const blobName = `${userId}/avatar-${Date.now()}.${ext}`;
+  const blobName = `${userId}/avatar-${crypto.randomUUID()}.${ext}`;
 
   const client = getBlobServiceClient();
   const containerClient = client.getContainerClient(PROFILE_IMAGES_CONTAINER);
