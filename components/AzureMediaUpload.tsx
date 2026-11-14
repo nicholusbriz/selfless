@@ -79,6 +79,8 @@ interface AzureMediaUploadProps {
   submitLabel?: string;
   allowMultiple?: boolean;
   allowAudio?: boolean;
+  allowVideo?: boolean;
+  categoryLocked?: boolean;
 }
 
 export default function AzureMediaUpload({
@@ -93,6 +95,8 @@ export default function AzureMediaUpload({
   submitLabel = 'Upload',
   allowMultiple = true,
   allowAudio = true,
+  allowVideo = true,
+  categoryLocked = false,
 }: AzureMediaUploadProps) {
   const { user } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -117,7 +121,7 @@ export default function AzureMediaUpload({
     setFiles([]);
     setTitle('');
     setDescription('');
-    setCategory(user?.role === 'dev' ? defaultCategory : 'gallery');
+    setCategory(categoryLocked || user?.role === 'dev' ? defaultCategory : 'gallery');
     setProgress(0);
     setError(null);
     setUploaded(null);
@@ -143,7 +147,13 @@ export default function AzureMediaUpload({
     // Validate all files
     const validFiles = selectedFiles.filter((file) => {
       if (!allowAudio && file.type.startsWith('audio/')) {
-        showError(`File "${file.name}" is not supported. Choose a photo or video.`);
+        showError(
+          `File "${file.name}" is not supported. Choose a photo${allowVideo ? ' or video' : ''}.`,
+        );
+        return false;
+      }
+      if (!allowVideo && file.type.startsWith('video/')) {
+        showError(`File "${file.name}" is not supported. Choose a photo.`);
         return false;
       }
       if (!ALLOWED_MEDIA_TYPES.has(file.type)) {
@@ -209,7 +219,8 @@ export default function AzureMediaUpload({
       fail('Please add a title before uploading');
       return;
     }
-    const uploadCategory = user?.role === 'dev' ? category : 'gallery';
+    const uploadCategory =
+      categoryLocked ? defaultCategory : user?.role === 'dev' ? category : 'gallery';
     if (!uploadCategory) {
       fail('Please select a category before uploading');
       return;
@@ -275,7 +286,9 @@ export default function AzureMediaUpload({
                     if (xhr.status >= 200 && xhr.status < 300) resolve();
                     else reject(new Error(`Upload failed with status ${xhr.status}`));
                   };
-                  xhr.onerror = () => reject(new Error('Upload failed'));
+                  xhr.onerror = () => reject(new Error(
+                    'Could not reach media storage. Check your connection or contact an administrator to check Azure CORS settings.',
+                  ));
                   xhr.send(file);
                 });
                 return; // Success
@@ -344,6 +357,8 @@ export default function AzureMediaUpload({
       // Report completion
       if (uploadCategory === 'gallery' && completedFiles > 0) {
         window.dispatchEvent(new Event('selfless:gallery-posts-changed'));
+      } else if (uploadCategory === 'profile' && completedFiles > 0) {
+        window.dispatchEvent(new Event('selfless:profile-gallery-changed'));
       }
       onAllUploadsComplete?.(completedFiles);
       setUploaded(firstUploaded);
@@ -361,6 +376,7 @@ export default function AzureMediaUpload({
     defaultCategory,
     allowMultiple,
     user?.role,
+    categoryLocked,
     onUploadComplete,
     onUploadError,
     onAllUploadsComplete,
@@ -405,7 +421,11 @@ export default function AzureMediaUpload({
         <div>
           <p className="text-sm font-semibold text-[#172033]">{label}</p>
           <p className="mt-1 text-xs text-[#687386]">
-            {allowAudio ? 'Photos, audio, or video' : 'Photos or videos'}
+            {allowVideo
+              ? allowAudio
+                ? 'Photos, audio, or video'
+                : 'Photos or videos'
+              : 'Photos only'}
             {' · Up to 100 MB'}
             {allowMultiple ? ' · Multiple files allowed' : ' · One file per post'}
           </p>
@@ -417,10 +437,12 @@ export default function AzureMediaUpload({
                 <ImageIcon className="h-3.5 w-3.5 text-[#8A6A2F]" />
                 Photo
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 shadow-sm ring-1 ring-[#E5EAF1]">
-                <Video className="h-3.5 w-3.5 text-[#8A6A2F]" />
-                Video
-              </span>
+              {allowVideo && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 shadow-sm ring-1 ring-[#E5EAF1]">
+                  <Video className="h-3.5 w-3.5 text-[#8A6A2F]" />
+                  Video
+                </span>
+              )}
             </>
           )}
         </div>
@@ -437,9 +459,13 @@ export default function AzureMediaUpload({
               <FileVideo className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-[#172033]">Post details</h3>
+              <h3 className="text-sm font-semibold text-[#172033]">
+                {categoryLocked && defaultCategory === 'profile' ? 'Photo details' : 'Post details'}
+              </h3>
               <p className="mt-0.5 text-xs leading-5 text-[#687386]">
-                Add a title and description, then attach {allowMultiple ? 'your file(s)' : 'one photo or video'} to share with the community.
+                {categoryLocked && defaultCategory === 'profile'
+                  ? 'Add a title and description for your profile photos.'
+                  : `Add a title and description, then attach ${allowMultiple ? 'your file(s)' : 'one photo or video'} to share with the community.`}
               </p>
             </div>
           </div>
@@ -503,7 +529,7 @@ export default function AzureMediaUpload({
             <label className="mb-1.5 block text-xs font-semibold text-[#344054]">
               Category <span className="text-red-600">*</span>
             </label>
-            {user?.role === 'dev' ? (
+            {user?.role === 'dev' && !categoryLocked ? (
               <>
                 <select
                   value={category}
@@ -525,7 +551,9 @@ export default function AzureMediaUpload({
             ) : (
               <>
                 <div className="rounded-xl bg-[#F7F8FA] px-3.5 py-2.5 text-sm text-[#526078]">
-                  Gallery (Videos & Photos)
+                  {categoryLocked && defaultCategory === 'profile'
+                    ? 'Profile Gallery (Photos)'
+                    : 'Gallery (Videos & Photos)'}
                 </div>
               </>
             )}
@@ -593,9 +621,13 @@ export default function AzureMediaUpload({
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-green-700" />
               <p className="text-sm font-semibold text-green-900">
-                {(user?.role === 'dev' || user?.role === 'super_admin')
-                  ? 'Post created successfully'
-                  : 'Your post has been created and will appear on the Posts page after review.'}
+                {categoryLocked && defaultCategory === 'profile'
+                  ? (user?.role === 'dev' || user?.role === 'super_admin')
+                    ? 'Profile photos uploaded successfully.'
+                    : 'Your profile photos will appear on your public profile after review.'
+                  : (user?.role === 'dev' || user?.role === 'super_admin')
+                    ? 'Post created successfully'
+                    : 'Your post has been created and will appear on the Posts page after review.'}
               </p>
             </div>
             <button

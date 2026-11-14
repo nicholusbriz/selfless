@@ -22,11 +22,14 @@ import {
   Calendar,
   Users,
   Home,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import Link from 'next/link';
 import { getResponseError, isRecord } from '../response-guards';
+import AzureMediaUpload from '@/components/AzureMediaUpload';
+import AzureImageGallery from '@/components/AzureImageGallery';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -1469,6 +1472,36 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+
+        <section id="profile-gallery" className="mt-6 rounded-2xl border border-[#D9E2EC] bg-white p-5 shadow-sm sm:p-8">
+          <div className="mb-6 border-b border-[#E7EDF3] pb-4">
+            <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight text-[#0F2440]">
+              <ImageIcon className="h-5 w-5 text-[#1A365D]" />
+              Profile Gallery
+            </h2>
+            <p className="mt-1 text-sm text-[#64788A]">
+              Photos appear on your public profile after review, not in the community feed.
+            </p>
+          </div>
+
+          <AzureMediaUpload
+            accept="image/jpeg,image/png,image/gif,image/webp,image/avif"
+            allowAudio={false}
+            allowVideo={false}
+            allowMultiple
+            categoryLocked
+            defaultCategory="profile"
+            label="Add photos to your profile gallery"
+            submitLabel="Add photos"
+          />
+
+          <div className="mt-8 border-t border-[#E7EDF3] pt-6">
+            <h3 className="mb-4 text-sm font-bold text-[#0F2440]">
+              Your uploaded photos
+            </h3>
+            <AzureImageGallery category="profile" mine />
+          </div>
+        </section>
 
         {/* ======================================================
             FOOTER NOTE

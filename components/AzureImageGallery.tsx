@@ -21,6 +21,7 @@ interface MediaItem {
   title: string;
   description: string | null;
   category: string | null;
+  approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
   createdAt: string;
 }
 
@@ -35,14 +36,19 @@ function isMediaItem(value: unknown): value is MediaItem {
     typeof value.title === 'string' &&
     (typeof value.description === 'string' || value.description === null) &&
     (typeof value.category === 'string' || value.category === null) &&
+    (value.approvalStatus === 'PENDING' ||
+      value.approvalStatus === 'APPROVED' ||
+      value.approvalStatus === 'REJECTED') &&
     typeof value.createdAt === 'string'
   );
 }
 
 export default function AzureImageGallery({
   category,
+  mine = false,
 }: {
   category?: string;
+  mine?: boolean;
 }) {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,9 +65,14 @@ export default function AzureImageGallery({
       setError(null);
 
       try {
-        const url = category
-          ? `/api/media/list?category=${encodeURIComponent(category)}&includeAll=true`
-          : '/api/media/list?includeAll=true';
+        const searchParams = new URLSearchParams();
+        if (category) searchParams.set('category', category);
+        if (mine) {
+          searchParams.set('mine', 'true');
+        } else {
+          searchParams.set('includeAll', 'true');
+        }
+        const url = `/api/media/list?${searchParams.toString()}`;
 
         const res = await fetch(url, { signal: controller.signal });
         const data = await readJsonObject(res);
@@ -89,7 +100,18 @@ export default function AzureImageGallery({
       cancelled = true;
       controller.abort();
     };
-  }, [refreshKey, category]);
+  }, [refreshKey, category, mine]);
+
+  useEffect(() => {
+    const refresh = () => setRefreshKey((key) => key + 1);
+    const eventName = category === 'profile'
+      ? 'selfless:profile-gallery-changed'
+      : 'selfless:gallery-posts-changed';
+    window.addEventListener(eventName, refresh);
+    return () => {
+      window.removeEventListener(eventName, refresh);
+    };
+  }, [category]);
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this file permanently?')) return;
@@ -199,7 +221,11 @@ export default function AzureImageGallery({
                 {item.category && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
                     <Tag className="h-2.5 w-2.5" />
-                    {item.category === 'dashboard' ? 'Dashboard' : 'Gallery'}
+                    {item.category === 'dashboard'
+                      ? 'Dashboard'
+                      : item.category === 'profile'
+                        ? 'Profile'
+                        : 'Gallery'}
                   </span>
                 )}
               </div>
@@ -207,6 +233,24 @@ export default function AzureImageGallery({
               {item.description && (
                 <p className="mt-1 line-clamp-2 text-xs text-[#64748b]">
                   {item.description}
+                </p>
+              )}
+
+              {mine && (
+                <p
+                  className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                    item.approvalStatus === 'APPROVED'
+                      ? 'bg-green-50 text-green-700'
+                      : item.approvalStatus === 'PENDING'
+                        ? 'bg-amber-50 text-amber-700'
+                        : 'bg-red-50 text-red-700'
+                  }`}
+                >
+                  {item.approvalStatus === 'APPROVED'
+                    ? 'Published'
+                    : item.approvalStatus === 'PENDING'
+                      ? 'Under review'
+                      : 'Not approved'}
                 </p>
               )}
 

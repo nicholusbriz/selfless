@@ -60,6 +60,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (category === 'profile' && !contentType?.startsWith('image/')) {
+      return NextResponse.json(
+        { success: false, error: 'Profile gallery uploads must be images' },
+        { status: 400 },
+      );
+    }
+
     // Safety: only allow saving blobs that belong to this user
     if (!blobName.startsWith(`${user.id}/`)) {
       return NextResponse.json(
@@ -73,7 +80,9 @@ export async function POST(request: Request) {
     const roleName = user.role?.name;
     const isPrivilegedUser = roleName === 'dev' || roleName === 'super_admin';
     const finalCategory =
-      roleName === 'dev' && category && ['dashboard', 'gallery'].includes(category)
+      category === 'profile'
+        ? 'profile'
+        : roleName === 'dev' && category && ['dashboard', 'gallery'].includes(category)
         ? category
         : 'gallery';
 
@@ -102,8 +111,10 @@ export async function POST(request: Request) {
     const userName = `${user.firstName} ${user.lastName}`.trim();
     try {
       await createNotificationForDevs({
-        title: 'New post created',
-        message: `${userName} created a new post: "${media.title}"`,
+        title: finalCategory === 'profile' ? 'New profile photo' : 'New post created',
+        message: finalCategory === 'profile'
+          ? `${userName} added a profile photo: "${media.title}"`
+          : `${userName} created a new post: "${media.title}"`,
         type: 'media_created',
         link: `/dashboard/media-approvals#${media.id}`,
         generatedBy: user.id,

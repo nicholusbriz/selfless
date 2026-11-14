@@ -51,10 +51,12 @@ export async function POST(
     try {
       await createNotificationForUser({
         userId: media.userId,
-        title: 'Your post has been approved',
-        message: `Your post "${media.title}" has been approved by ${approverName}.`,
+        title: media.category === 'profile' ? 'Your profile photo has been approved' : 'Your post has been approved',
+        message: media.category === 'profile'
+          ? `Your profile photo "${media.title}" has been approved by ${approverName}.`
+          : `Your post "${media.title}" has been approved by ${approverName}.`,
         type: 'media_approved',
-        link: `/dashboard/gallery#${mediaId}`,
+        link: media.category === 'profile' ? '/dashboard/profile#profile-gallery' : `/dashboard/gallery#${mediaId}`,
         generatedBy: currentUser.id,
         entityType: 'media',
         entityId: mediaId,
