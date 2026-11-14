@@ -255,7 +255,7 @@ export default function AzureImageGallery({
               )}
 
               <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-[#94a3b8]">
-                <span>{(item.size / 1024 / 1024).toFixed(2)} MB</span>
+                <span>{item.size > 0 ? `${(item.size / 1024 / 1024).toFixed(2)} MB` : ''}</span>
                 <span>
                   {new Date(item.createdAt).toLocaleDateString()}
                 </span>

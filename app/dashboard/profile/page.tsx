@@ -33,7 +33,7 @@ import AzureImageGallery from '@/components/AzureImageGallery';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, refreshUser } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
@@ -81,6 +81,7 @@ export default function ProfilePage() {
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
 
     if (!file) return;
 
@@ -109,8 +110,6 @@ export default function ProfilePage() {
       setError('');
       setSuccess('');
 
-      // Send the file to the server-side Azure upload endpoint.
-      // The route handles deleting the old blob and uploading the new one.
       const form = new FormData();
       form.append('image', file);
 
@@ -129,10 +128,8 @@ export default function ProfilePage() {
         throw new Error('Failed to upload image');
       }
 
-      // Sync the new URL into the NextAuth session / useAuth state.
-      await updateUser({
-        profileImageUrl: data.imageUrl,
-      });
+      window.dispatchEvent(new Event('selfless:profile-gallery-changed'));
+      await refreshUser();
 
       // Invalidate the discover-students React Query cache so every
       // component that shows the carousel immediately gets the new URL
@@ -141,7 +138,9 @@ export default function ProfilePage() {
         queryKey: ['dashboard-discover-students'],
       });
 
-      setSuccess('Profile image updated successfully');
+      setSuccess(data.previousImagePreserved === true
+        ? 'Profile image updated. Your previous photo is in your profile gallery.'
+        : 'Profile image updated successfully');
       setPreviewImage(null);
     } catch (err: any) {
       setError(

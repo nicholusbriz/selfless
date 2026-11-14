@@ -2,8 +2,7 @@
  * POST /api/user/upload-image
  *
  * Receives a multipart/form-data upload with a single field "image".
- * Deletes the user's previous profile image from Azure if one exists,
- * uploads the new one, saves the URL to the database, and returns it.
+ * Uploads the new image and preserves the previous image in the profile gallery.
  *
  * Authentication: NextAuth session (any authenticated user can update
  * their own image — no extra role check needed).
@@ -15,6 +14,11 @@ import { prisma } from '@/lib/prisma/client';
 import {
   uploadProfileImage,
   deleteProfileImage,
+  getOwnedProfileImageBlobName,
+  PROFILE_IMAGES_CONTAINER,
+  EXTERNAL_PROFILE_IMAGE_CONTAINER,
+  ARCHIVED_PROFILE_IMAGE_TAG,
+  EXTERNAL_PROFILE_IMAGE_TAG,
 } from '@/lib/azure-storage';
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
@@ -51,44 +55,97 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. Delete the old image first (non-fatal if it fails)
-    if (user.profileImageUrl) {
-      try {
-        await deleteProfileImage(user.profileImageUrl);
-      } catch (deleteErr) {
-        console.warn(
-          '[upload-image] Could not delete old profile image — continuing:',
-          deleteErr,
-        );
-      }
-    }
-
-    // 5. Upload to Azure Blob Storage
+    // Upload first so a failed upload cannot affect the current image.
     const imageUrl = await uploadProfileImage(file, user.id);
 
-    // 6. Persist the new URL in the database
-    await prisma.user.update({
-      where: { id: user.id },
-      data:  { profileImageUrl: imageUrl },
-    });
+    let previousImagePreserved: boolean;
+    try {
+      previousImagePreserved = await prisma.$transaction(async (tx) => {
+        const currentUser = await tx.user.findUniqueOrThrow({
+          where: { id: user.id },
+          select: { profileImageUrl: true },
+        });
+        const oldImageUrl = currentUser.profileImageUrl;
+        const existingImage = oldImageUrl
+          ? await tx.media.findFirst({
+              where: {
+                userId: user.id,
+                publicUrl: oldImageUrl,
+                category: 'profile',
+                approvalStatus: 'APPROVED',
+                isActive: true,
+                isDeleted: false,
+              },
+              select: { id: true },
+            })
+          : null;
+        const oldBlobName = oldImageUrl
+          ? getOwnedProfileImageBlobName(oldImageUrl, user.id)
+          : null;
 
-    // 7. Log the action
-    await prisma.activityLog.create({
-      data: {
-        userId:      user.id,
-        action:      'update_profile_image',
-        entityType:  'user',
-        entityId:    user.id,
-        details:     { imageUrl },
-        techCenterId: user.techCenterId ?? undefined,
-      },
-    });
+        await tx.user.update({
+          where: { id: user.id },
+          data: {
+            profileImageUrl: imageUrl,
+            ...(oldImageUrl && !existingImage && {
+              media: {
+                create: {
+                  blobName: oldBlobName ?? `external/${crypto.randomUUID()}`,
+                  publicUrl: oldImageUrl,
+                  containerName: oldBlobName ? PROFILE_IMAGES_CONTAINER : EXTERNAL_PROFILE_IMAGE_CONTAINER,
+                  contentType: 'image/unknown',
+                  size: 0,
+                  title: 'Previous profile photo',
+                  category: 'profile',
+                  tags: oldBlobName
+                    ? [ARCHIVED_PROFILE_IMAGE_TAG]
+                    : [ARCHIVED_PROFILE_IMAGE_TAG, EXTERNAL_PROFILE_IMAGE_TAG],
+                  approvalStatus: 'APPROVED',
+                  approvedAt: new Date(),
+                },
+              },
+            }),
+          },
+        });
 
-    return NextResponse.json({ imageUrl });
-  } catch (error: any) {
+        await tx.activityLog.create({
+          data: {
+            userId: user.id,
+            action: 'update_profile_image',
+            entityType: 'user',
+            entityId: user.id,
+            details: { imageUrl },
+            techCenterId: user.techCenterId ?? undefined,
+          },
+        });
+        return Boolean(oldImageUrl);
+      });
+    } catch (error) {
+      try {
+        const [currentAvatar, archivedImage] = await Promise.all([
+          prisma.user.findFirst({
+            where: { profileImageUrl: imageUrl },
+            select: { id: true },
+          }),
+          prisma.media.findFirst({
+            where: { publicUrl: imageUrl },
+            select: { id: true },
+          }),
+        ]);
+        if (!currentAvatar && !archivedImage) {
+          await deleteProfileImage(imageUrl);
+        }
+      } catch (cleanupError) {
+        console.error('[upload-image] Could not clean up the new image:', cleanupError);
+      }
+      throw error;
+    }
+
+    return NextResponse.json({ imageUrl, previousImagePreserved });
+  } catch (error: unknown) {
     console.error('[upload-image] Error:', error);
 
-    if (error?.message === 'Unauthorized') {
+    if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

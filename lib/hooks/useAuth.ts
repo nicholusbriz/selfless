@@ -73,6 +73,7 @@ export function useAuth() {
     login,
     logout,
     updateUser,
+    refreshUser: update,
     isSuperAdmin: () => user?.role === 'super_admin',
     isAdmin: () => user?.role === 'admin',
     isTeacher: () => user?.role === 'teacher',
