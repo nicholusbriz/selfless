@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
           },
         });
         return Boolean(oldImageUrl);
-      });
+      }, { timeout: 30000 });
     } catch (error) {
       try {
         const [currentAvatar, archivedImage] = await Promise.all([
