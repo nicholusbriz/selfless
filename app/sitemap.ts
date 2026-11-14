@@ -4,7 +4,7 @@ const BASE_URL = 'https://www.selflessstudentportal.org';
 
 // Bump this date whenever you make a meaningful content change
 // so Google knows something is actually new.
-const LAST_UPDATED = '2026-10-16';
+const LAST_UPDATED = '2026-11-14';
 
 const publicPages: {
   path: string;

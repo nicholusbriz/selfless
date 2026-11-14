@@ -398,6 +398,10 @@ interface DashboardAnnouncement {
   title: string;
   createdAt: string;
   isGlobal: boolean;
+  author?: {
+    firstName?: string | null;
+    lastName?: string | null;
+  } | null;
 }
 
 function RecentAnnouncementsPanel() {
@@ -458,15 +462,21 @@ function RecentAnnouncementsPanel() {
               >
                 {announcement.title}
               </Link>
-              <time
-                dateTime={announcement.createdAt}
-                className="block pt-0.5 font-mono text-[9px] text-white/45"
-              >
-                {new Date(announcement.createdAt).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                })}
-              </time>
+              <span className="block truncate pt-0.5 text-[9px] text-white/45">
+                {[
+                  announcement.author?.firstName,
+                  announcement.author?.lastName,
+                ]
+                  .filter(Boolean)
+                  .join(' ') || 'Selfless'}{' '}
+                ·{' '}
+                <time dateTime={announcement.createdAt}>
+                  {new Date(announcement.createdAt).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </time>
+              </span>
             </li>
           ))}
         </ul>

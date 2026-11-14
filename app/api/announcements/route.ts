@@ -138,6 +138,11 @@ export async function POST(request: NextRequest) {
     }
 
     const isAdmin = user.role?.name === 'admin' || user.role?.name === 'super_admin' || user.role?.name === 'dev';
+
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Only admins can create announcements' }, { status: 403 });
+    }
+
     const canCreateGlobal = isAdmin && isGlobal === true;
     const finalTechCenterId = canCreateGlobal
       ? null

@@ -50,9 +50,10 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "@/lib/hooks/useAuth";
+import { siteTheme } from "@/lib/site-theme";
 import { useActivityTracker } from "@/lib/hooks/useActivityTracker";
 import AuthModal from "@/components/auth/AuthModal";
-import GiftIcon from "@/components/GiftIcon";
+
 import {
   useUnreadNotificationCount,
   useAnnouncementCount,
@@ -64,23 +65,7 @@ import { type OnlineUser } from "@/lib/hooks/useOnlineUsers";
 /* COLORS                                                                     */
 /* -------------------------------------------------------------------------- */
 
-const COLORS = {
-  navy: "#12203B",
-  navyDeep: "#0D182C",
-  navSurface: "#1A2D49",
-  navSurfaceHover: "#223957",
-  navBorder: "#304763",
-  brass: "#B98A3E",
-  brassLight: "#E8A33D",
-  brassBright: "#F0B85C",
-  white: "#FFFFFF",
-  softWhite: "#F7F6F2",
-  page: "#F1F1EC",
-  surface: "#FAFAF7",
-  border: "#DADCD3",
-  muted: "#6B7268",
-  subtle: "#8A9088",
-};
+const COLORS = siteTheme;
 
 /* -------------------------------------------------------------------------- */
 /* NAV ITEMS                                                                  */
@@ -100,7 +85,6 @@ const navItems = [
 /* -------------------------------------------------------------------------- */
 
 const dashboardQuickLinks = [
-  { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" />, group: "Workspace", roles: ["student", "teacher", "admin", "dev", "super_admin"] },
   { label: "Students", href: "/dashboard/students", icon: <Users className="w-5 h-5" />, group: "Workspace", roles: ["student", "teacher", "admin", "dev", "super_admin"] },
   { label: "Connections", href: "/dashboard/connections", icon: <User className="w-5 h-5" />, group: "Workspace", roles: ["student", "teacher", "admin", "dev", "super_admin"] },
   { label: "Atbriz AI", href: "/dashboard/ai", icon: <Code className="w-5 h-5" />, group: "Workspace", roles: ["student", "teacher", "admin", "dev", "super_admin"] },
@@ -215,9 +199,18 @@ function MarqueeStyles() {
         will-change: transform;
       }
       .selfless-online-marquee:hover { animation-play-state: paused; }
+      @keyframes selflessAvatarPop {
+        from { opacity: 0; transform: scale(0.3) translateY(8px); }
+        60% { opacity: 1; transform: scale(1.08) translateY(-1px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+      }
+      .selfless-avatar-pop {
+        animation: selflessAvatarPop 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
       @media (prefers-reduced-motion: reduce) {
         .selfless-marquee-track,
-        .selfless-online-marquee { animation: none !important; }
+        .selfless-online-marquee,
+        .selfless-avatar-pop { animation: none !important; }
       }
       .header-scroll-area {
         scrollbar-width: thin;
@@ -252,13 +245,33 @@ function MarqueeStyles() {
 function TickerStrip({
   onlineUsers = [],
   isLoggedIn = false,
+  overlay = false,
 }: {
   onlineUsers?: OnlineUser[];
   isLoggedIn?: boolean;
+  overlay?: boolean;
 }) {
   const uniqueUsers = Array.from(
     new Map(onlineUsers.map((onlineUser) => [onlineUser.userId, onlineUser])).values(),
   );
+  const [currentOnlineIndex, setCurrentOnlineIndex] = useState(0);
+
+  useEffect(() => {
+    if (uniqueUsers.length <= 1) {
+      setCurrentOnlineIndex(0);
+      return;
+    }
+    setCurrentOnlineIndex((previous) => previous % uniqueUsers.length);
+  }, [uniqueUsers.length]);
+
+  useEffect(() => {
+    if (uniqueUsers.length <= 1) return;
+    const interval = window.setInterval(() => {
+      setCurrentOnlineIndex((previous) => (previous + 1) % uniqueUsers.length);
+    }, 4000);
+    return () => window.clearInterval(interval);
+  }, [uniqueUsers.length]);
+
   const onlineNames = uniqueUsers.map(
     (onlineUser) =>
       `${onlineUser.firstName || ""} ${onlineUser.lastName || ""}`.trim() ||
@@ -271,40 +284,146 @@ function TickerStrip({
       : isLoggedIn
         ? ["Connecting to online users..."]
         : tickerPhrases;
+  const showOnline = isLoggedIn && onlineNames.length > 0;
+
+
   return (
-    <div className="relative overflow-hidden" style={{ backgroundColor: COLORS.navyDeep }}>
-      <div className="flex min-h-8 items-stretch sm:min-h-9">
+    <div className={`relative overflow-hidden ${overlay ? "backdrop-blur-md" : ""}`} style={{ backgroundColor: overlay ? "rgba(13,24,44,0.55)" : COLORS.navyDeep }}>
+      <div className="flex min-h-9 items-stretch sm:min-h-10">
         <div
-          className="flex shrink-0 items-center gap-1.5 px-3 sm:gap-2 sm:px-5"
+          className="flex shrink-0 items-center gap-2.5 px-3 sm:gap-3 sm:px-5"
           style={{
-            backgroundColor: COLORS.navyDeep,
+            backgroundColor: overlay ? "rgba(13,24,44,0.7)" : COLORS.navyDeep,
             boxShadow: "inset -1px 0 0 rgba(232,163,61,0.18)",
             borderRight: `1px solid ${COLORS.brassLight}`,
           }}
         >
-          <span className="size-1.5 rounded-full" style={{ backgroundColor: isLoggedIn && onlineNames.length > 0 ? "#22C55E" : COLORS.brassLight, boxShadow: `0 0 8px ${isLoggedIn && onlineNames.length > 0 ? "#22C55E" : COLORS.brassLight}` }} />
+          <span
+            className="relative flex size-2 items-center justify-center"
+            aria-hidden="true"
+          >
+            <span
+              className="absolute inline-flex size-full animate-ping rounded-full opacity-60"
+              style={{ backgroundColor: showOnline ? "#22C55E" : COLORS.brassLight }}
+            />
+            <span
+              className="relative inline-flex size-1.5 rounded-full"
+              style={{ backgroundColor: showOnline ? "#22C55E" : COLORS.brassLight, boxShadow: `0 0 8px ${showOnline ? "#22C55E" : COLORS.brassLight}` }}
+            />
+          </span>
           <span className="font-mono text-[9px] uppercase tracking-[0.14em] sm:text-[10px] sm:tracking-[0.2em]" style={{ color: COLORS.brassLight }}>
-            {isLoggedIn ? `ONLINE · ${uniqueUsers.length}` : "SELFLESS"}
+            SELFLESS
           </span>
         </div>
 
-        <div className="relative flex-1 overflow-hidden">
+        <div
+          className="relative flex-1 overflow-hidden"
+          style={{
+            maskImage:
+              "linear-gradient(to right, transparent, black 6%, black 94%, transparent)",
+            WebkitMaskImage:
+              "linear-gradient(to right, transparent, black 6%, black 94%, transparent)",
+          }}
+        >
           <div
             className={
-              isLoggedIn && onlineNames.length > 0
-                ? "selfless-online-marquee"
+              showOnline
+                ? "flex h-full items-center lg:justify-center"
                 : "selfless-marquee-track"
             }
-            aria-label={isLoggedIn ? `Online users: ${onlineNames.join(", ")}` : undefined}
+            aria-label={showOnline ? `Online users: ${onlineNames.join(", ")}` : undefined}
           >
-            {tickerItems.map((item, index) => (
-              <span key={`${item}-${index}`} className="flex items-center text-[11px] sm:text-[12.5px]" style={{ color: "rgba(255,255,255,0.78)" }}>
-                <span className="px-4 sm:px-8">{item}</span>
-                <span style={{ color: "rgba(232,163,61,0.6)" }}>·</span>
-              </span>
-            ))}
+            {showOnline ? (
+              <AnimatePresence mode="wait">
+                {(() => {
+                  const onlineUser = uniqueUsers[currentOnlineIndex % uniqueUsers.length];
+                  if (!onlineUser) return null;
+
+                  const name =
+                    `${onlineUser.firstName || ""} ${onlineUser.lastName || ""}`.trim() ||
+                    onlineUser.fullName ||
+                    "User";
+                  const initials = name
+                    .split(" ")
+                    .map((part) => part.charAt(0))
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase();
+
+                  return (
+                    <motion.div
+                      key={onlineUser.userId}
+                      initial={{ opacity: 0, x: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, x: 0, scale: 1 }}
+                      exit={{ opacity: 0, x: 10, scale: 0.95 }}
+                      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                      className="flex items-center gap-2.5 px-4 sm:px-6"
+                    >
+                      <span className="relative block h-7 w-7 shrink-0 overflow-hidden rounded-full border border-white/25">
+                        {onlineUser.image ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img
+                            src={onlineUser.image}
+                            alt={name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <span
+                            className="flex h-full w-full items-center justify-center text-[9px] font-bold text-white"
+                            style={{ backgroundColor: COLORS.brass }}
+                          >
+                            {initials}
+                          </span>
+                        )}
+                        <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-[#0D182C] bg-[#22C55E]" />
+                      </span>
+
+                      <span className="flex min-w-0 flex-col leading-tight">
+                        <span className="truncate text-[11px] font-bold sm:text-[12px]" style={{ color: COLORS.brassLight }}>
+                          {name}
+                        </span>
+                        <span className="flex items-center gap-1.5 text-[9px] sm:text-[10px]">
+                          <span className="font-semibold" style={{ color: "#22C55E" }}>
+                            Online
+                          </span>
+                          {onlineUser.techCenter?.name && (
+                            <>
+                              <span style={{ color: "rgba(255,255,255,0.3)" }}>·</span>
+                              <span className="truncate" style={{ color: "rgba(255,255,255,0.65)" }}>
+                                {onlineUser.techCenter.name}
+                              </span>
+                            </>
+                          )}
+                        </span>
+                      </span>
+                    </motion.div>
+                  );
+                })()}
+              </AnimatePresence>
+            ) : (
+              tickerItems.map((item, index) => (
+                <span key={`${item}-${index}`} className="flex items-center text-[11px] sm:text-[12.5px]" style={{ color: "rgba(255,255,255,0.78)" }}>
+                  <span className="px-4 sm:px-8">{item}</span>
+                  <span style={{ color: "rgba(232,163,61,0.6)" }}>·</span>
+                </span>
+              ))
+            )}
           </div>
         </div>
+
+        <a
+          href="https://selfless-ce.web.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex shrink-0 items-center gap-1 px-3 text-[9px] font-bold uppercase tracking-[0.14em] transition-colors duration-200 hover:bg-white/10 sm:px-4 sm:text-[10px]"
+          style={{
+            color: "rgba(255,255,255,0.75)",
+            borderLeft: "1px solid rgba(232,163,61,0.18)",
+          }}
+        >
+          Official site
+          <ArrowUpRight size={10} strokeWidth={2.4} />
+        </a>
       </div>
     </div>
   );
@@ -320,9 +439,18 @@ function NavLink({ item, active }: { item: { label: string; href: string }; acti
       href={item.href}
       aria-current={active ? "page" : undefined}
       className="group relative shrink-0 whitespace-nowrap px-2.5 py-1.5 text-[12.5px] font-semibold outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-[#E8A33D] motion-reduce:transition-none lg:py-2.5 xl:px-4 xl:text-[14px]"
-      style={{ color: active ? COLORS.brassLight : "rgba(255,255,255,0.78)" }}
+      style={{ color: active ? COLORS.brassLight : "rgba(255,255,255,0.95)" }}
     >
       <span className="relative group-hover:text-white group-hover:transition-colors">{item.label}</span>
+      <span
+        aria-hidden="true"
+        className="absolute inset-x-2.5 bottom-0 h-[2px] rounded-full transition-transform duration-300 motion-reduce:transition-none"
+        style={{
+          backgroundColor: COLORS.brassLight,
+          transform: active ? "scaleX(1)" : "scaleX(0)",
+          transformOrigin: "left",
+        }}
+      />
     </Link>
   );
 }
@@ -401,7 +529,7 @@ function StatusIcons({
         href="/dashboard/notifications"
         aria-label="Notifications"
         className={`relative flex items-center justify-center ${buttonSize} rounded-xl transition-all duration-200 hover:bg-white/10 hover:scale-105 active:scale-95`}
-        style={{ color: "rgba(255,255,255,0.85)" }}
+        style={{ color: "rgba(255,255,255,0.78)" }}
       >
         <Bell size={size} strokeWidth={2.2} />
         {renderBadge(unreadCount || 0, "#A4462F")}
@@ -412,7 +540,7 @@ function StatusIcons({
         href="/dashboard/messages"
         aria-label="Messages"
         className={`relative flex items-center justify-center ${buttonSize} rounded-xl transition-all duration-200 hover:bg-white/10 hover:scale-105 active:scale-95`}
-        style={{ color: "rgba(255,255,255,0.85)" }}
+        style={{ color: "rgba(255,255,255,0.78)" }}
       >
         <MessageSquare size={size} strokeWidth={2.2} />
         {renderBadge(unreadMessageCount || 0, "#55705B")}
@@ -423,7 +551,7 @@ function StatusIcons({
         href="/dashboard/announcements"
         aria-label="Announcements"
         className={`relative flex items-center justify-center ${buttonSize} rounded-xl transition-all duration-200 hover:bg-white/10 hover:scale-105 active:scale-95`}
-        style={{ color: "rgba(255,255,255,0.85)" }}
+        style={{ color: "rgba(255,255,255,0.78)" }}
       >
         <Megaphone size={size} strokeWidth={2.2} />
         {renderBadge(announcementCount || 0, "#3E5C76")}
@@ -468,10 +596,13 @@ function DashboardDropdown({ user, variant = "desktop" }: { user: any; variant?:
           onClick={() => setIsOpen(!isOpen)}
           aria-expanded={isOpen}
           aria-label="Open dashboard menu"
-          className="group inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-[12.5px] font-bold transition-all duration-200"
-          style={{ backgroundColor: COLORS.brassLight, color: COLORS.navy, boxShadow: "0 2px 8px rgba(232,163,61,0.25)" }}
+          className="group inline-flex h-9 items-center gap-1.5 px-3 text-[12.5px] font-bold rounded-xl transition-all duration-200 hover:-translate-y-px motion-reduce:transition-none border"
+          style={{
+            backgroundColor: "rgba(232, 163, 61, 0.1)",
+            color: COLORS.brassLight,
+            borderColor: "rgba(232, 163, 61, 0.3)",
+          }}
         >
-          <LayoutDashboard size={15} strokeWidth={2.4} />
           <span className="whitespace-nowrap">Dashboard</span>
           <ChevronDown size={14} strokeWidth={2.6} className={`transition-transform duration-200 flex-shrink-0 ${isOpen ? "rotate-180" : ""}`} />
         </button>
@@ -483,43 +614,41 @@ function DashboardDropdown({ user, variant = "desktop" }: { user: any; variant?:
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.97 }}
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-              className="fixed left-3 right-3 top-[130px] z-[70] rounded-2xl shadow-[0_20px_50px_rgba(13,24,44,0.35)] flex flex-col overflow-hidden sm:left-auto sm:right-4 sm:w-[380px]"
-              style={{ backgroundColor: COLORS.surface, maxHeight: "calc(100vh - 150px)" }}
+              className="fixed left-3 right-3 top-[120px] z-[70] rounded-xl border shadow-[0_16px_40px_rgba(13,24,44,0.3)] flex flex-col overflow-hidden sm:left-auto sm:right-4 sm:w-[360px]"
+              style={{ backgroundColor: "white", borderColor: COLORS.border, maxHeight: "calc(100vh - 140px)" }}
             >
-              <div className="flex items-center gap-3 p-4 shrink-0" style={{ backgroundColor: "white" }}>
-                <UserAvatar user={user} size={44} />
+              {/* Slim user header */}
+              <div className="flex items-center gap-2.5 px-4 py-2.5 shrink-0" style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+                <UserAvatar user={user} size={30} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[14.5px] font-semibold truncate" style={{ color: COLORS.navy }}>{user?.firstName} {user?.lastName}</p>
-                  <p className="text-[10.5px] font-mono uppercase tracking-wide mt-0.5 truncate" style={{ color: COLORS.muted }}>
-                    {user?.role || "Student"}{user?.techCenter && ` • ${user.techCenter.name}`}
+                  <p className="text-[13px] font-semibold leading-tight truncate" style={{ color: COLORS.navy }}>{user?.firstName} {user?.lastName}</p>
+                  <p className="text-[10px] font-mono uppercase tracking-wide truncate" style={{ color: COLORS.muted }}>
+                    {user?.role || "Student"}{user?.techCenter ? ` • ${user.techCenter.name}` : ""}
                   </p>
                 </div>
               </div>
 
-              <div className="flex-1 min-h-0 overflow-y-auto header-scroll-area p-3.5 space-y-4">
-                {dashboardGroups.map((groupName) => {
-                  const groupLinks = roleLinks.filter((l) => l.group === groupName);
-                  if (groupLinks.length === 0) return null;
-                  return (
-                    <div key={groupName}>
-                      <p className="text-[10px] font-mono uppercase tracking-[0.16em] mb-2 px-1" style={{ color: COLORS.subtle }}>{groupName}</p>
-                      <div className="grid grid-cols-2 gap-2">
-                        {groupLinks.map((link) => (
-                          <Link key={`${link.href}-${link.group}`} href={link.href} onClick={() => setIsOpen(false)} className="group/link flex min-h-[82px] flex-col items-start justify-between rounded-xl border p-3 text-left text-[12px] font-semibold transition-all hover:-translate-y-0.5 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E]" style={{ color: COLORS.navy, borderColor: COLORS.border, backgroundColor: "rgba(255,255,255,0.62)" }}>
-                            <span className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors group-hover/link:bg-[#12203B] group-hover/link:text-white" style={{ color: COLORS.brass, backgroundColor: "rgba(185,138,62,0.10)" }}>{link.icon}</span>
-                            <span className="w-full truncate">{link.label}</span>
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
+              {/* Flat link grid — no categories */}
+              <div className="flex-1 min-h-0 overflow-y-auto header-scroll-area px-2 py-2">
+                <div className="grid grid-cols-2 gap-x-1">
+                  {roleLinks.map((link) => (
+                    <Link
+                      key={`${link.href}-${link.label}`}
+                      href={link.href}
+                      onClick={() => setIsOpen(false)}
+                      className="truncate rounded-md px-2 py-1.5 text-[12.5px] font-medium transition-colors hover:bg-[#12203B]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E]"
+                      style={{ color: COLORS.navy }}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
               </div>
 
-              <div className="p-3 shrink-0" style={{ backgroundColor: "white", boxShadow: "inset 0 1px 0 rgba(18,32,59,0.06)" }}>
-                <Link href="/dashboard" onClick={() => setIsOpen(false)} className="flex items-center justify-between rounded-xl px-4 py-3 text-[13.5px] font-bold transition-transform hover:-translate-y-px" style={{ backgroundColor: COLORS.navy, color: COLORS.white }}>
+              <div className="shrink-0 px-3 py-2.5" style={{ borderTop: `1px solid ${COLORS.border}` }}>
+                <Link href="/dashboard" onClick={() => setIsOpen(false)} className="flex items-center justify-between rounded-lg px-3 py-2 text-[12.5px] font-bold transition-colors hover:opacity-90" style={{ backgroundColor: COLORS.navy, color: COLORS.white }}>
                   <span>Go to Dashboard</span>
-                  <ArrowUpRight size={15} strokeWidth={2.4} />
+                  <ArrowUpRight size={14} strokeWidth={2.4} />
                 </Link>
               </div>
             </motion.div>
@@ -546,7 +675,6 @@ function DashboardDropdown({ user, variant = "desktop" }: { user: any; variant?:
           borderColor: "rgba(232, 163, 61, 0.3)",
         }}
       >
-        <LayoutDashboard size={16} strokeWidth={2.3} />
         <span>Dashboard</span>
         <ChevronDown size={15} strokeWidth={2.4} className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
       </button>
@@ -558,53 +686,41 @@ function DashboardDropdown({ user, variant = "desktop" }: { user: any; variant?:
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.96 }}
             transition={{ duration: 0.2 }}
-            className="absolute right-0 top-full mt-3 w-[580px] rounded-2xl shadow-[0_20px_50px_rgba(13,24,44,0.22)] z-[60] flex flex-col overflow-hidden"
-            style={{ backgroundColor: COLORS.surface, maxHeight: "calc(100vh - 120px)" }}
+            className="absolute right-0 top-full mt-2 w-[640px] rounded-xl border shadow-[0_16px_40px_rgba(13,24,44,0.22)] z-[60] flex flex-col overflow-hidden"
+            style={{ backgroundColor: "white", borderColor: COLORS.border, maxHeight: "calc(100vh - 100px)" }}
           >
-            <div className="p-4 pb-2 shrink-0">
-              <div className="flex items-center gap-3 px-3 py-3 rounded-xl" style={{ backgroundColor: "white" }}>
-                <UserAvatar user={user} size={44} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-[14.5px] font-medium truncate" style={{ color: COLORS.navy }}>{user?.firstName} {user?.lastName}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <p className="text-[11.5px] font-mono uppercase tracking-wide" style={{ color: COLORS.muted }}>{user?.role || "Student"}</p>
-                    {user?.techCenter && (
-                      <>
-                        <span style={{ color: COLORS.border }}>•</span>
-                        <p className="text-[11.5px] truncate" style={{ color: COLORS.muted }}>{user.techCenter.name}</p>
-                      </>
-                    )}
-                  </div>
-                </div>
+            {/* Slim user header */}
+            <div className="flex items-center gap-2.5 px-4 py-2.5 shrink-0" style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+              <UserAvatar user={user} size={30} />
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-semibold leading-tight truncate" style={{ color: COLORS.navy }}>{user?.firstName} {user?.lastName}</p>
+                <p className="text-[10px] font-mono uppercase tracking-wide truncate" style={{ color: COLORS.muted }}>
+                  {user?.role || "Student"}{user?.techCenter ? ` • ${user.techCenter.name}` : ""}
+                </p>
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto header-scroll-area px-4 pb-2">
-              <div className="space-y-4">
-                {dashboardGroups.map((groupName) => {
-                  const groupLinks = roleLinks.filter((l) => l.group === groupName);
-                  if (groupLinks.length === 0) return null;
-                  return (
-                    <div key={groupName}>
-                      <p className="text-[10px] font-mono uppercase tracking-[0.16em] mb-2 px-1" style={{ color: COLORS.subtle }}>{groupName}</p>
-                      <div className="grid grid-cols-3 gap-2">
-                        {groupLinks.map((link) => (
-                          <Link key={`${link.href}-${link.group}`} href={link.href} onClick={() => setIsOpen(false)} className="group/link flex min-h-[88px] flex-col items-start justify-between rounded-xl border p-3 text-left text-[12px] font-semibold transition-all hover:-translate-y-0.5 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E]" style={{ color: COLORS.navy, borderColor: COLORS.border, backgroundColor: "rgba(255,255,255,0.62)" }}>
-                            <span className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors group-hover/link:bg-[#12203B] group-hover/link:text-white" style={{ color: COLORS.brass, backgroundColor: "rgba(185,138,62,0.10)" }}>{link.icon}</span>
-                            <span className="w-full truncate">{link.label}</span>
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
+            {/* Flat link grid — no categories */}
+            <div className="flex-1 min-h-0 overflow-y-auto header-scroll-area px-2 py-2">
+              <div className="grid grid-cols-3 gap-x-1">
+                {roleLinks.map((link) => (
+                  <Link
+                    key={`${link.href}-${link.label}`}
+                    href={link.href}
+                    onClick={() => setIsOpen(false)}
+                    className="truncate rounded-md px-2 py-1.5 text-[12.5px] font-medium transition-colors hover:bg-[#12203B]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E]"
+                    style={{ color: COLORS.navy }}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
               </div>
             </div>
 
-            <div className="p-3 shrink-0" style={{ backgroundColor: "white", boxShadow: "inset 0 1px 0 rgba(18,32,59,0.06)" }}>
-              <Link href="/dashboard" onClick={() => setIsOpen(false)} className="flex items-center justify-between rounded-xl px-4 py-3 text-[13.5px] font-bold transition-transform hover:-translate-y-px" style={{ backgroundColor: COLORS.navy, color: COLORS.white }}>
+            <div className="shrink-0 px-3 py-2.5" style={{ borderTop: `1px solid ${COLORS.border}` }}>
+              <Link href="/dashboard" onClick={() => setIsOpen(false)} className="flex items-center justify-between rounded-lg px-3 py-2 text-[12.5px] font-bold transition-colors hover:opacity-90" style={{ backgroundColor: COLORS.navy, color: COLORS.white }}>
                 <span>Go to Dashboard</span>
-                <ArrowUpRight size={15} strokeWidth={2.4} />
+                <ArrowUpRight size={14} strokeWidth={2.4} />
               </Link>
             </div>
           </motion.div>
@@ -648,10 +764,14 @@ export default function Header2({ onlineUsers = [], isLoadingOnlineUsers = false
     return () => window.removeEventListener("scroll", handleScroll);
   }, [handleScroll]);
 
+
   const openAuth = (type: "login" | "register") => {
     setAuthModalType(type);
     setShowAuthModal(true);
   };
+
+  const isOverlayPage = pathname === "/";
+  const overlayHeader = isOverlayPage && !scrolled;
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
@@ -664,39 +784,54 @@ export default function Header2({ onlineUsers = [], isLoadingOnlineUsers = false
 
       <header
         ref={headerRef}
-        className="fixed inset-x-0 top-0 z-50 transition-all duration-300"
+        className={`${isOverlayPage ? "fixed inset-x-0 top-0" : "sticky top-0"} z-50 transition-all duration-300 ${overlayHeader ? "backdrop-blur-md" : ""}`}
         style={{
-          backgroundColor: COLORS.navy,
-          boxShadow: scrolled ? "0 12px 36px rgba(13,24,44,0.28)" : "0 6px 22px rgba(13,24,44,0.16)",
+          backgroundColor: overlayHeader ? "transparent" : COLORS.navy,
+          boxShadow: overlayHeader ? "none" : scrolled ? "0 12px 36px rgba(13,24,44,0.28)" : "0 6px 22px rgba(13,24,44,0.16)",
         }}
       >
-        {/* ROW 1 — TICKER */}
-        <div className="overflow-hidden">
-          <TickerStrip onlineUsers={user ? onlineUsers : []} isLoggedIn={Boolean(user?.id)} />
-        </div>
+        {/* Gradient scrim — keeps header readable over hero images */}
+        {overlayHeader && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-0 h-40"
+            style={{
+              background:
+                "linear-gradient(to bottom, rgba(13,24,44,0.35) 0%, rgba(13,24,44,0.18) 55%, transparent 100%)",
+            }}
+          />
+        )}
 
-        {/* IDENTITY STRIP — ABOVE THE NAVIGATION LINKS */}
-        <div style={{ backgroundColor: COLORS.navy }}>
-          <div className="mx-auto flex min-h-9 max-w-[1440px] items-center justify-between gap-3 px-4 py-1.5 sm:px-6 lg:px-8">
-            <p className="font-serif text-[13px] italic sm:text-[15px]" style={{ color: "rgba(247,246,242,0.9)" }}>Student Self Service Portal</p>
-            <div className="flex items-center gap-2">
-              <span className="hidden h-px w-6 bg-[#E8A33D]/50 sm:block" />
-              <p className="font-serif text-[12px] italic sm:text-[14px]" style={{ color: "rgba(232,163,61,0.95)" }}>Nurturing resilient minds</p>
-            </div>
-          </div>
+        {/* ROW 1 — TICKER */}
+        <div className="relative overflow-hidden">
+          <TickerStrip onlineUsers={user ? onlineUsers : []} isLoggedIn={Boolean(user?.id)} overlay={overlayHeader} />
         </div>
 
         {/* ROW 2 — MAIN NAVIGATION BAR */}
-        <div style={{ backgroundColor: COLORS.navy }}>
+        <div
+          className={overlayHeader ? "relative backdrop-blur-md" : ""}
+          style={{
+            backgroundColor: overlayHeader ? "transparent" : COLORS.navy,
+            borderBottom: overlayHeader ? "1px solid rgba(255,255,255,0.10)" : undefined,
+          }}
+        >
           <div className="mx-auto w-full max-w-[1440px] px-3 sm:px-5 lg:px-8">
             {/* ---------- DESKTOP (lg+) ---------- */}
             <div className={`hidden items-center justify-between gap-4 transition-all duration-300 lg:flex ${scrolled ? "h-[64px]" : "h-[74px]"}`}>
               {/* Enhanced Logo Area */}
               <Link href="/" aria-label="SELFLESS home" className="group flex shrink-0 items-center relative pl-3">
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-full" style={{ backgroundColor: COLORS.brassLight, boxShadow: `0 0 6px ${COLORS.brassLight}` }} />
-                <div className="relative h-10 w-[130px] lg:h-11 lg:w-[150px]">
-                  <Image src="/freedom.png" alt="SELFLESS" fill priority className="object-contain object-left transition-transform duration-300 group-hover:scale-[1.02]" />
+                <div className="flex flex-col">
+                  <div className="relative h-10 w-[130px] lg:h-11 lg:w-[150px]">
+                    <Image src="/freedom.png" alt="SELFLESS" fill priority className="object-contain object-left transition-transform duration-300 group-hover:scale-[1.02]" />
+                  </div>
+                  <span className="mt-0.5 block text-[8px] font-bold uppercase tracking-[0.24em] text-white/50 sm:text-[9px]" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}>
+                    Student Portal
+                  </span>
                 </div>
+                <span className="ml-4 hidden border-l border-white/15 pl-4 font-serif text-[13px] italic text-white/70 2xl:block" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}>
+                  Nurturing resilient minds
+                </span>
               </Link>
 
               <motion.nav initial="hidden" animate="visible" variants={navMotion} aria-label="Primary navigation" className="flex min-w-0 flex-1 items-center justify-center">
@@ -714,21 +849,15 @@ export default function Header2({ onlineUsers = [], isLoadingOnlineUsers = false
                   <>
                     <StatusIcons unreadCount={unreadCount} unreadMessageCount={unreadMessageCount} announcementCount={announcementCount} />
                     <div className="flex items-center gap-3 pl-2 border-l border-white/10 ml-1">
-                      <Link href="/dashboard/profile" className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl transition-colors hover:bg-white/10" style={{ color: "rgba(255,255,255,0.94)" }}>
+                      <Link href="/dashboard/profile" aria-label="Open profile" className="flex items-center rounded-xl transition-colors hover:bg-white/10">
                         <UserAvatar user={user} size={36} />
-                        <div className="hidden xl:block min-w-0">
-                          <p className="text-[13.5px] font-semibold leading-tight truncate max-w-[120px]">{user?.firstName} {user?.lastName}</p>
-                          {user?.techCenter && (
-                            <p className="text-[10px] font-mono uppercase tracking-wider opacity-70 truncate max-w-[120px] mt-0.5">{user.techCenter.name}</p>
-                          )}
-                        </div>
                       </Link>
                       <DashboardDropdown user={user} />
                     </div>
                   </>
                 ) : (
                   <>
-                    <button type="button" onClick={() => openAuth("login")} className="inline-flex h-10 items-center gap-2 px-4 text-[13.5px] font-semibold rounded-xl transition-colors duration-200 hover:bg-white/10 motion-reduce:transition-none" style={{ color: "rgba(255,255,255,0.92)", backgroundColor: "rgba(255,255,255,0.06)" }}>
+                    <button type="button" onClick={() => openAuth("login")} className="inline-flex h-10 items-center gap-2 px-4 text-[13.5px] font-semibold rounded-xl transition-colors duration-200 hover:bg-white/10 motion-reduce:transition-none" style={{ color: "rgba(255,255,255,0.92)", backgroundColor: "rgba(255,255,255,0.06)", textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}>
                       <LogIn size={16} strokeWidth={2} /> Login
                     </button>
                     <button type="button" onClick={() => openAuth("register")} className="group inline-flex h-10 items-center gap-2 px-4 text-[13.5px] font-bold rounded-xl transition-all duration-200 hover:-translate-y-px motion-reduce:transition-none" style={{ backgroundColor: COLORS.brassLight, color: COLORS.navy, boxShadow: "0 2px 10px rgba(232,163,61,0.28)" }}>
@@ -744,8 +873,13 @@ export default function Header2({ onlineUsers = [], isLoadingOnlineUsers = false
               {/* Enhanced Mobile Logo */}
               <Link href="/" aria-label="SELFLESS home" className="group flex min-w-0 shrink items-center relative pl-2">
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full" style={{ backgroundColor: COLORS.brassLight, boxShadow: `0 0 4px ${COLORS.brassLight}` }} />
-                <div className="relative h-9 w-[100px] sm:h-10 sm:w-[120px]">
-                  <Image src="/freedom.png" alt="SELFLESS" fill priority className="object-contain object-left transition-transform duration-300 group-hover:scale-[1.02]" />
+                <div className="flex flex-col">
+                  <div className="relative h-9 w-[100px] sm:h-10 sm:w-[120px]">
+                    <Image src="/freedom.png" alt="SELFLESS" fill priority className="object-contain object-left transition-transform duration-300 group-hover:scale-[1.02]" />
+                  </div>
+                  <span className="mt-0.5 block text-[7px] font-bold uppercase tracking-[0.22em] text-white/50 sm:text-[8px]" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}>
+                    Student Portal
+                  </span>
                 </div>
               </Link>
 
@@ -755,7 +889,7 @@ export default function Header2({ onlineUsers = [], isLoadingOnlineUsers = false
                 ) : user ? (
                   <>
                     <StatusIcons unreadCount={unreadCount} unreadMessageCount={unreadMessageCount} announcementCount={announcementCount} compact />
-                    {pathname.startsWith('/dashboard') && <GiftIcon />}
+                    {/* GiftIcon removed — dashboard layout renders it */}
                     <Link href="/dashboard/profile" aria-label="Open profile" className="flex items-center justify-center rounded-xl transition-colors hover:bg-white/10">
                       <UserAvatar user={user} size={34} />
                     </Link>
@@ -781,7 +915,6 @@ export default function Header2({ onlineUsers = [], isLoadingOnlineUsers = false
 
       </header>
 
-      <div aria-hidden="true" className="h-[152px] sm:h-[156px] lg:h-[146px]" />
 
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} defaultType={authModalType} />
     </>

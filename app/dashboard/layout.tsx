@@ -463,11 +463,12 @@ export default function DashboardLayout({
 
           <div className="w-full min-w-0">
             {/* ✅ FULL-WIDTH CONTENT — no max-width cap */}
-            <main className="min-h-screen w-full min-w-0 px-2 sm:px-3 lg:px-4 pt-[72px] pb-6">
+            <main className="min-h-screen w-full min-w-0 px-2 sm:px-3 lg:px-4 pt-16 pb-4">
               <div className="w-full min-w-0">
                 {/* PAGE HEADING */}
                 {pathname !==
                   '/dashboard' &&
+                  pathname !== '/dashboard/announcements' &&
                   !isAiPage &&
                   !isMessagesPage &&
                   !isConnectionsPage &&
