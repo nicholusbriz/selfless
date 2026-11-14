@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   invalidJsonBodyResponse,
   isString,
+  nullable,
   optional,
   parseJsonBody,
 } from '@/app/api/_lib/request-validation';
@@ -73,7 +74,7 @@ export async function POST(
 
   const body = await parseJsonBody(request, {
     content: isString,
-    parentId: optional(isString),
+    parentId: optional(nullable(isString)),
   });
   if (!body) return invalidJsonBodyResponse();
   const content = body.content.trim();

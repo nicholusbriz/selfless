@@ -13,6 +13,7 @@ let currentUrl;
 let existingImage;
 let updateData;
 let transactionFails;
+let transactionDelay;
 let uploadFails;
 let activeReference;
 let mediaReference;
@@ -45,11 +46,20 @@ stubModule('@/app/api/media/_lib/interactions', {
 });
 stubModule('@/lib/prisma/client', {
   prisma: {
-    $transaction: async (operation) => {
+    $transaction: async (operation, options) => {
+      const start = Date.now();
       const result = await operation({
         user: {
           findUniqueOrThrow: async () => ({ profileImageUrl: currentUrl }),
-          update: async ({ data }) => { updateData = data; },
+          update: async ({ data }) => {
+            if (transactionDelay) {
+              await new Promise((resolve) => setTimeout(resolve, transactionDelay));
+              if (Date.now() - start > (options?.timeout ?? 5000)) {
+                throw new Error('transaction expired');
+              }
+            }
+            updateData = data;
+          },
         },
         media: { findFirst: async () => existingImage },
         activityLog: {
@@ -79,6 +89,7 @@ beforeEach(() => {
   existingImage = null;
   updateData = null;
   transactionFails = false;
+  transactionDelay = 0;
   uploadFails = false;
   activeReference = null;
   mediaReference = null;
@@ -122,6 +133,14 @@ test('changing an avatar archives the previous photo as an approved profile imag
   assert.equal(updateData.media.create.category, 'profile');
   assert.equal(updateData.media.create.approvalStatus, 'APPROVED');
   assert.deepEqual(deletedBlobs, []);
+});
+
+test('preserves the previous image when database work exceeds five seconds', async () => {
+  transactionDelay = 5300;
+  const response = await upload();
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).previousImagePreserved, true);
+  assert.equal(updateData.media.create.publicUrl, oldUrl);
 });
 
 test('first upload and an existing approved gallery image do not create duplicates', async () => {
