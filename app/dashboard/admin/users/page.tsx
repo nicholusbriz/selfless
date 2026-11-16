@@ -19,6 +19,7 @@ import {
   Trash2,
   Eye,
   LoaderCircle,
+  X,
 } from 'lucide-react';
 import {
   useAdminUsers,
@@ -431,8 +432,23 @@ export default function AdminUsersPage() {
                       setPage(1);
                     }
                   }}
-                  className="w-full rounded-xl border border-[#DADCD3] bg-[#F9F9F7] py-2.5 pl-9 pr-3 text-sm text-[#12203B] outline-none transition placeholder:text-[#6B7280] focus:border-[#B98A3E] focus:ring-2 focus:ring-[#F3E5C3]"
+                  className={`w-full rounded-xl border border-[#DADCD3] bg-[#F9F9F7] py-2.5 pl-9 text-sm text-[#12203B] outline-none transition placeholder:text-[#6B7280] focus:border-[#B98A3E] focus:ring-2 focus:ring-[#F3E5C3] [&::-webkit-search-cancel-button]:appearance-none ${searchTerm ? 'pr-9' : 'pr-3'}`}
                 />
+
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchTerm('');
+                      setSubmittedSearchTerm('');
+                      setPage(1);
+                    }}
+                    className="absolute right-2.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full text-[#6B7280] transition hover:bg-[#E7E6E1] hover:text-[#12203B]"
+                    aria-label="Clear search"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
               <button
                 type="submit"
