@@ -420,6 +420,13 @@ const teacherNavigation: NavSection = {
       roles: ['teacher'],
     },
     {
+      id: 'manage-tuition',
+      label: 'Tuition',
+      path: '/dashboard/admin/tuition',
+      icon: <DollarSign className={iconClass} />,
+      roles: ['teacher'],
+    },
+    {
       id: 'attendance',
       label: 'Attendance',
       path: '/dashboard/cleaning',
