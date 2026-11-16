@@ -84,6 +84,7 @@ export async function getUserById(userId: string) {
       resetToken: true,
       resetTokenExpiry: true,
       role: true,
+      profileImageUrls: true,
     }
   });
 }
@@ -132,6 +133,7 @@ export async function getUserByEmail(email: string) {
       resetToken: true,
       resetTokenExpiry: true,
       role: true,
+      profileImageUrls: true,
     }
   });
 }

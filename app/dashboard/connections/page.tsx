@@ -434,7 +434,7 @@ function ConnectionCard({
                           className="inline-flex items-center gap-1 rounded-md bg-[#1A2B4C] px-2.5 py-1 text-[10px] font-semibold text-white transition-all hover:bg-[#2C3E5A] hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 active:scale-95"
                         >
                           {social.isFollowPending &&
-                          social.followTarget === user.id ? (
+                            social.followTarget === user.id ? (
                             <Loader2
                               className="h-3 w-3 animate-spin"
                               strokeWidth={2}
@@ -443,7 +443,7 @@ function ConnectionCard({
                             <UserPlus className="h-3 w-3" strokeWidth={2} />
                           )}
                           {social.isFollowPending &&
-                          social.followTarget === user.id
+                            social.followTarget === user.id
                             ? 'Following…'
                             : 'Follow Back'}
                         </button>
@@ -620,34 +620,34 @@ export default function ConnectionsPage() {
     count?: number;
     accent: string;
   }> = [
-    {
-      key: 'trending',
-      label: 'Trending',
-      icon: <TrendingUp className="h-4 w-4" strokeWidth={2.2} />,
-      accent: GOLD_DEEP,
-    },
-    {
-      key: 'followers',
-      label: 'Followers',
-      icon: <Users className="h-4 w-4" strokeWidth={2.2} />,
-      count: me?.followersCount,
-      accent: GOLD_DEEP,
-    },
-    {
-      key: 'following',
-      label: 'Following',
-      icon: <Users className="h-4 w-4" strokeWidth={2.2} />,
-      count: me?.followingCount,
-      accent: '#55705B',
-    },
-    {
-      key: 'likes',
-      label: 'Likes',
-      icon: <Heart className="h-4 w-4" strokeWidth={2.2} />,
-      count: me?.likesReceivedCount,
-      accent: '#DC2626',
-    },
-  ];
+      {
+        key: 'trending',
+        label: 'Trending',
+        icon: <TrendingUp className="h-4 w-4" strokeWidth={2.2} />,
+        accent: GOLD_DEEP,
+      },
+      {
+        key: 'followers',
+        label: 'Followers',
+        icon: <Users className="h-4 w-4" strokeWidth={2.2} />,
+        count: me?.followersCount,
+        accent: GOLD_DEEP,
+      },
+      {
+        key: 'following',
+        label: 'Following',
+        icon: <Users className="h-4 w-4" strokeWidth={2.2} />,
+        count: me?.followingCount,
+        accent: '#55705B',
+      },
+      {
+        key: 'likes',
+        label: 'Likes',
+        icon: <Heart className="h-4 w-4" strokeWidth={2.2} />,
+        count: me?.likesReceivedCount,
+        accent: '#DC2626',
+      },
+    ];
 
   return (
     <div className="min-h-screen bg-[#F7F6F2] text-[#1A2B4C]">
@@ -678,7 +678,7 @@ export default function ConnectionsPage() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <h1 className="text-[26px] font-bold leading-tight tracking-tight text-[#1A2B4C] sm:text-[30px]">
-                My Connections
+                Connections
               </h1>
               <p className="mt-1 text-[13px] font-medium leading-5 text-[#6B7280] sm:text-[14px]">
                 Trending peers, followers, following, and likes — all in one
@@ -727,7 +727,7 @@ export default function ConnectionsPage() {
               <nav
                 role="tablist"
                 aria-label="Connection views"
-                className="mt-4 flex flex-wrap items-center gap-1 border-b border-[#D1D5DB]"
+                className="mt-4 flex flex-wrap items-center gap-1"
               >
                 {tabs.map((tab) => {
                   const isActive = activeTab === tab.key;
@@ -738,11 +738,10 @@ export default function ConnectionsPage() {
                       role="tab"
                       aria-selected={isActive}
                       onClick={() => setActiveTab(tab.key)}
-                      className={`relative -mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-[13px] font-bold transition-colors ${
-                        isActive
-                          ? 'border-[#D4A84B] text-[#1A2B4C]'
-                          : 'border-transparent text-[#6B7280] hover:text-[#1A2B4C]'
-                      }`}
+                      className={`relative -mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-[13px] font-bold transition-colors ${isActive
+                        ? 'border-[#D4A84B] text-[#1A2B4C]'
+                        : 'border-transparent text-[#6B7280] hover:text-[#1A2B4C]'
+                        }`}
                     >
                       <span style={{ color: isActive ? tab.accent : undefined }}>
                         {tab.icon}
@@ -750,11 +749,10 @@ export default function ConnectionsPage() {
                       <span>{tab.label}</span>
                       {typeof tab.count === 'number' && (
                         <span
-                          className={`ml-0.5 rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold tabular-nums ${
-                            isActive
-                              ? 'bg-[#1A2B4C] text-white'
-                              : 'bg-[#E5E7EB] text-[#4B5646]'
-                          }`}
+                          className={`ml-0.5 rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold tabular-nums ${isActive
+                            ? 'bg-[#1A2B4C] text-white'
+                            : 'bg-[#E5E7EB] text-[#4B5646]'
+                            }`}
                         >
                           {tab.count}
                         </span>
@@ -779,11 +777,10 @@ export default function ConnectionsPage() {
               role="tab"
               aria-selected={likesView === 'received'}
               onClick={() => setLikesView('received')}
-              className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-[12px] font-bold transition-colors ${
-                likesView === 'received'
-                  ? 'bg-red-600 text-white'
-                  : 'text-[#4B5646] hover:bg-[#F7F6F2]'
-              }`}
+              className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-[12px] font-bold transition-colors ${likesView === 'received'
+                ? 'bg-red-600 text-white'
+                : 'text-[#4B5646] hover:bg-[#F7F6F2]'
+                }`}
             >
               <Heart className="h-3.5 w-3.5" strokeWidth={2.2} />
               Received ({likesQuery.data?.pages[0]?.totalLikes ?? 0})
@@ -793,11 +790,10 @@ export default function ConnectionsPage() {
               role="tab"
               aria-selected={likesView === 'sent'}
               onClick={() => setLikesView('sent')}
-              className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-[12px] font-bold transition-colors ${
-                likesView === 'sent'
-                  ? 'bg-red-600 text-white'
-                  : 'text-[#4B5646] hover:bg-[#F7F6F2]'
-              }`}
+              className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-[12px] font-bold transition-colors ${likesView === 'sent'
+                ? 'bg-red-600 text-white'
+                : 'text-[#4B5646] hover:bg-[#F7F6F2]'
+                }`}
             >
               <Heart className="h-3.5 w-3.5" strokeWidth={2.2} />
               You liked ({likesQuery.data?.pages[0]?.totalLikedUsers ?? 0})

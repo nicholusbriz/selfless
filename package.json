@@ -5,11 +5,13 @@
   "scripts": {
     "dev": "concurrently -k -n next,partyserver -c blue,magenta \"npm run dev:next\" \"npm run dev:partyserver\"",
     "dev:next": "set NODE_OPTIONS=--max-old-space-size=8192&& set NODE_NO_WARNINGS=1&& next dev --turbo",
+    "dev:noturbo": "concurrently -k -n next,partyserver -c blue,magenta \"set NODE_OPTIONS=--max-old-space-size=8192&& set NODE_NO_WARNINGS=1&& next dev\" \"wrangler dev\"",
     "dev:partyserver": "wrangler dev",
     "build": "set NEXT_BUILD_WORKERS=0&& prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "test:db": "tsx test-db-connection.ts"
   },
   "prisma": {
     "seed": "node ./prisma/test-database.js"

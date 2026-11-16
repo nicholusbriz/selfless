@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { getApiErrorMessage, isJsonObject, readJsonObject } from '@/lib/api-response';
 import Image from 'next/image';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 interface MediaItem {
   id: string;
@@ -50,11 +51,16 @@ export default function AzureImageGallery({
   category?: string;
   mine?: boolean;
 }) {
+  const { user } = useAuth();
   const [items, setItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Only show all users' media if user is dev or super_admin
+  const canSeeAll = user?.role?.name === 'dev' || user?.role?.name === 'super_admin';
+  const shouldShowMine = mine || !canSeeAll;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -67,7 +73,7 @@ export default function AzureImageGallery({
       try {
         const searchParams = new URLSearchParams();
         if (category) searchParams.set('category', category);
-        if (mine) {
+        if (shouldShowMine) {
           searchParams.set('mine', 'true');
         } else {
           searchParams.set('includeAll', 'true');
@@ -100,7 +106,7 @@ export default function AzureImageGallery({
       cancelled = true;
       controller.abort();
     };
-  }, [refreshKey, category, mine]);
+  }, [refreshKey, category, shouldShowMine]);
 
   useEffect(() => {
     const refresh = () => setRefreshKey((key) => key + 1);
@@ -236,7 +242,7 @@ export default function AzureImageGallery({
                 </p>
               )}
 
-              {mine && (
+              {shouldShowMine && (
                 <p
                   className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                     item.approvalStatus === 'APPROVED'
@@ -261,19 +267,21 @@ export default function AzureImageGallery({
                 </span>
               </div>
 
-              <button
-                type="button"
-                onClick={() => handleDelete(item.id)}
-                disabled={deletingId === item.id}
-                className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
-              >
-                {deletingId === item.id ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Trash2 className="h-3.5 w-3.5" />
-                )}
-                Delete
-              </button>
+              {shouldShowMine && (
+                <button
+                  type="button"
+                  onClick={() => handleDelete(item.id)}
+                  disabled={deletingId === item.id}
+                  className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
+                >
+                  {deletingId === item.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3.5 w-3.5" />
+                  )}
+                  Delete
+                </button>
+              )}
             </div>
           </div>
         ))}

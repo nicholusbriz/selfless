@@ -63,48 +63,21 @@ export async function POST(req: NextRequest) {
       previousImagePreserved = await prisma.$transaction(async (tx) => {
         const currentUser = await tx.user.findUniqueOrThrow({
           where: { id: user.id },
-          select: { profileImageUrl: true },
+          select: { profileImageUrl: true, profileImageUrls: true },
         });
         const oldImageUrl = currentUser.profileImageUrl;
-        const existingImage = oldImageUrl
-          ? await tx.media.findFirst({
-              where: {
-                userId: user.id,
-                publicUrl: oldImageUrl,
-                category: 'profile',
-                approvalStatus: 'APPROVED',
-                isActive: true,
-                isDeleted: false,
-              },
-              select: { id: true },
-            })
-          : null;
-        const oldBlobName = oldImageUrl
-          ? getOwnedProfileImageBlobName(oldImageUrl, user.id)
-          : null;
+        const existingUrls = currentUser.profileImageUrls || [];
+
+        // Add old image to the history array if it exists and isn't already there
+        const updatedUrls = oldImageUrl && !existingUrls.includes(oldImageUrl)
+          ? [...existingUrls, oldImageUrl]
+          : existingUrls;
 
         await tx.user.update({
           where: { id: user.id },
           data: {
             profileImageUrl: imageUrl,
-            ...(oldImageUrl && !existingImage && {
-              media: {
-                create: {
-                  blobName: oldBlobName ?? `external/${crypto.randomUUID()}`,
-                  publicUrl: oldImageUrl,
-                  containerName: oldBlobName ? PROFILE_IMAGES_CONTAINER : EXTERNAL_PROFILE_IMAGE_CONTAINER,
-                  contentType: 'image/unknown',
-                  size: 0,
-                  title: 'Previous profile photo',
-                  category: 'profile',
-                  tags: oldBlobName
-                    ? [ARCHIVED_PROFILE_IMAGE_TAG]
-                    : [ARCHIVED_PROFILE_IMAGE_TAG, EXTERNAL_PROFILE_IMAGE_TAG],
-                  approvalStatus: 'APPROVED',
-                  approvedAt: new Date(),
-                },
-              },
-            }),
+            profileImageUrls: [...updatedUrls, imageUrl],
           },
         });
 
@@ -121,18 +94,13 @@ export async function POST(req: NextRequest) {
         return Boolean(oldImageUrl);
       }, { timeout: 30000 });
     } catch (error) {
+      // Cleanup uploaded blob if database update failed
       try {
-        const [currentAvatar, archivedImage] = await Promise.all([
-          prisma.user.findFirst({
-            where: { profileImageUrl: imageUrl },
-            select: { id: true },
-          }),
-          prisma.media.findFirst({
-            where: { publicUrl: imageUrl },
-            select: { id: true },
-          }),
-        ]);
-        if (!currentAvatar && !archivedImage) {
+        const currentAvatar = await prisma.user.findFirst({
+          where: { profileImageUrl: imageUrl },
+          select: { id: true },
+        });
+        if (!currentAvatar) {
           await deleteProfileImage(imageUrl);
         }
       } catch (cleanupError) {

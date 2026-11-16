@@ -339,6 +339,19 @@ export default function AzureMediaUpload({
             description: description.trim(),
           };
 
+          // 5. If profile category, also add to user's profileImageUrls array
+          if (uploadCategory === 'profile') {
+            try {
+              await fetch('/api/user/add-profile-image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ imageUrl: publicUrl }),
+              });
+            } catch (err) {
+              console.error('Failed to add to profile gallery:', err);
+            }
+          }
+
           firstUploaded ??= result;
           setUploadedFiles((prev) => [...prev, result]);
           onUploadComplete?.(result);

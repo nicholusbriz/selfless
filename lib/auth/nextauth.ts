@@ -90,6 +90,7 @@ export const authOptions: AuthOptions = {
             teacherId: true,
             roleUpdatedAt: true,
             tokenVersion: true,
+            profileImageUrls: true,
           }
         });
 
@@ -187,6 +188,8 @@ export const authOptions: AuthOptions = {
         session.user.teacherId = token.teacherId as string | null;
         // Add tokenVersion for session invalidation tracking
         session.user.tokenVersion = token.tokenVersion as number;
+        // Add profileImageUrls array
+        session.user.profileImageUrls = token.profileImageUrls as string[] | null;
       }
       return session;
     },
@@ -231,6 +234,8 @@ export const authOptions: AuthOptions = {
 
         // Store tokenVersion for session invalidation
         token.tokenVersion = user.tokenVersion;
+        // Store profileImageUrls array
+        token.profileImageUrls = user.profileImageUrls || null;
       }
 
       // Re-fetch user data from database on session update
