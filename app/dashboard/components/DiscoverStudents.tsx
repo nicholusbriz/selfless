@@ -229,7 +229,7 @@ function useImagePreloader(urls: string[]) {
    DATA FETCHING (only when `students` prop is absent)
 ============================================================ */
 
-const BATCH_SIZE = 50;
+const BATCH_SIZE = 1000;
 const PREFETCH_THRESHOLD = 5; // Fetch more when within 5 of the end
 
 function useDiscoverStudents(

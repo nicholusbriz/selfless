@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
             firstName: true,
             lastName: true,
             profileImageUrl: true,
+            hasVerifiedBadge: true,
             role: {
               select: {
                 name: true,
@@ -167,6 +168,7 @@ export async function POST(request: NextRequest) {
             firstName: true,
             lastName: true,
             profileImageUrl: true,
+            hasVerifiedBadge: true,
             role: {
               select: {
                 name: true,

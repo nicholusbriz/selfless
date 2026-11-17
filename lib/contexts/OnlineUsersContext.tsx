@@ -8,6 +8,7 @@ export interface OnlineUser {
   firstName: string;
   lastName: string;
   fullName?: string;
+  hasVerifiedBadge?: boolean | null;
   image?: string | null;
   techCenter?: {
     id: string;
@@ -21,6 +22,7 @@ interface PresenceProfile {
   firstName: string;
   lastName: string;
   profileImageUrl: string | null;
+  hasVerifiedBadge?: boolean | null;
   techCenter: {
     id: string;
     name: string;
@@ -123,6 +125,7 @@ export function OnlineUsersProvider({ children, userId }: OnlineUsersProviderPro
                     firstName: profile.firstName,
                     lastName: profile.lastName,
                     fullName: `${profile.firstName} ${profile.lastName}`.trim(),
+                    hasVerifiedBadge: profile.hasVerifiedBadge,
                     image: profile.profileImageUrl,
                     techCenter: profile.techCenter || undefined,
                     connectedAt: new Date().toISOString(),

@@ -26,6 +26,7 @@ const getDiscoverStudents = unstable_cache(
         firstName: true,
         lastName: true,
         profileImageUrl: true,
+        hasVerifiedBadge: true,
         generalCourse: true,
         techCenter: {
           select: {

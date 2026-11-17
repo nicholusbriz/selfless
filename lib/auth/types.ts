@@ -46,6 +46,7 @@ declare module 'next-auth' {
       techCenterId: string | null;
       techCenter?: { id: string; name: string } | null;
       profileImageUrl: string | null;
+    hasVerifiedBadge?: boolean;
       status: string;
       isActive: boolean;
       phoneNumber?: string | null;
@@ -76,6 +77,7 @@ declare module 'next-auth' {
     techCenterId: string | null;
     techCenter?: { id: string; name: string } | null;
     profileImageUrl: string | null;
+    hasVerifiedBadge?: boolean;
     status: string;
     isActive: boolean;
     phoneNumber?: string | null;
@@ -108,6 +110,7 @@ declare module 'next-auth/jwt' {
     techCenterId: string | null;
     techCenter?: { id: string; name: string } | null;
     profileImageUrl: string | null;
+    hasVerifiedBadge?: boolean;
     status: string;
     isActive: boolean;
     phoneNumber?: string | null;

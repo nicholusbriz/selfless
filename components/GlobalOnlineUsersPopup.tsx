@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import { useOnlineUsersContext } from '@/lib/contexts/OnlineUsersContext';
 import { useAuth } from '@/lib/hooks/useAuth';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 export function GlobalOnlineUsersPopup() {
   const { onlineUsers } = useOnlineUsersContext();
@@ -100,7 +101,7 @@ export function GlobalOnlineUsersPopup() {
           <div className="min-w-0 flex flex-col leading-tight">
             {/* Row 1: Full Name (no break, no truncate) */}
             <p className="text-[9px] font-bold text-[#B98A3E] whitespace-nowrap">
-              {displayName}
+              {displayName}{onlineUser.hasVerifiedBadge && (<VerifiedBadge className="ml-0.5 inline h-2.5 w-2.5 align-[-1px]" />)}
             </p>
 
             {/* Row 2: Online Status */}

@@ -13,11 +13,14 @@ import {
   Trash2,
   MoreVertical,
   Power,
+  BadgeCheck,
   LoaderCircle,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
+
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 import {
   useSuperAdminUsers,
@@ -209,6 +212,20 @@ export default function SuperAdminUsersPage() {
       }
     );
     closeExpanded();
+  };
+
+  const handleToggleVerified = (user: User) => {
+    updateUserMutation.mutate(
+      {
+        userId: user.id,
+        data: { hasVerifiedBadge: !user.hasVerifiedBadge },
+      },
+      {
+        onError: (error) => {
+          window.alert(error.message || 'Failed to update verification');
+        },
+      },
+    );
   };
 
   const handleDeleteUser = (user: User) => {
@@ -504,6 +521,9 @@ export default function SuperAdminUsersPage() {
                           <p className="min-w-0 flex-1 truncate text-sm font-medium text-gray-900">
                             {user.firstName} {user.lastName}
                           </p>
+                          {user.hasVerifiedBadge && (
+                            <VerifiedBadge className="h-3.5 w-3.5 shrink-0" />
+                          )}
                           <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600">
                             {user.role?.name === 'teacher' ? 'Tutor' : user.role?.name === 'admin' ? 'Manager' : user.role?.name === 'superadmin' || user.role?.name === 'super_admin' ? 'Director' : user.role?.name || 'Student'}
                           </span>
@@ -565,6 +585,16 @@ export default function SuperAdminUsersPage() {
                             >
                               <Power className="h-4 w-4 text-gray-500" />
                               Status
+                            </button>
+                            <button
+                              onClick={() => {
+                                setMenuOpen(null);
+                                handleToggleVerified(user);
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50"
+                            >
+                              <BadgeCheck className="h-4 w-4 text-gray-500" />
+                              {user.hasVerifiedBadge ? 'Remove Blue Tick' : 'Give Blue Tick'}
                             </button>
                             <div className="border-t border-gray-100 my-1" />
                             <button

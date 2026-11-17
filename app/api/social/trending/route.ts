@@ -166,6 +166,7 @@ export async function GET(request: Request) {
       firstName: user.firstName,
       lastName: user.lastName,
       profileImageUrl: user.profileImageUrl,
+      hasVerifiedBadge: user.hasVerifiedBadge,
       role: user.role ?? null,
       techCenter: user.techCenter,
       previousTechCenter:

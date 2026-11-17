@@ -20,6 +20,7 @@ export interface CleaningDay {
       firstName: string;
       lastName: string;
       profileImageUrl: string | null;
+      hasVerifiedBadge?: boolean | null;
     };
   }[];
   attendanceRecords: {
@@ -31,6 +32,7 @@ export interface CleaningDay {
       firstName: string;
       lastName: string;
       profileImageUrl: string | null;
+      hasVerifiedBadge?: boolean | null;
     };
   }[];
 }
@@ -89,6 +91,7 @@ export interface CleaningData {
     profileImageUrl: string | null;
     role: string;
     techCenterId?: string;
+    hasVerifiedBadge?: boolean | null;
   };
   weeks: Week[];
   registrations: UserRegistration[];

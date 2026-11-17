@@ -10,6 +10,7 @@ export interface User {
   city?: string;
   status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
   isActive: boolean;
+  hasVerifiedBadge?: boolean;
   lastLoginAt?: string;
   createdAt: string;
   updatedAt: string;
@@ -70,6 +71,7 @@ export interface UpdateUserData {
   country?: string;
   city?: string;
   techCenterId?: string;
+  hasVerifiedBadge?: boolean;
 }
 
 export const adminUsersApi = {

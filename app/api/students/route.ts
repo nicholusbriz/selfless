@@ -53,12 +53,18 @@ interface GroupedStudent {
   likesReceivedCount: number;
   isFollowing: boolean;
   isLiked: boolean;
+  hasVerifiedBadge?: boolean | null;
 }
 
 function popularityComparator(a: GroupedStudent, b: GroupedStudent): number {
+  // Tier 0: verified WITH a profile image — first in every section
+  // Tier 1: anyone else with a profile image
+  // Tier 2: no profile image — always at the back
   const aHasImage = Boolean(a.profileImageUrl?.trim());
   const bHasImage = Boolean(b.profileImageUrl?.trim());
-  if (aHasImage !== bHasImage) return bHasImage ? 1 : -1;
+  const aTier = a.hasVerifiedBadge && aHasImage ? 0 : aHasImage ? 1 : 2;
+  const bTier = b.hasVerifiedBadge && bHasImage ? 0 : bHasImage ? 1 : 2;
+  if (aTier !== bTier) return aTier - bTier;
 
   if (b.followersCount !== a.followersCount) {
     return b.followersCount - a.followersCount;
@@ -245,12 +251,12 @@ export async function GET(request: Request) {
         orderBy,
       });
 
-    const hasMore = studentCandidates.length > limit;
+    let hasMore = studentCandidates.length > limit;
     const students = studentCandidates.slice(0, limit);
-    const studentIds = students.map((student) => student.id);
+    const studentIds = studentCandidates.map((student) => student.id);
     const previousTechCenterIds = Array.from(
       new Set(
-        students
+        studentCandidates
           .filter((student) => student.role?.name === 'super_admin')
           .map((student) => student.previousTechCenterId)
             .filter((id): id is string => typeof id === 'string' && id.length > 0),
@@ -276,7 +282,7 @@ export async function GET(request: Request) {
     );
 
     // -------- Build flat list with live stats --------
-    const rankedStudents: GroupedStudent[] = students
+    const rankedStudents: GroupedStudent[] = studentCandidates
       .map((student) => {
         const previousTechCenter =
           student.role?.name === 'super_admin' && student.previousTechCenterId
@@ -291,6 +297,7 @@ export async function GET(request: Request) {
           firstName: student.firstName,
           lastName: student.lastName,
           profileImageUrl: student.profileImageUrl,
+          hasVerifiedBadge: student.hasVerifiedBadge,
           role: student.role,
           techCenter: studentTechCenter,
           generalCourse: student.generalCourse,
@@ -312,7 +319,10 @@ export async function GET(request: Request) {
       .sort(popularityComparator);
 
     // -------- 5. Group the ranked directory by tech center --------
+    // Verified users always rank first inside each group; each section
+    // is capped at `limit` so no verified user is cut by a global slice.
     const studentsByTechCenter: Record<string, GroupedStudent[]> = {};
+    let groupOverflow = false;
 
     for (const student of rankedStudents) {
       const techCenterName = student.techCenter?.name || 'No Tech Center';
@@ -321,12 +331,19 @@ export async function GET(request: Request) {
         studentsByTechCenter[techCenterName] = [];
       }
 
+      if (studentsByTechCenter[techCenterName].length >= limit) {
+        groupOverflow = true;
+        continue;
+      }
+
       studentsByTechCenter[techCenterName].push(student);
     }
 
+    hasMore = hasMore || groupOverflow;
+
     return NextResponse.json(
       {
-        students: rankedStudents,
+        students: rankedStudents.slice(0, limit),
         studentsByTechCenter,
         hasMore,
         nextOffset: offset + students.length,

@@ -85,6 +85,7 @@ export async function getUserById(userId: string) {
       resetTokenExpiry: true,
       role: true,
       profileImageUrls: true,
+      hasVerifiedBadge: true,
     }
   });
 }
@@ -134,6 +135,7 @@ export async function getUserByEmail(email: string) {
       resetTokenExpiry: true,
       role: true,
       profileImageUrls: true,
+      hasVerifiedBadge: true,
     }
   });
 }
