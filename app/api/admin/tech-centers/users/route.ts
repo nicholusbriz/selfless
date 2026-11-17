@@ -175,9 +175,31 @@ export async function GET(request: NextRequest) {
           take: limit,
         });
 
+    // Lite mode: tuition lives on StudentCourse — build studentId -> tuition map
+    const liteTuitionMap = new Map<string, number>();
+    if (lite) {
+      const courseRows = await prisma.studentCourse.findMany({
+        where: {
+          student: { techCenterId: techCenterId },
+          status: "ACTIVE",
+          tuition: { gt: 0 },
+        },
+        select: { studentId: true, tuition: true },
+      });
+      for (const row of courseRows) {
+        if (row.tuition != null && !liteTuitionMap.has(row.studentId)) {
+          liteTuitionMap.set(row.studentId, row.tuition);
+        }
+      }
+    }
+
     // Add tuitionAmount to each user from their courses (use first course's tuition)
     const usersWithTuition = lite
-      ? users
+      ? users.map((u) => ({
+          ...u,
+          tuitionAmount:
+            liteTuitionMap.get(u.id) ?? u.tuitionAmount ?? null,
+        }))
       : users.map(user => {
           const courses =
             (user as { submittedCourses?: Array<{ tuition?: number | null }> })
@@ -199,17 +221,23 @@ export async function GET(request: NextRequest) {
     let totalCreditsAllUsers = 0;
 
     if (lite) {
-      const [tuitionCount, tuitionAgg] = await Promise.all([
-        prisma.user.count({
-          where: { techCenterId: techCenterId, tuitionAmount: { gt: 0 } },
-        }),
+      const uncoveredIds = [...liteTuitionMap.keys()];
+      const extraWhere: Prisma.UserWhereInput = {
+        techCenterId: techCenterId,
+        tuitionAmount: { gt: 0 },
+        ...(uncoveredIds.length ? { id: { notIn: uncoveredIds } } : {}),
+      };
+      const [extraCount, extraAgg] = await Promise.all([
+        prisma.user.count({ where: extraWhere }),
         prisma.user.aggregate({
-          where: { techCenterId: techCenterId },
+          where: extraWhere,
           _sum: { tuitionAmount: true },
         }),
       ]);
-      withTuition = tuitionCount;
-      totalTuitionSum = tuitionAgg._sum.tuitionAmount ?? 0;
+      withTuition = liteTuitionMap.size + extraCount;
+      totalTuitionSum =
+        Array.from(liteTuitionMap.values()).reduce((a, b) => a + b, 0) +
+        (extraAgg._sum.tuitionAmount ?? 0);
     } else {
       // Get all active student courses to calculate tuition stats
       const allStudentCourses = await prisma.studentCourse.findMany({
